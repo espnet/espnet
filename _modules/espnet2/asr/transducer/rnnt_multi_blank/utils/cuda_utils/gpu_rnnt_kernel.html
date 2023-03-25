@@ -1,0 +1,1304 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="../../../../../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../../../../../_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../../../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../../../../../" src="../../../../../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../../../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../../../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../../../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../../../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../../../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../../../../../index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202301
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../../../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../../../../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright (c) 2021, NVIDIA CORPORATION.  All rights reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1">#</span>
+<span class="c1"># Copyright 2018-2019, Mingkun Huang</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#    http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">from</span> <span class="nn">numba</span> <span class="kn">import</span> <span class="n">cuda</span>
+
+<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.rnnt_multi_blank.utils</span> <span class="kn">import</span> <span class="n">rnnt_helper</span>
+
+<span class="n">GPU_RNNT_THREAD_SIZE</span> <span class="o">=</span> <span class="mi">256</span>
+
+
+<div class="viewcode-block" id="logp"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.logp">[docs]</a><span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">inline</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">logp</span><span class="p">(</span>
+    <span class="n">denom</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">acts</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">maxT</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxU</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">mb</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">t</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">u</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">v</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute the sum of log probability from the activation tensor and its denominator.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        denom: Tensor of shape [B, T, U] flattened. Represents the denominator of the</span>
+<span class="sd">            logprobs activation tensor across entire vocabulary.</span>
+<span class="sd">        acts: Tensor of shape [B, T, U, V+1] flattened.</span>
+<span class="sd">            Represents the logprobs activation tensor.</span>
+<span class="sd">        maxT: The maximum possible acoustic sequence length.</span>
+<span class="sd">            Represents T in the logprobs tensor.</span>
+<span class="sd">        maxU: The maximum possible target sequence length.</span>
+<span class="sd">            Represents U in the logprobs tensor.</span>
+<span class="sd">        alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT blank).</span>
+<span class="sd">        mb: Batch indexer.</span>
+<span class="sd">        t: Acoustic sequence timestep indexer.</span>
+<span class="sd">        u: Target sequence timestep indexer.</span>
+<span class="sd">        v: Vocabulary token indexer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        The sum of logprobs[mb, t, u, v] + denom[mb, t, u]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">col</span> <span class="o">=</span> <span class="p">(</span><span class="n">mb</span> <span class="o">*</span> <span class="n">maxT</span> <span class="o">+</span> <span class="n">t</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span>
+    <span class="k">return</span> <span class="n">denom</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">acts</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">v</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="compute_alphas_kernel"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_alphas_kernel">[docs]</a><span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">compute_alphas_kernel</span><span class="p">(</span>
+    <span class="n">acts</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">denom</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">alphas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">llForward</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">xlen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ylen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">mlabels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>  <span class="c1"># [B]</span>
+    <span class="n">minibatch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxT</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxU</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">blank_</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute alpha (forward variable) probabilities over the transduction step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        acts: Tensor of shape [B, T, U, V+1] flattened.</span>
+<span class="sd">            Represents the logprobs activation tensor.</span>
+<span class="sd">        denom: Tensor of shape [B, T, U] flattened. Represents the denominator of the</span>
+<span class="sd">            logprobs activation tensor across entire vocabulary.</span>
+<span class="sd">        alphas: Zero tensor of shape [B, T, U]. Will be updated inside the kernel</span>
+<span class="sd">            with the forward variable probabilities.</span>
+<span class="sd">        llForward: Zero tensor of shape [B]. Represents the log-likelihood of the</span>
+<span class="sd">            forward pass. Returned as the forward pass loss that is reduced by</span>
+<span class="sd">            the optimizer.</span>
+<span class="sd">        xlen: Vector of length B which contains the actual acoustic sequence</span>
+<span class="sd">            lengths in the padded activation tensor.</span>
+<span class="sd">        ylen: Vector of length B which contains the actual target sequence</span>
+<span class="sd">            lengths in the padded activation tensor.</span>
+<span class="sd">        mlabels: Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token</span>
+<span class="sd">            - usually the RNNT blank). The matrix contains the padded target</span>
+<span class="sd">            transcription that must be predicted.</span>
+<span class="sd">        minibatch: Int representing the batch size.</span>
+<span class="sd">        maxT: The maximum possible acoustic sequence length.</span>
+<span class="sd">            Represents T in the logprobs tensor.</span>
+<span class="sd">        maxU: The maximum possible target sequence length.</span>
+<span class="sd">            Represents U in the logprobs tensor.</span>
+<span class="sd">        alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT blank).</span>
+<span class="sd">        blank_: Index of the RNNT blank token in the vocabulary.</span>
+<span class="sd">            Generally the first or last token in the vocab.</span>
+
+<span class="sd">    Updates:</span>
+<span class="sd">        Kernel inplace updates the following inputs:</span>
+<span class="sd">        -   alphas: forward variable scores.</span>
+<span class="sd">        -   llForward: log-likelihood of forward variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># // launch B blocks, each block has U threads</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">blockIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># // batch id</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># label id, u</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">xlen</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>  <span class="c1"># select AM length of current sample</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">ylen</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># select target length of current sample, +1 for the blank token</span>
+
+    <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">mlabels</span><span class="p">[</span>
+        <span class="n">b</span>
+    <span class="p">]</span>  <span class="c1"># mb label start point, equivalent to mlabels + b * (maxU - 1)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">maxT</span> <span class="o">*</span> <span class="n">maxU</span>  <span class="c1"># pointer indexing offset</span>
+
+    <span class="c1"># alphas += offset # pointer offset, ignored since we explicitly add offset</span>
+
+    <span class="c1"># Initilize alpha[b, t=0, u=0] for all b in B</span>
+    <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># sync until all alphas are initialized</span>
+    <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+    <span class="c1"># Ordinary alpha calculations, broadcast across B=b and U=u</span>
+    <span class="c1"># Look up forward variable calculation from rnnt_numpy.forward_pass()</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="n">u</span>
+
+        <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># for t in range(1, T) step to initialize alphas[b, t, 0]</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span><span class="p">:</span>
+                <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">alphas</span><span class="p">[</span>
+                    <span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span>
+                <span class="p">]</span> <span class="o">+</span> <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">blank_</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span><span class="p">:</span>
+            <span class="c1"># for u in range(1, U) step to initialize alphas[b, 0, u]</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                    <span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+
+            <span class="c1"># for t in range(1, T) for u in range(1, U) step to compute alphas[b, t, u]</span>
+            <span class="k">elif</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span><span class="p">:</span>
+                <span class="n">no_emit</span> <span class="o">=</span> <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                    <span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">blank_</span>
+                <span class="p">)</span>
+                <span class="n">emit</span> <span class="o">=</span> <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                    <span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+
+                <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span><span class="n">emit</span><span class="p">,</span> <span class="n">no_emit</span><span class="p">)</span>
+
+        <span class="c1"># sync across all B=b and U=u</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+    <span class="c1"># After final sync, alphas[b, T-1, U - 1] + logprobs[b, T-1, U-1, blank]</span>
+    <span class="c1"># + denom[b, T-1, U-1] gives log-likelihood of forward pass.</span>
+    <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">loglike</span> <span class="o">=</span> <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+            <span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">blank_</span>
+        <span class="p">)</span>
+        <span class="n">llForward</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">loglike</span></div>
+
+
+<div class="viewcode-block" id="compute_betas_kernel"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_betas_kernel">[docs]</a><span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">compute_betas_kernel</span><span class="p">(</span>
+    <span class="n">acts</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">denom</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">betas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">llBackward</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">xlen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ylen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">mlabels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>  <span class="c1"># [B, U]</span>
+    <span class="n">minibatch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxT</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxU</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">blank_</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute beta (backward variable) probabilities over the transduction step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        acts: Tensor of shape [B, T, U, V+1] flattened.</span>
+<span class="sd">            Represents the logprobs activation tensor.</span>
+<span class="sd">        denom: Tensor of shape [B, T, U] flattened. Represents the denominator</span>
+<span class="sd">            of the logprobs activation tensor across entire vocabulary.</span>
+<span class="sd">        betas: Zero tensor of shape [B, T, U]. Will be updated inside the kernel</span>
+<span class="sd">            with the backward variable probabilities.</span>
+<span class="sd">        llBackward: Zero tensor of shape [B]. Represents the log-likelihood</span>
+<span class="sd">            of the backward pass. Returned as the backward pass loss that</span>
+<span class="sd">            is reduced by the optimizer.</span>
+<span class="sd">        xlen: Vector of length B which contains the actual acoustic</span>
+<span class="sd">            sequence lengths in the padded activation tensor.</span>
+<span class="sd">        ylen: Vector of length B which contains the actual target sequence</span>
+<span class="sd">            lengths in the padded activation tensor.</span>
+<span class="sd">        mlabels: Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token</span>
+<span class="sd">            - usually the RNNT blank). The matrix contains the padded target</span>
+<span class="sd">            transcription that must be predicted.</span>
+<span class="sd">        minibatch: Int representing the batch size.</span>
+<span class="sd">        maxT: The maximum possible acoustic sequence length.</span>
+<span class="sd">            Represents T in the logprobs tensor.</span>
+<span class="sd">        maxU: The maximum possible target sequence length.</span>
+<span class="sd">            Represents U in the logprobs tensor.</span>
+<span class="sd">        alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT blank).</span>
+<span class="sd">        blank_: Index of the RNNT blank token in the vocabulary.</span>
+<span class="sd">            Generally the first or last token in the vocab.</span>
+
+<span class="sd">    Updates:</span>
+<span class="sd">        Kernel inplace updates the following inputs:</span>
+<span class="sd">        -   betas: backward variable scores.</span>
+<span class="sd">        -   llBackward: log-likelihood of backward variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># // launch B blocks, each block has U threads</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">blockIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># // batch id</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># label id, u</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">xlen</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>  <span class="c1"># select AM length of current sample</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">ylen</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># select target length of current sample, +1 for the blank token</span>
+
+    <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">mlabels</span><span class="p">[</span>
+        <span class="n">b</span>
+    <span class="p">]</span>  <span class="c1"># mb label start point, equivalent to mlabels + b * (maxU - 1)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">maxT</span> <span class="o">*</span> <span class="n">maxU</span>  <span class="c1"># pointer indexing offset</span>
+
+    <span class="c1"># betas += offset # pointer offset, ignored since we explicitly add offset</span>
+
+    <span class="c1"># Initilize beta[b, t=T-1, u=U-1] for all b in B</span>
+    <span class="c1"># with log_probs[b, t=T-1, u=U-1, blank]</span>
+    <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">logp</span><span class="p">(</span>
+            <span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">blank_</span>
+        <span class="p">)</span>
+
+    <span class="c1"># sync until all betas are initialized</span>
+    <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+    <span class="c1"># Ordinary beta calculations, broadcast across B=b and U=u</span>
+    <span class="c1"># Look up backward variable calculation from rnnt_numpy.backward_pass()</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="n">u</span>
+
+        <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="p">(</span><span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="c1"># for t in reversed(range(T - 1)) step to initialize betas[b, t, U-1]</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">betas</span><span class="p">[</span>
+                    <span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span>
+                <span class="p">]</span> <span class="o">+</span> <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">blank_</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># for u in reversed(range(U - 1)) step to initialize betas[b, T-1, u]</span>
+                <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">betas</span><span class="p">[</span>
+                    <span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="p">]</span> <span class="o">+</span> <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">t</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="c1"># for t in reversed(range(T - 1)) for u in reversed(range(U - 1))</span>
+                <span class="c1"># step to compute betas[b, t, u]</span>
+                <span class="n">no_emit</span> <span class="o">=</span> <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                    <span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">blank_</span>
+                <span class="p">)</span>
+                <span class="n">emit</span> <span class="o">=</span> <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                    <span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span><span class="p">]</span>
+                <span class="p">)</span>
+                <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span><span class="n">emit</span><span class="p">,</span> <span class="n">no_emit</span><span class="p">)</span>
+
+        <span class="c1"># sync across all B=b and U=u</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+    <span class="c1"># After final sync, betas[b, 0, 0] gives</span>
+    <span class="c1"># log-likelihood of backward pass.</span>
+    <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">llBackward</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">betas</span><span class="p">[</span><span class="n">offset</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="compute_grad_kernel"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_grad_kernel">[docs]</a><span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">compute_grad_kernel</span><span class="p">(</span>
+    <span class="n">grads</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">acts</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">denom</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">alphas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">betas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">logll</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">xlen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ylen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">mlabels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>  <span class="c1"># [B, U]</span>
+    <span class="n">minibatch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxT</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxU</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">blank_</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">fastemit_lambda</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">clamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute gradients over the transduction step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        grads: Zero Tensor of shape [B, T, U, V+1]. Is updated by this kernel to</span>
+<span class="sd">            contain the gradients of this batch of samples.</span>
+<span class="sd">        acts: Tensor of shape [B, T, U, V+1] flattened.</span>
+<span class="sd">            Represents the logprobs activation tensor.</span>
+<span class="sd">        denom: Tensor of shape [B, T, U] flattened. Represents the denominator</span>
+<span class="sd">            of the logprobs activation tensor across entire vocabulary.</span>
+<span class="sd">        alphas: Alpha variable, contains forward probabilities.</span>
+<span class="sd">            A tensor of shape [B, T, U].</span>
+<span class="sd">        betas: Beta varoable, contains backward probabilities.</span>
+<span class="sd">            A tensor of shape [B, T, U].</span>
+<span class="sd">        logll: Log-likelihood of the forward variable, represented as a vector</span>
+<span class="sd">            of shape [B]. Represents the log-likelihood of the forward pass.</span>
+<span class="sd">        xlen: Vector of length B which contains the actual acoustic sequence</span>
+<span class="sd">            lengths in the padded activation tensor.</span>
+<span class="sd">        ylen: Vector of length B which contains the actual target sequence lengths</span>
+<span class="sd">            in the padded activation tensor.</span>
+<span class="sd">        mlabels: Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token</span>
+<span class="sd">            - usually the RNNT blank). The matrix contains the padded target</span>
+<span class="sd">            transcription that must be predicted.</span>
+<span class="sd">        minibatch: Int representing the batch size.</span>
+<span class="sd">        maxT: The maximum possible acoustic sequence length.</span>
+<span class="sd">            Represents T in the logprobs tensor.</span>
+<span class="sd">        maxU: The maximum possible target sequence length.</span>
+<span class="sd">            Represents U in the logprobs tensor.</span>
+<span class="sd">        alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT blank).</span>
+<span class="sd">        blank_: Index of the RNNT blank token in the vocabulary.</span>
+<span class="sd">            Generally the first or last token in the vocab.</span>
+<span class="sd">        fastemit_lambda: Float scaling factor for FastEmit regularization. Refer to</span>
+<span class="sd">            FastEmit: Low-latency Streaming ASR with Sequence-level</span>
+<span class="sd">            Emission Regularization.</span>
+<span class="sd">        clamp: Float value. When set to value &gt;= 0.0, will clamp the</span>
+<span class="sd">            gradient to [-clamp, clamp].</span>
+
+<span class="sd">    Updates:</span>
+<span class="sd">        Kernel inplace updates the following inputs:</span>
+<span class="sd">        -   grads: Gradients with respect to the log likelihood (logll).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Kernel call:</span>
+    <span class="c1"># blocks_per_grid = minibatch (b) * maxT (t) * maxU (u)</span>
+    <span class="c1"># threads_per_block = constant buffer size of parallel threads (v :: Constant)</span>
+    <span class="n">tid</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># represents v, taking steps of some constant size</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">tid</span>  <span class="c1"># index of v &lt; V+1; in steps of constant buffer size</span>
+    <span class="n">col</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">blockIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># represents a fused index of b * t * u</span>
+
+    <span class="c1"># Decompose original indices from fused `col`</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">col</span> <span class="o">%</span> <span class="n">maxU</span>  <span class="c1"># (b * t * u) % u = u</span>
+    <span class="n">bt</span> <span class="o">=</span> <span class="p">(</span><span class="n">col</span> <span class="o">-</span> <span class="n">u</span><span class="p">)</span> <span class="o">//</span> <span class="n">maxU</span>  <span class="c1"># (b * t * u - u) // U = b * t</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">bt</span> <span class="o">%</span> <span class="n">maxT</span>  <span class="c1"># (b * t) % t = t</span>
+    <span class="n">mb</span> <span class="o">=</span> <span class="p">(</span><span class="n">bt</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">//</span> <span class="n">maxT</span>  <span class="c1"># (b * t - t) // T = b</span>
+
+    <span class="c1"># constants</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">xlen</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span>  <span class="c1"># select AM length of current sample</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">ylen</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># select target length of current sample, +1 for the blank token</span>
+    <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">mlabels</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span>  <span class="c1"># labels = mlabels + mb * (maxU - 1);</span>
+
+    <span class="c1"># Buffered gradient calculations, broadcast across B=b, T=t and U=u,</span>
+    <span class="c1"># looped over V with some constant stride.</span>
+    <span class="c1"># Look up gradient calculation from rnnt_numpy.compute_gradient()</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="ow">and</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span><span class="p">:</span>
+        <span class="c1"># For cuda kernels, maximum number of threads per block is limited to some value</span>
+        <span class="c1"># However, it may be the case that vocabulary size is larger than this limit</span>
+        <span class="c1"># To work around this, an arbitrary thread buffer size is chosen such that,</span>
+        <span class="c1"># 1) each element within the thread pool operates independently of the other</span>
+        <span class="c1"># 2) An inner while loop moves the index of each buffer element by the size</span>
+        <span class="c1">#    of the buffer itself, such that all elements of the vocabulary size are</span>
+        <span class="c1">#    covered in (V + 1 // thread_buffer) number of steps.</span>
+        <span class="c1"># As such, each thread will perform the while loop at least</span>
+        <span class="c1"># (V + 1 // thread_buffer) number of times</span>
+        <span class="k">while</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="n">alphabet_size</span><span class="p">:</span>
+            <span class="c1"># remember, `col` represents the tri-index [b, t, u]</span>
+            <span class="c1"># therefore; logpk = denom[b, t, u] + acts[b, t, u, v]</span>
+            <span class="n">logpk</span> <span class="o">=</span> <span class="n">denom</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">acts</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span>
+            <span class="c1"># initialize the grad of the sample acts[b, t, u, v]</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">betas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">logpk</span> <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">])</span>
+
+            <span class="c1"># If FastEmit regularization is enabled, calculate the gradeint of</span>
+            <span class="c1"># probability of predicting the next label at the current timestep.</span>
+            <span class="c1"># The formula for this is Equation 9 in https://arxiv.org/abs/2010.11148,</span>
+            <span class="c1"># multiplied by the log probability of the current step (t, u),</span>
+            <span class="c1"># normalized by the total log likelihood. Once the gradient has been</span>
+            <span class="c1"># calculated, scale it by `fastemit_lambda`, as in Equation 10.</span>
+            <span class="k">if</span> <span class="n">fastemit_lambda</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">fastemit_grad</span> <span class="o">=</span> <span class="n">fastemit_lambda</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                    <span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>  <span class="c1"># alphas(t, u)</span>
+                    <span class="o">+</span> <span class="p">(</span>
+                        <span class="n">denom</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">acts</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span><span class="p">]]</span>
+                    <span class="p">)</span>  <span class="c1"># y_hat(t, u)</span>
+                    <span class="o">+</span> <span class="n">betas</span><span class="p">[</span><span class="n">col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># betas(t, u+1)</span>
+                    <span class="o">+</span> <span class="n">logpk</span>  <span class="c1"># log Pr(k|t, u)</span>
+                    <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span>  <span class="c1"># total log likelihood for normalization</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fastemit_grad</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="c1"># Update the gradient of act[b, t, u, v] with the gradient from</span>
+            <span class="c1"># FastEmit regularization</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">grad</span> <span class="o">+</span> <span class="n">fastemit_grad</span>
+
+            <span class="c1"># // grad to last blank transition</span>
+            <span class="c1"># grad[b, T-1, U-1, v=blank] -= exp(alphas[b, t, u) + logpk - logll[b])</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="n">blank_</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">u</span> <span class="o">==</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">grad</span> <span class="o">-=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">logpk</span> <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">])</span>
+
+            <span class="c1"># grad of blank across t &lt; T;</span>
+            <span class="c1"># grad[b, t&lt;T-1, u, v=blank] -= exp(alphas[b, t, u]</span>
+            <span class="c1">#     + logpk - logll[b] betas[b, t + 1, u])</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="n">blank_</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">grad</span> <span class="o">-=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">logpk</span> <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span> <span class="o">+</span> <span class="n">betas</span><span class="p">[</span><span class="n">col</span> <span class="o">+</span> <span class="n">maxU</span><span class="p">])</span>
+
+            <span class="c1"># grad of correct token across u &lt; U;</span>
+            <span class="c1"># grad[b, t, u&lt;U-1, v=label[u]] -= exp(alphas[b, t, u]</span>
+            <span class="c1">#     + logpk - logll[b] + betas[b, t, u+1])</span>
+            <span class="c1"># Scale the gradient by (1.0 + FastEmit_lambda) in log space,</span>
+            <span class="c1"># then exponentiate</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span><span class="p">]):</span>
+                <span class="c1"># exp(log(1 + fastemit_lambda) + ...) is numerically more stable than</span>
+                <span class="c1"># multiplying (1.0 + fastemit_lambda) with result.</span>
+                <span class="n">grad</span> <span class="o">-=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">fastemit_lambda</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logpk</span>
+                    <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">betas</span><span class="p">[</span><span class="n">col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+
+            <span class="c1"># update grads[b, t, u, v] = grad</span>
+            <span class="n">grads</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">grad</span>
+
+            <span class="c1"># clamp gradient (if needed)</span>
+            <span class="k">if</span> <span class="n">clamp</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">grads</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">clamp</span><span class="p">)</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="o">-</span><span class="n">clamp</span><span class="p">)</span>
+                <span class="n">grads</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span>
+
+            <span class="c1"># update internal index through the thread_buffer;</span>
+            <span class="c1"># until idx &lt; V + 1, such that entire vocabulary has been updated.</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="n">GPU_RNNT_THREAD_SIZE</span></div>
+
+
+<div class="viewcode-block" id="compute_multiblank_alphas_kernel"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_alphas_kernel">[docs]</a><span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">compute_multiblank_alphas_kernel</span><span class="p">(</span>
+    <span class="n">acts</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">denom</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">alphas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">llForward</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">xlen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ylen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">mlabels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">minibatch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxT</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxU</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">blank_</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">big_blank_duration</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">num_big_blanks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute alpha (forward variable) probabilities for multi-blank transducuer loss</span>
+<span class="sd">        (https://arxiv.org/pdf/2211.03541).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        acts: Tensor of shape [B, T, U, V + 1 + num_big_blanks] flattened.</span>
+<span class="sd">            Represents the logprobs activation tensor.</span>
+<span class="sd">        denom: Tensor of shape [B, T, U] flattened. Represents the denominator of</span>
+<span class="sd">            the logprobs activation tensor across entire vocabulary.</span>
+<span class="sd">        sigma: Hyper-parameter for logit-undernormalization technique for training</span>
+<span class="sd">            multi-blank transducers.</span>
+<span class="sd">        alphas: Zero tensor of shape [B, T, U]. Will be updated inside the kernel</span>
+<span class="sd">            with the forward variable probabilities.</span>
+<span class="sd">        llForward: Zero tensor of shape [B]. Represents the log-likelihood of the</span>
+<span class="sd">            forward pass. Returned as the forward pass loss that is</span>
+<span class="sd">            reduced by the optimizer.</span>
+<span class="sd">        xlen: Vector of length B which contains the actual acoustic sequence</span>
+<span class="sd">            lengths in the padded activation tensor.</span>
+<span class="sd">        ylen: Vector of length B which contains the actual target sequence</span>
+<span class="sd">            lengths in the padded activation tensor.</span>
+<span class="sd">        mlabels: Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token</span>
+<span class="sd">            - usually the RNNT blank). The matrix contains the padded target</span>
+<span class="sd">            transcription that must be predicted.</span>
+<span class="sd">        minibatch: Int representing the batch size.</span>
+<span class="sd">        maxT: The maximum possible acoustic sequence length.</span>
+<span class="sd">            Represents T in the logprobs tensor.</span>
+<span class="sd">        maxU: The maximum possible target sequence length.</span>
+<span class="sd">            Represents U in the logprobs tensor.</span>
+<span class="sd">        alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT blank).</span>
+<span class="sd">        blank_: Index of the RNNT standard blank token in the vocabulary.</span>
+<span class="sd">        big_blank_durations: Vector of supported big blank durations of the model.</span>
+<span class="sd">        num_big_blanks: Number of big blanks of the model.</span>
+
+<span class="sd">    Updates:</span>
+<span class="sd">        Kernel inplace updates the following inputs:</span>
+<span class="sd">        -   alphas: forward variable scores.</span>
+<span class="sd">        -   llForward: log-likelihood of forward variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># // launch B blocks, each block has U threads</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">blockIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># // batch id</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># label id, u</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">xlen</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>  <span class="c1"># select AM length of current sample</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">ylen</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># select target length of current sample, +1 for the blank token</span>
+
+    <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">mlabels</span><span class="p">[</span>
+        <span class="n">b</span>
+    <span class="p">]</span>  <span class="c1"># mb label start point, equivalent to mlabels + b * (maxU - 1)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">maxT</span> <span class="o">*</span> <span class="n">maxU</span>  <span class="c1"># pointer indexing offset</span>
+
+    <span class="c1"># Initilize alpha[b, t=0, u=0] for all b in B</span>
+    <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="c1"># sync until all alphas are initialized</span>
+    <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+    <span class="c1"># Ordinary alpha calculations, broadcast across B=b and U=u</span>
+    <span class="c1"># Look up forward variable calculation from rnnt_numpy.forward_pass()</span>
+    <span class="c1"># Note: because of the logit under-normalization, everytime logp() is called,</span>
+    <span class="c1"># it is always followed by a `-sigma` term.</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="n">u</span>
+
+        <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># for t in range(1, T) step to initialize alphas[b, t, 0]</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span><span class="p">:</span>
+                <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">blank_</span><span class="p">)</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                <span class="p">)</span>
+
+                <span class="c1"># Now add the weights for big blanks.</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_big_blanks</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                        <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span>
+                            <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">],</span>
+                            <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span>
+                            <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                                <span class="n">denom</span><span class="p">,</span>
+                                <span class="n">acts</span><span class="p">,</span>
+                                <span class="n">maxT</span><span class="p">,</span>
+                                <span class="n">maxU</span><span class="p">,</span>
+                                <span class="n">alphabet_size</span><span class="p">,</span>
+                                <span class="n">b</span><span class="p">,</span>
+                                <span class="n">t</span> <span class="o">-</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="mi">0</span><span class="p">,</span>
+                                <span class="n">blank_</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="o">-</span> <span class="n">sigma</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span><span class="p">:</span>
+            <span class="c1"># for u in range(1, U) step to initialize alphas[b, 0, u]</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                        <span class="n">denom</span><span class="p">,</span>
+                        <span class="n">acts</span><span class="p">,</span>
+                        <span class="n">maxT</span><span class="p">,</span>
+                        <span class="n">maxU</span><span class="p">,</span>
+                        <span class="n">alphabet_size</span><span class="p">,</span>
+                        <span class="n">b</span><span class="p">,</span>
+                        <span class="mi">0</span><span class="p">,</span>
+                        <span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">labels</span><span class="p">[</span><span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                <span class="p">)</span>
+
+            <span class="c1"># for t in range(1, T) for u in range(1, U) step to compute alphas[b, t, u]</span>
+            <span class="k">elif</span> <span class="n">t</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span><span class="p">:</span>
+                <span class="n">no_emit</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">blank_</span><span class="p">)</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                <span class="p">)</span>
+                <span class="n">emit</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                        <span class="n">denom</span><span class="p">,</span>
+                        <span class="n">acts</span><span class="p">,</span>
+                        <span class="n">maxT</span><span class="p">,</span>
+                        <span class="n">maxU</span><span class="p">,</span>
+                        <span class="n">alphabet_size</span><span class="p">,</span>
+                        <span class="n">b</span><span class="p">,</span>
+                        <span class="n">t</span><span class="p">,</span>
+                        <span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">labels</span><span class="p">[</span><span class="n">u</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                <span class="p">)</span>
+
+                <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span><span class="n">emit</span><span class="p">,</span> <span class="n">no_emit</span><span class="p">)</span>
+
+                <span class="c1"># Now add the weights for big blanks.</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_big_blanks</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                        <span class="c1"># big-blank weight here is</span>
+                        <span class="c1"># alpha(t - duration, u) * p(big-blank | t - duration, u)</span>
+                        <span class="c1">#     / exp(sigma), in log domain</span>
+                        <span class="c1"># do this all all big-blanks if the above condition is met</span>
+                        <span class="n">big_blank_no_emit</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">-</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span>
+                            <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                                <span class="n">denom</span><span class="p">,</span>
+                                <span class="n">acts</span><span class="p">,</span>
+                                <span class="n">maxT</span><span class="p">,</span>
+                                <span class="n">maxU</span><span class="p">,</span>
+                                <span class="n">alphabet_size</span><span class="p">,</span>
+                                <span class="n">b</span><span class="p">,</span>
+                                <span class="n">t</span> <span class="o">-</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="n">u</span><span class="p">,</span>
+                                <span class="n">blank_</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="o">-</span> <span class="n">sigma</span>
+                        <span class="p">)</span>
+                        <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span>
+                            <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">],</span> <span class="n">big_blank_no_emit</span>
+                        <span class="p">)</span>
+
+        <span class="c1"># sync across all B=b and U=u</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+    <span class="c1"># After final sync, alphas[b, T-1, U - 1] + logprobs[b, T-1, U-1, blank]</span>
+    <span class="c1"># + denom[b, T-1, U-1] gives log-likelihood of forward pass.</span>
+    <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">loglike</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="o">+</span> <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">blank_</span><span class="p">)</span>
+            <span class="o">-</span> <span class="n">sigma</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Now add the weights for big blanks for the final weight computation.</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_big_blanks</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">T</span> <span class="o">&gt;=</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                <span class="n">big_blank_loglike</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">alphas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                        <span class="n">denom</span><span class="p">,</span>
+                        <span class="n">acts</span><span class="p">,</span>
+                        <span class="n">maxT</span><span class="p">,</span>
+                        <span class="n">maxU</span><span class="p">,</span>
+                        <span class="n">alphabet_size</span><span class="p">,</span>
+                        <span class="n">b</span><span class="p">,</span>
+                        <span class="n">T</span> <span class="o">-</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">blank_</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                <span class="p">)</span>
+                <span class="n">loglike</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span><span class="n">loglike</span><span class="p">,</span> <span class="n">big_blank_loglike</span><span class="p">)</span>
+
+        <span class="n">llForward</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">loglike</span></div>
+
+
+<div class="viewcode-block" id="compute_multiblank_betas_kernel"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_betas_kernel">[docs]</a><span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">compute_multiblank_betas_kernel</span><span class="p">(</span>
+    <span class="n">acts</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">denom</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">betas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">llBackward</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">xlen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ylen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">mlabels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>  <span class="c1"># [B, U]</span>
+    <span class="n">minibatch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxT</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxU</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">blank_</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">big_blank_duration</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">num_big_blanks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute beta (backward variable) probabilities for multi-blank transducer loss</span>
+<span class="sd">        (https://arxiv.org/pdf/2211.03541).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        acts: Tensor of shape [B, T, U, V + 1 + num-big-blanks] flattened.</span>
+<span class="sd">            Represents the logprobs activation tensor.</span>
+<span class="sd">        denom: Tensor of shape [B, T, U] flattened. Represents the denominator</span>
+<span class="sd">            of the logprobs activation tensor across entire vocabulary.</span>
+<span class="sd">        sigma: Hyper-parameter for logit-undernormalization technique for</span>
+<span class="sd">            training multi-blank transducers.</span>
+<span class="sd">        betas: Zero tensor of shape [B, T, U]. Will be updated inside the kernel</span>
+<span class="sd">            with the backward variable probabilities.</span>
+<span class="sd">        llBackward: Zero tensor of shape [B]. Represents the log-likelihood</span>
+<span class="sd">            of the backward pass. Returned as the backward pass loss</span>
+<span class="sd">            that is reduced by the optimizer.</span>
+<span class="sd">        xlen: Vector of length B which contains the actual acoustic sequence</span>
+<span class="sd">            lengths in the padded activation tensor.</span>
+<span class="sd">        ylen: Vector of length B which contains the actual target sequence</span>
+<span class="sd">            lengths in the padded activation tensor.</span>
+<span class="sd">        mlabels: Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token</span>
+<span class="sd">            - usually the RNNT blank). The matrix contains the padded target</span>
+<span class="sd">            transcription that must be predicted.</span>
+<span class="sd">        minibatch: Int representing the batch size.</span>
+<span class="sd">        maxT: The maximum possible acoustic sequence length.</span>
+<span class="sd">            Represents T in the logprobs tensor.</span>
+<span class="sd">        maxU: The maximum possible target sequence length.</span>
+<span class="sd">            Represents U in the logprobs tensor.</span>
+<span class="sd">        alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT blank).</span>
+<span class="sd">        blank_: Index of the RNNT standard blank token in the vocabulary.</span>
+<span class="sd">        big_blank_durations: Vector of supported big blank durations of the model.</span>
+<span class="sd">        num_big_blanks: Number of big blanks of the model.</span>
+
+<span class="sd">    Updates:</span>
+<span class="sd">        Kernel inplace updates the following inputs:</span>
+<span class="sd">        -   betas: backward variable scores.</span>
+<span class="sd">        -   llBackward: log-likelihood of backward variable.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># // launch B blocks, each block has U threads</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">blockIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># // batch id</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># label id, u</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">xlen</span><span class="p">[</span><span class="n">b</span><span class="p">]</span>  <span class="c1"># select AM length of current sample</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">ylen</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># select target length of current sample, +1 for the blank token</span>
+
+    <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">mlabels</span><span class="p">[</span>
+        <span class="n">b</span>
+    <span class="p">]</span>  <span class="c1"># mb label start point, equivalent to mlabels + b * (maxU - 1)</span>
+    <span class="n">offset</span> <span class="o">=</span> <span class="n">b</span> <span class="o">*</span> <span class="n">maxT</span> <span class="o">*</span> <span class="n">maxU</span>  <span class="c1"># pointer indexing offset</span>
+
+    <span class="c1"># Note: just like the alphas, because of the logit under-normalization, everytime</span>
+    <span class="c1"># logp() is called, it is always followed by a `-sigma` term.</span>
+
+    <span class="c1"># Initilize beta[b, t=T-1, u=U-1] for all b in B with</span>
+    <span class="c1"># log_probs[b, t=T-1, u=U-1, blank]</span>
+    <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">blank_</span><span class="p">)</span>
+            <span class="o">-</span> <span class="n">sigma</span>
+        <span class="p">)</span>
+
+    <span class="c1"># sync until all betas are initialized</span>
+    <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+    <span class="c1"># Ordinary beta calculations, broadcast across B=b and U=u</span>
+    <span class="c1"># Look up backward variable calculation from rnnt_numpy.backward_pass()</span>
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">T</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="n">n</span> <span class="o">-</span> <span class="n">u</span>
+
+        <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="p">(</span><span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="c1"># for t in reversed(range(T - 1)) step to initialize betas[b, t, U-1]</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="c1"># beta[t, U - 1] = beta[t + 1, U - 1] * p(blank | t, U - 1) / exp(sigma)</span>
+                <span class="c1"># this part is the same as regular RNN-T.</span>
+                <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">blank_</span><span class="p">)</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                <span class="p">)</span>
+
+                <span class="c1"># now add the weights from big blanks</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_big_blanks</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">t</span> <span class="o">+</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">T</span><span class="p">:</span>
+                        <span class="c1"># adding to beta[t, U - 1] of weight (in log domain),</span>
+                        <span class="c1"># beta[t + duration, U - 1] *</span>
+                        <span class="c1">#     p(big-blank | t, U - 1) / exp(sigma)</span>
+                        <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span>
+                            <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                            <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                            <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                                <span class="n">denom</span><span class="p">,</span>
+                                <span class="n">acts</span><span class="p">,</span>
+                                <span class="n">maxT</span><span class="p">,</span>
+                                <span class="n">maxU</span><span class="p">,</span>
+                                <span class="n">alphabet_size</span><span class="p">,</span>
+                                <span class="n">b</span><span class="p">,</span>
+                                <span class="n">t</span><span class="p">,</span>
+                                <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">blank_</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="o">-</span> <span class="n">sigma</span><span class="p">,</span>
+                        <span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">t</span> <span class="o">+</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">==</span> <span class="n">T</span> <span class="ow">and</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="c1"># adding to beta[T - duration, U - 1] of weight (in log domain),</span>
+                        <span class="c1"># p(big-blank | T - duration, U - 1) / exp(sigma)</span>
+                        <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span>
+                            <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
+                            <span class="n">logp</span><span class="p">(</span>
+                                <span class="n">denom</span><span class="p">,</span>
+                                <span class="n">acts</span><span class="p">,</span>
+                                <span class="n">maxT</span><span class="p">,</span>
+                                <span class="n">maxU</span><span class="p">,</span>
+                                <span class="n">alphabet_size</span><span class="p">,</span>
+                                <span class="n">b</span><span class="p">,</span>
+                                <span class="n">t</span><span class="p">,</span>
+                                <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                                <span class="n">blank_</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="o">-</span> <span class="n">sigma</span><span class="p">,</span>
+                        <span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">t</span> <span class="o">==</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># for u in reversed(range(U - 1)) step to initialize betas[b, T-1, u]</span>
+                <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                        <span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span><span class="p">]</span>
+                    <span class="p">)</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="p">(</span><span class="n">t</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="c1"># for t in reversed(range(T - 1)) for u in reversed(range(U - 1))</span>
+                <span class="c1"># step to compute betas[b, t, u]</span>
+                <span class="n">no_emit</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">blank_</span><span class="p">)</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                <span class="p">)</span>
+                <span class="n">emit</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logp</span><span class="p">(</span><span class="n">denom</span><span class="p">,</span> <span class="n">acts</span><span class="p">,</span> <span class="n">maxT</span><span class="p">,</span> <span class="n">maxU</span><span class="p">,</span> <span class="n">alphabet_size</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span><span class="p">])</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                <span class="p">)</span>
+                <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span><span class="n">emit</span><span class="p">,</span> <span class="n">no_emit</span><span class="p">)</span>
+
+                <span class="c1"># now add the weights from big blanks</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_big_blanks</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="o">-</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+                        <span class="c1"># added weight for the big-blank,</span>
+                        <span class="c1"># beta[t + duration, u] * p(big-blank | t, u) / exp(sigma)</span>
+                        <span class="n">big_blank_no_emit</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">])</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span>
+                            <span class="o">+</span> <span class="n">logp</span><span class="p">(</span>
+                                <span class="n">denom</span><span class="p">,</span>
+                                <span class="n">acts</span><span class="p">,</span>
+                                <span class="n">maxT</span><span class="p">,</span>
+                                <span class="n">maxU</span><span class="p">,</span>
+                                <span class="n">alphabet_size</span><span class="p">,</span>
+                                <span class="n">b</span><span class="p">,</span>
+                                <span class="n">t</span><span class="p">,</span>
+                                <span class="n">u</span><span class="p">,</span>
+                                <span class="n">blank_</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">,</span>
+                            <span class="p">)</span>
+                            <span class="o">-</span> <span class="n">sigma</span>
+                        <span class="p">)</span>
+                        <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">rnnt_helper</span><span class="o">.</span><span class="n">log_sum_exp</span><span class="p">(</span>
+                            <span class="n">betas</span><span class="p">[</span><span class="n">offset</span> <span class="o">+</span> <span class="n">t</span> <span class="o">*</span> <span class="n">maxU</span> <span class="o">+</span> <span class="n">u</span><span class="p">],</span> <span class="n">big_blank_no_emit</span>
+                        <span class="p">)</span>
+
+        <span class="c1"># sync across all B=b and U=u</span>
+        <span class="n">cuda</span><span class="o">.</span><span class="n">syncthreads</span><span class="p">()</span>
+
+    <span class="c1"># After final sync, betas[b, 0, 0] gives</span>
+    <span class="c1"># log-likelihood of backward pass.</span>
+    <span class="k">if</span> <span class="n">u</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">llBackward</span><span class="p">[</span><span class="n">b</span><span class="p">]</span> <span class="o">=</span> <span class="n">betas</span><span class="p">[</span><span class="n">offset</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="compute_multiblank_grad_kernel"><a class="viewcode-back" href="../../../../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_grad_kernel">[docs]</a><span class="nd">@cuda</span><span class="o">.</span><span class="n">jit</span><span class="p">()</span>
+<span class="k">def</span> <span class="nf">compute_multiblank_grad_kernel</span><span class="p">(</span>
+    <span class="n">grads</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">acts</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">denom</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">sigma</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">alphas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">betas</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">logll</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">xlen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ylen</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">mlabels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>  <span class="c1"># [B, U]</span>
+    <span class="n">minibatch</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxT</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">maxU</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">alphabet_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">blank_</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">big_blank_duration</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">num_big_blanks</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">fastemit_lambda</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">clamp</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Compute gradients for multi-blank transducer loss</span>
+<span class="sd">        (https://arxiv.org/pdf/2211.03541).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        grads: Zero Tensor of shape [B, T, U, V + 1 + num_big_blanks].</span>
+<span class="sd">            Is updated by this kernel to contain the gradients of this batch of samples.</span>
+<span class="sd">        acts: Tensor of shape [B, T, U, V + 1 + num_big_blanks] flattened.</span>
+<span class="sd">            Represents the logprobs activation tensor.</span>
+<span class="sd">        denom: Tensor of shape [B, T, U] flattened. Represents the denominator</span>
+<span class="sd">            of the logprobs activation tensor across entire vocabulary.</span>
+<span class="sd">        sigma: Hyper-parameter for logit-undernormalization technique</span>
+<span class="sd">            for training multi-blank transducers.</span>
+<span class="sd">        alphas: Alpha variable, contains forward probabilities.</span>
+<span class="sd">            A tensor of shape [B, T, U].</span>
+<span class="sd">        betas: Beta varoable, contains backward probabilities.</span>
+<span class="sd">            A tensor of shape [B, T, U].</span>
+<span class="sd">        logll: Log-likelihood of the forward variable, represented as</span>
+<span class="sd">            a vector of shape [B]. Represents the log-likelihood of the forward pass.</span>
+<span class="sd">        xlen: Vector of length B which contains the actual acoustic</span>
+<span class="sd">            sequence lengths in the padded activation tensor.</span>
+<span class="sd">        ylen: Vector of length B which contains the actual target sequence</span>
+<span class="sd">            lengths in the padded activation tensor.</span>
+<span class="sd">        mlabels: Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token</span>
+<span class="sd">            - usually the RNNT blank). The matrix contains the padded target</span>
+<span class="sd">            transcription that must be predicted.</span>
+<span class="sd">        minibatch: Int representing the batch size.</span>
+<span class="sd">        maxT: The maximum possible acoustic sequence length.</span>
+<span class="sd">            Represents T in the logprobs tensor.</span>
+<span class="sd">        maxU: The maximum possible target sequence length.</span>
+<span class="sd">            Represents U in the logprobs tensor.</span>
+<span class="sd">        alphabet_size: The vocabulary dimension V+1 (inclusive of RNNT blank).</span>
+<span class="sd">        blank_: Index of the RNNT blank token in the vocabulary.</span>
+<span class="sd">            Generally the first or last token in the vocab.</span>
+<span class="sd">        fastemit_lambda: Float scaling factor for FastEmit regularization. Refer to</span>
+<span class="sd">            FastEmit: Low-latency Streaming ASR with Sequence-level</span>
+<span class="sd">            Emission Regularization.</span>
+<span class="sd">        clamp: Float value. When set to value &gt;= 0.0, will clamp</span>
+<span class="sd">            the gradient to [-clamp, clamp].</span>
+<span class="sd">        big_blank_durations: Vector of supported big blank durations of the model.</span>
+<span class="sd">        num_big_blanks: Number of big blanks of the model.</span>
+
+<span class="sd">    Updates:</span>
+<span class="sd">        Kernel inplace updates the following inputs:</span>
+<span class="sd">        -   grads: Gradients with respect to the log likelihood (logll).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Kernel call:</span>
+    <span class="c1"># blocks_per_grid = minibatch (b) * maxT (t) * maxU (u)</span>
+    <span class="c1"># threads_per_block = constant buffer size of parallel threads (v :: Constant)</span>
+    <span class="n">tid</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">threadIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># represents v, taking steps of some constant size</span>
+    <span class="n">idx</span> <span class="o">=</span> <span class="n">tid</span>  <span class="c1"># index of v &lt; V+1; in steps of constant buffer size</span>
+    <span class="n">col</span> <span class="o">=</span> <span class="n">cuda</span><span class="o">.</span><span class="n">blockIdx</span><span class="o">.</span><span class="n">x</span>  <span class="c1"># represents a fused index of b * t * u</span>
+
+    <span class="c1"># Decompose original indices from fused `col`</span>
+    <span class="n">u</span> <span class="o">=</span> <span class="n">col</span> <span class="o">%</span> <span class="n">maxU</span>  <span class="c1"># (b * t * u) % u = u</span>
+    <span class="n">bt</span> <span class="o">=</span> <span class="p">(</span><span class="n">col</span> <span class="o">-</span> <span class="n">u</span><span class="p">)</span> <span class="o">//</span> <span class="n">maxU</span>  <span class="c1"># (b * t * u - u) // U = b * t</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">bt</span> <span class="o">%</span> <span class="n">maxT</span>  <span class="c1"># (b * t) % t = t</span>
+    <span class="n">mb</span> <span class="o">=</span> <span class="p">(</span><span class="n">bt</span> <span class="o">-</span> <span class="n">t</span><span class="p">)</span> <span class="o">//</span> <span class="n">maxT</span>  <span class="c1"># (b * t - t) // T = b</span>
+
+    <span class="c1"># constants</span>
+    <span class="n">T</span> <span class="o">=</span> <span class="n">xlen</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span>  <span class="c1"># select AM length of current sample</span>
+    <span class="n">U</span> <span class="o">=</span> <span class="n">ylen</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># select target length of current sample, +1 for the blank token</span>
+    <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">mlabels</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span>  <span class="c1"># labels = mlabels + mb * (maxU - 1);</span>
+
+    <span class="c1"># Buffered gradient calculations, broadcast across B=b, T=t and U=u, looped over</span>
+    <span class="c1"># V with some constant stride. Look up gradient calculation from</span>
+    <span class="c1"># rnnt_numpy.compute_gradient()</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="ow">and</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span><span class="p">:</span>
+        <span class="c1"># For cuda kernels, maximum number of threads per block is limited to some value</span>
+        <span class="c1"># However, it may be the case that vocabulary size is larger than this limit</span>
+        <span class="c1"># To work around this, an arbitrary thread buffer size is chosen such that,</span>
+        <span class="c1"># 1) each element within the thread pool operates independently of the other</span>
+        <span class="c1"># 2) An inner while loop moves the index of each buffer element by the size</span>
+        <span class="c1">#    of the buffer itself, such that all elements of the vocabulary size are</span>
+        <span class="c1">#    covered in (V + 1 // thread_buffer) number of steps.</span>
+        <span class="c1"># As such, each thread will perform the while loop at least</span>
+        <span class="c1"># (V + 1 // thread_buffer) number of times</span>
+        <span class="k">while</span> <span class="n">idx</span> <span class="o">&lt;</span> <span class="n">alphabet_size</span><span class="p">:</span>
+            <span class="c1"># remember, `col` represents the tri-index [b, t, u]</span>
+            <span class="c1"># therefore; logpk = denom[b, t, u] + acts[b, t, u, v]</span>
+            <span class="n">logpk</span> <span class="o">=</span> <span class="n">denom</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">acts</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span>
+            <span class="c1"># initialize the grad of the sample acts[b, t, u, v]</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">betas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">logpk</span> <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">])</span>
+
+            <span class="c1"># In all of the following computation, whenever logpk is used, we</span>
+            <span class="c1"># need to subtract sigma based on our derivation of the gradient of</span>
+            <span class="c1"># the logit under-normalization method.</span>
+
+            <span class="c1"># If FastEmit regularization is enabled, calculate the gradeint of</span>
+            <span class="c1"># probability of predicting the next label at the current timestep.</span>
+            <span class="c1"># The formula for this is Equation 9 in https://arxiv.org/abs/2010.11148,</span>
+            <span class="c1"># multiplied by the log probability of the current step (t, u), normalized</span>
+            <span class="c1"># by the total log likelihood. Once the gradient has been calculated,</span>
+            <span class="c1"># scale it by `fastemit_lambda`, as in Equation 10.</span>
+            <span class="k">if</span> <span class="n">fastemit_lambda</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">fastemit_grad</span> <span class="o">=</span> <span class="n">fastemit_lambda</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                    <span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>  <span class="c1"># alphas(t, u)</span>
+                    <span class="o">+</span> <span class="p">(</span><span class="n">denom</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">acts</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span><span class="p">]])</span>
+                    <span class="o">+</span> <span class="n">betas</span><span class="p">[</span><span class="n">col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>  <span class="c1"># betas(t, u+1)</span>
+                    <span class="o">+</span> <span class="n">logpk</span>  <span class="c1"># log Pr(k|t, u)</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                    <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span>  <span class="c1"># total log likelihood for normalization</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">fastemit_grad</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+            <span class="c1"># Update the gradient of act[b, t, u, v] with the gradient</span>
+            <span class="c1"># from FastEmit regularization</span>
+            <span class="n">grad</span> <span class="o">=</span> <span class="n">grad</span> <span class="o">+</span> <span class="n">fastemit_grad</span>
+
+            <span class="c1"># grad to last blank transition</span>
+            <span class="c1"># grad[b, T-1, U-1, v=blank] -= exp(alphas[b, t, u)</span>
+            <span class="c1">#     + logpk - sigma - logll[b])</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="n">blank_</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">u</span> <span class="o">==</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">grad</span> <span class="o">-=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">logpk</span> <span class="o">-</span> <span class="n">sigma</span> <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># this is one difference of the multi-blank gradient from standard RNN-T</span>
+                <span class="c1"># gradient -- basically, wherever the blank_ symbol is addressed in the</span>
+                <span class="c1"># original code, we need to do similar things to big blanks, and we need</span>
+                <span class="c1"># to change the if conditions to match the duration of the big-blank.</span>
+                <span class="c1"># grad[b, T-duration, U-1, v=big-blank] -=</span>
+                <span class="c1">#     exp(alphas[b, t, u) + logpk - sigma - logll[b])</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_big_blanks</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="n">blank_</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span>
+                        <span class="ow">and</span> <span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="n">T</span> <span class="o">-</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+                        <span class="ow">and</span> <span class="p">(</span><span class="n">u</span> <span class="o">==</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="p">):</span>
+                        <span class="n">grad</span> <span class="o">-=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">logpk</span> <span class="o">-</span> <span class="n">sigma</span> <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">])</span>
+
+            <span class="c1"># grad of blank across t &lt; T;</span>
+            <span class="c1"># grad[b, t&lt;T-1, u, v=blank] -= exp(alphas[b, t, u] +</span>
+            <span class="c1">#    logpk - sigma - logll[b] betas[b, t + 1, u])</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="n">blank_</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">grad</span> <span class="o">-=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                    <span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span> <span class="o">+</span> <span class="n">logpk</span> <span class="o">-</span> <span class="n">sigma</span> <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span> <span class="o">+</span> <span class="n">betas</span><span class="p">[</span><span class="n">col</span> <span class="o">+</span> <span class="n">maxU</span><span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># This is another difference between multi-blank and RNN-T gradients.</span>
+                <span class="c1"># Now we consider gradients for big-blanks.</span>
+                <span class="c1"># grad[b, t&lt;T-duration, u, v=big-blank] -=</span>
+                <span class="c1">#     exp(alphas[b, t, u] + logpk - sigma - logll[b]</span>
+                <span class="c1">#     + betas[b, t + duration, u])</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_big_blanks</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="n">blank_</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">i</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">T</span> <span class="o">-</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
+                        <span class="n">grad</span> <span class="o">-=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                            <span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+                            <span class="o">+</span> <span class="n">logpk</span>
+                            <span class="o">-</span> <span class="n">sigma</span>
+                            <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span>
+                            <span class="o">+</span> <span class="n">betas</span><span class="p">[</span><span class="n">col</span> <span class="o">+</span> <span class="n">big_blank_duration</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">*</span> <span class="n">maxU</span><span class="p">]</span>
+                        <span class="p">)</span>
+
+            <span class="c1"># grad of correct token across u &lt; U;</span>
+            <span class="c1"># grad[b, t, u&lt;U-1, v=label[u]] -=</span>
+            <span class="c1">#     exp(alphas[b, t, u] + logpk - sigma - logll[b] + betas[b, t, u+1])</span>
+            <span class="c1"># Scale the gradient by (1.0 + FastEmit_lambda) in log space,</span>
+            <span class="c1"># then exponentiate</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">u</span> <span class="o">&lt;</span> <span class="n">U</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">idx</span> <span class="o">==</span> <span class="n">labels</span><span class="p">[</span><span class="n">u</span><span class="p">]):</span>
+                <span class="c1"># exp(log(1 + fastemit_lambda) + ...) is numerically more stable than</span>
+                <span class="c1"># multiplying (1.0 + fastemit_lambda) with result.</span>
+                <span class="n">grad</span> <span class="o">-=</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span>
+                    <span class="n">math</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">fastemit_lambda</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="n">alphas</span><span class="p">[</span><span class="n">col</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">logpk</span>
+                    <span class="o">-</span> <span class="n">sigma</span>
+                    <span class="o">-</span> <span class="n">logll</span><span class="p">[</span><span class="n">mb</span><span class="p">]</span>
+                    <span class="o">+</span> <span class="n">betas</span><span class="p">[</span><span class="n">col</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                <span class="p">)</span>
+
+            <span class="c1"># update grads[b, t, u, v] = grad</span>
+            <span class="n">grads</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">grad</span>
+
+            <span class="c1"># clamp gradient (if needed)</span>
+            <span class="k">if</span> <span class="n">clamp</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="n">grads</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">clamp</span><span class="p">)</span>
+                <span class="n">g</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="o">-</span><span class="n">clamp</span><span class="p">)</span>
+                <span class="n">grads</span><span class="p">[</span><span class="n">col</span> <span class="o">*</span> <span class="n">alphabet_size</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">g</span>
+
+            <span class="c1"># update internal index through the thread_buffer;</span>
+            <span class="c1"># until idx &lt; V + 1, such that entire vocabulary has been updated.</span>
+            <span class="n">idx</span> <span class="o">+=</span> <span class="n">GPU_RNNT_THREAD_SIZE</span></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

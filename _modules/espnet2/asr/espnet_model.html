@@ -254,6 +254,8 @@
         <span class="n">report_wer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">sym_space</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
         <span class="n">sym_blank</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;blank&gt;&quot;</span><span class="p">,</span>
+        <span class="n">transducer_multi_blank_durations</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">transducer_multi_blank_sigma</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span>
         <span class="c1"># In a regular ESPnet recipe, &lt;sos&gt; and &lt;eos&gt; are both &quot;&lt;sos/eos&gt;&quot;</span>
         <span class="c1"># Pretrained HF Tokenizer needs custom sym_sos and sym_eos</span>
         <span class="n">sym_sos</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;sos/eos&gt;&quot;</span><span class="p">,</span>
@@ -306,15 +308,29 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_transducer_decoder</span><span class="p">:</span>
-            <span class="kn">from</span> <span class="nn">warprnnt_pytorch</span> <span class="kn">import</span> <span class="n">RNNTLoss</span>
-
             <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">joint_network</span> <span class="o">=</span> <span class="n">joint_network</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">criterion_transducer</span> <span class="o">=</span> <span class="n">RNNTLoss</span><span class="p">(</span>
-                <span class="n">blank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span>
-                <span class="n">fastemit_lambda</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">transducer_multi_blank_durations</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">warprnnt_pytorch</span> <span class="kn">import</span> <span class="n">RNNTLoss</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">criterion_transducer</span> <span class="o">=</span> <span class="n">RNNTLoss</span><span class="p">(</span>
+                    <span class="n">blank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span>
+                    <span class="n">fastemit_lambda</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank</span> <span class="kn">import</span> <span class="p">(</span>
+                    <span class="n">MultiblankRNNTLossNumba</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">criterion_transducer</span> <span class="o">=</span> <span class="n">MultiblankRNNTLossNumba</span><span class="p">(</span>
+                    <span class="n">blank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span>
+                    <span class="n">big_blank_durations</span><span class="o">=</span><span class="n">transducer_multi_blank_durations</span><span class="p">,</span>
+                    <span class="n">sigma</span><span class="o">=</span><span class="n">transducer_multi_blank_sigma</span><span class="p">,</span>
+                    <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;mean&quot;</span><span class="p">,</span>
+                    <span class="n">fastemit_lambda</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">transducer_multi_blank_durations</span> <span class="o">=</span> <span class="n">transducer_multi_blank_durations</span>
 
             <span class="k">if</span> <span class="n">report_cer</span> <span class="ow">or</span> <span class="n">report_wer</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator_trans</span> <span class="o">=</span> <span class="n">ErrorCalculatorTransducer</span><span class="p">(</span>

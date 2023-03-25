@@ -177,6 +177,18 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-init-1">espnet2.asr.transducer.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-error-calculator-1">espnet2.asr.transducer.error_calculator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-beam-search-transducer-1">espnet2.asr.transducer.beam_search_transducer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-rnnt-multi-blank-1">espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-init-1">espnet2.asr.transducer.rnnt_multi_blank.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-rnnt-1">espnet2.asr.transducer.rnnt_multi_blank.rnnt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-init-1">espnet2.asr.transducer.rnnt_multi_blank.utils.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-rnnt-helper-1">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-global-constants-1">espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cpu-utils-cpu-rnnt-1">espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cpu-utils-init-1">espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-init-1">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-gpu-rnnt-1">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-gpu-rnnt-kernel-1">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-reduce-1">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-state-spaces-block-1">espnet2.asr.state_spaces.block</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-state-spaces-residual-1">espnet2.asr.state_spaces.residual</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-state-spaces-components-1">espnet2.asr.state_spaces.components</a></li>
@@ -483,7 +495,7 @@ the optimal permutation.</p></li>
 <span id="espnet2-asr-espnet-model"></span><h2>espnet2.asr.espnet_model<a class="headerlink" href="#espnet2-asr-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.espnet_model"></span><dl class="class">
 <dt id="espnet2.asr.espnet_model.ESPnetASRModel">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.espnet_model.</code><code class="sig-name descname">ESPnetASRModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: Optional[espnet2.asr.decoder.abs_decoder.AbsDecoder], ctc: espnet2.asr.ctc.CTC, joint_network: Optional[torch.nn.modules.module.Module], aux_ctc: dict = None, ctc_weight: float = 0.5, interctc_weight: float = 0.0, ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_cer: bool = True, report_wer: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', sym_sos: str = '&lt;sos/eos&gt;', sym_eos: str = '&lt;sos/eos&gt;', extract_feats_in_collect_stats: bool = True, lang_token_id: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/espnet_model.html#ESPnetASRModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.espnet_model.ESPnetASRModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.espnet_model.</code><code class="sig-name descname">ESPnetASRModel</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int, token_list: Union[Tuple[str, ...], List[str]], frontend: Optional[espnet2.asr.frontend.abs_frontend.AbsFrontend], specaug: Optional[espnet2.asr.specaug.abs_specaug.AbsSpecAug], normalize: Optional[espnet2.layers.abs_normalize.AbsNormalize], preencoder: Optional[espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder], encoder: espnet2.asr.encoder.abs_encoder.AbsEncoder, postencoder: Optional[espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder], decoder: Optional[espnet2.asr.decoder.abs_decoder.AbsDecoder], ctc: espnet2.asr.ctc.CTC, joint_network: Optional[torch.nn.modules.module.Module], aux_ctc: dict = None, ctc_weight: float = 0.5, interctc_weight: float = 0.0, ignore_id: int = -1, lsm_weight: float = 0.0, length_normalized_loss: bool = False, report_cer: bool = True, report_wer: bool = True, sym_space: str = '&lt;space&gt;', sym_blank: str = '&lt;blank&gt;', transducer_multi_blank_durations: List = [], transducer_multi_blank_sigma: float = 0.05, sym_sos: str = '&lt;sos/eos&gt;', sym_eos: str = '&lt;sos/eos&gt;', extract_feats_in_collect_stats: bool = True, lang_token_id: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/espnet_model.html#ESPnetASRModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.espnet_model.ESPnetASRModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
 <p>CTC-attention hybrid Encoder-Decoder model</p>
 <dl class="method">
@@ -2217,7 +2229,7 @@ char_target: Target character sequences. (B, ?)</p>
 <span class="target" id="module-espnet2.asr.transducer.beam_search_transducer"></span><p>Search algorithms for Transducer models.</p>
 <dl class="class">
 <dt id="espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.beam_search_transducer.</code><code class="sig-name descname">BeamSearchTransducer</code><span class="sig-paren">(</span><em class="sig-param">decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">joint_network: espnet2.asr_transducer.joint_network.JointNetwork</em>, <em class="sig-param">beam_size: int</em>, <em class="sig-param">lm: torch.nn.modules.module.Module = None</em>, <em class="sig-param">lm_weight: float = 0.1</em>, <em class="sig-param">search_type: str = 'default'</em>, <em class="sig-param">max_sym_exp: int = 2</em>, <em class="sig-param">u_max: int = 50</em>, <em class="sig-param">nstep: int = 1</em>, <em class="sig-param">prefix_alpha: int = 1</em>, <em class="sig-param">expansion_gamma: int = 2.3</em>, <em class="sig-param">expansion_beta: int = 2</em>, <em class="sig-param">score_norm: bool = True</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">token_list: Optional[List[str]] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer.html#BeamSearchTransducer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.beam_search_transducer.</code><code class="sig-name descname">BeamSearchTransducer</code><span class="sig-paren">(</span><em class="sig-param">decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">joint_network: espnet2.asr_transducer.joint_network.JointNetwork</em>, <em class="sig-param">beam_size: int</em>, <em class="sig-param">lm: torch.nn.modules.module.Module = None</em>, <em class="sig-param">lm_weight: float = 0.1</em>, <em class="sig-param">search_type: str = 'default'</em>, <em class="sig-param">max_sym_exp: int = 2</em>, <em class="sig-param">u_max: int = 50</em>, <em class="sig-param">nstep: int = 1</em>, <em class="sig-param">prefix_alpha: int = 1</em>, <em class="sig-param">expansion_gamma: int = 2.3</em>, <em class="sig-param">expansion_beta: int = 2</em>, <em class="sig-param">multi_blank_durations: List[int] = []</em>, <em class="sig-param">multi_blank_indices: List[int] = []</em>, <em class="sig-param">score_norm: bool = True</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">token_list: Optional[List[str]] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer.html#BeamSearchTransducer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Beam search implementation for Transducer.</p>
 <p>Initialize Transducer search module.</p>
@@ -2236,6 +2248,8 @@ char_target: Target character sequences. (B, ?)</p>
 <li><p><strong>prefix_alpha</strong> – Maximum prefix length in prefix search. (NSC/mAES)</p></li>
 <li><p><strong>expansion_beta</strong> – Number of additional candidates for expanded hypotheses selection. (mAES)</p></li>
 <li><p><strong>expansion_gamma</strong> – Allowed logp difference for prune-by-value method. (mAES)</p></li>
+<li><p><strong>multi_blank_durations</strong> – The duration of each blank token. (MBG)</p></li>
+<li><p><strong>multi_blank_indices</strong> – The index of each blank token in token_list. (MBG)</p></li>
 <li><p><strong>score_norm</strong> – Normalize final scores by length. (“default”)</p></li>
 <li><p><strong>nbest</strong> – Number of final hypothesis.</p></li>
 </ul>
@@ -2308,6 +2322,33 @@ char_target: Target character sequences. (B, ?)</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>nbest_hyps</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer.multi_blank_greedy_search">
+<code class="sig-name descname">multi_blank_greedy_search</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[espnet2.asr.transducer.beam_search_transducer.Hypothesis]<a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer.html#BeamSearchTransducer.multi_blank_greedy_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer.multi_blank_greedy_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Greedy Search for Multi-Blank Transducer (Multi-Blank Greedy, MBG).</p>
+<p>In this implementation, we assume:
+1. the index of standard blank is the last entry of self.multi_blank_indices</p>
+<blockquote>
+<div><p>rather than self.blank_id (to avoid too much change on original transducer)</p>
+</div></blockquote>
+<ol class="arabic simple" start="2">
+<li><p>other entries in self.multi_blank_indices are big blanks that account for
+multiple frames.</p></li>
+</ol>
+<p>Based on <a class="reference external" href="https://arxiv.org/abs/2211.03541">https://arxiv.org/abs/2211.03541</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>enc_out</strong> – Encoder output sequence. (T, D_enc)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>1-best hypothesis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>hyp</p>
 </dd>
 </dl>
 </dd></dl>
@@ -2403,6 +2444,1177 @@ until further modifications.</p>
 <code class="sig-name descname">lm_state</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer.Hypothesis.lm_state" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+</dd></dl>
+
+</section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-rnnt-multi-blank-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-rnnt-multi-blank"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-rnnt-multi-blank-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank"></span><dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.rnnt_loss">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.</code><code class="sig-name descname">rnnt_loss</code><span class="sig-paren">(</span><em class="sig-param">acts</em>, <em class="sig-param">labels</em>, <em class="sig-param">act_lens</em>, <em class="sig-param">label_lens</em>, <em class="sig-param">blank=0</em>, <em class="sig-param">reduction='mean'</em>, <em class="sig-param">fastemit_lambda: float = 0.0</em>, <em class="sig-param">clamp: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#rnnt_loss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.rnnt_loss" title="Permalink to this definition">¶</a></dt>
+<dd><p>RNN Transducer Loss (functional form)
+:param acts: Tensor of (batch x seqLength x labelLength x outputDim)</p>
+<blockquote>
+<div><p>containing output from network</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>labels</strong> – 2 dimensional Tensor containing all the targets of
+the batch with zero padded</p></li>
+<li><p><strong>act_lens</strong> – Tensor of size (batch) containing size of each
+output sequence from the network</p></li>
+<li><p><strong>label_lens</strong> – Tensor of (batch) containing label length of each example</p></li>
+<li><p><strong>blank</strong> (<em>int</em><em>, </em><em>optional</em>) – blank label. Default: 0.</p></li>
+<li><p><strong>reduction</strong> (<em>string</em><em>, </em><em>optional</em>) – Specifies the reduction to apply to the output:
+‘none’ | ‘mean’ | ‘sum’. ‘none’: no reduction will be applied,
+‘mean’: the output losses will be divided by the target lengths and
+then the mean over the batch is taken. Default: ‘mean’</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.</code><code class="sig-name descname">RNNTLossNumba</code><span class="sig-paren">(</span><em class="sig-param">blank=0</em>, <em class="sig-param">reduction='mean'</em>, <em class="sig-param">fastemit_lambda: float = 0.0</em>, <em class="sig-param">clamp: float = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#RNNTLossNumba"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>blank</strong> (<em>int</em><em>, </em><em>optional</em>) – blank label. Default: 0.</p></li>
+<li><p><strong>reduction</strong> (<em>string</em><em>, </em><em>optional</em>) – Specifies the reduction to apply to the output:
+‘none’ | ‘mean’ | ‘sum’. ‘none’: no reduction will be applied,
+‘mean’: the output losses will be divided by the target lengths and
+then the mean over the batch is taken. Default: ‘mean’</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with Sequence-level
+Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp the
+gradient to [-clamp, clamp].</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">acts</em>, <em class="sig-param">labels</em>, <em class="sig-param">act_lens</em>, <em class="sig-param">label_lens</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#RNNTLossNumba.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.RNNTLossNumba.forward" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>log_probs: Tensor of (batch x seqLength x labelLength x outputDim)</dt><dd><p>containing output from network</p>
+</dd>
+<dt>labels: 2 dimensional Tensor containing all the targets of the</dt><dd><p>batch with zero padded</p>
+</dd>
+<dt>act_lens: Tensor of size (batch) containing size of each output</dt><dd><p>sequence from the network</p>
+</dd>
+</dl>
+<p>label_lens: Tensor of (batch) containing label length of each example</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.</code><code class="sig-name descname">MultiblankRNNTLossNumba</code><span class="sig-paren">(</span><em class="sig-param">blank</em>, <em class="sig-param">big_blank_durations</em>, <em class="sig-param">reduction='mean'</em>, <em class="sig-param">fastemit_lambda: float = 0.0</em>, <em class="sig-param">clamp: float = -1</em>, <em class="sig-param">sigma: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#MultiblankRNNTLossNumba"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>blank</strong> (<em>int</em>) – standard blank label.</p></li>
+<li><p><strong>big_blank_durations</strong> – list of durations for multi-blank transducer, e.g.
+[2, 4, 8].</p></li>
+<li><p><strong>sigma</strong> – hyper-parameter for logit under-normalization method for training
+multi-blank transducers. Recommended value 0.05.</p></li>
+<li><p><strong>to https</strong> (<em>Refer</em>) – //arxiv.org/pdf/2211.03541 for detailed explanations for
+the above parameters;</p></li>
+<li><p><strong>reduction</strong> (<em>string</em><em>, </em><em>optional</em>) – Specifies the reduction to apply to the output:
+‘none’ | ‘mean’ | ‘sum’. ‘none’: no reduction will be applied,
+‘mean’: the output losses will be divided by the target lengths and
+then the mean over the batch is taken. Default: ‘mean’</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with Sequence-level
+Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp the
+gradient to [-clamp, clamp].</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">acts</em>, <em class="sig-param">labels</em>, <em class="sig-param">act_lens</em>, <em class="sig-param">label_lens</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt_multi_blank.html#MultiblankRNNTLossNumba.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank.MultiblankRNNTLossNumba.forward" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>log_probs: Tensor of (batch x seqLength x labelLength x outputDim)</dt><dd><p>containing output from network</p>
+</dd>
+<dt>labels: 2 dimensional Tensor containing all the targets of</dt><dd><p>the batch with zero padded</p>
+</dd>
+<dt>act_lens: Tensor of size (batch) containing size of each output</dt><dd><p>sequence from the network</p>
+</dd>
+</dl>
+<p>label_lens: Tensor of (batch) containing label length of each example</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-init-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-init"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.__init__<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-init-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.__init__"></span></section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-rnnt-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-rnnt"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.rnnt<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-rnnt-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.rnnt"></span><dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt.multiblank_rnnt_loss_gpu">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt.</code><code class="sig-name descname">multiblank_rnnt_loss_gpu</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">grads: torch.Tensor</em>, <em class="sig-param">blank_label: int</em>, <em class="sig-param">big_blank_durations: list</em>, <em class="sig-param">fastemit_lambda: float</em>, <em class="sig-param">clamp: float</em>, <em class="sig-param">num_threads: int</em>, <em class="sig-param">sigma: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt.html#multiblank_rnnt_loss_gpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt.multiblank_rnnt_loss_gpu" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Wrapper method for accessing GPU Multi-blank RNNT loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541.pdf">https://arxiv.org/pdf/2211.03541.pdf</a>).</p>
+</dd>
+<dt>CUDA implementation ported from [HawkAaron/warp-transducer]</dt><dd><p>(<a class="reference external" href="https://github.com/HawkAaron/warp-transducer">https://github.com/HawkAaron/warp-transducer</a>).</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Activation tensor of shape [B, T, U, V + num_big_blanks + 1].</p></li>
+<li><p><strong>labels</strong> – Ground truth labels of shape [B, U].</p></li>
+<li><p><strong>input_lengths</strong> – Lengths of the acoustic sequence as a vector of ints [B].</p></li>
+<li><p><strong>label_lengths</strong> – Lengths of the target sequence as a vector of ints [B].</p></li>
+<li><p><strong>costs</strong> – Zero vector of length [B] in which costs will be set.</p></li>
+<li><p><strong>grads</strong> – Zero tensor of shape [B, T, U, V + num_big_blanks + 1]
+where the gradient will be set.</p></li>
+<li><p><strong>blank_label</strong> – Index of the standard blank token in the vocabulary.</p></li>
+<li><p><strong>big_blank_durations</strong> – A list of supported durations for big blank symbols
+in the model, e.g. [2, 4, 8]. Note we only include durations for <a href="#system-message-1"><span class="problematic" id="problematic-1">``</span></a>big
+blanks’’ here and it should not include 1 for the standard blank.
+Those big blanks have vocabulary indices after the standard blank index.</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with Sequence-level
+Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp the
+gradient to [-clamp, clamp].</p></li>
+<li><p><strong>num_threads</strong> – Number of threads for OpenMP.</p></li>
+<li><p><strong>sigma</strong> – logit-undernormalization weight used in the multi-blank model. Refer to
+the multi-blank paper <a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>
+for detailed explanations.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt.rnnt_loss_cpu">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt.</code><code class="sig-name descname">rnnt_loss_cpu</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">grads: torch.Tensor</em>, <em class="sig-param">blank_label: int</em>, <em class="sig-param">fastemit_lambda: float</em>, <em class="sig-param">clamp: float</em>, <em class="sig-param">num_threads: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt.html#rnnt_loss_cpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt.rnnt_loss_cpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper method for accessing CPU RNNT loss.</p>
+<dl class="simple">
+<dt>CPU implementation ported from [HawkAaron/warp-transducer]</dt><dd><p>(<a class="reference external" href="https://github.com/HawkAaron/warp-transducer">https://github.com/HawkAaron/warp-transducer</a>).</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Activation tensor of shape [B, T, U, V+1].</p></li>
+<li><p><strong>labels</strong> – Ground truth labels of shape [B, U].</p></li>
+<li><p><strong>input_lengths</strong> – Lengths of the acoustic sequence as a vector of ints [B].</p></li>
+<li><p><strong>label_lengths</strong> – Lengths of the target sequence as a vector of ints [B].</p></li>
+<li><p><strong>costs</strong> – Zero vector of length [B] in which costs will be set.</p></li>
+<li><p><strong>grads</strong> – Zero tensor of shape [B, T, U, V+1] where the gradient will be set.</p></li>
+<li><p><strong>blank_label</strong> – Index of the blank token in the vocabulary.</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with Sequence-level
+Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp the
+gradient to [-clamp, clamp].</p></li>
+<li><p><strong>num_threads</strong> – Number of threads for OpenMP.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.rnnt.rnnt_loss_gpu">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.rnnt.</code><code class="sig-name descname">rnnt_loss_gpu</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">grads: torch.Tensor</em>, <em class="sig-param">blank_label: int</em>, <em class="sig-param">fastemit_lambda: float</em>, <em class="sig-param">clamp: float</em>, <em class="sig-param">num_threads: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/rnnt.html#rnnt_loss_gpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.rnnt.rnnt_loss_gpu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper method for accessing GPU RNNT loss.</p>
+<dl class="simple">
+<dt>CUDA implementation ported from [HawkAaron/warp-transducer]</dt><dd><p>(<a class="reference external" href="https://github.com/HawkAaron/warp-transducer">https://github.com/HawkAaron/warp-transducer</a>).</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Activation tensor of shape [B, T, U, V+1].</p></li>
+<li><p><strong>labels</strong> – Ground truth labels of shape [B, U].</p></li>
+<li><p><strong>input_lengths</strong> – Lengths of the acoustic sequence as a vector of ints [B].</p></li>
+<li><p><strong>label_lengths</strong> – Lengths of the target sequence as a vector of ints [B].</p></li>
+<li><p><strong>costs</strong> – Zero vector of length [B] in which costs will be set.</p></li>
+<li><p><strong>grads</strong> – Zero tensor of shape [B, T, U, V+1] where the gradient will be set.</p></li>
+<li><p><strong>blank_label</strong> – Index of the blank token in the vocabulary.</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with Sequence-level
+Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp the
+gradient to [-clamp, clamp].</p></li>
+<li><p><strong>num_threads</strong> – Number of threads for OpenMP.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-utils-init-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-utils-init"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.utils.__init__<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-init-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.utils.__init__"></span></section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-utils-rnnt-helper-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-utils-rnnt-helper"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-rnnt-helper-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper"></span><dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.add">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">add</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.compute_costs_data">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">compute_costs_data</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#compute_costs_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.compute_costs_data" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.copy_data_1d">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">copy_data_1d</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#copy_data_1d"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.copy_data_1d" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.div_up">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">div_up</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#div_up"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.div_up" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.exponential">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">exponential</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#exponential"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.exponential" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.flatten_tensor">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">flatten_tensor</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#flatten_tensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.flatten_tensor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.get_workspace_size">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">get_workspace_size</code><span class="sig-paren">(</span><em class="sig-param">maxT: int</em>, <em class="sig-param">maxU: int</em>, <em class="sig-param">minibatch: int</em>, <em class="sig-param">gpu: bool</em><span class="sig-paren">)</span> &#x2192; Tuple[Optional[int], espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus]<a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#get_workspace_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.get_workspace_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.identity">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">identity</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#identity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.identity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.log_plus">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">log_plus</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#log_plus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.log_plus" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.log_sum_exp">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">log_sum_exp</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#log_sum_exp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.log_sum_exp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.maximum">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">maximum</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#maximum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.maximum" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.negate">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.</code><code class="sig-name descname">negate</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/rnnt_helper.html#negate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper.negate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-utils-global-constants-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-utils-global-constants"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-global-constants-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants"></span><dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.</code><code class="sig-name descname">RNNTStatus</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/global_constants.html#RNNTStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<p>An enumeration.</p>
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus.RNNT_STATUS_INVALID_VALUE">
+<code class="sig-name descname">RNNT_STATUS_INVALID_VALUE</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus.RNNT_STATUS_INVALID_VALUE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus.RNNT_STATUS_SUCCESS">
+<code class="sig-name descname">RNNT_STATUS_SUCCESS</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus.RNNT_STATUS_SUCCESS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="data">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.THRESHOLD">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.</code><code class="sig-name descname">THRESHOLD</code><em class="property"> = 0.1</em><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.THRESHOLD" title="Permalink to this definition">¶</a></dt>
+<dd><p>Getters</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.dtype">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.</code><code class="sig-name descname">dtype</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/global_constants.html#dtype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.dtype" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.threads_per_block">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.</code><code class="sig-name descname">threads_per_block</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/global_constants.html#threads_per_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.threads_per_block" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.warp_size">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.</code><code class="sig-name descname">warp_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/global_constants.html#warp_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.warp_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-utils-cpu-utils-cpu-rnnt-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-utils-cpu-utils-cpu-rnnt"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cpu-utils-cpu-rnnt-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt"></span><dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.</code><code class="sig-name descname">CPURNNT</code><span class="sig-paren">(</span><em class="sig-param">minibatch: int</em>, <em class="sig-param">maxT: int</em>, <em class="sig-param">maxU: int</em>, <em class="sig-param">alphabet_size: int</em>, <em class="sig-param">workspace: torch.Tensor</em>, <em class="sig-param">blank: int</em>, <em class="sig-param">fastemit_lambda: float</em>, <em class="sig-param">clamp: float</em>, <em class="sig-param">num_threads: int</em>, <em class="sig-param">batch_first: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CPURNNT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Helper class to compute the Transducer Loss on CPU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>minibatch</strong> – Size of the minibatch b.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V+1 (inclusive of RNNT blank).</p></li>
+<li><p><strong>workspace</strong> – An allocated chunk of memory that will be sliced off and
+reshaped into required blocks used as working memory.</p></li>
+<li><p><strong>blank</strong> – Index of the RNNT blank token in the vocabulary.
+Generally the first or last token in the vocab.</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with Sequence-level
+Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp the
+gradient to [-clamp, clamp].</p></li>
+<li><p><strong>num_threads</strong> – Number of OMP threads to launch.</p></li>
+<li><p><strong>batch_first</strong> – Bool that decides if batch dimension is first or third.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_alphas">
+<code class="sig-name descname">compute_alphas</code><span class="sig-paren">(</span><em class="sig-param">log_probs: torch.Tensor</em>, <em class="sig-param">T: int</em>, <em class="sig-param">U: int</em>, <em class="sig-param">alphas: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CPURNNT.compute_alphas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_alphas" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the probability of the forward variable alpha.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>log_probs</strong> – Flattened tensor [B, T, U, V+1]</p></li>
+<li><p><strong>T</strong> – Length of the acoustic sequence T (not padded).</p></li>
+<li><p><strong>U</strong> – Length of the target sequence U (not padded).</p></li>
+<li><p><strong>alphas</strong> – Working space memory for alpha of shape [B, T, U].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Loglikelihood of the forward variable alpha.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_betas_and_grads">
+<code class="sig-name descname">compute_betas_and_grads</code><span class="sig-paren">(</span><em class="sig-param">grad: torch.Tensor</em>, <em class="sig-param">log_probs: torch.Tensor</em>, <em class="sig-param">T: int</em>, <em class="sig-param">U: int</em>, <em class="sig-param">alphas: torch.Tensor</em>, <em class="sig-param">betas: torch.Tensor</em>, <em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">logll: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CPURNNT.compute_betas_and_grads"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_betas_and_grads" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute backward variable beta as well as gradients of the activation
+matrix wrt loglikelihood of forward variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grad</strong> – Working space memory of flattened shape [B, T, U, V+1]</p></li>
+<li><p><strong>log_probs</strong> – Activatio tensor of flattented shape [B, T, U, V+1]</p></li>
+<li><p><strong>T</strong> – Length of the acoustic sequence T (not padded).</p></li>
+<li><p><strong>U</strong> – Length of the target sequence U (not padded).</p></li>
+<li><p><strong>alphas</strong> – Working space memory for alpha of shape [B, T, U].</p></li>
+<li><p><strong>betas</strong> – Working space memory for alpha of shape [B, T, U].</p></li>
+<li><p><strong>labels</strong> – Ground truth label of shape [B, U]</p></li>
+<li><p><strong>logll</strong> – Loglikelihood of the forward variable.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Loglikelihood of the forward variable and inplace updates the grad tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.cost_and_grad">
+<code class="sig-name descname">cost_and_grad</code><span class="sig-paren">(</span><em class="sig-param">log_probs: torch.Tensor</em>, <em class="sig-param">grads: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">flat_labels: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus<a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CPURNNT.cost_and_grad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.cost_and_grad" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.cost_and_grad_kernel">
+<code class="sig-name descname">cost_and_grad_kernel</code><span class="sig-paren">(</span><em class="sig-param">log_probs: torch.Tensor</em>, <em class="sig-param">grad: torch.Tensor</em>, <em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">mb: int</em>, <em class="sig-param">T: int</em>, <em class="sig-param">U: int</em>, <em class="sig-param">bytes_used: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CPURNNT.cost_and_grad_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.cost_and_grad_kernel" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.score_forward">
+<code class="sig-name descname">score_forward</code><span class="sig-paren">(</span><em class="sig-param">log_probs: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">flat_labels: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CPURNNT.score_forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.score_forward" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_index">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.</code><code class="sig-name descname">CpuRNNT_index</code><span class="sig-paren">(</span><em class="sig-param">U: int</em>, <em class="sig-param">maxU: int</em>, <em class="sig-param">minibatch: int</em>, <em class="sig-param">alphabet_size: int</em>, <em class="sig-param">batch_first: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CpuRNNT_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A placeholder Index computation class that emits the resolved index in a
+flattened tensor, mimicing pointer indexing in CUDA kernels on the CPU.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>U</strong> – Length of the current target sample (without padding).</p></li>
+<li><p><strong>maxU</strong> – Max Length of the padded target samples.</p></li>
+<li><p><strong>minibatch</strong> – Minibatch index</p></li>
+<li><p><strong>alphabet_size</strong> – Size of the vocabulary including RNNT blank - V+1.</p></li>
+<li><p><strong>batch_first</strong> – Bool flag determining if batch index is first or third.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_metadata">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.</code><code class="sig-name descname">CpuRNNT_metadata</code><span class="sig-paren">(</span><em class="sig-param">T: int</em>, <em class="sig-param">U: int</em>, <em class="sig-param">workspace: torch.Tensor</em>, <em class="sig-param">bytes_used: int</em>, <em class="sig-param">blank: int</em>, <em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">log_probs: torch.Tensor</em>, <em class="sig-param">idx: espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_index</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CpuRNNT_metadata"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Metadata for CPU based RNNT loss calculation. Holds the working space memory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>T</strong> – Length of the acoustic sequence (without padding).</p></li>
+<li><p><strong>U</strong> – Length of the target sequence (without padding).</p></li>
+<li><p><strong>workspace</strong> – Working space memory for the CPU.</p></li>
+<li><p><strong>bytes_used</strong> – Number of bytes currently used for indexing the working
+space memory. Generally 0.</p></li>
+<li><p><strong>blank</strong> – Index of the blank token in the vocabulary.</p></li>
+<li><p><strong>labels</strong> – Ground truth padded labels matrix of shape [B, U]</p></li>
+<li><p><strong>log_probs</strong> – Log probs / activation matrix of flattented shape [B, T, U, V+1]</p></li>
+<li><p><strong>idx</strong> – </p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_metadata.setup_probs">
+<code class="sig-name descname">setup_probs</code><span class="sig-paren">(</span><em class="sig-param">T: int</em>, <em class="sig-param">U: int</em>, <em class="sig-param">labels: torch.Tensor</em>, <em class="sig-param">blank: int</em>, <em class="sig-param">log_probs: torch.Tensor</em>, <em class="sig-param">idx: espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_index</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#CpuRNNT_metadata.setup_probs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CpuRNNT_metadata.setup_probs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.</code><code class="sig-name descname">LogSoftmaxGradModification</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#LogSoftmaxGradModification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.backward">
+<em class="property">static </em><code class="sig-name descname">backward</code><span class="sig-paren">(</span><em class="sig-param">ctx</em>, <em class="sig-param">grad_output</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#LogSoftmaxGradModification.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a formula for differentiating the operation with backward mode
+automatic differentiation (alias to the vjp function).</p>
+<p>This function is to be overridden by all subclasses.</p>
+<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
+as many outputs as the <a class="reference internal" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.forward" title="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> returned (None will be passed in
+for non tensor outputs of the forward function),
+and it should return as many tensors, as there were inputs to
+<a class="reference internal" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.forward" title="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the gradient w.r.t the given output,
+and each returned value should be the gradient w.r.t. the
+corresponding input. If an input is not a Tensor or is a Tensor not
+requiring grads, you can just pass None as a gradient for that input.</p>
+<p>The context can be used to retrieve tensors saved during the forward
+pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
+of booleans representing whether each input needs gradient. E.g.,
+<a class="reference internal" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.backward" title="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
+first input to <a class="reference internal" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.forward" title="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
+output.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.forward">
+<em class="property">static </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">ctx</em>, <em class="sig-param">acts</em>, <em class="sig-param">clamp</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#LogSoftmaxGradModification.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.LogSoftmaxGradModification.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs the operation.</p>
+<p>This function is to be overridden by all subclasses.</p>
+<p>It must accept a context ctx as the first argument, followed by any
+number of arguments (tensors or other types).</p>
+<p>The context can be used to store arbitrary data that can be then
+retrieved during the backward pass. Tensors should not be stored
+directly on <cite>ctx</cite> (though this is not currently enforced for
+backward compatibility). Instead, tensors should be saved either with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">ctx.save_for_backward()</span></code> if they are intended to be used in
+<code class="docutils literal notranslate"><span class="pre">backward</span></code> (equivalently, <code class="docutils literal notranslate"><span class="pre">vjp</span></code>) or <code class="xref py py-func docutils literal notranslate"><span class="pre">ctx.save_for_forward()</span></code>
+if they are intended to be used for in <code class="docutils literal notranslate"><span class="pre">jvp</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.log_sum_exp">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.</code><code class="sig-name descname">log_sum_exp</code><span class="sig-paren">(</span><em class="sig-param">a: torch.Tensor</em>, <em class="sig-param">b: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cpu_utils/cpu_rnnt.html#log_sum_exp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.log_sum_exp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Logsumexp with safety checks for infs.</p>
+</dd></dl>
+
+</section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-utils-cpu-utils-init-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-utils-cpu-utils-init"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.__init__<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cpu-utils-init-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.__init__"></span></section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-init-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-init"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.__init__<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-init-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.__init__"></span></section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-gpu-rnnt-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-gpu-rnnt"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-gpu-rnnt-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt"></span><dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.</code><code class="sig-name descname">GPURNNT</code><span class="sig-paren">(</span><em class="sig-param">minibatch: int</em>, <em class="sig-param">maxT: int</em>, <em class="sig-param">maxU: int</em>, <em class="sig-param">alphabet_size: int</em>, <em class="sig-param">workspace</em>, <em class="sig-param">blank: int</em>, <em class="sig-param">fastemit_lambda: float</em>, <em class="sig-param">clamp: float</em>, <em class="sig-param">num_threads: int</em>, <em class="sig-param">stream</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#GPURNNT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Helper class to launch the CUDA Kernels to compute the Transducer Loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>minibatch</strong> – Int representing the batch size.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V+1 (inclusive of RNNT blank).</p></li>
+<li><p><strong>workspace</strong> – An allocated chunk of memory that will be sliced off and
+reshaped into required blocks used as working memory.</p></li>
+<li><p><strong>blank</strong> – Index of the RNNT blank token in the vocabulary.
+Generally the first or last token in the vocab.</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with Sequence-level
+Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp
+the gradient to [-clamp, clamp].</p></li>
+<li><p><strong>num_threads</strong> – Number of OMP threads to launch.</p></li>
+<li><p><strong>stream</strong> – Numba Cuda Stream.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.compute_cost_and_score">
+<code class="sig-name descname">compute_cost_and_score</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor, grads: Optional[torch.Tensor], costs: torch.Tensor, labels: torch.Tensor, label_lengths: torch.Tensor, input_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus<a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#GPURNNT.compute_cost_and_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.compute_cost_and_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute both the loss and the gradients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – A flattened tensor of shape [B, T, U, V+1] representing the
+activation matrix.</p></li>
+<li><p><strong>grad</strong> – A flattented zero tensor of same shape as acts.</p></li>
+<li><p><strong>costs</strong> – A zero vector of length B which will be updated inplace
+with the log probability costs.</p></li>
+<li><p><strong>flat_labels</strong> – A flattened matrix of labels of shape [B, U]</p></li>
+<li><p><strong>label_lengths</strong> – A vector of length B that contains the original
+lengths of the acoustic sequence.</p></li>
+<li><p><strong>input_lengths</strong> – A vector of length B that contains the original
+lengths of the target sequence.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Updates:</dt><dd><p>This will launch kernels that will update inline the following variables:
+-   grads: Gradients of the activation matrix wrt the costs vector.
+-   costs: Negative log likelihood of the forward variable.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>An enum that either represents a successful RNNT operation or failure.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.cost_and_grad">
+<code class="sig-name descname">cost_and_grad</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">grads: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">pad_labels: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#GPURNNT.cost_and_grad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.cost_and_grad" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.log_softmax">
+<code class="sig-name descname">log_softmax</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">denom: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#GPURNNT.log_softmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.log_softmax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the log softmax denominator of the input activation tensor
+and stores the result in denom.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Activation tensor of shape [B, T, U, V+1]. The input must be
+represented as a flat tensor of shape [B * T * U * (V+1)] to
+allow pointer indexing.</p></li>
+<li><p><strong>denom</strong> – A zero tensor of same shape as acts.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Updates:</dt><dd><p>This kernel inplace updates the <cite>denom</cite> tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.score_forward">
+<code class="sig-name descname">score_forward</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">pad_labels: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#GPURNNT.score_forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT.score_forward" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.</code><code class="sig-name descname">MultiblankGPURNNT</code><span class="sig-paren">(</span><em class="sig-param">sigma: float</em>, <em class="sig-param">num_big_blanks: int</em>, <em class="sig-param">minibatch: int</em>, <em class="sig-param">maxT: int</em>, <em class="sig-param">maxU: int</em>, <em class="sig-param">alphabet_size: int</em>, <em class="sig-param">workspace</em>, <em class="sig-param">big_blank_workspace</em>, <em class="sig-param">blank: int</em>, <em class="sig-param">fastemit_lambda: float</em>, <em class="sig-param">clamp: float</em>, <em class="sig-param">num_threads: int</em>, <em class="sig-param">stream</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#MultiblankGPURNNT"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT" title="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.GPURNNT</span></code></a></p>
+<dl class="simple">
+<dt>Helper class to launch the CUDA Kernels to compute Multi-blank Transducer Loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sigma</strong> – Hyper-parameter related to the logit-normalization method
+in training multi-blank transducers.</p></li>
+<li><p><strong>num_big_blanks</strong> – Number of big blank symbols the model has. This should
+not include the standard blank symbol.</p></li>
+<li><p><strong>minibatch</strong> – Int representing the batch size.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V + 1 + num-big-blanks</p></li>
+<li><p><strong>workspace</strong> – An allocated chunk of memory that will be sliced off and
+reshaped into required blocks used as working memory.</p></li>
+<li><p><strong>big_blank_workspace</strong> – An allocated chunk of memory that will be sliced
+off and reshaped into required blocks used as working memory
+specifically for the multi-blank related computations.</p></li>
+<li><p><strong>blank</strong> – Index of the RNNT blank token in the vocabulary.
+Generally the first or last token in the vocab.</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with
+Sequence-level Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp the
+gradient to [-clamp, clamp].</p></li>
+<li><p><strong>num_threads</strong> – Number of OMP threads to launch.</p></li>
+<li><p><strong>stream</strong> – Numba Cuda Stream.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT.compute_cost_and_score">
+<code class="sig-name descname">compute_cost_and_score</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor, grads: Optional[torch.Tensor], costs: torch.Tensor, labels: torch.Tensor, label_lengths: torch.Tensor, input_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants.RNNTStatus<a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#MultiblankGPURNNT.compute_cost_and_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT.compute_cost_and_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute both the loss and the gradients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – A flattened tensor of shape [B, T, U, V+1] representing
+the activation matrix.</p></li>
+<li><p><strong>grad</strong> – A flattented zero tensor of same shape as acts.</p></li>
+<li><p><strong>costs</strong> – A zero vector of length B which will be updated inplace
+with the log probability costs.</p></li>
+<li><p><strong>flat_labels</strong> – A flattened matrix of labels of shape [B, U]</p></li>
+<li><p><strong>label_lengths</strong> – A vector of length B that contains the original
+lengths of the acoustic sequence.</p></li>
+<li><p><strong>input_lengths</strong> – A vector of length B that contains the original
+lengths of the target sequence.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Updates:</dt><dd><p>This will launch kernels that will update inline the following variables:
+-   grads: Gradients of the activation matrix wrt the costs vector.
+-   costs: Negative log likelihood of the forward variable.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>An enum that either represents a successful RNNT operation or failure.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT.cost_and_grad">
+<code class="sig-name descname">cost_and_grad</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">grads: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">pad_labels: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#MultiblankGPURNNT.cost_and_grad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT.cost_and_grad" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT.score_forward">
+<code class="sig-name descname">score_forward</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">costs: torch.Tensor</em>, <em class="sig-param">pad_labels: torch.Tensor</em>, <em class="sig-param">label_lengths: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt.html#MultiblankGPURNNT.score_forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt.MultiblankGPURNNT.score_forward" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-gpu-rnnt-kernel-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-gpu-rnnt-kernel"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-gpu-rnnt-kernel-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel"></span><dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_alphas_kernel">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">compute_alphas_kernel</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#compute_alphas_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_alphas_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute alpha (forward variable) probabilities over the transduction step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Tensor of shape [B, T, U, V+1] flattened.
+Represents the logprobs activation tensor.</p></li>
+<li><p><strong>denom</strong> – Tensor of shape [B, T, U] flattened. Represents the denominator of the
+logprobs activation tensor across entire vocabulary.</p></li>
+<li><p><strong>alphas</strong> – Zero tensor of shape [B, T, U]. Will be updated inside the kernel
+with the forward variable probabilities.</p></li>
+<li><p><strong>llForward</strong> – Zero tensor of shape [B]. Represents the log-likelihood of the
+forward pass. Returned as the forward pass loss that is reduced by
+the optimizer.</p></li>
+<li><p><strong>xlen</strong> – Vector of length B which contains the actual acoustic sequence
+lengths in the padded activation tensor.</p></li>
+<li><p><strong>ylen</strong> – Vector of length B which contains the actual target sequence
+lengths in the padded activation tensor.</p></li>
+<li><p><strong>mlabels</strong> – Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token
+- usually the RNNT blank). The matrix contains the padded target
+transcription that must be predicted.</p></li>
+<li><p><strong>minibatch</strong> – Int representing the batch size.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V+1 (inclusive of RNNT blank).</p></li>
+<li><p><strong>blank_</strong> – Index of the RNNT blank token in the vocabulary.
+Generally the first or last token in the vocab.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Updates:</dt><dd><p>Kernel inplace updates the following inputs:
+-   alphas: forward variable scores.
+-   llForward: log-likelihood of forward variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_betas_kernel">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">compute_betas_kernel</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#compute_betas_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_betas_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute beta (backward variable) probabilities over the transduction step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Tensor of shape [B, T, U, V+1] flattened.
+Represents the logprobs activation tensor.</p></li>
+<li><p><strong>denom</strong> – Tensor of shape [B, T, U] flattened. Represents the denominator
+of the logprobs activation tensor across entire vocabulary.</p></li>
+<li><p><strong>betas</strong> – Zero tensor of shape [B, T, U]. Will be updated inside the kernel
+with the backward variable probabilities.</p></li>
+<li><p><strong>llBackward</strong> – Zero tensor of shape [B]. Represents the log-likelihood
+of the backward pass. Returned as the backward pass loss that
+is reduced by the optimizer.</p></li>
+<li><p><strong>xlen</strong> – Vector of length B which contains the actual acoustic
+sequence lengths in the padded activation tensor.</p></li>
+<li><p><strong>ylen</strong> – Vector of length B which contains the actual target sequence
+lengths in the padded activation tensor.</p></li>
+<li><p><strong>mlabels</strong> – Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token
+- usually the RNNT blank). The matrix contains the padded target
+transcription that must be predicted.</p></li>
+<li><p><strong>minibatch</strong> – Int representing the batch size.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V+1 (inclusive of RNNT blank).</p></li>
+<li><p><strong>blank_</strong> – Index of the RNNT blank token in the vocabulary.
+Generally the first or last token in the vocab.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Updates:</dt><dd><p>Kernel inplace updates the following inputs:
+-   betas: backward variable scores.
+-   llBackward: log-likelihood of backward variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_grad_kernel">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">compute_grad_kernel</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#compute_grad_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_grad_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute gradients over the transduction step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grads</strong> – Zero Tensor of shape [B, T, U, V+1]. Is updated by this kernel to
+contain the gradients of this batch of samples.</p></li>
+<li><p><strong>acts</strong> – Tensor of shape [B, T, U, V+1] flattened.
+Represents the logprobs activation tensor.</p></li>
+<li><p><strong>denom</strong> – Tensor of shape [B, T, U] flattened. Represents the denominator
+of the logprobs activation tensor across entire vocabulary.</p></li>
+<li><p><strong>alphas</strong> – Alpha variable, contains forward probabilities.
+A tensor of shape [B, T, U].</p></li>
+<li><p><strong>betas</strong> – Beta varoable, contains backward probabilities.
+A tensor of shape [B, T, U].</p></li>
+<li><p><strong>logll</strong> – Log-likelihood of the forward variable, represented as a vector
+of shape [B]. Represents the log-likelihood of the forward pass.</p></li>
+<li><p><strong>xlen</strong> – Vector of length B which contains the actual acoustic sequence
+lengths in the padded activation tensor.</p></li>
+<li><p><strong>ylen</strong> – Vector of length B which contains the actual target sequence lengths
+in the padded activation tensor.</p></li>
+<li><p><strong>mlabels</strong> – Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token
+- usually the RNNT blank). The matrix contains the padded target
+transcription that must be predicted.</p></li>
+<li><p><strong>minibatch</strong> – Int representing the batch size.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V+1 (inclusive of RNNT blank).</p></li>
+<li><p><strong>blank_</strong> – Index of the RNNT blank token in the vocabulary.
+Generally the first or last token in the vocab.</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with Sequence-level
+Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp the
+gradient to [-clamp, clamp].</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Updates:</dt><dd><p>Kernel inplace updates the following inputs:
+-   grads: Gradients with respect to the log likelihood (logll).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_alphas_kernel">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">compute_multiblank_alphas_kernel</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#compute_multiblank_alphas_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_alphas_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Compute alpha (forward variable) probabilities for multi-blank transducuer loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Tensor of shape [B, T, U, V + 1 + num_big_blanks] flattened.
+Represents the logprobs activation tensor.</p></li>
+<li><p><strong>denom</strong> – Tensor of shape [B, T, U] flattened. Represents the denominator of
+the logprobs activation tensor across entire vocabulary.</p></li>
+<li><p><strong>sigma</strong> – Hyper-parameter for logit-undernormalization technique for training
+multi-blank transducers.</p></li>
+<li><p><strong>alphas</strong> – Zero tensor of shape [B, T, U]. Will be updated inside the kernel
+with the forward variable probabilities.</p></li>
+<li><p><strong>llForward</strong> – Zero tensor of shape [B]. Represents the log-likelihood of the
+forward pass. Returned as the forward pass loss that is
+reduced by the optimizer.</p></li>
+<li><p><strong>xlen</strong> – Vector of length B which contains the actual acoustic sequence
+lengths in the padded activation tensor.</p></li>
+<li><p><strong>ylen</strong> – Vector of length B which contains the actual target sequence
+lengths in the padded activation tensor.</p></li>
+<li><p><strong>mlabels</strong> – Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token
+- usually the RNNT blank). The matrix contains the padded target
+transcription that must be predicted.</p></li>
+<li><p><strong>minibatch</strong> – Int representing the batch size.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V+1 (inclusive of RNNT blank).</p></li>
+<li><p><strong>blank_</strong> – Index of the RNNT standard blank token in the vocabulary.</p></li>
+<li><p><strong>big_blank_durations</strong> – Vector of supported big blank durations of the model.</p></li>
+<li><p><strong>num_big_blanks</strong> – Number of big blanks of the model.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Updates:</dt><dd><p>Kernel inplace updates the following inputs:
+-   alphas: forward variable scores.
+-   llForward: log-likelihood of forward variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_betas_kernel">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">compute_multiblank_betas_kernel</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#compute_multiblank_betas_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_betas_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Compute beta (backward variable) probabilities for multi-blank transducer loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Tensor of shape [B, T, U, V + 1 + num-big-blanks] flattened.
+Represents the logprobs activation tensor.</p></li>
+<li><p><strong>denom</strong> – Tensor of shape [B, T, U] flattened. Represents the denominator
+of the logprobs activation tensor across entire vocabulary.</p></li>
+<li><p><strong>sigma</strong> – Hyper-parameter for logit-undernormalization technique for
+training multi-blank transducers.</p></li>
+<li><p><strong>betas</strong> – Zero tensor of shape [B, T, U]. Will be updated inside the kernel
+with the backward variable probabilities.</p></li>
+<li><p><strong>llBackward</strong> – Zero tensor of shape [B]. Represents the log-likelihood
+of the backward pass. Returned as the backward pass loss
+that is reduced by the optimizer.</p></li>
+<li><p><strong>xlen</strong> – Vector of length B which contains the actual acoustic sequence
+lengths in the padded activation tensor.</p></li>
+<li><p><strong>ylen</strong> – Vector of length B which contains the actual target sequence
+lengths in the padded activation tensor.</p></li>
+<li><p><strong>mlabels</strong> – Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token
+- usually the RNNT blank). The matrix contains the padded target
+transcription that must be predicted.</p></li>
+<li><p><strong>minibatch</strong> – Int representing the batch size.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V+1 (inclusive of RNNT blank).</p></li>
+<li><p><strong>blank_</strong> – Index of the RNNT standard blank token in the vocabulary.</p></li>
+<li><p><strong>big_blank_durations</strong> – Vector of supported big blank durations of the model.</p></li>
+<li><p><strong>num_big_blanks</strong> – Number of big blanks of the model.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Updates:</dt><dd><p>Kernel inplace updates the following inputs:
+-   betas: backward variable scores.
+-   llBackward: log-likelihood of backward variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_grad_kernel">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">compute_multiblank_grad_kernel</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#compute_multiblank_grad_kernel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_multiblank_grad_kernel" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Compute gradients for multi-blank transducer loss</dt><dd><p>(<a class="reference external" href="https://arxiv.org/pdf/2211.03541">https://arxiv.org/pdf/2211.03541</a>).</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grads</strong> – Zero Tensor of shape [B, T, U, V + 1 + num_big_blanks].
+Is updated by this kernel to contain the gradients of this batch of samples.</p></li>
+<li><p><strong>acts</strong> – Tensor of shape [B, T, U, V + 1 + num_big_blanks] flattened.
+Represents the logprobs activation tensor.</p></li>
+<li><p><strong>denom</strong> – Tensor of shape [B, T, U] flattened. Represents the denominator
+of the logprobs activation tensor across entire vocabulary.</p></li>
+<li><p><strong>sigma</strong> – Hyper-parameter for logit-undernormalization technique
+for training multi-blank transducers.</p></li>
+<li><p><strong>alphas</strong> – Alpha variable, contains forward probabilities.
+A tensor of shape [B, T, U].</p></li>
+<li><p><strong>betas</strong> – Beta varoable, contains backward probabilities.
+A tensor of shape [B, T, U].</p></li>
+<li><p><strong>logll</strong> – Log-likelihood of the forward variable, represented as
+a vector of shape [B]. Represents the log-likelihood of the forward pass.</p></li>
+<li><p><strong>xlen</strong> – Vector of length B which contains the actual acoustic
+sequence lengths in the padded activation tensor.</p></li>
+<li><p><strong>ylen</strong> – Vector of length B which contains the actual target sequence
+lengths in the padded activation tensor.</p></li>
+<li><p><strong>mlabels</strong> – Matrix of shape [B, U+1] (+1 here is due to &lt;SOS&gt; token
+- usually the RNNT blank). The matrix contains the padded target
+transcription that must be predicted.</p></li>
+<li><p><strong>minibatch</strong> – Int representing the batch size.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V+1 (inclusive of RNNT blank).</p></li>
+<li><p><strong>blank_</strong> – Index of the RNNT blank token in the vocabulary.
+Generally the first or last token in the vocab.</p></li>
+<li><p><strong>fastemit_lambda</strong> – Float scaling factor for FastEmit regularization. Refer to
+FastEmit: Low-latency Streaming ASR with Sequence-level
+Emission Regularization.</p></li>
+<li><p><strong>clamp</strong> – Float value. When set to value &gt;= 0.0, will clamp
+the gradient to [-clamp, clamp].</p></li>
+<li><p><strong>big_blank_durations</strong> – Vector of supported big blank durations of the model.</p></li>
+<li><p><strong>num_big_blanks</strong> – Number of big blanks of the model.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="simple">
+<dt>Updates:</dt><dd><p>Kernel inplace updates the following inputs:
+-   grads: Gradients with respect to the log likelihood (logll).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.logp">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.</code><code class="sig-name descname">logp</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/gpu_rnnt_kernel.html#logp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.logp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the sum of log probability from the activation tensor and its denominator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>denom</strong> – Tensor of shape [B, T, U] flattened. Represents the denominator of the
+logprobs activation tensor across entire vocabulary.</p></li>
+<li><p><strong>acts</strong> – Tensor of shape [B, T, U, V+1] flattened.
+Represents the logprobs activation tensor.</p></li>
+<li><p><strong>maxT</strong> – The maximum possible acoustic sequence length.
+Represents T in the logprobs tensor.</p></li>
+<li><p><strong>maxU</strong> – The maximum possible target sequence length.
+Represents U in the logprobs tensor.</p></li>
+<li><p><strong>alphabet_size</strong> – The vocabulary dimension V+1 (inclusive of RNNT blank).</p></li>
+<li><p><strong>mb</strong> – Batch indexer.</p></li>
+<li><p><strong>t</strong> – Acoustic sequence timestep indexer.</p></li>
+<li><p><strong>u</strong> – Target sequence timestep indexer.</p></li>
+<li><p><strong>v</strong> – Vocabulary token indexer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The sum of logprobs[mb, t, u, v] + denom[mb, t, u]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-reduce-1">
+<span id="espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-reduce"></span><h2>espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce<a class="headerlink" href="#espnet2-asr-transducer-rnnt-multi-blank-utils-cuda-utils-reduce-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce"></span><dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.CTAReduce">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.</code><code class="sig-name descname">CTAReduce</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/reduce.html#CTAReduce"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.CTAReduce" title="Permalink to this definition">¶</a></dt>
+<dd><p>CUDA Warp reduction kernel.</p>
+<p>It is a device kernel to be called by other kernels.</p>
+<p>The data will be read from the right segement recursively, and reduced (ROP) onto
+the left half. Operation continues while warp size is larger than a given offset.
+Beyond this offset, warp reduction is performed via <cite>shfl_down_sync</cite>,
+which halves the reduction space and sums the two halves at each call.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Efficient warp occurs at input shapes of 2 ^ K.</p>
+</aside>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>Warp Primitives
+[<a class="reference external" href="https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/">https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/</a>]</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tid</strong> – CUDA thread index</p></li>
+<li><p><strong>x</strong> – activation. Single float.</p></li>
+<li><p><strong>storage</strong> – shared memory of size CTA_REDUCE_SIZE used for reduction
+in parallel threads.</p></li>
+<li><p><strong>count</strong> – equivalent to num_rows, which is equivalent to alphabet_size (V+1)</p></li>
+<li><p><strong>R_opid</strong> – Operator ID for reduction. See R_Op for more information.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.I_Op">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.</code><code class="sig-name descname">I_Op</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/reduce.html#I_Op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.I_Op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<p>Represents an operation that is performed on the input tensor</p>
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.I_Op.EXPONENTIAL">
+<code class="sig-name descname">EXPONENTIAL</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.I_Op.EXPONENTIAL" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.I_Op.IDENTITY">
+<code class="sig-name descname">IDENTITY</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.I_Op.IDENTITY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.R_Op">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.</code><code class="sig-name descname">R_Op</code><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/reduce.html#R_Op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.R_Op" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></p>
+<p>Represents a reduction operation performed on the input tensor</p>
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.R_Op.ADD">
+<code class="sig-name descname">ADD</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.R_Op.ADD" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.R_Op.MAXIMUM">
+<code class="sig-name descname">MAXIMUM</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.R_Op.MAXIMUM" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.ReduceHelper">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.</code><code class="sig-name descname">ReduceHelper</code><span class="sig-paren">(</span><em class="sig-param">I_opid: int</em>, <em class="sig-param">R_opid: int</em>, <em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">output: torch.Tensor</em>, <em class="sig-param">num_rows: int</em>, <em class="sig-param">num_cols: int</em>, <em class="sig-param">minus: bool</em>, <em class="sig-param">stream</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/reduce.html#ReduceHelper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.ReduceHelper" title="Permalink to this definition">¶</a></dt>
+<dd><p>CUDA Warp reduction kernel helper which reduces via the R_Op.Add and writes
+the result to <cite>output</cite> according to I_op id.</p>
+<p>The result is stored in the blockIdx.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Efficient warp occurs at input shapes of 2 ^ K.</p>
+</aside>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>Warp Primitives
+[<a class="reference external" href="https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/">https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/</a>]</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>I_opid</strong> – Operator ID for input. See I_Op for more information.</p></li>
+<li><p><strong>R_opid</strong> – Operator ID for reduction. See R_Op for more information.</p></li>
+<li><p><strong>acts</strong> – Flatened activation matrix of shape [B * T * U * (V+1)].</p></li>
+<li><p><strong>output</strong> – Flatened output matrix of shape [B * T * U * (V+1)].
+Data will be overwritten.</p></li>
+<li><p><strong>num_rows</strong> – Vocabulary size (including blank token) - V+1.
+Represents the number of threads per block.</p></li>
+<li><p><strong>num_cols</strong> – Flattened shape of activation matrix, without vocabulary dimension
+(B * T * U). Represents number of blocks per grid.</p></li>
+<li><p><strong>minus</strong> – Bool flag whether to add or subtract as reduction.
+If minus is set; calls _reduce_minus, else calls _reduce_rows kernel.</p></li>
+<li><p><strong>stream</strong> – CUDA Stream.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.reduce_exp">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.</code><code class="sig-name descname">reduce_exp</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">denom</em>, <em class="sig-param">rows: int</em>, <em class="sig-param">cols: int</em>, <em class="sig-param">minus: bool</em>, <em class="sig-param">stream</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/reduce.html#reduce_exp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.reduce_exp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper method to call the Warp Reduction Kernel to perform <cite>exp</cite> reduction.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Efficient warp occurs at input shapes of 2 ^ K.</p>
+</aside>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>Warp Primitives
+[<a class="reference external" href="https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/">https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/</a>]</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Flatened activation matrix of shape [B * T * U * (V+1)].</p></li>
+<li><p><strong>output</strong> – Flatened output matrix of shape [B * T * U * (V+1)].
+Data will be overwritten.</p></li>
+<li><p><strong>rows</strong> – Vocabulary size (including blank token) - V+1.
+Represents the number of threads per block.</p></li>
+<li><p><strong>cols</strong> – Flattened shape of activation matrix, without vocabulary dimension
+(B * T * U). Represents number of blocks per grid.</p></li>
+<li><p><strong>minus</strong> – Bool flag whether to add or subtract as reduction.
+If minus is set; calls _reduce_minus, else calls _reduce_rows kernel.</p></li>
+<li><p><strong>stream</strong> – CUDA Stream.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.reduce_max">
+<code class="sig-prename descclassname">espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.</code><code class="sig-name descname">reduce_max</code><span class="sig-paren">(</span><em class="sig-param">acts: torch.Tensor</em>, <em class="sig-param">denom</em>, <em class="sig-param">rows: int</em>, <em class="sig-param">cols: int</em>, <em class="sig-param">minus: bool</em>, <em class="sig-param">stream</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/rnnt_multi_blank/utils/cuda_utils/reduce.html#reduce_max"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce.reduce_max" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper method to call the Warp Reduction Kernel to perform <cite>max</cite> reduction.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Efficient warp occurs at input shapes of 2 ^ K.</p>
+</aside>
+<p class="rubric">References</p>
+<ul class="simple">
+<li><p>Warp Primitives
+[<a class="reference external" href="https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/">https://developer.nvidia.com/blog/using-cuda-warp-level-primitives/</a>]</p></li>
+</ul>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>acts</strong> – Flatened activation matrix of shape [B * T * U * (V+1)].</p></li>
+<li><p><strong>output</strong> – Flatened output matrix of shape [B * T * U * (V+1)].
+Data will be overwritten.</p></li>
+<li><p><strong>rows</strong> – Vocabulary size (including blank token) - V+1.
+Represents the number of threads per block.</p></li>
+<li><p><strong>cols</strong> – Flattened shape of activation matrix, without vocabulary dimension
+(B * T * U). Represents number of blocks per grid.</p></li>
+<li><p><strong>minus</strong> – Bool flag whether to add or subtract as reduction.
+If minus is set; calls _reduce_minus, else calls _reduce_rows kernel.</p></li>
+<li><p><strong>stream</strong> – CUDA Stream.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
@@ -2875,7 +4087,7 @@ randomly selected rows from the batch.</p></li>
 </dd>
 </dl>
 <p>wrap: wrap the target class (e.g. ema optimizer or tasks.wrap)
-<a href="#system-message-1"><span class="problematic" id="problematic-1">*</span></a>args, <a href="#system-message-2"><span class="problematic" id="problematic-2">**</span></a>kwargs: additional arguments</p>
+<a href="#system-message-2"><span class="problematic" id="problematic-2">*</span></a>args, <a href="#system-message-3"><span class="problematic" id="problematic-3">**</span></a>kwargs: additional arguments</p>
 <blockquote>
 <div><p>to override the config to pass into the target constructor</p>
 </div></blockquote>
@@ -3435,7 +4647,7 @@ a sequence-to-sequence transformation
 __init__ should also satisfy the following interface;
 see SequenceIdentity for an example</p>
 <blockquote>
-<div><p>def __init__(self, d_model, transposed=False, <a href="#system-message-3"><span class="problematic" id="problematic-3">**</span></a>kwargs)</p>
+<div><p>def __init__(self, d_model, transposed=False, <a href="#system-message-4"><span class="problematic" id="problematic-4">**</span></a>kwargs)</p>
 </div></blockquote>
 <p>OPTIONAL methods
 default_state, step: allows stepping the model recurrently with a hidden state

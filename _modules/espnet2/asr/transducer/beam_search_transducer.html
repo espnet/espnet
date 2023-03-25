@@ -251,6 +251,8 @@
         <span class="n">prefix_alpha</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">expansion_gamma</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mf">2.3</span><span class="p">,</span>
         <span class="n">expansion_beta</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">multi_blank_durations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
+        <span class="n">multi_blank_indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
         <span class="n">score_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">nbest</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">token_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -271,6 +273,8 @@
 <span class="sd">            expansion_beta:</span>
 <span class="sd">              Number of additional candidates for expanded hypotheses selection. (mAES)</span>
 <span class="sd">            expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)</span>
+<span class="sd">            multi_blank_durations: The duration of each blank token. (MBG)</span>
+<span class="sd">            multi_blank_indices: The index of each blank token in token_list. (MBG)</span>
 <span class="sd">            score_norm: Normalize final scores by length. (&quot;default&quot;)</span>
 <span class="sd">            nbest: Number of final hypothesis.</span>
 
@@ -287,7 +291,13 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">blank_id</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">&quot;mbg&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">multi_blank_durations</span> <span class="o">=</span> <span class="n">multi_blank_durations</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">multi_blank_indices</span> <span class="o">=</span> <span class="n">multi_blank_indices</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">search_algorithm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_blank_greedy_search</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">search_algorithm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">greedy_search</span>
         <span class="k">elif</span> <span class="n">search_type</span> <span class="o">==</span> <span class="s2">&quot;default&quot;</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">search_algorithm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_beam_search</span>
@@ -329,12 +339,16 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">max_candidates</span> <span class="o">=</span> <span class="n">beam_size</span> <span class="o">+</span> <span class="n">expansion_beta</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">search_algorithm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">modified_adaptive_expansion_search</span>
+
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">use_lm</span> <span class="o">=</span> <span class="n">lm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lm</span> <span class="o">=</span> <span class="n">lm</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">lm_weight</span> <span class="o">=</span> <span class="n">lm_weight</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_lm</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;LM is provided but not used, since this is greedy search.&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">score_norm</span> <span class="o">=</span> <span class="n">score_norm</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span> <span class="o">=</span> <span class="n">nbest</span>
@@ -1076,7 +1090,61 @@
                             <span class="n">list_b</span> <span class="o">+</span> <span class="n">list_exp</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span>
                         <span class="p">)[:</span><span class="n">beam</span><span class="p">]</span>
 
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_nbest</span><span class="p">(</span><span class="n">kept_hyps</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_nbest</span><span class="p">(</span><span class="n">kept_hyps</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BeamSearchTransducer.multi_blank_greedy_search"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer.multi_blank_greedy_search">[docs]</a>    <span class="k">def</span> <span class="nf">multi_blank_greedy_search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Greedy Search for Multi-Blank Transducer (Multi-Blank Greedy, MBG).</span>
+
+<span class="sd">        In this implementation, we assume:</span>
+<span class="sd">        1. the index of standard blank is the last entry of self.multi_blank_indices</span>
+<span class="sd">           rather than self.blank_id (to avoid too much change on original transducer)</span>
+<span class="sd">        2. other entries in self.multi_blank_indices are big blanks that account for</span>
+<span class="sd">           multiple frames.</span>
+
+<span class="sd">        Based on https://arxiv.org/abs/2211.03541</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            enc_out: Encoder output sequence. (T, D_enc)</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            hyp: 1-best hypothesis.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">big_blank_duration</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">blank_start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_blank_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">blank_end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_blank_indices</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">dec_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">init_state</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">hyp</span> <span class="o">=</span> <span class="n">Hypothesis</span><span class="p">(</span><span class="n">score</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">yseq</span><span class="o">=</span><span class="p">[</span><span class="n">blank_end</span><span class="p">],</span> <span class="n">dec_state</span><span class="o">=</span><span class="n">dec_state</span><span class="p">)</span>
+        <span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">for</span> <span class="n">enc_out_t</span> <span class="ow">in</span> <span class="n">enc_out</span><span class="p">:</span>
+            <span class="c1"># case 1: skip frames until big_blank_duration == 1</span>
+            <span class="k">if</span> <span class="n">big_blank_duration</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">big_blank_duration</span> <span class="o">-=</span> <span class="mi">1</span>
+                <span class="k">continue</span>
+
+            <span class="n">symbols_added</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">while</span> <span class="n">symbols_added</span> <span class="o">&lt;=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="n">dec_out</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
+                <span class="n">logp</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">joint_network</span><span class="p">(</span><span class="n">enc_out_t</span><span class="p">,</span> <span class="n">dec_out</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">top_logp</span><span class="p">,</span> <span class="n">k</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">logp</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="c1"># case 2: predict a blank token</span>
+                <span class="k">if</span> <span class="n">blank_start</span> <span class="o">&lt;=</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="n">blank_end</span><span class="p">:</span>
+                    <span class="n">big_blank_duration</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_blank_durations</span><span class="p">[</span><span class="n">k</span> <span class="o">-</span> <span class="n">blank_start</span><span class="p">]</span>
+                    <span class="n">hyp</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="n">top_logp</span>
+                    <span class="k">break</span>
+
+                <span class="c1"># case 3: predict a non-blank token</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">symbols_added</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">k</span><span class="p">))</span>
+                    <span class="n">hyp</span><span class="o">.</span><span class="n">score</span> <span class="o">+=</span> <span class="nb">float</span><span class="p">(</span><span class="n">top_logp</span><span class="p">)</span>
+                    <span class="n">hyp</span><span class="o">.</span><span class="n">dec_state</span> <span class="o">=</span> <span class="n">state</span>
+
+        <span class="k">return</span> <span class="p">[</span><span class="n">hyp</span><span class="p">]</span></div></div>
 </pre></div>
 
            </div>

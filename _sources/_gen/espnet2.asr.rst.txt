@@ -411,6 +411,138 @@ espnet2.asr.transducer.beam_search_transducer
     :show-inheritance:
 
 
+.. _espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank:
+
+espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank
+--------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.__init__:
+
+espnet2.asr.transducer.rnnt_multi_blank.__init__
+------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.rnnt:
+
+espnet2.asr.transducer.rnnt_multi_blank.rnnt
+--------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.rnnt
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.utils.__init__:
+
+espnet2.asr.transducer.rnnt_multi_blank.utils.__init__
+------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper:
+
+espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper
+---------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.utils.rnnt_helper
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants:
+
+espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants
+--------------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.utils.global_constants
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt:
+
+espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt
+----------------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.__init__:
+
+espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.__init__
+----------------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.__init__:
+
+espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.__init__
+-----------------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt:
+
+espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt
+-----------------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel:
+
+espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel
+------------------------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce:
+
+espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce
+---------------------------------------------------------------
+
+.. automodule:: espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.reduce
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.state_spaces.block:
 
 espnet2.asr.state_spaces.block
