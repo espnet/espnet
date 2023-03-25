@@ -765,8 +765,48 @@ class VISingerGenerator(torch.nn.Module):
             # forward flow
             z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
 
-            # forward decoder with random segments
-            wav = self.decoder(z * y_mask, g=g)
+            # # forward decoder with random segments
+            # wav = self.decoder(z * y_mask, g=g)
+
+            # decoder
+            pitch = pitch.transpose(0, 1).reshape(1, 1, -1)
+
+            if self.vocoder_generator_type == "uhifigan":
+                pitch_segments_expended = expand_f0(
+                    pitch, self.hop_length, method="repeat"
+                )
+                pitch_segments_expended = pitch_segments_expended.reshape(
+                    -1, pitch_segments_expended.shape[-1], 1
+                )
+                sine_waves, uv, noise = self.sine_generator(pitch_segments_expended)
+                sine_waves = sine_waves.transpose(1, 2)
+                wav = self.decoder(
+                    (z * y_mask)[:, :, :max_len], excitation=sine_waves, g=g
+                )
+            elif self.vocoder_generator_type == "avocodo":
+                wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)[-1]
+            elif self.vocoder_generator_type == "visinger2":
+                pitch_ = upsample(pitch.transpose(1, 2), self.hop_length)
+                omega = torch.cumsum(2 * math.pi * pitch_ / self.sample_rate, 1)
+                sin = torch.sin(omega).transpose(1, 2)
+
+                # dsp synthesize
+                noise_x = self.dec_noise(z, y_mask)
+                harm_x = self.dec_harm(pitch, z, y_mask)
+
+                # dsp waveform
+                dsp_o = torch.cat([harm_x, noise_x], axis=1)
+
+                # decoder_condition = torch.cat([harm_x, noise_x, sin], axis=1)
+                decoder_condition = self.sin_prenet(sin)
+
+                # dsp based HiFiGAN vocoder
+                wav = self.decoder((z * y_mask)[:, :, :max_len], decoder_condition, g=g)
+                # wav = dsp_o.sum(1)
+                # wav = noise_x
+                # wav = harm_x.sum(1)
+            else:
+                wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)
         else:
             if self.use_visinger:
                 if self.use_dp:

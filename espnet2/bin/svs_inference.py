@@ -125,9 +125,12 @@ class SingingGenerate:
         if self.use_spembs and spembs is None:
             raise RuntimeError("Missing required argument: 'spembs'")
 
+        # prepare batch
         batch = dict(
             text=text,
         )
+        if singing is not None:
+            batch.update(singing=singing)
         if label is not None:
             batch.update(label=label)
         if midi is not None:

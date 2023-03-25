@@ -523,6 +523,40 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_score_syb = duration_syb[:, : duration_syb_lengths.max()]
 
         input_dict = dict(text=text)
+        if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):
+            if singing is None:
+                raise RuntimeError("missing required argument: 'singing'")
+            if self.feats_extract is not None:
+                feats = self.feats_extract(singing[None])[0][0]
+            else:
+                # Use precalculated feats (feats_type != raw case)
+                feats = singing
+            if self.normalize is not None:
+                feats = self.normalize(feats[None])[0][0]
+            input_dict.update(feats=feats)
+            # if self.svs.require_raw_singing:
+            #     input_dict.update(singing=singing)
+
+        if decode_config["use_teacher_forcing"]:
+            if self.pitch_extract is not None:
+                pitch = self.pitch_extract(
+                    singing[None],
+                    feats_lengths=torch.LongTensor([len(feats)]),
+                )[0][0]
+            if self.pitch_normalize is not None:
+                pitch = self.pitch_normalize(pitch[None])[0][0]
+            if pitch is not None:
+                input_dict.update(pitch=pitch)
+
+            if self.energy_extract is not None:
+                energy = self.energy_extract(
+                    singing[None],
+                    feats_lengths=torch.LongTensor([len(feats)]),
+                )[0][0]
+            if self.energy_normalize is not None:
+                energy = self.energy_normalize(energy[None])[0][0]
+            if energy is not None:
+                input_dict.update(energy=energy)
 
         # label
         label = dict()
@@ -557,8 +591,8 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration.update(score_syb=duration_syb_score)
         input_dict.update(duration=duration)
 
-        if pitch is not None:
-            input_dict.update(pitch=pitch)
+        # if pitch is not None:
+        #     input_dict.update(pitch=pitch)
         if spembs is not None:
             input_dict.update(spembs=spembs)
         if sids is not None:

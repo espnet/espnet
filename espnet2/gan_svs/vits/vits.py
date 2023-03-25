@@ -956,6 +956,7 @@ class VITS(AbsGANSVS):
         # inference
         if use_teacher_forcing:
             assert feats is not None
+            assert pitch is not None
             feats = feats[None].transpose(1, 2)
             feats_lengths = torch.tensor(
                 [feats.size(2)],
@@ -971,9 +972,13 @@ class VITS(AbsGANSVS):
                 label_lengths=label_lengths,
                 melody=melody,
                 beat=beat,
+                pitch=pitch,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
+                noise_scale=noise_scale,
+                noise_scale_dur=noise_scale_dur,
+                alpha=alpha,
                 max_len=max_len,
                 use_teacher_forcing=use_teacher_forcing,
             )
