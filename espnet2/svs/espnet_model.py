@@ -523,7 +523,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_score_syb = duration_syb[:, : duration_syb_lengths.max()]
 
         input_dict = dict(text=text)
-        if decode_config["use_teacher_forcing"] or getattr(self.tts, "use_gst", False):
+        if decode_config["use_teacher_forcing"] or getattr(self.svs, "use_gst", False):
             if singing is None:
                 raise RuntimeError("missing required argument: 'singing'")
             if self.feats_extract is not None:
