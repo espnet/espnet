@@ -13,6 +13,7 @@ from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.vits.generator import VISingerGenerator
+from espnet2.gan_svs.visinger2.visinger2_generator import VISinger2Generator
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
@@ -42,7 +43,7 @@ from espnet2.gan_svs.visinger2.visinger2_vocoder import (
 AVAILABLE_GENERATERS = {
     "visinger_generator": VISingerGenerator,
     # TODO(yifeng): add more generators
-    # "visinger2_generator": VISinger2Generator,
+    "visinger2_generator": VISinger2Generator,
     # "pisinger_generator": PISingerGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
@@ -320,7 +321,7 @@ class VITS(AbsGANSVS):
 
         # define modules
         generator_class = AVAILABLE_GENERATERS[generator_type]
-        if generator_type == "visinger_generator":
+        if "visinger" in generator_type:
             # NOTE(kan-bayashi): Update parameters for the compatibility.
             #   The idim and odim is automatically decided from input data,
             #   where idim represents #vocabularies and odim represents
