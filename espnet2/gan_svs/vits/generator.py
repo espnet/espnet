@@ -507,17 +507,28 @@ class VISingerGenerator(torch.nn.Module):
             logw = (torch.exp(logw) - 1) * x_mask
             logw = torch.mul(logw.squeeze(1), beat).unsqueeze(1)
 
-            x, frame_pitch, x_lengths = self.lr(x, melody, duration, melody_lengths)
+            x, mel_len = self.lr(x, duration, use_state_info=False)
+            decoder_input_pitch, mel_len = self.lr(
+                melody.unsqueeze(1), duration, use_state_info=False
+            )
 
-            x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
+            x_mask = torch.unsqueeze(sequence_mask(mel_len, x.size(2)), 1)
 
         self.pos_encoder = PositionalEncoding(
             d_model=x.size(1), dropout_rate=0, max_len=x.size(2)
         )
+
         x = self.pos_encoder(x.transpose(1, 2)).transpose(1, 2)
+        decoder_input_pitch = self.pos_encoder(
+            decoder_input_pitch.transpose(1, 2)
+        ).transpose(1, 2)
+
+        x_mask = x_mask.to(x.device)
 
         if self.use_visinger:
-            pred_pitch, pitch_embedding = self.pitch_predictor(x, x_mask)
+            pred_pitch, pitch_embedding = self.pitch_predictor(
+                x + decoder_input_pitch, x_mask
+            )
             pred_pitch = torch.squeeze(pred_pitch, 1)
             if not self.use_dp:
                 gt_pitch = torch.log(440 * (2 ** ((melody - 69) / 12)))  # log f0
@@ -615,8 +626,8 @@ class VISingerGenerator(torch.nn.Module):
             # wav = dsp_slice.sum(1, keepdim=True)
 
         # TODO (yifeng): should the model predict log pitch? and then revert it back to f0?
-        pred_pitch = 2595.0 * torch.log10(1.0 + pred_pitch / 700.0) / 500
-        gt_pitch = 2595.0 * torch.log10(1.0 + gt_pitch / 700.0) / 500
+        # pred_pitch = 2595.0 * torch.log10(1.0 + pred_pitch / 700.0) / 500
+        # gt_pitch = 2595.0 * torch.log10(1.0 + gt_pitch / 700.0) / 500
 
         if self.use_visinger:
             if self.use_dp:
@@ -816,15 +827,26 @@ class VISingerGenerator(torch.nn.Module):
                     logw[logw < 0] = 0
                     logw = logw.squeeze(1).to(torch.long)
 
-                    x, frame_pitch, x_lengths = self.lr(x, melody, logw, label_lengths)
-                    x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
+                    x, mel_len = self.lr(x, logw, use_state_info=False)
+                    decoder_input_pitch, mel_len = self.lr(
+                        melody.unsqueeze(1), logw, use_state_info=False
+                    )
+                    
+                    x_mask = torch.unsqueeze(sequence_mask(mel_len, x.size(2)), 1)
 
                 self.pos_encoder = PositionalEncoding(
                     d_model=x.size(1), dropout_rate=0, max_len=x.size(2)
                 )
                 x = self.pos_encoder(x.transpose(1, 2)).transpose(1, 2)
+                decoder_input_pitch = self.pos_encoder(
+                    decoder_input_pitch.transpose(1, 2)
+                ).transpose(1, 2)
 
-                pred_pitch, pitch_embedding = self.pitch_predictor(x, x_mask)
+                x_mask = x_mask.to(x.device)
+
+                pred_pitch, pitch_embedding = self.pitch_predictor(
+                    x + decoder_input_pitch, x_mask
+                )
 
                 x = self.frame_prior_net(x, pitch_embedding, x_mask)
                 m_p, logs_p = self.project(x, x_mask)
