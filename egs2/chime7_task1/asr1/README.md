@@ -380,7 +380,33 @@ if you use multi-gpu inference and your GPUs are in shared mode. You need to run
 10. `Kaldi export of Recordings with multiple audio sources is currently not supported.` you have to install lhotse from the latest
 unreleased version using `pip install git+https://github.com/lhotse-speech/lhotse`.
 
+## Number of Utterances for Each Dataset in this Recipe
+### Training Set
+#### all
+- kaldi/train_all_ihm: 175403
+- kaldi/train_all_ihm_rvb: 701612
+- kaldi/train_all_mdm_ihm: 2150180
+- kaldi/train_all_mdm_ihm_rvb: 2851792
+- kaldi/train_all_mdm_ihm_rvb_gss: 2914483 (used for training here)
+#### chime6
 
+- kaldi/chime6/train/mdm: 1403340
+- kaldi/chime6/train/gss: 62691
+- kaldi/chime6/train/ihm: 118234
+#### mixer6
+
+- kaldi/mixer6/train/mdm: 571437
+- kaldi/mixer6/train/ihm: 57169
+
+### Development Set
+#### all
+- kaldi/dev_ihm_all; kaldi/dev_all_gss: 25121
+#### chime6
+- kaldi/chime6/dev/gss (used for validation here); kaldi/chime6/dev/ihm: 6644
+#### dipco
+- kaldi/dipco/dev/gss; kaldi/dipco/dev/ihm: 3673
+#### mixer6
+- kaldi/mixer6/dev/gss; kaldi/mixer6/dev/ihm: 14804
 
 ## Memory Consumption (Useful for SLURM etc.)
 
@@ -407,6 +433,22 @@ scripts/audio/format_wav_scp.sh:
 `${python} -m espnet2.bin.${asr_task}_inference${inference_bin_tag`}:
  - Few spikes to the 9 to 11 GB range.
 
+
+## Using your own Speech Separation Front-End with the pre-trained ASR model.
+
+Some suggestions from Naoyuki Kamo see https://github.com/espnet/espnet/pull/4999 <br>
+There are two possible approaches.
+
+1. After obtaining the output of the baseline GSS enhancement.
+   1. (you are more familiar with Kaldi): copy data/kaldi/{chime6,dipco,mixer6}/{dev,eval}/gss using utils/copy_data_dir.sh and then substitute the
+   file paths in each `wav.scp` manifest file with the ones produced by your approach.
+   2. (you are more familiar with lhotse): copy data/lhotse/{chime6,dipco,mixer6}/{dev,eval}/gss lhotse manifests and then
+   replace the recordings manifests with the paths to your own recordings.
+2. Directly create your Kaldi or lhotse manifests for the ASR decoding, you can follow
+either the "style" of the baseline GSS ones or the ones belonging to close-talk mics.
+
+To evaluate the new enhanced data, e.g. `kaldi/chime6/dev/my_enhanced`, you need to include it into `asr_tt_set` in `run.sh` or
+from command line: `run.sh --stage 3 --asr-tt-set "kaldi/chime6/dev/gss" --decode-only 1 --use-pretrained popcornell/chime7_task1_asr1_baseline --asr-dprep-stage 4`.
 
 
 ## Acknowledgements

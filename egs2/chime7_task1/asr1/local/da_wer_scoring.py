@@ -21,6 +21,10 @@ from pyannote.metrics.types import MetricComponents
 from tabulate import tabulate
 from tqdm import tqdm
 
+DEBUG = False
+if DEBUG:
+    from meeteval import wer as meeteval_wer  # isort: skip
+
 
 def compute_der(df_or_dict):
     if isinstance(df_or_dict, dict):
@@ -300,6 +304,23 @@ def compute_asr_errors(output_folder, hyp_segs, ref_segs, mapping=None, uem=None
 
     c_wer = compute_wer(tot_stats)
     tot_stats.update({"wer": c_wer})
+
+    if DEBUG:
+        if mapping is not None:
+            # remove the dummy speakers
+            if missed_speakers:
+                for m_spk in list(missed_speakers):
+                    del hyp[m_spk]
+            if false_speakers:
+                for f_spk in list(false_speakers):
+                    del ref[f_spk]
+        # check consistency with meeteval cpWER, note if diarization is bad
+        # this consistency will fail.
+        cp_wer = meeteval_wer.cp_word_error_rate(
+            {k: " ".join([x["words"] for x in ref[k]]) for k in ref.keys()},
+            {k: " ".join([x["words"] for x in hyp[k]]) for k in hyp.keys()},
+        )
+        assert abs(cp_wer.error_rate - c_wer) < 1e-4
 
     return tot_stats, speakers_stats
 
