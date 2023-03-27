@@ -197,7 +197,22 @@ def compute_diar_errors(hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
     jer_compute = JERComputer(
         collar=collar, skip_overlap=False
     )  # not optimal computationally
-    jer_score = jer_compute.compute_jer(reference, hypothesis, mapping)
+    jer_score = jer_compute.compute_jer(
+        reference, hypothesis, {v: k for k, v in mapping.items()}
+    )
+    if DEBUG:
+        from pyannote.metrics.diarization import (  # isort: skip
+            DiarizationErrorRate,
+            JaccardErrorRate,
+        )
+
+        orig_jer = JaccardErrorRate(collar=collar, skip_overlap=False)
+        orig_der = DiarizationErrorRate(collar=collar, skip_overlap=False)
+        jer_test = orig_jer(ref_annotation, hyp_annotation, uem=uem)
+        der_test = orig_der(ref_annotation, hyp_annotation, uem=uem)
+        assert abs(jer_score["Jaccard error rate"] - jer_test) < 1e-4
+        assert abs(der_test - der_score["diarization error rate"]) < 1e-4
+
     # error analysis here
     error_compute = IdentificationErrorAnalysis(collar=collar, skip_overlap=False)
     reference, hypothesis, errors = error_compute.difference(
@@ -487,9 +502,9 @@ def score(
     scenario_wise_df["wer"] = scenario_wer
     if use_diarization:
         scenario_der = compute_der(sess_df)
-        scenario_wise_df["der"] = scenario_der
+        scenario_wise_df["diarization error rate"] = scenario_der
         scenario_jer = compute_jer(sess_df)
-        scenario_wise_df["jer"] = scenario_jer
+        scenario_wise_df["Jaccard error rate"] = scenario_jer
     del scenario_wise_df["session id"]  # delete session
 
     return scenario_wise_df, all_sess_stats, all_spk_stats
