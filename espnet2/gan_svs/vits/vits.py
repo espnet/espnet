@@ -14,6 +14,7 @@ from typeguard import check_argument_types
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.vits.generator import VISingerGenerator
 from espnet2.gan_svs.visinger2.visinger2_generator import VISinger2Generator
+from espnet2.gan_svs.pits.pisinger_generator import PISingerGenerator
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
@@ -45,7 +46,7 @@ AVAILABLE_GENERATERS = {
     "visinger_generator": VISingerGenerator,
     # TODO(yifeng): add more generators
     "visinger2_generator": VISinger2Generator,
-    # "pisinger_generator": PISingerGenerator,
+    "pisinger_generator": PISingerGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
     "hifigan_period_discriminator": HiFiGANPeriodDiscriminator,
@@ -323,7 +324,7 @@ class VITS(AbsGANSVS):
 
         # define modules
         generator_class = AVAILABLE_GENERATERS[generator_type]
-        if "visinger" in generator_type:
+        if "visinger" in generator_type or "pisinger" in generator_type:
             # NOTE(kan-bayashi): Update parameters for the compatibility.
             #   The idim and odim is automatically decided from input data,
             #   where idim represents #vocabularies and odim represents
@@ -335,6 +336,8 @@ class VITS(AbsGANSVS):
         self.discriminator_type = discriminator_type
         if discriminator_type == "avocodo" or discriminator_type == "avocodo_plus":
             use_avocodo = True
+        else:
+            use_avocodo = False
         self.use_avocodo = use_avocodo
         generator_params.update(use_visinger=use_visinger)
         generator_params.update(vocoder_generator_type=vocoder_generator_type)
@@ -423,6 +426,8 @@ class VITS(AbsGANSVS):
         melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: torch.LongTensor = None,
         pitch_lengths: torch.Tensor = None,
+        ying: torch.Tensor = None,
+        ying_lengths: torch.Tensor = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
@@ -491,6 +496,8 @@ class VITS(AbsGANSVS):
                 beat_lengths=beat_lengths,
                 pitch=pitch,
                 pitch_lengths=pitch_lengths,
+                ying=ying,
+                ying_lengths=ying_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -512,6 +519,8 @@ class VITS(AbsGANSVS):
                 beat_lengths=beat_lengths,
                 pitch=pitch,
                 pitch_lengths=pitch_lengths,
+                ying=ying,
+                ying_lengths=ying_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -534,6 +543,8 @@ class VITS(AbsGANSVS):
         beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
+        ying: Optional[torch.Tensor] = None,
+        ying_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -594,6 +605,8 @@ class VITS(AbsGANSVS):
                 beat_lengths=beat_lengths,
                 pitch=pitch,
                 pitch_lengths=pitch_lengths,
+                ying=ying,
+                ying_lengths=ying_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -781,6 +794,8 @@ class VITS(AbsGANSVS):
         beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
+        ying: Optional[torch.Tensor] = None,
+        ying_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -849,6 +864,8 @@ class VITS(AbsGANSVS):
                 beat_lengths=beat_lengths,
                 pitch=pitch,
                 pitch_lengths=pitch_lengths,
+                ying=ying,
+                ying_lengths=ying_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
