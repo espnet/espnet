@@ -172,7 +172,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
     pretrained_affix+="--skip_data_prep false --skip_train true "
-    pretrained_affix+="--download_model ${use_pretrained}"  
+    pretrained_affix+="--download_model ${use_pretrained}"
   fi
 
   # these are args to ASR data prep, done in local/data.sh
