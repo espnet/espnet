@@ -5,6 +5,8 @@ and the [format_wav_scp.sh](https://github.com/espnet/espnet/blob/master/egs2/TE
 In the typical case, in the stage3 of [the template recipe](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE),
 `format_wav_scp.sh` is used to convert the audio file format of your original corpus to the audio format which you actually want to feed to the DNN model.
 
+Note that `format_wav_scp.py` dumps files with `sint16le` by default regardless the input audio format.
+
 ## Quick usage
 
 ```sh
@@ -31,8 +33,8 @@ See also:
 
 The audio data included in the corpus obtained from the source website are distributed in various audio file formats,
 i.e., the audio codec (`wav`, `flac`, `mp3`, or etc.), the sampling frequency (`48khz`, `44.1khz`, `16khz`, `8khz`, or etc.),
-the data precision and the type (`uint8`, `int16`, `int32`, `float20`, `float32`, or etc.),
-the number of channels (`monaural`, `stereo`, or more than 2ch).
+the data precision and the type (`uint8`, `sint16`, `sint32`, `float20`, `float32`, or etc.),
+the number of channels (`monaural`, `stereo`, or more than 2ch), little endian / big endian.
 
 When you try to develop a new recipe with a corpus that is not yet prepared in our recipes,
 of course, you can also try to use the audio data as they are without any formatting.
@@ -41,7 +43,7 @@ in a typical case, the configuration of our DNN model may assume the specific au
 especially regarding the sampling frequency and the data precision.
 If you　are conservative with your new recipe,
 we recommend converting them to the original recipe's audio format.
-For example, 16khz and int16 audio is typically used in our ASR recipes.
+For example, `16khz` and `sint16` audio is typically used in our ASR recipes.
 
 
 ## The audio file formats supported in ESPnet2
@@ -58,7 +60,7 @@ print(soundfile.available_formats())
 
 Depending on the situation, you may choose one of the following three formats:
 
-|  codec  |  compression | Some notes|
+|  Codec  |  Compression | Some notes|
 | ---- | ---- | ---- |
 |  wav (microsoft wav with linear pcm)  |  No  | |
 |  flac  |  Lossless  | Maximum channel number is 8ch |
@@ -73,13 +75,19 @@ cd egs2/some_corpus/some_task
 ./run.sh --audio_format mp3
 ```
 
-## Detail behavior of format_wav_scp.py
-
 ## Use case
 
 
 ### Case1: Extract segmentations with long recoding
 
-### Case2: Extract audio data from video codec
 
-### Case3: Non supported format by soundfile
+### Case2: Extract audio data from video codec / Use non supported format by soundfile
+
+`ffmpeg` is required. Create `wav.scp` as following:
+
+```
+ID_a ffmpeg -i "ID_a.mp4" -f wav |
+ID_b ffmpeg -i "ID_b.mp4" -f wav |
+...
+```
+
