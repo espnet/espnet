@@ -56,7 +56,7 @@ asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
 asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
-asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
+asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation. you can also try using all datasets after gss: kaldi/dev_all_gss
 asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 lm_config="conf/train_lm.yaml"
 use_lm=false
@@ -172,9 +172,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
     pretrained_affix+="--skip_data_prep false --skip_train true "
-    pretrained_affix+="--download_model ${use_pretrained}"
-  else
-    # you can also try using all datasets after gss: kaldi/dev_all_gss
+    pretrained_affix+="--download_model ${use_pretrained}"  
   fi
 
   # these are args to ASR data prep, done in local/data.sh
