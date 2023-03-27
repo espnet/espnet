@@ -88,6 +88,8 @@ class VISingerGenerator(torch.nn.Module):
         decoder_upsample_kernel_sizes: List[int] = [16, 16, 4, 4],
         decoder_resblock_kernel_sizes: List[int] = [3, 7, 11],
         decoder_resblock_dilations: List[List[int]] = [[1, 3, 5], [1, 3, 5], [1, 3, 5]],
+        # avocodo
+        use_avocodo=False,
         projection_filters: List[int] = [0, 1, 1, 1],
         projection_kernels: List[int] = [0, 5, 7, 11],
         # visinger 2
@@ -188,6 +190,8 @@ class VISingerGenerator(torch.nn.Module):
         """
         super().__init__()
         self.segment_size = segment_size
+        self.sample_rate = fs
+        self.hop_length = hop_length
         self.text_encoder = TextEncoder(
             vocabs=vocabs,
             attention_dim=hidden_channels,
@@ -224,6 +228,7 @@ class VISingerGenerator(torch.nn.Module):
                 resblock_kernel_sizes=decoder_resblock_kernel_sizes,
                 resblock_dilations=decoder_resblock_dilations,
                 use_weight_norm=use_weight_norm_in_decoder,
+                use_avocodo=use_avocodo,
             )
             self.sine_generator = SineGen(
                 sample_rate=fs,
@@ -289,8 +294,6 @@ class VISingerGenerator(torch.nn.Module):
                 p_dropout=0.1,
             )
             self.sin_prenet = torch.nn.Conv1d(1, n_harmonic + 2, 3, padding=1)
-            self.sample_rate = fs
-            self.hop_length = hop_length
         else:
             raise ValueError(
                 f"Not supported vocoder generator type: {vocoder_generator_type}"
@@ -588,8 +591,6 @@ class VISingerGenerator(torch.nn.Module):
             sine_waves = sine_waves.transpose(1, 2)
 
             wav = self.decoder(z_segments, excitation=sine_waves, g=g)
-        elif self.vocoder_generator_type == "hifigan":
-            wav = self.decoder(z_segments, g=g)
         elif self.vocoder_generator_type == "visinger2":
             pitch_ = upsample(pitch, self.hop_length)
             omega = torch.cumsum(2 * math.pi * pitch_ / self.sample_rate, 1)
@@ -620,6 +621,8 @@ class VISingerGenerator(torch.nn.Module):
                 self.segment_size * self.hop_length,
             )
             wav = self.decoder(z_segments, condition_slice)
+        else:
+            wav = self.decoder(z_segments, g=g)
 
             # wav = dsp_slice.sum(1, keepdim=True)
 
@@ -842,9 +845,7 @@ class VISingerGenerator(torch.nn.Module):
 
                 x_mask = x_mask.to(x.device)
 
-                pred_pitch, pitch_embedding = self.pitch_predictor(
-                    x, x_mask
-                )
+                pred_pitch, pitch_embedding = self.pitch_predictor(x, x_mask)
 
                 x = self.frame_prior_net(x, pitch_embedding, x_mask)
                 m_p, logs_p = self.project(x, x_mask)

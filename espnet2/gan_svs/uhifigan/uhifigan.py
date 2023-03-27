@@ -37,6 +37,8 @@ class UHiFiGANGenerator(torch.nn.Module):
         upsample_kernel_sizes=(16, 16, 4, 4),
         resblock_kernel_sizes=(3, 7, 11),
         resblock_dilations=[(1, 3, 5), (1, 3, 5), (1, 3, 5)],
+        projection_filters: List[int] = [0, 1, 1, 1],
+        projection_kernels: List[int] = [0, 5, 7, 11],
         dropout=0.3,
         use_additional_convs=True,
         bias=True,
@@ -44,6 +46,7 @@ class UHiFiGANGenerator(torch.nn.Module):
         nonlinear_activation_params={"negative_slope": 0.1},
         use_causal_conv=False,
         use_weight_norm=True,
+        use_avocodo=False,
     ):
         """Initialize Unet-based HiFiGANGenerator module.
 
@@ -89,7 +92,11 @@ class UHiFiGANGenerator(torch.nn.Module):
         self.upsamples_mrf = torch.nn.ModuleList()
 
         self.output_conv = None
-
+        self.use_avocodo = use_avocodo
+        # print("in_channels", in_channels)
+        # print("out_channels", out_channels)
+        # print("channels", channels)
+        # raise ValueError
         if not use_causal_conv:
             self.input_conv = torch.nn.Sequential(
                 torch.nn.Conv1d(
@@ -114,7 +121,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                 getattr(torch.nn, nonlinear_activation)(**nonlinear_activation_params),
                 torch.nn.Dropout(dropout),
             )
-
+        hidden_channels = channels
         for i in range(len(downsample_scales)):
 
             for j in range(len(resblock_kernel_sizes)):
@@ -122,6 +129,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                     ResidualBlock(
                         kernel_size=resblock_kernel_sizes[j],
                         channels=channels,
+                        # channels=channels * 2**i,
                         dilations=resblock_dilations[j],
                         bias=bias,
                         use_additional_convs=use_additional_convs,
@@ -137,6 +145,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                         torch.nn.Conv1d(
                             channels,
                             channels * 2,
+                            # channels * (2 ** (i + 1)),
                             kernel_size=downsample_kernel_sizes[i],
                             stride=downsample_scales[i],
                             bias=bias,
@@ -155,6 +164,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                         CausalConv1d(
                             channels,
                             channels * 2,
+                            # channels * (2 ** (i + 1)),
                             kernel_size=downsample_kernel_sizes[i],
                             stride=downsample_scales[i],
                             bias=bias,
@@ -187,6 +197,8 @@ class UHiFiGANGenerator(torch.nn.Module):
                 padding=(kernel_size - 1) // 2,
             )
 
+        max_channels = channels
+        self.output_conv = torch.nn.ModuleList()
         for i in range(len(upsample_kernel_sizes)):
             # assert upsample_kernel_sizes[i] == 2 * upsample_scales[i]
             if not use_causal_conv:
@@ -198,6 +210,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                         torch.nn.ConvTranspose1d(
                             channels * 2,
                             channels // 2,
+                            # channels // (2 ** (i + 1)),
                             upsample_kernel_sizes[i],
                             upsample_scales[i],
                             padding=upsample_scales[i] // 2 + upsample_scales[i] % 2,
@@ -215,6 +228,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                         CausalConvTranspose1d(
                             channels * 2,
                             channels // 2,
+                            # channels // (2 ** (i + 1)),
                             upsample_kernel_sizes[i],
                             upsample_scales[i],
                             bias=bias,
@@ -228,6 +242,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                     ResidualBlock(
                         kernel_size=resblock_kernel_sizes[j],
                         channels=channels // 2,
+                        # channels=channels // (2 ** (i + 1)),
                         dilations=resblock_dilations[j],
                         bias=bias,
                         use_additional_convs=use_additional_convs,
@@ -254,33 +269,49 @@ class UHiFiGANGenerator(torch.nn.Module):
             #         )
             #     ]
 
-        if not use_causal_conv:
-            self.output_conv = torch.nn.Sequential(
-                # NOTE(kan-bayashi): follow official implementation but why
-                #   using different slope parameter here? (0.1 vs. 0.01)
-                torch.nn.LeakyReLU(),
-                torch.nn.Conv1d(
-                    channels,
-                    out_channels,
-                    kernel_size,
-                    bias=bias,
-                    padding=(kernel_size - 1) // 2,
-                ),
-                torch.nn.Tanh(),
-            )
-        else:
-            self.output_conv = torch.nn.Sequential(
-                # NOTE(kan-bayashi): follow official implementation but why
-                #   using different slope parameter here? (0.1 vs. 0.01)
-                torch.nn.LeakyReLU(),
-                CausalConv1d(
-                    channels,
-                    out_channels,
-                    kernel_size,
-                    bias=bias,
-                ),
-                torch.nn.Tanh(),
-            )
+            if use_avocodo:
+                if projection_filters[i] != 0:
+                    self.output_conv.append(
+                        torch.nn.Conv1d(
+                            max_channels // (2 ** (i + 1)),
+                            # channels // (2 ** (i + 1)),
+                            projection_filters[i],
+                            projection_kernels[i],
+                            1,
+                            padding=projection_kernels[i] // 2,
+                        )
+                    )
+                else:
+                    self.output_conv.append(torch.nn.Identity())
+        if not use_avocodo:
+            if not use_causal_conv:
+                self.output_conv = torch.nn.Sequential(
+                    # NOTE(kan-bayashi): follow official implementation but why
+                    #   using different slope parameter here? (0.1 vs. 0.01)
+                    torch.nn.LeakyReLU(),
+                    torch.nn.Conv1d(
+                        channels,
+                        out_channels,
+                        kernel_size,
+                        bias=bias,
+                        padding=(kernel_size - 1) // 2,
+                    ),
+                    torch.nn.Tanh(),
+                )
+            else:
+                self.output_conv = torch.nn.Sequential(
+                    # NOTE(kan-bayashi): follow official implementation but why
+                    #   using different slope parameter here? (0.1 vs. 0.01)
+                    torch.nn.LeakyReLU(),
+                    CausalConv1d(
+                        channels,
+                        out_channels,
+                        kernel_size,
+                        bias=bias,
+                    ),
+                    torch.nn.Tanh(),
+                )
+
         if global_channels > 0:
             self.global_conv = torch.nn.Conv1d(global_channels, channels, 1)
 
@@ -322,6 +353,8 @@ class UHiFiGANGenerator(torch.nn.Module):
         #     c = torch.cat( (c,excitation), 1)
 
         residual_results = []
+        if self.use_avocodo:
+            outs = []
         hidden = self.input_conv(excitation)
 
         # TODO(yifeng): add global conv to hidden?
@@ -348,7 +381,6 @@ class UHiFiGANGenerator(torch.nn.Module):
             # logging.warn(f'bef {i}-th upsampe:{hidden_mel.shape}')
             # logging.warn(f'bef {i}-th upsampe:{residual_results[i].shape}')
             # print("hidden_mel.shape1", hidden_mel.shape)
-            # print("residual_results[i].shape", residual_results[i].shape)
             hidden_mel = torch.cat((hidden_mel, residual_results[i]), dim=1)
             # logging.warn(f'aft {i}-th upsample :{hidden_mel.shape}')
             # print("hidden_mel.shape2", hidden_mel.shape)
@@ -364,12 +396,20 @@ class UHiFiGANGenerator(torch.nn.Module):
                 cs += tc
             hidden_mel = cs / self.num_blocks
             # logging.warn(f'aft {i}-th MRF:{hidden_mel.shape}')
+            if self.use_avocodo:
+                if i >= (self.num_upsamples - 3):
+                    _c = F.leaky_relu(hidden_mel)
+                    _c = self.output_conv[i](_c)
+                    _c = torch.tanh(_c)
+                    outs.append(_c)
+                else:
+                    hidden_mel = self.output_conv[i](hidden_mel)
 
         # logging.warn(f'bef output conv mel : {hidden_mel.shape}')
-        mel = self.output_conv(hidden_mel)
-        # logging.warn(f'aft output conv mel : {mel.shape}')
-
-        return mel
+        if self.use_avocodo:
+            return outs
+        else:
+            return self.output_conv(hidden_mel)
 
     def reset_parameters(self):
         """Reset parameters.
@@ -461,514 +501,3 @@ class UHiFiGANGenerator(torch.nn.Module):
             excitation.reshape(1, 1, -1),
         )
         return c.squeeze(0).transpose(1, 0)
-
-
-class HiFiGANPeriodDiscriminator(torch.nn.Module):
-    """HiFiGAN period discriminator module."""
-
-    def __init__(
-        self,
-        in_channels=1,
-        out_channels=1,
-        period=3,
-        kernel_sizes=[5, 3],
-        channels=32,
-        downsample_scales=[3, 3, 3, 3, 1],
-        max_downsample_channels=1024,
-        bias=True,
-        nonlinear_activation="LeakyReLU",
-        nonlinear_activation_params={"negative_slope": 0.1},
-        use_weight_norm=True,
-        use_spectral_norm=False,
-    ):
-        """Initialize HiFiGANPeriodDiscriminator module.
-
-        Args:
-            in_channels (int): Number of input channels.
-            out_channels (int): Number of output channels.
-            period (int): Period.
-            kernel_sizes (list): Kernel sizes of initial conv layers and the final conv layer.
-            channels (int): Number of initial channels.
-            downsample_scales (list): List of downsampling scales.
-            max_downsample_channels (int): Number of maximum downsampling channels.
-            use_additional_convs (bool): Whether to use additional conv layers in residual blocks.
-            bias (bool): Whether to add bias parameter in convolution layers.
-            nonlinear_activation (str): Activation function module name.
-            nonlinear_activation_params (dict): Hyperparameters for activation function.
-            use_weight_norm (bool): Whether to use weight norm.
-                If set to true, it will be applied to all of the conv layers.
-            use_spectral_norm (bool): Whether to use spectral norm.
-                If set to true, it will be applied to all of the conv layers.
-
-        """
-        super().__init__()
-        assert len(kernel_sizes) == 2
-        assert kernel_sizes[0] % 2 == 1, "Kernel size must be odd number."
-        assert kernel_sizes[1] % 2 == 1, "Kernel size must be odd number."
-
-        self.period = period
-        self.convs = torch.nn.ModuleList()
-        in_chs = in_channels
-        out_chs = channels
-        for downsample_scale in downsample_scales:
-            self.convs += [
-                torch.nn.Sequential(
-                    torch.nn.Conv2d(
-                        in_chs,
-                        out_chs,
-                        (kernel_sizes[0], 1),
-                        (downsample_scale, 1),
-                        padding=((kernel_sizes[0] - 1) // 2, 0),
-                    ),
-                    getattr(torch.nn, nonlinear_activation)(
-                        **nonlinear_activation_params
-                    ),
-                )
-            ]
-            in_chs = out_chs
-            # NOTE(kan-bayashi): Use downsample_scale + 1?
-            out_chs = min(out_chs * 4, max_downsample_channels)
-        self.output_conv = torch.nn.Conv2d(
-            out_chs,
-            out_channels,
-            (kernel_sizes[1] - 1, 1),
-            1,
-            padding=((kernel_sizes[1] - 1) // 2, 0),
-        )
-
-        if use_weight_norm and use_spectral_norm:
-            raise ValueError("Either use use_weight_norm or use_spectral_norm.")
-
-        # apply weight norm
-        if use_weight_norm:
-            self.apply_weight_norm()
-
-        # apply spectral norm
-        if use_spectral_norm:
-            self.apply_spectral_norm()
-
-    def forward(self, x):
-        """Calculate forward propagation.
-
-        Args:
-            c (Tensor): Input tensor (B, in_channels, T).
-
-        Returns:
-            list: List of each layer's tensors.
-
-        """
-        # transform 1d to 2d -> (B, C, T/P, P)
-        b, c, t = x.shape
-        if t % self.period != 0:
-            n_pad = self.period - (t % self.period)
-            x = F.pad(x, (0, n_pad), "reflect")
-            t += n_pad
-        x = x.view(b, c, t // self.period, self.period)
-
-        # forward conv
-        outs = []
-        for layer in self.convs:
-            x = layer(x)
-            outs += [x]
-        x = self.output_conv(x)
-        x = torch.flatten(x, 1, -1)
-        outs += [x]
-
-        return outs
-
-    def apply_weight_norm(self):
-        """Apply weight normalization module from all of the layers."""
-
-        def _apply_weight_norm(m):
-            if isinstance(m, torch.nn.Conv2d):
-                torch.nn.utils.weight_norm(m)
-                logging.debug(f"Weight norm is applied to {m}.")
-
-        self.apply(_apply_weight_norm)
-
-    def apply_spectral_norm(self):
-        """Apply spectral normalization module from all of the layers."""
-
-        def _apply_spectral_norm(m):
-            if isinstance(m, torch.nn.Conv2d):
-                torch.nn.utils.spectral_norm(m)
-                logging.debug(f"Spectral norm is applied to {m}.")
-
-        self.apply(_apply_spectral_norm)
-
-
-class HiFiGANMultiPeriodDiscriminator(torch.nn.Module):
-    """HiFiGAN multi-period discriminator module."""
-
-    def __init__(
-        self,
-        periods=[2, 3, 5, 7, 11],
-        discriminator_params={
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [5, 3],
-            "channels": 32,
-            "downsample_scales": [3, 3, 3, 3, 1],
-            "max_downsample_channels": 1024,
-            "bias": True,
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-            "use_weight_norm": True,
-            "use_spectral_norm": False,
-        },
-    ):
-        """Initialize HiFiGANMultiPeriodDiscriminator module.
-
-        Args:
-            periods (list): List of periods.
-            discriminator_params (dict): Parameters for hifi-gan period discriminator module.
-                The period parameter will be overwritten.
-
-        """
-        super().__init__()
-        self.discriminators = torch.nn.ModuleList()
-        for period in periods:
-            params = copy.deepcopy(discriminator_params)
-            params["period"] = period
-            self.discriminators += [HiFiGANPeriodDiscriminator(**params)]
-
-    def forward(self, x):
-        """Calculate forward propagation.
-
-        Args:
-            x (Tensor): Input noise signal (B, 1, T).
-
-        Returns:
-            List: List of list of each discriminator outputs, which consists of each layer output tensors.
-
-        """
-        outs = []
-        for f in self.discriminators:
-            outs += [f(x)]
-
-        return outs
-
-
-class HiFiGANScaleDiscriminator(torch.nn.Module):
-    """HiFi-GAN scale discriminator module."""
-
-    def __init__(
-        self,
-        in_channels=1,
-        out_channels=1,
-        kernel_sizes=[15, 41, 5, 3],
-        channels=128,
-        max_downsample_channels=1024,
-        max_groups=16,
-        bias=True,
-        downsample_scales=[2, 2, 4, 4, 1],
-        nonlinear_activation="LeakyReLU",
-        nonlinear_activation_params={"negative_slope": 0.1},
-        use_weight_norm=True,
-        use_spectral_norm=False,
-    ):
-        """Initilize HiFiGAN scale discriminator module.
-
-        Args:
-            in_channels (int): Number of input channels.
-            out_channels (int): Number of output channels.
-            kernel_sizes (list): List of four kernel sizes. The first will be used for the first conv layer,
-                and the second is for downsampling part, and the remaining two are for output layers.
-            channels (int): Initial number of channels for conv layer.
-            max_downsample_channels (int): Maximum number of channels for downsampling layers.
-            bias (bool): Whether to add bias parameter in convolution layers.
-            downsample_scales (list): List of downsampling scales.
-            nonlinear_activation (str): Activation function module name.
-            nonlinear_activation_params (dict): Hyperparameters for activation function.
-            use_weight_norm (bool): Whether to use weight norm.
-                If set to true, it will be applied to all of the conv layers.
-            use_spectral_norm (bool): Whether to use spectral norm.
-                If set to true, it will be applied to all of the conv layers.
-
-        """
-        super().__init__()
-        self.layers = torch.nn.ModuleList()
-
-        # check kernel size is valid
-        assert len(kernel_sizes) == 4
-        for ks in kernel_sizes:
-            assert ks % 2 == 1
-
-        # add first layer
-        self.layers += [
-            torch.nn.Sequential(
-                torch.nn.Conv1d(
-                    in_channels,
-                    channels,
-                    # NOTE(kan-bayashi): Use always the same kernel size
-                    kernel_sizes[0],
-                    bias=bias,
-                    padding=(kernel_sizes[0] - 1) // 2,
-                ),
-                getattr(torch.nn, nonlinear_activation)(**nonlinear_activation_params),
-            )
-        ]
-
-        # add downsample layers
-        in_chs = channels
-        out_chs = channels
-        # NOTE(kan-bayashi): Remove hard coding?
-        groups = 4
-        for downsample_scale in downsample_scales:
-            self.layers += [
-                torch.nn.Sequential(
-                    torch.nn.Conv1d(
-                        in_chs,
-                        out_chs,
-                        kernel_size=kernel_sizes[1],
-                        stride=downsample_scale,
-                        padding=(kernel_sizes[1] - 1) // 2,
-                        groups=groups,
-                        bias=bias,
-                    ),
-                    getattr(torch.nn, nonlinear_activation)(
-                        **nonlinear_activation_params
-                    ),
-                )
-            ]
-            in_chs = out_chs
-            # NOTE(kan-bayashi): Remove hard coding?
-            out_chs = min(in_chs * 2, max_downsample_channels)
-            # NOTE(kan-bayashi): Remove hard coding?
-            groups = min(groups * 4, max_groups)
-
-        # add final layers
-        out_chs = min(in_chs * 2, max_downsample_channels)
-        self.layers += [
-            torch.nn.Sequential(
-                torch.nn.Conv1d(
-                    in_chs,
-                    out_chs,
-                    kernel_size=kernel_sizes[2],
-                    stride=1,
-                    padding=(kernel_sizes[2] - 1) // 2,
-                    bias=bias,
-                ),
-                getattr(torch.nn, nonlinear_activation)(**nonlinear_activation_params),
-            )
-        ]
-        self.layers += [
-            torch.nn.Conv1d(
-                out_chs,
-                out_channels,
-                kernel_size=kernel_sizes[3],
-                stride=1,
-                padding=(kernel_sizes[3] - 1) // 2,
-                bias=bias,
-            ),
-        ]
-
-        if use_weight_norm and use_spectral_norm:
-            raise ValueError("Either use use_weight_norm or use_spectral_norm.")
-
-        # apply weight norm
-        if use_weight_norm:
-            self.apply_weight_norm()
-
-        # apply spectral norm
-        if use_spectral_norm:
-            self.apply_spectral_norm()
-
-    def forward(self, x):
-        """Calculate forward propagation.
-
-        Args:
-            x (Tensor): Input noise signal (B, 1, T).
-
-        Returns:
-            List: List of output tensors of each layer.
-
-        """
-        outs = []
-        for f in self.layers:
-            x = f(x)
-            outs += [x]
-
-        return outs
-
-    def apply_weight_norm(self):
-        """Apply weight normalization module from all of the layers."""
-
-        def _apply_weight_norm(m):
-            if isinstance(m, torch.nn.Conv2d):
-                torch.nn.utils.weight_norm(m)
-                logging.debug(f"Weight norm is applied to {m}.")
-
-        self.apply(_apply_weight_norm)
-
-    def apply_spectral_norm(self):
-        """Apply spectral normalization module from all of the layers."""
-
-        def _apply_spectral_norm(m):
-            if isinstance(m, torch.nn.Conv2d):
-                torch.nn.utils.spectral_norm(m)
-                logging.debug(f"Spectral norm is applied to {m}.")
-
-        self.apply(_apply_spectral_norm)
-
-
-class HiFiGANMultiScaleDiscriminator(torch.nn.Module):
-    """HiFi-GAN multi-scale discriminator module."""
-
-    def __init__(
-        self,
-        scales=3,
-        downsample_pooling="AvgPool1d",
-        # follow the official implementation setting
-        downsample_pooling_params={
-            "kernel_size": 4,
-            "stride": 2,
-            "padding": 2,
-        },
-        discriminator_params={
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [15, 41, 5, 3],
-            "channels": 128,
-            "max_downsample_channels": 1024,
-            "max_groups": 16,
-            "bias": True,
-            "downsample_scales": [2, 2, 4, 4, 1],
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-        },
-        follow_official_norm=False,
-    ):
-        """Initilize HiFiGAN multi-scale discriminator module.
-
-        Args:
-            scales (int): Number of multi-scales.
-            downsample_pooling (str): Pooling module name for downsampling of the inputs.
-            downsample_pooling_params (dict): Parameters for the above pooling module.
-            discriminator_params (dict): Parameters for hifi-gan scale discriminator module.
-            follow_official_norm (bool): Whether to follow the norm setting of the official
-                implementaion. The first discriminator uses spectral norm and the other
-                discriminators use weight norm.
-
-        """
-        super().__init__()
-        self.discriminators = torch.nn.ModuleList()
-
-        # add discriminators
-        for i in range(scales):
-            params = copy.deepcopy(discriminator_params)
-            if follow_official_norm:
-                if i == 0:
-                    params["use_weight_norm"] = False
-                    params["use_spectral_norm"] = True
-                else:
-                    params["use_weight_norm"] = True
-                    params["use_spectral_norm"] = False
-            self.discriminators += [HiFiGANScaleDiscriminator(**params)]
-        self.pooling = getattr(torch.nn, downsample_pooling)(
-            **downsample_pooling_params
-        )
-
-    def forward(self, x):
-        """Calculate forward propagation.
-
-        Args:
-            x (Tensor): Input noise signal (B, 1, T).
-
-        Returns:
-            List: List of list of each discriminator outputs, which consists of each layer output tensors.
-
-        """
-        outs = []
-        for f in self.discriminators:
-            outs += [f(x)]
-            x = self.pooling(x)
-
-        return outs
-
-
-class HiFiGANMultiScaleMultiPeriodDiscriminator(torch.nn.Module):
-    """HiFi-GAN multi-scale + multi-period discriminator module."""
-
-    def __init__(
-        self,
-        # Multi-scale discriminator related
-        scales=3,
-        scale_downsample_pooling="AvgPool1d",
-        scale_downsample_pooling_params={
-            "kernel_size": 4,
-            "stride": 2,
-            "padding": 2,
-        },
-        scale_discriminator_params={
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [15, 41, 5, 3],
-            "channels": 128,
-            "max_downsample_channels": 1024,
-            "max_groups": 16,
-            "bias": True,
-            "downsample_scales": [2, 2, 4, 4, 1],
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-        },
-        follow_official_norm=True,
-        # Multi-period discriminator related
-        periods=[2, 3, 5, 7, 11],
-        period_discriminator_params={
-            "in_channels": 1,
-            "out_channels": 1,
-            "kernel_sizes": [5, 3],
-            "channels": 32,
-            "downsample_scales": [3, 3, 3, 3, 1],
-            "max_downsample_channels": 1024,
-            "bias": True,
-            "nonlinear_activation": "LeakyReLU",
-            "nonlinear_activation_params": {"negative_slope": 0.1},
-            "use_weight_norm": True,
-            "use_spectral_norm": False,
-        },
-    ):
-        """Initilize HiFiGAN multi-scale + multi-period discriminator module.
-
-        Args:
-            scales (int): Number of multi-scales.
-            scale_downsample_pooling (str): Pooling module name for downsampling of the inputs.
-            scale_downsample_pooling_params (dict): Parameters for the above pooling module.
-            scale_discriminator_params (dict): Parameters for hifi-gan scale discriminator module.
-            follow_official_norm (bool): Whether to follow the norm setting of the official
-                implementaion. The first discriminator uses spectral norm and the other
-                discriminators use weight norm.
-            periods (list): List of periods.
-            period_discriminator_params (dict): Parameters for hifi-gan period discriminator module.
-                The period parameter will be overwritten.
-
-        """
-        super().__init__()
-        self.msd = HiFiGANMultiScaleDiscriminator(
-            scales=scales,
-            downsample_pooling=scale_downsample_pooling,
-            downsample_pooling_params=scale_downsample_pooling_params,
-            discriminator_params=scale_discriminator_params,
-            follow_official_norm=follow_official_norm,
-        )
-        self.mpd = HiFiGANMultiPeriodDiscriminator(
-            periods=periods,
-            discriminator_params=period_discriminator_params,
-        )
-
-    def forward(self, x):
-        """Calculate forward propagation.
-
-        Args:
-            x (Tensor): Input noise signal (B, 1, T).
-
-        Returns:
-            List: List of list of each discriminator outputs,
-                which consists of each layer output tensors.
-                Multi scale and multi period ones are concatenated.
-
-        """
-        msd_outs = self.msd(x)
-        mpd_outs = self.mpd(x)
-        return msd_outs + mpd_outs

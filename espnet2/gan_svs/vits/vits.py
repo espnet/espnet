@@ -35,6 +35,7 @@ from espnet2.gan_svs.avocodo.avocodo import (
     CoMBD,
     SBD,
     AvocodoDiscriminator,
+    AvocodoDiscriminatorPlus,
 )
 from espnet2.gan_svs.visinger2.visinger2_vocoder import (
     VISinger2Discriminator,
@@ -56,6 +57,7 @@ AVAILABLE_DISCRIMINATORS = {
     "sbd": SBD,
     "avocodo": AvocodoDiscriminator,
     "visinger2": VISinger2Discriminator,
+    "avocodo_plus": AvocodoDiscriminatorPlus,
 }
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
@@ -330,6 +332,10 @@ class VITS(AbsGANSVS):
         self.use_visinger = use_visinger
         self.use_dp = use_dp
         self.vocoder_generator_type = vocoder_generator_type
+        self.discriminator_type = discriminator_type
+        if discriminator_type == "avocodo" or discriminator_type == "avocodo_plus":
+            use_avocodo = True
+        self.use_avocodo = use_avocodo
         generator_params.update(use_visinger=use_visinger)
         generator_params.update(vocoder_generator_type=vocoder_generator_type)
         generator_params.update(use_dp=use_dp)
@@ -337,17 +343,21 @@ class VITS(AbsGANSVS):
         generator_params.update(hop_length=mel_loss_params["hop_length"])
         generator_params.update(win_length=mel_loss_params["win_length"])
         generator_params.update(n_fft=mel_loss_params["n_fft"])
+        if vocoder_generator_type == "uhifigan" and "avocodo" in discriminator_type:
+            generator_params.update(use_avocodo=use_avocodo)
         self.generator = generator_class(
             **generator_params,
         )
-        self.discriminator_type = discriminator_type
-        discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
+
+        discriminator_class = AVAILABLE_DISCRIMINATORS[self.discriminator_type]
         if vocoder_generator_type == "avocodo":
             discriminator_params["avocodo"].update(
                 projection_filters=generator_params["projection_filters"]
             )
-        if vocoder_generator_type == "visinger2":
+        elif vocoder_generator_type == "visinger2":
             discriminator_type = "hifigan_multi_scale_multi_period_discriminator"
+        if discriminator_type == "avocodo_plus":
+            discriminator_type = "avocodo"
         self.discriminator = discriminator_class(
             **discriminator_params[discriminator_type],
         )
@@ -600,6 +610,9 @@ class VITS(AbsGANSVS):
             singing_hat_, start_idxs, _, z_mask, outs_, singing_hat_ddsp_ = outs
         else:
             singing_hat_, start_idxs, _, z_mask, outs_ = outs
+            # print("singing_hat_[0] shape: ", singing_hat_[0].shape)
+            # print("singing_hat_[1] shape: ", singing_hat_[1].shape)
+            # print("singing_hat_[2] shape: ", singing_hat_[2].shape)
         if not self.use_visinger:
             _, z_p, m_p, logs_p, _, logs_q = outs_
         else:
@@ -634,14 +647,16 @@ class VITS(AbsGANSVS):
             with torch.no_grad():
                 # do not store discriminator gradient in generator turn
                 p = self.discriminator(singing_)
-        elif self.discriminator_type == "avocodo":
+        elif "avocodo" in self.discriminator_type:
+            # print("singing_hat_.shape", singing_hat_[0].shape)
+            # print("singing_.shape", singing_.shape)
             p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
                 singing_, singing_hat_
             )
 
         # calculate losses
         with autocast(enabled=False):
-            if self.vocoder_generator_type == "avocodo":
+            if self.use_avocodo:
                 mel_loss = self.mel_loss(singing_hat_[-1], singing_)
             elif self.vocoder_generator_type == "visinger2":
                 mel_loss = self.mel_loss(singing_hat_, singing_)
@@ -656,9 +671,13 @@ class VITS(AbsGANSVS):
             ):
                 adv_loss = self.generator_adv_loss(p_hat)
                 feat_match_loss = self.feat_match_loss(p_hat, p)
-            elif self.discriminator_type == "avocodo":
+            elif "avocodo" in self.discriminator_type:
                 adv_loss = self.generator_adv_loss(p_hat)
+                # print("fmaps_fake[0]", fmaps_fake[0][0].shape)
+                # print("fmaps_real[0]", fmaps_real[0][0].shape)
+
                 feat_match_loss = self.feat_match_loss(fmaps_fake, fmaps_real)
+                # raise ValueError
 
             if self.use_visinger:
                 pitch_loss = self.mse_loss(pred_pitch, gt_pitch)
@@ -857,7 +876,7 @@ class VITS(AbsGANSVS):
         ):
             p_hat = self.discriminator(singing_hat_.detach())
             p = self.discriminator(singing_)
-        elif self.discriminator_type == "avocodo":
+        elif "avocodo" in self.discriminator_type:
             detached_singing_hat_ = [x.detach() for x in singing_hat_]
             p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
                 singing_, detached_singing_hat_

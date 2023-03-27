@@ -16,6 +16,7 @@ from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
 from espnet2.gan_tts.melgan.pqmf import PQMF
 from espnet2.gan_tts.hifigan.residual_block import ResidualBlock
+from espnet2.gan_svs.visinger2.visinger2_vocoder import MultiFrequencyDiscriminator
 
 
 def get_padding(kernel_size, dilation=1):
@@ -120,6 +121,7 @@ class AvocodoGenerator(torch.nn.Module):
         self, c: torch.Tensor, g: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """Calculate forward propagation.
+
         Args:
             c (Tensor): Input tensor (B, in_channels, T).
             g (Optional[Tensor]): Global conditioning tensor (B, global_channels, 1).
@@ -625,5 +627,150 @@ class AvocodoDiscriminator(torch.nn.Module):
         outs_fake = combd_outs_fake + sbd_outs_fake
         fmaps_real = combd_fmaps_real + sbd_fmaps_real
         fmaps_fake = combd_fmaps_fake + sbd_fmaps_fake
+
+        return outs_real, outs_fake, fmaps_real, fmaps_fake
+
+
+class AvocodoDiscriminatorPlus(torch.nn.Module):
+    def __init__(
+        self,
+        combd: Dict[str, Any] = {
+            "combd_h_u": [
+                [16, 64, 256, 1024, 1024, 1024],
+                [16, 64, 256, 1024, 1024, 1024],
+                [16, 64, 256, 1024, 1024, 1024],
+            ],
+            "combd_d_k": [
+                [7, 11, 11, 11, 11, 5],
+                [11, 21, 21, 21, 21, 5],
+                [15, 41, 41, 41, 41, 5],
+            ],
+            "combd_d_s": [
+                [1, 1, 4, 4, 4, 1],
+                [1, 1, 4, 4, 4, 1],
+                [1, 1, 4, 4, 4, 1],
+            ],
+            "combd_d_d": [
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1],
+            ],
+            "combd_d_g": [
+                [1, 4, 16, 64, 256, 1],
+                [1, 4, 16, 64, 256, 1],
+                [1, 4, 16, 64, 256, 1],
+            ],
+            "combd_d_p": [
+                [3, 5, 5, 5, 5, 2],
+                [5, 10, 10, 10, 10, 2],
+                [7, 20, 20, 20, 20, 2],
+            ],
+            "combd_op_f": [1, 1, 1],
+            "combd_op_k": [3, 3, 3],
+            "combd_op_g": [1, 1, 1],
+        },
+        sbd: Dict[str, Any] = {
+            "use_sbd": True,
+            "sbd_filters": [
+                [64, 128, 256, 256, 256],
+                [64, 128, 256, 256, 256],
+                [64, 128, 256, 256, 256],
+                [32, 64, 128, 128, 128],
+            ],
+            "sbd_strides": [
+                [1, 1, 3, 3, 1],
+                [1, 1, 3, 3, 1],
+                [1, 1, 3, 3, 1],
+                [1, 1, 3, 3, 1],
+            ],
+            "sbd_kernel_sizes": [
+                [[7, 7, 7], [7, 7, 7], [7, 7, 7], [7, 7, 7], [7, 7, 7]],
+                [[5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]],
+                [[3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3], [3, 3, 3]],
+                [[5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5], [5, 5, 5]],
+            ],
+            "sbd_dilations": [
+                [[5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11]],
+                [[3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7]],
+                [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]],
+                [[1, 2, 3], [1, 2, 3], [1, 2, 3], [2, 3, 5], [2, 3, 5]],
+            ],
+            "sbd_band_ranges": [[0, 6], [0, 11], [0, 16], [0, 64]],
+            "sbd_transpose": [False, False, False, True],
+            "pqmf_config": {
+                "sbd": [16, 256, 0.03, 10.0],
+                "fsbd": [64, 256, 0.1, 9.0],
+            },
+            "segment_size": "${svs_conf.generator_params.segment_size}",
+        },
+        pqmf_config: Dict[str, Any] = {
+            "lv1": [2, 256, 0.25, 10.0],
+            "lv2": [4, 192, 0.13, 10.0],
+        },
+        projection_filters: List[int] = [0, 1, 1, 1],
+        multi_freq_disc_params: Dict[str, Any] = {
+            "hop_lengths": [128, 256, 512],
+            "hidden_channels": [256, 512, 512],
+            "domain": "double",
+            "mel_scale": True,
+        },
+    ):
+        super().__init__()
+
+        self.pqmf_lv2 = PQMF(*pqmf_config["lv2"])
+        self.pqmf_lv1 = PQMF(*pqmf_config["lv1"])
+        self.combd = CoMBD(
+            combd,
+            [self.pqmf_lv2, self.pqmf_lv1],
+            use_spectral_norm=combd["use_spectral_norm"],
+        )
+        self.sbd = SBD(
+            sbd,
+            use_spectral_norm=sbd["use_spectral_norm"],
+        )
+        self.mfd = MultiFrequencyDiscriminator(
+            # hop_lengths=[
+            #     int(sample_rate * 2.5 / 1000),
+            #     int(sample_rate * 5 / 1000),
+            #     int(sample_rate * 7.5 / 1000),
+            #     int(sample_rate * 10 / 1000),
+            #     int(sample_rate * 12.5 / 1000),
+            #     int(sample_rate * 15 / 1000),
+            # ],
+            # hidden_channels=[256, 256, 256, 256, 256],
+            **multi_freq_disc_params,
+        )
+        self.projection_filters = projection_filters
+
+    def forward(
+        self, y: torch.Tensor, y_hats: torch.Tensor
+    ) -> List[List[torch.Tensor]]:
+        ys = [
+            self.pqmf_lv2.analysis(y)[:, : self.projection_filters[1]],
+            self.pqmf_lv1.analysis(y)[:, : self.projection_filters[2]],
+            y,
+        ]
+
+        (
+            combd_outs_real,
+            combd_outs_fake,
+            combd_fmaps_real,
+            combd_fmaps_fake,
+        ) = self.combd(ys, y_hats)
+
+        sbd_outs_real, sbd_outs_fake, sbd_fmaps_real, sbd_fmaps_fake = self.sbd(
+            y, y_hats[-1]
+        )
+
+        mfd_fmaps_real = self.mfd(y)
+        mfd_fmaps_fake = self.mfd(y_hats[-1])
+        mfd_outs_real = mfd_fmaps_real[-1]
+        mfd_outs_fake = mfd_fmaps_fake[-1]
+
+        # Combine the outputs of both discriminators
+        outs_real = combd_outs_real + sbd_outs_real + mfd_outs_real
+        outs_fake = combd_outs_fake + sbd_outs_fake + mfd_outs_fake
+        fmaps_real = combd_fmaps_real + sbd_fmaps_real + mfd_fmaps_real
+        fmaps_fake = combd_fmaps_fake + sbd_fmaps_fake + mfd_fmaps_fake
 
         return outs_real, outs_fake, fmaps_real, fmaps_fake

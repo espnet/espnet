@@ -6,6 +6,7 @@ from espnet2.gan_svs.avocodo.avocodo import (
     SBDBlock,
     SBD,
     AvocodoDiscriminator,
+    AvocodoDiscriminatorPlus,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "SBDBlock",
     "SBD",
     "AvocodoDiscriminator",
+    "AvocodoDiscriminatorPlus",
 ]
