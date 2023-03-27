@@ -1,9 +1,9 @@
 # Converting audio file formats using format_wav_scp.py
 
-The [format_wav_scp.py](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/asr1/pyscripts/audio/format_wav_scp.py) is an utility to convert the audio format of the files specified `wav.scp` 
-and the [format_wav_scp.sh](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/scripts/audio/format_wav_scp.sh) is a shell script wrapping `format_wav_scp.py`. 
-In the typical case, in the stage3 of [the template recipe](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE), 
-`format_wav_scp.sh` is used to convert the audio file format of your original corpus to the audio format which you actually want to feed to the DNN model. 
+The [format_wav_scp.py](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/asr1/pyscripts/audio/format_wav_scp.py) is an utility to convert the audio format of the files specified `wav.scp`
+and the [format_wav_scp.sh](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/scripts/audio/format_wav_scp.sh) is a shell script wrapping `format_wav_scp.py`.
+In the typical case, in the stage3 of [the template recipe](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE),
+`format_wav_scp.sh` is used to convert the audio file format of your original corpus to the audio format which you actually want to feed to the DNN model.
 
 ## Quick usage
 
@@ -29,24 +29,24 @@ See also:
 
 ## Why is audio file formatting necessary?
 
-The audio data included in the corpus obtained from the source website are distributed in various audio file formats, 
-i.e., the audio codec (`wav`, `flac`, `mp3`, or etc.), the sampling frequency (`48khz`, `44.1khz`, `16khz`, `8khz`, or etc.), 
-the data precision and the type (`uint8`, `int16`, `int32`, `float20`, `float32`, or etc.), 
-the number of channels (`monaural`, `stereo`, or more than 2ch). 
+The audio data included in the corpus obtained from the source website are distributed in various audio file formats,
+i.e., the audio codec (`wav`, `flac`, `mp3`, or etc.), the sampling frequency (`48khz`, `44.1khz`, `16khz`, `8khz`, or etc.),
+the data precision and the type (`uint8`, `int16`, `int32`, `float20`, `float32`, or etc.),
+the number of channels (`monaural`, `stereo`, or more than 2ch).
 
-When you try to develop a new recipe with a corpus that is not yet prepared in our recipes, 
-of course, you can also try to use the audio data as they are without any formatting. 
-However, 
+When you try to develop a new recipe with a corpus that is not yet prepared in our recipes,
+of course, you can also try to use the audio data as they are without any formatting.
+However,
 in a typical case, the configuration of our DNN model may assume the specific audio format,
-especially regarding the sampling frequency and the data precision. 
+especially regarding the sampling frequency and the data precision.
 If you　are conservative with your new recipe,
-we recommend converting them to the original recipe's audio format. 
+we recommend converting them to the original recipe's audio format.
 For example, 16khz and int16 audio files are typically used in our ASR recipes.
 
 
 ## The audio file formats supported in ESPnet2
 
-ESPnets adopts [python soundifile](https://github.com/bastibe/python-soundfile) 
+ESPnets adopts [python soundifile](https://github.com/bastibe/python-soundfile)
 for data loading, and, thus the supported audio codec depend on [libsndfile](http://www.mega-nerd.com/libsndfile/).
 
 You can check the supported audio codecs of `soundfile` with the following command:
@@ -66,7 +66,7 @@ Depending on the situation, you may choose one of the following three formats:
 
 
 By default, we select `flac` because `flac` can convert linear pcm files with ~55 % compression rate the audio without data loss.
-If you would like to change it to the other format, please use `--audio_format` option for `run.sh`. 
+If you would like to change it to the other format, please use `--audio_format` option for `run.sh`.
 
 ```sh
 cd egs2/some_corpus/some_task
