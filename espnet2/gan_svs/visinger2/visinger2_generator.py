@@ -825,11 +825,11 @@ class VISinger2Generator(torch.nn.Module):
         """
         # encoder
         if self.use_dp:
-            x, m_p, logs_p, x_mask = self.text_encoder(
+            x, x_mask, dur_input, x_pitch = self.text_encoder(
                 label, label_lengths, melody, beat
             )
         else:
-            x, m_p, logs_p, x_mask = self.text_encoder(
+            x, x_mask, dur_input, x_pitch = self.text_encoder(
                 label, label_lengths, melody, beat
             )
         g = None
@@ -863,32 +863,69 @@ class VISinger2Generator(torch.nn.Module):
         else:
             if self.use_visinger:
                 if self.use_dp:
-                    logw = self.duration_predictor(x, x_mask, beat, g=g)
-                    logw = (torch.exp(logw) - 1) * x_mask
-                    logw = torch.mul(logw.squeeze(1), beat).unsqueeze(1)
-                    logw[logw < 0] = 0
-                    logw = logw.squeeze(1).to(torch.long)
+                    # dur
+                    predict_dur = self.duration_predictor(dur_input, x_mask, g=g)
+                    predict_dur = (torch.exp(predict_dur) - 1) * x_mask
+                    predict_dur = predict_dur * self.sample_rate / self.hop_length
 
-                    x, frame_pitch, x_lengths = self.lr(x, melody, logw, label_lengths)
-                    x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
+                    predict_dur = torch.max(
+                        predict_dur, torch.ones_like(predict_dur).to(x)
+                    )
+                    predict_dur = torch.ceil(predict_dur).long()
+                    predict_dur = predict_dur[:, 0, :]
+                    y_lengths = torch.clamp_min(torch.sum(predict_dur, [1]), 1).long()
 
-                self.pos_encoder = PositionalEncoding(
-                    d_model=x.size(1), dropout_rate=0, max_len=x.size(2)
-                )
-                x = self.pos_encoder(x.transpose(1, 2)).transpose(1, 2)
+                    # LR
+                    decoder_input, mel_len = self.lr(
+                        x, predict_dur, use_state_info=True
+                    )
+                    decoder_input_pitch, mel_len = self.lr(
+                        x_pitch, predict_dur, use_state_info=True
+                    )
 
-                pred_pitch, pitch_embedding = self.pitch_predictor(x, x_mask)
+                    # aam
+                    predict_lf0, predict_bn_mask = self.f0_decoder(
+                        decoder_input + decoder_input_pitch, y_lengths, g=g
+                    )
+                    predict_mel, predict_bn_mask = self.mel_decoder(
+                        decoder_input + self.f0_prenet(predict_lf0),
+                        y_lengths,
+                        g=g,
+                    )
 
-                x = self.frame_prior_net(x, pitch_embedding, x_mask)
-                m_p, logs_p = self.project(x, x_mask)
+                    predict_lf0 = torch.max(
+                        predict_lf0, torch.zeros_like(predict_lf0).to(predict_lf0)
+                    )
+                    predict_energy = predict_mel.sum(1).unsqueeze(1) / self.acoustic_dim
+
+                    decoder_input = (
+                        decoder_input
+                        + self.f0_prenet(predict_lf0)
+                        + self.energy_prenet(predict_energy)
+                        + self.mel_prenet(predict_mel)
+                    )
+                    decoder_output, y_mask = self.prior_decoder(
+                        decoder_input, y_lengths, g=g
+                    )
+
+            prior_info = decoder_output
+            m_p = prior_info[:, : self.hidden_channels, :]
+            logs_p = prior_info[:, self.hidden_channels :, :]
 
             # decoder
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
-            z = self.flow(z_p, x_mask, g=g, inverse=True)
+
+            z = self.flow(z_p, y_mask, g=g, inverse=True)
+
+            F0_std = 500
+            F0 = predict_lf0 * F0_std
+            F0 = F0 / 2595
+            F0 = torch.pow(10, F0)
+            F0 = (F0 - 1) * 700.0
 
             if self.vocoder_generator_type == "uhifigan":
                 pitch_segments_expended = expand_f0(
-                    pred_pitch, self.hop_length, method="repeat"
+                    F0, self.hop_length, method="repeat"
                 )
                 pitch_segments_expended = pitch_segments_expended.reshape(
                     -1, pitch_segments_expended.shape[-1], 1
@@ -896,18 +933,18 @@ class VISinger2Generator(torch.nn.Module):
                 sine_waves, uv, noise = self.sine_generator(pitch_segments_expended)
                 sine_waves = sine_waves.transpose(1, 2)
                 wav = self.decoder(
-                    (z * x_mask)[:, :, :max_len], excitation=sine_waves, g=g
+                    (z * y_mask)[:, :, :max_len], excitation=sine_waves, g=g
                 )
             elif self.vocoder_generator_type == "avocodo":
-                wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)[-1]
+                wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)[-1]
             elif self.vocoder_generator_type == "visinger2":
-                pitch_ = upsample(pred_pitch.transpose(1, 2), self.hop_length)
+                pitch_ = upsample(F0.transpose(1, 2), self.hop_length)
                 omega = torch.cumsum(2 * math.pi * pitch_ / self.sample_rate, 1)
                 sin = torch.sin(omega).transpose(1, 2)
 
                 # dsp synthesize
-                noise_x = self.dec_noise(z, x_mask)
-                harm_x = self.dec_harm(pred_pitch, z, x_mask)
+                noise_x = self.dec_noise(z, y_mask)
+                harm_x = self.dec_harm(F0, z, y_mask)
 
                 # dsp waveform
                 dsp_o = torch.cat([harm_x, noise_x], axis=1)
@@ -916,11 +953,11 @@ class VISinger2Generator(torch.nn.Module):
                 decoder_condition = self.sin_prenet(sin)
 
                 # dsp based HiFiGAN vocoder
-                wav = self.decoder((z * x_mask)[:, :, :max_len], decoder_condition, g=g)
+                wav = self.decoder((z * y_mask)[:, :, :max_len], decoder_condition, g=g)
                 # wav = dsp_o.sum(1)
                 # wav = noise_x
                 # wav = harm_x.sum(1)
             else:
-                wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
+                wav = self.decoder((z * y_mask)[:, :, :max_len], g=g)
 
         return wav.squeeze(1)

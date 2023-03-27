@@ -759,12 +759,14 @@ class TorchSTFT(torch.nn.Module):
             self.win_size,
             self.window.type_as(x),
             normalized=self.normalized,
+            return_complex=True,
         )
-        real = x_stft[..., 0]
-        imag = x_stft[..., 1]
+
+        real = torch.real(x_stft)
+        imag = torch.imag(x_stft)
         mag = torch.clamp(real**2 + imag**2, min=1e-7)
         mag = torch.sqrt(mag)
-        phase = torch.atan2(imag, real)
+        phase = torch.angle(x_stft)
 
         if self.mel_scale is not None:
             mag = self.mel_scale(mag)
