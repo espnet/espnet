@@ -76,7 +76,7 @@ asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
 asr_max_lr=$(calc_float $ngpu/10000.0)
 asr_warmup=$(calc_int 40000.0/$ngpu)
 
-if [ $decode_only == 1 ]; then
+if [ $decode_only -eq 1 ]; then
   # apply gss only on dev
   gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
 fi
@@ -234,7 +234,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # placed unmodified into org. we create a symbolic link
   # so it can be parsed as the other datasets.
   for tt_dset in $asr_tt_set; do
-   [ -d  ${asr_exp}/${inference_tag}/org/${tt_dset} ] && ln -s ${asr_exp}/${inference_tag}/org/${tt_dset} ${asr_exp}/${inference_tag}/${tt_dset}
+      if [ ! -e ${asr_exp}/${inference_tag}/${tt_dset} ] && [ -d  ${asr_exp}/${inference_tag}/org/${tt_dset} ]; then
+        mkdir -p ${asr_exp}/${inference_tag}/${tt_dset} && rmdir ${asr_exp}/${inference_tag}/${tt_dset}
+        ln -sf $(cd ${asr_exp}/${inference_tag}/org/${tt_dset}; pwd) ${asr_exp}/${inference_tag}/${tt_dset}
+      fi
   done
 
   for tt_dset in $asr_tt_set; do
