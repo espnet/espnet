@@ -18,7 +18,7 @@ fs=16k  # The sampling frequency of output files
 ref_channels=0  # If the input data has multiple channels and you want to use only a single channel in the file (please spicify the channel with 0-based number)
 ./scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${cmd}" --audio_format "${audio_format}" --fs "${fs}" --ref_channels "${ref_channels}" somewhere/wav.scp output_dir
 
-# The, you can find output_dir/wav.scp
+# Then, you can find output_dir/wav.scp
 ```
 
 See also:
@@ -41,7 +41,7 @@ in a typical case, the configuration of our DNN model may assume the specific au
 especially regarding the sampling frequency and the data precision.
 If you　are conservative with your new recipe,
 we recommend converting them to the original recipe's audio format.
-For example, 16khz and int16 audio files are typically used in our ASR recipes.
+For example, 16khz and int16 audio is typically used in our ASR recipes.
 
 
 ## The audio file formats supported in ESPnet2
@@ -74,6 +74,8 @@ cd egs2/some_corpus/some_task
 ```
 
 ## Detail behavior of format_wav_scp.py
+
+## Use case
 
 
 ### Case1: Extract segmentations with long recoding
