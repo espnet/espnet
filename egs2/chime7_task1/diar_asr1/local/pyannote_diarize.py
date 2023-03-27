@@ -136,34 +136,8 @@ def multichannel_pipeline(pipeline, audio_dict, max_speakers=4):
         initial_state=False,
     )
 
-    embeddings = pipeline.get_embeddings(
-        audio_dict,
-        binarized_segmentations,
-        exclude_overlap=pipeline.embedding_exclude_overlap,
-    )
+    return binarized_segmentations, count
 
-    #   shape: (num_chunks, local_num_speakers, dimension)
-
-    hard_clusters, _ = pipeline.clustering(
-        embeddings=embeddings,
-        segmentations=binarized_segmentations,
-        num_clusters=num_speakers,
-        min_clusters=min_speakers,
-        max_clusters=max_speakers,
-        file=audio_dict,  # <== for oracle clustering
-        frames=pipeline._frames,  # <== for oracle clustering
-    )
-    #   hard_clusters: (num_chunks, num_speakers)
-
-    # reconstruct discrete diarization from raw hard clusters
-
-    # keep track of inactive speakers
-    inactive_speakers = np.sum(binarized_segmentations.data, axis=1) == 0
-    #   shape: (num_chunks, num_speakers)
-
-    hard_clusters[inactive_speakers] = -2
-
-    return segmentations, hard_clusters, count
 
 
 def multi_channel_reconstruct(pipeline, segmentations, hard_clusters, count):
@@ -222,7 +196,7 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
 
     # now for each audio file run inference
     all_segmentation = []
-    all_hard_clusters = []
+    all_audio = []
     all_count = []
     for w_f in tqdm.tqdm(wav_files):
         c_audio, c_fs = sf.read(w_f, dtype="float32")
@@ -238,14 +212,43 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
             continue
         if IS_CUDA:
             c_audio = c_audio.cuda()
-        c_seg, c_hard_cl, c_count = multichannel_pipeline(
+        c_seg, c_count = multichannel_pipeline(
             pipeline, {"waveform": c_audio, "sample_rate": fs}, max_speakers=4
         )
         all_segmentation.append(c_seg)  # move to cpu for less mem consumption
-        all_hard_clusters.append(c_hard_cl)
         all_count.append(c_count)
+        all_audio.append(c_audio)
 
     # stack em
+
+    all_audio = torch.cat(all_audio, 0)
+    num_channels = all_audio.shape[0]
+    num_chunks, frames, local_spk = all_segmentation[0].data.shape
+    all_segmentation = SlidingWindowFeature(np.stack([x.data for x in all_segmentation]).reshape(num_channels*num_chunks, frames, local_spk), all_segmentation[0].sliding_window)
+    embeddings = pipeline.get_embeddings({"waveform": all_audio.reshape(-1).unsqueeze(0), "sample_rate": fs}, all_segmentation, exclude_overlap=pipeline.embedding_exclude_overlap)
+
+    #   shape: (num_chunks, local_num_speakers, dimension)
+
+    hard_clusters, _ = pipeline.clustering(
+        embeddings=embeddings,
+        segmentations=all_segmentation,
+        num_clusters=None,
+        min_clusters=0,
+        max_clusters=4,
+        file={"waveform": all_audio.reshape(-1).unsqueeze(0), "sample_rate": fs},  # <== for oracle clustering
+        frames=pipeline._frames,  # <== for oracle clustering
+    )
+    #   hard_clusters: (num_chunks, num_speakers)
+
+    # reconstruct discrete diarization from raw hard clusters
+
+    # keep track of inactive speakers
+    inactive_speakers = np.sum(all_segmentation.data, axis=1) == 0
+    #   shape: (num_chunks, num_speakers)
+
+    hard_clusters[inactive_speakers] = -2
+    import pdb
+    pdb.set_trace()
 
     discrete_diarization = multi_channel_reconstruct(
         pipeline,
@@ -380,12 +383,11 @@ if __name__ == "__main__":
         "pyannote/speaker-diarization",
         use_auth_token=args.token,
     )
-    import pdb
-    pdb.set_trace()
+
 
     pipeline.embedding_batch_size = 128
     pipeline.segmentation_batch_size = 128
-    pipeline.segmentation.threshold = 0.4  # more sensitive.
+    pipeline.segmentation.threshold = 0.35  # more sensitive.
     pipeline.segmentation.min_duration_off = 0.25  # as in collar
 
     Path(args.out_dir).mkdir(exist_ok=True, parents=True)
@@ -420,25 +422,25 @@ if __name__ == "__main__":
         for sess in sess2rttm.keys():
             c_sess_rttms = sess2rttm[sess]
             ensemble_doverlap(sess, c_sess_rttms, args.out_dir)
+    else:
+        # joint diarization of all mics
+        sess2audio = {}
+        for audio_file in audio_f:
+            filename = Path(audio_file).stem
+            sess_name = re.search(args.sess_regex, filename).group()
+            if sess_name not in sess2audio.keys():
+                sess2audio[sess_name] = []
+            sess2audio[sess_name].append(audio_file)
 
-    # joint diarization of all mics
-    sess2audio = {}
-    for audio_file in audio_f:
-        filename = Path(audio_file).stem
-        sess_name = re.search(args.sess_regex, filename).group()
-        if sess_name not in sess2audio.keys():
-            sess2audio[sess_name] = []
-        sess2audio[sess_name].append(audio_file)
-
-    # now for each session
-    for sess in sess2audio.keys():
-        print("Diarizing Session {}".format(sess))
-        if args.uem_file:
-            c_uem = uem_map[sess]
-        else:
-            c_uem = None
-        c_result = diarize_session(pipeline, sess2audio[sess], c_uem)
-        c_rttm_out = os.path.join(args.out_dir, sess + ".rttm")
-        with open(c_rttm_out, "w") as f:
-            f.write(c_result.to_rttm())
-        rttm2json(c_rttm_out)
+        # now for each session
+        for sess in sess2audio.keys():
+            print("Diarizing Session {}".format(sess))
+            if args.uem_file:
+                c_uem = uem_map[sess]
+            else:
+                c_uem = None
+            c_result = diarize_session(pipeline, sess2audio[sess], c_uem)
+            c_rttm_out = os.path.join(args.out_dir, sess + ".rttm")
+            with open(c_rttm_out, "w") as f:
+                f.write(c_result.to_rttm())
+            rttm2json(c_rttm_out)

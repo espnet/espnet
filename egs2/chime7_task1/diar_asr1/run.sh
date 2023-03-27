@@ -92,7 +92,7 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
           mic_regex="(CH04|CH05)"  #"(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
           sess_regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)"
         else
-          mic_regex="(U02_CH1|U06_CH2)"  #"(U[0-9]+)" # exclude close-talk
+          mic_regex="(U02|U06)"  #"(U[0-9]+)" # exclude close-talk
           sess_regex="(S[0-9]+)"
         fi
         # diarizing with pyannote + ensembling across mics with dover-lap
@@ -107,12 +107,12 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
 fi
 
 
-if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
   # parse all datasets to lhotse
   for dset in chime6 dipco mixer6; do
     for dset_part in $diar_inf_dset; do
-      log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
-      python local/get_lhotse_manifests.py -c $chime7_root \
+      log "Creating lhotse manifests for ${dset} in ${manifests_root}/${dset}"
+      python local/get_lhotse_manifests.py -c ${chime7_root} \
            -d $dset \
            -p $dset_part \
            -o $manifests_root --diar_jsons_root ${diarization_dir}/${dset} \
