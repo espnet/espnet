@@ -65,10 +65,19 @@ Depending on the situation, you may choose one of the following three formats:
 | mp3 | Lossy | The patent of MP3 has expired |
 
 
-By default, we select `flac` because `flac` can convert linear pcm files with ~55 % compression rate the audio without data loss.
+By default, we select `flac` because `flac` can convert linear pcm files with ~55 % compression rate without data loss.
 If you would like to change it to the other format, please use `--audio_format` option for `run.sh`.
 
 ```sh
 cd egs2/some_corpus/some_task
 ./run.sh --audio_format mp3
 ```
+
+## Detail behavior of format_wav_scp.py
+
+
+### Case1: Extract segmentations with long recoding
+
+### Case2: Extract audio data from video codec
+
+### Case3: Non supported format by soundfile
