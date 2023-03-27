@@ -192,6 +192,7 @@ class VISingerGenerator(torch.nn.Module):
         self.segment_size = segment_size
         self.sample_rate = fs
         self.hop_length = hop_length
+        self.use_avocodo = use_avocodo
         self.text_encoder = TextEncoder(
             vocabs=vocabs,
             attention_dim=hidden_channels,
@@ -866,6 +867,8 @@ class VISingerGenerator(torch.nn.Module):
                 wav = self.decoder(
                     (z * x_mask)[:, :, :max_len], excitation=sine_waves, g=g
                 )
+                if self.use_avocodo:
+                    wav = wav[-1]
             elif self.vocoder_generator_type == "avocodo":
                 wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)[-1]
             elif self.vocoder_generator_type == "visinger2":
