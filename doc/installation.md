@@ -237,5 +237,5 @@ You can check whether your installation is successfully finished by
 cd <espnet-root>/tools
 bash -c ". ./activate_python.sh; . ./extra_path.sh; python3 check_install.py"
 ```
-    
+
 Note that this check is always called in the last stage of the above installation.
