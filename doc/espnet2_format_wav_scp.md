@@ -9,6 +9,18 @@ Note that `format_wav_scp.py` dumps files with linear PCM with `sint16le` regard
 
 ## Quick usage
 
+
+At the first, you need to prepare `wav.scp`:
+
+```
+ID_a /some_where/a.wav
+ID_b /some_where2/b.wav
+...
+```
+
+`ID_a`and `ID_b` are the IDs which you can name arbitrarily to specify audio files. Note that **we don't assume any directory stucture for the audio files**.
+
+
 ```sh
 # Please change directory before using our shell scripts
 cd egs2/some_corpus/some_task
@@ -49,7 +61,7 @@ For example, `16khz` and `sint16` audio is typically used in our ASR recipes.
 ## The audio file formats supported in ESPnet2
 
 ESPnet adopts [python soundifile](https://github.com/bastibe/python-soundfile)
-for data loading, and, thus the supported audio codec depend on [libsndfile](http://www.mega-nerd.com/libsndfile/).
+for IN/OUT data loading, and, thus the supported audio codec depend on [libsndfile](http://www.mega-nerd.com/libsndfile/).
 
 You can check the supported audio codecs of `soundfile` with the following command:
 
@@ -124,3 +136,13 @@ ID_b ffmpeg -i "ID_b.mp4" -f wav -af pan="1c|c0=c0" -acodec pcm_s16le - |
   - `<num>c|` specifies `<num>` of output channels
   - `|c<out-channel>=c<in-channel>` assigns `<in-channel>`th channel of input stream into `<out-channel>`th channel of output stream
 - Caution: `-map_channel` option is deprecated and will be removed.
+
+### Case3: Convert NIST Sphere files to wav 
+
+`sph2pipe` is required. Create `wav.scp` as following:
+
+```
+ID_a sph2pipe 0 wav -p -c 1 ID_a.sph |
+ID_b sph2pipe 0 wav -p -c 1 ID_b.sph |
+...
+```
