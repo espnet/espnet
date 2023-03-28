@@ -150,7 +150,12 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
 
 class S3PRLFeatureReader(BaseFeatureReader):
     def __init__(
-        self, s3prl_upstream_name, layer, s3prl_path_or_url="", sample_rate=16000, max_chunk=1600000
+        self,
+        s3prl_upstream_name,
+        layer,
+        s3prl_path_or_url="",
+        sample_rate=16000,
+        max_chunk=1600000,
     ):
         self.sample_rate = sample_rate
 
@@ -163,7 +168,9 @@ class S3PRLFeatureReader(BaseFeatureReader):
                 "cannot find s3prl, please install s3prl via tools/installers"
             )
 
-        self.model = S3PRLUpstream(s3prl_upstream_name, path_or_url=s3prl_path_or_url).to(self.device)
+        self.model = S3PRLUpstream(
+            s3prl_upstream_name, path_or_url=s3prl_path_or_url
+        ).to(self.device)
         self.model.eval()
 
         self.layer = layer
