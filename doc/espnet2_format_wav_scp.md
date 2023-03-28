@@ -79,7 +79,7 @@ print(soundfile.available_formats())
 ```
 
 Note that the `wav.scp` of Kaldi originally requires that the audio format is wav with pcm_s16le type,
-but **`wav.scp` of ESPnet2 can handle all audio formats supported by soundfile**. e.g. You can use `flac` format for `wav.scp` for the input/output of `format_wav_scp.py`.
+but **`wav.scp` of ESPnet2 can handle all audio formats supported by soundfile**. e.g. You can use `flac` format in `wav.scp` for the input/output of `format_wav_scp.py`.
 
 Depending on the situation, you may choose one of the following codecs:
 
