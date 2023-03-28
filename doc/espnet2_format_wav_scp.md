@@ -2,7 +2,7 @@
 
 The [format_wav_scp.py](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/asr1/pyscripts/audio/format_wav_scp.py) is an utility to convert the audio format of the files specified `wav.scp`
 and the [format_wav_scp.sh](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/scripts/audio/format_wav_scp.sh) is a shell script wrapping `format_wav_scp.py`.
-In the typical case, in the stage3 of [the template recipe](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE),
+In the typical case, in the stage3 of the [template recipe](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE),
 `format_wav_scp.sh` is used to convert the audio file format of your original corpus to the audio format which you actually want to feed to the DNN model.
 
 Note that `format_wav_scp.py` dumps files with linear PCM with `sint16le` regardless the input audio format.
@@ -122,6 +122,6 @@ ID_b ffmpeg -i "ID_b.mp4" -f wav -af pan="1c|c0=c0" -acodec pcm_s16le - |
 ```
 
 - Note: `-af pan` is [pan filter](https://ffmpeg.org/ffmpeg-filters.html#pan-1).
-  - `<num>c` specifies `<num>` of output channels
-  - `c<out-channel>=c<in-channel>` assigns `<in-channel>`th channel
+  - `<num>c|` specifies `<num>` of output channels
+  - `|c<out-channel>=c<in-channel>` assigns `<in-channel>`th channel of input stream into `<out-channel>`th channel of output stream
 - Caution: `-map_channel` option is deprecated and will be removed.
