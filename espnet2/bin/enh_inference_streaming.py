@@ -183,7 +183,6 @@ class SeparateSpeechStreaming:
         """
         assert check_argument_types()
 
-
         # Input as audio signal
         if isinstance(speech_mix, np.ndarray):
             speech_mix = torch.as_tensor(speech_mix)
@@ -200,7 +199,6 @@ class SeparateSpeechStreaming:
         speech_mix = to_device(speech_mix, device=self.device)
         lengths = to_device(lengths, device=self.device)
 
-
         # b. Enhancement/Separation Forward
         frame_feature, f_lens = self.enh_model.encoder(speech_mix, lengths)
 
@@ -216,13 +214,11 @@ class SeparateSpeechStreaming:
 
         lengths = torch.cat([lengths, lengths])
 
-
         waves = self.enh_model.decoder(frame_out, lengths)[0].unbind(dim=0)
         waves = [w[None, ...] for w in waves]
 
         assert len(waves) == self.num_spk, len(waves) == self.num_spk
         assert len(waves[0]) == batch_size, (len(waves[0]), batch_size)
-
 
         return waves
 
