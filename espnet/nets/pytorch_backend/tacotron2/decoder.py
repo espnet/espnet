@@ -6,7 +6,6 @@
 
 """Tacotron2 decoder related modules."""
 
-import six
 import torch
 import torch.nn.functional as F
 
@@ -125,7 +124,7 @@ class Prenet(torch.nn.Module):
         super(Prenet, self).__init__()
         self.dropout_rate = dropout_rate
         self.prenet = torch.nn.ModuleList()
-        for layer in six.moves.range(n_layers):
+        for layer in range(n_layers):
             n_inputs = idim if layer == 0 else n_units
             self.prenet += [
                 torch.nn.Sequential(torch.nn.Linear(n_inputs, n_units), torch.nn.ReLU())
@@ -141,7 +140,7 @@ class Prenet(torch.nn.Module):
             Tensor: Batch of output tensors (B, ..., odim).
 
         """
-        for i in six.moves.range(len(self.prenet)):
+        for i in range(len(self.prenet)):
             # we make this part non deterministic. See the above note.
             x = F.dropout(self.prenet[i](x), self.dropout_rate)
         return x
@@ -186,7 +185,7 @@ class Postnet(torch.nn.Module):
         """
         super(Postnet, self).__init__()
         self.postnet = torch.nn.ModuleList()
-        for layer in six.moves.range(n_layers - 1):
+        for layer in range(n_layers - 1):
             ichans = odim if layer == 0 else n_chans
             ochans = odim if layer == n_layers - 1 else n_chans
             if use_batch_norm:
@@ -261,7 +260,7 @@ class Postnet(torch.nn.Module):
             Tensor: Batch of padded output tensor. (B, odim, Tmax).
 
         """
-        for i in six.moves.range(len(self.postnet)):
+        for i in range(len(self.postnet)):
             xs = self.postnet[i](xs)
         return xs
 
@@ -345,7 +344,7 @@ class Decoder(torch.nn.Module):
         # define lstm network
         prenet_units = prenet_units if prenet_layers != 0 else odim
         self.lstm = torch.nn.ModuleList()
-        for layer in six.moves.range(dlayers):
+        for layer in range(dlayers):
             iunits = idim + prenet_units if layer == 0 else dunits
             lstm = torch.nn.LSTMCell(iunits, dunits)
             if zoneout_rate > 0.0:
@@ -418,7 +417,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self._zero_state(hs)]
         z_list = [self._zero_state(hs)]
-        for _ in six.moves.range(1, len(self.lstm)):
+        for _ in range(1, len(self.lstm)):
             c_list += [self._zero_state(hs)]
             z_list += [self._zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
@@ -437,7 +436,7 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for i in six.moves.range(1, len(self.lstm)):
+            for i in range(1, len(self.lstm)):
                 z_list[i], c_list[i] = self.lstm[i](
                     z_list[i - 1], (z_list[i], c_list[i])
                 )
@@ -526,7 +525,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self._zero_state(hs)]
         z_list = [self._zero_state(hs)]
-        for _ in six.moves.range(1, len(self.lstm)):
+        for _ in range(1, len(self.lstm)):
             c_list += [self._zero_state(hs)]
             z_list += [self._zero_state(hs)]
         prev_out = hs.new_zeros(1, self.odim)
@@ -575,7 +574,7 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for i in six.moves.range(1, len(self.lstm)):
+            for i in range(1, len(self.lstm)):
                 z_list[i], c_list[i] = self.lstm[i](
                     z_list[i - 1], (z_list[i], c_list[i])
                 )
@@ -641,7 +640,7 @@ class Decoder(torch.nn.Module):
         # initialize hidden states of decoder
         c_list = [self._zero_state(hs)]
         z_list = [self._zero_state(hs)]
-        for _ in six.moves.range(1, len(self.lstm)):
+        for _ in range(1, len(self.lstm)):
             c_list += [self._zero_state(hs)]
             z_list += [self._zero_state(hs)]
         prev_out = hs.new_zeros(hs.size(0), self.odim)
@@ -661,7 +660,7 @@ class Decoder(torch.nn.Module):
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
-            for i in six.moves.range(1, len(self.lstm)):
+            for i in range(1, len(self.lstm)):
                 z_list[i], c_list[i] = self.lstm[i](
                     z_list[i - 1], (z_list[i], c_list[i])
                 )

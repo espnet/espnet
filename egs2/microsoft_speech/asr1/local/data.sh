@@ -36,15 +36,15 @@ set -o pipefail
 
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage1: Download data to ${MICROSOFT_SPEECH_CORPUS}"
     log "Download data from the link:  https://msropendata.com/datasets/7230b4b1-912d-400e-be58-f84e0512985e"
     log "checking if the right directory structure exists"
 
     if [ -d "${MICROSOFT_SPEECH_CORPUS}/${lang}-in-Train/Audios" ]
-    then 
+    then
         echo "Data directory exists."
-    else 
+    else
         echo "Error: Directory ${MICROSOFT_SPEECH_CORPUS}/${lang}-in-Train/Audios does not exists."
     fi
 fi
@@ -59,7 +59,7 @@ mkdir -p data/train_${lang}
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage2: Preparing data for microsoft_speech_corpus"
     python local/process.py ${MICROSOFT_SPEECH_CORPUS} ${lang}
-    ### Running python script for preparing data in Kaldi style from Microsoft speech corpus   
+    ### Running python script for preparing data in Kaldi style from Microsoft speech corpus
 
 fi
 

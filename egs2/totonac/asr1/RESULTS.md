@@ -28,4 +28,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_lm_lm_train_bpe250_valid.loss.ave_asr_model_valid.acc.best/dev|530|9360|70.3|15.8|13.8|4.3|34.0|87.4|
 |decode_asr_lm_lm_train_bpe250_valid.loss.ave_asr_model_valid.acc.best/test|704|13835|70.5|16.0|13.6|4.4|33.9|92.0|
-

@@ -37,10 +37,10 @@ annotation_dir=${TOTONAC}
 
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage1: Download data to ${TOTONAC}"
     mkdir -p ${TOTONAC}
-    wget --no-check-certificate --directory-prefix=${TOTONAC} https://www.openslr.org/resources/107/Amith-Lopez_Totonac-recordings-northern-Puebla-and-adjacent-Veracruz_Metadata.xml 
+    wget --no-check-certificate --directory-prefix=${TOTONAC} https://www.openslr.org/resources/107/Amith-Lopez_Totonac-recordings-northern-Puebla-and-adjacent-Veracruz_Metadata.xml
     local/download_and_untar.sh ${TOTONAC} https://www.openslr.org/resources/107/Totonac_Corpus.tgz Totonac_Corpus.tgz
     git clone https://github.com/ftshijt/Totonac_Split.git local/split
 fi
@@ -53,7 +53,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         # sort -o data/${x}/utt2spk > data/${x}/utt2spk
         utils/fix_data_dir.sh data/${x}
     done
-    
+
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

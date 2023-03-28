@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #===============================================================================
-# Copyright (c) 2017  Johns Hopkins University 
+# Copyright (c) 2017  Johns Hopkins University
 #                        (Author: Jan "Yenda" Trmal <jtrmal@gmail.com>)
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,7 +48,7 @@ my $transcripts = $ARGV[1];
 my $out = $ARGV[2];
 
 my %AUDIO;
-open(my $audio_f, "<", $audio_files) 
+open(my $audio_f, "<", $audio_files)
   or die "$0: Error: Could not open $audio_files: $!\n";
 while(my $line = <$audio_f>) {
   chomp $line;
@@ -85,17 +85,17 @@ my $sph2pipe = `which sph2pipe` or do {
 };
 chomp $sph2pipe;
 
-open(my $wav_file, ">", "$out/wav.scp") 
+open(my $wav_file, ">", "$out/wav.scp")
   or die "$0: Error: Cannot create file $out/wav.scp: $!\n";
-open(my $text_file, ">:encoding(utf-8)", "$out/text") 
+open(my $text_file, ">:encoding(utf-8)", "$out/text")
   or die "$0: Error: Cannot create file $out/text: $!\n";
-open(my $segments_file, ">", "$out/segments") 
+open(my $segments_file, ">", "$out/segments")
   or die "$0: Error: Cannot create file $out/segments: $!\n";
-open(my $spk_file, ">", "$out/utt2spk") 
+open(my $spk_file, ">", "$out/utt2spk")
   or die "$0: Error: Cannot create file $out/utt2spk: $!\n";
 
 foreach my $file (sort keys %AUDIO) {
-  print "$0 Error: $file does not exist in transcripts!\n"  
+  print "$0 Error: $file does not exist in transcripts!\n"
     unless exists $TRANSCRIPT{$file};
   my $transcripts = $TRANSCRIPT{$file};
 
@@ -104,9 +104,9 @@ foreach my $file (sort keys %AUDIO) {
   print $wav_file "$file_fmt $sph2pipe -f wav $AUDIO{$file}|\n";
 
   foreach my $utt (@{$transcripts}) {
-    my $start = $utt->[5] + 0.0;  
+    my $start = $utt->[5] + 0.0;
     my $end = $utt->[6] + 0.0;
-    my $start_time = sprintf("%0${time_width}d", $utt->[5]*1000);  
+    my $start_time = sprintf("%0${time_width}d", $utt->[5]*1000);
     my $end_time = sprintf("%0${time_width}d", $utt->[6]*1000);
     my $spk = sprintf("%0${speaker_width}s", $utt->[2]);
     my $spkid = "${file_fmt}_${spk}";
