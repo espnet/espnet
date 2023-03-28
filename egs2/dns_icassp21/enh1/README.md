@@ -19,4 +19,3 @@
 |---|---|---|---|
 |enhanced_cv_synthetic|0.93|18.96|18.79|
 |enhanced_tt_synthetic_track_1|0.77|14.19|12.15|
-

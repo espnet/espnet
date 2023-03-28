@@ -106,8 +106,6 @@ def test_vits_generator_forward(model_dict):
         label_lengths=torch.tensor([8, 5], dtype=torch.long),
         melody=torch.randint(0, 127, (2, 8)),
         melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        tempo=torch.randint(1, idim, (2, 8)),
-        tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
         beat=torch.randint(1, idim, (2, 8)),
         beat_lengths=torch.tensor([8, 5], dtype=torch.long),
         pitch=torch.randn(2, 16, 1),
@@ -151,14 +149,6 @@ def test_vits_generator_forward(model_dict):
         melody=torch.randint(
             0,
             127,
-            (
-                2,
-                5,
-            ),
-        ),
-        tempo=torch.randint(
-            1,
-            idim,
             (
                 2,
                 5,
@@ -209,14 +199,6 @@ def test_vits_generator_forward(model_dict):
         melody=torch.randint(
             0,
             127,
-            (
-                1,
-                5,
-            ),
-        ),
-        tempo=torch.randint(
-            1,
-            idim,
             (
                 1,
                 5,
@@ -291,8 +273,6 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         label_lengths=torch.tensor([8, 5], dtype=torch.long),
         melody=torch.randint(0, 127, (2, 8)),
         melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        tempo=torch.randint(1, idim, (2, 8)),
-        tempo_lengths=torch.tensor([8, 5], dtype=torch.long),
         beat=torch.randint(1, idim, (2, 8)),
         beat_lengths=torch.tensor([8, 5], dtype=torch.long),
         pitch=torch.randn(2, 16, 1),
@@ -337,14 +317,6 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         melody=torch.randint(
             0,
             127,
-            (
-                2,
-                5,
-            ),
-        ),
-        tempo=torch.randint(
-            1,
-            idim,
             (
                 2,
                 5,
@@ -398,14 +370,6 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         melody=torch.randint(
             0,
             127,
-            (
-                1,
-                5,
-            ),
-        ),
-        tempo=torch.randint(
-            1,
-            idim,
             (
                 1,
                 5,

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import torch
 
 import numpy as np
+import torch
 
 from espnet2.fileio.read_text import load_num_sequence_text
 
@@ -13,13 +13,18 @@ logging.basicConfig(
 )
 logger = logging.getLogger("unique_pseudo_labels")
 
+
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--input_label", type=str, default=None,
+        "--input_label",
+        type=str,
+        default=None,
     )
     parser.add_argument(
-        "--output_label", type=str, default=None,
+        "--output_label",
+        type=str,
+        default=None,
     )
 
     return parser
@@ -30,7 +35,9 @@ def main(args):
     with open(args.output_label, "w", encoding="utf-8") as fout:
         for key in input_scp.keys():
             value = torch.tensor(input_scp[key])
-            value_seq = list(map(str, torch.unique_consecutive(value).detach().cpu().numpy()))
+            value_seq = list(
+                map(str, torch.unique_consecutive(value).detach().cpu().numpy())
+            )
             fout.write("{} {}\n".format(key, " ".join(value_seq)))
 
 
@@ -39,5 +46,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     logging.info(str(args))
-    
+
     main(args)

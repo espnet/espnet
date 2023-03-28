@@ -31,6 +31,10 @@ class DurationPredictor(torch.nn.Module):
             filter_channels, filter_channels, kernel_size, padding=kernel_size // 2
         )
         self.norm_2 = LayerNorm(filter_channels, dim=1)
+        self.conv_3 = torch.nn.Conv1d(
+            filter_channels, filter_channels, kernel_size, padding=kernel_size // 2
+        )
+        self.norm_3 = LayerNorm(filter_channels, dim=1)
         self.proj = torch.nn.Conv1d(filter_channels, 1, 1)
 
         if global_channels > 0:
@@ -52,9 +56,17 @@ class DurationPredictor(torch.nn.Module):
         x = torch.relu(x)
         x = self.norm_1(x)
         x = self.drop(x)
+
         x = self.conv_2(x * x_mask)
         x = torch.relu(x)
         x = self.norm_2(x)
         x = self.drop(x)
+
+        x = self.conv_3(x * x_mask)
+        x = torch.relu(x)
+        x = self.norm_3(x)
+        x = self.drop(x)
+
         x = self.proj(x * x_mask)
+
         return x * x_mask

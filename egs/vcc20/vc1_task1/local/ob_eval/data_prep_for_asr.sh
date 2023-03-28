@@ -23,9 +23,9 @@ text=${data_dir}/text
 # make scp, utt2spk, and spk2utt
 # We only take file starting with "E" so that we evaluate English sentences only.
 find ${db} -name "*.wav" | sort | while read -r filename;do
-    
+
     id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g" | sed -e "s/-feats//g" | sed -e "s/_gen//g" | sed -e "s/${trgspk}_//g" )
-    
+
     echo "${id} ffmpeg -loglevel warning -i ${filename} -ac 1 -ar 16000 -acodec pcm_s16le -f wav -y - |" >> ${scp}
     echo "${id} $trgspk" >> ${utt2spk}
 done

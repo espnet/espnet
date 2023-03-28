@@ -352,4 +352,3 @@ else
     fprintf(1,'Sphere file type: %s\n',ffx{3});
     fprintf(1,'Duration = %ss: %d channel * %d samples @ %sHz\n',sprintsi(info(5)/info(9)),info(6),info(5),sprintsi(info(9)));
 end
-

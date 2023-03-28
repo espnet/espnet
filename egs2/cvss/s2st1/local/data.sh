@@ -40,7 +40,7 @@ set -o pipefail
 
 log "data preparation started"
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then 
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage1: Download data to ${CVSS}"
     log "Prepare source data from commonvoice 4.0"
     mkdir -p ${CVSS}/commonvoice4
@@ -72,7 +72,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --subset ${part} \
             --dest data/"${part}_${src_lang}" \
             --src_lang ${src_lang}
-        
+
         ln -sf text.en data/"${part}_${src_lang}"/text
         ln -sf wav.scp.en data/"${part}_${src_lang}"/wav.scp
 

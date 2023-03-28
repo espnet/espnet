@@ -31,4 +31,3 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/test|15299|165136|93.2|4.3|2.6|0.6|7.4|31.9|
-

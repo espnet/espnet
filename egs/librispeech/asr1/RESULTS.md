@@ -117,7 +117,7 @@ We used the same ASR model in the previous report.
   - Commit date: `Tue Feb 4 14:21:11 2020 +0900`
 
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
-    - model link: https://drive.google.com/open?id=17cOOSHHMKI82e1MXj4r2ig8gpGCRmG2p
+    - model link: https://drive.google.com/open?id=1RHYAhcnlKz08amATrf0ZOWFLzoQphtoc
     - training config file: `./conf/train.yaml`
     - decoding config file: `./conf/decode.yaml`
     - cmvn file: `./data/train_960/cmvn.ark`

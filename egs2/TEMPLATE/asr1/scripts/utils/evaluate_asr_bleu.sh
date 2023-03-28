@@ -200,7 +200,7 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Scoring"
 
-    _scoredir="${outdir}/score_bleu"
+    _scoredir="${outdir}/score_asr_bleu"
     mkdir -p "${_scoredir}"
 
     if [ -z ${gt_text} ]; then
@@ -234,7 +234,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                     ) \
         <(<"${source_wavscp}" awk '{ print "(" $1 ")" }') \
             >"${_scoredir}/hyp.trn.org"
-    
+
     # remove utterance id
     perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
     perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
