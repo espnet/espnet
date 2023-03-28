@@ -1105,7 +1105,7 @@ if ! "${skip_train}"; then
             # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--src_normalize=global_mvn --src_normalize_conf stats_file=${s2st_stats_dir}/train/src_feats_stats.npz "
        fi
-        if [ "${tgt_feats_normalize}" = global_mvn ]; then
+        if [ "${tgt_feats_normalize}" = global_mvn ] && [ "${use_discrete_unit}" = true ]; then
             # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--tgt_normalize=global_mvn --tgt_normalize_conf stats_file=${s2st_stats_dir}/train/tgt_feats_stats.npz "
         fi
@@ -1378,7 +1378,10 @@ if ! "${skip_eval}"; then
             if [ -e "${_logdir}/output.${_nj}/wav" ]; then
                 mkdir -p "${_dir}"/wav
                 for i in $(seq "${_nj}"); do
-                    mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+                    # mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
+		    for file in "${_logdir}/output.${i}"/wav/*.wav; do
+		        mv -- "${file}" "${_dir}"/wav
+		    done
                     rm -rf "${_logdir}/output.${i}"/wav
                 done
                 find "${_dir}/wav" -name "*.wav" | while read -r line; do
