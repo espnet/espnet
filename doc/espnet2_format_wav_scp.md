@@ -61,7 +61,7 @@ For example, `16khz` and `sint16` audio is typically used in our ASR recipes.
 ## The audio file formats supported in ESPnet2
 
 ESPnet adopts [python soundifile](https://github.com/bastibe/python-soundfile)
-for IN/OUT data loading, and, thus the supported audio codec depend on [libsndfile](http://www.mega-nerd.com/libsndfile/).
+for IN/OUT data loading, and, thus the supported audio codecs depend on [libsndfile](http://www.mega-nerd.com/libsndfile/).
 
 You can check the supported audio codecs of `soundfile` with the following command:
 
@@ -69,6 +69,9 @@ You can check the supported audio codecs of `soundfile` with the following comma
 import soundfile
 print(soundfile.available_formats())
 ```
+
+Note that the `wav.scp` of Kaldi originally requires that the audio format is wav with pcm_s16le type,
+but **`wav.scp` of ESPnet2 can handle all audio formats supported by soundfile**. e.g. You can use `flac` format for `wav.scp` at the initial state.
 
 Depending on the situation, you may choose one of the following codecs:
 
