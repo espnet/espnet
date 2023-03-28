@@ -137,7 +137,7 @@ ID_b ffmpeg -i "ID_b.mp4" -f wav -af pan="1c|c0=c0" -acodec pcm_s16le - |
   - `|c<out-channel>=c<in-channel>` assigns `<in-channel>`th channel of input stream into `<out-channel>`th channel of output stream
 - Caution: `-map_channel` option is deprecated and will be removed.
 
-### Case3: Convert NIST Sphere files to wav 
+### Case3: Convert NIST Sphere files to wav
 
 `sph2pipe` is required. Create `wav.scp` as following:
 
