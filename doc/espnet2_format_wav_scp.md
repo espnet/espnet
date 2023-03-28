@@ -84,7 +84,7 @@ it's better to keep the file format to avoid the duplication with massive audio 
 
 ### Case1: Extract segmentations with long recoding
 
-Create `wav.scp` and `segments` with the format of `The format is <utterance_id> <wav_id> <start_time> <end_time>`. 
+Create `wav.scp` and `segments` with the format of `The format is <utterance_id> <wav_id> <start_time> <end_time>`.
 Note that the time is in second unit.
 
 `wav.scp`:
