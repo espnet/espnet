@@ -5,7 +5,7 @@ and the [format_wav_scp.sh](https://github.com/espnet/espnet/blob/master/egs2/TE
 In the typical case, in the stage3 of [the template recipe](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE),
 `format_wav_scp.sh` is used to convert the audio file format of your original corpus to the audio format which you actually want to feed to the DNN model.
 
-Note that `format_wav_scp.py` dumps files with `sint16le` by default regardless the input audio format.
+Note that `format_wav_scp.py` dumps files with linear PCM with `sint16le` regardless the input audio format.
 
 ## Quick usage
 
@@ -32,8 +32,8 @@ See also:
 ## Why is audio file formatting necessary?
 
 The audio data included in the corpus obtained from the source website are distributed in various audio file formats,
-i.e., the audio codec (`wav`, `flac`, `mp3`, or etc.), the sampling frequency (`48khz`, `44.1khz`, `16khz`, `8khz`, or etc.),
-the data precision and the type (`uint8`, `sint16`, `sint32`, `float20`, `float32`, or etc.),
+i.e., the audio codec (`wav` with `linear PCM`, `u-law`, `a-law`, `flac`, `mp3`, or etc.), the sampling frequency (`48khz`, `44.1khz`, `16khz`, `8khz`, or etc.),
+the data precision and the type (`uint8`, `sint16`, `sint32`, `float20`, `float32` or etc.),
 the number of channels (`monaural`, `stereo`, or more than 2ch), little endian / big endian.
 
 When you try to develop a new recipe with a corpus that is not yet prepared in our recipes,
@@ -58,16 +58,17 @@ import soundfile
 print(soundfile.available_formats())
 ```
 
-Depending on the situation, you may choose one of the following three formats:
+Depending on the situation, you may choose one of the following codecs:
 
-|  Codec  |  Compression | Some notes|
-| ---- | ---- | ---- |
-|  wav (microsoft wav with linear pcm)  |  No  | |
-|  flac  |  Lossless  | Maximum channel number is 8ch |
-| mp3 | Lossy | The patent of MP3 has expired |
+|  Codec  |  Compression | Maximum number of channnels |Note|
+| ---- | ---- | ---- | ---- |
+|  wav (Microsoft wav with linear pcm) | No |  1024  | |
+|  flac  |  Lossless  | 8 | |
+| mp3 | Lossy | 2 | The patent of MP3 has expired |
+| ogg (Vorbis) | Lossy | ? | Segmentation fault sometimes happens |
 
 
-By default, we select `flac` because `flac` can convert linear pcm files with ~55 % compression rate without data loss.
+By default, we select `flac` because `flac` can convert linear pcm files with compression rate of ~55 % without data loss.
 If you would like to change it to the other format, please use `--audio_format` option for `run.sh`.
 
 ```sh
@@ -75,18 +76,52 @@ cd egs2/some_corpus/some_task
 ./run.sh --audio_format mp3
 ```
 
+Note that if the audio files in your corpus are disributed with lossy audio codec, such as `MP3`,
+it's better to keep the file format to avoid the duplication with massive audio format.
+
 ## Use case
 
 
 ### Case1: Extract segmentations with long recoding
 
+Create `wav.scp` and `segments` with the format of `The format is <utterance_id> <wav_id> <start_time> <end_time>`. 
+Note that the time is in second unit.
+
+`wav.scp`:
+
+```
+record_a a.wav
+...
+```
+
+`segments`:
+
+```
+segment_a record_a 0.98 11.56
+segment_a record_a 12.34 15.43
+...
+```
+
+
+
+Then, you can extract the segments with:
+
+
+```sh
+./scripts/audio/format_wav_scp.sh --segments segments wav.scp output_dir
+```
 
 ### Case2: Extract audio data from video codec / Use non supported format by soundfile
 
 `ffmpeg` is required. Create `wav.scp` as following:
 
 ```
-ID_a ffmpeg -i "ID_a.mp4" -f wav |
-ID_b ffmpeg -i "ID_b.mp4" -f wav |
+ID_a ffmpeg -i "ID_a.mp4" -f wav -af pan="1c|c0=c0" -acodec pcm_s16le - |
+ID_b ffmpeg -i "ID_b.mp4" -f wav -af pan="1c|c0=c0" -acodec pcm_s16le - |
 ...
 ```
+
+- Note: `-af pan` is [pan filter](https://ffmpeg.org/ffmpeg-filters.html#pan-1).
+  - `<num>c` specifies `<num>` of output channels
+  - `c<out-channel>=c<in-channel>` assigns `<in-channel>`th channel
+- Caution: `-map_channel` option is deprecated and will be removed.
