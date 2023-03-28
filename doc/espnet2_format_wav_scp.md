@@ -13,12 +13,12 @@ wav.scp -> [format_wav_scp.py] -> wav.scp
 wav.scp -> [format_wav_scp.sh] -> wav.scp
 ```
 
-Note that `format_wav_scp.py` dumps audio files with linear PCM with `sint16le` regardless the input audio format.
+Note that `format_wav_scp.py` dumps audio files with linear PCM with `sint16` regardless the input audio format.
 
 ## Quick usage
 
 
-At the first, you need to prepare `wav.scp`:
+At the first, you need to prepare a text file named as `wav.scp`:
 
 ```
 ID_a /some_where/a.wav
@@ -92,6 +92,7 @@ Depending on the situation, you may choose one of the following codecs:
 
 
 By default, we select `flac` because `flac` can convert linear pcm files with compression rate of ~55 % without data loss.
+`flac` is helpful to reduce the IO load, especially, when training with a large amount of corpus.
 If you would like to change it to the other format, please use `--audio_format` option for `run.sh`.
 
 ```sh
@@ -153,7 +154,7 @@ ID_b ffmpeg -i "ID_b.mp4" -f wav -af pan="1c|c0=c0" -acodec pcm_s16le - |
 `sph2pipe` is required. Create `wav.scp` as following:
 
 ```
-ID_a sph2pipe 0 wav -p -c 1 ID_a.sph |
-ID_b sph2pipe 0 wav -p -c 1 ID_b.sph |
+ID_a sph2pipe -f wav -p -c 1 ID_a.sph |
+ID_b sph2pipe -f wav -p -c 1 ID_b.sph |
 ...
 ```
