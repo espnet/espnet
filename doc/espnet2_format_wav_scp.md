@@ -48,7 +48,7 @@ For example, `16khz` and `sint16` audio is typically used in our ASR recipes.
 
 ## The audio file formats supported in ESPnet2
 
-ESPnets adopts [python soundifile](https://github.com/bastibe/python-soundfile)
+ESPnet adopts [python soundifile](https://github.com/bastibe/python-soundfile)
 for data loading, and, thus the supported audio codec depend on [libsndfile](http://www.mega-nerd.com/libsndfile/).
 
 You can check the supported audio codecs of `soundfile` with the following command:
