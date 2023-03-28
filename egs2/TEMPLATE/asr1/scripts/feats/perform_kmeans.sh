@@ -18,6 +18,7 @@ dev_set=
 test_sets=
 datadir=dump/raw
 feat_dir=dump/hubert_feats
+in_filetype=sound
 km_tag=
 km_dir=
 dictdir=
@@ -41,6 +42,7 @@ hubert_dir_path="./downloads/hubert_pretrained_models/hubert_base_ls960.pt"
 
 # Extract intermediate embedding from s3prl models
 s3prl_upstream_name=hubert_large_ll60k
+s3prl_path_or_url=""
 
 portion=0.1
 nj=16
@@ -54,10 +56,6 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-if [ $# -ne 0 ]; then
-    echo "Usage: $0 <--nclusters:100> <--feature_type:mfcc>"
-    exit 0
-fi
 
 if [ -z "${km_tag}" ]; then
     km_tag=$(basename ${km_dir})
@@ -84,6 +82,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     for dset in "${train_set}" "${dev_set}" ${test_sets}; do
         echo "dump ${feature_type} features at ${dset}"
+        if [ "${dset}" = "" ] ; then
+            continue
+        fi
 
         # 1. Split the key file
         output_dir="${feat_dir}/${feature_type}/${suffix}${dset}/data"
@@ -104,13 +105,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         # shellcheck disableSC2046,SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/dump_feats.JOB.log \
             ${python} pyscripts/feats/dump_feats.py \
-                --in_filetype "sound" \
+                --in_filetype "${in_filetype}" \
                 --out_filetype "mat" \
                 --feature_type "${feature_type}" \
                 --hubert_type "${hubert_type}" \
                 --hubert-model-url "${hubert_url}" \
                 --hubert-model-path "${hubert_dir_path}" \
                 --s3prl-upstream-name "${s3prl_upstream_name}" \
+                --s3prl-path-or-url "${s3prl_path_or_url}" \
                 --layer "${layer}" \
                 --write_num_frames "ark,t:${_logdir}/utt2num_frames.JOB" \
                 "scp:${_logdir}/wav.JOB.scp${scp_suffix}" \

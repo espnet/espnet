@@ -36,6 +36,7 @@ def get_parser():
     parser.add_argument("--hubert-model-url", type=str, default=None)
     parser.add_argument("--hubert-model-path", type=str, default=None)
     parser.add_argument("--s3prl-upstream-name", type=str, default=None)
+    parser.add_argument("--s3prl-path-or-url", type=str, default=None)
     parser.add_argument("--layer", type=int, default=None)
     parser.add_argument("--sample_rate", type=int, default=16000)
     parser.add_argument("--max_chunk", type=int, default=1600000)
@@ -125,6 +126,7 @@ def main(args):
     elif args.feature_type == "s3prl":
         reader = S3PRLFeatureReader(
             s3prl_upstream_name=args.s3prl_upstream_name,
+            s3prl_path_or_url=args.s3prl_path_or_url,
             layer=args.layer,
             sample_rate=16000,
             max_chunk=1600000,
