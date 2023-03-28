@@ -177,7 +177,8 @@ if __name__ == "__main__":
     separator.eval()
 
     print(
-        f"Number of parameters: {humanfriendly.format_size(sum(p.numel() for p in separator.parameters()))}"
+        "Number of parameters: "
+        f"{humanfriendly.format_size(sum(p.numel() for p in separator.parameters()))}"
     )
 
     input_feature = torch.randn((16, SEQ_LEN, 128))

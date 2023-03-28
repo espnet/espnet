@@ -463,7 +463,9 @@ def inference(
             SoundScpWriter(f"{output_dir}/wavs/{i + 1}", f"{output_dir}/spk{i + 1}.scp")
         )
 
-    for i, (keys, batch) in enumerate(loader):
+    import tqdm
+
+    for i, (keys, batch) in tqdm.tqdm(enumerate(loader)):
         logging.info(f"[{i}] Enhancing {keys}")
         assert isinstance(batch, dict), type(batch)
         assert all(isinstance(s, str) for s in keys), keys
