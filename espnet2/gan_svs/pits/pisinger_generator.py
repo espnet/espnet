@@ -43,7 +43,8 @@ from espnet2.gan_svs.visinger2.ddsp import (
 )
 
 from espnet2.gan_svs.pits.ying_decoder import YingDecoder
-from espnet2.gan_svs.pits.analysis import Ying
+
+# from espnet2.gan_svs.pits.analysis import Ying
 
 
 class PISingerGenerator(torch.nn.Module):
@@ -202,6 +203,8 @@ class PISingerGenerator(torch.nn.Module):
         self.yin_start = yin_start
         self.yin_scope = yin_scope
         self.yin_shift_range = yin_shift_range
+        self.hidden_channels = hidden_channels
+        self.yin_channels = yin_channels
 
         self.text_encoder = TextEncoder(
             vocabs=vocabs,
@@ -412,9 +415,9 @@ class PISingerGenerator(torch.nn.Module):
             gin_channels=global_channels,
         )
 
-        self.pitch = Ying(
-            midi_start=midi_start, midi_end=midi_end, octave_range=octave_range
-        )
+        # self.pitch = Ying(
+        #     midi_start=midi_start, midi_end=midi_end, octave_range=octave_range
+        # )
 
     def crop_scope(
         self, x, scope_shift=0
@@ -870,6 +873,7 @@ class PISingerGenerator(torch.nn.Module):
         alpha: float = 1.0,
         max_len: Optional[int] = None,
         use_teacher_forcing: bool = False,
+        scope_shift: int = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Run inference.
 
@@ -1010,6 +1014,13 @@ class PISingerGenerator(torch.nn.Module):
             z_p = m_p + torch.randn_like(m_p) * torch.exp(logs_p) * noise_scale
             z = self.flow(z_p, x_mask, g=g, inverse=True)
 
+            z_spec, z_yin = torch.split(
+                z, self.hidden_channels - self.yin_channels, dim=1
+            )
+
+            z_yin_crop = self.crop_scope([z_yin], scope_shift)[0]
+            z_crop = torch.cat([z_spec, z_yin_crop], dim=1)
+
             if self.vocoder_generator_type == "uhifigan":
                 pitch_segments_expended = expand_f0(
                     pred_pitch, self.hop_length, method="repeat"
@@ -1020,18 +1031,18 @@ class PISingerGenerator(torch.nn.Module):
                 sine_waves, uv, noise = self.sine_generator(pitch_segments_expended)
                 sine_waves = sine_waves.transpose(1, 2)
                 wav = self.decoder(
-                    (z * x_mask)[:, :, :max_len], excitation=sine_waves, g=g
+                    (z_crop * x_mask)[:, :, :max_len], excitation=sine_waves, g=g
                 )
             elif self.vocoder_generator_type == "avocodo":
-                wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)[-1]
+                wav = self.decoder((z_crop * x_mask)[:, :, :max_len], g=g)[-1]
             elif self.vocoder_generator_type == "visinger2":
                 pitch_ = upsample(pred_pitch.transpose(1, 2), self.hop_length)
                 omega = torch.cumsum(2 * math.pi * pitch_ / self.sample_rate, 1)
                 sin = torch.sin(omega).transpose(1, 2)
 
                 # dsp synthesize
-                noise_x = self.dec_noise(z, x_mask)
-                harm_x = self.dec_harm(pred_pitch, z, x_mask)
+                noise_x = self.dec_noise(z_crop, x_mask)
+                harm_x = self.dec_harm(pred_pitch, z_crop, x_mask)
 
                 # dsp waveform
                 dsp_o = torch.cat([harm_x, noise_x], axis=1)
@@ -1040,11 +1051,13 @@ class PISingerGenerator(torch.nn.Module):
                 decoder_condition = self.sin_prenet(sin)
 
                 # dsp based HiFiGAN vocoder
-                wav = self.decoder((z * x_mask)[:, :, :max_len], decoder_condition, g=g)
+                wav = self.decoder(
+                    (z_crop * x_mask)[:, :, :max_len], decoder_condition, g=g
+                )
                 # wav = dsp_o.sum(1)
                 # wav = noise_x
                 # wav = harm_x.sum(1)
             else:
-                wav = self.decoder((z * x_mask)[:, :, :max_len], g=g)
+                wav = self.decoder((z_crop * x_mask)[:, :, :max_len], g=g)
 
         return wav.squeeze(1)
