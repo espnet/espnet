@@ -130,7 +130,6 @@ class SkiMSeparator(AbsSeparator):
         return masked, ilens, others
 
     def forward_streaming(self, input_frame: torch.Tensor, states=None):
-
         if is_complex(input_frame):
             feature = abs(input_frame)
         else:
@@ -161,7 +160,6 @@ class SkiMSeparator(AbsSeparator):
 
 
 if __name__ == "__main__":
-
     import time
 
     import humanfriendly
@@ -189,7 +187,6 @@ if __name__ == "__main__":
     ilens = torch.LongTensor([SEQ_LEN, SEQ_LEN, SEQ_LEN])
 
     with torch.no_grad():
-
         start = time.time()
         seq_output, _, _ = separator.forward(input_feature, ilens=ilens)
         end = time.time()

@@ -114,7 +114,6 @@ class MemLSTM(nn.Module):
         return ret_val
 
     def forward_one_step(self, hc, state):
-
         if self.mem_type == "id":
             pass
         else:
@@ -360,7 +359,6 @@ class SkiM(nn.Module):
         output = input_frame
 
         if states["current_step"] and (states["current_step"]) % self.segment_size == 0:
-
             tmp_states = [empty_seg_states() for i in range(self.num_blocks)]
             for i in range(self.num_blocks - 1):
                 tmp_states[i + 1], states["mem_state"][i] = self.mem_lstms[
@@ -382,7 +380,6 @@ class SkiM(nn.Module):
 
 
 if __name__ == "__main__":
-
     torch.manual_seed(111)
 
     seq_len = 100
