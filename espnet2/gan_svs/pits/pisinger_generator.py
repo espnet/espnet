@@ -227,7 +227,7 @@ class PISingerGenerator(torch.nn.Module):
         )
         if vocoder_generator_type == "uhifigan":
             self.decoder = UHiFiGANGenerator(
-                in_channels=hidden_channels,
+                in_channels=hidden_channels - yin_channels + yin_scope,
                 out_channels=1,
                 channels=decoder_channels,
                 global_channels=global_channels,
@@ -246,7 +246,7 @@ class PISingerGenerator(torch.nn.Module):
             )
         elif vocoder_generator_type == "hifigan":
             self.decoder = HiFiGANGenerator(
-                in_channels=hidden_channels,
+                in_channels=hidden_channels - yin_channels + yin_scope,
                 out_channels=1,
                 channels=decoder_channels,
                 global_channels=global_channels,
@@ -259,7 +259,7 @@ class PISingerGenerator(torch.nn.Module):
             )
         elif vocoder_generator_type == "avocodo":
             self.decoder = AvocodoGenerator(
-                in_channels=hidden_channels,
+                in_channels=hidden_channels - yin_channels + yin_scope,
                 out_channels=1,
                 channels=decoder_channels,
                 global_channels=global_channels,
@@ -274,7 +274,7 @@ class PISingerGenerator(torch.nn.Module):
             )
         elif vocoder_generator_type == "visinger2":
             self.decoder = VISinger2VocoderGenerator(
-                in_channels=hidden_channels,
+                in_channels=hidden_channels - yin_channels + yin_scope,
                 out_channels=1,
                 channels=decoder_channels,
                 global_channels=global_channels,
@@ -662,10 +662,39 @@ class PISingerGenerator(torch.nn.Module):
         # forward flow
         z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
 
+        z_dec = torch.cat([z_spec, z_yin_crop], dim=1)
+        # print("z_spec", z_spec.shape)
+        # print("z_yin_crop", z_yin_crop.shape)
+        # print("z", z.shape)
+        # print("z_dec", z_dec.shape)
+        # z_dec_shifted = torch.cat([z_spec.detach(), z_yin_crop_shifted], dim=1)
+        # z_dec_ = torch.cat([z_dec, z_dec_shifted], dim=0)
+
         # get random segments
         z_segments, z_start_idxs = get_random_segments(
-            z, feats_lengths, self.segment_size
+            z_dec, feats_lengths, self.segment_size
         )
+
+        # TODO(yifeng): add shifted z later
+        # z_segments, z_start_idxs = get_random_segments(
+        #     z_dec_, torch.cat([feats_lengths, feats_lengths], dim=0),
+        #     self.segment_size)
+        # o_ = self.decoder(z_segments, g=torch.cat([g, g], dim=0))
+        # o = [torch.chunk(o_hier, 2, dim=0)[0] for o_hier in o_]
+
+        # o_pad = F.pad(
+        #     o_[-1],
+        #     (
+        #         768,
+        #         768 + (-o_[-1].shape[-1]) % 256 + 256 * (o_[-1].shape[-1] % 256 == 0),
+        #     ),
+        #     mode="constant",
+        # ).squeeze(1)
+        # yin_hat = self.pitch.yingram(o_pad)
+        # yin_hat_crop = self.crop_scope([yin_hat])[0]
+        # yin_hat_shifted = self.crop_scope_tensor(
+        #     torch.chunk(yin_hat, 2, dim=0)[0], scope_shift
+        # )
 
         if self.vocoder_generator_type == "uhifigan":
             # get sine wave
@@ -765,6 +794,13 @@ class PISingerGenerator(torch.nn.Module):
                             log_probs,
                         ),
                         dsp_slice.sum(1),
+                        (
+                            yin_gt_crop,
+                            yin_gt_shifted_crop,
+                            yin_dec_crop,
+                            z_yin_crop_shifted,
+                            scope_shift,
+                        ),
                     )
                 else:
                     return (
@@ -784,6 +820,13 @@ class PISingerGenerator(torch.nn.Module):
                             logw,
                             logw_gt,
                             log_probs,
+                        ),
+                        (
+                            yin_gt_crop,
+                            yin_gt_shifted_crop,
+                            yin_dec_crop,
+                            z_yin_crop_shifted,
+                            scope_shift,
                         ),
                     )
             else:

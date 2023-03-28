@@ -42,6 +42,8 @@ from espnet2.gan_svs.visinger2.visinger2_vocoder import (
     VISinger2Discriminator,
 )
 
+from torch.nn import functional as F
+
 AVAILABLE_GENERATERS = {
     "visinger_generator": VISingerGenerator,
     # TODO(yifeng): add more generators
@@ -290,6 +292,7 @@ class VITS(AbsGANSVS):
         lambda_kl: float = 1.0,
         lambda_pitch: float = 1.0,
         lambda_phoneme: float = 1.0,
+        lambda_c_yin: float = 45.0,
         cache_generator_outputs: bool = True,
     ):
         """Initialize VITS module.
@@ -330,6 +333,7 @@ class VITS(AbsGANSVS):
             #   where idim represents #vocabularies and odim represents
             #   the input acoustic feature dimension.
             generator_params.update(vocabs=idim, aux_channels=odim)
+        self.generator_type = generator_type
         self.use_visinger = use_visinger
         self.use_dp = use_dp
         self.vocoder_generator_type = vocoder_generator_type
@@ -388,6 +392,7 @@ class VITS(AbsGANSVS):
         self.lambda_dur = lambda_dur
         self.lambda_pitch = lambda_pitch
         self.lambda_phoneme = lambda_phoneme
+        self.lambda_c_yin = lambda_c_yin
 
         # cache
         self.cache_generator_outputs = cache_generator_outputs
@@ -619,13 +624,34 @@ class VITS(AbsGANSVS):
             self._cache = outs
 
         # parse outputs
-        if self.vocoder_generator_type == "visinger2":
-            singing_hat_, start_idxs, _, z_mask, outs_, singing_hat_ddsp_ = outs
-        else:
-            singing_hat_, start_idxs, _, z_mask, outs_ = outs
-            # print("singing_hat_[0] shape: ", singing_hat_[0].shape)
-            # print("singing_hat_[1] shape: ", singing_hat_[1].shape)
-            # print("singing_hat_[2] shape: ", singing_hat_[2].shape)
+        if "visinger" in self.generator_type:
+            if self.vocoder_generator_type == "visinger2":
+                singing_hat_, start_idxs, _, z_mask, outs_, singing_hat_ddsp_ = outs
+            else:
+                singing_hat_, start_idxs, _, z_mask, outs_ = outs
+                # print("singing_hat_[0] shape: ", singing_hat_[0].shape)
+                # print("singing_hat_[1] shape: ", singing_hat_[1].shape)
+                # print("singing_hat_[2] shape: ", singing_hat_[2].shape)
+        elif "pisinger" in self.generator_type:
+            if self.vocoder_generator_type == "visinger2":
+                (
+                    singing_hat_,
+                    start_idxs,
+                    _,
+                    z_mask,
+                    outs_,
+                    singing_hat_ddsp_,
+                    outs2_,
+                ) = outs
+            else:
+                singing_hat_, start_idxs, _, z_mask, outs_, outs2_ = outs
+            (
+                yin_gt_crop,
+                yin_gt_shifted_crop,
+                yin_dec_crop,
+                z_yin_crop_shifted,
+                scope_shift,
+            ) = outs2_
         if not self.use_visinger:
             _, z_p, m_p, logs_p, _, logs_q = outs_
         else:
@@ -669,6 +695,20 @@ class VITS(AbsGANSVS):
 
         # calculate losses
         with autocast(enabled=False):
+            if "pisinger" in self.generator_type:
+                yin_dec_loss = (
+                    F.l1_loss(yin_gt_shifted_crop, yin_dec_crop) * self.lambda_c_yin
+                )
+                # TODO(yifeng): add yin shift loss later
+                # loss_yin_shift = (
+                #     F.l1_loss(torch.exp(-yin_gt_crop), torch.exp(-yin_hat_crop))
+                #     * self.lambda_c_yin
+                #     + F.l1_loss(
+                #         torch.exp(-yin_hat_shifted),
+                #         torch.exp(-(torch.chunk(yin_hat_crop, 2, dim=0)[1])),
+                #     )
+                #     * self.lambda_c_yin
+                # )
             if self.use_avocodo:
                 mel_loss = self.mel_loss(singing_hat_[-1], singing_)
             elif self.vocoder_generator_type == "visinger2":
@@ -720,6 +760,8 @@ class VITS(AbsGANSVS):
             if self.use_dp:
                 loss += dur_loss
                 loss += ctc_loss
+            if "pisinger" in self.generator_type:
+                loss += yin_dec_loss
 
         if self.use_visinger:
             if not self.use_dp:
@@ -732,28 +774,28 @@ class VITS(AbsGANSVS):
                     pitch_loss=pitch_loss.item(),
                 )
             else:
+                stats = dict(
+                    generator_loss=loss.item(),
+                    generator_mel_loss=mel_loss.item(),
+                    generator_dur_loss=dur_loss.item(),
+                    generator_adv_loss=adv_loss.item(),
+                    generator_feat_match_loss=feat_match_loss.item(),
+                    pitch_loss=pitch_loss.item(),
+                    ctc_loss=ctc_loss.item(),
+                    generator_kl_loss=kl_loss.item(),
+                )
+
                 if self.vocoder_generator_type == "visinger2":
-                    stats = dict(
-                        generator_loss=loss.item(),
-                        generator_mel_loss=mel_loss.item(),
-                        generator_mel_ddsp_loss=ddsp_mel_loss.item(),
-                        generator_kl_loss=kl_loss.item(),
-                        generator_dur_loss=dur_loss.item(),
-                        generator_adv_loss=adv_loss.item(),
-                        generator_feat_match_loss=feat_match_loss.item(),
-                        pitch_loss=pitch_loss.item(),
-                        ctc_loss=ctc_loss.item(),
+                    stats.update(
+                        dict(
+                            generator_mel_ddsp_loss=ddsp_mel_loss.item(),
+                        )
                     )
-                else:
-                    stats = dict(
-                        generator_loss=loss.item(),
-                        generator_mel_loss=mel_loss.item(),
-                        generator_kl_loss=kl_loss.item(),
-                        generator_dur_loss=dur_loss.item(),
-                        generator_adv_loss=adv_loss.item(),
-                        generator_feat_match_loss=feat_match_loss.item(),
-                        pitch_loss=pitch_loss.item(),
-                        ctc_loss=ctc_loss.item(),
+                elif "pisinger" in self.generator_type:
+                    stats.update(
+                        dict(
+                            generator_yin_dec_loss=yin_dec_loss.item(),
+                        )
                     )
         else:
             stats = dict(

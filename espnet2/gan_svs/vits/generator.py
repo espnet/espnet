@@ -393,6 +393,8 @@ class VISingerGenerator(torch.nn.Module):
         beat_lengths: torch.Tensor = None,
         pitch: torch.Tensor = None,
         pitch_lengths: torch.Tensor = None,
+        ying: torch.Tensor = None,
+        ying_lengths: torch.Tensor = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
