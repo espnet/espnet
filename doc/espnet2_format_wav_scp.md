@@ -5,7 +5,15 @@ and the [format_wav_scp.sh](https://github.com/espnet/espnet/blob/master/egs2/TE
 In the typical case, in the stage3 of the [template recipe](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE),
 `format_wav_scp.sh` is used to convert the audio file format of your original corpus to the audio format which you actually want to feed to the DNN model.
 
-Note that `format_wav_scp.py` dumps files with linear PCM with `sint16le` regardless the input audio format.
+`format_wav_scp.py` and `format_wav_scp.sh` has same function of generation `wav.scp` from `wav.scp`, but　`format_wav_scp.sh` is different in that　it has the capability of parallel processing.
+
+```
+wav.scp -> [format_wav_scp.py] -> wav.scp
+
+wav.scp -> [format_wav_scp.sh] -> wav.scp
+```
+
+Note that `format_wav_scp.py` dumps audio files with linear PCM with `sint16le` regardless the input audio format.
 
 ## Quick usage
 
@@ -18,7 +26,7 @@ ID_b /some_where2/b.wav
 ...
 ```
 
-`ID_a`and `ID_b` are the IDs which you can name arbitrarily to specify audio files. Note that **we don't assume any directory stucture for the audio files**.
+`ID_a`and `ID_b` are the IDs which you can name arbitrarily to specify audio files. Note that **we don't assume any directory stuctures for the audio files**.
 
 
 ```sh
@@ -44,9 +52,9 @@ See also:
 ## Why is audio file formatting necessary?
 
 The audio data included in the corpus obtained from the source website are distributed in various audio file formats,
-i.e., the audio codec (`wav` with `linear PCM`, `flac`, `mp3`, `DSD`, `wav` with `u-law`, `a-law`or etc.), the sampling frequency (`48khz`, `44.1khz`, `16khz`, `8khz`, or etc.),
-the data precision and the type (`uint8`, `sint16`, `sint32`, `float20`, `float32` or etc.),
-the number of channels (`monaural`, `stereo`, or more than 2ch), little endian / big endian.
+i.e., the audio codec (`wav` of `linear PCM`, `flac`, `mp3`, `DSD`, `u-law`, `a-law`or etc.), the sampling frequency (`48khz`, `44.1khz`, `16khz`, `8khz`, or etc.),
+the bit depth (`uint8`, `sint16`, `sint32`, `float20`, `float32` or etc.),
+the number of channels (`monaural`, `stereo`, or more than 2ch), the byter order(`little endian` or `big endian`).
 
 When you try to develop a new recipe with a corpus that is not yet prepared in our recipes,
 of course, you can also try to use the audio data as they are without any formatting.
@@ -61,7 +69,7 @@ For example, `16khz` and `sint16` audio is typically used in our ASR recipes.
 ## The audio file formats supported in ESPnet2
 
 ESPnet adopts [python soundifile](https://github.com/bastibe/python-soundfile)
-for IN/OUT data loading, and, thus the supported audio codecs depend on [libsndfile](http://www.mega-nerd.com/libsndfile/).
+for data loading, and, thus the supported audio codecs depend on [libsndfile](http://www.mega-nerd.com/libsndfile/).
 
 You can check the supported audio codecs of `soundfile` with the following command:
 
@@ -71,7 +79,7 @@ print(soundfile.available_formats())
 ```
 
 Note that the `wav.scp` of Kaldi originally requires that the audio format is wav with pcm_s16le type,
-but **`wav.scp` of ESPnet2 can handle all audio formats supported by soundfile**. e.g. You can use `flac` format for `wav.scp` at the initial state.
+but **`wav.scp` of ESPnet2 can handle all audio formats supported by soundfile**. e.g. You can use `flac` format for `wav.scp` for the input/output of `format_wav_scp.py`.
 
 Depending on the situation, you may choose one of the following codecs:
 
@@ -92,7 +100,7 @@ cd egs2/some_corpus/some_task
 ```
 
 Note that if the audio files in your corpus are disributed with lossy audio codec, such as `MP3`,
-it's better to keep the file format to avoid the duplication of the full corpus with the uncompressed format.
+it's better to keep the file format to avoid the duplication of the full corpus with the uncompressed format.　 **If the input audio format type is exactly same as the output format, `format_wav_scp.py` avoid the gengeration of the output files and reuse the input files**.
 
 ## Use case
 
