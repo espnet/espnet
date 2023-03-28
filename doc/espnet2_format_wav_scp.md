@@ -32,7 +32,7 @@ See also:
 ## Why is audio file formatting necessary?
 
 The audio data included in the corpus obtained from the source website are distributed in various audio file formats,
-i.e., the audio codec (`wav` with `linear PCM`, `u-law`, `a-law`, `flac`, `mp3`, or etc.), the sampling frequency (`48khz`, `44.1khz`, `16khz`, `8khz`, or etc.),
+i.e., the audio codec (`wav` with `linear PCM`, `flac`, `mp3`, `DSD`, `wav` with `u-law`, `a-law`or etc.), the sampling frequency (`48khz`, `44.1khz`, `16khz`, `8khz`, or etc.),
 the data precision and the type (`uint8`, `sint16`, `sint32`, `float20`, `float32` or etc.),
 the number of channels (`monaural`, `stereo`, or more than 2ch), little endian / big endian.
 
@@ -60,12 +60,12 @@ print(soundfile.available_formats())
 
 Depending on the situation, you may choose one of the following codecs:
 
-|  Codec  |  Compression | Maximum number of channnels |Note|
-| ---- | ---- | ---- | ---- |
-|  wav (Microsoft wav with linear pcm) | No |  1024  | |
-|  flac  |  Lossless  | 8 | |
-| mp3 | Lossy | 2 | The patent of MP3 has expired |
-| ogg (Vorbis) | Lossy | ? | Segmentation fault sometimes happens |
+|  Codec  |  Compression | Maximum channnels | Maximum sampling frequency|Note|
+| ---- | ---- | ---- | ---- | ---- |
+|  wav (Microsoft wav with linear pcm) | No |  1024  | - | |
+|  flac  |  Lossless  | 8 | 192khz ||
+| mp3 | Lossy | 2 | 48khz | The patent of MP3 has expired |
+| ogg (Vorbis) | Lossy | 255 | 192khz | Segmentation fault happens |
 
 
 By default, we select `flac` because `flac` can convert linear pcm files with compression rate of ~55 % without data loss.
@@ -77,15 +77,14 @@ cd egs2/some_corpus/some_task
 ```
 
 Note that if the audio files in your corpus are disributed with lossy audio codec, such as `MP3`,
-it's better to keep the file format to avoid the duplication with massive audio format.
+it's better to keep the file format to avoid the duplication of the full corpus with the uncompressed format.
 
 ## Use case
 
 
 ### Case1: Extract segmentations with long recoding
 
-Create `wav.scp` and `segments` with the format of `The format is <utterance_id> <wav_id> <start_time> <end_time>`.
-Note that the time is in second unit.
+Create `wav.scp` and `segments` with the format of `The format is <utterance_id> <wav_id> <start_time> <end_time>` (second unit).
 
 `wav.scp`:
 
