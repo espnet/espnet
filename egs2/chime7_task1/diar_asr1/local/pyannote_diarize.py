@@ -313,19 +313,19 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--max_length_merged",
-        type=int,
-        default=60,
+        type=str,
+        default="60",
         help="Max length of segments that will be merged together.",
-        metavar="INT",
+        metavar="STR",
         dest="max_length_merged",
     )
     parser.add_argument(
         "--merge_closer",
-        type=int,
-        default=1.5,
+        type=str,
+        default="1.5",
         help="Merge segments from same speakers that "
         "are less than this value apart.",
-        metavar="INT",
+        metavar="STR",
         dest="merge_closer",
     )
 
@@ -369,8 +369,8 @@ if __name__ == "__main__":
                 pipeline,
                 sess2audio[sess],
                 c_uem,
-                args.merge_closer,
-                args.max_length_merged,
+                float(args.merge_closer),
+                float(args.max_length_merged),
             )
             c_rttm_out = os.path.join(args.out_dir, sess + ".rttm")
             with open(c_rttm_out, "w") as f:
