@@ -20,7 +20,7 @@ inference_config=conf/decode_asr.yaml
 ./utils/parse_options.sh || exit 1
 
 for duration in 10min 1h ; do
-
+    continue
     for single_lang in eng1 eng2 eng3 fra1 fra2 deu1 deu2 rus swa swe jpn cmn xty ; do
         echo "processing ${single_lang} ${duration}"
         train_set=train_${duration}_${single_lang}

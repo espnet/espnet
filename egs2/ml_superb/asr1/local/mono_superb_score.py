@@ -63,7 +63,7 @@ if __name__ == "__main__":
         log_record = "{},".format(dur)
         for i, config in enumerate(configs):
             # Set related folders
-            asr_exp = "asr_{}_single_{}_{}".format(args.asr_tag_prefix, config, dur)
+            asr_exp = "asr_{}_{}_{}".format(args.asr_tag_prefix, config, dur)
             decoder_folder = "decode_asr_asr_model_{}".format(inference_tag)
             eval_folder = "test_10min_{}".format(config)
             if config in ["cmn", "jpn"]:
@@ -97,4 +97,5 @@ if __name__ == "__main__":
         avg_error_rate = mean([mean(result_dict[v]) for v in result_dict.keys()])
         log_file.write("Average Error Rate ({}):{}\n".format(dur, avg_error_rate))
         print("Average Error Rate ({}):{}\n".format(dur, avg_error_rate))
-        log_file.write("Details:\n{}\n{}".format(",".join(configs), log_record))
+        log_file.write("Details:\n{},{}\n{}\n".format("Dur", ",".join(configs), log_record))
+        print("Details are saved in {}/{}".format(args.expdir, args.log))
