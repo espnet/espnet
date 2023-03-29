@@ -5,6 +5,8 @@
 
 """Singing-voice-synthesis ESPnet model."""
 
+import logging
+
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
@@ -47,6 +49,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize and InversibleInterface],
         pitch_normalize: Optional[AbsNormalize and InversibleInterface],
         energy_normalize: Optional[AbsNormalize and InversibleInterface],
+        feats_minmax: Optional[torch.nn.Module],
         svs: AbsSVS,
     ):
         """Initialize ESPnetSVSModel module."""
@@ -62,6 +65,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         self.normalize = normalize
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
+        self.feats_minmax = feats_minmax
         self.svs = svs
 
     def forward(
@@ -157,6 +161,8 @@ class ESPnetSVSModel(AbsESPnetModel):
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
 
+            # logging.info(f'fetas: {feats.shape}') # [B, T, 80]       
+
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
                     label_lab,
@@ -168,6 +174,9 @@ class ESPnetSVSModel(AbsESPnetModel):
                 ) = expand_to_frame(
                     duration_phn, duration_phn_lengths, label, midi, duration_phn
                 )
+                # logging.info(f'label: {label_lab.shape}') # [B, T]
+                # logging.info(f'midi: {midi_lab.shape}') # [B, T]
+                # logging.info(f'dur: {duration_lab.shape}') # [B, T]
 
                 # for data-parallel
                 label_lab = label_lab[:, : label_lab_lengths.max()]
@@ -237,6 +246,7 @@ class ESPnetSVSModel(AbsESPnetModel):
                 pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
             if self.energy_normalize is not None:
                 energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
+            
 
         # Make batch for svs inputs
         batch = dict(
@@ -305,6 +315,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             batch.update(energy=energy, energy_lengths=energy_lengths)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
+
         return self.svs(**batch)
 
     def collect_feats(

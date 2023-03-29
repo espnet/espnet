@@ -23,6 +23,8 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
 from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
+from espnet2.svs.diffsinger.diffsinger import DiffSinger
+from espnet2.svs.diffsinger.get_feats_minmax import GetFeatsMinMax
 
 # TODO(Yuning): Models to be added
 # from espnet2.svs.encoder_decoder.transformer.transformer import Transformer
@@ -117,6 +119,7 @@ svs_choices = ClassChoices(
         # xiaoice_noDP=XiaoiceSing_noDP,
         vits=VITS,
         joint_score2wav=JointScore2Wav,
+        diffsinger=DiffSinger,
         # mlp=MLPSinger,
     ),
     type_check=AbsSVS,
@@ -239,6 +242,13 @@ class SVSTask(AbsTask):
             help="sample rate",
         )
 
+        parser.add_argument(
+            "--feats_minmax_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="The keyword arguments for feats_minmax",
+        )
+
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
             # e.g. --encoder and --encoder_conf
@@ -343,8 +353,14 @@ class SVSTask(AbsTask):
             normalize = None
 
         # 3. SVS
+
+        # for diffsinger
+        feats_minmax = None
+        if (not getattr(args, "feats_minmax_conf", None)) is False: # dict empty
+            feats_minmax = GetFeatsMinMax(**args.feats_minmax_conf)
+
         svs_class = svs_choices.get_class(args.svs)
-        svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
+        svs = svs_class(idim=vocab_size, odim=odim, feats_minmax = feats_minmax, **args.svs_conf)
 
         # 4. Extra components
         score_feats_extract = None
@@ -352,6 +368,7 @@ class SVSTask(AbsTask):
         energy_extract = None
         pitch_normalize = None
         energy_normalize = None
+        feats_minmax = None
         logging.info(f"args:{args}")
         if getattr(args, "score_feats_extract", None) is not None:
             score_feats_extract_class = score_feats_extractor_choices.get_class(
@@ -407,6 +424,7 @@ class SVSTask(AbsTask):
             normalize=normalize,
             pitch_normalize=pitch_normalize,
             energy_normalize=energy_normalize,
+            feats_minmax=feats_minmax,
             svs=svs,
             **args.model_conf,
         )
