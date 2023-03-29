@@ -55,6 +55,8 @@ bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by
 asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
+asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
+asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation. you can also try using all datasets after gss: kaldi/dev_all_gss
 asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 lm_config="conf/train_lm.yaml"
 use_lm=false
@@ -77,7 +79,7 @@ asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
 asr_max_lr=$(calc_float $ngpu/10000.0)
 asr_warmup=$(calc_int 40000.0/$ngpu)
 
-if [ $decode_only == 1 ]; then
+if [ $decode_only -eq 1 ]; then
   # apply gss only on dev
   gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
 fi
@@ -170,14 +172,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
-    asr_train_set=kaldi/train_all_ihm # dummy one, it is not used
-    asr_cv_set=kaldi/chime6/dev/gss # dummy one, it is not used
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
-  else
-    asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
-    asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
-    # you can also try using all datasets after gss: kaldi/dev_all_gss
   fi
 
   if [ $diar_score ]; then
@@ -239,11 +235,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # placed unmodified into org. we create a symbolic link
   # so it can be parsed as the other datasets.
   for tt_dset in $asr_tt_set; do
-   if ! [ -d ${asr_exp}/${inference_tag}/${tt_dset} ]; then
-     mkdir -p "$(dirname "${asr_exp}/${inference_tag}/${tt_dset}")"
-     # need absolute paths in the symbolic link creation
-     ln -s ${PWD}/${asr_exp}/${inference_tag}/org/${tt_dset} ${PWD}/${asr_exp}/${inference_tag}/${tt_dset}
-   fi
+      if [ ! -e "${asr_exp}/${inference_tag}/${tt_dset}" ] && [ -d  "${asr_exp}/${inference_tag}/org/${tt_dset}" ]; then
+        # Creating the parent directory
+        mkdir -p "${asr_exp}/${inference_tag}/${tt_dset}" && rmdir "${asr_exp}/${inference_tag}/${tt_dset}"
+        ln -sf "$(cd ${asr_exp}/${inference_tag}/org/${tt_dset}; pwd)" "${asr_exp}/${inference_tag}/${tt_dset}"
+      fi
   done
 
   for tt_dset in $asr_tt_set; do

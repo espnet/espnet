@@ -33,8 +33,15 @@ make
 
 For more detail: https://espnet.github.io/espnet/installation.html#step-2-installation-espnet
 
+
+
 ## Check installation
 
 ```sh
 bash -c ". ./activate_python.sh; . ./extra_path.sh; python3 check_install.py"
 ```
+
+
+## Caution
+
+ESPnet recommends preparing a new Python environment independent of your pre-existing Python because pre-installed modules in your existing Python sometimes conflict with the dependencies of ESPnet. If you still want to install ESPnet in your original Python, all issues which might happen are under your responsibility.
