@@ -64,7 +64,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using job scheduling system</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
 </ul>
@@ -73,6 +73,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
 </ul>
@@ -341,6 +342,7 @@
         <span class="n">speech_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;speech&quot;</span><span class="p">,</span>
         <span class="n">text_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
         <span class="n">fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">nonsplit_symbol</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">train</span> <span class="o">=</span> <span class="n">train</span>
@@ -364,6 +366,7 @@
                 <span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">,</span>
                 <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
                 <span class="n">g2p_type</span><span class="o">=</span><span class="n">g2p_type</span><span class="p">,</span>
+                <span class="n">nonsplit_symbol</span><span class="o">=</span><span class="n">nonsplit_symbol</span><span class="p">,</span>
             <span class="p">)</span>
             <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;whisper_en&quot;</span><span class="p">,</span> <span class="s2">&quot;whisper_multilingual&quot;</span><span class="p">]:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span> <span class="o">=</span> <span class="n">TokenIDConverter</span><span class="p">(</span>
@@ -652,6 +655,7 @@
         <span class="n">speech_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;speech&quot;</span><span class="p">,</span>
         <span class="n">text_name</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">],</span>
         <span class="n">fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">speaker_change_symbol</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
@@ -674,11 +678,18 @@
             <span class="n">speech_volume_normalize</span><span class="o">=</span><span class="n">speech_volume_normalize</span><span class="p">,</span>
             <span class="n">speech_name</span><span class="o">=</span><span class="n">speech_name</span><span class="p">,</span>
             <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+            <span class="n">nonsplit_symbol</span><span class="o">=</span><span class="n">speaker_change_symbol</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text_name</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">text_name</span> <span class="o">=</span> <span class="p">[</span><span class="n">text_name</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">text_name</span> <span class="o">=</span> <span class="n">text_name</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">speaker_change_symbol</span> <span class="o">=</span> <span class="n">speaker_change_symbol</span>
+        <span class="k">if</span> <span class="n">speaker_change_symbol</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">text_name</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="p">),</span> <span class="s2">&quot;SOT model with speaker_change_symbol only support single text input.&quot;</span>
 
     <span class="k">def</span> <span class="nf">_text_process</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>

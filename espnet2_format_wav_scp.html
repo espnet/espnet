@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Converting audio file formats using format_wav_scp.py &mdash; ESPnet 202301 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Task class and data input system for training" href="espnet2_task.html" />
+    <link rel="prev" title="Change the configuration for training" href="espnet2_training_option.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202301
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Converting audio file formats using format_wav_scp.py</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#quick-usage">Quick usage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#why-is-audio-file-formatting-necessary">Why is audio file formatting necessary?</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#the-audio-file-formats-supported-in-espnet2">The audio file formats supported in ESPnet2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#use-case">Use case</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#case1-extract-segmentations-with-long-recoding">Case1: Extract segmentations with long recoding</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#case2-extract-audio-data-from-video-codec-use-non-supported-format-by-soundfile">Case2: Extract audio data from video codec / Use non supported format by soundfile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#case3-convert-nist-sphere-files-to-wav">Case3: Convert NIST Sphere files to wav</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fst.html">espnet2.fst package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Converting audio file formats using format_wav_scp.py</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/espnet2_format_wav_scp.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="converting-audio-file-formats-using-format-wav-scp-py">
+<h1>Converting audio file formats using format_wav_scp.py<a class="headerlink" href="#converting-audio-file-formats-using-format-wav-scp-py" title="Permalink to this headline">¶</a></h1>
+<p>The <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE/asr1/pyscripts/audio/format_wav_scp.py">format_wav_scp.py</a> is an utility to convert the audio format of the files specified <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code>
+and the <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/scripts/audio/format_wav_scp.sh">format_wav_scp.sh</a> is a shell script wrapping <code class="docutils literal notranslate"><span class="pre">format_wav_scp.py</span></code>.
+In the typical case, in the stage3 of the <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE">template recipe</a>,
+<code class="docutils literal notranslate"><span class="pre">format_wav_scp.sh</span></code> is used to convert the audio file format of your original corpus to the audio format which you actually want to feed to the DNN model.</p>
+<p><code class="docutils literal notranslate"><span class="pre">format_wav_scp.py</span></code> and <code class="docutils literal notranslate"><span class="pre">format_wav_scp.sh</span></code> has same function of generation <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> from <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code>, but　<code class="docutils literal notranslate"><span class="pre">format_wav_scp.sh</span></code> is different in that　it has the capability of parallel processing.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wav</span><span class="o">.</span><span class="n">scp</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="n">format_wav_scp</span><span class="o">.</span><span class="n">py</span><span class="p">]</span> <span class="o">-&gt;</span> <span class="n">wav</span><span class="o">.</span><span class="n">scp</span>
+
+<span class="n">wav</span><span class="o">.</span><span class="n">scp</span> <span class="o">-&gt;</span> <span class="p">[</span><span class="n">format_wav_scp</span><span class="o">.</span><span class="n">sh</span><span class="p">]</span> <span class="o">-&gt;</span> <span class="n">wav</span><span class="o">.</span><span class="n">scp</span>
+</pre></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">format_wav_scp.py</span></code> dumps audio files with linear PCM with <code class="docutils literal notranslate"><span class="pre">sint16</span></code> regardless the input audio format.</p>
+<section id="quick-usage">
+<h2>Quick usage<a class="headerlink" href="#quick-usage" title="Permalink to this headline">¶</a></h2>
+<p>At the first, you need to prepare a text file named as <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ID_a</span> <span class="o">/</span><span class="n">some_where</span><span class="o">/</span><span class="n">a</span><span class="o">.</span><span class="n">wav</span>
+<span class="n">ID_b</span> <span class="o">/</span><span class="n">some_where2</span><span class="o">/</span><span class="n">b</span><span class="o">.</span><span class="n">wav</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">ID_a</span></code>and <code class="docutils literal notranslate"><span class="pre">ID_b</span></code> are the IDs which you can name arbitrarily to specify audio files. Note that <strong>we don’t assume any directory stuctures for the audio files</strong>.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="c1"># Please change directory before using our shell scripts</span>
+<span class="nb">cd</span><span class="w"> </span>egs2/some_corpus/some_task
+
+<span class="nv">cmd</span><span class="o">=</span>utils/run.pl
+<span class="nv">nj</span><span class="o">=</span><span class="m">10</span><span class="w">  </span><span class="c1"># Number of parallel jobs</span>
+<span class="nv">audio_fomrat</span><span class="o">=</span>flac<span class="w">  </span><span class="c1"># The audio codec of output files</span>
+<span class="nv">fs</span><span class="o">=</span>16k<span class="w">  </span><span class="c1"># The sampling frequency of output files</span>
+<span class="nv">ref_channels</span><span class="o">=</span><span class="m">0</span><span class="w">  </span><span class="c1"># If the input data has multiple channels and you want to use only a single channel in the file (please spicify the channel with 0-based number)</span>
+./scripts/audio/format_wav_scp.sh<span class="w"> </span>--nj<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">nj</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--cmd<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">cmd</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--audio_format<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">audio_format</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--fs<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">fs</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>--ref_channels<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">ref_channels</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span>somewhere/wav.scp<span class="w"> </span>output_dir
+
+<span class="c1"># Then, you can find output_dir/wav.scp</span>
+</pre></div>
+</div>
+<p>See also:</p>
+<ul class="simple">
+<li><p>About <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code>: https://github.com/espnet/data_example</p></li>
+<li><p>About <code class="docutils literal notranslate"><span class="pre">cmd</span></code>:  <a class="reference internal" href="parallelization.html"><span class="doc">Using job scheduling system</span></a></p></li>
+</ul>
+</section>
+<section id="why-is-audio-file-formatting-necessary">
+<h2>Why is audio file formatting necessary?<a class="headerlink" href="#why-is-audio-file-formatting-necessary" title="Permalink to this headline">¶</a></h2>
+<p>The audio data included in the corpus obtained from the source website are distributed in various audio file formats,
+i.e., the audio codec (<code class="docutils literal notranslate"><span class="pre">wav</span></code> of <code class="docutils literal notranslate"><span class="pre">linear</span> <span class="pre">PCM</span></code>, <code class="docutils literal notranslate"><span class="pre">flac</span></code>, <code class="docutils literal notranslate"><span class="pre">mp3</span></code>, <code class="docutils literal notranslate"><span class="pre">DSD</span></code>, <code class="docutils literal notranslate"><span class="pre">u-law</span></code>, <code class="docutils literal notranslate"><span class="pre">a-law</span></code>or etc.), the sampling frequency (<code class="docutils literal notranslate"><span class="pre">48khz</span></code>, <code class="docutils literal notranslate"><span class="pre">44.1khz</span></code>, <code class="docutils literal notranslate"><span class="pre">16khz</span></code>, <code class="docutils literal notranslate"><span class="pre">8khz</span></code>, or etc.),
+the bit depth (<code class="docutils literal notranslate"><span class="pre">uint8</span></code>, <code class="docutils literal notranslate"><span class="pre">sint16</span></code>, <code class="docutils literal notranslate"><span class="pre">sint32</span></code>, <code class="docutils literal notranslate"><span class="pre">float20</span></code>, <code class="docutils literal notranslate"><span class="pre">float32</span></code> or etc.),
+the number of channels (<code class="docutils literal notranslate"><span class="pre">monaural</span></code>, <code class="docutils literal notranslate"><span class="pre">stereo</span></code>, or more than 2ch), the byter order(<code class="docutils literal notranslate"><span class="pre">little</span> <span class="pre">endian</span></code> or <code class="docutils literal notranslate"><span class="pre">big</span> <span class="pre">endian</span></code>).</p>
+<p>When you try to develop a new recipe with a corpus that is not yet prepared in our recipes,
+of course, you can also try to use the audio data as they are without any formatting.
+However,
+in a typical case, the configuration of our DNN model may assume the specific audio format,
+especially regarding the sampling frequency and the data precision.
+If you　are conservative with your new recipe,
+we recommend converting them to the original recipe’s audio format.
+For example, <code class="docutils literal notranslate"><span class="pre">16khz</span></code> and <code class="docutils literal notranslate"><span class="pre">sint16</span></code> audio is typically used in our ASR recipes.</p>
+</section>
+<section id="the-audio-file-formats-supported-in-espnet2">
+<h2>The audio file formats supported in ESPnet2<a class="headerlink" href="#the-audio-file-formats-supported-in-espnet2" title="Permalink to this headline">¶</a></h2>
+<p>ESPnet adopts <a class="reference external" href="https://github.com/bastibe/python-soundfile">python soundifile</a>
+for data loading, and, thus the supported audio codecs depend on <a class="reference external" href="http://www.mega-nerd.com/libsndfile/">libsndfile</a>.</p>
+<p>You can check the supported audio codecs of <code class="docutils literal notranslate"><span class="pre">soundfile</span></code> with the following command:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">soundfile</span><span class="o">.</span><span class="n">available_formats</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Note that the <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> of Kaldi originally requires that the audio format is wav with pcm_s16le type,
+but <strong><code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> of ESPnet2 can handle all audio formats supported by soundfile</strong>. e.g. You can use <code class="docutils literal notranslate"><span class="pre">flac</span></code> format in <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> for the input/output of <code class="docutils literal notranslate"><span class="pre">format_wav_scp.py</span></code>.</p>
+<p>Depending on the situation, you may choose one of the following codecs:</p>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th>Codec</th>
+<th>Compression</th>
+<th>Maximum channnels</th>
+<th>Maximum sampling frequency</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>wav (Microsoft wav with linear pcm)</td>
+<td>No</td>
+<td>1024</td>
+<td>-</td>
+<td></td>
+</tr>
+<tr>
+<td>flac</td>
+<td>Lossless</td>
+<td>8</td>
+<td>192khz</td>
+<td></td>
+</tr>
+<tr>
+<td>mp3</td>
+<td>Lossy</td>
+<td>2</td>
+<td>48khz</td>
+<td>The patent of MP3 has expired</td>
+</tr>
+<tr>
+<td>ogg (Vorbis)</td>
+<td>Lossy</td>
+<td>255</td>
+<td>192khz</td>
+<td>Segmentation fault happens</td>
+</tr>
+</tbody>
+</table><p>By default, we select <code class="docutils literal notranslate"><span class="pre">flac</span></code> because <code class="docutils literal notranslate"><span class="pre">flac</span></code> can convert linear pcm files with compression rate of ~55 % without data loss.
+<code class="docutils literal notranslate"><span class="pre">flac</span></code> is helpful to reduce the IO load, especially, when training with a large amount of corpus.
+If you would like to change it to the other format, please use <code class="docutils literal notranslate"><span class="pre">--audio_format</span></code> option for <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>egs2/some_corpus/some_task
+./run.sh<span class="w"> </span>--audio_format<span class="w"> </span>mp3
+</pre></div>
+</div>
+<p>Note that if the audio files in your corpus are disributed with lossy audio codec, such as <code class="docutils literal notranslate"><span class="pre">MP3</span></code>,
+it’s better to keep the file format to avoid the duplication of the full corpus with the uncompressed format.　 <strong>If the input audio format type is exactly same as the output format, <code class="docutils literal notranslate"><span class="pre">format_wav_scp.py</span></code> avoid the gengeration of the output files and reuse the input files</strong>.</p>
+</section>
+<section id="use-case">
+<h2>Use case<a class="headerlink" href="#use-case" title="Permalink to this headline">¶</a></h2>
+<section id="case1-extract-segmentations-with-long-recoding">
+<h3>Case1: Extract segmentations with long recoding<a class="headerlink" href="#case1-extract-segmentations-with-long-recoding" title="Permalink to this headline">¶</a></h3>
+<p>Create <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> and <code class="docutils literal notranslate"><span class="pre">segments</span></code> with the format of <code class="docutils literal notranslate"><span class="pre">The</span> <span class="pre">format</span> <span class="pre">is</span> <span class="pre">&lt;utterance_id&gt;</span> <span class="pre">&lt;wav_id&gt;</span> <span class="pre">&lt;start_time&gt;</span> <span class="pre">&lt;end_time&gt;</span></code> (second unit).</p>
+<p><code class="docutils literal notranslate"><span class="pre">wav.scp</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">record_a</span> <span class="n">a</span><span class="o">.</span><span class="n">wav</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">segments</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">segment_a</span> <span class="n">record_a</span> <span class="mf">0.98</span> <span class="mf">11.56</span>
+<span class="n">segment_a</span> <span class="n">record_a</span> <span class="mf">12.34</span> <span class="mf">15.43</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>Then, you can extract the segments with:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>./scripts/audio/format_wav_scp.sh<span class="w"> </span>--segments<span class="w"> </span>segments<span class="w"> </span>wav.scp<span class="w"> </span>output_dir
+</pre></div>
+</div>
+</section>
+<section id="case2-extract-audio-data-from-video-codec-use-non-supported-format-by-soundfile">
+<h3>Case2: Extract audio data from video codec / Use non supported format by soundfile<a class="headerlink" href="#case2-extract-audio-data-from-video-codec-use-non-supported-format-by-soundfile" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">ffmpeg</span></code> is required. Create <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> as following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ID_a</span> <span class="n">ffmpeg</span> <span class="o">-</span><span class="n">i</span> <span class="s2">&quot;ID_a.mp4&quot;</span> <span class="o">-</span><span class="n">f</span> <span class="n">wav</span> <span class="o">-</span><span class="n">af</span> <span class="n">pan</span><span class="o">=</span><span class="s2">&quot;1c|c0=c0&quot;</span> <span class="o">-</span><span class="n">acodec</span> <span class="n">pcm_s16le</span> <span class="o">-</span> <span class="o">|</span>
+<span class="n">ID_b</span> <span class="n">ffmpeg</span> <span class="o">-</span><span class="n">i</span> <span class="s2">&quot;ID_b.mp4&quot;</span> <span class="o">-</span><span class="n">f</span> <span class="n">wav</span> <span class="o">-</span><span class="n">af</span> <span class="n">pan</span><span class="o">=</span><span class="s2">&quot;1c|c0=c0&quot;</span> <span class="o">-</span><span class="n">acodec</span> <span class="n">pcm_s16le</span> <span class="o">-</span> <span class="o">|</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Note: <code class="docutils literal notranslate"><span class="pre">-af</span> <span class="pre">pan</span></code> is <a class="reference external" href="https://ffmpeg.org/ffmpeg-filters.html#pan-1">pan filter</a>.</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">&lt;num&gt;c|</span></code> specifies <code class="docutils literal notranslate"><span class="pre">&lt;num&gt;</span></code> of output channels</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">|c&lt;out-channel&gt;=c&lt;in-channel&gt;</span></code> assigns <code class="docutils literal notranslate"><span class="pre">&lt;in-channel&gt;</span></code>th channel of input stream into <code class="docutils literal notranslate"><span class="pre">&lt;out-channel&gt;</span></code>th channel of output stream</p></li>
+</ul>
+</li>
+<li><p>Caution: <code class="docutils literal notranslate"><span class="pre">-map_channel</span></code> option is deprecated and will be removed.</p></li>
+</ul>
+</section>
+<section id="case3-convert-nist-sphere-files-to-wav">
+<h3>Case3: Convert NIST Sphere files to wav<a class="headerlink" href="#case3-convert-nist-sphere-files-to-wav" title="Permalink to this headline">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">sph2pipe</span></code> is required. Create <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> as following:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">ID_a</span> <span class="n">sph2pipe</span> <span class="o">-</span><span class="n">f</span> <span class="n">wav</span> <span class="o">-</span><span class="n">p</span> <span class="o">-</span><span class="n">c</span> <span class="mi">1</span> <span class="n">ID_a</span><span class="o">.</span><span class="n">sph</span> <span class="o">|</span>
+<span class="n">ID_b</span> <span class="n">sph2pipe</span> <span class="o">-</span><span class="n">f</span> <span class="n">wav</span> <span class="o">-</span><span class="n">p</span> <span class="o">-</span><span class="n">c</span> <span class="mi">1</span> <span class="n">ID_b</span><span class="o">.</span><span class="n">sph</span> <span class="o">|</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="espnet2_training_option.html" class="btn btn-neutral float-left" title="Change the configuration for training" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="espnet2_task.html" class="btn btn-neutral float-right" title="Task class and data input system for training" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

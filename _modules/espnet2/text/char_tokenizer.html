@@ -64,7 +64,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using job scheduling system</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
 </ul>
@@ -73,6 +73,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
 </ul>
@@ -207,6 +208,7 @@
         <span class="n">non_linguistic_symbols</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">space_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
         <span class="n">remove_non_linguistic_symbols</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">nonsplit_symbols</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">space_symbol</span> <span class="o">=</span> <span class="n">space_symbol</span>
@@ -223,21 +225,30 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">non_linguistic_symbols</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">non_linguistic_symbols</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">remove_non_linguistic_symbols</span> <span class="o">=</span> <span class="n">remove_non_linguistic_symbols</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nonsplit_symbols</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="nb">set</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">nonsplit_symbols</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="nb">set</span><span class="p">([</span><span class="n">sym</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;:&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">sym</span> <span class="ow">in</span> <span class="n">nonsplit_symbols</span><span class="p">])</span>
+        <span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
             <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(&quot;</span>
             <span class="sa">f</span><span class="s1">&#39;space_symbol=&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">space_symbol</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
             <span class="sa">f</span><span class="s1">&#39;non_linguistic_symbols=&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">non_linguistic_symbols</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;nonsplit_symbols=&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">nonsplit_symbols</span><span class="si">}</span><span class="s1">&quot;&#39;</span>
             <span class="sa">f</span><span class="s2">&quot;)&quot;</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="CharTokenizer.text2tokens"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.char_tokenizer.CharTokenizer.text2tokens">[docs]</a>    <span class="k">def</span> <span class="nf">text2tokens</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
         <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">non_linguistic_symbols</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">non_linguistic_symbols</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nonsplit_symbols</span><span class="p">):</span>
                 <span class="k">if</span> <span class="n">line</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">w</span><span class="p">):</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_non_linguistic_symbols</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nonsplit_symbols</span>
+                        <span class="ow">or</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">remove_non_linguistic_symbols</span>
+                    <span class="p">):</span>
                         <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)])</span>
                     <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="p">:]</span>
                     <span class="k">break</span>

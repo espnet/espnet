@@ -58,7 +58,7 @@
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Usage</a></li>
-<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using Job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using job scheduling system</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
 <li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
 </ul>
@@ -67,6 +67,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html">ESPnet2</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2_distributed.html">Distributed training</a></li>
 </ul>
@@ -223,8 +224,8 @@ $<span class="w"> </span>sudo<span class="w"> </span>yum<span class="w"> </span>
 <section id="supported-linux-distributions-and-other-requirements">
 <h2>Supported Linux distributions and other requirements<a class="headerlink" href="#supported-linux-distributions-and-other-requirements" title="Permalink to this headline">¶</a></h2>
 <p>We support the following Linux distributions with CI. If you want to build your own Linux by yourself,
-please also check our <a class="reference external" href="https://github.com/espnet/espnet/tree/master/.github/workflows">CI configurations</a>.
-to prepare the appropriate environments</p>
+please also check our <a class="reference external" href="https://github.com/espnet/espnet/tree/master/.github/workflows">CI configurations</a>
+to prepare the appropriate environments.</p>
 <ul class="simple">
 <li><p>ubuntu18</p></li>
 <li><p>centos7</p></li>
@@ -361,7 +362,7 @@ $<span class="w"> </span>./setup_python.sh<span class="w"> </span><span class="k
 </pre></div>
 </div>
 </li>
-<li><p>Option D) Without setting Python environment.</p>
+<li><p>Option D) Without setting Python environment</p>
 <p><code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">C</span></code> and <code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">D</span></code> are almost same. This option might be suitable for Google colab.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
 $<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>activate_python.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>touch<span class="w"> </span>activate_python.sh
@@ -403,23 +404,20 @@ so if you meet some installation error when running these recipe, you need to in
 <ul>
 <li><p>To install Warp Transducer</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-.<span class="w"> </span>activate_python.sh
-.<span class="w"> </span>./setup_cuda_env.sh<span class="w"> </span>&lt;cuda-root&gt;<span class="w">  </span><span class="c1"># e.g. &lt;cuda-root&gt; = /usr/local/cuda</span>
-./installers/install_warp-transducer.sh
+<span class="nv">cuda_root</span><span class="o">=</span>&lt;cuda-root&gt;<span class="w">  </span><span class="c1"># e.g. &lt;cuda-root&gt; = /usr/local/cuda</span>
+bach<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. activate_python.sh; . ./setup_cuda_env.sh </span><span class="nv">$cuda_root</span><span class="s2">; ./installers/install_warp-transducer.sh&quot;</span>
 </pre></div>
 </div>
 </li>
 <li><p>To install PyOpenJTalk</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-.<span class="w"> </span>activate_python.sh
-./installers/install_pyopenjtalk.sh
+bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. activate_python.sh; ./installers/install_pyopenjtalk.sh&quot;</span>
 </pre></div>
 </div>
 </li>
 <li><p>To install a module using pip: e.g. to intstall ipython</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
-.<span class="w"> </span>activate_python.sh
-pip<span class="w"> </span>install<span class="w"> </span>ipython
+bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. activate_python.sh; pip install ipython&quot;</span>
 </pre></div>
 </div>
 </li>
