@@ -409,6 +409,7 @@ class VITSGenerator(torch.nn.Module):
             w = duration.unsqueeze(1)
             logw_gt = w * x_mask
             logw = self.duration_predictor(x, x_mask, beat, g=g)
+            logw = (torch.exp(logw) - 1) * x_mask
             logw = torch.mul(logw.squeeze(1), beat).unsqueeze(1)
 
             x, frame_pitch, x_lengths = self.lr(x, melody, duration, melody_lengths)
@@ -582,12 +583,12 @@ class VITSGenerator(torch.nn.Module):
             if self.use_visinger:
                 if self.use_dp:
                     logw = self.duration_predictor(x, x_mask, beat, g=g)
+                    logw = (torch.exp(logw) - 1) * x_mask
                     logw = torch.mul(logw.squeeze(1), beat).unsqueeze(1)
-                    w = logw * x_mask
-                    w = w.squeeze(1).to(torch.long)
-                    w[w < 1] = 1
+                    logw[logw < 0] = 0
+                    logw = logw.squeeze(1).to(torch.long)
 
-                    x, frame_pitch, x_lengths = self.lr(x, melody, w, label_lengths)
+                    x, frame_pitch, x_lengths = self.lr(x, melody, logw, label_lengths)
                     x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1)
 
                 self.pos_encoder = PositionalEncoding(

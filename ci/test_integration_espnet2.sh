@@ -27,6 +27,9 @@ token_types="bpe char"
 for t in ${feats_types}; do
     ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}" --python "${python}"
 done
+cp -r dump/raw data/
+./run.sh --stage 2 --stop-stage 4 --feats-type "raw_copy" \
+    --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test --python "${python}"
 for t in ${token_types}; do
     ./run.sh --stage 5 --stop-stage 5 --token-type "${t}" --python "${python}"
 done
@@ -36,6 +39,11 @@ for t in ${feats_types}; do
         ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" \
             --asr-args "--max_epoch=1 --decoder rnn" --lm-args "--max_epoch=1" --python "${python}"
     done
+    echo "==== feats_type=raw_copy, token_types=bpe ==="
+    cp -r dump/raw data/
+    ./run.sh --ngpu 0 --stage 4 --stop-stage 13 --skip-upload false --feats-type "raw_copy" --token-type "${t2}" \
+        --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test \
+        --asr-args "--max_epoch=1 --decoder rnn" --lm-args "--max_epoch=1" --python "${python}"
 done
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
@@ -47,6 +55,21 @@ echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_fe
     --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
     --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --encoder=contextual_block_transformer --decoder=transformer
                 --encoder_conf block_size=40 --encoder_conf hop_size=16 --encoder_conf look_ahead=16"
+
+echo "==== Transducer, feats_type=raw, token_types=bpe ==="
+./run.sh --asr-tag "espnet_model_transducer" --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false \
+    --feats-type "raw" --token-type "bpe" --lm-args "--max_epoch=1" --python "${python}" \
+    --asr-args "--max_epoch=1 --decoder transducer --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=30 \
+    --best_model_criterion '(valid, loss, min)'" --inference_asr_model "valid.loss.best.pth" --inference_args "--beam_size 2"
+
+if [ "$(python3 -c "import torch; print(torch.cuda.is_available())")" == "True" ]; then
+    echo "==== Multi-Blank Transducer, feats_type=raw, token_types=bpe ==="
+    ./run.sh --asr-tag "espnet_model_multi_blank_transducer" --ngpu 1 --stage 6 --stop-stage 13 --skip-upload false \
+        --feats-type "raw" --token-type "bpe" --lm-args "--max_epoch=1" --python "${python}" \
+        --asr_args "--max_epoch=1 --decoder transducer --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=30 \
+        --best_model_criterion '(valid, loss, min)' --model_conf transducer_multi_blank_durations=[2]" \
+        --inference_asr_model "valid.loss.best.pth" --inference_config "conf/decode_multi_blank_transducer.yaml"
+fi
 
 if python3 -c "import k2" &> /dev/null; then
     echo "==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
@@ -86,8 +109,10 @@ fi
 
 echo "==== [PIT_ASR] feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 for i in $(seq 2); do
-    cp dump/raw/train_nodev/text dump/raw/train_nodev/text_spk${i}
-    cp dump/raw/train_dev/text dump/raw/train_dev/text_spk${i}
+    for rr in raw raw/org; do
+        cp dump/${rr}/train_nodev/text dump/${rr}/train_nodev/text_spk${i}
+        cp dump/${rr}/train_dev/text dump/${rr}/train_dev/text_spk${i}
+    done
     cp dump/raw/test/text dump/raw/test/text_spk${i}
     cp dump/raw/test_seg/text dump/raw/test_seg/text_spk${i}
 done
