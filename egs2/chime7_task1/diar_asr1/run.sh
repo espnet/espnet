@@ -31,9 +31,12 @@ gen_eval=0 # please not generate eval before release of mixer 6 eval
 
 # DIARIZATION config
 diarization_backend=pyannote
-pyannote_access_token=
+pyannote_access_token=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 # will remove after the challenge.
 diarization_dir=exp/diarization
 diar_inf_dset="dev"
+diar_merge_closer=1.5
+diar_max_length_merged=60
+pyannote_max_batch_size=32
 
 # GSS config
 ngpu=4
@@ -92,7 +95,10 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
               -u ${chime7_root}/${dset}/uem/${split}/all.uem \
               --mic_regex $mic_regex \
               --sess_regex $sess_regex \
-              --token ${pyannote_access_token}
+              --token ${pyannote_access_token} \
+              --merge_closer $diar_merge_closer \
+              --max_length_merged $diar_max_length_merged \
+              --max_batch_size $pyannote_max_batch_size
     done
   done
 fi
