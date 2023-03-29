@@ -241,13 +241,9 @@ with joint CTC/attention [6]. It uses WavLM [7] as a feature extractor.
 
 ### 3.1 Results
 
-#### 3.1.1 Main Track [Work in Progress]
-The main track baseline unfortunately is currently WIP, we hope we can finish it
-in the next weeks. <br>
-It will be based on a TS-VAD diarization model which leverages pre-trained self-supervised
-representation. <br>
-We apologize for the inconvenience. <br>
-The result of the diarization will be fed to this recipe GSS+ASR pipeline.
+#### 3.1.1 Main Track 
+See `egs2/chime7_dasr/diar_asr1/README.md`.
+The result of the diarization system is fed to this recipe GSS+ASR pipeline.
 
 #### 3.1.2 Acoustic Robustness Sub-Track: Oracle Diarization + ASR
 Pretrained model: [popcornell/chime7_task1_asr1_baseline](popcornell/chime7_task1_asr1_baseline) <br>
