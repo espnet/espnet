@@ -232,8 +232,11 @@ Additional data description is available in [CHiME-7 DASR website Data page](htt
 The baseline system in this recipe is similar to `egs2/chime6` one, which
 itself is inherited directly from CHiME-6 Challenge Kaldi recipe for Track 1 [s5_track1](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5_track1). <br>
 
+**This recipe contains only the baseline for the acoustic robustness sub-track (ASR-only, oracle diarization).** <br>
+The recipe for the main track is in `egs2/chime7_dasr/diar_asr1/README.md`. 
 
-It is composed of two modules (with an optional channel selection module):
+Since here we leverage oracle diarization the diarizer component here is omitted. 
+The baseline system for this sub-track is composed of two main modules (with an optional channel selection module):
 1. Guided Source Separation (GSS) [5], here we employ the GPU-based version (much faster) from [Desh Raj](https://github.com/desh2608/gss).
 2. End-to-end ASR model based on [4], which is a transformer encoder/decoder model trained <br>
 with joint CTC/attention [6]. It uses WavLM [7] as a feature extractor.
