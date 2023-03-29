@@ -1,4 +1,4 @@
-# Using Job scheduling system
+# Using job scheduling system
 
 Our recipes support some Job scheduling systems, SGE, PBS/Torque,
 and Slurm, according to [Parallelization in Kaldi](https://kaldi-asr.org/doc/queue.html).

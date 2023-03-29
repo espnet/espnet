@@ -25,6 +25,7 @@ ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end 
 
    ./espnet2_tutorial.md
    ./espnet2_training_option.md
+   ./espnet2_format_wav_scp.md
    ./espnet2_task.md
    ./espnet2_distributed.md
 
