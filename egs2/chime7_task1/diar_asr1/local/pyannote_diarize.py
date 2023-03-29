@@ -1,27 +1,66 @@
 import argparse
 import glob
 import json
+import math
 import os.path
 import random
 import re
 from pathlib import Path
 
+import numpy as np
 import soundfile as sf
 import torch
 import tqdm
 from dover_lap import dover_lap
 from intervaltree import IntervalTree
 from pyannote.audio import Pipeline
-from pyannote.metrics.segmentation import Annotation, Segment
-import numpy as np
+from pyannote.audio.core.inference import Inference
 from pyannote.audio.utils.signal import binarize
 from pyannote.core import SlidingWindowFeature
+from pyannote.metrics.segmentation import Annotation, Segment
+from scipy.signal import medfilt2d
+from copy import deepcopy
 
 IS_CUDA = torch.cuda.is_available()
 USE_DOVERLAP = False
 
 
-def merge_closer(turns, distance=0.5):
+def split_maxlen(utt_group, min_len=10):
+    # merge if
+    out = []
+    stack = []
+    for utt in utt_group:
+        c_len = utt.end - utt.start
+        if not stack or (c_len + sum([x.end - x.start for x in stack])) < min_len:
+            stack.append(utt)
+        else:
+            out.append(Segment(stack[0].start, stack[-1].end))
+            stack = [utt]
+    return out
+
+
+def merge_closer(annotation, delta=1.0, max_len=60, min_len=10):
+    speakers = annotation.labels()
+    new_annotation = Annotation()
+    for spk in speakers:
+        c_segments = sorted(annotation.label_timeline(spk), key= lambda x: x.start)
+        stack = []
+        for seg in c_segments:
+            if not stack or abs(stack[-1].end - seg.start) < delta:
+                stack.append(seg)
+            else:
+                # more than delta
+                if sum([x.end - x.start for x in stack]) > max_len:
+                    # break into parts of 10 seconds at least
+                    for sub_seg in split_maxlen(stack, min_len):
+                        new_annotation[sub_seg] = spk
+                    stack = [seg]
+                else:
+                    new_annotation[Segment(stack[0].start, stack[-1].end)] = spk
+                    stack = [seg]
+    return new_annotation
+
+def merge_closer_doverlap(turns, distance=0.5):
     """Merge overlapping turns by same speaker within each file."""
     # Merge separately within each file and for each speaker.
     new_turns = []
@@ -97,7 +136,7 @@ def ensemble_doverlap(session_id, rttms, out_dir):
 
     # Write output RTTM file
     output = sum(list(file_to_out_turns.values()), [])
-    output = merge_closer(output, distance=0.5)
+    output = merge_closer_doverlap(output, distance=0.5)
     # 0.5 full extension of collar between two adjacent segments
     dover_lap.write_rttm(
         os.path.join(out_dir, session_id + ".rttm"),
@@ -107,86 +146,8 @@ def ensemble_doverlap(session_id, rttms, out_dir):
     rttm2json(os.path.join(out_dir, session_id + ".rttm"))
 
 
-def multichannel_pipeline(pipeline, audio_dict, max_speakers=4):
-    num_speakers, min_speakers, max_speakers = pipeline.set_num_speakers(
-        num_speakers=None,
-        min_speakers=0,
-        max_speakers=max_speakers,
-    )
-    segmentations = pipeline.get_segmentations(audio_dict)
-    #   shape: (num_chunks, num_frames, local_num_speakers)
-
-    # estimate frame-level number of instantaneous speakers
-    count = pipeline.speaker_count(
-        segmentations,
-        onset=pipeline.segmentation.threshold,
-        frames=pipeline._frames,
-    )
-    #   shape: (num_frames, 1)
-    #   dtype: int
-
-    # exit early when no speaker is ever active
-    if np.nanmax(count.data) == 0.0:
-        return Annotation()
-
-    # binarize segmentation
-    binarized_segmentations = binarize(
-        segmentations,
-        onset=pipeline.segmentation.threshold,
-        initial_state=False,
-    )
-
-    return binarized_segmentations, count
-
-
-
-def multi_channel_reconstruct(pipeline, segmentations, hard_clusters, count):
-    import pdb
-
-    pdb.set_trace()
-    num_chunks, num_frames, local_num_speakers = segmentations[0].data.shape
-
-    sliding_window = segmentations[0].sliding_window
-    segmentations = np.stack([x.data for x in segmentations], -1)
-    hard_clusters = np.stack(hard_clusters, -1)
-
-    num_clusters = np.max(hard_clusters) + 1
-    clustered_segmentations = np.NAN * np.zeros(
-        (num_chunks, num_frames, num_clusters)
-    )  # this should be mono
-    import pdb
-
-    pdb.set_trace()
-
-    for c in range(num_chunks):
-        cluster = hard_clusters[c]
-        segmentation = segmentations[c]
-        # cluster is (local_num_speakers, )-shaped
-        # segmentation is (num_frames, local_num_speakers)-shaped
-        for k in np.unique(cluster):  # unique also over channels
-            if k == -2:
-                continue
-
-            # TODO: can we do better than this max here?
-            clustered_segmentations[c, :, k] = np.max(
-                segmentation[:, cluster == k], axis=1
-            )
-
-    clustered_segmentations = SlidingWindowFeature(
-        clustered_segmentations, sliding_window
-    )
-
-    # count need to be handled actually !
-    import pdb
-
-    pdb.set_trace()
-
-    return pipeline.to_diarization(clustered_segmentations, count)
-
-
 def diarize_session(pipeline, wav_files, uem_boundaries=None):
     # take the min len across all wavs
-
     minlen = min([sf.SoundFile(w).frames for w in wav_files])
     fs = sf.SoundFile(wav_files[0]).samplerate
     if uem_boundaries is not None:
@@ -197,7 +158,6 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
     # now for each audio file run inference
     all_segmentation = []
     all_audio = []
-    all_count = []
     for w_f in tqdm.tqdm(wav_files):
         c_audio, c_fs = sf.read(w_f, dtype="float32")
         assert fs == c_fs
@@ -212,52 +172,81 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
             continue
         if IS_CUDA:
             c_audio = c_audio.cuda()
-        c_seg, c_count = multichannel_pipeline(
-            pipeline, {"waveform": c_audio, "sample_rate": fs}, max_speakers=4
-        )
+        c_seg = pipeline.get_segmentations({"waveform": c_audio, "sample_rate": fs})
+        c_seg = binarize(c_seg, onset=pipeline.segmentation.threshold,
+                initial_state=False,
+            )
+
         all_segmentation.append(c_seg)  # move to cpu for less mem consumption
-        all_count.append(c_count)
         all_audio.append(c_audio)
 
-    # stack em
-
+    # here we select the best channel based on one with most activations.
+    # not an optimal criterion but at least the clustering afterwards will be fast.
+    sliding_window = all_segmentation[0].sliding_window
     all_audio = torch.cat(all_audio, 0)
     num_channels = all_audio.shape[0]
     num_chunks, frames, local_spk = all_segmentation[0].data.shape
-    all_segmentation = SlidingWindowFeature(np.stack([x.data for x in all_segmentation]).reshape(num_channels*num_chunks, frames, local_spk), all_segmentation[0].sliding_window)
-    embeddings = pipeline.get_embeddings({"waveform": all_audio.reshape(-1).unsqueeze(0), "sample_rate": fs}, all_segmentation, exclude_overlap=pipeline.embedding_exclude_overlap)
-
-    #   shape: (num_chunks, local_num_speakers, dimension)
-
+    all_segmentation = SlidingWindowFeature(
+        np.stack([x.data for x in all_segmentation], -1),
+        sliding_window,
+    )
+    selected_audio = torch.zeros_like(c_audio)
+    selected_seg = []
+    for indx, (seg_b, segmentation) in enumerate(all_segmentation):
+        c_seg = all_audio[:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)]
+        # median filter here seems to improve performance on CHiME-6
+        segmentation = medfilt2d(segmentation.reshape((frames, local_spk*num_channels)), (5, 1)).reshape((frames, local_spk, num_channels))
+        selection = np.argmax(segmentation.sum((0, 1))) # not the best selection criteria
+        # however this keeps it simple and fast.
+        selected_audio[
+            :, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)
+        ] = c_seg[selection]
+        selected_seg.append(segmentation[..., selection])
+    # stack em
+    selected_seg = SlidingWindowFeature(
+        np.stack([x.data for x in selected_seg]), sliding_window
+    )
+    count = Inference.trim(
+        selected_seg, warm_up=(0.1, 0.1)
+    )  # default value in Pyannote
+    count = Inference.aggregate(
+        np.sum(count, axis=-1, keepdims=True),
+        frames=pipeline._frames,
+        hamming=False,
+        missing=0.0,
+        skip_average=False,
+    )
+    count.data = np.rint(count.data).astype(np.uint8)
+    embeddings = pipeline.get_embeddings(
+        {"waveform": selected_audio, "sample_rate": fs},
+        selected_seg,
+        exclude_overlap=pipeline.embedding_exclude_overlap,
+    )
+    #  shape: (num_chunks, local_num_speakers, dimension)
     hard_clusters, _ = pipeline.clustering(
         embeddings=embeddings,
-        segmentations=all_segmentation,
+        segmentations=selected_seg,
         num_clusters=None,
         min_clusters=0,
-        max_clusters=4,
-        file={"waveform": all_audio.reshape(-1).unsqueeze(0), "sample_rate": fs},  # <== for oracle clustering
+        max_clusters=4,  # max-speakers are ok
+        file={
+            "waveform": selected_audio,
+            "sample_rate": fs,
+        },  # <== for oracle clustering
         frames=pipeline._frames,  # <== for oracle clustering
     )
-    #   hard_clusters: (num_chunks, num_speakers)
-
     # reconstruct discrete diarization from raw hard clusters
-
     # keep track of inactive speakers
-    inactive_speakers = np.sum(all_segmentation.data, axis=1) == 0
-    #   shape: (num_chunks, num_speakers)
-
+    inactive_speakers = np.sum(selected_seg.data, axis=1) == 0
+    #  shape: (num_chunks, num_speakers)
     hard_clusters[inactive_speakers] = -2
-    import pdb
-    pdb.set_trace()
-
-    discrete_diarization = multi_channel_reconstruct(
-        pipeline,
-        all_segmentation,
-        all_hard_clusters,
-        all_count,
+    # reshape now to multi-channel
+    discrete_diarization = pipeline.reconstruct(
+        selected_seg,
+        hard_clusters,
+        count,
     )
-
-    # convert to continuous diarization
+    # convert to annotation
     result = pipeline.to_annotation(
         discrete_diarization,
         min_duration_on=0.0,
@@ -271,6 +260,7 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
         for seg in result.label_timeline(spk):
             new_annotation[Segment(seg.start + offset, seg.end + offset)] = spk
 
+    new_annotation = merge_closer(new_annotation, delta=1.0, max_len=60)
     return new_annotation
 
 
@@ -384,11 +374,10 @@ if __name__ == "__main__":
         use_auth_token=args.token,
     )
 
-
     pipeline.embedding_batch_size = 128
     pipeline.segmentation_batch_size = 128
-    pipeline.segmentation.threshold = 0.35  # more sensitive.
-    pipeline.segmentation.min_duration_off = 0.25  # as in collar
+    #pipeline.segmentation.threshold = 0.3
+    pipeline.segmentation.min_duration_off = 0.0
 
     Path(args.out_dir).mkdir(exist_ok=True, parents=True)
     audio_f = glob.glob(os.path.join(args.in_dir, "*.wav")) + glob.glob(
