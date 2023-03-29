@@ -31,7 +31,7 @@ gen_eval=0 # please not generate eval before release of mixer 6 eval
 
 # DIARIZATION config
 diarization_backend=pyannote
-pyannote_access_token=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 #FIXME #TODO
+pyannote_access_token=
 diarization_dir=exp/diarization
 diar_inf_dset="dev"
 
@@ -76,23 +76,14 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
         python3 -m pip install pyannote-audio
     )
   fi
-  # check if dover-lap is installed too
-  if ! command -v dover-lap &>/dev/null; then
-  log "Installing DOVER-Lap."
-  (
-        python3 -m pip install dover-lap
-        # need intervaltree with merge_neightbours
-        python3 -m pip --upgrade --force-reinstall git+https://github.com/chaimleib/intervaltree
-  )
-  fi
 
   for dset in chime6 dipco mixer6; do
     for split in $diar_inf_dset; do
         if [ $dset == mixer6 ]; then
-          mic_regex="(CH04|CH05)"  #"(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
+          mic_regex="(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
           sess_regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)"
         else
-          mic_regex="(U02|U06)"  #"(U[0-9]+)" # exclude close-talk
+          mic_regex="(U[0-9]+)" # exclude close-talk
           sess_regex="(S[0-9]+)"
         fi
         # diarizing with pyannote + ensembling across mics with dover-lap

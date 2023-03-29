@@ -19,10 +19,8 @@ from pyannote.audio.utils.signal import binarize
 from pyannote.core import SlidingWindowFeature
 from pyannote.metrics.segmentation import Annotation, Segment
 from scipy.signal import medfilt2d
-from copy import deepcopy
 
 IS_CUDA = torch.cuda.is_available()
-USE_DOVERLAP = False
 
 
 def split_maxlen(utt_group, min_len=10):
@@ -43,7 +41,7 @@ def merge_closer(annotation, delta=1.0, max_len=60, min_len=10):
     speakers = annotation.labels()
     new_annotation = Annotation()
     for spk in speakers:
-        c_segments = sorted(annotation.label_timeline(spk), key= lambda x: x.start)
+        c_segments = sorted(annotation.label_timeline(spk), key=lambda x: x.start)
         stack = []
         for seg in c_segments:
             if not stack or abs(stack[-1].end - seg.start) < delta:
@@ -59,32 +57,6 @@ def merge_closer(annotation, delta=1.0, max_len=60, min_len=10):
                     new_annotation[Segment(stack[0].start, stack[-1].end)] = spk
                     stack = [seg]
     return new_annotation
-
-def merge_closer_doverlap(turns, distance=0.5):
-    """Merge overlapping turns by same speaker within each file."""
-    # Merge separately within each file and for each speaker.
-    new_turns = []
-    for (file_id, speaker_id), speaker_turns in dover_lap.groupby(
-        turns, lambda x: (x.file_id, x.speaker_id)
-    ):
-        speaker_turns = list(speaker_turns)
-        speaker_it = IntervalTree.from_tuples(
-            [(turn.onset, turn.offset) for turn in speaker_turns]
-        )
-        n_turns_pre = len(speaker_it)
-        speaker_it.merge_neighbors(distance=distance)
-        n_turns_post = len(speaker_it)
-        if n_turns_post < n_turns_pre:
-            speaker_turns = []
-            for intrvl in speaker_it:
-                speaker_turns.append(
-                    dover_lap.Turn(
-                        intrvl.begin, intrvl.end, speaker_id=speaker_id, file_id=file_id
-                    )
-                )
-            speaker_turns = sorted(speaker_turns, key=lambda x: (x.onset, x.offset))
-        new_turns.extend(speaker_turns)
-    return new_turns
 
 
 def rttm2json(rttm_file):
@@ -118,35 +90,13 @@ def rttm2json(rttm_file):
         json.dump(to_json, f, indent=4)
 
 
-def ensemble_doverlap(session_id, rttms, out_dir):
-    turns_list = []
-    for rttm_f in rttms:
-        c_turns_list = dover_lap.load_rttm(rttm_f)[0]
-        for x in c_turns_list:
-            x.file_id = session_id
-        c_turns_list = dover_lap.merge_turns(c_turns_list)
-        turns_list.append(c_turns_list)
-
-    # Run DOVER-Lap algorithm
-    file_to_out_turns = dict()
-    random.shuffle(turns_list)  # We shuffle so that the hypothesis order is randomized
-    file_to_out_turns[session_id] = dover_lap.DOVERLap.combine_turns_list(
-        turns_list, session_id, label_mapping="hungarian"
-    )
-
-    # Write output RTTM file
-    output = sum(list(file_to_out_turns.values()), [])
-    output = merge_closer_doverlap(output, distance=0.5)
-    # 0.5 full extension of collar between two adjacent segments
-    dover_lap.write_rttm(
-        os.path.join(out_dir, session_id + ".rttm"),
-        output,
-        channel=1,
-    )
-    rttm2json(os.path.join(out_dir, session_id + ".rttm"))
-
-
-def diarize_session(pipeline, wav_files, uem_boundaries=None):
+def diarize_session(
+    pipeline,
+    wav_files,
+    uem_boundaries=None,
+    merge_closer_delta=1.5,
+    max_length_merged=60,
+):
     # take the min len across all wavs
     minlen = min([sf.SoundFile(w).frames for w in wav_files])
     fs = sf.SoundFile(wav_files[0]).samplerate
@@ -158,7 +108,8 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
     # now for each audio file run inference
     all_segmentation = []
     all_audio = []
-    for w_f in tqdm.tqdm(wav_files):
+    print("Running Segmentation on each of the {} channels".format(len(wav_files)))
+    for w_f in wav_files:
         c_audio, c_fs = sf.read(w_f, dtype="float32")
         assert fs == c_fs
         c_audio = c_audio[: min(minlen, uem_boundaries[1])]
@@ -173,9 +124,11 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
         if IS_CUDA:
             c_audio = c_audio.cuda()
         c_seg = pipeline.get_segmentations({"waveform": c_audio, "sample_rate": fs})
-        c_seg = binarize(c_seg, onset=pipeline.segmentation.threshold,
-                initial_state=False,
-            )
+        c_seg = binarize(
+            c_seg,
+            onset=pipeline.segmentation.threshold,
+            initial_state=False,
+        )
 
         all_segmentation.append(c_seg)  # move to cpu for less mem consumption
         all_audio.append(c_audio)
@@ -192,11 +145,16 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
     )
     selected_audio = torch.zeros_like(c_audio)
     selected_seg = []
+    print("Running Channel Selection by using the segmentation output")
     for indx, (seg_b, segmentation) in enumerate(all_segmentation):
         c_seg = all_audio[:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)]
         # median filter here seems to improve performance on CHiME-6
-        segmentation = medfilt2d(segmentation.reshape((frames, local_spk*num_channels)), (5, 1)).reshape((frames, local_spk, num_channels))
-        selection = np.argmax(segmentation.sum((0, 1))) # not the best selection criteria
+        segmentation = medfilt2d(
+            segmentation.reshape((frames, local_spk * num_channels)), (7, 1)
+        ).reshape((frames, local_spk, num_channels))
+        selection = np.argmax(
+            segmentation.sum((0, 1))
+        )  # not the best selection criteria
         # however this keeps it simple and fast.
         selected_audio[
             :, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)
@@ -217,12 +175,14 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
         skip_average=False,
     )
     count.data = np.rint(count.data).astype(np.uint8)
+    print("Extracting Embeddings.")
     embeddings = pipeline.get_embeddings(
         {"waveform": selected_audio, "sample_rate": fs},
         selected_seg,
         exclude_overlap=pipeline.embedding_exclude_overlap,
     )
     #  shape: (num_chunks, local_num_speakers, dimension)
+    print("Clustering.")
     hard_clusters, _ = pipeline.clustering(
         embeddings=embeddings,
         segmentations=selected_seg,
@@ -260,41 +220,9 @@ def diarize_session(pipeline, wav_files, uem_boundaries=None):
         for seg in result.label_timeline(spk):
             new_annotation[Segment(seg.start + offset, seg.end + offset)] = spk
 
-    new_annotation = merge_closer(new_annotation, delta=1.0, max_len=60)
-    return new_annotation
-
-
-def diarize_single_audio(pipeline, wav_file, uem_boundaries=None):
-    audio, fs = sf.read(wav_file, dtype="float32")
-    if uem_boundaries is not None:
-        uem_boundaries = [round(x * fs) for x in uem_boundaries]
-    else:
-        uem_boundaries = [0, len(audio)]
-    assert audio.ndim == 1, "Multi-channel audio not supported right now."
-    # cut out portions outside uem
-    audio = audio[uem_boundaries[0] : uem_boundaries[1]]
-    audio = torch.from_numpy(audio[None, ...])
-    if IS_CUDA:
-        audio = audio.cuda()
-
-    # max speakers < 4. we can use this
-    # per rules here https://www.chimechallenge.org/current/task1/index
-    if (audio**2).mean() < 1e-8:
-        print(
-            "Not running inference on {}, because the signal amplitude is "
-            "too low, is it all zeros ?".format(wav_file)
-        )
-        return False
-
-    result = pipeline({"waveform": audio, "sample_rate": fs}, max_speakers=4)
-    # result is an annotation, put back uem offset
-    speakers = result.labels()
-    offset = uem_boundaries[0] / fs
-    new_annotation = Annotation()  # new annotation
-    for spk in speakers:
-        for seg in result.label_timeline(spk):
-            new_annotation[Segment(seg.start + offset, seg.end + offset)] = spk
-
+    new_annotation = merge_closer(
+        new_annotation, delta=merge_closer_delta, max_len=max_length_merged, min_len=10
+    )
     return new_annotation
 
 
@@ -367,6 +295,39 @@ if __name__ == "__main__":
         metavar="STR",
         dest="sess_regex",
     )
+    parser.add_argument(
+        "--max_speakers",
+        type=int,
+        default=4,
+        help="Max number of speakers in each session.",
+        metavar="INT",
+        dest="max_speakers",
+    )
+    parser.add_argument(
+        "--max_batch_size",
+        type=int,
+        default=32,
+        help="Max batch size used for segmentation and embeddings extraction.",
+        metavar="INT",
+        dest="max_batch_size",
+    )
+    parser.add_argument(
+        "--max_length_merged",
+        type=int,
+        default=60,
+        help="Max length of segments that will be merged together.",
+        metavar="INT",
+        dest="max_length_merged",
+    )
+    parser.add_argument(
+        "--merge_closer",
+        type=int,
+        default=1.5,
+        help="Merge segments from same speakers that "
+        "are less than this value apart.",
+        metavar="INT",
+        dest="merge_closer",
+    )
 
     args = parser.parse_args()
     pipeline = Pipeline.from_pretrained(
@@ -374,10 +335,10 @@ if __name__ == "__main__":
         use_auth_token=args.token,
     )
 
-    pipeline.embedding_batch_size = 128
-    pipeline.segmentation_batch_size = 128
-    #pipeline.segmentation.threshold = 0.3
-    pipeline.segmentation.min_duration_off = 0.0
+    pipeline.embedding_batch_size = args.max_batch_size
+    pipeline.segmentation_batch_size = args.max_batch_size
+    pipeline.segmentation.min_duration_off = 0.0  # we handle it here in a different
+    # manner
 
     Path(args.out_dir).mkdir(exist_ok=True, parents=True)
     audio_f = glob.glob(os.path.join(args.in_dir, "*.wav")) + glob.glob(
@@ -388,30 +349,6 @@ if __name__ == "__main__":
     if args.uem_file:
         uem_map = read_uem(args.uem_file)
 
-    if USE_DOVERLAP:
-        sess2rttm = {}
-        for audio_file in tqdm.tqdm(audio_f):
-            filename = Path(audio_file).stem
-            sess_name = re.search(args.sess_regex, filename).group()
-            if args.uem_file:
-                c_uem = uem_map[sess_name]
-            else:
-                c_uem = None
-            c_result = diarize_single_audio(pipeline, audio_file, c_uem)
-            if isinstance(c_result, bool) and c_result == False:
-                continue
-            c_rttm_out = os.path.join(args.out_dir, Path(audio_file).stem + ".rttm")
-            with open(c_rttm_out, "w") as f:
-                f.write(c_result.to_rttm())
-
-            if sess_name not in sess2rttm.keys():
-                sess2rttm[sess_name] = []
-            sess2rttm[sess_name].append(c_rttm_out)
-
-        for sess in sess2rttm.keys():
-            c_sess_rttms = sess2rttm[sess]
-            ensemble_doverlap(sess, c_sess_rttms, args.out_dir)
-    else:
         # joint diarization of all mics
         sess2audio = {}
         for audio_file in audio_f:
@@ -428,7 +365,13 @@ if __name__ == "__main__":
                 c_uem = uem_map[sess]
             else:
                 c_uem = None
-            c_result = diarize_session(pipeline, sess2audio[sess], c_uem)
+            c_result = diarize_session(
+                pipeline,
+                sess2audio[sess],
+                c_uem,
+                args.merge_closer,
+                args.max_length_merged,
+            )
             c_rttm_out = os.path.join(args.out_dir, sess + ".rttm")
             with open(c_rttm_out, "w") as f:
                 f.write(c_result.to_rttm())
