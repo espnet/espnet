@@ -1,5 +1,5 @@
-import os
 import argparse
+import os
 import re
 
 configs = [
@@ -97,5 +97,7 @@ if __name__ == "__main__":
         avg_error_rate = mean([mean(result_dict[v]) for v in result_dict.keys()])
         log_file.write("Average Error Rate ({}):{}\n".format(dur, avg_error_rate))
         print("Average Error Rate ({}):{}\n".format(dur, avg_error_rate))
-        log_file.write("Details:\n{},{}\n{}\n".format("Dur", ",".join(configs), log_record))
+        log_file.write(
+            "Details:\n{},{}\n{}\n".format("Dur", ",".join(configs), log_record)
+        )
         print("Details are saved in {}/{}".format(args.expdir, args.log))
