@@ -149,7 +149,7 @@ speechbrain.done: espnet.done conda_packages.done
 	. ./activate_python.sh && ./installers/install_speechbrain.sh
 	touch speechbrain.done
 
-mfa.done: espnet.done conda_packages.done
+mfa.done: espnet.done pyopenjtalk.done phonemizer.done conda_packages.done
 ifneq ($(strip $(USE_CONDA)),)
 	. ./activate_python.sh && ./installers/install_mfa.sh "true"
 else
