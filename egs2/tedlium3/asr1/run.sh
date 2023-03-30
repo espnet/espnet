@@ -37,4 +37,3 @@ lm_config=conf/train_lm.yaml
     --lm_config "${lm_config}" \
     --local_data_opts "--data_type ${data_type}" \
     --bpe_nlsyms "[unk]"
-

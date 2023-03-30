@@ -90,4 +90,3 @@ mkdir -p data/local
 
 # remove non-english characters and text that are too long
 gunzip -c $TEDLIUM3/TEDLIUM_release-3/LM/*.en.gz | sed 's/ <\/s>//g' | local/join_suffix.py | awk '{printf "%d %s\n", NR, $0}' | egrep -v '[^a-zA-Z0-9[:space:][:punct:]]' | awk '{print NF, $0}' | sort -n | awk -v max_wc="100" '$1 <= max_wc {print $0}' | cut -f2- -d' ' > data/local/text
-
