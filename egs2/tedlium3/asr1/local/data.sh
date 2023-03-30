@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Copyright 2021 UCAS (Author: Keqi Deng)
+# Copyright 2023 (Author: Dongwei Jiang)
 # Apache 2.0
 
 set -e

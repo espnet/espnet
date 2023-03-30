@@ -4,6 +4,7 @@
 #            2014  Brno University of Technology (Author: Karel Vesely)
 #            2016  Johns Hopkins University (Author: Daniel Povey)
 #            2021  UCAS (author: Keqi Deng)
+#            2023  (author: Dongwei Jiang)
 # Apache 2.0
 
 # To be run from one directory above this script.
