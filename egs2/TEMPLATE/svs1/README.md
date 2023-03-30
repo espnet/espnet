@@ -8,7 +8,7 @@ This is a template of SVS recipe for ESPnet2.
   * [Table of Contents](#table-of-contents)
   * [Recipe flow](#recipe-flow)
     * [1\. Database-dependent data preparation](#1-database\-dependent-data-preparation)
-    * [2\. Wav dump / Embedding preparation)
+    * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
     * [3\. Filtering](#3-filtering)
     * [4\. Token list generation](#4-token-list-generation)
     * [5\. Statistics collection](#5-statistics-collection)
