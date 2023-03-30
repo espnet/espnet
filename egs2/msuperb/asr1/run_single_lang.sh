@@ -53,6 +53,7 @@ for duration in 10min 1h; do
             --bpe_train_text "data/${train_set}/text" \
             --asr_tag "${asr_tag}" \
             --asr_stats_dir exp/asr_stats_${lang}_${duration} \
-            --lm_train_text "data/${train_set}/text" "$@"
+            --lm_train_text "data/${train_set}/text" "$@" \
+            --local_score_opts "false false"
     done
 done

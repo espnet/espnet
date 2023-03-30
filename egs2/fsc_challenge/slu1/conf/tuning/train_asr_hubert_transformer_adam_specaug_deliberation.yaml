@@ -58,10 +58,6 @@ scheduler_conf:
 max_epoch: 80
 keep_nbest_models: 5
 
-frontend_conf:
-  n_fft: 512
-  hop_length: 256
-
 frontend: s3prl
 frontend_conf:
     frontend_conf:

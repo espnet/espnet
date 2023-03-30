@@ -12,7 +12,7 @@ $ pip install -r requirements.txt
 The `Python` script `evaluate.py` allows to run the evaluation of a prediction file:
 
 ```shell script
-$ python evaluate.py -h                                                                             
+$ python evaluate.py -h
 usage: evaluate.py [-h] -g GOLD_DATA -p PREDICTION_FILE
                    [-d DISTANCE [DISTANCE ...]] [--load-gold] [--full]
                    [--errors] [--average AVERAGE]
@@ -28,7 +28,7 @@ optional arguments:
                         Predictions file
   --load-gold           When evaluating against gold transcriptions
                         (gold_*_predictions.jsonl), this flag must be true.
-  --average AVERAGE     The averaging modality {micro, macro}.  
+  --average AVERAGE     The averaging modality {micro, macro}.
   --full                Print the full results, including per-label metrics.
   --errors              Print TPs, FPs, and FNs in each row.
   --table-layout TABLE_LAYOUT
@@ -70,7 +70,7 @@ optional arguments:
 ```
  * `PREDICTION_FILE` is the `jsonl` file containing predictions, where each line is provided in the following format:
 ```json
-{"file": "audio--1504192882-headset.wav", 
+{"file": "audio--1504192882-headset.wav",
 "scenario": "alarm",
 "action": "query",
 "entities": [
@@ -82,7 +82,7 @@ optional arguments:
  * the flag `full` allows to print the scores for each label
  * the flag `errors` prints TPs, FPs, and FNs for each row of the output label
  * `TABLE_LAYOUT` defined the output table format
- 
+
 To evaluate against predictions, run:
 ```shell script
 python evaluate.py -g <PATH_TO_GOLD> -p <PATH_TO_PREDICTIONS>

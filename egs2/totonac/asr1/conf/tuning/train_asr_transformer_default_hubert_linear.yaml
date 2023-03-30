@@ -19,9 +19,9 @@ decoder_conf:
     linear_units: 2048
     dropout_rate: 0.1
 
-#frontend related 
+#frontend related
 frontend: fused
-frontend_conf: 
+frontend_conf:
   frontends:
     - frontend_type: s3prl
       frontend_conf:
@@ -35,8 +35,8 @@ frontend_conf:
       hop_length: 160
 
   align_method: linear_projection
-  proj_dim: 100     
-    
+  proj_dim: 100
+
 
 preencoder: linear
 preencoder_conf:

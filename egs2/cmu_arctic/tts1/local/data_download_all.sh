@@ -18,7 +18,7 @@ cwd=$(pwd)
 for spk in slt clb bdl rms jmk awb ksp
 do
     if [ ! -e "${db_root}/${spk}.done" ]; then
-        
+
         mkdir -p "${db_root}"
         cd "${db_root}" || exit 1;
         wget http://festvox.org/cmu_arctic/cmu_arctic/packed/cmu_us_${spk}_arctic-0.95-release.tar.bz2

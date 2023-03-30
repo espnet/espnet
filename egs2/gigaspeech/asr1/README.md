@@ -22,7 +22,7 @@ In the data preparation stage, we will clone the [official repo](https://github.
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/dev|5715|127790|92.2|5.7|2.0|2.8|10.6|69.9|
-|decode_asr_asr_model_valid.acc.ave/test|19930|390744|91.5|6.4|2.1|2.0|10.5|63.3| 
+|decode_asr_asr_model_valid.acc.ave/test|19930|390744|91.5|6.4|2.1|2.0|10.5|63.3|
 
 
 # Conformer

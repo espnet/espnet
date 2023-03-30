@@ -82,7 +82,7 @@ extra_annotations=/espnet/datasets/CHiME4/CHiME3/data/annotations
     --inference_enh_asr_model "${inference_enh_asr_model}"
 
 
-# Copy tokens used in ASR model and language model 
+# Copy tokens used in ASR model and language model
 cp ../../asr1/data/en_token_list/char/tokens.txt ../../enh_asr1/data/en_token_list/char/tokens.txt
 
 

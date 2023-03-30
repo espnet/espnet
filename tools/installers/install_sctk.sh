@@ -43,4 +43,3 @@ fi
     touch .configured
     make all && make install && make doc
 )
-
