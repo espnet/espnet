@@ -8,7 +8,7 @@ This is a template of SVS recipe for ESPnet2.
   * [Table of Contents](#table-of-contents)
   * [Recipe flow](#recipe-flow)
     * [1\. Database-dependent data preparation](#1-database\-dependent-data-preparation)
-    * [2\. Standard audio and midi formatting](#2-standard-audio-and-midi-formatting)
+    * [2\. Wav dump / Embedding preparation)
     * [3\. Filtering](#3-filtering)
     * [4\. Token list generation](#4-token-list-generation)
     * [5\. Statistics collection](#5-statistics-collection)
@@ -49,8 +49,6 @@ If you specify `--feats_type raw` option, this is a wav dumping stage which refo
 
 Else, if you specify `--feats_type fbank` option or `--feats_type stft` option, this is a feature extracting stage (to be updated).
 
-MIDI is also normalized and segmented at this stage.
-
 Additionally, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
 Note that this processing assume that `utt2spk` or `utt2lang` are correctly created in stage 1, please be careful.
 
@@ -82,7 +80,7 @@ Data preparation will end in stage 4. You can skip data preparation (stage 1 ~ s
 Statistics calculation stage.
 It collects the shape information of the input and output and calculates statistics for feature normalization (mean and variance over training and validation sets).
 
-In this stage, you can set `--write_collected_feats true` to store statistics of pitch.
+In this stage, you can set `--write_collected_feats true` to store statistics of pitch and feats.
 
 ### 6. SVS training
 
@@ -362,18 +360,10 @@ Here we show the example command to calculate objective metrics:
 ```sh
 cd egs2/<recipe_name>/svs1
 . ./path.sh
-# Evaluate MCD
-./pyscripts/utils/evaluate_mcd.py \
+# Evaluate MCD & log-F0 RMSE & Semitone ACC & VUV Error Rate
+./pyscripts/utils/evaluate_*.py \
     exp/<model_dir_name>/<decode_dir_name>/eval/wav/gen_wavdir_or_wavscp.scp \
     dump/raw/eval/gt_wavdir_or_wavscp.scp
-```
-```sh
-cd egs/<recipe_name>/svs1
-. ./path.sh
-# Evaluate log-F0 RMSE & Semitone ACC & VUV Error Rate
-./pyscripts/utils/evaluate_f0.py \
-    exp/<model_dir_name>/<decode_dir_name>/eval/wav/gen_wavdir_or_wavscp.scp \
-    dump/raw/eval/gen_wavdir_or_wavscp.scp
 ```
 
 While these objective metrics can estimate the quality of synthesized singing, it is still difficult to fully determine human perceptual quality from these values, especially with high-fidelity generated singing.
