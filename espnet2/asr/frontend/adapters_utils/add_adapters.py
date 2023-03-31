@@ -15,9 +15,8 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
     * adapt_layers - list of indices of layers to insert adapters. If `None`, adapters are inserted to every layer. (default=`None`).
     """
     if adapt_layers == []:
-        logging.info(">> adapt_layers is an empty list. No adapters will be inserted.")
+        logging.info("adapt_layers is an empty list. No adapters will be inserted.")
         return
-    orig_param_num = count_params(wav2vec2_model)
 
     # freeze all layers
     for param in wav2vec2_model.parameters():
@@ -29,6 +28,7 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
         if adapt_layers is not None and layer_idx not in adapt_layers:
             continue
         adapted_layers.append(layer_idx)
+        
         # extract arguments from original layer
         embedding_dim = layer.embedding_dim
         ffn_embedding_dim = layer.fc1.out_features
@@ -73,14 +73,3 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
 
     return wav2vec2_model
 
-
-def count_params(model, only_trainable=False):
-    n_params = 0
-    for param in model.parameters():
-        n = np.prod(param.shape)
-        if only_trainable:
-            if param.requires_grad:
-                n_params += n
-        else:
-            n_params += n
-    return n_params

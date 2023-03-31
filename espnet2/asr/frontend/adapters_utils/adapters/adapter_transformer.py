@@ -43,7 +43,7 @@ class AdapterTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
         self_attn_padding_mask: torch.Tensor = None,
         need_weights: bool = False,
         att_args=None,
-    ):
+    ) -> torch.Tensor:
         residual = x
 
         if self.layer_norm_first:
