@@ -28,7 +28,7 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
         if adapt_layers is not None and layer_idx not in adapt_layers:
             continue
         adapted_layers.append(layer_idx)
-        
+
         # extract arguments from original layer
         embedding_dim = layer.embedding_dim
         ffn_embedding_dim = layer.fc1.out_features
@@ -72,4 +72,3 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
     )
 
     return wav2vec2_model
-
