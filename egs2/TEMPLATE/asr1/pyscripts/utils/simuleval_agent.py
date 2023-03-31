@@ -85,6 +85,11 @@ class DummyAgent(SpeechToTextAgent):
                 **speech2text_kwargs,
             )
         else:
+            if kwargs['rnnt']:
+                transducer_conf = {"search_type":"tsd2", "score_norm":True, "max_sym_exp":8}
+            else:
+                transducer_conf = None
+
             speech2text_kwargs = dict(
                 st_train_config=kwargs['st_train_config'],
                 st_model_file=kwargs['st_model_file'],
@@ -107,11 +112,15 @@ class DummyAgent(SpeechToTextAgent):
                 time_sync=kwargs['time_sync'],
                 incremental_decode=kwargs['incremental_decode'],
                 blank_penalty=kwargs['blank_penalty'],
+                hold_n=kwargs['hold_n'],
+                transducer_conf=transducer_conf,
             )
             self.speech2text = Speech2TextStreaming(**speech2text_kwargs)
         
         self.sim_chunk_length = kwargs['sim_chunk_length']
         self.backend = kwargs['backend']
+        self.token_delay = kwargs['token_delay']
+        self.lang = kwargs['lang']
         self.clean()
 
     @staticmethod
@@ -359,6 +368,26 @@ class DummyAgent(SpeechToTextAgent):
             type=float,
             default=1.0,
         )
+        group.add_argument(
+            "--hold_n",
+            type=int,
+            default=0,
+        )
+        group.add_argument(
+            "--token_delay",
+            type=str2bool,
+            default=True,
+        )
+        group.add_argument(
+            "--rnnt",
+            type=str2bool,
+            default=False,
+        )
+        group.add_argument(
+            "--lang",
+            type=str,
+            default="de",
+        )
 
         return parser
 
@@ -404,9 +433,9 @@ class DummyAgent(SpeechToTextAgent):
 
                 if prediction != self.prev_prediction or self.states.source_finished:
                     self.prev_prediction = prediction
-                    prediction = MosesDetokenizer('de')(prediction.split(" "))
+                    prediction = MosesDetokenizer(self.lang)(prediction.split(" "))
                     
-                    if not self.states.source_finished:
+                    if self.token_delay and not self.states.source_finished:
                         prediction = prediction.rsplit(" ",1)
                         if len(prediction) == 1:
                             prediction = ""
@@ -422,7 +451,7 @@ class DummyAgent(SpeechToTextAgent):
 
                 if unwritten_length > 0:
                     ret = prediction[-unwritten_length:]
-                    print(self.processed_index, ret)
+                    # print(self.processed_index, ret)
                     return WriteAction(ret, finished=self.states.source_finished)
                 elif self.states.source_finished:
                     return WriteAction("", finished=self.states.source_finished)
