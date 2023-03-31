@@ -80,6 +80,9 @@ class MemLSTM(nn.Module):
 
         if self.mem_type == "id":
             ret_val = hc
+            h, c = hc
+            d, BS, H = h.shape
+            B = BS // S
         else:
             h, c = hc
             d, BS, H = h.shape

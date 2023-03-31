@@ -15,7 +15,6 @@ class AbsSeparator(torch.nn.Module, ABC):
     ) -> Tuple[Tuple[torch.Tensor], torch.Tensor, OrderedDict]:
         raise NotImplementedError
 
-    @abstractmethod
     def forward_streaming(
         self,
         input_frame: torch.Tensor,
