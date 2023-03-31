@@ -493,7 +493,6 @@ class Trainer:
         use_wandb = options.use_wandb
         create_graph_in_tensorboard = options.create_graph_in_tensorboard
         distributed = distributed_option.distributed
-    
 
         if log_interval is None:
             try:

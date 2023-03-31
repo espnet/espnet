@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-
 from fairseq import utils
 from fairseq.modules import LayerNorm
 
@@ -24,7 +23,7 @@ class Adapter(nn.Module):
         self.down_projection = nn.Linear(orig_dim, down_dim)
         self.up_projection = nn.Linear(down_dim, orig_dim)
 
-        #weight initialization. Empirically, xavier initialization works best
+        # weight initialization. Empirically, xavier initialization works best
         nn.init.xavier_uniform_(self.down_projection.weight)
         nn.init.zeros_(self.down_projection.bias)
         nn.init.xavier_uniform_(self.up_projection.weight)
