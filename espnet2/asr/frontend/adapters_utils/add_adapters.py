@@ -1,9 +1,10 @@
-import numpy as np
 import logging
+
+import numpy as np
+
 from espnet2.asr.frontend.adapter_utils.adapters.adapter_transformer import (
     AdapterTransformerSentenceEncoderLayer,
 )
-
 from espnet2.torch_utils.model_summary import model_summary
 
 
@@ -22,9 +23,8 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
     for param in wav2vec2_model.parameters():
         param.requires_grad = False
 
-
     adapted_layers = []
-    logging.info("adapted layers are:",adapt_layers)
+    logging.info("adapted layers are:", adapt_layers)
     for layer_idx, layer in enumerate(wav2vec2_model.model.encoder.layers):
         if adapt_layers is not None and layer_idx not in adapt_layers:
             continue
@@ -67,8 +67,9 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
         wav2vec2_model.model.encoder.layers[layer_idx] = adapter_added_layer
 
     logging.info("updated model with adapters is as follows:")
-    logging.info(model_summary(wav2vec2_model, show_weights=False, show_parameters=False))
-
+    logging.info(
+        model_summary(wav2vec2_model, show_weights=False, show_parameters=False)
+    )
 
     return wav2vec2_model
 
