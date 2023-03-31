@@ -1,6 +1,6 @@
 ## Use adapters for ASR in ESPnet2
 
-In that tutorial, we will introduce several options to use adapters for Automatic Speech Recognition (ASR) in ESPnet. Available options are:
+In this tutorial, we will introduce several options to use adapters for Automatic Speech Recognition (ASR) in ESPnet. Available options are:
 - Insert adapters to specific layers with a pre-trained s3prl frontend for adaptation of downstream tasks*.
 - Enable automatic adapter insertion via `FindAdaptNet`.
 
@@ -8,7 +8,11 @@ Note this is done for ASR training, so at __stage 11__ of ESPnet2 recipes.
 
 ### 0. Why use adapters?
 
-Adapters are small bottleneck layers that can be inserted into any layer of a neural network. They are trained to adapt the network to a specific downstream task. For more details, please refer to the [adapter paper](https://arxiv.org/abs/1902.00751). Used with large acoustic frontend, they can be used to adapt the frontend to a specific downstream task in a __parameter-efficient manner__.
+Adapters are small bottleneck layers that can be inserted into any layer of a neural network. They are trained to adapt the network to a specific downstream task. For more details, please refer to the [adapter paper](https://arxiv.org/abs/1902.00751). Used with large acoustic frontend, they can be used to adapt the frontend to a specific downstream task in a __parameter-efficient manner__. In general, the benefits of using adapters are:
+- Learn robust recognition models with pre-trained weights and limited computational resources.
+- Adapt to various downstream tasks efficiently
+- Adapt to low-resource languages easily.
+- ...
 
 ### 1. Use a s3prl frontend with adapters
 
@@ -37,3 +41,4 @@ __Step 2__: run __stage 11__ of your recipe, with `./asr.sh --stop-stage 11 ...`
 >FindAdaptNet would generate a new yaml file with the best adapter insertion whose name would have the original file name as prefix + `_adapt.yaml`. So if your file was originally named `asrconfig.yaml`, the generated config file would be named as `asrconfig_adapt.yaml`.
 
 __Step 3__: Run __stage 11__ again with `./asr.sh --stage 11 ...`, make sure to specify the **generated config file** as the asr config file in this run.
+
