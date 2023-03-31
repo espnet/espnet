@@ -1,8 +1,10 @@
 import numpy as np
-
+import logging
 from espnet2.asr.frontend.adapter_utils.adapters.adapter_transformer import (
     AdapterTransformerSentenceEncoderLayer,
 )
+
+from espnet2.torch_utils.model_summary import model_summary
 
 
 def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
@@ -12,17 +14,17 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
     * adapt_layers - list of indices of layers to insert adapters. If `None`, adapters are inserted to every layer. (default=`None`).
     """
     if adapt_layers == []:
-        print(">> adapt_layers is an empty list. No adapters will be inserted.")
+        logging.info(">> adapt_layers is an empty list. No adapters will be inserted.")
         return
     orig_param_num = count_params(wav2vec2_model)
 
     # freeze all layers
     for param in wav2vec2_model.parameters():
         param.requires_grad = False
-    # hard coded the adapters layers
+
 
     adapted_layers = []
-    print(adapt_layers)
+    logging.info("adapted layers are:",adapt_layers)
     for layer_idx, layer in enumerate(wav2vec2_model.model.encoder.layers):
         if adapt_layers is not None and layer_idx not in adapt_layers:
             continue
@@ -64,18 +66,9 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
         # overwrite original layer with adapter-added layer
         wav2vec2_model.model.encoder.layers[layer_idx] = adapter_added_layer
 
-    # print resulting model stats
-    new_param_num = count_params(wav2vec2_model)
-    new_trainable_param_num = count_params(wav2vec2_model, only_trainable=True)
+    logging.info("updated model with adapters is as follows:")
+    logging.info(model_summary(wav2vec2_model, show_weights=False, show_parameters=False))
 
-    print(
-        f'>> inserted adapters to the following layers: {", ".join(map(str, adapted_layers))}'
-    )
-    print(f"  * original model weights: {orig_param_num:,}")
-    print(f"  * new model weights - all: {new_param_num:,}")
-    print(
-        f"  * new model weights - trainable: {new_trainable_param_num:,} ({100. * new_trainable_param_num / orig_param_num : .2f}% of original model)"
-    )
 
     return wav2vec2_model
 
