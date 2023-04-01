@@ -200,7 +200,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
-<span class="kn">from</span> <span class="nn">espnet2.fileio.read_text</span> <span class="kn">import</span> <span class="n">read_2column_text</span>
+<span class="kn">from</span> <span class="nn">espnet2.fileio.read_text</span> <span class="kn">import</span> <span class="n">read_2columns_text</span>
 
 
 <div class="viewcode-block" id="VADScpReader"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.vad_scp.VADScpReader">[docs]</a><span class="k">class</span> <span class="nc">VADScpReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
@@ -228,7 +228,7 @@
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">read_2column_text</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">read_2columns_text</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
         <span class="n">vads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>

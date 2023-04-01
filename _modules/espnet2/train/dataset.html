@@ -218,7 +218,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.fileio.read_text</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">RandomTextReader</span><span class="p">,</span>
     <span class="n">load_num_sequence_text</span><span class="p">,</span>
-    <span class="n">read_2column_text</span><span class="p">,</span>
+    <span class="n">read_2columns_text</span><span class="p">,</span>
     <span class="n">read_label</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.rttm</span> <span class="kn">import</span> <span class="n">RttmReader</span>
@@ -355,7 +355,7 @@
         <span class="k">return</span> <span class="n">sample_time</span><span class="p">,</span> <span class="n">sample_label</span></div>
 
 
-<div class="viewcode-block" id="sound_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.sound_loader">[docs]</a><span class="k">def</span> <span class="nf">sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="sound_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.sound_loader">[docs]</a><span class="k">def</span> <span class="nf">sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">multi_columns</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="c1"># The file is as follows:</span>
     <span class="c1">#   utterance_id_A /some/where/a.wav</span>
     <span class="c1">#   utterance_id_B /some/where/a.flac</span>
@@ -363,19 +363,25 @@
     <span class="c1"># NOTE(kamo): SoundScpReader doesn&#39;t support pipe-fashion</span>
     <span class="c1"># like Kaldi e.g. &quot;cat a.wav |&quot;.</span>
     <span class="c1"># NOTE(kamo): The audio signal is normalized to [-1,1] range.</span>
-    <span class="n">loader</span> <span class="o">=</span> <span class="n">SoundScpReader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">always_2d</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">loader</span> <span class="o">=</span> <span class="n">SoundScpReader</span><span class="p">(</span>
+        <span class="n">path</span><span class="p">,</span> <span class="n">always_2d</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float_dtype</span><span class="p">,</span> <span class="n">multi_columns</span><span class="o">=</span><span class="n">multi_columns</span>
+    <span class="p">)</span>
 
     <span class="c1"># SoundScpReader.__getitem__() returns Tuple[int, ndarray],</span>
     <span class="c1"># but ndarray is desired, so Adapter class is inserted here</span>
-    <span class="k">return</span> <span class="n">AdapterForSoundScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">float_dtype</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">AdapterForSoundScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="score_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.score_loader">[docs]</a><span class="k">def</span> <span class="nf">score_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="multi_columns_sound_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.multi_columns_sound_loader">[docs]</a><span class="k">def</span> <span class="nf">multi_columns_sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="p">,</span> <span class="n">multi_columns</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="score_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.score_loader">[docs]</a><span class="k">def</span> <span class="nf">score_loader</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
     <span class="n">loader</span> <span class="o">=</span> <span class="n">SingingScoreReader</span><span class="p">(</span><span class="n">fname</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">AdapterForSingingScoreScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="label_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.label_loader">[docs]</a><span class="k">def</span> <span class="nf">label_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="label_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.label_loader">[docs]</a><span class="k">def</span> <span class="nf">label_loader</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
     <span class="n">loader</span> <span class="o">=</span> <span class="n">read_label</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">AdapterForLabelScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span></div>
 
@@ -404,9 +410,19 @@
         <span class="s2">&quot;   utterance_id_b b.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   ...&quot;</span><span class="p">,</span>
     <span class="p">),</span>
+    <span class="s2">&quot;multi_columns_sound&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">multi_columns_sound_loader</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float_dtype&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable multi columns wav.scp. &quot;</span>
+        <span class="s2">&quot;The following text file can be loaded as multi channels audio data&quot;</span>
+        <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   utterance_id_a a.wav a2.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   utterance_id_b b.wav b2.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   ...&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
     <span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">func</span><span class="o">=</span><span class="n">score_loader</span><span class="p">,</span>
-        <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float_dtype&quot;</span><span class="p">],</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">[],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Return text as is. The text contains tempo and note info.</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;For each note, &#39;start&#39; &#39;end&#39; &#39;syllabel&#39; &#39;midi&#39; and &#39;phones&#39; are included. &quot;</span>
         <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
@@ -483,7 +499,7 @@
         <span class="s2">&quot;   ...&quot;</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
-        <span class="n">func</span><span class="o">=</span><span class="n">read_2column_text</span><span class="p">,</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">read_2columns_text</span><span class="p">,</span>
         <span class="n">kwargs</span><span class="o">=</span><span class="p">[],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Return text as is. The text must be converted to ndarray &quot;</span>
         <span class="s2">&quot;by &#39;preprocess&#39;.&quot;</span>

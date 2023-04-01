@@ -197,7 +197,7 @@
 
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
-<span class="kn">from</span> <span class="nn">espnet2.fileio.read_text</span> <span class="kn">import</span> <span class="n">load_num_sequence_text</span><span class="p">,</span> <span class="n">read_2column_text</span>
+<span class="kn">from</span> <span class="nn">espnet2.fileio.read_text</span> <span class="kn">import</span> <span class="n">load_num_sequence_text</span><span class="p">,</span> <span class="n">read_2columns_text</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.abs_sampler</span> <span class="kn">import</span> <span class="n">AbsSampler</span>
 
 
@@ -252,7 +252,7 @@
 
         <span class="n">category2utt</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="n">utt2category_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">utt2category</span> <span class="o">=</span> <span class="n">read_2column_text</span><span class="p">(</span><span class="n">utt2category_file</span><span class="p">)</span>
+            <span class="n">utt2category</span> <span class="o">=</span> <span class="n">read_2columns_text</span><span class="p">(</span><span class="n">utt2category_file</span><span class="p">)</span>
             <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">utt2category</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="n">first_utt2shape</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
                     <span class="s2">&quot;keys are mismatched between &quot;</span>

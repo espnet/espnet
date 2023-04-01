@@ -566,6 +566,13 @@ asr_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
+                               ...
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -1212,6 +1219,13 @@ asr_transducer_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
+                               ...
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -1789,6 +1803,13 @@ diar_train.py
                             
                                utterance_id_a a.wav
                                utterance_id_b b.wav
+                               ...
+                            
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
                                ...
                             
                             "score":
@@ -2418,6 +2439,13 @@ enh_s2t_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
+                               ...
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -3042,6 +3070,13 @@ enh_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
+                               ...
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -3638,6 +3673,13 @@ enh_tse_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
+                               ...
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -4163,6 +4205,13 @@ gan_svs_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
+                               ...
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -4680,6 +4729,13 @@ gan_tts_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
+                               ...
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -5192,6 +5248,13 @@ hubert_train.py
                             
                                utterance_id_a a.wav
                                utterance_id_b b.wav
+                               ...
+                            
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
                                ...
                             
                             "score":
@@ -5818,6 +5881,13 @@ lm_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
+                               ...
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -6377,6 +6447,13 @@ mt_train.py
                             
                                utterance_id_a a.wav
                                utterance_id_b b.wav
+                               ...
+                            
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
                                ...
                             
                             "score":
@@ -7016,6 +7093,13 @@ st_train.py
                                utterance_id_b b.wav
                                ...
                             
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
+                               ...
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -7647,6 +7731,13 @@ tts_train.py
                             
                                utterance_id_a a.wav
                                utterance_id_b b.wav
+                               ...
+                            
+                            "multi_columns_sound":
+                            Enable multi columns wav.scp. The following text file can be loaded as multi channels audio data
+                            
+                               utterance_id_a a.wav a2.wav
+                               utterance_id_b b.wav b2.wav
                                ...
                             
                             "score":

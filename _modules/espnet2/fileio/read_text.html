@@ -198,20 +198,20 @@
 <span class="kn">from</span> <span class="nn">mmap</span> <span class="kn">import</span> <span class="n">mmap</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">randint</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 
-<div class="viewcode-block" id="read_2column_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_2column_text">[docs]</a><span class="k">def</span> <span class="nf">read_2column_text</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a text file having 2 column as dict object.</span>
+<div class="viewcode-block" id="read_2columns_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_2columns_text">[docs]</a><span class="k">def</span> <span class="nf">read_2columns_text</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a text file having 2 columns as dict object.</span>
 
 <span class="sd">    Examples:</span>
 <span class="sd">        wav.scp:</span>
 <span class="sd">            key1 /some/path/a.wav</span>
 <span class="sd">            key2 /some/path/b.wav</span>
 
-<span class="sd">        &gt;&gt;&gt; read_2column_text(&#39;wav.scp&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; read_2columns_text(&#39;wav.scp&#39;)</span>
 <span class="sd">        {&#39;key1&#39;: &#39;/some/path/a.wav&#39;, &#39;key2&#39;: &#39;/some/path/b.wav&#39;}</span>
 
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -225,10 +225,56 @@
                 <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">sps</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;&quot;</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">sps</span>
+
             <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> is duplicated (</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">linenum</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
             <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
     <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="read_multi_columns_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.read_multi_columns_text">[docs]</a><span class="k">def</span> <span class="nf">read_multi_columns_text</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="n">return_unsplit</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Read a text file having 2 or more columns as dict object.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        wav.scp:</span>
+<span class="sd">            key1 /some/path/a1.wav /some/path/a2.wav</span>
+<span class="sd">            key2 /some/path/b1.wav /some/path/b2.wav  /some/path/b3.wav</span>
+<span class="sd">            key3 /some/path/c1.wav</span>
+<span class="sd">            ...</span>
+
+<span class="sd">        &gt;&gt;&gt; read_multi_columns_text(&#39;wav.scp&#39;)</span>
+<span class="sd">        {&#39;key1&#39;: [&#39;/some/path/a1.wav&#39;, &#39;/some/path/a2.wav&#39;],</span>
+<span class="sd">         &#39;key2&#39;: [&#39;/some/path/b1.wav&#39;, &#39;/some/path/b2.wav&#39;, &#39;/some/path/b3.wav&#39;],</span>
+<span class="sd">         &#39;key3&#39;: [&#39;/some/path/c1.wav&#39;]}</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+    <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">if</span> <span class="n">return_unsplit</span><span class="p">:</span>
+        <span class="n">unsplit_data</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">unsplit_data</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">with</span> <span class="n">Path</span><span class="p">(</span><span class="n">path</span><span class="p">)</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;r&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">linenum</span><span class="p">,</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">sps</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">sps</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">sps</span>
+
+            <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> is duplicated (</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">:</span><span class="si">{</span><span class="n">linenum</span><span class="si">}</span><span class="s2">)&quot;</span><span class="p">)</span>
+
+            <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="k">if</span> <span class="n">v</span> <span class="o">!=</span> <span class="s2">&quot;&quot;</span> <span class="k">else</span> <span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">return_unsplit</span><span class="p">:</span>
+                <span class="n">unsplit_data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">unsplit_data</span></div>
 
 
 <div class="viewcode-block" id="load_num_sequence_text"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.read_text.load_num_sequence_text">[docs]</a><span class="k">def</span> <span class="nf">load_num_sequence_text</span><span class="p">(</span>
@@ -264,7 +310,7 @@
     <span class="c1">#   uttb 3,4,5</span>
     <span class="c1"># -&gt; return {&#39;utta&#39;: np.ndarray([1, 0]),</span>
     <span class="c1">#            &#39;uttb&#39;: np.ndarray([3, 4, 5])}</span>
-    <span class="n">d</span> <span class="o">=</span> <span class="n">read_2column_text</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">d</span> <span class="o">=</span> <span class="n">read_2columns_text</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
 
     <span class="c1"># Using for-loop instead of dict-comprehension for debuggability</span>
     <span class="n">retval</span> <span class="o">=</span> <span class="p">{}</span>

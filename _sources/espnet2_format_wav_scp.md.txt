@@ -158,3 +158,34 @@ ID_a sph2pipe -f wav -p -c 1 ID_a.sph |
 ID_b sph2pipe -f wav -p -c 1 ID_b.sph |
 ...
 ```
+
+
+
+### Case4: Using a mechanism for multi channels inputs
+
+If you are going to generate multi channels audio file from monaural audio files,
+create the following wav.scp:
+
+```
+ID_a a1.wav a2.wav
+...
+```
+
+and run the following commands:
+
+```sh
+./scripts/audio/format_wav_scp.sh --multi_columns_input true wav.scp output_dir
+```
+
+Conversely, if you and going to monaural audio files from multi channels audio files
+
+
+```sh
+./scripts/audio/format_wav_scp.sh --multi_columns_output true wav.scp output_dir
+```
+
+Then, you can get `wav.scp` like the following file:
+
+```
+ID_a output_dir/IDa-CH0.wav output_dir/ID_a-CH1.wav
+...

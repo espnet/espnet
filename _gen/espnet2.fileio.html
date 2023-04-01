@@ -354,16 +354,16 @@ key2 34 5 6</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="espnet2.fileio.read_text.read_2column_text">
-<code class="sig-prename descclassname">espnet2.fileio.read_text.</code><code class="sig-name descname">read_2column_text</code><span class="sig-paren">(</span><em class="sig-param">path: Union[pathlib.Path, str]</em><span class="sig-paren">)</span> &#x2192; Dict[str, str]<a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#read_2column_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.read_2column_text" title="Permalink to this definition">¶</a></dt>
-<dd><p>Read a text file having 2 column as dict object.</p>
+<dt id="espnet2.fileio.read_text.read_2columns_text">
+<code class="sig-prename descclassname">espnet2.fileio.read_text.</code><code class="sig-name descname">read_2columns_text</code><span class="sig-paren">(</span><em class="sig-param">path: Union[pathlib.Path, str]</em><span class="sig-paren">)</span> &#x2192; Dict[str, str]<a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#read_2columns_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.read_2columns_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a text file having 2 columns as dict object.</p>
 <p class="rubric">Examples</p>
 <dl class="simple">
 <dt>wav.scp:</dt><dd><p>key1 /some/path/a.wav
 key2 /some/path/b.wav</p>
 </dd>
 </dl>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">read_2column_text</span><span class="p">(</span><span class="s1">&#39;wav.scp&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">read_2columns_text</span><span class="p">(</span><span class="s1">&#39;wav.scp&#39;</span><span class="p">)</span>
 <span class="go">{&#39;key1&#39;: &#39;/some/path/a.wav&#39;, &#39;key2&#39;: &#39;/some/path/b.wav&#39;}</span>
 </pre></div>
 </div>
@@ -378,6 +378,26 @@ key2 /some/path/b.wav</p>
 <p>key2 start_time_1 end_time_1 phone_1</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">d</span> <span class="o">=</span> <span class="n">load_num_sequence_text</span><span class="p">(</span><span class="s1">&#39;label&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">np</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_array_equal</span><span class="p">(</span><span class="n">d</span><span class="p">[</span><span class="s2">&quot;key1&quot;</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="s2">&quot;啊&quot;</span><span class="p">]))</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.fileio.read_text.read_multi_columns_text">
+<code class="sig-prename descclassname">espnet2.fileio.read_text.</code><code class="sig-name descname">read_multi_columns_text</code><span class="sig-paren">(</span><em class="sig-param">path: Union[pathlib.Path, str], return_unsplit: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, List[str]], Optional[Dict[str, str]]]<a class="reference internal" href="../_modules/espnet2/fileio/read_text.html#read_multi_columns_text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.read_text.read_multi_columns_text" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read a text file having 2 or more columns as dict object.</p>
+<p class="rubric">Examples</p>
+<dl class="simple">
+<dt>wav.scp:</dt><dd><p>key1 /some/path/a1.wav /some/path/a2.wav
+key2 /some/path/b1.wav /some/path/b2.wav  /some/path/b3.wav
+key3 /some/path/c1.wav
+…</p>
+</dd>
+</dl>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">read_multi_columns_text</span><span class="p">(</span><span class="s1">&#39;wav.scp&#39;</span><span class="p">)</span>
+<span class="go">{&#39;key1&#39;: [&#39;/some/path/a1.wav&#39;, &#39;/some/path/a2.wav&#39;],</span>
+<span class="go"> &#39;key2&#39;: [&#39;/some/path/b1.wav&#39;, &#39;/some/path/b2.wav&#39;, &#39;/some/path/b3.wav&#39;],</span>
+<span class="go"> &#39;key3&#39;: [&#39;/some/path/c1.wav&#39;]}</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -544,10 +564,11 @@ key4 /some/path/d.musicxml
 <span id="espnet2-fileio-sound-scp"></span><h2>espnet2.fileio.sound_scp<a class="headerlink" href="#espnet2-fileio-sound-scp-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.sound_scp"></span><dl class="class">
 <dt id="espnet2.fileio.sound_scp.SoundScpReader">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.sound_scp.</code><code class="sig-name descname">SoundScpReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">dtype=&lt;class 'numpy.int16'&gt;</em>, <em class="sig-param">always_2d: bool = False</em>, <em class="sig-param">normalize: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/sound_scp.html#SoundScpReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.sound_scp.SoundScpReader" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.sound_scp.</code><code class="sig-name descname">SoundScpReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">dtype=None</em>, <em class="sig-param">always_2d: bool = False</em>, <em class="sig-param">multi_columns: bool = False</em>, <em class="sig-param">concat_axis=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/sound_scp.html#SoundScpReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.sound_scp.SoundScpReader" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
 <p>Reader class for ‘wav.scp’.</p>
 <p class="rubric">Examples</p>
+<p>wav.scp is a text file that looks like the following:</p>
 <p>key1 /some/path/a.wav
 key2 /some/path/b.wav
 key3 /some/path/c.wav
@@ -557,6 +578,24 @@ key4 /some/path/d.wav
 <span class="gp">&gt;&gt;&gt; </span><span class="n">rate</span><span class="p">,</span> <span class="n">array</span> <span class="o">=</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;key1&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
+<p>If multi_columns=True is given and
+multiple files are given in one line
+with space delimiter, and  the output array are concatenated
+along channel direction</p>
+<p>key1 /some/path/a.wav /some/path/a2.wav
+key2 /some/path/b.wav /some/path/b2.wav
+…</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">SoundScpReader</span><span class="p">(</span><span class="s1">&#39;wav.scp&#39;</span><span class="p">,</span> <span class="n">multi_columns</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rate</span><span class="p">,</span> <span class="n">array</span> <span class="o">=</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;key1&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>In the above case, a.wav and a2.wav are concatenated.</p>
+<p>Note that even if multi_columns=True is given,
+SoundScpReader still supports a normal wav.scp,
+i.e., a wav file is given per line,
+but this option is disable by default
+because dict[str, list[str]] object is needed to be kept,
+but it increases the required amount of memory.</p>
 <dl class="method">
 <dt id="espnet2.fileio.sound_scp.SoundScpReader.get_path">
 <code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/sound_scp.html#SoundScpReader.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.sound_scp.SoundScpReader.get_path" title="Permalink to this definition">¶</a></dt>
@@ -571,20 +610,42 @@ key4 /some/path/d.wav
 
 <dl class="class">
 <dt id="espnet2.fileio.sound_scp.SoundScpWriter">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.sound_scp.</code><code class="sig-name descname">SoundScpWriter</code><span class="sig-paren">(</span><em class="sig-param">outdir: Union[pathlib.Path, str], scpfile: Union[pathlib.Path, str], format='wav', dtype=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/sound_scp.html#SoundScpWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.sound_scp.SoundScpWriter" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.sound_scp.</code><code class="sig-name descname">SoundScpWriter</code><span class="sig-paren">(</span><em class="sig-param">outdir: Union[pathlib.Path, str], scpfile: Union[pathlib.Path, str], format='wav', multi_columns: bool = False, output_name_format: str = '{key}.{audio_format}', output_name_format_multi_columns: str = '{key}-CH{channel}.{audio_format}', subtype: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/sound_scp.html#SoundScpWriter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.sound_scp.SoundScpWriter" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Writer class for ‘wav.scp’</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>outdir</strong> – </p></li>
+<li><p><strong>scpfile</strong> – </p></li>
+<li><p><strong>format</strong> – The output audio format</p></li>
+<li><p><strong>multi_columns</strong> – Save multi channel data
+as multiple monaural audio files</p></li>
+<li><p><strong>output_name_format</strong> – The naming formam of generated audio files</p></li>
+<li><p><strong>output_name_format_multi_columns</strong> – The naming formam of generated audio files
+when multi_columns is given</p></li>
+<li><p><strong>dtype</strong> – </p></li>
+<li><p><strong>subtype</strong> – </p></li>
+</ul>
+</dd>
+</dl>
 <p class="rubric">Examples</p>
-<p>key1 /some/path/a.wav
-key2 /some/path/b.wav
-key3 /some/path/c.wav
-key4 /some/path/d.wav
-…</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span> <span class="o">=</span> <span class="n">SoundScpWriter</span><span class="p">(</span><span class="s1">&#39;./data/&#39;</span><span class="p">,</span> <span class="s1">&#39;./data/feat.scp&#39;</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span> <span class="o">=</span> <span class="n">SoundScpWriter</span><span class="p">(</span><span class="s1">&#39;./data/&#39;</span><span class="p">,</span> <span class="s1">&#39;./data/wav.scp&#39;</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="p">[</span><span class="s1">&#39;aa&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span> <span class="n">numpy_array</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="p">[</span><span class="s1">&#39;bb&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span> <span class="n">numpy_array</span>
 </pre></div>
 </div>
+<p>aa ./data/aa.wav
+bb ./data/bb.wav</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span> <span class="o">=</span> <span class="n">SoundScpWriter</span><span class="p">(</span>
+<span class="go">    &#39;./data/&#39;, &#39;./data/feat.scp&#39;, multi_columns=True,</span>
+<span class="go">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">numpy_array</span><span class="o">.</span><span class="n">shape</span>
+<span class="go">(100, 2)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">writer</span><span class="p">[</span><span class="s1">&#39;aa&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span> <span class="n">numpy_array</span>
+</pre></div>
+</div>
+<p>aa ./data/aa-CH0.wav ./data/aa-CH1.wav</p>
 <dl class="method">
 <dt id="espnet2.fileio.sound_scp.SoundScpWriter.close">
 <code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/sound_scp.html#SoundScpWriter.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.sound_scp.SoundScpWriter.close" title="Permalink to this definition">¶</a></dt>
@@ -596,6 +657,11 @@ key4 /some/path/d.wav
 <dd></dd></dl>
 
 </dd></dl>
+
+<dl class="function">
+<dt id="espnet2.fileio.sound_scp.soundfile_read">
+<code class="sig-prename descclassname">espnet2.fileio.sound_scp.</code><code class="sig-name descname">soundfile_read</code><span class="sig-paren">(</span><em class="sig-param">wavs: Union[str, List[str]], dtype=None, always_2d: bool = False, concat_axis: int = 1</em><span class="sig-paren">)</span> &#x2192; Tuple[numpy.array, int]<a class="reference internal" href="../_modules/espnet2/fileio/sound_scp.html#soundfile_read"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.sound_scp.soundfile_read" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="espnet2-fileio-rttm-1">
