@@ -6,8 +6,8 @@ import pytest
 from espnet2.fileio.read_text import (
     load_num_sequence_text,
     read_2columns_text,
-    read_multi_columns_text,
     read_label,
+    read_multi_columns_text,
 )
 
 
