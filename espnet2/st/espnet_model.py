@@ -66,6 +66,7 @@ class ESPnetSTModel(AbsESPnetModel):
         mtlalpha: float = 0.0,
         st_mtlalpha: float = 0.0,
         ignore_id: int = -1,
+        tgt_ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
         report_cer: bool = True,
@@ -101,6 +102,7 @@ class ESPnetSTModel(AbsESPnetModel):
         self.vocab_size = vocab_size
         self.src_vocab_size = src_vocab_size
         self.ignore_id = ignore_id
+        self.tgt_ignore_id = tgt_ignore_id
         self.asr_weight = asr_weight
         self.mt_weight = mt_weight
         self.mtlalpha = mtlalpha
@@ -141,7 +143,7 @@ class ESPnetSTModel(AbsESPnetModel):
         else:
             self.criterion_st = LabelSmoothingLoss(
                 size=vocab_size,
-                padding_idx=ignore_id,
+                padding_idx=tgt_ignore_id,
                 smoothing=lsm_weight,
                 normalize_length=length_normalized_loss,
             )
@@ -253,9 +255,11 @@ class ESPnetSTModel(AbsESPnetModel):
                 src_text_lengths.shape,
             )
 
+        # import pdb;pdb.set_trace()
+
         batch_size = speech.shape[0]
 
-        text[text == -1] = self.ignore_id
+        text[text == -1] = self.tgt_ignore_id
 
         # for data-parallel
         text = text[:, : text_lengths.max()]
@@ -263,7 +267,7 @@ class ESPnetSTModel(AbsESPnetModel):
             src_text = src_text[:, : src_text_lengths.max()]
 
         # 1. Encoder
-        if self.hier_encoder is not None:
+        if self.hier_encoder is not None or (self.postencoder is not None and self.postencoder.return_int_enc):
             st_encoder_out, st_encoder_out_lens, asr_encoder_out, asr_encoder_out_lens = self.encode(speech, speech_lengths, return_int_enc=True)
         else:
             st_encoder_out, st_encoder_out_lens = self.encode(speech, speech_lengths)
@@ -281,9 +285,15 @@ class ESPnetSTModel(AbsESPnetModel):
             loss_asr_ctc, cer_asr_ctc = 0.0, None
 
         if self.st_mtlalpha > 0:
-            loss_st_ctc, bleu_st_ctc = self._calc_mt_ctc_loss(
-                st_encoder_out, st_encoder_out_lens, text, text_lengths
-            )
+            if self.postencoder is not None and self.postencoder.return_int_enc:
+                # run ST CTC without post-encoder downsampling (not compatible w/ hier enc)
+                loss_st_ctc, bleu_st_ctc = self._calc_mt_ctc_loss(
+                    asr_encoder_out, asr_encoder_out_lens, text, text_lengths
+                )
+            else:
+                loss_st_ctc, bleu_st_ctc = self._calc_mt_ctc_loss(
+                    st_encoder_out, st_encoder_out_lens, text, text_lengths
+                )
         else:
             loss_st_ctc, bleu_st_ctc = 0.0, None
 
@@ -524,7 +534,7 @@ class ESPnetSTModel(AbsESPnetModel):
             )
             ys_pad_lens += 1
 
-        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
+        ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.tgt_ignore_id)
         ys_in_lens = ys_pad_lens + 1
 
         # 1. Forward decoder
@@ -547,7 +557,7 @@ class ESPnetSTModel(AbsESPnetModel):
         acc_att = th_accuracy(
             decoder_out.view(-1, self.vocab_size),
             ys_out_pad,
-            ignore_label=self.ignore_id,
+            ignore_label=self.tgt_ignore_id,
         )
 
         # Compute cer/wer using attention-decoder
@@ -676,7 +686,7 @@ class ESPnetSTModel(AbsESPnetModel):
         decoder_in, target, t_len, u_len = get_transducer_task_io(
             labels,
             encoder_out_lens,
-            ignore_id=self.ignore_id,
+            ignore_id=self.tgt_ignore_id,
             blank_id=self.blank_id,
         )
 

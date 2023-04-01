@@ -114,6 +114,7 @@ class DummyAgent(SpeechToTextAgent):
                 blank_penalty=kwargs['blank_penalty'],
                 hold_n=kwargs['hold_n'],
                 transducer_conf=transducer_conf,
+                hugging_face_decoder=kwargs['hugging_face_decoder'],
             )
             self.speech2text = Speech2TextStreaming(**speech2text_kwargs)
         
@@ -121,6 +122,7 @@ class DummyAgent(SpeechToTextAgent):
         self.backend = kwargs['backend']
         self.token_delay = kwargs['token_delay']
         self.lang = kwargs['lang']
+        self.recompute = kwargs['recompute']
         self.clean()
 
     @staticmethod
@@ -388,6 +390,12 @@ class DummyAgent(SpeechToTextAgent):
             type=str,
             default="de",
         )
+        group.add_argument("--hugging_face_decoder", type=str2bool, default=False)
+        group.add_argument(
+            "--recompute",
+            type=str2bool,
+            default=False,
+        )
 
         return parser
 
@@ -414,7 +422,10 @@ class DummyAgent(SpeechToTextAgent):
         else:
             unread_length = len(self.states.source) - self.processed_index - 1
             if unread_length >= self.sim_chunk_length or self.states.source_finished:
-                speech = torch.tensor(self.states.source[self.processed_index+1:])
+                if self.recompute:
+                    speech = torch.tensor(self.states.source)
+                else:
+                    speech = torch.tensor(self.states.source[self.processed_index+1:])
                 results = self.speech2text(speech=speech, is_final=self.states.source_finished)
                 self.processed_index = len(self.states.source) - 1
                 if not self.states.source_finished:
@@ -429,7 +440,10 @@ class DummyAgent(SpeechToTextAgent):
                     else:
                         return ReadAction()
                 else:
-                    prediction = results[0][0]
+                    if len(results) > 0:
+                        prediction = results[0][0]
+                    else:
+                        prediction = self.prev_prediction
 
                 if prediction != self.prev_prediction or self.states.source_finished:
                     self.prev_prediction = prediction
@@ -451,7 +465,7 @@ class DummyAgent(SpeechToTextAgent):
 
                 if unwritten_length > 0:
                     ret = prediction[-unwritten_length:]
-                    # print(self.processed_index, ret)
+                    print(self.processed_index, ret)
                     return WriteAction(ret, finished=self.states.source_finished)
                 elif self.states.source_finished:
                     return WriteAction("", finished=self.states.source_finished)

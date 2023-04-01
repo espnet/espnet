@@ -200,6 +200,7 @@ class BatchBeamSearch(BeamSearch):
         """
         scores = dict()
         states = dict()
+        # import pdb;pdb.set_trace()
         for k, d in self.part_scorers.items():
             if 'ctc' in k and md2:
                 scores[k], states[k] = d.batch_score_partial(

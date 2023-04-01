@@ -47,6 +47,7 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
+from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -57,7 +58,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.st.espnet_model import ESPnetSTModel
-from espnet2.st.espnet_model_md2 import ESPnetSTModelMD2
+# from espnet2.st.espnet_model_md2 import ESPnetSTModelMD2
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
@@ -128,6 +129,7 @@ postencoder_choices = ClassChoices(
     name="postencoder",
     classes=dict(
         hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+        length_adaptor=LengthAdaptorPostEncoder
     ),
     type_check=AbsPostEncoder,
     default=None,
@@ -496,7 +498,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel, ESPnetSTModelMD2]:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -567,12 +569,14 @@ class STTask(AbsTask):
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
-        encoder_output_size = encoder.output_size()
+        asr_encoder_output_size = encoder.output_size()
         if getattr(args, "hier_encoder", None) is not None:
             hier_encoder_class = hier_encoder_choices.get_class(args.hier_encoder)
-            hier_encoder = hier_encoder_class(input_size=encoder_output_size, **args.hier_encoder_conf)
+            hier_encoder = hier_encoder_class(input_size=asr_encoder_output_size, **args.hier_encoder_conf)
+            encoder_output_size = hier_encoder.output_size()
         else:
             hier_encoder = None
+            encoder_output_size = asr_encoder_output_size
 
         # 5. Post-encoder block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
@@ -614,7 +618,7 @@ class STTask(AbsTask):
         if src_token_list is not None:
             ctc = CTC(
                 odim=src_vocab_size,
-                encoder_output_size=encoder_output_size,
+                encoder_output_size=asr_encoder_output_size,
                 **args.ctc_conf,
             )
         else:
@@ -636,7 +640,7 @@ class STTask(AbsTask):
             )
             extra_asr_decoder = extra_asr_decoder_class(
                 vocab_size=src_vocab_size,
-                encoder_output_size=encoder_output_size,
+                encoder_output_size=asr_encoder_output_size,
                 **args.extra_asr_decoder_conf,
             )
         else:

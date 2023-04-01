@@ -92,6 +92,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.processed_block = 0
         self.process_idx = 0
         self.prev_output = None
+        self.prev_incremental = None
 
     def score_full(
         self, hyp: BatchHypothesis, x: torch.Tensor, pre_x: torch.Tensor = None
@@ -150,7 +151,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             list[Hypothesis]: N-best decoding results
 
         """
-        if self.encbuffer is None:
+        if self.encbuffer is None or self.block_size == 0:
             self.encbuffer = x
         else:
             self.encbuffer = torch.cat([self.encbuffer, x], axis=0)
@@ -163,67 +164,129 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         else:
             maxlen = max(1, int(maxlenratio * x.size(0)))
 
-        ret = None
-        while True:
-            cur_end_frame = (
-                self.block_size - self.look_ahead + self.hop_size * self.processed_block
-            )
-            if cur_end_frame < x.shape[0]:
-                h = x.narrow(0, 0, cur_end_frame)
-                block_is_final = False
-            else:
-                if is_final:
-                    h = x
-                    block_is_final = True
-                else:
-                    break
-
-            logging.debug("Start processing block: %d", self.processed_block)
+        # set block_size == 0 for recomputing
+        if self.block_size == 0:
+            block_is_final = is_final
+            h = x
             logging.debug(
                 "  Feature length: {}, current position: {}".format(
                     h.shape[0], self.process_idx
                 )
             )
-            if (
-                self.encoded_feat_length_limit > 0
-                and h.shape[0] > self.encoded_feat_length_limit
-            ):
-                h = h.narrow(
-                    0,
-                    h.shape[0] - self.encoded_feat_length_limit,
-                    self.encoded_feat_length_limit,
-                )
 
             if self.running_hyps is None:
-                self.running_hyps = self.init_hyp(h)
-            if self.time_sync:
-                ret = self.process_one_block_time_sync(h, block_is_final, maxlen, maxlenratio)
-            else:
-                ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
-            logging.debug("Finished processing block: %d", self.processed_block)
+                self.running_hyps = BatchHypothesis(
+                    score=torch.tensor([0.0]),
+                    scores={'decoder': torch.tensor([0.0]), 'length_bonus': torch.tensor([0.0])}, 
+                    states={'decoder': [None], 'length_bonus': [None]},
+                    length=torch.tensor([2]),
+                    yseq=torch.tensor([[self.sos, 250003]], device=x.device),  # hacky way to avoid 2 2 hypothesis clogging decoding
+                    hs=[],
+                )
+                self.prev_incremental = self.running_hyps
+
+            # ret = self.process_one_chunk(h, block_is_final, maxlen - self.process_idx, maxlenratio) #v1
+            ret = self.process_one_block(h, block_is_final, maxlen - self.process_idx, maxlenratio)
+            logging.debug("Finished processing chunk: %d", self.processed_block)
             self.processed_block += 1
-            
+
             # prune running_hyps, taking top as an incremental decoding
-            if self.incremental_decode:
-                logging.debug("Hyps before incremental pruning: %d", self.running_hyps.yseq.shape[0])
+            if self.incremental_decode and not is_final:
+                if self.running_hyps.yseq.shape[0] == 0:   # running_hyps will be empty if maxlen is reached
+                    logging.info("search stopped by maxlen in a non final chunk. reverting to prev running hyp")
+                    self.running_hyps = self.prev_incremental
+                logging.info("Hyps before incremental pruning: %d", self.running_hyps.yseq.shape[0])
                 if self.running_hyps.yseq.shape[0] > 0:
                     self.running_hyps = self._batch_select(self.running_hyps, [0])
-                logging.debug("Hyps after incremental pruning: %d", self.running_hyps.yseq.shape[0])
+                    self.prev_incremental = self.running_hyps  
+                logging.info("Hyps after incremental pruning: %d", self.running_hyps.yseq.shape[0])
 
-            if block_is_final:
-                return ret
-        if ret is None:
-            if self.prev_output is None:
+                if self.token_list is not None:
+                    logging.info(
+                        "best running hypo: "
+                        + "".join(
+                            [
+                                self.token_list[x]
+                                for x in self.running_hyps.yseq[0, 1 : ]
+                            ]
+                        )
+                    )
+
+            if is_final:
+                if len(ret) == 0:
+                    if self.prev_output is None:
+                        return []
+                    else:
+                        return self.prev_output
+                else:
+                    return ret
+            else: # dont return incremental hyps, check them by grabbing top running_hyp
+                if len(ret) > 0:
+                    self.prev_output = ret
                 return []
-            else:
-                return self.prev_output
+
+        # blockwise processing w/ rewinding
         else:
-            self.prev_output = ret
-            # N-best results
-            return ret
+            ret = None
+            while True:
+                cur_end_frame = (
+                    self.block_size - self.look_ahead + self.hop_size * self.processed_block
+                )
+                if cur_end_frame < x.shape[0]:
+                    h = x.narrow(0, 0, cur_end_frame)
+                    block_is_final = False
+                else:
+                    if is_final:
+                        h = x
+                        block_is_final = True
+                    else:
+                        break
+
+                logging.debug("Start processing block: %d", self.processed_block)
+                logging.debug(
+                    "  Feature length: {}, current position: {}".format(
+                        h.shape[0], self.process_idx
+                    )
+                )
+                if (
+                    self.encoded_feat_length_limit > 0
+                    and h.shape[0] > self.encoded_feat_length_limit
+                ):
+                    h = h.narrow(
+                        0,
+                        h.shape[0] - self.encoded_feat_length_limit,
+                        self.encoded_feat_length_limit,
+                    )
+
+                if self.running_hyps is None:
+                    self.running_hyps = self.init_hyp(h)
+                if self.time_sync:
+                    ret = self.process_one_block_time_sync(h, block_is_final, maxlen, maxlenratio)
+                else:
+                    ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
+                logging.debug("Finished processing block: %d", self.processed_block)
+                self.processed_block += 1
+                
+                # prune running_hyps, taking top as an incremental decoding
+                if self.incremental_decode:
+                    logging.debug("Hyps before incremental pruning: %d", self.running_hyps.yseq.shape[0])
+                    if self.running_hyps.yseq.shape[0] > 0:
+                        self.running_hyps = self._batch_select(self.running_hyps, [0])
+                    logging.debug("Hyps after incremental pruning: %d", self.running_hyps.yseq.shape[0])
+
+                if block_is_final:
+                    return ret
+            if ret is None:
+                if self.prev_output is None:
+                    return []
+                else:
+                    return self.prev_output
+            else:
+                self.prev_output = ret
+                # N-best results
+                return ret
 
     def process_one_block_time_sync(self, h, is_final, maxlen, maxlenratio):
-        # import pdb;pdb.set_trace()
         hyps = self.time_sync_search(h, start_idx=self.t, is_final=is_final, incremental_decode=self.incremental_decode)
         logging.debug("time:" + str(self.t))
         logging.debug("best_hyp:" + "".join([self.token_list[x] for x in hyps[0].yseq]))
@@ -231,34 +294,84 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             self.t = 0
         else:
             self.t = len(h)
-        # import pdb;pdb.set_trace()
         return hyps
-        # self.extend(h, self.running_hyps)
-        # import pdb;pdb.set_trace()
-        # from itertools import groupby
-        # lpz = self.ctc.argmax(self.encbuffer.unsqueeze(0))
-        # logging.info("ctc length:"+str(lpz.shape[-1])+"\n")
-        # collapsed_indices = [x[0] for x in groupby(lpz[0])]
-        # hyp = [x for x in filter(lambda x: x != 0, collapsed_indices)]
-        # if self.token_list is not None:
-        #     logging.info(
-        #         "ctc greedy encbuffer: "
-        #         + "".join([self.token_list[x] for x in hyp])
-        #         + "\n"
-        #     )
 
-        # lpz = self.ctc.argmax(h.unsqueeze(0))
-        # logging.info("ctc length:"+str(lpz.shape[-1])+"\n")
-        # collapsed_indices = [x[0] for x in groupby(lpz[0])]
-        # hyp = [x for x in filter(lambda x: x != 0, collapsed_indices)]
-        # if self.token_list is not None:
-        #     logging.info(
-        #         "ctc greedy h: "
-        #         + "".join([self.token_list[x] for x in hyp])
-        #         + "\n"
-        #     )
-        # nbest_hyps = [{"score": 0.0, "yseq": [self.st_model.sos] + hyp + [self.st_model.eos]}]
-        # self.process_one_block(h, is_final, maxlen, maxlenratio)
+    # no rewinding
+    def process_one_chunk(self, h, is_final, maxlen, maxlenratio):
+        ended_hyps = []
+        for i in range(maxlen):
+            logging.debug("position " + str(i))
+            best = self.search(self.running_hyps, h)
+            # post process of one iteration
+            self.running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
+            # end detection
+            if maxlenratio == 0.0 and end_detect([h.asdict() for h in ended_hyps], i):
+                logging.info(f"end detected at {i}")
+                break
+            if len(self.running_hyps) == 0:
+                logging.info("no hypothesis. Finish decoding.")
+                break
+            else:
+                logging.debug(f"remained hypotheses: {len(self.running_hyps)}")
+
+        nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+        
+
+        # report the best result
+        best = nbest_hyps[0]
+        for k, v in best.scores.items():
+            logging.info(
+                f"{v:6.2f} * {self.weights[k]:3} = {v * self.weights[k]:6.2f} for {k}"
+            )
+        logging.info(f"total log probability: {best.score:.2f}")
+        logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
+        logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
+        if self.token_list is not None:
+            logging.info(
+                "best hypo: "
+                + "".join([self.token_list[x] for x in best.yseq[1:-1]])
+                + "\n"
+            )
+        if best.yseq[1:-1].shape[0] == h.shape[0]:
+            logging.warning(
+                "best hypo length: {} == max output length: {}".format(
+                    best.yseq[1:-1].shape[0], maxlen
+                )
+            )
+            logging.warning(
+                "decoding may be stopped by the max output length limitation, "
+                + "please consider to increase the maxlenratio."
+            )
+
+        # always doing incremental pruning
+        if not is_final:
+            if len(best.yseq > 3):  #<s> <de> . </s>
+                rewind = 2
+            else:
+                rewind = 1
+            best_increment = Hypothesis(
+                score=best.score,
+                scores=best.scores,
+                states=best.states,
+                yseq=best.yseq[:-2],
+                hs=best.hs,
+            )
+
+            if self.token_list is not None:
+                logging.debug(
+                    "incremental output: "
+                    + "".join(
+                        [
+                            self.token_list[x]
+                            for x in best_increment.yseq[1:]
+                        ]
+                    )
+                )
+
+            self.running_hyps = self.batchfy([best_increment])
+            return None
+        else:
+            return nbest_hyps
 
     def process_one_block(self, h, is_final, maxlen, maxlenratio):
         """Recognize one block."""
@@ -313,7 +426,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
             if len(local_ended_hyps) > 0 and not is_final:
                 logging.info("Detected hyp(s) reaching EOS in this block.")
-                break
+                break   # breaking here means that prev hyps is 2 behind the ended hyps, not 1
 
             self.prev_hyps = self.running_hyps
             self.running_hyps = self.post_process(
@@ -335,6 +448,11 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         if is_final:
             return self.assemble_hyps(self.ended_hyps)
         else:
+            try:
+                local_ended_hyps
+            except:
+                local_ended_hyps = []
+
             for hyp in self.ended_hyps:
                 local_ended_hyps.append(hyp)
             rets = self.assemble_hyps(local_ended_hyps)
