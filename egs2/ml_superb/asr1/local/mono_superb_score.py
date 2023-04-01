@@ -82,7 +82,8 @@ if __name__ == "__main__":
 
             if not os.path.exists(result):
                 raise RuntimeError(
-                    "Cannot find result file at {}, might be due to unsuccessfully experiments for {}, {}".format(
+                    "Cannot find result file at {}, might be "
+                    "due to unsuccessfully experiments for {}, {}".format(
                         result, config, dur
                     )
                 )
