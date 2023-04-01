@@ -341,7 +341,7 @@ def main():
             if wavpath is not None and Path(wavpath).suffix != "." + args.audio_format:
                 save_asis = False
 
-            if subtypes is not None:
+            if not args.audio_format.endswith("ark") and subtypes is not None:
                 if args.audio_subtype is None:
                     subtype2 = soundfile.default_subtype(args.audio_format)
                 else:
