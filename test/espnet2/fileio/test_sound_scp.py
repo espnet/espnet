@@ -4,8 +4,7 @@ import numpy as np
 import pytest
 import soundfile
 
-from espnet2.fileio.sound_scp import SoundScpReader
-from espnet2.fileio.sound_scp import SoundScpWriter
+from espnet2.fileio.sound_scp import SoundScpReader, SoundScpWriter
 
 
 def test_SoundScpReader(tmp_path: Path):

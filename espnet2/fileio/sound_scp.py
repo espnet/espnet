@@ -1,13 +1,12 @@
 import collections.abc
 from pathlib import Path
-from typing import Union, Tuple, List
+from typing import List, Tuple, Union
 
 import numpy as np
 import soundfile
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import read_2columns_text
-from espnet2.fileio.read_text import read_multi_columns_text
+from espnet2.fileio.read_text import read_2columns_text, read_multi_columns_text
 
 
 def soundfile_read(
