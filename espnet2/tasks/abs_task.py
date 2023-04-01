@@ -1878,7 +1878,7 @@ class AbsTask(ABC):
             try:
                 model.load_state_dict(torch.load(model_file, map_location=device))
             except RuntimeError:
-                # Note(simpleoier): the following part is to be compatible with 
+                # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
                 state_dict = torch.load(model_file, map_location=device)
                 if any(["frontend.upstream.model" in k for k in state_dict.keys()]):
