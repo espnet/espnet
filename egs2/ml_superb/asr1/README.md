@@ -56,12 +56,46 @@ To test the SSL model in ML-SUPERB that are not directly support in S3PRL, pleas
 
 ### Monolingual ASR
 
+General steps to run tasks in monolingual ASR track are as follows:
+- Step1: Following [downloading guide](https://github.com/espnet/espnet/blob/master/egs2/ml_superb/asr1/README.md#data-downloadsetup) to prepare the data
+- Step2: Adding the training configurations for the desired model at `conf/tuning` (check examples `conf/tuning/train_asr_s3prl_single.yaml` and `conf/tuning/train_asr_fbank_single.yaml`) **Note: only the frontend/learning rate can be changed for the benchmark.**
+- Step3: Training the model by calling
+```
+./run_mono.sh --asr_config <your_training_config>
+```
+- Step4: Results are at `exp/mono_<your_training_config>.log`
+
 ### Multilingual ASR
+
+General steps to run tasks in multilingual ASR task are as follows:
+- Step1: Following [downloading guide](https://github.com/espnet/espnet/blob/master/egs2/ml_superb/asr1/README.md#data-downloadsetup) to prepare the data
+- Step2: Adding the training configurations for the desired model at `conf/tuning` (check examples `conf/tuning/train_asr_s3prl_{10min, 1h}.yaml` and `conf/tuning/train_asr_fbank_{10min, 1h}.yaml`) **Note: only the frontend/learning rate can be changed for the benchmark.**
+- Step3: Training the 10min/1h model by calling
+```
+./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h}
+```
+
 
 ### LID
 
+General steps to run tasks in LID trask are as follows:
+- Step1: Following [downloading guide](https://github.com/espnet/espnet/blob/master/egs2/ml_superb/asr1/README.md#data-downloadsetup) to prepare the data
+- Step2: Adding the training configurations for the desired model at `conf/tuning` (check examples `conf/tuning/train_asr_s3prl_{10min, 1h}.yaml` and `conf/tuning/train_asr_fbank_{10min, 1h}.yaml`) **Note: only the frontend/learning rate can be changed for the benchmark.**
+- Step3: Training the 10min/1h model by calling
+```
+./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h} --only_lid true
+```
+
+
 ### Multilingual ASR+LID
 
+General steps to run tasks in LID trask are as follows:
+- Step1: Following [downloading guide](https://github.com/espnet/espnet/blob/master/egs2/ml_superb/asr1/README.md#data-downloadsetup) to prepare the data
+- Step2: Adding the training configurations for the desired model at `conf/tuning` (check examples `conf/tuning/train_asr_s3prl_{10min, 1h}.yaml` and `conf/tuning/train_asr_fbank_{10min, 1h}.yaml`) **Note: only the frontend/learning rate can be changed for the benchmark.**
+- Step3: Training the 10min/1h model by calling
+```
+./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h} --lid true
+```
 
 ## Credits
 
