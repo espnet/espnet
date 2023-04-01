@@ -83,14 +83,14 @@ if ! "${only_lid}"; then
     elif [ "${score_type}" = "normal" ]; then
         directories=$(find ${asr_exp} -wholename "*/*/score_lid/few_shot/*" -type d -not -path '/\.')
     elif [ "${score_type}" = "language_family" ]; then
-        directories=$(find ${asr_exp} -wholename "*/*/score_lid/language_family/*" -type d -not -path '/\.') 
+        directories=$(find ${asr_exp} -wholename "*/*/score_lid/language_family/*" -type d -not -path '/\.')
     elif [ "${score_type}" = "all" ]; then
         directories=$(find ${asr_exp} -wholename "*/*/score_lid/all/*" -type d -not -path '/\.')
     else
         log "Not recognized score_type ${score_type}"
 	exit 1
     fi
-    
+
     for _scoredir in ${directories}
     do
         log "Write result in ${_scoredir}/result.txt"

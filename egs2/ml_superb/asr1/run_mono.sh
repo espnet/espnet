@@ -68,4 +68,3 @@ python local/mono_superb_score.py \
     --expdir ${expdir} \
     --asr_tag_prefix $(basename "${asr_config}" .yaml) \
     --log mono_$(basename "${asr_config}" .yaml).log
-
