@@ -44,6 +44,7 @@ cmd_gss=run.pl # change to suit your needs e.g. slurm !
 # note with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
 gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev"
+gss_iterations=20
 top_k=80
 # we do not train with mixer 6 training + GSS here, but you can try.
 
@@ -161,7 +162,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
           --max-batch-duration $gss_max_batch_dur \
           --channels $channels \
           --use-selection $use_selection \
-          --top-k $top_k
+          --top-k $top_k \
+          --gss-iterations $gss_iterations
     log "Guided Source Separation processing for ${dset_name}/${dset_part} was successful !"
   done
 fi
