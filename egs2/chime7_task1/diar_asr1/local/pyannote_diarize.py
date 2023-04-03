@@ -3,19 +3,16 @@ import glob
 import json
 import math
 import os.path
-import random
 import re
 from pathlib import Path
 
 import numpy as np
 import soundfile as sf
 import torch
-import tqdm
-from dover_lap import dover_lap
-from intervaltree import IntervalTree
-from pyannote.audio import Pipeline
+from pyannote.audio import Model, Pipeline
 from pyannote.audio.core.inference import Inference
-from pyannote.audio.utils.signal import binarize
+from pyannote.audio.pipelines import SpeakerDiarization
+from pyannote.audio.utils.signal import Binarize, binarize
 from pyannote.core import SlidingWindowFeature
 from pyannote.metrics.segmentation import Annotation, Segment
 from scipy.signal import medfilt2d
@@ -96,6 +93,7 @@ def diarize_session(
     uem_boundaries=None,
     merge_closer_delta=1.5,
     max_length_merged=60,
+    max_n_speakers=4,
 ):
     # take the min len across all wavs
     minlen = min([sf.SoundFile(w).frames for w in wav_files])
@@ -143,15 +141,22 @@ def diarize_session(
         np.stack([x.data for x in all_segmentation], -1),
         sliding_window,
     )
+
     selected_audio = torch.zeros_like(c_audio)
     selected_seg = []
     print("Running Channel Selection by using the segmentation output")
     for indx, (seg_b, segmentation) in enumerate(all_segmentation):
         c_seg = all_audio[:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)]
-        # median filter here seems to improve performance on CHiME-6
+        # median filter here seems to improve performance on chime6 in high overlap
+        # conditions
         segmentation = medfilt2d(
             segmentation.reshape((frames, local_spk * num_channels)), (7, 1)
         ).reshape((frames, local_spk, num_channels))
+        # why not the fine-tuned model is used ?
+        # because that one is trained on chime6 to be robust against noise and
+        # reverberation and position of the mic.
+        # we want instead a model that is not so robust against that to use
+        # to select the best channel from which the embeddings will be extracted.
         selection = np.argmax(
             segmentation.sum((0, 1))
         )  # not the best selection criteria
@@ -188,7 +193,7 @@ def diarize_session(
         segmentations=selected_seg,
         num_clusters=None,
         min_clusters=0,
-        max_clusters=4,  # max-speakers are ok
+        max_clusters=max_n_speakers,  # max-speakers are ok
         file={
             "waveform": selected_audio,
             "sample_rate": fs,
@@ -207,12 +212,15 @@ def diarize_session(
         count,
     )
     # convert to annotation
-    result = pipeline.to_annotation(
-        discrete_diarization,
-        min_duration_on=0.0,
+    to_annotation = Binarize(
+        onset=0.5,
+        offset=0.5,
+        min_duration_on=pipeline.segmentation.min_duration_on,
         min_duration_off=pipeline.segmentation.min_duration_off,
+        pad_onset=pipeline.segmentation.pad_onset,
+        pad_offset=pipeline.segmentation.pad_offset,
     )
-
+    result = to_annotation(discrete_diarization)
     offset = uem_boundaries[0] / fs
     new_annotation = Annotation()  # new annotation
     speakers = result.labels()
@@ -296,6 +304,15 @@ if __name__ == "__main__":
         dest="sess_regex",
     )
     parser.add_argument(
+        "--segmentation_model",
+        required=False,
+        default="popcornell/pyannote-segmentation-chime6-mixer6",
+        type=str,
+        help="Pre-trained segmentation model used.",
+        metavar="STR",
+        dest="segmentation_model",
+    )
+    parser.add_argument(
         "--max_speakers",
         type=int,
         default=4,
@@ -306,7 +323,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_batch_size",
         type=int,
-        default=32,
+        default=256,
         help="Max batch size used for segmentation and embeddings extraction.",
         metavar="INT",
         dest="max_batch_size",
@@ -315,14 +332,15 @@ if __name__ == "__main__":
         "--max_length_merged",
         type=str,
         default="60",
-        help="Max length of segments that will be merged together.",
+        help="Max length of segments that will be merged together. "
+        "Reduce to reduce GSS GPU memory occupation later in the recipe.",
         metavar="STR",
         dest="max_length_merged",
     )
     parser.add_argument(
         "--merge_closer",
         type=str,
-        default="1.5",
+        default="0.5",
         help="Merge segments from same speakers that "
         "are less than this value apart.",
         metavar="STR",
@@ -330,15 +348,47 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-    pipeline = Pipeline.from_pretrained(
+    pretrained_pipeline = Pipeline.from_pretrained(
         "pyannote/speaker-diarization",
         use_auth_token=args.token,
     )
 
-    pipeline.embedding_batch_size = args.max_batch_size
-    pipeline.segmentation_batch_size = args.max_batch_size
-    pipeline.segmentation.min_duration_off = 0.0  # we handle it here in a different
-    # manner
+    if len(args.segmentation_model):
+        # use local segmentation model or pre-trained one in
+        # https://huggingface.co/popcornell/pyannote-segmentation-chime6-mixer6
+        segmentation = Model.from_pretrained(args.segmentation_model)
+    else:
+        segmentation = Model.from_pretrained(
+            "pyannote/segmentation",
+            use_auth_token=args.token,
+        )
+
+    diarization_pipeline = SpeakerDiarization(
+        segmentation=segmentation,
+        embedding=pretrained_pipeline.embedding,
+        embedding_exclude_overlap=pretrained_pipeline.embedding_exclude_overlap,
+        clustering=pretrained_pipeline.klustering,
+    )
+
+    # we do not change the hyper-parameters of the original
+    # pyannote model
+    pretrained_hyperparameters = pretrained_pipeline.parameters(instantiated=True)
+    diarization_pipeline.segmentation.threshold = pretrained_hyperparameters[
+        "segmentation"
+    ]["threshold"]
+    diarization_pipeline.segmentation.min_duration_off = 0.0
+    diarization_pipeline.segmentation.min_duration_on = 0.0  # 0.5
+    diarization_pipeline.segmentation.pad_onset = 0.0  # 0.2
+    diarization_pipeline.segmentation.pad_offset = 0.0  # 0.2
+    diarization_pipeline.clustering.threshold = pretrained_hyperparameters[
+        "clustering"
+    ]["threshold"]
+    diarization_pipeline.clustering.min_cluster_size = (
+        15  # higher than pre-trained, which was 15
+    )
+    diarization_pipeline.clustering.method = pretrained_hyperparameters["clustering"][
+        "method"
+    ]
 
     Path(args.out_dir).mkdir(exist_ok=True, parents=True)
     audio_f = glob.glob(os.path.join(args.in_dir, "*.wav")) + glob.glob(
@@ -348,7 +398,6 @@ if __name__ == "__main__":
 
     if args.uem_file:
         uem_map = read_uem(args.uem_file)
-
         # joint diarization of all mics
         sess2audio = {}
         for audio_file in audio_f:
@@ -366,11 +415,12 @@ if __name__ == "__main__":
             else:
                 c_uem = None
             c_result = diarize_session(
-                pipeline,
+                diarization_pipeline,
                 sess2audio[sess],
                 c_uem,
                 float(args.merge_closer),
                 float(args.max_length_merged),
+                args.max_speakers,
             )
             c_rttm_out = os.path.join(args.out_dir, sess + ".rttm")
             with open(c_rttm_out, "w") as f:
