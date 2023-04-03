@@ -157,9 +157,6 @@ def main(argv):
             xvectors = list()
             for utt in spk2utt[speaker]:
                 in_sr, wav = wav_scp[utt]
-                # Amp Normalization -1 ~ 1
-                amax = np.amax(np.absolute(wav))
-                wav = wav.astype(np.float32) / amax
                 # X-vector Embedding
                 embeds = xv_extractor(wav, in_sr)
                 writer_utt[utt] = np.squeeze(embeds)

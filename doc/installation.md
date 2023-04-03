@@ -30,8 +30,8 @@ the following packages are installed using conda, so you can skip them.)
 ### Supported Linux distributions and other requirements
 
 We support the following Linux distributions with CI. If you want to build your own Linux by yourself,
-please also check our [CI configurations](https://github.com/espnet/espnet/tree/master/.github/workflows).
-to prepare the appropriate environments
+please also check our [CI configurations](https://github.com/espnet/espnet/tree/master/.github/workflows)
+to prepare the appropriate environments.
 
 - ubuntu18
 - centos7
@@ -169,7 +169,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ cd <espnet-root>/tools
         $ ./setup_python.sh $(command -v python3)
         ```
-    - Option D) Without setting Python environment.
+    - Option D) Without setting Python environment
 
         `Option C` and `Option D` are almost same. This option might be suitable for Google colab.
 
@@ -217,21 +217,18 @@ e.g.
 - To install Warp Transducer
     ```sh
     cd <espnet-root>/tools
-    . activate_python.sh
-    . ./setup_cuda_env.sh <cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
-    ./installers/install_warp-transducer.sh
+    cuda_root=<cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
+    bach -c ". activate_python.sh; . ./setup_cuda_env.sh $cuda_root; ./installers/install_warp-transducer.sh"
     ```
 - To install PyOpenJTalk
     ```sh
     cd <espnet-root>/tools
-    . activate_python.sh
-    ./installers/install_pyopenjtalk.sh
+    bash -c ". activate_python.sh; ./installers/install_pyopenjtalk.sh"
     ```
 - To install a module using pip: e.g. to intstall ipython
     ```sh
     cd <espnet-root>/tools
-    . activate_python.sh
-    pip install ipython
+    bash -c ". activate_python.sh; pip install ipython"
     ```
 
 ### Check installation
@@ -240,4 +237,5 @@ You can check whether your installation is successfully finished by
 cd <espnet-root>/tools
 bash -c ". ./activate_python.sh; . ./extra_path.sh; python3 check_install.py"
 ```
+
 Note that this check is always called in the last stage of the above installation.

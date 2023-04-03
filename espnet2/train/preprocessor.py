@@ -147,6 +147,7 @@ class CommonPreprocessor(AbsPreprocessor):
         speech_name: str = "speech",
         text_name: str = "text",
         fs: int = 0,
+        nonsplit_symbol: Iterable[str] = None,
     ):
         super().__init__(train)
         self.train = train
@@ -170,6 +171,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 space_symbol=space_symbol,
                 non_linguistic_symbols=non_linguistic_symbols,
                 g2p_type=g2p_type,
+                nonsplit_symbol=nonsplit_symbol,
             )
             if bpemodel not in ["whisper_en", "whisper_multilingual"]:
                 self.token_id_converter = TokenIDConverter(
@@ -458,6 +460,7 @@ class CommonPreprocessor_multi(CommonPreprocessor):
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
         fs: int = 0,
+        speaker_change_symbol: Iterable[str] = None,
     ):
         super().__init__(
             train=train,
@@ -480,11 +483,18 @@ class CommonPreprocessor_multi(CommonPreprocessor):
             speech_volume_normalize=speech_volume_normalize,
             speech_name=speech_name,
             fs=fs,
+            nonsplit_symbol=speaker_change_symbol,
         )
         if isinstance(text_name, str):
             self.text_name = [text_name]
         else:
             self.text_name = text_name
+
+        self.speaker_change_symbol = speaker_change_symbol
+        if speaker_change_symbol is not None:
+            assert (
+                len(self.text_name) == 1
+            ), "SOT model with speaker_change_symbol only support single text input."
 
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
