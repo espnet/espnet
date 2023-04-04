@@ -37,10 +37,10 @@ this [technical report](https://huggingface.co/pyannote/speaker-diarization/reso
 It is a very effective diarization system that uses a local EEND-based segmentation model [1] and leverages this model
 for extracting overlap-aware embeddings.
 
-Here we use the pre-trained [Pyannote diarization pipeline](https://huggingface.co/pyannote/speaker-diarization) and fine-tune only the 
+Here we use the pre-trained [Pyannote diarization pipeline](https://huggingface.co/pyannote/speaker-diarization) and fine-tune only the
 segmentation model [Pyannote segmentation model](https://huggingface.co/pyannote/segmentation) on CHiME-6 training data (using Mixer 6 speech dev for validation). <br>
 
-We found that fine-tuning using the CHiME-6 manual annotation was better than using the CHiME-6 forced-alignment annotation, 
+We found that fine-tuning using the CHiME-6 manual annotation was better than using the CHiME-6 forced-alignment annotation,
 which is made available, also for the training set [here](https://github.com/chimechallenge/CHiME7_DASR_falign). <br>
 
 The fine-tuned segmentation model is available in HuggingFace: [popcornell/pyannote-segmentation-chime6-mixer6](https://huggingface.co/popcornell/pyannote-segmentation-chime6-mixer6)
@@ -82,14 +82,14 @@ We report the results with this Pyannote-based multi-channel pipeline hereafter 
 We can see that the DER and JER values are quite competitive on CHiME-6 with the state-of-the-art (e.g. JHU CHiME-6 submission) but
 the WER figures are quite poor. <br>
 **Note that here we report DER and JER which are computed against manual annotation for CHiME-6.** <br>
-The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) will be higher. In general this model can be optimized to reach ~46% DER with respect to such annotation on CHiME-6 (thus roughly comparable to Kaldi TS-VAD implementation) but 
-we found this configuration to lead to worse WER overall. 
+The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) will be higher. In general this model can be optimized to reach ~46% DER with respect to such annotation on CHiME-6 (thus roughly comparable to Kaldi TS-VAD implementation) but
+we found this configuration to lead to worse WER overall.
 
 This may due to the fact that we use an E2E ASR system which may be more sensitive to segmentation errors compared to
 hybrid ASR models. We found that using an higher weight in decoding for CTC helped a bit (we use here 0.6, see `conf/decode_asr_transformer.yaml`).
 
-It is worth to point out also that it is quite challenging to optimize the diarization 
-hyperparameters (for example merging the segments that are X apart) for all three scenarios. <br> E.g. best parameters for CHiME-6 lead to degradation to 
+It is worth to point out also that it is quite challenging to optimize the diarization
+hyperparameters (for example merging the segments that are X apart) for all three scenarios. <br> E.g. best parameters for CHiME-6 lead to degradation to
 Mixer 6 performance. <br>
 
 
@@ -106,16 +106,16 @@ mkdir exp # if it does not exists yet in this folder it should be created
 ln -s ../asr1/exp/MY_ASR_SYSTEM ./exp
 ```
 
-**Important** <br> 
-The recipe stage 0 here will re-create the data. If you want to avoid 
-this and use the data already created in the acoustic sub-track recipe `egs2/chime7_task1/README.md` 
-you can also create a symbolic link to that one: 
+**Important** <br>
+The recipe stage 0 here will re-create the data. If you want to avoid
+this and use the data already created in the acoustic sub-track recipe `egs2/chime7_task1/README.md`
+you can also create a symbolic link to that one:
 ```bash
 ln -s ../asr1/chime7_task1 .
 ```
 
 #### Main Track with Pyannote-based Diarization System
-To reproduce our results which use our pre-trained ASR model [https://huggingface.co/popcornell/chime7_task1_asr1_baseline](https://huggingface.co/popcornell/chime7_task1_asr1_baseline) and pre-trained 
+To reproduce our results which use our pre-trained ASR model [https://huggingface.co/popcornell/chime7_task1_asr1_baseline](https://huggingface.co/popcornell/chime7_task1_asr1_baseline) and pre-trained
 [pyannote segmentation model](https://huggingface.co/popcornell/pyannote-segmentation-chime6-mixer6)
 you can run:
 ```bash
@@ -132,7 +132,7 @@ You can also play with diarization hyperparameters such as:
 as said merge-closer can have quite an impact on the final WER.
 
 ---
-If you want to run the recipe from scratch, **including dataset generation** and pyannote segmentation 
+If you want to run the recipe from scratch, **including dataset generation** and pyannote segmentation
 model finetuning you can run it from stage 0:
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
@@ -151,16 +151,16 @@ Please refer to `egs2/chime7_task1/README.md` for additional infos such as
 generating evaluation data when this will be made available.
 ---
 
-In the optional stage 1 the pyannote segmentation model is fine-tuned. You can run only this stage using to obtain 
+In the optional stage 1 the pyannote segmentation model is fine-tuned. You can run only this stage using to obtain
 your own fine-tuned segmentation model.
 ```bash
-./run.sh --chime7-root YOUR_PATH_TO_CHiME7_ROOT --stage 1 --stop-stage 1 --ngpu YOUR_NUMBER_OF_GPUs 
+./run.sh --chime7-root YOUR_PATH_TO_CHiME7_ROOT --stage 1 --stop-stage 1 --ngpu YOUR_NUMBER_OF_GPUs
 ```
 You can also play with diarization hyperparameters such as:
 1. `--pyan-learning-rate`: learning rate to use in fine-tuning.
 2. `--pyan-batch-size`: batch size to use in fine-tuning.
 
-You can check the fine-tuning progress by using tensorboard e.g.: 
+You can check the fine-tuning progress by using tensorboard e.g.:
 ```bash
 tensorboard --logdir=./exp/pyannote_finetune/lightning_logs/
 ```
