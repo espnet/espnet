@@ -98,12 +98,9 @@ Mixer 6 performance. <br>
 
 #### Training the ASR model
 
-Follow the instructions in the acoustic sub-track recipe `egs2/chime7_task1/README.md`.
-Then you can create a symbolic link to your trained ASR model e.g. if it is in the folder (using the standard config in the acoustic robustness sub-track) <br>
-`exp/MY_ASR_SYSTEM$
-`
-
-Then you can create a symbolic link to this ASR model in the exp folder here:
+Follow the instructions in the acoustic sub-track recipe `egs2/chime7_task1/README.md`. <br>
+Then you can create a symbolic link to your trained ASR model (which will be in the `../asr1/exp` folder). <br> 
+For example, to create a symbolic link to your trained ASR model in the exp folder here in `diar_asr1`:
 ```bash
 mkdir exp # if it does not exists yet in this folder it should be created
 ln -s ../asr1/exp/MY_ASR_SYSTEM ./exp
@@ -131,6 +128,9 @@ You can also play with diarization hyperparameters such as:
 1. `--diar-merge-closer`: merge segments after diarization from same speaker that are closer than this value.
 2. `--diar-max-length-merged`: max length allowed for segments that are merged (default 60, you may want to lower this due to GSS memory consumption).
 3. `--pyannote-max_batch_size`: max batch size used in inference when extracting embeddings (increase to speed up, default 32).
+
+as said merge-closer can have quite an impact on the final WER.
+
 ---
 If you want to run the recipe from scratch, **including dataset generation** and pyannote segmentation 
 model finetuning you can run it from stage 0:
