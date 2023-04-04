@@ -5,18 +5,51 @@ import pytest
 
 from espnet2.fileio.read_text import (
     load_num_sequence_text,
-    read_2column_text,
+    read_2columns_text,
     read_label,
+    read_multi_columns_text,
 )
 
 
-def test_read_2column_text(tmp_path: Path):
+def test_read_2columns_text(tmp_path: Path):
     p = tmp_path / "dummy.scp"
     with p.open("w") as f:
         f.write("abc /some/path/a.wav\n")
         f.write("def /some/path/b.wav\n")
-    d = read_2column_text(p)
-    assert d == {"abc": "/some/path/a.wav", "def": "/some/path/b.wav"}
+        f.write("ghi\n")
+    d = read_2columns_text(p)
+    assert d == {"abc": "/some/path/a.wav", "def": "/some/path/b.wav", "ghi": ""}
+
+
+@pytest.mark.parametrize("return_unsplit", [True, False])
+def test_multi_columns_text(tmp_path: Path, return_unsplit):
+    p = tmp_path / "dummy.scp"
+    with p.open("w") as f:
+        f.write("abc /some/path/a.wav /some/path/a2.wav\n")
+        f.write("def /some/path/b.wav\n")
+        f.write("ghi\n")
+    d, d2 = read_multi_columns_text(p, return_unsplit=return_unsplit)
+    assert d == {
+        "abc": ["/some/path/a.wav", "/some/path/a2.wav"],
+        "def": ["/some/path/b.wav"],
+        "ghi": [""],
+    }
+
+    if d2 is not None:
+        assert d2 == {
+            "abc": "/some/path/a.wav /some/path/a2.wav",
+            "def": "/some/path/b.wav",
+            "ghi": "",
+        }
+
+
+def test_read_2columns_text_duplicated(tmp_path: Path):
+    p = tmp_path / "dummy.scp"
+    with p.open("w") as f:
+        f.write("abc /some/path/a.wav\n")
+        f.write("abc /some/path/b.wav\n")
+    with pytest.raises(RuntimeError):
+        read_2columns_text(p)
 
 
 @pytest.mark.parametrize(

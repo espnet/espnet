@@ -23,7 +23,7 @@ from espnet2.fileio.rand_gen_dataset import (
 from espnet2.fileio.read_text import (
     RandomTextReader,
     load_num_sequence_text,
-    read_2column_text,
+    read_2columns_text,
     read_label,
 )
 from espnet2.fileio.rttm import RttmReader
@@ -160,7 +160,7 @@ class AdapterForLabelScpReader(collections.abc.Mapping):
         return sample_time, sample_label
 
 
-def sound_loader(path, float_dtype=None):
+def sound_loader(path, float_dtype=None, multi_columns=False):
     # The file is as follows:
     #   utterance_id_A /some/where/a.wav
     #   utterance_id_B /some/where/a.flac
@@ -168,19 +168,25 @@ def sound_loader(path, float_dtype=None):
     # NOTE(kamo): SoundScpReader doesn't support pipe-fashion
     # like Kaldi e.g. "cat a.wav |".
     # NOTE(kamo): The audio signal is normalized to [-1,1] range.
-    loader = SoundScpReader(path, normalize=True, always_2d=False)
+    loader = SoundScpReader(
+        path, always_2d=False, dtype=float_dtype, multi_columns=multi_columns
+    )
 
     # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
     # but ndarray is desired, so Adapter class is inserted here
-    return AdapterForSoundScpReader(loader, float_dtype)
+    return AdapterForSoundScpReader(loader)
 
 
-def score_loader(path, float_dtype=None):
+def multi_columns_sound_loader(path, float_dtype=None):
+    return sound_loader(path, float_dtype, multi_columns=True)
+
+
+def score_loader(path):
     loader = SingingScoreReader(fname=path)
     return AdapterForSingingScoreScpReader(loader)
 
 
-def label_loader(path, float_dtype=None):
+def label_loader(path):
     loader = read_label(path)
     return AdapterForLabelScpReader(loader)
 
@@ -209,9 +215,19 @@ DATA_TYPES = {
         "   utterance_id_b b.wav\n"
         "   ...",
     ),
+    "multi_columns_sound": dict(
+        func=multi_columns_sound_loader,
+        kwargs=["float_dtype"],
+        help="Enable multi columns wav.scp. "
+        "The following text file can be loaded as multi channels audio data"
+        "\n\n"
+        "   utterance_id_a a.wav a2.wav\n"
+        "   utterance_id_b b.wav b2.wav\n"
+        "   ...",
+    ),
     "score": dict(
         func=score_loader,
-        kwargs=["float_dtype"],
+        kwargs=[],
         help="Return text as is. The text contains tempo and note info.\n"
         "For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. "
         "\n\n"
@@ -288,7 +304,7 @@ DATA_TYPES = {
         "   ...",
     ),
     "text": dict(
-        func=read_2column_text,
+        func=read_2columns_text,
         kwargs=[],
         help="Return text as is. The text must be converted to ndarray "
         "by 'preprocess'."
