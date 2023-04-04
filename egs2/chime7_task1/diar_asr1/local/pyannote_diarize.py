@@ -249,7 +249,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         "This script performs diarization using "
         "Pyannote audio diarization pipeline "
-        "plus dover-lap system combination across multiple microphones.",
+        "extended to handle multiple microphones.",
         add_help=True,
         usage="%(prog)s [options]",
     )

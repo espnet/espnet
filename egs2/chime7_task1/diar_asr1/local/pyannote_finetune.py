@@ -1,5 +1,6 @@
 import argparse
 import os.path
+import shutil
 from pathlib import Path
 from types import MethodType
 
@@ -93,14 +94,14 @@ def finetune_segmentation(
 
     trainer = Trainer(
         accelerator="gpu",
-        n_gpus=n_gpus,
+        devices=list(range(n_gpus)),
         callbacks=callbacks,
         max_epochs=max_epochs,
         gradient_clip_val=gradient_clip,
         default_root_dir=exp_folder,
     )
     trainer.fit(model)
-    os.symlink(
+    shutil.copyfile(
         checkpoint.best_model_path,
         os.path.join(Path(checkpoint.best_model_path).parent, "best.ckpt"),
     )
@@ -183,7 +184,7 @@ if __name__ == "__main__":
         n_gpus=args.ngpus,
         num_workers=args.num_workers,
         auth_token=args.auth_token,
-        learning_rate=args.learning_rate,
+        learning_rate=float(args.learning_rate),
         exp_folder=args.exp_folder,
         ft_protocol=args.protocol,
     )

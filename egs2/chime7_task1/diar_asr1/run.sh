@@ -32,11 +32,17 @@ gen_eval=0 # please not generate eval before release of mixer 6 eval
 # DIARIZATION config
 diarization_backend=pyannote
 pyannote_access_token=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 # will remove after the challenge.
+# inference
 diarization_dir=exp/diarization
 diar_inf_dset="dev"
-diar_merge_closer=1.5
-diar_max_length_merged=60
-pyannote_max_batch_size=32
+pyan_merge_closer=0.5
+pyan_max_length_merged=60
+pyan_inf_max_batch=128
+pyan_use_pretrained= #popcornell/pyannote-segmentation-chime6-mixer6
+# fine-tune
+pyan_finetune_dir=exp/pyannote_finetuned
+
+
 
 # GSS config
 ngpu=4
@@ -72,6 +78,34 @@ fi
 
 
 if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyannote ]; then
+
+  if ! python3 -c "import pyannote.audio" &> /dev/null; then
+    log "Installing Pyannote Audio."
+    (
+        python3 -m pip install pyannote-audio
+    )
+  fi
+  # prep data for fine-tuning the pyannote segmentation model
+  # we use only CHiME-6 training set because DiPCo has only development and
+  # Mixer 6 training annotation is not suitable right away for diarization
+  # training. You can try to leverage it in a semi-supervised way however.
+  python local/pyannote_dprep.py -r $chime7_root --output_root data/pyannote_diarization
+  # fine-tuning the model
+  if [ ! -f database.yml ]; then
+     ln -s local/database.yml database.yml # make link to database.yml also in main dir
+  fi
+  python local/pyannote_finetune.py --exp_folder $pyan_finetune_dir \
+      --batch_size 64 \
+      --learning_rate "1e-5" \
+      --token $pyannote_access_token
+
+  if [ -z "${pyan_use_pretrained}" ]; then
+    # use the one fine-tuned now
+    pyan_use_pretrained="${PWD}/${pyan_finetune_dir}/lightning_logs/version_0/checkpoints/best.ckpt"
+  fi
+fi
+
+if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ] && [ $diarization_backend == pyannote ]; then
   # check if pyannote is installed
   if ! python3 -c "import pyannote.audio" &> /dev/null; then
     log "Installing Pyannote Audio."
@@ -96,15 +130,16 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
               --mic_regex $mic_regex \
               --sess_regex $sess_regex \
               --token ${pyannote_access_token} \
-              --merge_closer $diar_merge_closer \
-              --max_length_merged $diar_max_length_merged \
-              --max_batch_size $pyannote_max_batch_size
+              --segmentation_model $pyan_use_pretrained \
+              --merge_closer $pyan_merge_closer \
+              --max_length_merged $pyan_max_length_merged \
+              --max_batch_size $pyan_inf_max_batch
     done
   done
 fi
 
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # parse all datasets to lhotse
   for dset in chime6 dipco mixer6; do
     for dset_part in $diar_inf_dset; do
@@ -119,7 +154,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 
-if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
+if [ ${stage} -le 4 ] && [ $stop_stage -ge 4 ]; then
   log "Performing GSS+Channel Selection+ASR inference on diarized output"
   # now that we have diarized the dataset, we can run the sub-track 1 baseline
   # and use the diarization output in place of oracle diarization.
@@ -129,5 +164,6 @@ if [ ${stage} -le 3 ] && [ $stop_stage -ge 3 ]; then
         --stop-stage $gss_asr_stop_stage --ngpu $ngpu \
         --use-pretrained $use_pretrained \
         --decode_only $decode_only --gss-max-batch-dur $gss_max_batch_dur \
+        --gss-iterations 5 \
         --diar-score 1
 fi
