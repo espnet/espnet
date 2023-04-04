@@ -41,7 +41,8 @@ pyan_inf_max_batch=128
 pyan_use_pretrained= #popcornell/pyannote-segmentation-chime6-mixer6
 # fine-tune
 pyan_finetune_dir=exp/pyannote_finetuned
-
+pyan_batch_size=64
+pyan_learning_rate="1e-5"
 
 
 # GSS config
@@ -95,8 +96,8 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
      ln -s local/database.yml database.yml # make link to database.yml also in main dir
   fi
   python local/pyannote_finetune.py --exp_folder $pyan_finetune_dir \
-      --batch_size 64 \
-      --learning_rate "1e-5" \
+      --batch_size $pyan_batch_size \
+      --learning_rate $pyan_learning_rate \
       --token $pyannote_access_token
 
   if [ -z "${pyan_use_pretrained}" ]; then

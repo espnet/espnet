@@ -134,7 +134,7 @@ using:
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
---decode_only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM
+--decode-only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM
 ```
 Note that `gss-max-batch-dur` affects a lot your inference time.
 Also note that getting this warning `Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[8]`
