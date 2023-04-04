@@ -119,7 +119,7 @@ To reproduce our results which use our pre-trained ASR model [https://huggingfac
 [pyannote segmentation model](https://huggingface.co/popcornell/pyannote-segmentation-chime6-mixer6)
 you can run:
 ```bash
-./run.sh --chime7-root YOUR_PATH_TO_CHiME7_ROOT --stage 1 --ngpu YOUR_NUMBER_OF_GPUs \
+./run.sh --chime7-root YOUR_PATH_TO_CHiME7_ROOT --stage 2 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
 --decode-only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM \
 --pyan-use-pretrained popcornell/pyannote-segmentation-chime6-mixer6
@@ -132,8 +132,8 @@ You can also play with diarization hyperparameters such as:
 as said merge-closer can have quite an impact on the final WER.
 
 ---
-If you want to run the recipe from scratch, **including dataset generation** and pyannote segmentation
-model finetuning you can run it from stage 0:
+If you want to run this recipe from scratch, **including dataset generation** and pyannote segmentation
+model fine-tuning you can run it from stage 0:
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \
