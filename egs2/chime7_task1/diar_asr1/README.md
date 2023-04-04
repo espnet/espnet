@@ -99,7 +99,7 @@ Mixer 6 performance. <br>
 #### Training the ASR model
 
 Follow the instructions in the acoustic sub-track recipe `egs2/chime7_task1/README.md`. <br>
-Then you can create a symbolic link to your trained ASR model (which will be in the `../asr1/exp` folder). <br> 
+Then you can create a symbolic link to your trained ASR model (which will be in the `../asr1/exp` folder). <br>
 For example, to create a symbolic link to your trained ASR model in the exp folder here in `diar_asr1`:
 ```bash
 mkdir exp # if it does not exists yet in this folder it should be created
