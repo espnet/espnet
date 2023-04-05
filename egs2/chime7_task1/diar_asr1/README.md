@@ -8,9 +8,15 @@
 ---
 This recipe contains the baseline for the CHiME-7 DASR Challenge main track (diarization + ASR).
 
-#### Please refer to `egs2/chime7_task1/README.md` for additional infos (including ranking and evaluation script and dataset generation).
+### Please refer to `egs2/chime7_task1/README.md` for additional infos (including ranking and evaluation script and dataset generation).
 
 ---
+
+## <a id="installation">2. Installation </a>
+
+Follow the instructions in `egs2/chime7_task1/README.md` about how to install ESPNEt2 and the required 
+dependencies for this recipe.
+
 
 ## Main Track Baseline (Diarization + ASR)
 <img src="https://www.chimechallenge.org/current/task1/images/baseline.png" width="450" height="120" />
@@ -57,7 +63,8 @@ There is then a lot to improve upon.
 
 #### Results
 
-We report the results with this Pyannote-based multi-channel pipeline hereafter (as obtained with the challenge evaluation script ( `egs2/chime7_task1/README.md`))
+We report the results with this Pyannote-based multi-channel pipeline hereafter (as obtained with the challenge evaluation script ( `egs2/chime7_task1/README.md`)). <br>
+More detailed results for each scenario (as produced by the evaluation script in `local/da_wer_scoring.py`) are in `baseline_logs/inference.log` here.
 
 ```bash
 ###################################################

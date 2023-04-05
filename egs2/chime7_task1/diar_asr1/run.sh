@@ -78,7 +78,7 @@ if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
 fi
 
 
-if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyannote ]; then
+if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyannote ] && [ -z "${pyan_use_pretrained}" ]; then
 
   if ! python3 -c "import pyannote.audio" &> /dev/null; then
     log "Installing Pyannote Audio."
