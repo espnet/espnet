@@ -684,6 +684,7 @@ if __name__ == "__main__":
         print("### Macro-Averaged Metrics across all Scenarios (Ranking Metric) ###")
         print("####################################################################")
         import pdb
+
         pdb.set_trace()
         macro_avg = scenario_wise_df.drop("scenario").mean(0).to_frame().T
         macro_avg.insert(0, "scenario", "macro-average")
