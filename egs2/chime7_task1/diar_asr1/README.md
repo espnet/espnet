@@ -14,7 +14,7 @@ This recipe contains the baseline for the CHiME-7 DASR Challenge main track (dia
 
 ## <a id="installation">2. Installation </a>
 
-Follow the instructions in `egs2/chime7_task1/README.md` about how to install ESPNEt2 and the required 
+Follow the instructions in `egs2/chime7_task1/README.md` about how to install ESPNEt2 and the required
 dependencies for this recipe.
 
 
