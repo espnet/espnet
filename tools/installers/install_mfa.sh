@@ -18,5 +18,5 @@ else
     pip install --only-binary :all: pynini
 fi
 
-# Use only pip, conda installation may cause issues due to version match. 
+# Use only pip, conda installation may cause issues due to version match.
 pip install --ignore-requires-python git+https://github.com/MontrealCorpusTools/Montreal-Forced-Aligner.git@v2.2.7
