@@ -1,3 +1,11 @@
+# this file is necessary for fine-tuning the pyannote
+# segmentation model.
+# See https://github.com/pyannote/pyannote-database for more information
+# It basically states where the annotation and the audio files for
+# each dataset are located.
+# We define a fictitious dataset called chime7_finetune for which we use chime6
+# for training but only mixer6 for validation, to avoid overfitting.
+
 Databases:
   chime7_finetune: # to avoid overfitting chime6:
     - ./chime7_task1/chime6/audio/train/{uri}.wav # train on chime6
