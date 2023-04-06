@@ -34,6 +34,7 @@ from espnet2.gan_tts.utils import get_random_segments, get_segments
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
+from espnet2.tts.prodiff import ProDiff
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
 
@@ -42,6 +43,7 @@ AVAILABLE_TEXT2MEL = {
     "transformer": Transformer,
     "fastspeech": FastSpeech,
     "fastspeech2": FastSpeech2,
+    "prodiff": ProDiff,
 }
 AVAILABLE_VOCODER = {
     "hifigan_generator": HiFiGANGenerator,

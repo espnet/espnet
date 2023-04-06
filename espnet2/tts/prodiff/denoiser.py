@@ -161,7 +161,6 @@ class SpectogramDenoiser(nn.Module):
         channels: int = 256,
         cycle_length: int = 1,
         timesteps: int = 200,
-        timescale: int = 1,
         max_beta: float = 40.0,
         scheduler: str = "vpsde",
         dropout_rate: float = 0.05,
@@ -176,7 +175,6 @@ class SpectogramDenoiser(nn.Module):
             cycle_length (int, optional): Cycle length of the diffusion. Defaults to 1.
             timesteps (int, optional): Number of timesteps of the diffusion.
                 Defaults to 200.
-            timescale (int, optional): Number of timescale. Defaults to 1.
             max_beta (float, optional): Maximum beta value for schedueler.
                 Defaults to 40.
             scheduler (str, optional): Type of noise scheduler. Defaults to "vpsde".
@@ -186,7 +184,6 @@ class SpectogramDenoiser(nn.Module):
         super().__init__()
         self.idim = idim
         self.timesteps = timesteps
-        self.scale = timescale
         self.num_layers = layers
         self.channels = channels
 
