@@ -10,7 +10,7 @@ Reference:
 """
 
 import logging
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -447,7 +447,6 @@ class EBranchformerEncoder(AbsEncoder):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
 
                 if layer_idx + 1 in self.interctc_layer_idx:
-
                     encoder_out = xs_pad
 
                     if isinstance(encoder_out, tuple):

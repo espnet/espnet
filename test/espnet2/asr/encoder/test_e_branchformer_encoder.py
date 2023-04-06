@@ -1,8 +1,8 @@
 import pytest
 import torch
 
-from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.ctc import CTC
+from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 
 
 @pytest.mark.parametrize(
