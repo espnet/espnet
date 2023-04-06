@@ -65,11 +65,14 @@ class Categorizer(object):
 
 categorizer = Categorizer()
 tree = LanguageTree()
-tree.build_from_json("downloads/linguistic.json")
-with open(f"downloads/macro.json", "r", encoding="utf-8") as f:
-    macros = json.load(f)
-with open(f"downloads/exception.json", "r", encoding="utf-8") as f:
-    exceptions = json.load(f)
+if os.path.exists("downloads/linguistic.json"):
+    tree.build_from_json("downloads/linguistic.json")
+    with open(f"downloads/macro.json", "r", encoding="utf-8") as f:
+        macros = json.load(f)
+    with open(f"downloads/exception.json", "r", encoding="utf-8") as f:
+        exceptions = json.load(f)
+else:
+    print("[warning] linguistic information not loading")
 
 
 def read_lines(path):
@@ -232,4 +235,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     LID = args.lid
     ONLY_LID = args.only_lid
+
     main(args)

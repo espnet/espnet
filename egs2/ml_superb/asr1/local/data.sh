@@ -26,9 +26,9 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-mkdir -p ${MSUPERB}
-if [ -z "${MSUPERB}" ]; then
-    log "Fill the value of 'MSUPERB' of db.sh"
+mkdir -p ${MLSUPERB}
+if [ -z "${MLSUPERB}" ]; then
+    log "Fill the value of 'MLSUPERB' of db.sh"
     exit 1
 fi
 
@@ -42,7 +42,7 @@ set -o pipefail
 log "data preparation started"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage1: Download data to ${MSUPERB}"
+    log "stage1: Download data to ${MLSUPERB}"
     log "Not released yet"
 fi
 
@@ -68,7 +68,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --train_dev dev_${duration}${suffix} \
             --test_set test_${duration}${suffix} \
             --duration ${duration} \
-            --source ${MSUPERB} \
+            --source ${MLSUPERB} \
             --lid ${lid} \
             --only_lid ${only_lid}
 
@@ -85,7 +85,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
         python local/single_lang_data_prep.py \
             --duration ${duration} \
-            --source ${MSUPERB} \
+            --source ${MLSUPERB} \
             --lang ${single_lang}
 
         for x in "train" "dev" "test"; do
