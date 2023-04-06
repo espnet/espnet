@@ -94,9 +94,9 @@ we found this configuration to lead to worse WER overall.
 
 This may due to the fact that we use an E2E ASR system which may be more sensitive to segmentation errors compared to
 hybrid ASR models. We found that using an higher weight in decoding for CTC helped a bit (we use here 0.6, see `conf/decode_asr_transformer.yaml`). <br>
-On the other hand, using ESPNet2 E2E ASR allows to keep the baseline arguably simpler (than e.g. Kaldi) and allows more easily to explore some techniques such as serialized output training, 
+On the other hand, using ESPNet2 E2E ASR allows to keep the baseline arguably simpler (than e.g. Kaldi) and allows more easily to explore some techniques such as serialized output training,
 target speaker ASR and E2E integration with speech enhancement and separation front-ends. <br>
-But you are free to explore other techniques (e.g. by using [K2](https://github.com/k2-fsa/k2), which is also integrated with 
+But you are free to explore other techniques (e.g. by using [K2](https://github.com/k2-fsa/k2), which is also integrated with
 [lhotse](https://github.com/lhotse-speech/lhotse), used in this recipe for data preparation).
 
 It is worth to point out also that it is quite challenging to optimize the diarization
