@@ -18,6 +18,5 @@ else
     pip install --only-binary :all: pynini
 fi
 
-# Use only pip, conda installation may cause issues due to version match.
-pip install sqlalchemy==1.4.45  # v2.0.0+ generates error on MFA
-pip install --ignore-requires-python git+https://github.com/MontrealCorpusTools/Montreal-Forced-Aligner.git@v2.0.6
+# Use only pip, conda installation may cause issues due to version match. 
+pip install --ignore-requires-python git+https://github.com/MontrealCorpusTools/Montreal-Forced-Aligner.git@v2.2.7
