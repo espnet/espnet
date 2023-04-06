@@ -87,11 +87,12 @@ More detailed results for each scenario (as produced by the evaluation script in
 +----+---------------+---------------+---------------+----------------------+----------------------+--------------------+---------+-----------+-------------+---------------+--------------------------+-----------------+-----------------+----------------------+---------+-----------------+-------------+--------------+----------+
 ```
 
-We can see that the DER and JER values are quite competitive on CHiME-6 with the state-of-the-art (e.g. JHU CHiME-6 submission) but
+We can see that the DER and JER values are quite competitive on CHiME-6 with the state-of-the-art but
 the WER figures are quite poor. <br>
 **Note that here we report DER and JER which are computed against manual annotation for CHiME-6.** <br>
-The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) will be higher. In general this model can be optimized to reach ~46% DER with respect to such annotation on CHiME-6 (thus roughly comparable to Kaldi TS-VAD implementation) but
-we found this configuration to lead to worse WER overall.
+The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) are a bit lower actually (38.94%). 
+In general this model is competitive with the [Kaldi TS-VAD implementation](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5c_track2) but 
+it is arguably much simpler and faster to run (and can be adapted to run in a streaming fashion actually).
 
 This may due to the fact that we use an E2E ASR system which may be more sensitive to segmentation errors compared to
 hybrid ASR models. We found that using an higher weight in decoding for CTC helped a bit (we use here 0.6, see `conf/decode_asr_transformer.yaml`). <br>
