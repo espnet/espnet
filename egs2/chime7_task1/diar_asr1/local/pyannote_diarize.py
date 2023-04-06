@@ -25,12 +25,16 @@ def split_maxlen(utt_group, min_len=10):
     out = []
     stack = []
     for utt in utt_group:
-        c_len = utt.end - utt.start
-        if not stack or (c_len + sum([x.end - x.start for x in stack])) < min_len:
+        if not stack or (utt.end - stack[0].start) < min_len:
             stack.append(utt)
-        else:
-            out.append(Segment(stack[0].start, stack[-1].end))
-            stack = [utt]
+            continue
+
+        out.append(Segment(stack[0].start, stack[-1].end))
+        stack = [utt]
+
+    if len(stack):
+        out.append(Segment(stack[0].start, stack[-1].end))
+
     return out
 
 
@@ -43,16 +47,21 @@ def merge_closer(annotation, delta=1.0, max_len=60, min_len=10):
         for seg in c_segments:
             if not stack or abs(stack[-1].end - seg.start) < delta:
                 stack.append(seg)
+                continue  # continue
+
+            # more than delta, save the current max seg
+            if (stack[-1].end - stack[0].start) > max_len:
+                # break into parts of 10 seconds at least
+                for sub_seg in split_maxlen(stack, min_len):
+                    new_annotation[sub_seg] = spk
+                stack = [seg]
             else:
-                # more than delta
-                if sum([x.end - x.start for x in stack]) > max_len:
-                    # break into parts of 10 seconds at least
-                    for sub_seg in split_maxlen(stack, min_len):
-                        new_annotation[sub_seg] = spk
-                    stack = [seg]
-                else:
-                    new_annotation[Segment(stack[0].start, stack[-1].end)] = spk
-                    stack = [seg]
+                new_annotation[Segment(stack[0].start, stack[-1].end)] = spk
+                stack = [seg]
+
+        if len(stack):
+            new_annotation[Segment(stack[0].start, stack[-1].end)] = spk
+
     return new_annotation
 
 
