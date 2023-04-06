@@ -18,11 +18,6 @@ def main(args):
                 correct += 1
             total += 1
 
-        # lid_report = classification_report(y_true, y_pred)
-        # # write lid report to file
-        # with open(f"{args.dir}/scores.txt", "w") as f:
-        #     f.write(lid_report)
-
         with open(f"{args.dir}/scores.txt", "w") as f:
             f.write(f"Acc: {correct / total * 100:.2f}%\n")
 
