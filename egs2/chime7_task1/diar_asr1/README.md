@@ -90,8 +90,8 @@ More detailed results for each scenario (as produced by the evaluation script in
 We can see that the DER and JER values are quite competitive on CHiME-6 with the state-of-the-art but
 the WER figures are quite poor. <br>
 **Note that here we report DER and JER which are computed against manual annotation for CHiME-6.** <br>
-The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) are a bit lower actually (38.94%). 
-In general this model is competitive with the [Kaldi TS-VAD implementation](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5c_track2) but 
+The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) are a bit lower actually (38.94%).
+In general this model is competitive with the [Kaldi TS-VAD implementation](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5c_track2) but
 it is arguably much simpler and faster to run (and can be adapted to run in a streaming fashion actually).
 
 This may due to the fact that we use an E2E ASR system which may be more sensitive to segmentation errors compared to
