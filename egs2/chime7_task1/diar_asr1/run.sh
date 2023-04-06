@@ -36,7 +36,7 @@ pyannote_access_token=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 # will remove after 
 diarization_dir=exp/diarization
 diar_inf_dset="dev"
 pyan_merge_closer=0.5
-pyan_max_length_merged=60
+pyan_max_length_merged=20
 pyan_inf_max_batch=128
 pyan_use_pretrained= #popcornell/pyannote-segmentation-chime6-mixer6
 # fine-tune
