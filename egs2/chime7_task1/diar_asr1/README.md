@@ -93,7 +93,11 @@ The DER and JER obtained with respect to the [forced-alignment annotation](https
 we found this configuration to lead to worse WER overall.
 
 This may due to the fact that we use an E2E ASR system which may be more sensitive to segmentation errors compared to
-hybrid ASR models. We found that using an higher weight in decoding for CTC helped a bit (we use here 0.6, see `conf/decode_asr_transformer.yaml`).
+hybrid ASR models. We found that using an higher weight in decoding for CTC helped a bit (we use here 0.6, see `conf/decode_asr_transformer.yaml`). <br>
+On the other hand, using ESPNet2 E2E ASR allows to keep the baseline arguably simpler (than e.g. Kaldi) and allows more easily to explore some techniques such as serialized output training, 
+target speaker ASR and E2E integration with speech enhancement and separation front-ends. <br>
+But you are free to explore other techniques (e.g. by using [K2](https://github.com/k2-fsa/k2), which is also integrated with 
+[lhotse](https://github.com/lhotse-speech/lhotse), used in this recipe for data preparation).
 
 It is worth to point out also that it is quite challenging to optimize the diarization
 hyperparameters (for example merging the segments that are X apart) for all three scenarios. <br> E.g. best parameters for CHiME-6 lead to degradation to
@@ -154,8 +158,10 @@ model fine-tuning you can run it from stage 0:
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --stop-stage 0
 ```
+
 Please refer to `egs2/chime7_task1/README.md` for additional infos such as
 generating evaluation data when this will be made available.
+
 ---
 
 In the optional stage 1 the pyannote segmentation model is fine-tuned. You can run only this stage using to obtain
