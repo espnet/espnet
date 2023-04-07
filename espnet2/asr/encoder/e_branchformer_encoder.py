@@ -398,7 +398,7 @@ class EBranchformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
-        layer: int = None,
+        max_layer: int = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -406,6 +406,8 @@ class EBranchformerEncoder(AbsEncoder):
             xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
             ilens (torch.Tensor): Input length (#batch).
             prev_states (torch.Tensor): Not to be used now.
+            ctc (CTC): Intermediate CTC module.
+            max_layer (int): Layer depth below which InterCTC is applied.
         Returns:
             torch.Tensor: Output tensor (#batch, L, output_size).
             torch.Tensor: Output length (#batch).
@@ -435,10 +437,10 @@ class EBranchformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            if layer is not None and (layer >= 0 and layer < len(self.encoders)):
+            if max_layer is not None and 0 <= max_layer < len(self.encoders):
                 for layer_idx, encoder_layer in enumerate(self.encoders):
                     xs_pad, masks = encoder_layer(xs_pad, masks)
-                    if layer_idx >= layer:
+                    if layer_idx >= max_layer:
                         break
             else:
                 xs_pad, masks = self.encoders(xs_pad, masks)
