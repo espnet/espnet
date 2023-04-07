@@ -210,6 +210,7 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.asr.ctc</span> <span class="kn">import</span> <span class="n">CTC</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.layers.cgmlp</span> <span class="kn">import</span> <span class="n">ConvolutionalGatingMLP</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.layers.fastformer</span> <span class="kn">import</span> <span class="n">FastSelfAttention</span>
@@ -402,6 +403,8 @@
         <span class="n">linear_units</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">,</span>
         <span class="n">positionwise_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;linear&quot;</span><span class="p">,</span>
         <span class="n">merge_conv_kernel</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">interctc_layer_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">interctc_use_conditioning</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -573,6 +576,14 @@
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="n">output_size</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">interctc_layer_idx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">interctc_layer_idx</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interctc_layer_idx</span> <span class="o">=</span> <span class="n">interctc_layer_idx</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">interctc_layer_idx</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">interctc_layer_idx</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">max</span><span class="p">(</span><span class="n">interctc_layer_idx</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">num_blocks</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interctc_use_conditioning</span> <span class="o">=</span> <span class="n">interctc_use_conditioning</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">conditioning_layer</span> <span class="o">=</span> <span class="kc">None</span>
+
 <div class="viewcode-block" id="EBranchformerEncoder.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.e_branchformer_encoder.EBranchformerEncoder.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span></div>
 
@@ -581,6 +592,8 @@
         <span class="n">xs_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">prev_states</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">ctc</span><span class="p">:</span> <span class="n">CTC</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">max_layer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
 
@@ -588,6 +601,8 @@
 <span class="sd">            xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).</span>
 <span class="sd">            ilens (torch.Tensor): Input length (#batch).</span>
 <span class="sd">            prev_states (torch.Tensor): Not to be used now.</span>
+<span class="sd">            ctc (CTC): Intermediate CTC module.</span>
+<span class="sd">            max_layer (int): Layer depth below which InterCTC is applied.</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            torch.Tensor: Output tensor (#batch, L, output_size).</span>
 <span class="sd">            torch.Tensor: Output length (#batch).</span>
@@ -615,13 +630,44 @@
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">xs_pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
 
-        <span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+        <span class="n">intermediate_outs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interctc_layer_idx</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">max_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">max_layer</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">encoder_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">):</span>
+                    <span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="n">encoder_layer</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">layer_idx</span> <span class="o">&gt;=</span> <span class="n">max_layer</span><span class="p">:</span>
+                        <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">encoder_layer</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="p">):</span>
+                <span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span> <span class="o">=</span> <span class="n">encoder_layer</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">layer_idx</span> <span class="o">+</span> <span class="mi">1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">interctc_layer_idx</span><span class="p">:</span>
+                    <span class="n">encoder_out</span> <span class="o">=</span> <span class="n">xs_pad</span>
+
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                        <span class="n">encoder_out</span> <span class="o">=</span> <span class="n">encoder_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+                    <span class="n">intermediate_outs</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">layer_idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">encoder_out</span><span class="p">))</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interctc_use_conditioning</span><span class="p">:</span>
+                        <span class="n">ctc_out</span> <span class="o">=</span> <span class="n">ctc</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">)</span>
+
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                            <span class="n">xs_pad</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
+                            <span class="n">xs_pad</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">conditioning_layer</span><span class="p">(</span><span class="n">ctc_out</span><span class="p">)</span>
+                            <span class="n">xs_pad</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">conditioning_layer</span><span class="p">(</span><span class="n">ctc_out</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
         <span class="n">xs_pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
         <span class="n">olens</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">intermediate_outs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="n">intermediate_outs</span><span class="p">),</span> <span class="n">olens</span><span class="p">,</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="kc">None</span></div></div>
 </pre></div>
 

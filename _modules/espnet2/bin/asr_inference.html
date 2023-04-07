@@ -198,8 +198,9 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -227,6 +228,7 @@
 <span class="kn">from</span> <span class="nn">espnet.nets.batch_beam_search_online_sim</span> <span class="kn">import</span> <span class="n">BatchBeamSearchOnlineSim</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.beam_search</span> <span class="kn">import</span> <span class="n">BeamSearch</span><span class="p">,</span> <span class="n">Hypothesis</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.beam_search_timesync</span> <span class="kn">import</span> <span class="n">BeamSearchTimeSync</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.add_sos_eos</span> <span class="kn">import</span> <span class="n">add_sos_eos</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.subsampling</span> <span class="kn">import</span> <span class="n">TooShortUttError</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.scorer_interface</span> <span class="kn">import</span> <span class="n">BatchScorerInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.scorers.ctc</span> <span class="kn">import</span> <span class="n">CTCPrefixScorer</span>
@@ -240,6 +242,16 @@
     <span class="n">is_transformers_available</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
     <span class="n">is_transformers_available</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># Alias for typing</span>
+<span class="n">ListOfHypothesis</span> <span class="o">=</span> <span class="n">List</span><span class="p">[</span>
+    <span class="n">Tuple</span><span class="p">[</span>
+        <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+        <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
+        <span class="n">Union</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">,</span> <span class="n">ExtTransHypothesis</span><span class="p">,</span> <span class="n">TransHypothesis</span><span class="p">],</span>
+    <span class="p">]</span>
+<span class="p">]</span>
 
 
 <div class="viewcode-block" id="Speech2Text"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_inference.Speech2Text">[docs]</a><span class="k">class</span> <span class="nc">Speech2Text</span><span class="p">:</span>
@@ -557,13 +569,12 @@
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span>
+        <span class="n">ListOfHypothesis</span><span class="p">,</span>
         <span class="n">Tuple</span><span class="p">[</span>
-            <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-            <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-            <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
-            <span class="n">Union</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">,</span> <span class="n">ExtTransHypothesis</span><span class="p">,</span> <span class="n">TransHypothesis</span><span class="p">],</span>
-        <span class="p">]</span>
+            <span class="n">ListOfHypothesis</span><span class="p">,</span>
+            <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]],</span>
+        <span class="p">],</span>
     <span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Inference</span>
 
@@ -590,7 +601,7 @@
         <span class="n">batch</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
         <span class="c1"># b. Forward Encoder</span>
-        <span class="n">enc</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+        <span class="n">enc</span><span class="p">,</span> <span class="n">enc_olens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_asr</span><span class="p">:</span>
             <span class="n">enc</span> <span class="o">=</span> <span class="n">enc</span><span class="o">.</span><span class="n">unbind</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (batch, num_inf, ...) -&gt; num_inf x [batch, ...]</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_s2t_task</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">multi_asr</span><span class="p">:</span>
@@ -615,15 +626,40 @@
 
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Normal ASR</span>
+            <span class="n">intermediate_outs</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">enc</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="n">intermediate_outs</span> <span class="o">=</span> <span class="n">enc</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">enc</span> <span class="o">=</span> <span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>
 
             <span class="c1"># c. Passed the encoder result and the beam search</span>
             <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_single_sample</span><span class="p">(</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+            <span class="c1"># Encoder intermediate CTC predictions</span>
+            <span class="k">if</span> <span class="n">intermediate_outs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">encoder_interctc_res</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_interctc</span><span class="p">(</span><span class="n">intermediate_outs</span><span class="p">)</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="n">encoder_interctc_res</span><span class="p">)</span>
             <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">results</span>
+
+    <span class="k">def</span> <span class="nf">_decode_interctc</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">intermediate_outs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="n">exclude_ids</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">eos</span><span class="p">]</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">token_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">token_list</span>
+
+        <span class="k">for</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">encoder_out</span> <span class="ow">in</span> <span class="n">intermediate_outs</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># batch_size = 1</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="k">if</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">exclude_ids</span><span class="p">]</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="p">[</span><span class="n">token_list</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">y</span><span class="p">]</span>
+
+            <span class="n">res</span><span class="p">[</span><span class="n">layer_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">y</span>
+
+        <span class="k">return</span> <span class="n">res</span>
 
     <span class="k">def</span> <span class="nf">_decode_single_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search_transducer</span><span class="p">:</span>
@@ -881,6 +917,10 @@
 
             <span class="k">else</span><span class="p">:</span>
                 <span class="c1"># Normal ASR</span>
+                <span class="n">encoder_interctc_res</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">results</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                    <span class="n">results</span><span class="p">,</span> <span class="n">encoder_interctc_res</span> <span class="o">=</span> <span class="n">results</span>
+
                 <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">token_int</span><span class="p">,</span> <span class="n">hyp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
                     <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbest</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">results</span>
                 <span class="p">):</span>
@@ -893,7 +933,16 @@
                     <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
 
                     <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                        <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span></div>
+                        <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span>
+
+                <span class="c1"># Write intermediate predictions to</span>
+                <span class="c1"># encoder_interctc_layer&lt;layer_idx&gt;.txt</span>
+                <span class="n">ibest_writer</span> <span class="o">=</span> <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;1best_recog&quot;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">encoder_interctc_res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">encoder_interctc_res</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">ibest_writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;encoder_interctc_layer</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">][</span>
+                            <span class="n">key</span>
+                        <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_inference.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
