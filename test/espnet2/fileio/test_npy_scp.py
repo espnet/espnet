@@ -4,7 +4,6 @@ import numpy as np
 import pytest
 
 from espnet2.fileio.npy_scp import NpyScpReader, NpyScpWriter
-from espnet2.fileio.sound_scp import SoundScpReader, SoundScpWriter
 
 
 def test_NpyScpReader(tmp_path: Path):
@@ -53,49 +52,3 @@ def test_NpyScpWriter(tmp_path: Path):
 
     assert writer.get_path("abc") == str(tmp_path / "abc.npy")
     assert writer.get_path("def") == str(tmp_path / "def.npy")
-
-
-def test_SoundScpWriter(tmp_path: Path):
-    audio1 = np.random.randint(-100, 100, 16, dtype=np.int16)
-    audio2 = np.random.randint(-100, 100, 16, dtype=np.int16)
-    with SoundScpWriter(tmp_path, tmp_path / "wav.scp", dtype=np.int16) as writer:
-        writer["abc"] = 16, audio1
-        writer["def"] = 16, audio2
-        # Unsupported dimension
-        with pytest.raises(RuntimeError):
-            y = np.random.randint(-100, 100, [16, 1, 1], dtype=np.int16)
-            writer["ghi"] = 16, y
-    target = SoundScpReader(tmp_path / "wav.scp", normalize=False, dtype=np.int16)
-    desired = {"abc": (16, audio1), "def": (16, audio2)}
-
-    for k in desired:
-        rate1, t = target[k]
-        rate2, d = desired[k]
-        assert rate1 == rate2
-        np.testing.assert_array_equal(t, d)
-
-    assert writer.get_path("abc") == str(tmp_path / "abc.wav")
-    assert writer.get_path("def") == str(tmp_path / "def.wav")
-
-
-def test_SoundScpWriter_normalize(tmp_path: Path):
-    audio1 = np.random.randint(-100, 100, 16, dtype=np.int16)
-    audio2 = np.random.randint(-100, 100, 16, dtype=np.int16)
-    audio1 = audio1.astype(np.float64) / (np.iinfo(np.int16).max + 1)
-    audio2 = audio2.astype(np.float64) / (np.iinfo(np.int16).max + 1)
-
-    with SoundScpWriter(tmp_path, tmp_path / "wav.scp", dtype=np.int16) as writer:
-        writer["abc"] = 16, audio1
-        writer["def"] = 16, audio2
-        # Unsupported dimension
-        with pytest.raises(RuntimeError):
-            y = np.random.randint(-100, 100, [16, 1, 1], dtype=np.int16)
-            writer["ghi"] = 16, y
-    target = SoundScpReader(tmp_path / "wav.scp", normalize=True, dtype=np.float64)
-    desired = {"abc": (16, audio1), "def": (16, audio2)}
-
-    for k in desired:
-        rate1, t = target[k]
-        rate2, d = desired[k]
-        assert rate1 == rate2
-        np.testing.assert_array_equal(t, d)

@@ -5,7 +5,7 @@ from typing import Union
 import numpy as np
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import read_2columns_text
 
 
 class NpyScpWriter:
@@ -75,7 +75,7 @@ class NpyScpReader(collections.abc.Mapping):
     def __init__(self, fname: Union[Path, str]):
         assert check_argument_types()
         self.fname = Path(fname)
-        self.data = read_2column_text(fname)
+        self.data = read_2columns_text(fname)
 
     def get_path(self, key):
         return self.data[key]

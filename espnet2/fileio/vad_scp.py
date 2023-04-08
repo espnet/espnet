@@ -5,7 +5,7 @@ from typing import List, Union
 import numpy as np
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import read_2columns_text
 
 
 class VADScpReader(collections.abc.Mapping):
@@ -33,7 +33,7 @@ class VADScpReader(collections.abc.Mapping):
         assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
-        self.data = read_2column_text(fname)
+        self.data = read_2columns_text(fname)
 
     def __getitem__(self, key):
         vads = self.data[key]
