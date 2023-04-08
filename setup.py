@@ -20,7 +20,7 @@ requirements = {
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
-        "kaldiio>=2.17.0",
+        "kaldiio>=2.18.0",
         "torch>=1.3.0",
         "torch_complex",
         "nltk>=3.4.5",
