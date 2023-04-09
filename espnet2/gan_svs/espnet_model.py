@@ -21,7 +21,6 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 )
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-from espnet2.gan_svs.pits.analysis import Ying
 
 
 if V(torch.__version__) >= V("1.6.0"):
@@ -43,6 +42,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         score_feats_extract: Optional[AbsFeatsExtract],
         label_extract: Optional[AbsFeatsExtract],
         pitch_extract: Optional[AbsFeatsExtract],
+        ying_extract: Optional[AbsFeatsExtract],
         duration_extract: Optional[AbsFeatsExtract],
         energy_extract: Optional[AbsFeatsExtract],
         normalize: Optional[AbsNormalize and InversibleInterface],
@@ -60,15 +60,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         self.pitch_extract = pitch_extract
         self.duration_extract = duration_extract
         self.energy_extract = energy_extract
-        # TODO(yifeng): move this code to espnet2/tts/feats_extract
-        self.ying_extract = Ying(
-            sr=22050,
-            W=2048,
-            tau_max=2048,
-            midi_start=-5,
-            midi_end=75,
-            octave_range=24,
-        )
+        self.ying_extract = ying_extract
         self.normalize = normalize
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
@@ -258,17 +250,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                     singing_lengths,
                     feats_lengths=feats_lengths,
                 )
-                # TODO(yifeng): where feats shape transpose 1, 2?
-                # feats shape is not the same as it in generator.
-                # print("singing shape", singing.shape)
-                # print("feats shape", feats.shape)
-                # print("pitch shape", pitch.shape)
-                # print("ying shape", ying.shape)
-                # pitch, pitch_lengths = self.pitch_extract(
-                #     input=singing,
-                #     input_lengths=singing_lengths,
-                #     feats_lengths=feats_lengths,
-                # )
 
             # Normalize
             if self.normalize is not None:
@@ -370,6 +351,8 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
+        ying: Optional[torch.Tensor] = None,
+        ying_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -439,6 +422,12 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                 singing_lengths,
                 feats_lengths=feats_lengths,
             )
+        if self.ying_extract is not None and ying is None:
+            ying, ying_lengths = self.ying_extract(
+                singing,
+                singing_lengths,
+                feats_lengths=feats_lengths,
+            )
 
         # store in dict
         feats_dict = {}
@@ -448,5 +437,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:
             feats_dict.update(energy=energy, energy_lengths=energy_lengths)
+        if ying is not None:
+            feats_dict.update(ying=ying, ying_lengths=ying_lengths)
 
         return feats_dict

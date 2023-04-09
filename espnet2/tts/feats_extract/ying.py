@@ -5,27 +5,29 @@ import torch
 
 from typing import Any, Dict, Tuple, Union
 from espnet2.tts.feats_extract.yin import *
+
+from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
-class Ying(torch.nn.Module):
+class Ying(AbsFeatsExtract):
     def __init__(
         self,
-        sr: int = 22050,
+        fs: int = 22050,
         w_step: int = 256,
         W: int = 2048,
         tau_max: int = 2048,
-        midi_start: int = 5,
-        midi_end: int = 85,
-        octave_range: int = 12,
-        use_token_averaged_f0: bool = False,
+        midi_start: int = -5,
+        midi_end: int = 75,
+        octave_range: int = 24,
+        use_token_averaged_ying: bool = False,
     ):
         super().__init__()
-        self.sr = sr
+        self.fs = fs
         self.w_step = w_step
         self.W = W
         self.tau_max = tau_max
-        self.use_token_averaged_f0 = use_token_averaged_f0
+        self.use_token_averaged_ying = use_token_averaged_ying
         self.unfold = torch.nn.Unfold((1, self.W), 1, 0, stride=(1, self.w_step))
         midis = list(range(midi_start, midi_end))
         self.len_midis = len(midis)
@@ -34,12 +36,24 @@ class Ying(torch.nn.Module):
         self.register_buffer("c_ms_ceil", torch.ceil(self.c_ms).long())
         self.register_buffer("c_ms_floor", torch.floor(self.c_ms).long())
 
+    def output_size(self) -> int:
+        return 1
+
+    def get_parameters(self) -> Dict[str, Any]:
+        return dict(
+            fs=self.fs,
+            w_step=self.w_step,
+            W=self.W,
+            tau_max=self.tau_max,
+            use_token_averaged_ying=self.use_token_averaged_ying,
+        )
+
     def midi_to_lag(self, m: int, octave_range: float = 12):
         """converts midi-to-lag, eq. (4)
 
         Args:
             m: midi
-            sr: sample_rate
+            fs: sample_rate
             octave_range:
 
         Returns:
@@ -47,7 +61,7 @@ class Ying(torch.nn.Module):
 
         """
         f = 440 * math.pow(2, (m - 69) / octave_range)
-        lag = self.sr / f
+        lag = self.fs / f
         return lag
 
     def yingram_from_cmndf(self, cmndfs: torch.Tensor) -> torch.Tensor:
@@ -58,7 +72,7 @@ class Ying(torch.nn.Module):
                 calculated cumulative mean normalized difference function
                 for details, see models/yin.py or eq. (1) and (2)
             ms: list of midi(int)
-            sr: sampling rate
+            fs: sampling rate
 
         Returns:
             y:
@@ -66,7 +80,7 @@ class Ying(torch.nn.Module):
 
 
         """
-        # c_ms = np.asarray([Pitch.midi_to_lag(m, sr) for m in ms])
+        # c_ms = np.asarray([Pitch.midi_to_lag(m, fs) for m in ms])
         # c_ms = torch.from_numpy(c_ms).to(cmndfs.device)
 
         y = (cmndfs[:, self.c_ms_ceil] - cmndfs[:, self.c_ms_floor]) / (
@@ -83,7 +97,7 @@ class Ying(torch.nn.Module):
             x: raw audio, torch.Tensor of shape (t)
             W: yingram Window Size
             tau_max:
-            sr: sampling rate
+            fs: sampling rate
             w_step: yingram bin step size
 
         Returns:
@@ -157,7 +171,7 @@ class Ying(torch.nn.Module):
         # print("yingram2", ying[0].shape)
 
         # Use token-averaged f0
-        if self.use_token_averaged_f0:
+        if self.use_token_averaged_ying:
             durations = durations * self.reduction_factor
             ying = [
                 self._average_by_duration(p, d).view(-1)
@@ -173,7 +187,7 @@ class Ying(torch.nn.Module):
         # print("yingram3", ying.shape)
 
         return (
-            ying.transpose(1, 2).float(),
+            ying.float(),
             ying_lengths,
         )  # TODO(yifeng): should float() be here?
 
@@ -201,13 +215,13 @@ if __name__ == "__main__":
     import librosa as rosa
     import matplotlib.pyplot as plt
 
-    wav = torch.tensor(rosa.load("LJ001-0002.wav", sr=22050, mono=True)[0]).unsqueeze(0)
+    wav = torch.tensor(rosa.load("LJ001-0002.wav", fs=22050, mono=True)[0]).unsqueeze(0)
     #    wav = torch.randn(1,40965)
 
     wav = torch.nn.functional.pad(wav, (0, (-wav.shape[1]) % 256))
     #    wav = wav[#:,:8096]
     print(wav.shape)
-    pitch = Pitch()
+    pitch = Ying()
 
     with torch.no_grad():
         ps = pitch.yingram(torch.nn.functional.pad(wav, (1024, 1024)))

@@ -64,6 +64,7 @@ n_shift=256       # The number of shift points.
 win_length=null   # Window length.
 score_feats_extract=frame_score_feats # The type of music score feats (frame_score_feats or syllable_score_feats)
 pitch_extract=None
+ying_extract=None
 # Only used for the model using pitch features (e.g. FastSpeech2)
 f0min=80          # Maximum f0 for pitch extraction.
 f0max=400         # Minimum f0 for pitch extraction.
@@ -523,6 +524,9 @@ if ! "${skip_train}"; then
         _opts+="--pitch_extract_conf hop_length=${n_shift} "
         _opts+="--pitch_extract_conf f0max=${f0max} "
         _opts+="--pitch_extract_conf f0min=${f0min} "
+        _opts+="--ying_extract ${ying_extract} "
+        _opts+="--ying_extract_conf fs=${fs} "
+        _opts+="--ying_extract_conf w_step=${n_shift} "
         _opts+="--energy_extract_conf fs=${fs} "
         _opts+="--energy_extract_conf n_fft=${n_fft} "
         _opts+="--energy_extract_conf hop_length=${n_shift} "
@@ -665,6 +669,7 @@ if ! "${skip_train}"; then
             _opts+="--feats_extract_conf hop_length=${n_shift} "
             _opts+="--feats_extract_conf win_length=${win_length} "
             _opts+="--pitch_extract ${pitch_extract} "
+            _opts+="--ying_extract ${ying_extract} "
             if [ "${feats_extract}" = fbank ]; then
                 _opts+="--feats_extract_conf fs=${fs} "
                 _opts+="--feats_extract_conf fmin=${fmin} "
@@ -677,6 +682,10 @@ if ! "${skip_train}"; then
                 _opts+="--pitch_extract_conf hop_length=${n_shift} "
                 _opts+="--pitch_extract_conf f0max=${f0max} "
                 _opts+="--pitch_extract_conf f0min=${f0min} "
+            fi
+            if [ "${ying_extract}" = ying ]; then
+                _opts+="--ying_extract_conf fs=${fs} "
+                _opts+="--ying_extract_conf w_step=${n_shift} "
             fi
 
             if [ "${num_splits}" -gt 1 ]; then
@@ -796,6 +805,14 @@ if ! "${skip_train}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},feats,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},feats,${_type} "
         fi
+        if [ -e "${svs_stats_dir}/train/collect_feats/ying.scp" ]; then
+            _scp=ying.scp
+            _type=npy
+            _train_collect_dir=${svs_stats_dir}/train/collect_feats
+            _valid_collect_dir=${svs_stats_dir}/valid/collect_feats
+            _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},ying,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},ying,${_type} "
+        fi
 
         # Check extra statistics
         if [ -e "${svs_stats_dir}/train/pitch_stats.npz" ]; then
@@ -812,6 +829,10 @@ if ! "${skip_train}"; then
             _opts+="--energy_extract_conf hop_length=${n_shift} "
             _opts+="--energy_extract_conf win_length=${win_length} "
             _opts+="--energy_normalize_conf stats_file=${svs_stats_dir}/train/energy_stats.npz "
+        fi
+        if [ -e "${svs_stats_dir}/train/ying_stats.npz" ]; then
+            _opts+="--ying_extract_conf fs=${fs} "
+            _opts+="--ying_extract_conf w_step=${n_shift} "
         fi
 
 

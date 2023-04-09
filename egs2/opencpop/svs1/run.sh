@@ -30,12 +30,14 @@ g2p=None
 cleaner=none
 
 pitch_extract=dio
+ying_extract=ying
 
 ./svs.sh \
     --lang zh \
     --local_data_opts "--stage 0" \
     --feats_type raw \
     --pitch_extract "${pitch_extract}" \
+    --ying_extract "${ying_extract}" \
     --fs "${fs}" \
     --fmax "${fmax}" \
     --fmin "${fmin}" \
