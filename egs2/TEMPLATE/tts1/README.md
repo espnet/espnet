@@ -630,7 +630,7 @@ cd egs2/<recipe_name>/tts1
     exp/<model_dir_name>/<decode_dir_name>/asr_results
 
 # Since ASR model does not use punctuation, it is better to remove punctuations if it contains
-./utils/remove_punctuation.pl < dump/raw/eval1/text > dump/raw/eval1/text.no_punc
+./scripts/utils/remove_punctuation.pl < dump/raw/eval1/text > dump/raw/eval1/text.no_punc
 ./scripts/utils/evaluate_asr.sh \
     --model_tag <asr_model_tag> \
     --nj 1 \

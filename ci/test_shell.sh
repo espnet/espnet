@@ -15,6 +15,7 @@ if ! [ -x "$(command -v shellcheck)" ]; then
     tar -xvf shellcheck-stable.linux.x86_64.tar.xz
 fi
 . tools/activate_python.sh
+. tools/extra_path.sh
 
 set -euo pipefail
 
@@ -30,4 +31,4 @@ if grep -q "SC[0-9]\{4\}" check_shellcheck; then
 fi
 
 echo "=== run bats ==="
-bats test_utils/test_*.bats
+bats test_utils/test_*.bats test_utils/espnet2_scripts/test_*.bats

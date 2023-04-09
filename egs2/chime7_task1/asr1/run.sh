@@ -36,11 +36,16 @@ train_min_segment_length=1 # discard sub one second examples, they are a lot in 
 train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 
 # GSS CONFIG
-gss_max_batch_dur=360 # set accordingly to your GPU VRAM, here A100 40GB
+use_chime6_falign=0
+use_selection=1 # always use selection
+gss_max_batch_dur=90 # set accordingly to your GPU VRAM, A100 40GB you can use 360
+# if you still get OOM errors for GSS see README.md
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
 # note with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
 gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev"
+gss_iterations=20
+top_k=80
 # we do not train with mixer 6 training + GSS here, but you can try.
 
 # ASR CONFIG
@@ -50,6 +55,10 @@ asr_dprep_stage=0
 bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by the dataprep
 asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
+inference_asr_model=valid.acc.ave.pth
+asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
+asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation. you can also try using all datasets after gss: kaldi/dev_all_gss
+asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 lm_config="conf/train_lm.yaml"
 use_lm=false
 use_word_lm=false
@@ -59,6 +68,7 @@ asr_max_epochs=8
 # put popcornell/chime7_task1_asr1_baseline if you want to test with pretrained model
 use_pretrained=
 decode_only=0
+diar_score=0
 
 . ./path.sh
 . ./cmd.sh
@@ -70,7 +80,7 @@ asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
 asr_max_lr=$(calc_float $ngpu/10000.0)
 asr_warmup=$(calc_int 40000.0/$ngpu)
 
-if [ $decode_only == 1 ]; then
+if [ $decode_only -eq 1 ]; then
   # apply gss only on dev
   gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
 fi
@@ -82,7 +92,7 @@ if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
 	  --dipco-root $dipco_root \
 	  --mixer6-root $mixer6_root \
 	  --stage $dprep_stage \
-	  --train_cmd $cmd_dprep \
+	  --train_cmd "$cmd_dprep" \
 	  --gen-eval $gen_eval
 fi
 
@@ -99,11 +109,21 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
         continue
       fi
 
+      if [ $use_chime6_falign ] && [ $dset == chime6 ]; then
+           if ! [ -d ./CHiME7_DASR_falign ]; then
+               log "Getting forced alignment annotation for CHiME-6 Scenario"
+               git clone https://github.com/chimechallenge/CHiME7_DASR_falign
+           fi
+           falign_dir=./CHiME7_DASR_falign
+      else
+           falign_dir=
+      fi
+
       log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
       python local/get_lhotse_manifests.py -c $chime7_root \
            -d $dset \
            -p $dset_part \
-           -o $manifests_root \
+           -o $manifests_root --diar_jsons_root "$falign_dir" \
            --ignore_shorter 0.2
     done
   done
@@ -128,12 +148,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
       exit
     fi
 
-    if [ ${dset_part} == dev ]; then # use only outer mics
-      use_selection=1
-    else
-      use_selection=0
-    fi
-
     if [ ${dset_part} == train ]; then
       max_segment_length=${train_max_segment_length} # we can discard utterances too long based on asr training
     fi
@@ -142,34 +156,30 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/run_gss.sh --manifests-dir $manifests_root --dset-name $dset_name \
           --dset-part $dset_part \
           --exp-dir $gss_dump_root \
-          --cmd $cmd_gss \
+          --cmd "$cmd_gss" \
           --nj $ngpu \
           --max-segment-length $max_segment_length \
           --max-batch-duration $gss_max_batch_dur \
           --channels $channels \
-          --use-selection $use_selection
+          --use-selection $use_selection \
+          --top-k $top_k \
+          --gss-iterations $gss_iterations
     log "Guided Source Separation processing for ${dset_name}/${dset_part} was successful !"
   done
 fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-
-  asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
-  asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation
   # Decoding on dev set because test is blind for now
-  # NOTE that ESPNet will not make copies of the original Kaldi manifests
-  # e.g. for training and cv, so if you set $train_max_segment_length these
-  # will be discarded also from the test set (if the test set is the same as evaluation)
-  # you need to make a copy !
-  ./utils/copy_data_dir.sh data/kaldi/chime6/dev/gss data/kaldi/chime6/dev/gss_inf
-  asr_tt_set="kaldi/chime6/dev/gss_inf kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 
   pretrained_affix=
   if [ -n "$use_pretrained" ]; then
-    asr_train_set=kaldi/dipco/dev/gss # dummy one, it is not used
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
+  fi
+
+  if [ $diar_score ]; then
+    asr_dprep_stage=3
   fi
 
   # these are args to ASR data prep, done in local/data.sh
@@ -200,6 +210,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --inference_config "${inference_config}" \
     --use_lm ${use_lm} \
     --lm_config "${lm_config}" \
+    --inference_asr_model ${inference_asr_model} \
     --use_word_lm ${use_word_lm} \
     --word_vocab_size ${word_vocab_size} \
     --train_set "${asr_train_set}" \
@@ -207,4 +218,46 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --test_sets "${asr_tt_set}" \
     --bpe_train_text "data/${asr_train_set}/text" \
     --lm_train_text "data/${asr_train_set}/text" ${pretrained_affix}
+fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+  # final scoring
+  log "Scoring ASR predictions for CHiME-7 DASR challenge."
+  # note, we re-create the asr exp folder here based on asr.sh
+  if [ -n "$use_pretrained" ]; then
+    asr_exp="exp/${use_pretrained}"
+  else
+    asr_tag="$(basename "${asr_config}" .yaml)_raw"
+    asr_exp="exp/asr_${asr_tag}"
+  fi
+  inference_tag="$(basename "${inference_config}" .yaml)"
+  inference_tag+="_asr_model_$(echo "${inference_asr_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
+
+  # when a dataset is both in cv and tt in ESPNet2, the tt dataset is
+  # placed unmodified into org. we create a symbolic link
+  # so it can be parsed as the other datasets.
+  for tt_dset in $asr_tt_set; do
+      if [ ! -e "${asr_exp}/${inference_tag}/${tt_dset}" ] && [ -d  "${asr_exp}/${inference_tag}/org/${tt_dset}" ]; then
+        # Creating the parent directory
+        mkdir -p "${asr_exp}/${inference_tag}/${tt_dset}" && rmdir "${asr_exp}/${inference_tag}/${tt_dset}"
+        ln -sf "$(cd ${asr_exp}/${inference_tag}/org/${tt_dset}; pwd)" "${asr_exp}/${inference_tag}/${tt_dset}"
+      fi
+  done
+
+  for tt_dset in $asr_tt_set; do
+    split="$(cut -d'/' -f3 <<<${tt_dset})"
+    dset_name="$(cut -d'/' -f2 <<<${tt_dset})"
+    if [ ${dset_name} == mixer6 ]; then
+      regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)" # different session naming
+    else
+      regex="(S[0-9]+)"
+    fi
+    python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
+    # the content of this output folder is what you should send for evaluation to the
+    # organizers.
+  done
+  split=dev
+  LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
+  python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
+     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d $diar_score 2>&1 | tee $LOG_OUT
 fi
