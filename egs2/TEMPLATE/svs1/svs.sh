@@ -204,7 +204,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(scripts/utils/print_args.sh $0 "$@")
+run_args=$(pyscripts/utils/print_args.py $0 "$@")
 . utils/parse_options.sh
 
 
@@ -867,6 +867,7 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
+                --fs "${fs}" \
                 --normalize "${feats_normalize}" \
                 --resume true \
                 --init_param ${pretrained_model} \
