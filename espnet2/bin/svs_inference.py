@@ -92,15 +92,14 @@ class SingingGenerate:
         decode_conf.update({"use_teacher_forcing": use_teacher_forcing})
         if isinstance(self.svs, VITS):
             decode_conf.update(
-                noise_scale=noise_scale,
-                noise_scale_dur=noise_scale_dur,
+                noise_scale=noise_scale, noise_scale_dur=noise_scale_dur,
             )
         self.decode_conf = decode_conf
 
     @torch.no_grad()
     def __call__(
         self,
-        text: Union[torch.Tensor, np.ndarray],
+        text: Union[Dict[str, Tuple], torch.Tensor, np.ndarray],
         singing: Union[torch.Tensor, np.ndarray] = None,
         label: Union[torch.Tensor, np.ndarray] = None,
         midi: Union[torch.Tensor, np.ndarray] = None,
@@ -125,9 +124,21 @@ class SingingGenerate:
         if self.use_spembs and spembs is None:
             raise RuntimeError("Missing required argument: 'spembs'")
 
-        batch = dict(
-            text=text,
-        )
+        # prepare batch
+        if isinstance(text, Dict):
+            data = self.preprocess_fn(
+                "<dummy>", dict(label=text["label"], score=text["score"])
+            )
+            label = data["label"]
+            midi = data["midi"]
+            duration_phn = data["duration_phn"]
+            duration_ruled_phn = data["duration_ruled_phn"]
+            duration_syb = data["duration_syb"]
+            phn_cnt = data["phn_cnt"]
+            batch = dict(text=data["label"])
+        else:
+            batch = dict(text=text)
+
         if label is not None:
             batch.update(label=label)
         if midi is not None:
@@ -207,6 +218,67 @@ class SingingGenerate:
     def use_spembs(self) -> bool:
         """Return spemb is needed or not in the inference."""
         return self.svs.spk_embed_dim is not None
+
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        vocoder_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build SingingGenerate instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+            vocoder_tag (Optional[str]): Vocoder tag of the pretrained vocoders.
+                Currently, the tags of parallel_wavegan are supported, which should
+                start with the prefix "parallel_wavegan/".
+
+        Returns:
+            SingingGenerate: SingingGenerate instance.
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            kwargs.update(**d.download_and_unpack(model_tag))
+
+        if vocoder_tag is not None:
+            if vocoder_tag.startswith("parallel_wavegan/"):
+                try:
+                    from parallel_wavegan.utils import download_pretrained_model
+
+                except ImportError:
+                    logging.error(
+                        "`parallel_wavegan` is not installed. "
+                        "Please install via `pip install -U parallel_wavegan`."
+                    )
+                    raise
+
+                from parallel_wavegan import __version__
+
+                # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
+                assert V(__version__) > V("0.5.1"), (
+                    "Please install the latest parallel_wavegan "
+                    "via `pip install -U parallel_wavegan`."
+                )
+                vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
+                vocoder_file = download_pretrained_model(vocoder_tag)
+                vocoder_config = Path(vocoder_file).parent / "config.yml"
+                kwargs.update(vocoder_config=vocoder_config, vocoder_file=vocoder_file)
+
+            else:
+                raise ValueError(f"{vocoder_tag} is unsupported format.")
+
+        return SingingGenerate(**kwargs)
 
 
 def inference(
@@ -292,8 +364,7 @@ def inference(
     from matplotlib.ticker import MaxNLocator
 
     with NpyScpWriter(
-        output_dir / "norm",
-        output_dir / "norm/feats.scp",
+        output_dir / "norm", output_dir / "norm/feats.scp",
     ) as norm_writer, NpyScpWriter(
         output_dir / "denorm", output_dir / "denorm/feats.scp"
     ) as denorm_writer, open(
@@ -453,22 +524,13 @@ def get_parser():
     )
 
     parser.add_argument(
-        "--output_dir",
-        type=str,
-        required=True,
-        help="The path of output directory",
+        "--output_dir", type=str, required=True, help="The path of output directory",
     )
     parser.add_argument(
-        "--ngpu",
-        type=int,
-        default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument(
-        "--seed",
-        type=int,
-        default=0,
-        help="Random seed",
+        "--seed", type=int, default=0, help="Random seed",
     )
     parser.add_argument(
         "--dtype",
@@ -483,10 +545,7 @@ def get_parser():
         help="The number of workers used for DataLoader",
     )
     parser.add_argument(
-        "--batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
+        "--batch_size", type=int, default=1, help="The batch size for inference",
     )
 
     group = parser.add_argument_group("Input data related")
@@ -497,25 +556,18 @@ def get_parser():
         action="append",
     )
     group.add_argument(
-        "--key_file",
-        type=str_or_none,
+        "--key_file", type=str_or_none,
     )
     group.add_argument(
-        "--allow_variable_data_keys",
-        type=str2bool,
-        default=False,
+        "--allow_variable_data_keys", type=str2bool, default=False,
     )
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--train_config",
-        type=str,
-        help="Training configuration file.",
+        "--train_config", type=str, help="Training configuration file.",
     )
     group.add_argument(
-        "--model_file",
-        type=str,
-        help="Model parameter file.",
+        "--model_file", type=str, help="Model parameter file.",
     )
 
     group = parser.add_argument_group("Decoding related")
