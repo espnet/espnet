@@ -44,6 +44,9 @@ from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
+from espnet2.asr.encoder.hugging_face_transformers_encoder import (
+    HuggingFaceTransformersEncoder,
+)
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
@@ -180,6 +183,23 @@ extra_mt_decoder_choices = ClassChoices(
     default=None,
     optional=True,
 )
+extra_mt_encoder_choices = ClassChoices(
+    "extra_mt_encoder",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        contextual_block_conformer=ContextualBlockConformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
+        hugging_face_transformers=HuggingFaceTransformersEncoder,
+    ),
+    type_check=AbsEncoder,
+    default=None,
+    optional=True,
+)
 md_encoder_choices = ClassChoices(
     "md_encoder",
     classes=dict(
@@ -242,6 +262,8 @@ class STTask(AbsTask):
         md_encoder_choices,
         # --hier_encoder and --hier_encoder_conf
         hier_encoder_choices,
+        # --extra_mt_encoder and --extra_mt_encoder_conf
+        extra_mt_encoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -264,6 +286,12 @@ class STTask(AbsTask):
         )
         group.add_argument(
             "--src_token_list",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token (for source language)",
+        )
+        group.add_argument(
+            "--src_token_list2",
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token (for source language)",
@@ -331,6 +359,13 @@ class STTask(AbsTask):
             help="The source text will be tokenized " "in the specified level token",
         )
         group.add_argument(
+            "--src_token_type2",
+            type=str,
+            default="bpe",
+            choices=["bpe", "char", "word", "phn", "none", "hugging_face"],
+            help="The source text will be tokenized " "in the specified level token",
+        )
+        group.add_argument(
             "--bpemodel",
             type=str_or_none,
             default=None,
@@ -338,6 +373,12 @@ class STTask(AbsTask):
         )
         group.add_argument(
             "--src_bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece (for source language)",
+        )
+        group.add_argument(
+            "--src_bpemodel2",
             type=str_or_none,
             default=None,
             help="The model file of sentencepiece (for source language)",
@@ -440,12 +481,16 @@ class STTask(AbsTask):
         assert check_argument_types()
         if args.src_token_type == "none":
             args.src_token_type = None
+        if not hasattr(args, "src_token_type2") or args.src_token_type2 == "none":
+            args.src_token_type2 = None
+            args.src_token_list2 = None
+            args.src_bpemodel2 = None
         if args.use_preprocessor:
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
-                token_type=[args.token_type, args.src_token_type],
-                token_list=[args.token_list, args.src_token_list],
-                bpemodel=[args.bpemodel, args.src_bpemodel],
+                token_type=[args.token_type, args.src_token_type, args.src_token_type2],
+                token_list=[args.token_list, args.src_token_list, args.src_token_list2],
+                bpemodel=[args.bpemodel, args.src_bpemodel, args.src_bpemodel2],
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
@@ -468,7 +513,7 @@ class STTask(AbsTask):
                 if hasattr(args, "speech_volume_normalize")
                 else None,
                 speech_name="speech",
-                text_name=["text", "src_text"],
+                text_name=["text", "src_text", "src_text2"],
             )
         else:
             retval = None
@@ -491,7 +536,7 @@ class STTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("src_text",)
+            retval = ("src_text", "src_text2")
         else:
             retval = ()
         assert check_return_type(retval)
@@ -528,6 +573,22 @@ class STTask(AbsTask):
             logging.info(f"Source vocabulary size: {src_vocab_size }")
         else:
             src_token_list, src_vocab_size = None, None
+
+        if hasattr(args, "src_token_list2") and args.src_token_list2 is not None:
+            if isinstance(args.src_token_list2, str):
+                with open(args.src_token_list2, encoding="utf-8") as f:
+                    src_token_list2 = [line.rstrip() for line in f]
+
+                # Overwriting src_token_list to keep it as "portable".
+                args.src_token_list2 = list(src_token_list2)
+            elif isinstance(args.src_token_list2, (tuple, list)):
+                src_token_list2 = list(args.src_token_list2)
+            else:
+                raise RuntimeError("token_list must be str or list")
+            src_vocab_size2 = len(src_token_list2)
+            logging.info(f"Source vocabulary size 2: {src_vocab_size2 }")
+        else:
+            src_token_list2, src_vocab_size2 = None, None
 
         # 1. frontend
         if args.input_size is None:
@@ -666,6 +727,17 @@ class STTask(AbsTask):
         else:
             md_encoder = None
 
+        if getattr(args, "extra_mt_encoder", None) is not None:
+            extra_mt_encoder_class = extra_mt_encoder_choices.get_class(
+                args.extra_mt_encoder
+            )
+            extra_mt_encoder = extra_mt_encoder_class(
+                input_size=vocab_size,  # hacked for mbart
+                **args.extra_mt_encoder_conf,
+            )
+        else:
+            extra_mt_encoder = None
+
         # 10. Build model
         # if getattr(args, "md_version", None) == "v2":
         #         model = ESPnetSTModelMD2(
@@ -693,6 +765,7 @@ class STTask(AbsTask):
         model = ESPnetSTModel(
             vocab_size=vocab_size,
             src_vocab_size=src_vocab_size,
+            src_vocab_size2=src_vocab_size2,
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
@@ -707,8 +780,10 @@ class STTask(AbsTask):
             st_joint_network=st_joint_network,
             extra_asr_decoder=extra_asr_decoder,
             extra_mt_decoder=extra_mt_decoder,
+            extra_mt_encoder=extra_mt_encoder,
             token_list=token_list,
             src_token_list=src_token_list,
+            src_token_list2=src_token_list2,
             **args.model_conf,
         )
 

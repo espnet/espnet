@@ -52,6 +52,7 @@ class ESPnetSTModel(AbsESPnetModel):
         encoder: AbsEncoder,
         hier_encoder: Optional[AbsEncoder],
         md_encoder: Optional[AbsEncoder],
+        extra_mt_encoder: Optional[AbsEncoder],
         postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
         extra_asr_decoder: Optional[AbsDecoder],
@@ -61,6 +62,8 @@ class ESPnetSTModel(AbsESPnetModel):
         st_joint_network: Optional[torch.nn.Module],
         src_vocab_size: Optional[int],
         src_token_list: Optional[Union[Tuple[str, ...], List[str]]],
+        src_vocab_size2: Optional[int],
+        src_token_list2: Optional[Union[Tuple[str, ...], List[str]]],
         asr_weight: float = 0.0,
         mt_weight: float = 0.0,
         mtlalpha: float = 0.0,
@@ -101,6 +104,7 @@ class ESPnetSTModel(AbsESPnetModel):
         self.src_eos = src_vocab_size - 1 if src_vocab_size else None
         self.vocab_size = vocab_size
         self.src_vocab_size = src_vocab_size
+        self.src_vocab_size2 = src_vocab_size2
         self.ignore_id = ignore_id
         self.tgt_ignore_id = tgt_ignore_id
         self.asr_weight = asr_weight
@@ -109,6 +113,7 @@ class ESPnetSTModel(AbsESPnetModel):
         self.st_mtlalpha = st_mtlalpha
         self.token_list = token_list.copy()
         self.src_token_list = src_token_list.copy()
+        self.src_token_list2 = src_token_list2.copy() if src_token_list2 else None
         self.ctc_sample_rate = ctc_sample_rate
 
         self.frontend = frontend
@@ -176,6 +181,7 @@ class ESPnetSTModel(AbsESPnetModel):
         # submodule for MT task
         if self.mt_weight > 0:
             self.extra_mt_decoder = extra_mt_decoder
+            self.extra_mt_encoder = extra_mt_encoder
         elif extra_mt_decoder is not None:
             logging.warning(
                 "Not using extra_mt_decoder because "
@@ -224,6 +230,8 @@ class ESPnetSTModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         src_text: Optional[torch.Tensor] = None,
         src_text_lengths: Optional[torch.Tensor] = None,
+        src_text2: Optional[torch.Tensor] = None,   # for mbart
+        src_text2_lengths: Optional[torch.Tensor] = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
@@ -255,16 +263,27 @@ class ESPnetSTModel(AbsESPnetModel):
                 src_text_lengths.shape,
             )
 
-        # import pdb;pdb.set_trace()
-
         batch_size = speech.shape[0]
 
         text[text == -1] = self.tgt_ignore_id
+        if src_text2 is not None:
+            src_text2[src_text2 == -1] = self.tgt_ignore_id #hacked for mbart
 
         # for data-parallel
         text = text[:, : text_lengths.max()]
         if src_text is not None:
             src_text = src_text[:, : src_text_lengths.max()]
+
+        # lang id for mbart
+        if hasattr(self, "lang_token_id") and self.lang_token_id is not None:
+            text = torch.cat(
+                [
+                    self.lang_token_id.repeat(text.size(0), 1).to(text.device),
+                    text,
+                ],
+                dim=1,
+            )
+            text_lengths += 1
 
         # 1. Encoder
         if self.hier_encoder is not None or (self.postencoder is not None and self.postencoder.return_int_enc):
@@ -313,9 +332,13 @@ class ESPnetSTModel(AbsESPnetModel):
 
         # 2c. Attention-decoder branch (extra MT)
         if self.mt_weight > 0:
-            loss_mt_att, acc_mt_att = self._calc_mt_att_loss(
-                st_encoder_out, st_encoder_out_lens, text, text_lengths, st=False
+            mt_encoder_out, mt_encoder_out_lens = self.extra_mt_encoder(src_text2, src_text2_lengths)
+            loss_mt_att, acc_mt_att, bleu_mt_att = self._calc_mt_att_loss(
+                mt_encoder_out, mt_encoder_out_lens, text, text_lengths, None, None, st=False    # use same decoder as ST
             )
+            # loss_mt_att, acc_mt_att = self._calc_mt_att_loss(
+            #     st_encoder_out, st_encoder_out_lens, text, text_lengths, st=False
+            # )
         else:
             loss_mt_att, acc_mt_att = 0.0, None
 
@@ -524,19 +547,8 @@ class ESPnetSTModel(AbsESPnetModel):
         speech_lens: Optional[torch.Tensor],
         st: bool = True,
     ):
-        if hasattr(self, "lang_token_id") and self.lang_token_id is not None:
-            ys_pad = torch.cat(
-                [
-                    self.lang_token_id.repeat(ys_pad.size(0), 1).to(ys_pad.device),
-                    ys_pad,
-                ],
-                dim=1,
-            )
-            ys_pad_lens += 1
-
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.tgt_ignore_id)
         ys_in_lens = ys_pad_lens + 1
-
         # 1. Forward decoder
         if st:
             if self.use_speech_attn:
@@ -548,7 +560,11 @@ class ESPnetSTModel(AbsESPnetModel):
                     encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
                 )
         else:
-            decoder_out, _ = self.extra_mt_decoder(
+            # decoder_out, _ = self.extra_mt_decoder(
+            #     encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
+            # )
+            # hacked for mbart
+            decoder_out, _ = self.decoder(
                 encoder_out, encoder_out_lens, ys_in_pad, ys_in_lens
             )
 

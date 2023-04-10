@@ -152,6 +152,8 @@ st_speech_fold_length=800 # fold_length for speech data during ST training.
 st_text_fold_length=150   # fold_length for text data during ST training.
 lm_fold_length=150         # fold_length for LM training.
 
+use_hf_encoder=false
+
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
 
@@ -381,6 +383,17 @@ else
     log "Error: not supported --tgt_token_type '${tgt_token_type}'"
     exit 2
 fi
+
+if ${use_hf_encoder}; then
+    src_token_type2=${tgt_token_type}
+    src_token_list2=${tgt_token_list}
+    src_bpemodel2=${tgt_bpemodel}
+else
+    src_token_type2=none
+    src_token_list2=none
+    src_bpemodel2=none
+fi
+
 if ${use_word_lm}; then
     log "Error: Word LM is not supported yet"
     exit 2
@@ -1165,6 +1178,9 @@ if ! "${skip_train}"; then
             _opts+="--src_bpemodel ${src_bpemodel} "
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text,text "
             _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text "
+            _opts+="--src_bpemodel2 ${src_bpemodel2} "
+            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text2,text "
+            _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text2,text "
         fi
         # TODO(jiatong): fix different bpe model
         # shellcheck disable=SC2086
@@ -1177,6 +1193,7 @@ if ! "${skip_train}"; then
                 --src_token_type "${src_token_type}" \
                 --token_list "${tgt_token_list}" \
                 --src_token_list "${src_token_list}" \
+                --src_token_list2 "${src_token_list2}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -1300,6 +1317,10 @@ if ! "${skip_train}"; then
             if [ $use_src_lang = true ]; then
                 _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text,text "
                 _opts+="--train_shape_file ${st_stats_dir}/train/src_text_shape.${src_token_type} "
+                if [ $use_hf_encoder = true ]; then
+                    _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text2,text "
+                    _opts+="--train_shape_file ${st_stats_dir}/train/src_text_shape2.${tgt_token_type} "    #hacked
+                fi
             fi
         fi
 
@@ -1320,6 +1341,11 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text " 
             _opts+="--valid_shape_file ${st_stats_dir}/valid/src_text_shape.${src_token_type} " 
             _opts+="--fold_length ${st_text_fold_length} "
+            if [ $use_hf_encoder = true ]; then
+                _opts+="--src_bpemodel2 ${src_bpemodel2} "
+                _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text2,text " 
+                _opts+="--valid_shape_file ${st_stats_dir}/valid/src_text_shape2.${tgt_token_type} "    #hacked
+            fi
         fi
 
         # TODO(jiatong): fix bpe
@@ -1338,6 +1364,8 @@ if ! "${skip_train}"; then
                 --token_list "${tgt_token_list}" \
                 --src_token_type "${src_token_type}" \
                 --src_token_list "${src_token_list}" \
+                --src_token_type2 "${src_token_type2}" \
+                --src_token_list2 "${src_token_list2}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
