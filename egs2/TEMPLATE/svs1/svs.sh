@@ -114,7 +114,7 @@ lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 singing_fold_length=800 # fold_length for singing data.
 
-# Upload model related 
+# Upload model related
 hf_repo=
 
 help_message=$(cat << EOF
