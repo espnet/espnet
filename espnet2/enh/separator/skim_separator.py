@@ -184,7 +184,7 @@ if __name__ == "__main__":
     )
 
     input_feature = torch.randn((1, SEQ_LEN, 128))
-    ilens = torch.LongTensor([SEQ_LEN, SEQ_LEN, SEQ_LEN])
+    ilens = torch.LongTensor([SEQ_LEN])
 
     with torch.no_grad():
         start = time.time()
