@@ -334,21 +334,10 @@ class SkiM(nn.Module):
         B, _, N = input_frame.shape
 
         def empty_seg_states():
+            shp = (1, B, self.hidden_size)
             return (
-                torch.zeros(
-                    1,
-                    B,
-                    self.hidden_size,
-                    device=input_frame.device,
-                    dtype=input_frame.dtype,
-                ),
-                torch.zeros(
-                    1,
-                    B,
-                    self.hidden_size,
-                    device=input_frame.device,
-                    dtype=input_frame.dtype,
-                ),
+                torch.zeros(*shp, device=input_frame.device, dtype=input_frame.dtype),
+                torch.zeros(*shp, device=input_frame.device, dtype=input_frame.dtype),
             )
 
         B, _, N = input_frame.shape
