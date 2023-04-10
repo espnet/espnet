@@ -413,10 +413,12 @@ def split_audio(audio, frame_size, hop_size):
     rest = frame_size - (hop_size + audio_len % frame_size) % frame_size
 
     if rest > 0:
-        pad = torch.zeros((batch_size, rest), dtype=audio.dtype).to(audio.device)
+        pad = torch.zeros((batch_size, rest), dtype=audio.dtype, device=audio.device)
         audio = torch.cat([audio, pad], 1)
 
-    pad_aux = torch.zeros((batch_size, hop_size), dtype=audio.dtype).to(audio.device)
+    pad_aux = torch.zeros(
+        (batch_size, hop_size), dtype=audio.dtype, device=audio.device
+    )
 
     audio = torch.cat([pad_aux, audio, pad_aux], 1)
 
