@@ -814,6 +814,24 @@ if ! "${skip_train}"; then
             _opts+="--energy_normalize_conf stats_file=${svs_stats_dir}/train/energy_stats.npz "
         fi
 
+        if [ -e "${svs_stats_dir}/train/pitch_stats.npz" ]; then
+            _opts+="--pitch_extract_conf fs=${fs} "
+            _opts+="--pitch_extract_conf n_fft=${n_fft} "
+            _opts+="--pitch_extract_conf hop_length=${n_shift} "
+            _opts+="--pitch_extract_conf f0max=${f0max} "
+            _opts+="--pitch_extract_conf f0min=${f0min} "
+            _opts+="--pitch_normalize_conf stats_file=${svs_stats_dir}/train/pitch_stats.npz "
+        fi
+        if [ -e "${svs_stats_dir}/train/energy_stats.npz" ]; then
+            _opts+="--energy_extract_conf fs=${fs} "
+            _opts+="--energy_extract_conf n_fft=${n_fft} "
+            _opts+="--energy_extract_conf hop_length=${n_shift} "
+            _opts+="--energy_extract_conf win_length=${win_length} "
+            _opts+="--energy_normalize_conf stats_file=${svs_stats_dir}/train/energy_stats.npz "
+        fi
+        if [ -e "${svs_stats_dir}/train/feats_minmax_stats.npz" ]; then
+            _opts+="--feats_minmax_conf stats_file=${svs_stats_dir}/train/feats_minmax_stats.npz "
+        fi
 
         # Add X-vector to the inputs if needed
         if "${use_xvector}"; then
