@@ -7,14 +7,12 @@
 import pytest
 import torch
 
-from espnet2.gan_svs.vits.generator import VITSGenerator
+from espnet2.gan_svs.vits.generator import VISingerGenerator
 
 
 def make_generator_args(**kwargs):
     defaults = dict(
         vocabs=10,
-        midi_dim=129,
-        beat_dim=600,
         aux_channels=5,
         hidden_channels=4,
         spks=-1,
@@ -54,8 +52,13 @@ def make_generator_args(**kwargs):
         flow_dropout_rate=0.0,
         use_weight_norm_in_flow=True,
         use_only_mean_in_flow=True,
-        use_dp=True,
-        use_visinger=True,
+        generator_type="visinger",
+        vocoder_generator_type="hifigan",
+        fs=22050,
+        hop_length=256,
+        win_length=1024,
+        n_fft=1024,
+        use_phoneme_predictor=False,
     )
     defaults.update(kwargs)
     return defaults
@@ -94,7 +97,7 @@ def test_vits_generator_forward(model_dict):
     idim = 10
     odim = 5
     args = make_generator_args(vocabs=idim, aux_channels=odim, **model_dict)
-    model = VITSGenerator(**args)
+    model = VISingerGenerator(**args)
 
     # check forward
     inputs = dict(
@@ -105,14 +108,11 @@ def test_vits_generator_forward(model_dict):
         label=torch.randint(0, idim, (2, 8)),
         label_lengths=torch.tensor([8, 5], dtype=torch.long),
         melody=torch.randint(0, 127, (2, 8)),
-        melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(1, idim, (2, 8)),
-        beat_lengths=torch.tensor([8, 5], dtype=torch.long),
-        pitch=torch.randn(2, 16, 1),
-        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
-        duration=torch.tensor(
+        gt_dur=torch.tensor(
             [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
         ),
+        score_dur=torch.randint(1, idim, (2, 8)),
+        pitch=torch.randn(2, 16, 1),
     )
     if args["spk_embed_dim"] > 0:
         inputs["spembs"] = torch.randn(2, args["spk_embed_dim"])
@@ -121,10 +121,12 @@ def test_vits_generator_forward(model_dict):
     outputs = model(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            if output is not None:
+                print(f"{i+1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                if output_ is not None:
+                    print(f"{i+j+1}: {output_.shape}")
 
     # check inference
     inputs = dict(
@@ -154,7 +156,7 @@ def test_vits_generator_forward(model_dict):
                 5,
             ),
         ),
-        beat=torch.randint(
+        score_dur=torch.randint(
             1,
             idim,
             (
@@ -171,10 +173,12 @@ def test_vits_generator_forward(model_dict):
     outputs = model.inference(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            if output is not None:
+                print(f"{i+1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                if output_ is not None:
+                    print(f"{i+j+1}: {output_.shape}")
 
     # check inference with teacher forcing
     inputs = dict(
@@ -204,7 +208,7 @@ def test_vits_generator_forward(model_dict):
                 5,
             ),
         ),
-        beat=torch.randint(
+        score_dur=torch.randint(
             1,
             idim,
             (
@@ -261,7 +265,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         global_channels=global_channels,
         **model_dict,
     )
-    model = VITSGenerator(**args)
+    model = VISingerGenerator(**args)
 
     # check forward
     inputs = dict(
@@ -272,14 +276,11 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         label=torch.randint(0, idim, (2, 8)),
         label_lengths=torch.tensor([8, 5], dtype=torch.long),
         melody=torch.randint(0, 127, (2, 8)),
-        melody_lengths=torch.tensor([8, 5], dtype=torch.long),
-        beat=torch.randint(1, idim, (2, 8)),
-        beat_lengths=torch.tensor([8, 5], dtype=torch.long),
-        pitch=torch.randn(2, 16, 1),
-        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
-        duration=torch.tensor(
+        gt_dur=torch.tensor(
             [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
         ),
+        score_dur=torch.randint(1, idim, (2, 8)),
+        pitch=torch.randn(2, 16, 1),
         sids=torch.randint(0, spks, (2,)),
     )
     if args["spk_embed_dim"] > 0:
@@ -289,10 +290,12 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     outputs = model(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            if output is not None:
+                print(f"{i+1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                if output_ is not None:
+                    print(f"{i+j+1}: {output_.shape}")
 
     # check inference
     inputs = dict(
@@ -322,7 +325,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
                 5,
             ),
         ),
-        beat=torch.randint(
+        score_dur=torch.randint(
             1,
             idim,
             (
@@ -340,10 +343,12 @@ def test_multi_speaker_vits_generator_forward(model_dict):
     outputs = model.inference(**inputs)
     for i, output in enumerate(outputs):
         if not isinstance(output, tuple):
-            print(f"{i+1}: {output.shape}")
+            if output is not None:
+                print(f"{i+1}: {output.shape}")
         else:
             for j, output_ in enumerate(output):
-                print(f"{i+j+1}: {output_.shape}")
+                if output_ is not None:
+                    print(f"{i+j+1}: {output_.shape}")
 
     # check inference with teacher forcing
     inputs = dict(
@@ -375,7 +380,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
                 5,
             ),
         ),
-        beat=torch.randint(
+        score_dur=torch.randint(
             1,
             idim,
             (

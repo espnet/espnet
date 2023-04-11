@@ -1,9 +1,12 @@
+# Copyright 2023 Yifeng Yu
+#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
+
 import torch
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
-class Decoder(torch.nn.Module):
+class PriorDecoder(torch.nn.Module):
     def __init__(
         self,
         out_channels: int = 192,
@@ -23,7 +26,7 @@ class Decoder(torch.nn.Module):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
-        global_channels: int = -1,
+        global_channels: int = 0,
     ):
         super().__init__()
 
@@ -51,7 +54,7 @@ class Decoder(torch.nn.Module):
         self.proj = torch.nn.Conv1d(attention_dim, out_channels, 1)
 
         if global_channels > 0:
-            self.global_conv = torch.nn.Conv1d(global_channels, attention_dim, 1)
+            self.conv = torch.nn.Conv1d(global_channels, attention_dim, 1)
 
     def forward(self, x, x_lengths, g=None):
         x_mask = (
@@ -64,13 +67,16 @@ class Decoder(torch.nn.Module):
         )
         x = self.prenet(x) * x_mask
 
+        # multi-singer
         if g is not None:
-            x = x + self.global_conv(g)
+            g = torch.detach(g)
+            x = x + self.conv(g)
 
+        x = x * x_mask
         x = x.transpose(1, 2)
         x, _ = self.decoder(x, x_mask)
         x = x.transpose(1, 2)
 
-        x = self.proj(x) * x_mask
+        bn = self.proj(x) * x_mask
 
-        return x, x_mask
+        return bn, x_mask

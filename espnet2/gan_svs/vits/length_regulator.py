@@ -63,6 +63,15 @@ class LengthRegulator(torch.nn.Module):
         return out
 
     def forward(self, x, duration, use_state_info=False):
+        """
+        Args:
+            x (Tensor): Input tensor (B, dim, T).
+            duration (Tensor): Duration tensor (B, T).
+            use_state_info (bool): Whether to use position information or not.
+        Returns:
+            Tensor: Output tensor (B, dim, D_frame).
+            Tensor: Output length (B,).
+        """
 
         if duration.sum() == 0:
             logging.warning(

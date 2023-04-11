@@ -19,9 +19,9 @@ from espnet2.gan_svs.vits.frame_prior_net import FramePriorNet
 from espnet2.gan_svs.vits.length_regulator import LengthRegulator
 from espnet2.gan_svs.vits.modules import Projection, sequence_mask
 from espnet2.gan_svs.vits.phoneme_predictor import PhonemePredictor
-from espnet2.gan_svs.visinger2.pitch_predictor import Decoder
-from espnet2.gan_svs.visinger2.prior_decoder import PriorDecoder
-from espnet2.gan_svs.visinger2.text_encoder import TextEncoder
+from espnet2.gan_svs.vits.pitch_predictor import Decoder
+from espnet2.gan_svs.vits.prior_decoder import PriorDecoder
+from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
 from espnet2.gan_svs.visinger2 import (

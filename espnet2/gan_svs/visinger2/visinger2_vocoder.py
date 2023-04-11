@@ -287,7 +287,7 @@ class Generator_Harm(torch.nn.Module):
         n_harmonic: int = 64,
         kernel_size: int = 3,
         padding: int = 1,
-        p_dropout: float = 0.1,
+        dropout_rate: float = 0.1,
         sample_rate: int = 22050,
         hop_size: int = 256,
     ):
@@ -303,7 +303,7 @@ class Generator_Harm(torch.nn.Module):
             hidden_channels,
             kernel_size,
             8,
-            p_dropout,
+            dropout_rate,
         )
 
         self.postnet = torch.nn.Conv1d(
@@ -355,7 +355,7 @@ class Generator_Noise(torch.nn.Module):
         hidden_channels: int = 192,
         kernel_size: int = 3,
         padding: int = 1,
-        p_dropout: float = 0.1,
+        dropout_rate: float = 0.1,
     ):
         super().__init__()
         self.win_size = win_length if win_length is not None else n_fft
@@ -371,7 +371,7 @@ class Generator_Noise(torch.nn.Module):
             hidden_channels,
             kernel_size,
             8,
-            p_dropout,
+            dropout_rate,
         )
 
         self.istft_amplitude = torch.nn.Conv1d(
@@ -644,7 +644,6 @@ class VISinger2Discriminator(torch.nn.Module):
         msd_outs = self.msd(x)
         mpd_outs = self.mpd(x)
         mfd_outs = self.mfd(x)
-
         return msd_outs + mpd_outs + mfd_outs
 
 
@@ -674,7 +673,7 @@ class ConvReluNorm(torch.nn.Module):
         out_channels,
         kernel_size,
         n_layers,
-        p_dropout,
+        dropout_rate,
     ):
         super().__init__()
         self.in_channels = in_channels
@@ -682,7 +681,7 @@ class ConvReluNorm(torch.nn.Module):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.n_layers = n_layers
-        self.p_dropout = p_dropout
+        self.dropout_rate = dropout_rate
         assert n_layers > 1, "Number of layers should be larger than 0."
 
         self.conv_layers = torch.nn.ModuleList()
@@ -694,7 +693,7 @@ class ConvReluNorm(torch.nn.Module):
         )
         self.norm_layers.append(LayerNorm(hidden_channels))
         self.relu_drop = torch.nn.Sequential(
-            torch.nn.ReLU(), torch.nn.Dropout(p_dropout)
+            torch.nn.ReLU(), torch.nn.Dropout(dropout_rate)
         )
         for _ in range(n_layers - 1):
             self.conv_layers.append(

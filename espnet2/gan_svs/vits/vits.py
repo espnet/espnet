@@ -14,7 +14,8 @@ from typeguard import check_argument_types
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.vits.generator import VISingerGenerator
 from espnet2.gan_svs.visinger2.visinger2_generator import VISinger2Generator
-from espnet2.gan_svs.pits.pisinger_generator import PISingerGenerator
+
+# from espnet2.gan_svs.pits.pisinger_generator import PISingerGenerator
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
@@ -29,7 +30,7 @@ from espnet2.gan_tts.hifigan.loss import (
     MelSpectrogramLoss,
 )
 from espnet2.gan_tts.utils import get_segments
-from espnet2.gan_tts.vits.loss import KLDivergenceLoss
+from espnet2.gan_tts.vits.loss import KLDivergenceLoss, KLDivergenceLossWithoutFlow
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 from espnet2.gan_svs.avocodo.avocodo import (
@@ -45,10 +46,10 @@ from espnet2.gan_svs.visinger2.visinger2_vocoder import (
 from torch.nn import functional as F
 
 AVAILABLE_GENERATERS = {
-    "visinger_generator": VISingerGenerator,
+    "visinger": VISingerGenerator,
     # TODO(yifeng): add more generators
-    "visinger2_generator": VISinger2Generator,
-    "pisinger_generator": PISingerGenerator,
+    "visinger2": VISinger2Generator,
+    # "pisinger": PISingerGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
     "hifigan_period_discriminator": HiFiGANPeriodDiscriminator,
@@ -89,13 +90,9 @@ class VITS(AbsGANSVS):
         idim: int,
         odim: int,
         sampling_rate: int = 22050,
-        generator_type: str = "visinger_generator",
-        use_visinger: bool = True,
-        use_dp: bool = True,
-        vocoder_generator_type: str = "uhifigan",
+        generator_type: str = "visinger",
+        vocoder_generator_type: str = "hifigan",
         generator_params: Dict[str, Any] = {
-            "midi_dim": 129,
-            "midi_embed_integration_type": "add",
             "hidden_channels": 192,
             "spks": None,
             "langs": None,
@@ -288,12 +285,13 @@ class VITS(AbsGANSVS):
         lambda_adv: float = 1.0,
         lambda_mel: float = 45.0,
         lambda_feat_match: float = 2.0,
-        lambda_dur: float = 1.0,
+        lambda_dur: float = 0.1,
         lambda_kl: float = 1.0,
         lambda_pitch: float = 1.0,
         lambda_phoneme: float = 1.0,
         lambda_c_yin: float = 45.0,
         cache_generator_outputs: bool = True,
+        use_phoneme_predictor: bool = False,
     ):
         """Initialize VITS module.
 
@@ -334,8 +332,8 @@ class VITS(AbsGANSVS):
             #   the input acoustic feature dimension.
             generator_params.update(vocabs=idim, aux_channels=odim)
         self.generator_type = generator_type
-        self.use_visinger = use_visinger
-        self.use_dp = use_dp
+        self.use_flow = True if generator_params["flow_flows"] > 0 else False
+        self.use_phoneme_predictor = use_phoneme_predictor
         self.vocoder_generator_type = vocoder_generator_type
         self.discriminator_type = discriminator_type
         if discriminator_type == "avocodo" or discriminator_type == "avocodo_plus":
@@ -343,9 +341,8 @@ class VITS(AbsGANSVS):
         else:
             use_avocodo = False
         self.use_avocodo = use_avocodo
-        generator_params.update(use_visinger=use_visinger)
+
         generator_params.update(vocoder_generator_type=vocoder_generator_type)
-        generator_params.update(use_dp=use_dp)
         generator_params.update(fs=mel_loss_params["fs"])
         generator_params.update(hop_length=mel_loss_params["hop_length"])
         generator_params.update(win_length=mel_loss_params["win_length"])
@@ -361,12 +358,19 @@ class VITS(AbsGANSVS):
             discriminator_params["avocodo"].update(
                 projection_filters=generator_params["projection_filters"]
             )
-        elif vocoder_generator_type == "visinger2":
-            discriminator_type = "hifigan_multi_scale_multi_period_discriminator"
+        # elif (
+        #     vocoder_generator_type == "visinger2"
+        #     or discriminator_type == "visinger2"
+        #     or discriminator_type == "hifigan_scale_discriminator"
+        #     or discriminator_type == "hifigan_multi_scale_discriminator"
+        #     or discriminator_type == "hifigan_period_discriminator"
+        #     or discriminator_type == "hifigan_multi_period_discriminator"
+        # ):
+        #     discriminator_type = "hifigan_multi_scale_multi_period_discriminator"
         if discriminator_type == "avocodo_plus":
             discriminator_type = "avocodo"
         self.discriminator = discriminator_class(
-            **discriminator_params[discriminator_type],
+            **discriminator_params,
         )
         self.generator_adv_loss = GeneratorAdversarialLoss(
             **generator_adv_loss_params,
@@ -380,7 +384,11 @@ class VITS(AbsGANSVS):
         self.mel_loss = MelSpectrogramLoss(
             **mel_loss_params,
         )
-        self.kl_loss = KLDivergenceLoss()
+        if self.use_flow:
+            self.kl_loss = KLDivergenceLoss()
+        else:
+            self.kl_loss = KLDivergenceLossWithoutFlow()
+
         self.ctc_loss = torch.nn.CTCLoss(idim - 1, reduction="mean")
         self.mse_loss = torch.nn.MSELoss()
 
@@ -428,13 +436,9 @@ class VITS(AbsGANSVS):
         label: Optional[Dict[str, torch.Tensor]] = None,
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
-        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: torch.LongTensor = None,
-        pitch_lengths: torch.Tensor = None,
         ying: torch.Tensor = None,
-        ying_lengths: torch.Tensor = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
-        duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -443,26 +447,21 @@ class VITS(AbsGANSVS):
         """Perform generator forward.
 
         Args:
-            text (LongTensor): Batch of padded character ids (B, Tmax).
+            text (LongTensor): Batch of padded character ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input batch (B,).
             feats (Tensor): Batch of padded target features (B, Lmax, odim).
             feats_lengths (LongTensor): Batch of the lengths of each target (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
             label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, Tmax).
+                value (LongTensor): Batch of padded label ids (B, T_text).
             label_lengths (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of the lengths of padded label ids (B, ).
             melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, Tmax).
-            melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
-            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
+                value (LongTensor): Batch of padded melody (B, T_text).
+            pitch (FloatTensor): Batch of padded f0 (B, T_feats).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded duration (B, Tmax).
-            duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded duration (B, ).
+                value (LongTensor): Batch of padded duration (B, T_text).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -476,13 +475,11 @@ class VITS(AbsGANSVS):
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
         """
-        beat = duration["score_syb"]
-        beat_lengths = duration_lengths["score_syb"]
-        duration = duration["lab"]
+        score_dur = duration["score_syb"]
+        gt_dur = duration["lab"]
         label = label["lab"]
         label_lengths = label_lengths["lab"]
         melody = melody["lab"]
-        melody_lengths = melody_lengths["lab"]
 
         if forward_generator:
             return self._forward_generator(
@@ -492,17 +489,13 @@ class VITS(AbsGANSVS):
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
-                duration=duration,
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                melody_lengths=melody_lengths,
-                beat=beat,
-                beat_lengths=beat_lengths,
+                gt_dur=gt_dur,
+                score_dur=score_dur,
                 pitch=pitch,
-                pitch_lengths=pitch_lengths,
                 ying=ying,
-                ying_lengths=ying_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -515,17 +508,13 @@ class VITS(AbsGANSVS):
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
-                duration=duration,
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                melody_lengths=melody_lengths,
-                beat=beat,
-                beat_lengths=beat_lengths,
+                gt_dur=gt_dur,
+                score_dur=score_dur,
                 pitch=pitch,
-                pitch_lengths=pitch_lengths,
                 ying=ying,
-                ying_lengths=ying_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -539,17 +528,13 @@ class VITS(AbsGANSVS):
         feats_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
-        duration: torch.Tensor,
-        label: Optional[Dict[str, torch.Tensor]] = None,
-        label_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        melody: Optional[Dict[str, torch.Tensor]] = None,
-        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        beat: Optional[Dict[str, torch.Tensor]] = None,
-        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        pitch: Optional[torch.Tensor] = None,
-        pitch_lengths: Optional[torch.Tensor] = None,
+        label: torch.Tensor = None,
+        label_lengths: torch.Tensor = None,
+        melody: torch.Tensor = None,
+        gt_dur: torch.Tensor = None,
+        score_dur: torch.Tensor = None,
+        pitch: torch.Tensor = None,
         ying: Optional[torch.Tensor] = None,
-        ying_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -563,18 +548,13 @@ class VITS(AbsGANSVS):
             feats_lengths (Tensor): Feature length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            duration (Optional[Dict]): key is "lab", "score_phn", "score_syb;
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, Tmax).
-            label_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded label ids (B, ).
-            melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, Tmax).
-            melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
-            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
+            label (Tensor): Label index tensor (B, T_text).
+            label_lengths (Tensor): Label length tensor (B,).
+            melody (Tensor): Melody index tensor (B, T_text).
+            gt_dur (Tensor): Groundtruth duration tensor (B, T_text).
+            score_dur (Tensor): Score duration tensor (B, T_text).
+            pitch (FloatTensor): Batch of padded f0 (B, T_feats).
+            ying (Optional[Tensor]): Yin pitch tensor (B, T_feats).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
@@ -601,17 +581,13 @@ class VITS(AbsGANSVS):
                 text_lengths=text_lengths,
                 feats=feats,
                 feats_lengths=feats_lengths,
-                duration=duration,
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                melody_lengths=melody_lengths,
-                beat=beat,
-                beat_lengths=beat_lengths,
+                gt_dur=gt_dur,
+                score_dur=score_dur,
                 pitch=pitch,
-                pitch_lengths=pitch_lengths,
                 ying=ying,
-                ying_lengths=ying_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -652,25 +628,21 @@ class VITS(AbsGANSVS):
                 z_yin_crop_shifted,
                 scope_shift,
             ) = outs2_
-        if not self.use_visinger:
-            _, z_p, m_p, logs_p, _, logs_q = outs_
-        else:
-            if self.use_dp:
-                (
-                    _,
-                    z_p,
-                    m_p,
-                    logs_p,
-                    _,
-                    logs_q,
-                    pred_pitch,
-                    gt_pitch,
-                    logw,
-                    logw_gt,
-                    log_probs,
-                ) = outs_
-            else:
-                _, z_p, m_p, logs_p, _, logs_q, pred_pitch, gt_pitch = outs_
+
+        (
+            _,
+            z_p,
+            m_p,
+            logs_p,
+            m_q,
+            logs_q,
+            pred_pitch,
+            gt_pitch,
+            pred_dur,
+            gt_dur,
+            log_probs,
+        ) = outs_
+
         singing_ = get_segments(
             x=singing,
             start_idxs=start_idxs * self.generator.upsample_factor,
@@ -678,20 +650,17 @@ class VITS(AbsGANSVS):
         )
 
         # calculate discriminator outputs
-        if (
-            self.discriminator_type == "hifigan_multi_scale_multi_period_discriminator"
-            or self.discriminator_type == "visinger2"
-        ):
-            p_hat = self.discriminator(singing_hat_)
-            with torch.no_grad():
-                # do not store discriminator gradient in generator turn
-                p = self.discriminator(singing_)
-        elif "avocodo" in self.discriminator_type:
+        if "avocodo" in self.discriminator_type:
             # print("singing_hat_.shape", singing_hat_[0].shape)
             # print("singing_.shape", singing_.shape)
             p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
                 singing_, singing_hat_
             )
+        else:
+            p_hat = self.discriminator(singing_hat_)
+            with torch.no_grad():
+                # do not store discriminator gradient in generator turn
+                p = self.discriminator(singing_)
 
         # calculate losses
         with autocast(enabled=False):
@@ -716,94 +685,85 @@ class VITS(AbsGANSVS):
                 ddsp_mel_loss = self.mel_loss(singing_hat_ddsp_, singing_)
             else:
                 mel_loss = self.mel_loss(singing_hat_, singing_)
-            kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
-            if (
-                self.discriminator_type
-                == "hifigan_multi_scale_multi_period_discriminator"
-                or self.discriminator_type == "visinger2"
-            ):
-                adv_loss = self.generator_adv_loss(p_hat)
-                feat_match_loss = self.feat_match_loss(p_hat, p)
-            elif "avocodo" in self.discriminator_type:
+            if self.use_flow:
+                kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
+            else:
+                kl_loss = self.kl_loss(m_q, logs_q, m_p, logs_p)
+
+            if "avocodo" in self.discriminator_type:
                 adv_loss = self.generator_adv_loss(p_hat)
                 # print("fmaps_fake[0]", fmaps_fake[0][0].shape)
                 # print("fmaps_real[0]", fmaps_real[0][0].shape)
-
                 feat_match_loss = self.feat_match_loss(fmaps_fake, fmaps_real)
                 # raise ValueError
+            else:
+                adv_loss = self.generator_adv_loss(p_hat)
+                feat_match_loss = self.feat_match_loss(p_hat, p)
 
-            if self.use_visinger:
-                pitch_loss = self.mse_loss(pred_pitch, gt_pitch)
-                if self.use_dp:
-                    ctc_loss = self.ctc_loss(
-                        log_probs, label, feats_lengths, label_lengths
-                    )
-                    dur_loss = self.mse_loss(logw, logw_gt)
+            pitch_loss = self.mse_loss(pred_pitch, gt_pitch)
+
+            phoneme_dur_loss = self.mse_loss(
+                pred_dur[:, 0, :].squeeze(1), gt_dur.float()
+            )
+            score_dur_loss = self.mse_loss(pred_dur[:, 1, :].squeeze(1), gt_dur.float())
+
+            if self.use_phoneme_predictor:
+                ctc_loss = self.ctc_loss(log_probs, label, feats_lengths, label_lengths)
 
             mel_loss = mel_loss * self.lambda_mel
             kl_loss = kl_loss * self.lambda_kl
 
             adv_loss = adv_loss * self.lambda_adv
             feat_match_loss = feat_match_loss * self.lambda_feat_match
-            if self.use_visinger:
-                pitch_loss = pitch_loss * self.lambda_pitch
-                if self.use_dp:
-                    ctc_loss = ctc_loss * self.lambda_phoneme
-                    dur_loss = dur_loss * self.lambda_dur
+
+            pitch_loss = pitch_loss * self.lambda_pitch
+            phoneme_dur_loss = phoneme_dur_loss * self.lambda_dur
+            score_dur_loss = score_dur_loss * self.lambda_dur
+            if self.use_phoneme_predictor:
+                ctc_loss = ctc_loss * self.lambda_phoneme
 
             loss = mel_loss + kl_loss + adv_loss + feat_match_loss
             if self.vocoder_generator_type == "visinger2":
                 ddsp_mel_loss = ddsp_mel_loss * self.lambda_mel
                 loss += ddsp_mel_loss
-            if self.use_visinger:
-                loss += pitch_loss
-            if self.use_dp:
-                loss += dur_loss
+
+            loss += pitch_loss
+            loss += phoneme_dur_loss
+            loss += score_dur_loss
+            if self.use_phoneme_predictor:
                 loss += ctc_loss
             if "pisinger" in self.generator_type:
                 loss += yin_dec_loss
 
-        if self.use_visinger:
-            if not self.use_dp:
-                stats = dict(
-                    generator_loss=loss.item(),
-                    generator_mel_loss=mel_loss.item(),
-                    generator_kl_loss=kl_loss.item(),
-                    generator_adv_loss=adv_loss.item(),
-                    generator_feat_match_loss=feat_match_loss.item(),
-                    pitch_loss=pitch_loss.item(),
-                )
-            else:
-                stats = dict(
-                    generator_loss=loss.item(),
-                    generator_mel_loss=mel_loss.item(),
-                    generator_dur_loss=dur_loss.item(),
-                    generator_adv_loss=adv_loss.item(),
-                    generator_feat_match_loss=feat_match_loss.item(),
-                    pitch_loss=pitch_loss.item(),
-                    ctc_loss=ctc_loss.item(),
-                    generator_kl_loss=kl_loss.item(),
-                )
+        stats = dict(
+            generator_loss=loss.item(),
+            generator_mel_loss=mel_loss.item(),
+            generator_phn_dur_loss=phoneme_dur_loss.item(),
+            generator_score_dur_loss=score_dur_loss.item(),
+            generator_adv_loss=adv_loss.item(),
+            generator_feat_match_loss=feat_match_loss.item(),
+            pitch_loss=pitch_loss.item(),
+            generator_kl_loss=kl_loss.item(),
+        )
 
-                if self.vocoder_generator_type == "visinger2":
-                    stats.update(
-                        dict(
-                            generator_mel_ddsp_loss=ddsp_mel_loss.item(),
-                        )
-                    )
-                elif "pisinger" in self.generator_type:
-                    stats.update(
-                        dict(
-                            generator_yin_dec_loss=yin_dec_loss.item(),
-                        )
-                    )
-        else:
-            stats = dict(
-                generator_loss=loss.item(),
-                generator_mel_loss=mel_loss.item(),
-                generator_kl_loss=kl_loss.item(),
-                generator_adv_loss=adv_loss.item(),
-                generator_feat_match_loss=feat_match_loss.item(),
+        if self.use_phoneme_predictor:
+            stats.update(
+                dict(
+                    generator_phoneme_loss=ctc_loss.item(),
+                )
+            )
+
+        if self.vocoder_generator_type == "visinger2":
+            stats.update(
+                dict(
+                    generator_mel_ddsp_loss=ddsp_mel_loss.item(),
+                )
+            )
+        elif "pisinger" in self.generator_type:
+            stats.update(
+                dict(
+                    generator_yin_dec_loss=yin_dec_loss.item(),
+                )
             )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -827,17 +787,13 @@ class VITS(AbsGANSVS):
         feats_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
-        duration: torch.Tensor,
-        label: Optional[Dict[str, torch.Tensor]] = None,
-        label_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        melody: Optional[Dict[str, torch.Tensor]] = None,
-        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        beat: Optional[Dict[str, torch.Tensor]] = None,
-        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        pitch: Optional[torch.Tensor] = None,
-        pitch_lengths: Optional[torch.Tensor] = None,
+        label: torch.Tensor = None,
+        label_lengths: torch.Tensor = None,
+        melody: torch.Tensor = None,
+        gt_dur: torch.Tensor = None,
+        score_dur: torch.Tensor = None,
+        pitch: torch.Tensor = None,
         ying: Optional[torch.Tensor] = None,
-        ying_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -851,26 +807,13 @@ class VITS(AbsGANSVS):
             feats_lengths (Tensor): Feature length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, Tmax).
-            label_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded label ids (B, ).
-            melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, Tmax).
-            melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
-            tempo (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded tempo (B, Tmax).
-            tempo_lengths (Optional[Dict]):  key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded tempo (B, ).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded beat (B, ).
-            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
+            label (Tensor): Label index tensor (B, T_text).
+            label_lengths (Tensor): Label length tensor (B,).
+            melody (Tensor): Melody index tensor (B, T_text).
+            gt_dur (Tensor): Groundtruth duration tensor (B, T_text).
+            score_dur (Tensor): Score duration tensor (B, T_text).
+            pitch (FloatTensor): Batch of padded f0 (B, T_feats).
+            ying (Optional[Tensor]): Yin pitch tensor (B, T_feats).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
@@ -897,17 +840,13 @@ class VITS(AbsGANSVS):
                 text_lengths=text_lengths,
                 feats=feats,
                 feats_lengths=feats_lengths,
-                duration=duration,
+                gt_dur=gt_dur,
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                melody_lengths=melody_lengths,
-                beat=beat,
-                beat_lengths=beat_lengths,
+                score_dur=score_dur,
                 pitch=pitch,
-                pitch_lengths=pitch_lengths,
                 ying=ying,
-                ying_lengths=ying_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -929,17 +868,14 @@ class VITS(AbsGANSVS):
         )
 
         # calculate discriminator outputs
-        if (
-            self.discriminator_type == "hifigan_multi_scale_multi_period_discriminator"
-            or self.discriminator_type == "visinger2"
-        ):
-            p_hat = self.discriminator(singing_hat_.detach())
-            p = self.discriminator(singing_)
-        elif "avocodo" in self.discriminator_type:
+        if "avocodo" in self.discriminator_type:
             detached_singing_hat_ = [x.detach() for x in singing_hat_]
             p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
                 singing_, detached_singing_hat_
             )
+        else:
+            p_hat = self.discriminator(singing_hat_.detach())
+            p = self.discriminator(singing_)
 
         # calculate losses
         with autocast(enabled=False):
@@ -987,14 +923,10 @@ class VITS(AbsGANSVS):
             text (Tensor): Input text index tensor (T_text,).
             feats (Tensor): Feature tensor (T_feats, aux_channels).
             label (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded label ids (B, Tmax).
+                value (LongTensor): Batch of padded label ids (B, T_text).
             melody (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded melody (B, Tmax).
-            tempo (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded tempo (B, Tmax).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            pitch (FloatTensor): Batch of padded f0 (B, Tmax).
+                value (LongTensor): Batch of padded melody (B, T_text).
+            pitch (FloatTensor): Batch of padded f0 (B, T_feats).
             sids (Tensor): Speaker index tensor (1,).
             spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
             lids (Tensor): Language index tensor (1,).
@@ -1003,8 +935,8 @@ class VITS(AbsGANSVS):
             alpha (float): Alpha parameter to control the speed of generated singing.
             max_len (Optional[int]): Maximum length.
             use_teacher_forcing (bool): Whether to use teacher forcing.
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
+            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of padded duration (B, T_text).
 
         Returns:
             Dict[str, Tensor]:
@@ -1014,7 +946,8 @@ class VITS(AbsGANSVS):
         # setup
         label = label["lab"]
         melody = melody["lab"]
-        beat = duration["score_syb"]
+        score_dur = duration["score_syb"]
+        gt_dur = duration["lab"]
         text = text[None]
         text_lengths = torch.tensor(
             [text.size(1)],
@@ -1050,7 +983,8 @@ class VITS(AbsGANSVS):
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                beat=beat,
+                score_dur=score_dur,
+                gt_dur=gt_dur,
                 pitch=pitch,
                 sids=sids,
                 spembs=spembs,
@@ -1068,7 +1002,7 @@ class VITS(AbsGANSVS):
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                beat=beat,
+                score_dur=score_dur,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,

@@ -12,11 +12,9 @@ from espnet2.gan_svs.vits import VITS
 
 def make_vits_generator_args(**kwargs):
     defaults = dict(
-        generator_type="vits_generator",
+        generator_type="visinger",
         generator_params={
             "vocabs": 10,
-            "midi_dim": 129,
-            "beat_dim": 600,
             "aux_channels": 5,
             "hidden_channels": 4,
             "spks": -1,
@@ -59,8 +57,13 @@ def make_vits_generator_args(**kwargs):
             "flow_dropout_rate": 0.0,
             "use_weight_norm_in_flow": True,
             "use_only_mean_in_flow": True,
-            "use_dp": True,
-            "use_visinger": True,
+            "generator_type": "visinger",
+            "vocoder_generator_type": "hifigan",
+            "fs": 22050,
+            "hop_length": 256,
+            "win_length": 1024,
+            "n_fft": 1024,
+            "use_phoneme_predictor": False,
         },
     )
     defaults.update(kwargs)
@@ -312,10 +315,6 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
             "lab": torch.randint(0, 127, (2, 8)),
             "score": torch.randint(0, 127, (2, 8)),
         },
-        melody_lengths={
-            "lab": torch.tensor([8, 5], dtype=torch.long),
-            "score": torch.tensor([8, 5], dtype=torch.long),
-        },
         duration={
             "lab": torch.tensor(
                 [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
@@ -327,13 +326,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
                 [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
-        duration_lengths={
-            "lab": torch.tensor([8, 5], dtype=torch.long),
-            "score_phn": torch.tensor([8, 5], dtype=torch.long),
-            "score_syb": torch.tensor([8, 5], dtype=torch.long),
-        },
         pitch=torch.randn(2, 16, 1),
-        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
     )
     gen_loss = model(forward_generator=True, **inputs)["loss"]
     gen_loss.backward()
@@ -597,6 +590,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
     odim = 5
     global_channels = 8
     gen_args = make_vits_generator_args(**gen_dict)
+    print("gen_args", gen_args)
     gen_args["generator_params"]["spks"] = spks
     gen_args["generator_params"]["langs"] = langs
     gen_args["generator_params"]["spk_embed_dim"] = spk_embed_dim
@@ -631,10 +625,6 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
             "lab": torch.randint(0, 127, (2, 8)),
             "score": torch.randint(0, 127, (2, 8)),
         },
-        melody_lengths={
-            "lab": torch.tensor([8, 5], dtype=torch.long),
-            "score": torch.tensor([8, 5], dtype=torch.long),
-        },
         duration={
             "lab": torch.tensor(
                 [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
@@ -646,13 +636,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
                 [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
-        duration_lengths={
-            "lab": torch.tensor([8, 5], dtype=torch.long),
-            "score_phn": torch.tensor([8, 5], dtype=torch.long),
-            "score_syb": torch.tensor([8, 5], dtype=torch.long),
-        },
         pitch=torch.randn(2, 16, 1),
-        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
     )
     if spks > 0:
         inputs["sids"] = torch.randint(0, spks, (2, 1))
@@ -962,10 +946,6 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
             "lab": torch.randint(0, 127, (2, 8)),
             "score": torch.randint(0, 127, (2, 8)),
         },
-        melody_lengths={
-            "lab": torch.tensor([8, 5], dtype=torch.long),
-            "score": torch.tensor([8, 5], dtype=torch.long),
-        },
         duration={
             "lab": torch.tensor(
                 [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
@@ -977,13 +957,7 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
                 [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
-        duration_lengths={
-            "lab": torch.tensor([8, 5], dtype=torch.long),
-            "score_phn": torch.tensor([8, 5], dtype=torch.long),
-            "score_syb": torch.tensor([8, 5], dtype=torch.long),
-        },
         pitch=torch.randn(2, 16, 1),
-        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
     )
     device = torch.device("cuda")
     model.to(device)
@@ -1305,10 +1279,6 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
             "lab": torch.randint(0, 127, (2, 8)),
             "score": torch.randint(0, 127, (2, 8)),
         },
-        melody_lengths={
-            "lab": torch.tensor([8, 5], dtype=torch.long),
-            "score": torch.tensor([8, 5], dtype=torch.long),
-        },
         duration={
             "lab": torch.tensor(
                 [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
@@ -1320,13 +1290,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
-        duration_lengths={
-            "lab": torch.tensor([8, 5], dtype=torch.long),
-            "score_phn": torch.tensor([8, 5], dtype=torch.long),
-            "score_syb": torch.tensor([8, 5], dtype=torch.long),
-        },
         pitch=torch.randn(2, 16, 1),
-        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
     )
     if spks > 0:
         inputs["sids"] = torch.randint(0, spks, (2, 1))

@@ -283,34 +283,27 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
 
         # melody
         melody = dict()
-        melody_lengths = dict()
         if midi_lab is not None:
             midi_lab = midi_lab.to(dtype=torch.long)
             melody.update(lab=midi_lab)
-            melody_lengths.update(lab=midi_lab_lengths)
         if midi_score is not None:
             midi_score = midi_score.to(dtype=torch.long)
             melody.update(score=midi_score)
-            melody_lengths.update(score=midi_score_lengths)
-        batch.update(melody=melody, melody_lengths=melody_lengths)
+        batch.update(melody=melody)
 
         # duration
         # NOTE(Yuning): duration = duration_time / time_shift (same as Xiaoice paper)
         duration = dict()
-        duration_lengths = dict()
         if duration_lab is not None:
             duration_lab = duration_lab.to(dtype=torch.long)
             duration.update(lab=duration_lab)
-            duration_lengths.update(lab=duration_lab_lengths)
         if duration_score is not None:
             duration_phn_score = duration_score.to(dtype=torch.long)
             duration.update(score_phn=duration_phn_score)
-            duration_lengths.update(score_phn=duration_score_phn_lengths)
         if duration_score_syb is not None:
             duration_syb_score = duration_score_syb.to(dtype=torch.long)
             duration.update(score_syb=duration_syb_score)
-            duration_lengths.update(score_syb=duration_score_syb_lengths)
-        batch.update(duration=duration, duration_lengths=duration_lengths)
+        batch.update(duration=duration)
 
         if spembs is not None:
             batch.update(spembs=spembs)
@@ -321,11 +314,11 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         if feats is not None:
             batch.update(feats=feats, feats_lengths=feats_lengths)
         if self.pitch_extract is not None and pitch is not None:
-            batch.update(pitch=pitch, pitch_lengths=pitch_lengths)
+            batch.update(pitch=pitch)
         if self.energy_extract is not None and energy is not None:
-            batch.update(energy=energy, energy_lengths=energy_lengths)
+            batch.update(energy=energy)
         if self.ying_extract is not None and ying is not None:
-            batch.update(ying=ying, ying_lengths=ying_lengths)
+            batch.update(ying=ying)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
         return self.svs(**batch)

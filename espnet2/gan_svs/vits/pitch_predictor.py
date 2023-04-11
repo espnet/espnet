@@ -2,14 +2,14 @@
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 import torch
-
 from espnet.nets.pytorch_backend.conformer.encoder import Encoder
+from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
-class PitchPredictor(torch.nn.Module):
+class Decoder(torch.nn.Module):
     def __init__(
         self,
-        hidden_channels: int = 192,
+        out_channels: int = 192,
         attention_dim: int = 192,
         attention_heads: int = 2,
         linear_units: int = 768,
@@ -26,9 +26,12 @@ class PitchPredictor(torch.nn.Module):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
+        global_channels: int = -1,
     ):
         super().__init__()
-        self.pitch_net = Encoder(
+
+        self.prenet = torch.nn.Conv1d(attention_dim + 2, attention_dim, 3, padding=1)
+        self.decoder = Encoder(
             idim=-1,
             input_layer=None,
             attention_dim=attention_dim,
@@ -48,12 +51,29 @@ class PitchPredictor(torch.nn.Module):
             use_cnn_module=use_conformer_conv,
             cnn_module_kernel=conformer_kernel_size,
         )
-        self.proj = torch.nn.Conv1d(hidden_channels, 1, 1)
+        self.proj = torch.nn.Conv1d(attention_dim, out_channels, 1)
 
-    def forward(self, x, x_mask):
-        x = x * x_mask
+        if global_channels > 0:
+            self.global_conv = torch.nn.Conv1d(global_channels, attention_dim, 1)
+
+    def forward(self, x, x_lengths, g=None):
+        x_mask = (
+            make_non_pad_mask(x_lengths)
+            .to(
+                device=x.device,
+                dtype=x.dtype,
+            )
+            .unsqueeze(1)
+        )
+        x = self.prenet(x) * x_mask
+
+        if g is not None:
+            x = x + self.global_conv(g)
+
         x = x.transpose(1, 2)
-        pitch_embedding, _ = self.pitch_net(x, x_mask)
-        pitch_embedding = pitch_embedding.transpose(1, 2)
-        pred_pitch = self.proj(pitch_embedding) * x_mask
-        return pred_pitch, pitch_embedding
+        x, _ = self.decoder(x, x_mask)
+        x = x.transpose(1, 2)
+
+        x = self.proj(x) * x_mask
+
+        return x, x_mask
