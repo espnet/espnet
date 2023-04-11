@@ -1269,11 +1269,7 @@
                 <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">singing</span><span class="p">))</span>
                 <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">singing_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">singing</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">singing_volume_normalize</span> <span class="o">/</span> <span class="n">ma</span>
 
-        <span class="k">if</span> <span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">midi_name</span> <span class="ow">in</span> <span class="n">data</span>
-            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_name</span> <span class="ow">in</span> <span class="n">data</span>
-            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_name</span> <span class="ow">in</span> <span class="n">data</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_name</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
             <span class="c1"># Load label info</span>
             <span class="n">lab_timeseq</span><span class="p">,</span> <span class="n">text</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">label_name</span><span class="p">]</span>
             <span class="n">lab_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>

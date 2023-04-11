@@ -295,7 +295,7 @@
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">text</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
+        <span class="n">text</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
         <span class="n">singing</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">label</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">midi</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -320,9 +320,21 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_spembs</span> <span class="ow">and</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Missing required argument: &#39;spembs&#39;&quot;</span><span class="p">)</span>
 
-        <span class="n">batch</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="c1"># prepare batch</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">Dict</span><span class="p">):</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocess_fn</span><span class="p">(</span>
+                <span class="s2">&quot;&lt;dummy&gt;&quot;</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">text</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">],</span> <span class="n">score</span><span class="o">=</span><span class="n">text</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">])</span>
+            <span class="p">)</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span>
+            <span class="n">midi</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;midi&quot;</span><span class="p">]</span>
+            <span class="n">duration_phn</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;duration_phn&quot;</span><span class="p">]</span>
+            <span class="n">duration_ruled_phn</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;duration_ruled_phn&quot;</span><span class="p">]</span>
+            <span class="n">duration_syb</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;duration_syb&quot;</span><span class="p">]</span>
+            <span class="n">phn_cnt</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;phn_cnt&quot;</span><span class="p">]</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">label</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">midi</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -401,7 +413,68 @@
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">use_spembs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return spemb is needed or not in the inference.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">svs</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span></div>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">svs</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+<div class="viewcode-block" id="SingingGenerate.from_pretrained"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.svs_inference.SingingGenerate.from_pretrained">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_pretrained</span><span class="p">(</span>
+        <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">vocoder_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build SingingGenerate instance from the pretrained model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            model_tag (Optional[str]): Model tag of the pretrained models.</span>
+<span class="sd">                Currently, the tags of espnet_model_zoo are supported.</span>
+<span class="sd">            vocoder_tag (Optional[str]): Vocoder tag of the pretrained vocoders.</span>
+<span class="sd">                Currently, the tags of parallel_wavegan are supported, which should</span>
+<span class="sd">                start with the prefix &quot;parallel_wavegan/&quot;.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            SingingGenerate: SingingGenerate instance.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model_tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">espnet_model_zoo.downloader</span> <span class="kn">import</span> <span class="n">ModelDownloader</span>
+
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;`espnet_model_zoo` is not installed. &quot;</span>
+                    <span class="s2">&quot;Please install via `pip install -U espnet_model_zoo`.&quot;</span>
+                <span class="p">)</span>
+                <span class="k">raise</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">ModelDownloader</span><span class="p">()</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="o">.</span><span class="n">download_and_unpack</span><span class="p">(</span><span class="n">model_tag</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">vocoder_tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">vocoder_tag</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;parallel_wavegan/&quot;</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="kn">from</span> <span class="nn">parallel_wavegan.utils</span> <span class="kn">import</span> <span class="n">download_pretrained_model</span>
+
+                <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                        <span class="s2">&quot;`parallel_wavegan` is not installed. &quot;</span>
+                        <span class="s2">&quot;Please install via `pip install -U parallel_wavegan`.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">raise</span>
+
+                <span class="kn">from</span> <span class="nn">parallel_wavegan</span> <span class="kn">import</span> <span class="n">__version__</span>
+
+                <span class="c1"># NOTE(kan-bayashi): Filelock download is supported from 0.5.2</span>
+                <span class="k">assert</span> <span class="n">V</span><span class="p">(</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">V</span><span class="p">(</span><span class="s2">&quot;0.5.1&quot;</span><span class="p">),</span> <span class="p">(</span>
+                    <span class="s2">&quot;Please install the latest parallel_wavegan &quot;</span>
+                    <span class="s2">&quot;via `pip install -U parallel_wavegan`.&quot;</span>
+                <span class="p">)</span>
+                <span class="n">vocoder_tag</span> <span class="o">=</span> <span class="n">vocoder_tag</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;parallel_wavegan/&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+                <span class="n">vocoder_file</span> <span class="o">=</span> <span class="n">download_pretrained_model</span><span class="p">(</span><span class="n">vocoder_tag</span><span class="p">)</span>
+                <span class="n">vocoder_config</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">vocoder_file</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;config.yml&quot;</span>
+                <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">vocoder_config</span><span class="o">=</span><span class="n">vocoder_config</span><span class="p">,</span> <span class="n">vocoder_file</span><span class="o">=</span><span class="n">vocoder_file</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">vocoder_tag</span><span class="si">}</span><span class="s2"> is unsupported format.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">SingingGenerate</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="inference"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.svs_inference.inference">[docs]</a><span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>

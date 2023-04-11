@@ -222,7 +222,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># check argument type</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="ow">or</span> <span class="n">args</span> <span class="ow">is</span> <span class="kc">None</span>
-    <span class="k">assert</span> <span class="n">callable</span><span class="p">(</span><span class="n">add_arguments</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">callable</span><span class="p">(</span><span class="n">add_arguments</span><span class="p">)</span>
 
     <span class="c1"># get default arguments</span>
     <span class="n">default_args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">add_arguments</span><span class="p">(</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">())</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
