@@ -6,7 +6,6 @@
 """Singing-voice-synthesis ESPnet model."""
 
 import logging
-
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
@@ -161,7 +160,7 @@ class ESPnetSVSModel(AbsESPnetModel):
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
 
-            # logging.info(f'fetas: {feats.shape}') # [B, T, 80]       
+            # logging.info(f'fetas: {feats.shape}') # [B, T, 80]
 
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
@@ -250,7 +249,6 @@ class ESPnetSVSModel(AbsESPnetModel):
                 pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
             if self.energy_normalize is not None:
                 energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
-            
 
         # Make batch for svs inputs
         batch = dict(
@@ -580,7 +578,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             input_dict.update(sids=sids)
         if lids is not None:
             input_dict.update(lids=lids)
-            
+
         output_dict = self.svs.inference(**input_dict, **decode_config)
 
         if self.normalize is not None and output_dict.get("feat_gen") is not None:

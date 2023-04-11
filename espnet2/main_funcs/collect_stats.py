@@ -55,7 +55,7 @@ def collect_stats(
 
                 # 1. Write shape file
                 for name in batch:
-                    logging.info(f'{name}, {batch[name].shape}')
+                    logging.info(f"{name}, {batch[name].shape}")
                     if name.endswith("_lengths"):
                         continue
                     for i, (key, data) in enumerate(zip(keys, batch[name])):
@@ -83,9 +83,13 @@ def collect_stats(
                     for key, v in data.items():
                         # calc feats min and max [80]
                         if key == "feats":
-                            feats_max = torch.max(torch.max(v.reshape(-1, 80), 0)[0], feats_max)
-                            feats_min = torch.min(torch.min(v.reshape(-1, 80), 0)[0], feats_min)   
-                     
+                            feats_max = torch.max(
+                                torch.max(v.reshape(-1, 80), 0)[0], feats_max
+                            )
+                            feats_min = torch.min(
+                                torch.min(v.reshape(-1, 80), 0)[0], feats_min
+                            )
+
                         for i, (uttid, seq) in enumerate(zip(keys, v.cpu().numpy())):
                             # Truncate zero-padding region
                             if f"{key}_lengths" in data:
@@ -121,7 +125,7 @@ def collect_stats(
                 sum=sum_dict[key],
                 sum_square=sq_dict[key],
             )
-        
+
         # save feats_min and fetas_max for normalizing feats
         np.savez(
             output_dir / mode / "feats_minmax_stats.npz",

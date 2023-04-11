@@ -8,9 +8,9 @@
 import logging
 from typing import Dict, Optional, Tuple
 
-import torch
 import librosa
 import numpy as np
+import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
@@ -42,23 +42,23 @@ class FFTSinger(XiaoiceSing):
     Inheriting from XiaoiceSing.
 
     In paper 'DiffSinger: Singing Voice Synthesis via Shallow Diffusion Mechanism',
-    Fastspeech2 with Midi Module is used as FFTSinger, 
+    Fastspeech2 with Midi Module is used as FFTSinger,
     Here we use XiaoiceSing to substitute for Fastspeech2.
     """
-    
+
     def init(
-         self,
+        self,
         idim: int,
         odim: int,
         midi_dim: int = 129,
         tempo_dim: int = 500,
-        embed_dim: int =512,
+        embed_dim: int = 512,
         adim: int = 384,
         aheads: int = 4,
-        elayers: int = 6, 
-        eunits: int = 1536, 
-        dlayers: int = 6, 
-        dunits: int = 1536, 
+        elayers: int = 6,
+        eunits: int = 1536,
+        dlayers: int = 6,
+        dunits: int = 1536,
         postnet_layers: int = 5,
         postnet_chans: int = 512,
         postnet_filts: int = 5,
@@ -115,21 +115,21 @@ class FFTSinger(XiaoiceSing):
             embed_dim=embed_dim,
             adim=adim,
             aheads=aheads,
-            elayers=elayers, 
-            eunits=eunits, 
-            dlayers=dlayers, 
-            dunits=dunits, 
-            postnet_layers=postnet_layers, 
-            postnet_chans=postnet_chans, 
-            postnet_filts=postnet_filts, 
-            postnet_dropout_rate=postnet_dropout_rate, 
-            use_batch_norm=use_batch_norm, 
-            reduction_factor=reduction_factor, 
+            elayers=elayers,
+            eunits=eunits,
+            dlayers=dlayers,
+            dunits=dunits,
+            postnet_layers=postnet_layers,
+            postnet_chans=postnet_chans,
+            postnet_filts=postnet_filts,
+            postnet_dropout_rate=postnet_dropout_rate,
+            use_batch_norm=use_batch_norm,
+            reduction_factor=reduction_factor,
             init_type=init_type,
-            use_masking=use_masking, 
-            loss_type=loss_type, 
-            encoder_type=encoder_type, 
-            decoder_type=decoder_type, 
+            use_masking=use_masking,
+            loss_type=loss_type,
+            encoder_type=encoder_type,
+            decoder_type=decoder_type,
         )
 
     def forward(
@@ -155,7 +155,7 @@ class FFTSinger(XiaoiceSing):
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Get Info that Diffsinger needs.
-        
+
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
             text_lengths (LongTensor): Batch of lengths of each input (B,).
@@ -259,7 +259,6 @@ class FFTSinger(XiaoiceSing):
             ).transpose(1, 2)
 
         return hs, after_outs if after_outs is not None else before_outs
-            
 
     def inference(
         self,
