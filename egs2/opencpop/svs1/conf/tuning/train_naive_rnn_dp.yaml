@@ -56,7 +56,7 @@ grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
  
 batch_type: sorted
-batch_size: 16
+batch_size: 8
 
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
@@ -73,3 +73,4 @@ best_model_criterion:
 -   - train
     - loss
     - min
+
