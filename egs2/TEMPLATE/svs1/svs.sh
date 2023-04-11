@@ -867,6 +867,7 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
+                --fs "${fs}" \
                 --normalize "${feats_normalize}" \
                 --resume true \
                 --init_param ${pretrained_model} \
