@@ -12,7 +12,7 @@ log() {
 
 help_message=$(cat << EOF
 [Warning] The script is called with other arguments.
-Usage: $0 
+Usage: $0
   optional argument:
     None
 EOF
@@ -36,7 +36,7 @@ fi
 if [ ! -e "${L3DAS22}" ] ; then
     log "
     Please fill the value of 'L3DAS22' in db.sh
-    The 'L3DAS22' (https://www.kaggle.com/l3dasteam/l3das22) directory 
+    The 'L3DAS22' (https://www.kaggle.com/l3dasteam/l3das22) directory
     should at least contain the task1 dataset:
         L3DAS22
         ├── L3DAS22_Task1_dev
@@ -73,4 +73,3 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # train_multich, dev_multich, test_multich
     local/l3das22_data_prep.sh  ${L3DAS22} data/l3das22_split || exit 1;
 fi
-

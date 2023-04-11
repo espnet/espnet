@@ -13,7 +13,7 @@ test_set="bur_test"
 
 asr_config=conf/train_asr_hubert_transformer_adam_specaug.yaml
 inference_config=conf/decode_asr.yaml
-lm_config=conf/train_lm.yaml 
+lm_config=conf/train_lm.yaml
 ngpu=1
 
 ./asr.sh \

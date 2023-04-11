@@ -1,4 +1,4 @@
-#!/usr/bin/env bash 
+#!/usr/bin/env bash
 
 # Copyright 2018 Okayama University (Katsuki Inoue)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
@@ -25,7 +25,7 @@ segments=${data_dir}/segments
 [ -e ${utt2spk} ] && rm ${utt2spk}
 
 # make downsampled dir
-cp -a ${db}/enUK ${db}/enUK.rename ; echo "db have been copied." 
+cp -a ${db}/enUK ${db}/enUK.rename ; echo "db have been copied."
 
 # replace ' ' of the filename to '_'
 find ${db}/enUK.rename -name "*.m4a" | rename 's/ /_/g'

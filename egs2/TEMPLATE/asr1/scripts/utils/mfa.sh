@@ -117,7 +117,7 @@ if [ -n "${language}" ]; then
         g2p_model="${language}"
     fi
 fi
-   
+
 if [ -z "${acoustic_model}" ]; then
     log "ERROR: You need to add <language> or <acoustic_model>."
     exit 1
@@ -245,9 +245,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             "${g2p_model}" \
             "${tempdir}/corpus_validate_pretrained/oovs_found_${dictionary}.txt" \
             "${oov_dict}"
-    
+
     cat "${src_dict}" "${oov_dict}" > "${workdir}/${dictionary}.dict"
-    
+
     # # Validate data set with acoustics.
     log "Validating corpus..."
     ${train_cmd} ${tempdir}/logs/validate.log \

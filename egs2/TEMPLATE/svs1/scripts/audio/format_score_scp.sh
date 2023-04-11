@@ -80,7 +80,7 @@ if [ -n "${segments}" ]; then
     log "[info]: using ${segments}"
     nutt=$(<${segments} wc -l)
     nj=$((nj<nutt?nj:nutt))
-    
+
     ${cmd} "JOB=1:${nj}" "${logdir}/format_score_scp.JOB.log" \
         pyscripts/audio/format_score_scp.py \
             ${opts} \

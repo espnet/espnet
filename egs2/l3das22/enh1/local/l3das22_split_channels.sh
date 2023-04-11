@@ -81,12 +81,8 @@ for x in dev test tr100 tr360; do
   mkdir -p $tmpdir/log/${x}
   split -n l/$nj  -d $tmpdir/${x}.sh $tmpdir/log/${x}/
   ls $tmpdir/log/${x}/* | awk -v dir="$tmpdir/log/${x}" -v x="$x" '{n=split($1, lst, "/"); print  $1, dir"/sox_"(lst[n]+1) ".sh"}' | xargs -n2 mv
-  chmod +x $tmpdir/log/${x}/* 
+  chmod +x $tmpdir/log/${x}/*
 
   # sox command to separate multi-channels
   ${train_cmd} JOB=1:$nj $tmpdir/log/${x}/sox.JOB.log $tmpdir/log/${x}/sox_JOB.sh
 done
-
-
-
-

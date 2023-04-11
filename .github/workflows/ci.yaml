@@ -14,26 +14,26 @@ jobs:
     strategy:
       max-parallel: 20
       matrix:
-        os: [ubuntu-18.04]
+        os: [ubuntu-latest]
         python-version: [3.7]
         pytorch-version: [1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.2, 1.11.0, 1.12.1, 1.13.1]
         chainer-version: [6.0.0]
         # NOTE(kamo): Conda is tested by Circle-CI
         use-conda: [false]
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             python-version: 3.8
             pytorch-version: 1.13.1
             chainer-verssion: 6.0.0
             use-conda: false
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             python-version: 3.9
             pytorch-version: 1.13.1
             chainer-verssion: 6.0.0
             use-conda: false
-          - os: ubuntu-20.04
+          - os: ubuntu-latest
             python-version: "3.10"
-            pytorch-version: 1.12.1
+            pytorch-version: 1.13.1
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
@@ -49,15 +49,14 @@ jobs:
       - name: install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -qq -y cmake g++-7 libsndfile1-dev bc sox
+          # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
           TH_VERSION: ${{ matrix.pytorch-version }}
           CHAINER_VERSION: ${{ matrix.chainer-version }}
           USE_CONDA: ${{ matrix.use-conda }}
-          CC: gcc-7
-          CXX: g++-7
         run: |
           ./ci/install.sh
 

@@ -18,9 +18,9 @@ escapeString="_"
 pattern1="/"
 pattern2="+"
 pattern3=" " # Repo name does not accept /
-repo_name=${model_name//${pattern3}/${escapeString}} 
-repo_name=${repo_name//${pattern1}/${escapeString}} 
-repo_name=${repo_name//${pattern2}/${escapeString}} 
+repo_name=${model_name//${pattern3}/${escapeString}}
+repo_name=${repo_name//${pattern1}/${escapeString}}
+repo_name=${repo_name//${pattern2}/${escapeString}}
 # Get name of hugging face repo
 
 rm -rf dest/*

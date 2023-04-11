@@ -17,7 +17,7 @@ ENV PATH=/opt/miniconda/bin:${PATH}
 RUN git clone ${ESPNET_LOCATION} && \
     cd espnet && \
     rm -rf docker egs egs2 espnet2 test utils && \
-    rm -rf .git 
+    rm -rf .git
 
 # Install espnet
 WORKDIR /espnet/tools

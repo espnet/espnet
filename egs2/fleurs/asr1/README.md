@@ -9,7 +9,7 @@ The data for the tasks are created in a later stage of `local/data.sh`, which wi
 utt-1 [en] ESPnet is all you need
 
 # Aux. label
-utt-1 [en] [en] [en] [en] [en] [en] 
+utt-1 [en] [en] [en] [en] [en] [en]
 ```
 
 To accommplish this, we can modify `run.sh` with additional parameters.
@@ -217,4 +217,3 @@ Finally, the model needs to be configured to use the data.
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_lm_lm_train_lm_en_us_bpe150_valid.loss.ave_asr_model_valid.acc.ave/dev_en_us|388|28381|28.0|60.1|11.8|16.4|88.4|100.0|
 |decode_asr_lm_lm_train_lm_en_us_bpe150_valid.loss.ave_asr_model_valid.acc.ave/test_en_us|647|50313|27.9|60.6|11.5|16.4|88.6|100.0|
-

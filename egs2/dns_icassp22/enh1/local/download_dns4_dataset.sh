@@ -2,7 +2,7 @@
 
 # Adapted from DNS-Challenge official repo file: https://github.com/microsoft/DNS-Challenge/blob/master/download-dns-challenge-4.sh
 # Original License: CC-BY 4.0 International: https://github.com/microsoft/DNS-Challenge/blob/master/LICENSE
-# Retrieved on Sep. 7th, 2022, by Shih-Lun Wu (summer7sean@gmail.com) 
+# Retrieved on Sep. 7th, 2022, by Shih-Lun Wu (summer7sean@gmail.com)
 
 # ***** Datasets for ICASSP 2022 DNS Challenge 4 - Main (Real-Time) Track *****
 

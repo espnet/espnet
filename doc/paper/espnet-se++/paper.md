@@ -54,7 +54,7 @@ affiliations:
     index: 3
   - name: Universita\` Politecnica delle Marche, Italy
     index: 4
-  - name: Meta AI, USA 
+  - name: Meta AI, USA
     index: 5
   - name: Tokyo Metropolitan University, Japan
     index: 6
@@ -70,22 +70,22 @@ bibliography: paper.bib
 ![](https://i.imgur.com/mV3ukCX.png)
 
 # Summary
-This paper presents the software design and user interface of ESPnet-SE++, a new speech separation and enhancement (SSE) module of the ESPnet toolkit. 
+This paper presents the software design and user interface of ESPnet-SE++, a new speech separation and enhancement (SSE) module of the ESPnet toolkit.
 ESPnet-SE++ significantly expands the functionality of ESPnet-SE [@Li:2021] with several new models, loss functions, and training recipes [@Lu:2022]. Crucially, it features a new, redesigned interface, which allows for a flexible combination of SSE front-ends with many downstream tasks, including automatic speech recognition (ASR), speaker diarization (SD), speech translation (ST), and spoken language understanding (SLU).
 
 # Statement of need
 
-[ESPnet](https://github.com/espnet/espnet) is an open-source toolkit for speech processing, including several ASR, text-to-speech (TTS) [@Hayashi:2020], ST [@Inaguma:2020], machine translation (MT), SLU [@Arora:2022], and SSE recipes [@Watanabe:2018]. Compared with other open-source SSE toolkits, such as Nussl [@Manilow:2018], Onssen [@Ni:2019], Asteroid [@Pariente:2020], and SpeechBrain [@Ravanelli:2021], the modularized design in ESPnet-SE++ allows for the joint training of SSE modules with other tasks. Currently, ESPnet-SE++ supports 20 SSE recipes with 24 different enhancement/separation models. 
+[ESPnet](https://github.com/espnet/espnet) is an open-source toolkit for speech processing, including several ASR, text-to-speech (TTS) [@Hayashi:2020], ST [@Inaguma:2020], machine translation (MT), SLU [@Arora:2022], and SSE recipes [@Watanabe:2018]. Compared with other open-source SSE toolkits, such as Nussl [@Manilow:2018], Onssen [@Ni:2019], Asteroid [@Pariente:2020], and SpeechBrain [@Ravanelli:2021], the modularized design in ESPnet-SE++ allows for the joint training of SSE modules with other tasks. Currently, ESPnet-SE++ supports 20 SSE recipes with 24 different enhancement/separation models.
 
 
 # ESPnet-SE++ Recipes and Software Structure
-## ESPNet-SE++ Recipes for SSE and Joint-Task 
+## ESPNet-SE++ Recipes for SSE and Joint-Task
 ![](https://i.imgur.com/zKu612c.png)
 
-For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts which are carefully designed to work out-of-the-box with a wide variety of corpora. Under the `TEMPLATE` folder, the common scripts `enh1/enh.sh` and `enh_asr1/enh_asr.sh` are shared for all the SSE and joint-task recipes. 
+For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts which are carefully designed to work out-of-the-box with a wide variety of corpora. Under the `TEMPLATE` folder, the common scripts `enh1/enh.sh` and `enh_asr1/enh_asr.sh` are shared for all the SSE and joint-task recipes.
 
 ### Common Scripts
-`enh.sh` contains 13 stages, and the details for the scripts can be found in [TEMPLATE/enh1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md). 
+`enh.sh` contains 13 stages, and the details for the scripts can be found in [TEMPLATE/enh1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md).
 
 ![](https://i.imgur.com/0rGcwmw.png)
 
@@ -95,12 +95,12 @@ For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts
 
 ### Training Configuration
 #### SSE Task Training Configuration
-An example of an enhancement task for the CHiME-4 `enh1`  recipe is configured as [`conf/tuning/train_enh_dprnn_tasnet.yaml`](https://github.com/espnet/espnet/blob/master/egs2/chime4/enh1/conf/tuning/train_enh_dprnn_tasnet.yaml). Part of this configuration is: 
+An example of an enhancement task for the CHiME-4 `enh1`  recipe is configured as [`conf/tuning/train_enh_dprnn_tasnet.yaml`](https://github.com/espnet/espnet/blob/master/egs2/chime4/enh1/conf/tuning/train_enh_dprnn_tasnet.yaml). Part of this configuration is:
 
  ![](https://i.imgur.com/dsEy0gJ.png)
 
 #### Joint-Task Training Configuration
-An example of joint-task training configuration is the CHiME-4 `enh_asr1` recipe, configured as [`conf/tuning/train_enh_asr_convtasnet.yaml`](https://github.com/espnet/espnet/blob/master/egs2/chime4/enh_asr1/conf/tuning/train_enh_asr_convtasnet_si_snr_fbank_transformer_lr2e-3_accum2_warmup20k_specaug.yaml). This joint-task includes a front-end enhancmenet model and a back-end ASR model: 
+An example of joint-task training configuration is the CHiME-4 `enh_asr1` recipe, configured as [`conf/tuning/train_enh_asr_convtasnet.yaml`](https://github.com/espnet/espnet/blob/master/egs2/chime4/enh_asr1/conf/tuning/train_enh_asr_convtasnet_si_snr_fbank_transformer_lr2e-3_accum2_warmup20k_specaug.yaml). This joint-task includes a front-end enhancmenet model and a back-end ASR model:
 
 ![](https://i.imgur.com/kTapPT5.png)
 ![](https://i.imgur.com/uVWW7ft.png)
@@ -117,8 +117,8 @@ An example of joint-task training configuration is the CHiME-4 `enh_asr1` recipe
 ### SSE Executable Code `bin/*`
 #### bin/enh_train.py
  As the main interface for the SSE training stage of `enh.sh`, `enh_train.py` takes the training parameters and model configurations from the arguments and calls
- 
-		EnhancementTask.main(...) 
+
+		EnhancementTask.main(...)
 
 to build an SSE object `ESPnetEnhancementModel` for training the SSE model according to the model configuration.
 
@@ -126,7 +126,7 @@ to build an SSE object `ESPnetEnhancementModel` for training the SSE model accor
 The `inference` function in `enh_inference.py` creates a
 
 		class SeparateSpeech
-    
+
 object with the data-iterator for testing and validation. During its initialization, this class instantiate an SSE object `ESPnetEnhancementModel` based on a pair of configuration and a pre-trained SSE model.
 
 #### bin/enh_scoring.py
@@ -141,13 +141,13 @@ The SSE scoring functions calculates several popular objective scores such as SI
 ### SSE Modules `enh/espnet_model.py`
 
 		class ESPnetEnhancementModel(AbsESPnetModel)
-		
-`ESPnetEnhancementModel` is the base class for any ESPnet-SE++ SSE model. Since it inherits the same abstract base class `AbsESPnetModel`, it is well-aligned with other tasks such as ASR, TTS, ST, and SLU, bringing the benefits of cross-tasks combination. 
+
+`ESPnetEnhancementModel` is the base class for any ESPnet-SE++ SSE model. Since it inherits the same abstract base class `AbsESPnetModel`, it is well-aligned with other tasks such as ASR, TTS, ST, and SLU, bringing the benefits of cross-tasks combination.
 
 		def  forward(self, speech_mix, speech_ref, ...)
 
 
-The `forward` function of `ESPnetEnhancementModel`  follows the general design in the ESPnet single-task modules, which processes speech and only returns losses for [Trainer](https://github.com/espnet/espnet/blob/master/espnet2/train/trainer.py#L87-L108) to update the model. 
+The `forward` function of `ESPnetEnhancementModel`  follows the general design in the ESPnet single-task modules, which processes speech and only returns losses for [Trainer](https://github.com/espnet/espnet/blob/master/espnet2/train/trainer.py#L87-L108) to update the model.
 
 
 	 	def  forward_enhance(self, speech_mix, ...)
@@ -155,7 +155,7 @@ The `forward` function of `ESPnetEnhancementModel`  follows the general design i
 
 For more flexible combinations, the `forward_enhance` function returns the enhanced speech, and the `forward_loss` function returns the loss. The joint-training methods take the enhanced speech as the input for the downstream task and the SSE loss as a part of the joint-training loss.
 
-## ESPNet-SE++ Software Structure for Joint-Task 
+## ESPNet-SE++ Software Structure for Joint-Task
 ![](https://i.imgur.com/BPgf1b5.png)
 
 ### Unified Modeling Language Diagram for ESPNet-SE++ Joint-Task
@@ -164,27 +164,27 @@ For more flexible combinations, the `forward_enhance` function returns the enhan
 
 ### Joint-Task Executable Code `bin/*`
 #### bin/enh_s2t_train.py
-Similarly to the interface of SSE training code `enh_train.py`, `enh_s2t_train.py` takes the training and modular parameters from the scripts, and calls  
+Similarly to the interface of SSE training code `enh_train.py`, `enh_s2t_train.py` takes the training and modular parameters from the scripts, and calls
 
-		tasks.enh_s2t.EnhS2TTask.main(...) 
+		tasks.enh_s2t.EnhS2TTask.main(...)
 
 to build a joint-task object for training the joint-model based on a configuration with both SSE and s2t models setting with or without pre-trained checkpoints.
 
 
 #### bin/asr_inference.py, bin/diar_inference.py, and bin/st_inference.py
 
-The `inference` function in `asr_inference.py`, `diar_inference.py`, and `st_inference.py` builds and call a 
+The `inference` function in `asr_inference.py`, `diar_inference.py`, and `st_inference.py` builds and call a
 
 		class Speech2Text
     	class DiarizeSpeech
-		
-object with the data-iterator for testing and validation.  During their initialization, the classes build a joint-task object `ESPnetEnhS2TModel` with pre-trained joint-task models and configurations. 
+
+object with the data-iterator for testing and validation.  During their initialization, the classes build a joint-task object `ESPnetEnhS2TModel` with pre-trained joint-task models and configurations.
 
 ### Joint-task Control Class `tasks/enh_s2t.py`
 
 		class EnhS2TTask(AbsTask)
-    
-`class EnhS2TTask` is designed for joint-task model. The subtask models are created and sent into the `ESPnetEnhS2TModel` to create a joint-task object. 
+
+`class EnhS2TTask` is designed for joint-task model. The subtask models are created and sent into the `ESPnetEnhS2TModel` to create a joint-task object.
 
 
 ### Joint-Task Modules `enh/espnet_enh_s2t_model.py`
@@ -194,12 +194,12 @@ object with the data-iterator for testing and validation.  During their initiali
 The `ESPnetEnhS2TModel` takes a front-end `enh_model`, and a back-end `s2t_model` (such as ASR, SLU, ST, and SD models) as inputs to build a joint-model.
 
 ![](https://i.imgur.com/1QaZ68u.png)
-	
+
 The `forward` function of the class follows the general design in ESPnet2:
-	 
+
 	 	def  forward(self, speech_mix, speech_ref, ...)
 
-which processes speech and only returns losses for [Trainer](https://github.com/espnet/espnet/blob/master/espnet2/train/trainer.py#L87-L108) to update the model. 
+which processes speech and only returns losses for [Trainer](https://github.com/espnet/espnet/blob/master/espnet2/train/trainer.py#L87-L108) to update the model.
 
 
 # ESPnet-SE++ User Interface
@@ -221,9 +221,9 @@ The inference functions are from the `enh_inference` and `enh_asr_inference` in 
 
 ![](https://i.imgur.com/hAjO6Pj.png)
 
-Calling `SeparateSpeech` and `Speech2Text` with unprocessed audios returns the separated speech and their recognition results. 
+Calling `SeparateSpeech` and `Speech2Text` with unprocessed audios returns the separated speech and their recognition results.
 
-#### SSE 
+#### SSE
 
 ![](https://i.imgur.com/cBHjCSV.png)
 
@@ -237,12 +237,12 @@ The details for downloading models and inference are described in the [link](htt
 # Demonstrations
 The demonstrations of ESPnet-SE can be found in the following google colab links:
 
-- [ESPnet SSE Demonstration: CHiME-4 and WSJ0-2mix](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing) 
+- [ESPnet SSE Demonstration: CHiME-4 and WSJ0-2mix](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
 - [ESPnet-SE++ Joint-Task Demonstration: L3DAS22 Challenge and SLURP-Spatialized](https://colab.research.google.com/drive/1hAR5hp8i0cBIMeku8LbGXseBBaF2gEyO#scrollTo=0kIjHfagi4T1)
 
 
 # Development plan
-The development plan of the ESPnet-SE++ can be found in https://github.com/espnet/espnet/issues/2200. In addition, we will explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion. 
+The development plan of the ESPnet-SE++ can be found in https://github.com/espnet/espnet/issues/2200. In addition, we will explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion.
 
 # Conclusions
 In this paper, we introduce the software structure and the user interface of ESPnet-SE++, including the SSE task and joint-task models. ESPnet-SE++ provides general recipes for training models on different corpus and a simple way for adding new recipes. The joint-task implementation further shows that the modularized design improves the flexibility of ESPnet.
