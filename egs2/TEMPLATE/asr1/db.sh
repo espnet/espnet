@@ -211,6 +211,13 @@ if [[ "$(hostname)" == tir* ]]; then
     SLURP=/projects/tir5/data/speech_corpora/SLURP
 fi
 
+if [[ `hostname` == venus_tyx_2235 ]]; then
+    POPCS=/data1/wyn/Mus_data/popcs/
+    OPENCPOP=/data1/wyn/Mus_data/Opencpop/
+    ONIKU=/data1/wyn/Mus_data/ONIKU_KURUMI_UTAGOE_DB/
+    OFUTON=/data1/wyn/Mus_data/OFUTON_P_UTAGOE_DB/
+fi
+
 # For only JHU environment
 if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     AIDATATANG_200ZH=downloads
