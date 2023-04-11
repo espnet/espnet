@@ -19,7 +19,7 @@ utt=$dst/utt;[[ -f "$utt" ]] && rm $utt
 utt2spk=$dst/utt2spk; [[ -f "$utt2spk" ]] && rm $utt2spk
 
 
-for part in Gujarati Hindi Marathi Odia Tamil Telugu;do 
+for part in Gujarati Hindi Marathi Odia Tamil Telugu;do
 
 	if [ $part == "Gujarati" ];then
 		subset="GU"
@@ -69,5 +69,3 @@ utils/utt2spk_to_spk2utt.pl <$utt2spk >$spk2utt || exit 1
 utils/validate_data_dir.sh --no-feats $dst || exit 1;
 
 echo "$0: Successfully prepared data in $dst" ||  exit 1
-
-

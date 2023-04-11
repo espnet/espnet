@@ -5,7 +5,7 @@
   - training config file: <code>conf/train.yaml</code>
   - decoding config file: <code>conf/decode.yaml</code>
   - preprocess config file: <code>conf/specaug.yaml</code>
-  - lm config file: <code>conf/lm.yaml</code> 
+  - lm config file: <code>conf/lm.yaml</code>
   - cmvn file: <code>data/train/cmvn.ark</code>
   - e2e file: <code>exp/audio/model.last10.avg.best</code>
   - e2e json file: <code>exp/audio/model.json</code>
@@ -81,7 +81,7 @@
   - training config file: <code>conf/finetunevideo/trainvideo.yaml</code>
   - decoding config file: <code>conf/decode.yaml</code>
   - preprocess config file: <code>conf/specaug.yaml</code>
-  - lm config file: <code>conf/lm.yaml</code> 
+  - lm config file: <code>conf/lm.yaml</code>
   - e2e file: <code>exp/vfintune/model.last10.avg.best</code>
   - e2e json file: <code>exp/vfintune/model.json</code>
   - lm file: <code>exp/train_rnnlm_pytorch_lm_unigram500/rnnlm.model.best</code>
@@ -179,7 +179,7 @@
   - training config file: <code>conf/finetuneav/trainavs.yaml</code>
   - decoding config file: <code>conf/decode.yaml</code>
   - preprocess config file: <code>conf/specaug.yaml</code>
-  - lm config file: <code>conf/lm.yaml</code> 
+  - lm config file: <code>conf/lm.yaml</code>
   - cmvn file: <code>data/train/cmvn.ark</code>
   - e2e file: <code>exp/avfintune/model.last10.avg.best</code>
   - e2e json file: <code>exp/avfintune/model.json</code>

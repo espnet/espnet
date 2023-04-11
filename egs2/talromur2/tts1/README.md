@@ -1,6 +1,6 @@
 # Talrómur 2 recipe
 
-This is a recipe for the [Talrómur 2 corpus](https://repository.clarin.is/repository/xmlui/handle/20.500.12537/167), which is an Icelandic speech corpus intended for multi-speaker TTS development, containing studio recordings of speech from 40 Icelandic speakers, 20 male and 20 female. 
+This is a recipe for the [Talrómur 2 corpus](https://repository.clarin.is/repository/xmlui/handle/20.500.12537/167), which is an Icelandic speech corpus intended for multi-speaker TTS development, containing studio recordings of speech from 40 Icelandic speakers, 20 male and 20 female.
 
 ## Corpus
 The corpus contains 56,225 studio-recorded single-sentence audio clips.Each speaker in the corpus contributes 929 and 1879 clips.
@@ -32,7 +32,7 @@ First download the data by running the following:
 local/data_download.sh ${TALROMUR2}
 ```
 Now, to train a Tacotron 2 model, simply run `./train_multi_speaker_tacotron2.sh`
-Once a Tacotron model has been trained, you can run `./train_fastspeech2.sh` to obtain a FastSpeech 2 model. 
+Once a Tacotron model has been trained, you can run `./train_fastspeech2.sh` to obtain a FastSpeech 2 model.
 
 
 ---

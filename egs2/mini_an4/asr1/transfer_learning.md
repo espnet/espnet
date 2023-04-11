@@ -1,12 +1,12 @@
 ## Use transfer learning for ASR in ESPnet2
 
-In that tutorial, we will introduce several options to use pre-trained models/parameters for Automatic Speech Recognition (ASR) in ESPnet. Available options are : 
+In that tutorial, we will introduce several options to use pre-trained models/parameters for Automatic Speech Recognition (ASR) in ESPnet. Available options are :
 - use a local model you (or a collegue) have already trained,
 - use a trained model from ESPnet repository on HuggingFace.
 
 We note that this is done for ASR training, so at __stage 11__ of ESPnet2 models' recipe.
 
-### 0. Why using such (pre-)trained models ? 
+### 0. Why using such (pre-)trained models ?
 
 Several projects may involve making use of previously trained models, this is the reason why we developed ESPnet repository on HuggingFace for instance.
 Example of use cases are listed below (non-exhaustive):
@@ -14,11 +14,11 @@ Example of use cases are listed below (non-exhaustive):
 - study robustness to shifts (domain, language ... shifts) of a model,
 - use massively trained multilingual ASR models ...
 
-### 1. Use a local model that you have already trained. 
+### 1. Use a local model that you have already trained.
 
 __Step 1__ : make sure your ASR model file has the proper ESPnet format (should be ok if trained with ESPnet). It just needs to be a ".pth" (or ".pt" or other extension) type pytorch model.
 
-__Step 2__ : add the parameter ```--pretrained_model path/to/your/pretrained/model/file.pth``` to run.sh. 
+__Step 2__ : add the parameter ```--pretrained_model path/to/your/pretrained/model/file.pth``` to run.sh.
 
 __Step 3__ : step 2 will initialize your new model with the parameters of the pre-trained model. Thus your new model will be trained with a strong initialization. However, if your new model has different parameter sizes for some parts of the model (e.g. last projection layer could be modified ...). This will lead to an error because of mismatches in size. To prevent this to happen, you can add the parameter ```--ignore_init_mismatch true``` in run.sh.
 
@@ -29,8 +29,8 @@ __Additional note about the ```--ignore_init_mismatch true``` option :__ This op
 
 ### 2. Use a trained model from ESPnet repository on HuggingFace.
 
-[ESPnet repository on HuggingFace](https://huggingface.co/espnet) contains more than 200 pre-trained models, for a wide variety of languages and dataset, and we are actively expanding this repositories with new models every week! This enables any user to perform transfer learning with a wide variety of models without having to re-train them. 
-In order to use our pre-trained models, the first step is to download the ".pth" model file from the [HugginFace page](https://huggingface.co/espnet). There are several easy ways to do it, either by manually downloading them (e.g. ```wget https://huggingface.co/espnet/bn_openslr53/blob/main/exp/asr_train_asr_raw_bpe1000/41epoch.pth```), cloning it (```git clone https://huggingface.co/espnet/bn_openslr53```) or downloading it through an ESPnet recipe (described in the models' pages on HuggingFace): 
+[ESPnet repository on HuggingFace](https://huggingface.co/espnet) contains more than 200 pre-trained models, for a wide variety of languages and dataset, and we are actively expanding this repositories with new models every week! This enables any user to perform transfer learning with a wide variety of models without having to re-train them.
+In order to use our pre-trained models, the first step is to download the ".pth" model file from the [HugginFace page](https://huggingface.co/espnet). There are several easy ways to do it, either by manually downloading them (e.g. ```wget https://huggingface.co/espnet/bn_openslr53/blob/main/exp/asr_train_asr_raw_bpe1000/41epoch.pth```), cloning it (```git clone https://huggingface.co/espnet/bn_openslr53```) or downloading it through an ESPnet recipe (described in the models' pages on HuggingFace):
 ```cd espnet
 git checkout fa1b865352475b744c37f70440de1cc6b257ba70
 pip install -e .

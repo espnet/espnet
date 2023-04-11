@@ -44,7 +44,7 @@ if [ ! -z ${transcription} ]; then
     # make text
     local/clean_text_english.py ${transcription} ${utt2spk} char > ${text}
     echo "finished making text."
-    
+
     # remove reduntant lines of text
     utils/fix_data_dir.sh ${data_dir}
 else

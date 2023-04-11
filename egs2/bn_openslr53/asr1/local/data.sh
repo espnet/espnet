@@ -42,7 +42,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         wget -O ${BENGALI} https://us.openslr.org/resources/53/asr_bengali_${i}.zip
         unzip -o asr_bengali_${i}.zip
         rm -f asr_bengali_${i}.zip
-    done 
+    done
     rm -rf asr_bengali
 fi
 

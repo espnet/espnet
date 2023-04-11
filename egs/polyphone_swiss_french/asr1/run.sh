@@ -87,7 +87,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
-            data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir} 
+            data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
@@ -181,7 +181,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         --minibatches ${N} \
         --verbose ${verbose} \
         --train-json ${feat_tr_dir}/data_${bpemode}${nbpe}.json \
-        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json 
+        --valid-json ${feat_dt_dir}/data_${bpemode}${nbpe}.json
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
@@ -218,7 +218,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --recog-json ${feat_recog_dir}/split${nj}utt/data_${bpemode}${nbpe}.JOB.json \
             --result-label ${expdir}/${decode_dir}/data.JOB.json \
             --model ${expdir}/results/${recog_model}  \
-            --rnnlm ${lmexpdir}/rnnlm.model.best 
+            --rnnlm ${lmexpdir}/rnnlm.model.best
 
         score_sclite.sh --bpe ${nbpe} --bpemodel ${bpemodel}.model --wer true ${expdir}/${decode_dir} ${dict}
 
