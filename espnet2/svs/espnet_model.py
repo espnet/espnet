@@ -176,7 +176,8 @@ class ESPnetSVSModel(AbsESPnetModel):
                 )
                 # logging.info(f'label: {label_lab.shape}') # [B, T]
                 # logging.info(f'midi: {midi_lab.shape}') # [B, T]
-                # logging.info(f'dur: {duration_lab.shape}') # [B, T]
+                # logging.info(f'dur_phn: {duration_phn.shape}')
+                # logging.info(f'dur_lab: {duration_lab.shape}') # [B, T]
 
                 # for data-parallel
                 label_lab = label_lab[:, : label_lab_lengths.max()]
@@ -197,6 +198,9 @@ class ESPnetSVSModel(AbsESPnetModel):
                     midi,
                     duration_ruled_phn,
                 )
+
+                # logging.info(f'dur_ruled_phn: {duration_ruled_phn.sum(dim=1)}')
+                # logging.info(f'label: {label_score.shape}') # [B, T]
 
                 # for data-parallel
                 label_score = label_score[:, : label_score_lengths.max()]
@@ -576,7 +580,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             input_dict.update(sids=sids)
         if lids is not None:
             input_dict.update(lids=lids)
-
+            
         output_dict = self.svs.inference(**input_dict, **decode_config)
 
         if self.normalize is not None and output_dict.get("feat_gen") is not None:

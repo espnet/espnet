@@ -4,7 +4,7 @@ from typing import Tuple, Union
 import numpy as np
 import torch
 from typeguard import check_argument_types
-
+from typing import Dict
 
 
 class GetFeatsMinMax(torch.nn.Module):
@@ -41,12 +41,15 @@ class GetFeatsMinMax(torch.nn.Module):
         self.register_buffer("feats_max", feats_max)
 
     def extra_repr(self):
-        return (
+        return(
             f"stats_file={self.stats_file}, "
             f"feats_min={self.feats_min}, feats_max={self.feats_max}"
         )
 
     def forward(
         self,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        return self.feats_min, self.feats_max
+    ) -> Dict[str, torch.Tensor]:
+        return {
+            'feats_min': self.feats_min, 
+            'feats_max': self.feats_max,
+        }

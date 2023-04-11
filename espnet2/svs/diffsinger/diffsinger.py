@@ -15,8 +15,11 @@ from espnet2.svs.diffsinger.diffLoss import DiffLoss
 import torch
 import torch.nn.functional as F
 from espnet2.torch_utils.initialize import initialize
+from espnet2.torch_utils.device_funcs import force_gatherable
+from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 
 import random
+from tqdm import tqdm
 import numpy as np
 from functools import partial
 
@@ -49,6 +52,14 @@ def cosine_beta_schedule(timesteps, s=0.008):
     return torch.as_tensor(scheduler.astype(np.float32))
 
 
+def linear_beta_schedule(timesteps, max_beta):
+    """
+    linear schedule
+    """
+    betas = np.linspace(1e-4, max_beta, timesteps)
+    return betas
+
+
 class DiffSinger(AbsSVS):
 
     def __init__(
@@ -66,6 +77,8 @@ class DiffSinger(AbsSVS):
         dunits: int = 1536, 
         postnet_layers: int = 5, 
         postnet_chans: int = 512, 
+        postnet_filts: int = 5,
+        postnet_dropout_rate: float = 0.5,
         use_batch_norm: bool = True, 
         reduction_factor: int = 1, 
         encoder_type: str = "transformer",
@@ -78,22 +91,28 @@ class DiffSinger(AbsSVS):
         diffnet_residual_channels: int = 256,
         diffnet_dilation_cycle_length: int = 4,
         diffnet_input_dim: int = 80,
+        # extra embedding related
+        spks: Optional[int] = None,
+        langs: Optional[int] = None,
+        spk_embed_dim: Optional[int] = None,
+        spk_embed_integration_type: str = "add",
         # other 
+        schedule_type: str = 'linear',
+        max_beta: float = 0.01, 
         K_step: int = 1000,
         mel_bins: int = 80, 
         timesteps: int = 1000,
-        shallow_diffusion: bool = False,
+        shallow_diffusion: bool = True,
         init_type: str = "xavier_uniform",
         use_masking: bool = False,
         use_weighted_masking: bool = False,
-        loss_type: str = 'l1',
+        loss_type: str = 'L1',
     ) -> None:
         super().__init__()
 
         self.K_step = K_step
         self.shallow_diffusion = shallow_diffusion
         self.mel_bins = mel_bins
-        self.num_timesteps = timesteps
         self.loss_type = loss_type
 
         self.fftsinger = FFTSinger(
@@ -118,6 +137,8 @@ class DiffSinger(AbsSVS):
             encoder_type=encoder_type, 
             decoder_type=decoder_type, 
         )
+        for k, v in self.fftsinger.named_parameters():
+            v.requires_grad = False
 
         if denoiser_type == 'wavenet':
             self.denoiser = DiffNet(
@@ -130,10 +151,14 @@ class DiffSinger(AbsSVS):
         else:
             raise ValueError(f"{denoiser_type} is not supported.") 
         
-        betas = cosine_beta_schedule(timesteps)
+        if schedule_type == 'linear':
+            betas = cosine_beta_schedule(timesteps)
+        else:
+            betas = linear_beta_schedule(timesteps, max_beta)
+
         alphas = 1. - betas
         alphas_cumprod = torch.cumprod(alphas, dim=0)
-        alphas_cumprod_prev = torch.cat((torch.tensor[1.], alphas_cumprod[:-1]), 0)
+        alphas_cumprod_prev = torch.cat((torch.tensor([1.]), alphas_cumprod[:-1]), 0)
 
         timesteps = betas.size(0)
 
@@ -153,12 +178,50 @@ class DiffSinger(AbsSVS):
         # above: equal to =1. / (1. / (1. - alpha_cumprod_tm1) + alpha_t / beta_t)
         self.register_buffer('posterior_variance', posterior_variance)
         # below: log calculation clipped because the posterior variance is 0 at the beginning of the diffusion chain
-        self.register_buffer('posterior_log_variance_clipped', torch.log(torch.maximum(posterior_variance, 1e-20)))
+        self.register_buffer('posterior_log_variance_clipped', torch.log(torch.max(posterior_variance, torch.tensor([1e-20]))))
         self.register_buffer('posterior_mean_coef1', betas * torch.sqrt(alphas_cumprod_prev) / (1. - alphas_cumprod))
         self.register_buffer('posterior_mean_coef2', (1. - alphas_cumprod_prev) * torch.sqrt(alphas) / (1. - alphas_cumprod))
 
-        self.register_buffer('spec_min', feats_minmax['feats_min'][None, None, :mel_bins])
-        self.register_buffer('spec_max', feats_minmax['feats_max'][None, None, :mel_bins])
+        if feats_minmax is not None:
+            self.register_buffer('spec_min', feats_minmax['feats_min'][None, None, :mel_bins])
+            self.register_buffer('spec_max', feats_minmax['feats_max'][None, None, :mel_bins])
+
+        # define spk and lang embedding
+        self.spks = None
+        if spks is not None and spks > 1:
+            self.spks = spks
+            self.sid_emb = torch.nn.Embedding(spks, adim)
+        self.langs = None
+        if langs is not None and langs > 1:
+            self.langs = langs
+            self.lid_emb = torch.nn.Embedding(langs, adim)
+
+        # define additional projection for speaker embedding
+        self.spk_embed_dim = None
+        if spk_embed_dim is not None and spk_embed_dim > 0:
+            self.spk_embed_dim = spk_embed_dim
+            self.spk_embed_integration_type = spk_embed_integration_type
+        if self.spk_embed_dim is not None:
+            if self.spk_embed_integration_type == "add":
+                self.projection = torch.nn.Linear(self.spk_embed_dim, adim)
+            else:
+                self.projection = torch.nn.Linear(adim + self.spk_embed_dim, adim)
+
+        self.postnet = None
+        # # define postnet
+        # self.postnet = (
+        #     None
+        #     if postnet_layers == 0
+        #     else Postnet(
+        #         idim=idim,
+        #         odim=odim,
+        #         n_layers=postnet_layers,
+        #         n_chans=postnet_chans,
+        #         n_filts=postnet_filts,
+        #         use_batch_norm=use_batch_norm,
+        #         dropout_rate=postnet_dropout_rate,
+        #     )
+        # )
 
         # initialize parameters
         self._reset_parameters(
@@ -189,7 +252,7 @@ class DiffSinger(AbsSVS):
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
         flag_IsValid=False,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
 
         Args:
@@ -222,7 +285,7 @@ class DiffSinger(AbsSVS):
             Tensor: Weight value if not joint training else model outputs.
         """
 
-        hs = self.fftsinger(
+        hs, d_outs = self.fftsinger(
             text,
             text_lengths,
             feats,
@@ -241,19 +304,41 @@ class DiffSinger(AbsSVS):
             skip_decoder = True,
             joint_training = False,
         )
+
+        if joint_training:
+            label_lengths = label_lengths
+            ds = duration
+        else:
+            label_lengths = label_lengths["score"]
+            ds = duration["lab"]
         
         text = text[:, : text_lengths.max()]  # for data-parallel
         mel_gt = feats[:, : feats_lengths.max()]  # for data-parallel
         
         batch_size, device = text.size(0), text.device
-        cond = hs.transpose(1, 2) # cond: [B, adim, T]
-        t = torch.randint(0, self.num_timesteps, (batch_size,), device=device).long()
-        x = self.norm_spec(mel_gt)
-        x = x.transpose(1, 2)[:, None, :, :] # x: [B, 1, M, T]
+        #[B, T, adim] -> [B, adim, T]
+        cond = hs.transpose(1, 2) 
+        t = torch.randint(0, self.K_step, (batch_size,), device=device).long()
+        x = self.norm_spec(mel_gt) 
+        # [B, T, M] -> [B, 1, M, T]
+        x = x.transpose(1, 2)[:, None, :, :]
         
         noise, noise_pred, mel_pred = self.predict_noise(x, t, cond)
 
-    
+        # noise_mask = feats.transpose(1, 2) != 0.0
+        noise_mask = None
+        noise_l1_loss, noise_l2_loss, duration_loss = self.criterion(noise, noise_pred, noise_mask, d_outs, ds, label_lengths,self.loss_type)
+        loss = noise_l1_loss + noise_l2_loss + duration_loss
+        stats = dict(
+            loss=loss.item(),
+            noise_l1_loss=noise_l1_loss.item(),
+            noise_l2_loss=noise_l2_loss.item(),
+            duration_loss=duration_loss.item(),
+        )
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+
+        return loss, stats, weight
+
 
     def inference(
         self,
@@ -267,6 +352,7 @@ class DiffSinger(AbsSVS):
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
+        use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
         """Generate the sequence of features given the sequences of characters.
 
@@ -302,28 +388,51 @@ class DiffSinger(AbsSVS):
             sids,
             lids,
             joint_training = False,
-        )
+        ) # hs:[B, T, adim], fs2_mel:[B, T, M]
         
         batch_size, device = text.size(0), text.device
-        cond = hs.transpose(1, 2) # cond: [B, adim, T]
+        #[B, T, adim] -> [B, adim, T]
+        cond = hs.transpose(1, 2)
 
         t = self.K_step
-        fs2_mel = self.norm_spec(fs2_mel)
-        fs2_mel = fs2_mel.transpose(1, 2)[:, None, :, :] # [B, 1, T, M]
+        
+        shape = (cond.shape[0], 1, self.mel_bins, cond.shape[2]) # [B, 1, M, T]
+        x = torch.randn(shape, device=device) # naive diffsinger
 
-        x = self.q_sample(x_start=fs2_mel, t=torch.tensor([t - 1], device=device).long())
-        if self.shallow_diffusion is False:
-            shape = (cond.shape[0], 1, self.mel_bins, cond.shape[2]) # [B, 1, out_dims, T]
-            x = torch.randn(shape, device=device)
-        for i in reversed(range(0, t)):
+        if self.shallow_diffusion is True: # diffsinger with shallow diffusion 
+            fs2_mel = self.norm_spec(fs2_mel)
+            fs2_mel = fs2_mel.transpose(1, 2)[:, None, :, :] # [B, 1, M, T]
+            x = self.q_sample(x_start=fs2_mel, t=torch.tensor([t - 1], device=device).long())
+
+        for i in tqdm(reversed(range(0, t)), desc='sample time step', total=t):
             x = self.p_sample(x, torch.full((batch_size, ), i, device=device, dtype=torch.long), cond)
+
+        # [B, 1, M, T] -> [B, M, T] -> [B, T, M] and B = 1
         x = x[:, 0].transpose(1, 2)
-        mel_out = self.denorm_spec(x)
+        before_outs = self.denorm_spec(x)
+
+        if self.postnet is None:
+            after_outs = before_outs
+        else:
+            after_outs = before_outs + self.postnet(
+                before_outs.transpose(1, 2)
+            ).transpose(1, 2)
+
         return dict(
-            feat_gen=mel_out, prob=None, att_w=None
+            feat_gen=after_outs[0], prob=None, att_w=None
         ) # outs, probs, att_ws
 
-    
+
+    def q_mean_variance(self, x_start, t):
+        """
+        mean and variance of data distrubution q(x)
+        """
+        mean = extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start
+        variance = extract(1. - self.alphas_cumprod, t, x_start.shape)
+        log_variance = extract(self.log_one_minus_alphas_cumprod, t, x_start.shape)
+        return mean, variance, log_variance
+
+
     def predict_start_from_noise(self, x_t, t, noise):
         """
         predict mel_start(without noise) from noisy mel
@@ -342,11 +451,15 @@ class DiffSinger(AbsSVS):
     
     def q_posterior(self, x_start, x_t, t):
         """
-        calculations for posterior q(x_{t-1} | x_t, x_0)        
+        calculations for posterior q(x_{t-1} | x_t, x_0)    
+        q(x_{t-1} | x_t, x_0) is a Guassian distrubution  
+
+        Return:
+            mean and variance of posterior q(x_{t-1} | x_t, x_0)
         """
         posterior_mean = (
-            extract(self.posterior_mean_coef1, t, x_t.shape) * x_start +
-            extract(self.posterior_mean_coef2, t, x_t.shape) * x_t
+                extract(self.posterior_mean_coef1, t, x_t.shape) * x_start +
+                extract(self.posterior_mean_coef2, t, x_t.shape) * x_t
         ) # mu(x_t, x_0)
         posterior_variance = extract(self.posterior_variance, t, x_t.shape)
         posterior_log_variance_clipped = extract(self.posterior_log_variance_clipped, t, x_t.shape)
@@ -367,8 +480,10 @@ class DiffSinger(AbsSVS):
         """
         noise_pred = self.denoiser(x_t, t, cond=cond)
         x_recon = self.predict_start_from_noise(x_t, t=t, noise=noise_pred)
+
         if clip_denoised:
             x_recon.clamp_(-1., 1.)
+
         model_mean, posterior_variance, posterior_log_variance = self.q_posterior(x_start=x_recon, x_t=x_t, t=t)
         return model_mean, posterior_variance, posterior_log_variance
 
@@ -376,14 +491,13 @@ class DiffSinger(AbsSVS):
     @torch.no_grad()
     def p_sample(self, x_t, t, cond, clip_denoised=True, repeat_noise=False):
         """
-        predict model and resample noise
-
+        denoise process
         Args:
             x_t: noise mel
             t: diffusion step
             cond: music score
         Return:
-            Resample noise
+            mel after one denoise step
         """
         b, *_, device = *x_t.shape, x_t.device
         model_mean, _, model_log_variance = self.p_mean_variance(x_t=x_t, t=t, cond=cond, clip_denoised=clip_denoised)
@@ -404,7 +518,7 @@ class DiffSinger(AbsSVS):
         """
         if noise is None: 
             noise = torch.randn_like(x_start)
-        return(
+        return (
             extract(self.sqrt_alphas_cumprod, t, x_start.shape) * x_start +
             extract(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
         )

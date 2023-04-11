@@ -9,6 +9,8 @@ import logging
 from typing import Dict, Optional, Tuple
 
 import torch
+import librosa
+import numpy as np
 import torch.nn.functional as F
 from typeguard import check_argument_types
 
@@ -180,9 +182,8 @@ class FFTSinger(XiaoiceSing):
             joint_training (bool): Whether to perform joint training with vocoder.
 
         Returns:
-            Tensor: Loss scalar value.
-            Dict: Statistics to be monitored.
-            Tensor: Weight value if not joint training else model outputs.
+            Tensor: Hidden representation.
+            Tensor: Mel-spectrogram.
         """
 
         # T_feats -> frame
@@ -240,7 +241,7 @@ class FFTSinger(XiaoiceSing):
         hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
 
         if skip_decoder:
-            return hs
+            return hs, d_outs
 
         # forward decoder
         h_masks = self._source_mask(feats_lengths)
@@ -258,53 +259,6 @@ class FFTSinger(XiaoiceSing):
             ).transpose(1, 2)
 
         return hs, after_outs if after_outs is not None else before_outs
-
-        # modifiy mod part of groundtruth
-        if self.reduction_factor > 1:
-            assert feats_lengths.ge(
-                self.reduction_factor
-            ).all(), "Output length must be greater than or equal to reduction factor."
-            olens = feats_lengths.new(
-                [olen - olen % self.reduction_factor for olen in feats_lengths]
-            )
-            max_olen = max(olens)
-            ys = feats[:, :max_olen]
-        else:
-            ys = feats
-            olens = feats_lengths
-
-
-        ilens = label_lengths
-        l1_loss, duration_loss = self.criterion(
-            after_outs, before_outs, d_outs, ys, ds, ilens, olens
-        )
-        loss = l1_loss + duration_loss
-
-        stats = dict(
-            loss=loss.item(),
-            l1_loss=l1_loss.item(),
-            duration_loss=duration_loss.item(),
-        )
-
-        # report extra information
-        if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(
-                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
-            )
-        if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(
-                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
-            )
-
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
-
-        if joint_training:
-            return loss, stats, after_outs if after_outs is not None else before_outs
-        else:
-            if flag_IsValid is False:
-                return loss, stats, weight
-            else:
-                return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
             
 
     def inference(
@@ -349,7 +303,7 @@ class FFTSinger(XiaoiceSing):
         if joint_training:
             tempo = duration["lab"]
         else:
-            tempo = duration["lscore_phn"]
+            tempo = duration["score_phn"]
         ds = duration["lab"]
 
         label_emb = self.phone_encode_layer(label)
@@ -377,11 +331,6 @@ class FFTSinger(XiaoiceSing):
         d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
         d_outs_int = torch.floor(d_outs + 0.5).to(dtype=torch.long)  # (B, T_text)
 
-        logging.info(f"ds: {ds}")
-        logging.info(f"ds.shape: {ds.shape}")
-        logging.info(f"d_outs: {d_outs}")
-        logging.info(f"d_outs.shape: {d_outs.shape}")
-
         # use duration model output
         hs = self.length_regulator(hs, d_outs_int)  # (B, T_feats, adim)
 
@@ -392,12 +341,4 @@ class FFTSinger(XiaoiceSing):
             zs.size(0), -1, self.odim
         )  # (B, T_feats, odim)
 
-        # postnet -> (B, Lmax//r * r, odim)
-        if self.postnet is None:
-            after_outs = before_outs
-        else:
-            after_outs = before_outs + self.postnet(
-                before_outs.transpose(1, 2)
-            ).transpose(1, 2)
-
-        return hs, after_outs[0]
+        return hs, before_outs

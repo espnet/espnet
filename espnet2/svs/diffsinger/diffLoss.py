@@ -54,17 +54,18 @@ class DiffLoss(torch.nn.Module):
         self.l2_criterion = torch.nn.MSELoss(reduction=reduction)
         self.duration_criterion = DurationPredictorLoss(reduction=reduction)
 
-    def forward(self, noise, predict_noise, d_outs, ds, ilens, loss_type):
+    def forward(self, noise, predict_noise, noise_mask, d_outs, ds, ilens, loss_type):
         """Calculate forward propagation.
         Args:
-            noise (Tensor): Batch of Guass noise (B, Lmax, odim).
-            predict_noise (Tensor): Batch of predicted noise (B, Lmax, odim).
+            noise (Tensor): Batch of Guass noise (B, 1, T_feats, odim).
+            predict_noise (Tensor): Batch of predicted noise (B, 1, T_feats, odim).
+            noise_mask (Tensor): Batch of mask of noise (B, T_feats, odim)
             d_outs (Tensor): Batch of outputs of duration predictor (B, Tmax).
             ds (Tensor): Batch of durations (B, Tmax).
             ilens (LongTensor): Batch of the lengths of each input (B,).
             loss_type (Str): loss type in 'l1' or 'l2'
         Returns:
-            Tensor: L1 loss value.
+            Tensor: L1/L2 loss value.
             Tensor: Duration predictor loss value.
         """
         # apply mask to remove padded part
@@ -72,6 +73,9 @@ class DiffLoss(torch.nn.Module):
             duration_masks = make_non_pad_mask(ilens).to(ds.device)
             d_outs = d_outs.masked_select(duration_masks)
             ds = ds.masked_select(duration_masks)
+            if noise_mask is not None:
+                noise = noise.masked_select(noise_mask.unsqueeze(1))
+                predict_noise = predict_noise.masked_select(noise_mask.unsqueeze(1))
 
         # calculate loss
         l1_loss = self.l1_criterion(noise, predict_noise)
@@ -90,7 +94,11 @@ class DiffLoss(torch.nn.Module):
             duration_loss = (
                 duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
             )
+            
         if loss_type == 'L1':
-            return l1_loss, duration_loss
+            l2_loss = torch.tensor(0.).to(ds.device)
         else:
-            return l2_loss, duration_loss
+            l1_loss = torch.tensor(0.).to(ds.device)
+        
+        return l1_loss, l2_loss, duration_loss
+
