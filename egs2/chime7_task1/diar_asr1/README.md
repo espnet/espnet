@@ -183,6 +183,12 @@ You can check the fine-tuning progress by using tensorboard e.g.:
 tensorboard --logdir=./exp/pyannote_finetune/lightning_logs/
 ```
 
+## Common Issues 
+1. ```huggingface_hub.utils._validators.HFValidationError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': 'exp/pyannote_finetuned/lightning_logs/version_0/checkpoints/best.ckpt'. Use `repo_type` argument if needed.
+It requests “.../version_0/….” while I have “.../version_461/…``` the pyannote diarization pipeline uses **pytorch-lightning** which puts the experiment logs and checkpoint in `lightning_logs/version_XX` starting from 0
+and increasing at each new launch of training. Probably the first attempts failed on your end and the checkpoint was put into the 461th folder. You should delete the `lightning_logs` folder and restart the recipe or copy the checkpoint in the `version_0` folder as 
+it's there where the `local/pyannote_diarize.py` script expects the model to be.
+
 ## References
 
 [1] Bredin, Hervé, and Antoine Laurent. "End-to-end speaker segmentation for overlap-aware resegmentation." arXiv preprint arXiv:2104.04045 (2021). <br>
