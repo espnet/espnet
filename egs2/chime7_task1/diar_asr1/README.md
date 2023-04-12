@@ -90,9 +90,12 @@ More detailed results for each scenario (as produced by the evaluation script in
 We can see that the DER and JER values are quite competitive on CHiME-6 with the state-of-the-art but
 the WER figures are quite poor. <br>
 **Note that here we report DER and JER which are computed against manual annotation with 0.25 seconds collar for CHiME-6.** <br>
-The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) are a bit lower actually (38.94%).
+The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) are a bit lower actually (38.94%). <br> 
 Note that the previous challenge used no DER and JER collars e.g. the [Kaldi TS-VAD implementation](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5c_track2) obtains
-around 44% DER with respect to forced alignment annotation with no collar. 
+around 44% DER with respect to forced alignment annotation with no collar. <br>
+This same model achieves around 54% DER w.r.t. the same annotation but it is because it is optimized towards looser segmentation which 
+we found it yielded better WER especially on Mixer 6 compared to optimizing the pipeline towards lower DER w.r.t. forced alignment no collar ground truth.
+
 
 The high WER figures may due to the fact that we use an E2E ASR system which may be more sensitive to segmentation errors compared to
 hybrid ASR models. We found that using an higher weight in decoding for CTC helped a bit (we use here 0.6, see `conf/decode_asr_transformer.yaml`). <br>
@@ -102,7 +105,7 @@ But you are free to explore other techniques (e.g. by using [K2](https://github.
 [lhotse](https://github.com/lhotse-speech/lhotse), used in this recipe for data preparation).
 
 It is worth to point out also that it is quite challenging to optimize the diarization
-hyperparameters (for example merging the segments that are X apart) for all three scenarios. <br> E.g. best parameters for CHiME-6 lead to degradation to
+hyper-parameters (for example merging the segments that are X apart) for all three scenarios. <br> E.g. best parameters for CHiME-6 lead to degradation to
 Mixer 6 performance. <br>
 
 
