@@ -199,6 +199,7 @@ it's there where the `local/pyannote_diarize.py` script expects the model to be.
 [5] Chen, S., Wang, C., Chen, Z., Wu, Y., Liu, S., Chen, Z., ... & Wei, F. (2022). Wavlm: Large-scale self-supervised pre-training for full stack speech processing. IEEE Journal of Selected Topics in Signal Processing, 16(6), 1505-1518. <br>
 [7] Wolf, M., & Nadeu, C. (2014). Channel selection measures for multi-microphone speech recognition. Speech Communication, 57, 170-180.  <br>
 
+
 [slack-badge]: https://img.shields.io/badge/slack-chat-green.svg?logo=slack
 [slack-invite]: https://join.slack.com/t/chime-fey5388/shared_invite/zt-1oha0gedv-JEUr1mSztR7~iK9AxM4HOA
 [twitter]: https://twitter.com/chimechallenge<h2>References</h2>
