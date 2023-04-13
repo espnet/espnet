@@ -1,5 +1,22 @@
 # AphasiaBank English ASR recipe
 
+## Data preparation
+
+1. Download AphasiaBank from https://aphasia.talkbank.org
+2. See [data.sh](local/data.sh) for instructions
+
+## Evaluation
+
+- [local/score_cleaned.sh](local/score_cleaned.sh) is used to calculate CER/WER per Aphasia subset.
+  It doesn't require the input hypothesis file to contain language or Aph tags.
+  But if the input does contain, it will automatically remove them.
+- [local/score_per_severity.sh](local/score_per_severity.sh) is similar, but it calculates CER/WER per Aphasia severity.
+  But if the input does contain, it will automatically remove them.
+- [local/score_interctc_aux.sh](local/score_interctc_aux.sh) is used to calculate InterCTC-based Aphasia
+  detection accuracy.
+- [local/score_aphasia_detection.py](local/score_aphasia_detection.py) is used to calculate Aphasia
+  detection accuracy from input in Kaldi text format.
+
 ## Environments
 
 - date: `Sun Jan  8 19:23:29 EST 2023`
@@ -18,15 +35,17 @@
 
 ### WER
 
-| dataset                             | Snt   | Wrd    | Corr | Sub  | Del | Ins | Err  | S.Err |
-|-------------------------------------|-------|--------|------|------|-----|-----|------|-------|
-| decode_asr_model_valid.acc.ave/test | 16380 | 120684 | 77.5 | 16.4 | 6.1 | 4.2 | 26.7 | 70.8  |
+| dataset | Snt   | Wrd    | Corr | Sub  | Del | Ins | Err  | S.Err |
+|---------|-------|--------|------|------|-----|-----|------|-------|
+| test    | 28424 | 240039 | 81.2 | 13.3 | 5.5 | 3.5 | 22.2 | 67.8  |
 
 ### CER
 
-| dataset                             | Snt   | Wrd    | Corr | Sub | Del | Ins | Err  | S.Err |
-|-------------------------------------|-------|--------|------|-----|-----|-----|------|-------|
-| decode_asr_model_valid.acc.ave/test | 16380 | 530731 | 87.6 | 5.4 | 6.9 | 4.7 | 17.0 | 70.8  |
+| dataset | Snt   | Wrd     | Corr | Sub | Del | Ins | Err  | S.Err |
+|---------|-------|---------|------|-----|-----|-----|------|-------|
+| test    | 28424 | 1103375 | 89.9 | 4.1 | 5.9 | 3.7 | 13.8 | 67.8  |
+| PWA     | 17936 | 591922  | 87.9 | 5.4 | 6.7 | 4.6 | 16.7 | 70.7  |
+| control | 10488 | 511453  | 92.3 | 2.7 | 5.0 | 2.8 | 10.5 | 62.9  |
 
 ## asr_train_asr_ebranchformer_small_wavlm_large
 

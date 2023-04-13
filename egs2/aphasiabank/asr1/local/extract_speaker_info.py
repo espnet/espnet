@@ -4,6 +4,7 @@ Based on https://github.com/monirome/AphasiaBank/blob/main/clean_transcriptions.
 import json
 import os
 from argparse import ArgumentParser
+from config import spk2missing_aphasia_types
 
 import pylangacq as pla
 
@@ -27,6 +28,8 @@ def main():
             ".cha"
         ):
             files.append(file)
+    files.sort()
+
     print(f"{len(files)} speakers in total")
 
     spk_ids = []
@@ -65,7 +68,9 @@ def main():
                 else:
                     severity = "mild"
 
-            # all_aphasia_types.add(aphasia_type)
+            if aphasia_type == "":
+                aphasia_type = spk2missing_aphasia_types[spk]
+
             f.write(f"{spk}\t{wab_aq}\t{severity}\t{aphasia_type}\n")
 
             spk2aphasia_type[spk] = aphasia_type

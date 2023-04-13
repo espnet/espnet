@@ -3,10 +3,10 @@ Create text and utt2spk
 
 Based on https://github.com/monirome/AphasiaBank/blob/main/clean_transcriptions.ipynb
 """
-import json
 import os
 import re
 from argparse import ArgumentParser
+from config import lang2label, get_utt, spk2aphasia_label
 
 import pylangacq as pla
 
@@ -15,7 +15,8 @@ def get_args():
     parser = ArgumentParser()
     parser.add_argument("--transcript-dir", type=str, required=True)
     parser.add_argument("--out-dir", type=str, required=True)
-    parser.add_argument("--spk2aphasia-type", type=str, default=None)
+    parser.add_argument("--tag-insertion", type=str, choices=['none', 'prepend', 'append', 'both'])
+    parser.add_argument("--lang", type=str, default=None)
     return parser.parse_args()
 
 
@@ -90,22 +91,21 @@ def main():
     out_dir = args.out_dir
     os.makedirs(out_dir, exist_ok=True)
 
-    spk2aphasia_type = None
-    if args.spk2aphasia_type is not None:
-        with open(args.spk2aphasia_type, encoding="utf-8") as f:
-            spk2aphasia_type = json.load(f)
+    lang = None
+    if args.lang is not None:
+        lang = lang2label[args.lang]
 
     # get a list of all CHAT files
     files = []
     for file in os.listdir(args.transcript_dir):
         if os.path.isfile(os.path.join(args.transcript_dir, file)) and file.endswith(
-            ".cha"
+                ".cha"
         ):
             files.append(file)
 
     all_chars = set()
     with open(os.path.join(out_dir, "text"), "w", encoding="utf-8") as text, open(
-        os.path.join(out_dir, "utt2spk"), "w", encoding="utf-8"
+            os.path.join(out_dir, "utt2spk"), "w", encoding="utf-8"
     ) as utt2spk:
         for file in files:
             spk = file.split(".cha")[0]
@@ -123,7 +123,7 @@ def main():
                     continue
 
                 start, end = utts[i].time_marks
-                utt_id = f"{spk}-{start}_{end}"
+                utt_id = get_utt(spk, start, end)
 
                 trans = clean_trans(utts[i].tiers["PAR"])
                 if len(trans) == 0:
@@ -133,9 +133,22 @@ def main():
                 for c in trans:
                     all_chars.add(c)
 
-                # write lines
-                if spk2aphasia_type is not None:
-                    trans = f"[{spk2aphasia_type[spk]}] {trans}"
+                # add aphasia type and/or language annotation to the front if needed
+                if args.tag_insertion != "none":
+                    aphasia_type = spk2aphasia_label[spk]
+
+                    if args.tag_insertion == 'append':
+                        trans = f"{trans} [{aphasia_type}]"
+                    elif args.tag_insertion == 'prepend':
+                        trans = f"[{aphasia_type}] {trans}"
+                    elif args.tag_insertion == 'both':
+                        trans = f"[{aphasia_type}] {trans} [{aphasia_type}]"
+                    else:
+                        assert False
+
+                if lang is not None:
+                    trans = f"[{lang}] {trans}"
+
                 text.write(f"{utt_id}\t{trans}\n")
                 utt2spk.write(f"{utt_id}\t{spk}\n")
 

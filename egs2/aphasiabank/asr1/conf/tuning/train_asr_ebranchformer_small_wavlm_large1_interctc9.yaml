@@ -1,4 +1,6 @@
-# s3prl
+# Uses 2 V100 (32GB)
+
+# https://github.com/espnet/espnet/blob/master/egs2/librispeech/asr1/conf/tuning/train_asr_conformer7_wavlm_large.yaml
 unused_parameters: true
 freeze_param: [
   "frontend.upstream"
@@ -6,7 +8,7 @@ freeze_param: [
 frontend: s3prl
 frontend_conf:
   frontend_conf:
-    upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    upstream: wavlm_large  # Note: If the upstream is changed, please change the input_size in the preencoder.
   download_dir: ./hub
   multilayer_feature: True
 
@@ -21,8 +23,15 @@ model_conf:
   length_normalized_loss: false
   extract_feats_in_collect_stats: false # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
 
+  # interctc aux task
+  interctc_weight: 0.3
+  aux_ctc:
+    '9': utt2aph
+aux_ctc_tasks: ["utt2aph"]
 
-encoder: conformer
+# Based on https://github.com/espnet/espnet/blob/master/egs2/librispeech/asr1/conf/tuning/train_asr_e_branchformer.yaml
+# The encoder is smaller as we keep the size roughly the same as the conformer and transformer experiments
+encoder: e_branchformer
 encoder_conf:
   output_size: 256
   attention_heads: 4
@@ -31,14 +40,21 @@ encoder_conf:
   dropout_rate: 0.1
   positional_dropout_rate: 0.1
   attention_dropout_rate: 0.1
-  input_layer: conv2d2 # subsampling rate = 2
-  normalize_before: true
-  macaron_style: true
-  pos_enc_layer_type: "rel_pos"
-  selfattention_layer_type: "rel_selfattn"
-  activation_type: "swish"
-  use_cnn_module: true
-  cnn_module_kernel: 31
+  layer_drop_rate: 0.1
+  input_layer: conv2d1 # subsampling rate = 2 (WavLM) * 1 (conv2d1)
+  macaron_ffn: true
+  pos_enc_layer_type: rel_pos
+  attention_layer_type: rel_selfattn
+  rel_pos_type: latest
+  cgmlp_linear_units: 3072
+  cgmlp_conv_kernel: 31
+  use_linear_after_conv: false
+  gate_activation: identity
+  positionwise_layer_type: linear
+  use_ffn: true
+  merge_conv_kernel: 31
+  interctc_layer_idx: [9]
+  interctc_use_conditioning: true
 
 decoder: transformer
 decoder_conf:
@@ -49,6 +65,7 @@ decoder_conf:
   positional_dropout_rate: 0.1
   self_attention_dropout_rate: 0.1
   src_attention_dropout_rate: 0.1
+  layer_drop_rate: 0.2
 
 seed: 2022
 log_interval: 200
@@ -57,8 +74,8 @@ num_workers: 4
 sort_in_batch: descending
 sort_batch: descending
 batch_type: numel
-batch_bins: 5000000
-accum_grad: 9
+batch_bins: 4000000
+accum_grad: 12
 grad_clip: 5
 max_epoch: 30
 patience: none
@@ -79,7 +96,7 @@ optim_conf:
   weight_decay: 0.000001
 scheduler: warmuplr
 scheduler_conf:
-  warmup_steps: 4000
+  warmup_steps: 2500
 
 specaug: specaug
 specaug_conf:
