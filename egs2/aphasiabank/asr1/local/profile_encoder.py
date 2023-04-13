@@ -6,14 +6,17 @@
 """Profile ASR encoder."""
 
 import argparse
-import torch
-from typing import Optional
 from pathlib import Path
+from typing import Optional
+
+import torch
 from deepspeed.profiling.flops_profiler import FlopsProfiler
-# deepspeed version >= 0.8.1
 
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.device_funcs import to_device
+
+# deepspeed version >= 0.8.1
+
 
 
 def get_parser() -> argparse.Namespace:
@@ -21,28 +24,19 @@ def get_parser() -> argparse.Namespace:
 
     parser = argparse.ArgumentParser(description="Profile encoder.")
     parser.add_argument(
-        "--second",
-        type=int,
-        default=10,
-        help="Input speech length in second."
+        "--second", type=int, default=10, help="Input speech length in second."
     )
     parser.add_argument(
-        '--fs',
-        type=int,
-        default=16000,
-        help="Sample rate of speech signal."
+        "--fs", type=int, default=16000, help="Sample rate of speech signal."
     )
     parser.add_argument(
-        "--model_file",
-        required=True,
-        type=Path,
-        help="Path to the model file."
+        "--model_file", required=True, type=Path, help="Path to the model file."
     )
     parser.add_argument(
         "--config_file",
         default=None,
         type=Optional[Path],
-        help="Path to the config file (optional)."
+        help="Path to the config file (optional).",
     )
     return parser
 
@@ -59,7 +53,7 @@ def main(args):
     # Forward
     batch = {
         "speech": torch.rand(1, args.second * args.fs).float(),
-        "speech_lengths": torch.tensor([args.second * args.fs], dtype=torch.long)
+        "speech_lengths": torch.tensor([args.second * args.fs], dtype=torch.long),
     }
     batch = to_device(batch, device="cuda")
     model.encode(**batch)

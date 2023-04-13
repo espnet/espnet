@@ -5,7 +5,8 @@ Create a file with the aphasia label for each utterance, used by InterCTC-based 
 """
 
 import argparse
-from config import utt2spk, spk2aphasia_label
+
+from config import spk2aphasia_label, utt2spk
 
 
 def main():
@@ -13,10 +14,11 @@ def main():
     parser.add_argument("data_dir", type=str)
     args = parser.parse_args()
 
-    with open(f"{args.data_dir}/text", encoding="utf-8") as in_file, \
-            open(f"{args.data_dir}/utt2aph", "w", encoding="utf-8") as utt_file:
+    with open(f"{args.data_dir}/text", encoding="utf-8") as in_file, open(
+        f"{args.data_dir}/utt2aph", "w", encoding="utf-8"
+    ) as utt_file:
         for line in in_file:
-            line = line.rstrip('\n')
+            line = line.rstrip("\n")
 
             utt_id = line.split()[0]
             spk = utt2spk(utt_id)
@@ -27,5 +29,5 @@ def main():
             utt_file.write(f"{utt_id} {aph}\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

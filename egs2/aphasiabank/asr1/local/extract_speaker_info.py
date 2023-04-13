@@ -4,9 +4,9 @@ Based on https://github.com/monirome/AphasiaBank/blob/main/clean_transcriptions.
 import json
 import os
 from argparse import ArgumentParser
-from config import spk2missing_aphasia_types
 
 import pylangacq as pla
+from config import spk2missing_aphasia_types
 
 
 def get_args():

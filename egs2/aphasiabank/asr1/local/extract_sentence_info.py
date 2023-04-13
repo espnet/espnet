@@ -6,16 +6,18 @@ Based on https://github.com/monirome/AphasiaBank/blob/main/clean_transcriptions.
 import os
 import re
 from argparse import ArgumentParser
-from config import lang2label, get_utt, spk2aphasia_label
 
 import pylangacq as pla
+from config import get_utt, lang2label, spk2aphasia_label
 
 
 def get_args():
     parser = ArgumentParser()
     parser.add_argument("--transcript-dir", type=str, required=True)
     parser.add_argument("--out-dir", type=str, required=True)
-    parser.add_argument("--tag-insertion", type=str, choices=['none', 'prepend', 'append', 'both'])
+    parser.add_argument(
+        "--tag-insertion", type=str, choices=["none", "prepend", "append", "both"]
+    )
     parser.add_argument("--lang", type=str, default=None)
     return parser.parse_args()
 
@@ -99,13 +101,13 @@ def main():
     files = []
     for file in os.listdir(args.transcript_dir):
         if os.path.isfile(os.path.join(args.transcript_dir, file)) and file.endswith(
-                ".cha"
+            ".cha"
         ):
             files.append(file)
 
     all_chars = set()
     with open(os.path.join(out_dir, "text"), "w", encoding="utf-8") as text, open(
-            os.path.join(out_dir, "utt2spk"), "w", encoding="utf-8"
+        os.path.join(out_dir, "utt2spk"), "w", encoding="utf-8"
     ) as utt2spk:
         for file in files:
             spk = file.split(".cha")[0]
@@ -137,11 +139,11 @@ def main():
                 if args.tag_insertion != "none":
                     aphasia_type = spk2aphasia_label[spk]
 
-                    if args.tag_insertion == 'append':
+                    if args.tag_insertion == "append":
                         trans = f"{trans} [{aphasia_type}]"
-                    elif args.tag_insertion == 'prepend':
+                    elif args.tag_insertion == "prepend":
                         trans = f"[{aphasia_type}] {trans}"
-                    elif args.tag_insertion == 'both':
+                    elif args.tag_insertion == "both":
                         trans = f"[{aphasia_type}] {trans} [{aphasia_type}]"
                     else:
                         assert False
