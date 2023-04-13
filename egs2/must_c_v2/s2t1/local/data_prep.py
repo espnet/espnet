@@ -101,8 +101,8 @@ def prepare_single(utts: List[Dict], wav_id: str, max_sec: float=30, resolution:
                 'src': ''.join(src),    # no space between special tokens
                 'tgt': ''.join(tgt),    # no space between special tokens
                 'src_ctc': ' '.join(src_ctc),
-                'prev_src': ' '.join(prev_src) if prev_src else '<notext>',
-                'prev_tgt': ' '.join(prev_tgt) if prev_tgt else '<notext>',
+                'prev_src': ' '.join(prev_src) if prev_src else '<blank>',
+                'prev_tgt': ' '.join(prev_tgt) if prev_tgt else '<blank>',
             }
             long_utt['utt_id'] = f"{wav_id}_{round(1000*long_utt['start']):07d}_{round(1000*long_utt['end']):07d}"
             new_utts.append(long_utt)
@@ -233,10 +233,6 @@ if __name__ == "__main__":
     ]
 
     specials = [
-        "<sos>",    # start of sentence
-        "<eos>",    # end of sentence
-        "<sop>",    # start of prev
-        "<notext>", # text is not available, e.g. in prev or ctc
         *category_tokens,        
         *task_tokens,
         *timestamp_tokens,
