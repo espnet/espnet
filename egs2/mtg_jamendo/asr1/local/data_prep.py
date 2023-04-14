@@ -42,9 +42,9 @@ if __name__ == "__main__":
                 low_quality_audio_file = os.path.join(os.path.dirname(audio_path), os.path.basename(l[3]).split('.')[0] + ".low.mp3")
                 if random.randint(0, 4) == 4: 
                     fw_test_text.write(f"{uttid} {tags}\n")
-                    fw_test_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
+                    fw_test_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -t 10 -f wav -ar 16000 -ab 16 -ac 1 - |\n")
                     fw_test_utt2spk.write(f"{uttid} {l[1]}\n")
                 else:
                     fw_train_text.write(f"{uttid} {tags}\n")
-                    fw_train_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
+                    fw_train_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -t 10 -f wav -ar 16000 -ab 16 -ac 1 - |\n")
                     fw_train_utt2spk.write(f"{uttid} {l[1]}\n")
