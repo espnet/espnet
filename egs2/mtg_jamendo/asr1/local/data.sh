@@ -39,6 +39,7 @@ ndev_utt=200
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparation"
     mkdir -p data/{train,test}
+    touch data/{train,test}/{text,wav.scp,utt2spk}
 
     if [ ! -f ${MTG_JAMENDO}/.gitkeep ]; then
         echo Cannot find MTG_JAMENDO root! Exiting...
@@ -47,7 +48,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     # Prepare data in the Kaldi format, including three files:
     # text, wav.scp, utt2spk
-    python3 local/data_prep.py ${MTG_JAMENDO} sph2pipe
+    python3 local/data_prep.py ${MTG_JAMENDO}
 
     for x in test train; do
         for f in text wav.scp utt2spk; do
