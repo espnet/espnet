@@ -10,7 +10,7 @@ def load_mp3(root):
     )
     for audio_path in all_audio_list:
         sound = AudioSegment.from_mp3(audio_path)
-        sound.export(os.path.join(os.path.dirname(audio_path), os.path.basename(audio_path), ".wav"), format="wav", bitrate=16)
+        sound.export(os.path.join(os.path.dirname(audio_path), os.path.basename(audio_path + ".wav")), format="wav", bitrate=16)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
