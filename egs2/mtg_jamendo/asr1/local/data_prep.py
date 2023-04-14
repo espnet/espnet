@@ -28,7 +28,7 @@ if __name__ == "__main__":
     # TODO: write above files in kaldi format using tag files
     # utt2spk(related to uttid)
 
-def parseTag2Text(root):
+def parseTsv(root):
   # Read the TSV file 
   tsvPath = os.path.join(root, "*", "*.tsv")
   # eg："raw_30s_test.tsv"
@@ -37,17 +37,11 @@ def parseTag2Text(root):
       l=line.split('\t')
       tags = " ".join(l[5:])
       #print(tags)
+      #uttid: 'track_0000214-artist_000014-album_000031-14/214'
+      uttid = "-".join(l[0:4])[:-4]
+      #print(uttid)
       with open('tags.text', 'a+') as fw:
         fw.write(tags)
-
-def getUuid(root):
-  tsvPath = os.path.join(root, "*", "*.tsv")
-  with open(tsvPath) as fr:
-      for line in fr.readlines()[1:]:
-        l=line.split('\t')
-        #uuid: 'track_0000214-artist_000014-album_000031-14/214'
-        uuid = "-".join(l[0:4])[:-4]
-        #print(uuid)
 
     for x in ["train", "test"]:
         with open(os.path.join("data", x, "text"), "w") as text_f, open(
