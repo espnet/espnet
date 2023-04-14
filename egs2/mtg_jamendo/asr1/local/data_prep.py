@@ -40,7 +40,6 @@ if __name__ == "__main__":
             uttid = "-".join([l[1], l[2], l[0]])
             if os.path.basename(l[3]).split('.')[0] in audio_basename_set:
                 low_quality_audio_file = os.path.join(os.path.dirname(audio_path), os.path.basename(l[3]).split('.')[0] + ".low.mp3")
-                print(low_quality_audio_file)
                 if random.randint(0, 4) == 4: 
                     fw_test_text.write(f"{uttid} {tags}\n")
                     fw_test_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
