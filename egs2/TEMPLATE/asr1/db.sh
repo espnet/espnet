@@ -319,5 +319,6 @@ if [[ "$(hostname -d)" == clsp.jhu.edu ]]; then
     TOTONAC=downloads
     GOOGLEI18N=downloads
     MALAYALAM=
+    MTG_JAMENDO=
 
 fi
