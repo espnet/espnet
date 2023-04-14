@@ -51,10 +51,7 @@ class STFTEncoder(AbsEncoder):
         # for supporting half-precision training
         if input.dtype in (torch.float16, torch.bfloat16):
             spectrum, flens = self.stft(input.float(), ilens)
-            if is_torch_complex_tensor(spectrum):
-                spectrum = spectrum.to(dtype=torch.complex32)
-            else:
-                spectrum = spectrum.to(dtype=input.dtype)
+            spectrum = spectrum.to(dtype=input.dtype)
         else:
             spectrum, flens = self.stft(input, ilens)
         if is_torch_1_9_plus and self.use_builtin_complex:

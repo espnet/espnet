@@ -57,7 +57,11 @@ class STFTDecoder(AbsDecoder):
         if input.dtype in (torch.float16, torch.bfloat16):
             wav, wav_lens = self.stft.inverse(input.float(), ilens)
             wav = wav.to(dtype=input.dtype)
-        elif is_torch_complex_tensor(input) and input.dtype == torch.complex32:
+        elif (
+            is_torch_complex_tensor(input)
+            and hasattr(torch, "complex32")
+            and input.dtype == torch.complex32
+        ):
             wav, wav_lens = self.stft.inverse(input.cfloat(), ilens)
             wav = wav.to(dtype=input.dtype)
         else:
