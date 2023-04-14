@@ -13,14 +13,14 @@ asr_config=conf/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
-    --stage 1 \
+    --stage 11 \
     --stop_stage 13 \
     --lang en \
     --ngpu 1 \
     --nj 2 \
     --gpu_inference true \
     --inference_nj 2 \
-    --nbpe 50 \
+    --token_type "word" \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --audio_format "wav" \
     --feats_type raw \
@@ -32,5 +32,5 @@ inference_config=conf/decode_asr.yaml
     --test_sets "${test_sets}" \
     --lm_train_text "data/${train_set}/text" \
     --bpe_train_text "data/${train_set}/text" "$@" \
-    --max_wav_duration 300 \
-    --min_wav_duration 60
+    --max_wav_duration 90 \
+    --min_wav_duration 30
