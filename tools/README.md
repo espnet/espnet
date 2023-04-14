@@ -33,7 +33,16 @@ make
 
 For more detail: https://espnet.github.io/espnet/installation.html#step-2-installation-espnet
 
+## Install/Update python modules
 
+Please do not forget to source `activate_python.sh` or `path.sh`
+
+```sh
+# e.g. Install python module
+bash -c ". ./activate_python.sh; python3 -m pip install <some-module>"
+# e.g. Change pytorch version
+bash -c ". ./activate_python.sh; conda install pytorch torchvision torchaudio pytorch-cuda=<cuda-version> -c pytorch -c nvidia"
+```
 
 ## Check installation
 

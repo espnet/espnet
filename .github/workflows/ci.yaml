@@ -9,23 +9,23 @@ on:
       - master
 
 jobs:
-  linter_and_test:
+  test_ubuntu:
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.7, 3.8, 3.9]
-        pytorch-version: [1.10.2, 1.11.0, 1.12.1, 1.13.1]
+        python-version: [3.8, 3.9, "3.10"]
+        pytorch-version: [1.11.0, 1.12.1, 1.13.1, 2.0.0]
         chainer-version: [6.0.0]
         # NOTE(kamo): Conda is tested by Circle-CI
         use-conda: [false]
-        include:
-          - os: ubuntu-latest
-            python-version: "3.10"
-            pytorch-version: 1.13.1
-            chainer-verssion: 6.0.0
-            use-conda: false
+        # include:
+        #   - os: ubuntu-latest
+        #     python-version: "3.10"
+        #     pytorch-version: 1.13.1
+        #     chainer-verssion: 6.0.0
+        #     use-conda: false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
@@ -93,3 +93,150 @@ jobs:
       - uses: codecov/codecov-action@v2
         with:
           flags: test_integration_espnet2
+
+  test_centos7:
+    runs-on: ubuntu-latest
+    container:
+      image: centos:7
+      env:
+        ESPNET_PYTHON_VERSION: "3.10"
+        # NOTE: 1.9.0 raised libstdc++ version errors in pyworld.
+        # ImportError: /lib64/libstdc++.so.6: version `CXXABI_1.3.8' not found
+        # (required by /__w/espnet/espnet/tools/venv/envs/espnet/lib/python3.6/site-packages/pyworld/pyworld.cpython-36m-x86_64-linux-gnu.so)
+        # NOTE(kamo): The issue doens't exist for python3.7?
+        TH_VERSION: 2.0.0
+        CHAINER_VERSION: 6.0.0
+        USE_CONDA: true
+        CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
+        CXX: /opt/rh/devtoolset-7/root/usr/bin/g++
+        MAKE: /opt/rh/devtoolset-7/root/usr/bin/make
+        # To avoid UnicodeEncodeError for python<=3.6
+        LC_ALL: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@master
+      - name: check OS
+        run: cat /etc/os-release
+      - name: install dependencies
+        run: |
+          # NOTE(kamo): cmake sndfile will be download using anacond:
+          yum install -y git centos-release-scl bzip2 wget which unzip bc patch
+          yum-config-manager --enable rhel-server-rhscl-7-rpms
+          yum install -y devtoolset-7-gcc-c++ devtoolset-7-make sox ncurses-devel libtool automake autoconf
+          localedef -f UTF-8 -i en_US en_US
+      - name: install espnet
+        run: |
+          # NOTE(karita) this line exited 1
+          # source scl_source enable devtoolset-7
+          PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
+          ./ci/install.sh
+      - name: test shell
+        run: |
+          PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
+          ./ci/test_shell.sh
+      - name: test python
+        run: |
+          PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
+          ./ci/test_python.sh
+
+  test_debian9:
+    runs-on: ubuntu-latest
+    container:
+      image: debian:9
+      env:
+        ESPNET_PYTHON_VERSION: "3.10"
+        TH_VERSION: 2.0.0
+        CHAINER_VERSION: 6.0.0
+        USE_CONDA: true
+        CC: gcc-6
+        CXX: g++-6
+        # To avoid UnicodeEncodeError for python<=3.6
+        LC_ALL: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@master
+      - name: check OS
+        run: cat /etc/os-release
+      - name: install dependencies
+        run: |
+          apt-get update -qq
+          # NOTE(kamo): cmake sndfile will be download using anacond:
+          apt-get install -qq -y \
+            build-essential git g++-6 unzip bzip2 wget curl bc locales make sox \
+            libncurses5-dev automake libtool pkg-config
+          localedef -f UTF-8 -i en_US en_US
+      - name: install espnet
+        run: ./ci/install.sh
+      - name: test shell
+        run: ./ci/test_shell.sh
+      - name: test python
+        run: ./ci/test_python.sh
+      - name: install kaldi
+        run: ./ci/install_kaldi.sh
+      - name: test utils
+        run: ./ci/test_utils.sh
+      - name: test espnet1 integration
+        run: ./ci/test_integration_espnet1.sh
+      - name: test espnet2 integration
+        run: ./ci/test_integration_espnet2.sh
+
+  test_macos:
+    runs-on: macOS-latest
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+        pytorch-version: [2.0.0]
+        use-conda: [true, false]
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+      - name: install espnet
+        env:
+          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
+          TH_VERSION: ${{ matrix.pytorch-version }}
+          CHAINER_VERSION: 6.0.0
+          USE_CONDA: ${{ matrix.use-conda }}
+          # FIXME(kamo): clang is used by default, but I don't know how to use "-fopenmp" with clang
+          WITH_OMP: OFF
+          # NOTE(kamo): If it's hard to build with clang, please consider using gcc
+          # However, I couldn't build pysptk with gcc on MacOS
+          # CC: /usr/local/bin/gcc-11
+          # CXX: /usr/local/bin/g++-11
+        run: |
+          ./ci/install.sh
+
+  test_windows:
+    runs-on: Windows-latest
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+        pytorch-version: [2.0.0]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+      - name: install dependencies
+        run: |
+          choco install -y wget
+      - name: install espnet
+        env:
+          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
+          TH_VERSION: ${{ matrix.pytorch-version }}
+          CHAINER_VERSION: 6.0.0
+          USE_CONDA: false
+        run: |
+          ./ci/install.sh
