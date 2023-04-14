@@ -440,7 +440,8 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             loss: (Batch,)
         """
         assert target.shape == estimate.shape, (target.shape, estimate.shape)
-        if target.dtype == torch.float16 or estimate.dtype == torch.float16:
+        half_precision = (torch.float16, torch.bfloat16)
+        if target.dtype in half_precision or estimate.dtype in half_precision:
             target = target.float()
             estimate = estimate.float()
         # shape bsz, samples

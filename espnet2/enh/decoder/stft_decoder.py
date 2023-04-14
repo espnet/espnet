@@ -54,7 +54,7 @@ class STFTDecoder(AbsDecoder):
             multi_channel = False
 
         # for supporting half-precision training
-        if input.dtype == torch.float16:
+        if input.dtype in (torch.float16, torch.bfloat16):
             wav, wav_lens = self.stft.inverse(input.float(), ilens)
             wav = wav.to(dtype=input.dtype)
         elif is_torch_complex_tensor(input) and input.dtype == torch.complex32:

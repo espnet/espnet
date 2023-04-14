@@ -49,8 +49,8 @@ class STFTEncoder(AbsEncoder):
             ilens (torch.Tensor): input lengths [Batch]
         """
         # for supporting half-precision training
-        if input.dtype == torch.float16:
-            spectrum, flens = self.stft(input, ilens)
+        if input.dtype in (torch.float16, torch.bfloat16):
+            spectrum, flens = self.stft(input.float(), ilens)
             if is_torch_complex_tensor(spectrum):
                 spectrum = spectrum.to(dtype=torch.complex32)
             else:
