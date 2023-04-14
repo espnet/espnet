@@ -19,7 +19,6 @@ maxlen: 40
 # optimization related
 opt: adam
 schedulers: lr=cosine
-dropout-rate: 0.0
 epoch: 50
 gradclip: 1.0
 lr: 1e-4
@@ -29,4 +28,3 @@ patience: 0
 sortagrad: 0
 #accum-grad: 1
 dropout-rate: 0.1
-

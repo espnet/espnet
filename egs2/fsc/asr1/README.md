@@ -10,7 +10,7 @@
   - Commit date: `Mon Oct 11 12:57:48 2021 -0400`
 - Pretrained Model
   - Zenodo : https://zenodo.org/record/5590204
-  - Hugging Face Hub : https://huggingface.co/espnet/siddhana_fsc_asr_train_asr_hubert_transformer_adam_specaug_raw_en_word_valid.acc.ave_5best 
+  - Hugging Face Hub : https://huggingface.co/espnet/siddhana_fsc_asr_train_asr_hubert_transformer_adam_specaug_raw_en_word_valid.acc.ave_5best
 
 ## Using Transformer based encoder-decoder with Hubert pre encoder and decoding sentence with spectral augmentation and predicting transcript along with intent
 - ASR config: [conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml](conf/tuning/train_asr_hubert_transformer_adam_specaug.yaml)
@@ -38,9 +38,9 @@
 - pytorch version: `pytorch 1.4.0+cu100`
 - Git hash: `3de98cec5d2bfe39ab4f7bbe8baa2a531e694ce3`
   - Commit date: `Sat Jul 24 00:48:04 2021 -0400`
-- Pretrained Model: https://zenodo.org/record/5154341 
+- Pretrained Model: https://zenodo.org/record/5154341
 
-## Using Transformer based encoder-decoder and decoding character with spectral augmentation 
+## Using Transformer based encoder-decoder and decoding character with spectral augmentation
 
 - ASR config: [conf/tuning/train_asr_transformer_adam_specaug.yaml](conf/tuning/train_asr_transformer_adam_specaug.yaml)
 
@@ -78,4 +78,3 @@
 |---|---|---|---|---|---|---|---|---|
 |inference_asr_model_valid.acc.ave_5best/test|3793|20316|99.7|0.2|0.1|0.2|0.4|1.5|
 |inference_asr_model_valid.acc.ave_5best/valid|3118|16751|97.9|1.5|0.6|0.5|2.6|5.5|
-

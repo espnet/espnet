@@ -5,7 +5,7 @@
   - training config file: <code>conf/train.yaml</code>
   - decoding config file: <code>conf/decode.yaml</code>
   - preprocess config file: <code>conf/specaug.yaml</code>
-  - lm config file: <code>conf/lm.yaml</code> 
+  - lm config file: <code>conf/lm.yaml</code>
   - cmvn file: <code>data/pretrain_Train/cmvn.ark</code>
   - e2e file: <code>exp/pretrain_Train_pytorch_train_specaug/results/model.val5.avg.best</code>
   - e2e json file: <code>exp/pretrain_Train_pytorch_train_specaug/results/model.json</code>
@@ -28,7 +28,7 @@
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_Test_model.val5.avg.best_decode_|1243|12648|96.3|1.6|2.1|0.2|3.9|15.8| 
+|decode_Test_model.val5.avg.best_decode_|1243|12648|96.3|1.6|2.1|0.2|3.9|15.8|
 |decode_Val_model.val5.avg.best_decode_|1082|14858|92.7|3.2|4.1|0.9|8.2|38.2|
 
 ### WER

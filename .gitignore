@@ -40,6 +40,7 @@ egs*/*/*/mfcc
 egs*/*/*/stft
 egs*/*/*/tensorboard
 egs*/*/*/wav*
+egs*/*/*/score*
 egs*/*/*/nltk*
 egs*/*/*/.cache*
 egs*/*/*/pretrained_models*
@@ -84,7 +85,7 @@ tools/ice-g2p
 tools/fairseq
 tools/RawNet
 tools/._*
-tools/anaconda
 tools/ice-g2p*
 tools/fairseq*
 tools/featbin*
+tools/miniconda

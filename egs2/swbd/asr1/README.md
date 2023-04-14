@@ -110,7 +110,7 @@ Without LM Rescoring
 exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_asr_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.callhm.ctm.filt.sys
 |       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
 |	Sum/Avg	|	2628	|	21594	|	87.4	|	9.6	|	3.0	|	2.0	|	14.6	|	49.7	|
-exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_asr_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.ctm.filt.sys	
+exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_asr_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.ctm.filt.sys
 |       SPKR              |        # Snt              # Wrd        |        Corr                 Sub                  Del                 Ins                  Err               S.Err        |
 |	Sum/Avg	|	4459	|	42989	|	90.5	|	7.0	|	2.5	|	1.5	|	10.9	|	44.7	|
 exp/asr_train_asr_conformer_fbank_pitch_bpe2000/decode_asr_asr_model_valid.acc.ave_10best/eval2000/score_wer/scoring/hyp.swbd.ctm.filt.sys

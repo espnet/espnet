@@ -10,17 +10,17 @@
 
 
 
-- Model files 
+- Model files
 
     - training config file (teacher model): `./conf/tuning/finetune_transformer.yaml`
 
     - training config file: `./conf/tuning/train_conformer_fastspeech2.yaml`
 
- 
+
 
 - Results: {using our pretrained ASR model on MGB2 data} here is the recipe "egs/mgb2"
 
-  - FastSpeech2 (Trans.) w/ PWG: (R = 1) 
+  - FastSpeech2 (Trans.) w/ PWG: (R = 1)
 
       - CER: 3.9
 

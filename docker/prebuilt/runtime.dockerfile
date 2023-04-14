@@ -9,7 +9,7 @@ ENV DOCKER_BUILT_VER ${DOCKER_VER}
 ENV NUM_BUILD_CORES ${NUM_BUILD_CORES}
 
 RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
-    apt-get -y install --no-install-recommends \ 
+    apt-get -y install --no-install-recommends \
         automake \
         autoconf \
         apt-utils \

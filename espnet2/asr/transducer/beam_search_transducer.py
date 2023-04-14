@@ -57,6 +57,8 @@ class BeamSearchTransducer:
         prefix_alpha: int = 1,
         expansion_gamma: int = 2.3,
         expansion_beta: int = 2,
+        multi_blank_durations: List[int] = [],
+        multi_blank_indices: List[int] = [],
         score_norm: bool = True,
         nbest: int = 1,
         token_list: Optional[List[str]] = None,
@@ -77,6 +79,8 @@ class BeamSearchTransducer:
             expansion_beta:
               Number of additional candidates for expanded hypotheses selection. (mAES)
             expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
+            multi_blank_durations: The duration of each blank token. (MBG)
+            multi_blank_indices: The index of each blank token in token_list. (MBG)
             score_norm: Normalize final scores by length. ("default")
             nbest: Number of final hypothesis.
 
@@ -93,7 +97,13 @@ class BeamSearchTransducer:
 
         self.blank_id = decoder.blank_id
 
-        if self.beam_size <= 1:
+        if search_type == "mbg":
+            self.beam_size = 1
+            self.multi_blank_durations = multi_blank_durations
+            self.multi_blank_indices = multi_blank_indices
+            self.search_algorithm = self.multi_blank_greedy_search
+
+        elif self.beam_size <= 1:
             self.search_algorithm = self.greedy_search
         elif search_type == "default":
             self.search_algorithm = self.default_beam_search
@@ -135,12 +145,16 @@ class BeamSearchTransducer:
             self.max_candidates = beam_size + expansion_beta
 
             self.search_algorithm = self.modified_adaptive_expansion_search
+
         else:
             raise NotImplementedError
 
         self.use_lm = lm is not None
         self.lm = lm
         self.lm_weight = lm_weight
+
+        if self.use_lm and self.beam_size == 1:
+            logging.warning("LM is provided but not used, since this is greedy search.")
 
         self.score_norm = score_norm
         self.nbest = nbest
@@ -883,3 +897,57 @@ class BeamSearchTransducer:
                         )[:beam]
 
         return self.sort_nbest(kept_hyps)
+
+    def multi_blank_greedy_search(self, enc_out: torch.Tensor) -> List[Hypothesis]:
+        """Greedy Search for Multi-Blank Transducer (Multi-Blank Greedy, MBG).
+
+        In this implementation, we assume:
+        1. the index of standard blank is the last entry of self.multi_blank_indices
+           rather than self.blank_id (to avoid too much change on original transducer)
+        2. other entries in self.multi_blank_indices are big blanks that account for
+           multiple frames.
+
+        Based on https://arxiv.org/abs/2211.03541
+
+        Args:
+            enc_out: Encoder output sequence. (T, D_enc)
+
+        Returns:
+            hyp: 1-best hypothesis.
+
+        """
+
+        big_blank_duration = 1
+        blank_start = self.multi_blank_indices[0]
+        blank_end = self.multi_blank_indices[-1]
+
+        dec_state = self.decoder.init_state(1)
+        hyp = Hypothesis(score=0.0, yseq=[blank_end], dec_state=dec_state)
+        cache = {}
+
+        for enc_out_t in enc_out:
+            # case 1: skip frames until big_blank_duration == 1
+            if big_blank_duration > 1:
+                big_blank_duration -= 1
+                continue
+
+            symbols_added = 0
+            while symbols_added <= 3:
+                dec_out, state, _ = self.decoder.score(hyp, cache)
+                logp = torch.log_softmax(self.joint_network(enc_out_t, dec_out), dim=-1)
+                top_logp, k = torch.max(logp, dim=-1)
+
+                # case 2: predict a blank token
+                if blank_start <= k <= blank_end:
+                    big_blank_duration = self.multi_blank_durations[k - blank_start]
+                    hyp.score += top_logp
+                    break
+
+                # case 3: predict a non-blank token
+                else:
+                    symbols_added += 1
+                    hyp.yseq.append(int(k))
+                    hyp.score += float(top_logp)
+                    hyp.dec_state = state
+
+        return [hyp]

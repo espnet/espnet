@@ -1,1 +1,0 @@
-../../../../TEMPLATE/asr1/pyscripts/utils/evaluate_mcd.py

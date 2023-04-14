@@ -2,7 +2,6 @@
 
 import math
 
-import six
 import torch
 import torch.nn.functional as F
 
@@ -861,7 +860,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.mlp_q = torch.nn.ModuleList()
         self.mlp_k = torch.nn.ModuleList()
         self.mlp_v = torch.nn.ModuleList()
-        for _ in six.moves.range(aheads):
+        for _ in range(aheads):
             self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
             self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
             self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
@@ -907,17 +906,14 @@ class AttMultiHeadDot(torch.nn.Module):
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
             self.pre_compute_k = [
-                torch.tanh(self.mlp_k[h](self.enc_h))
-                for h in six.moves.range(self.aheads)
+                torch.tanh(self.mlp_k[h](self.enc_h)) for h in range(self.aheads)
             ]
 
         if self.pre_compute_v is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_v = [
-                self.mlp_v[h](self.enc_h) for h in six.moves.range(self.aheads)
-            ]
+            self.pre_compute_v = [self.mlp_v[h](self.enc_h) for h in range(self.aheads)]
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -926,7 +922,7 @@ class AttMultiHeadDot(torch.nn.Module):
 
         c = []
         w = []
-        for h in six.moves.range(self.aheads):
+        for h in range(self.aheads):
             e = torch.sum(
                 self.pre_compute_k[h]
                 * torch.tanh(self.mlp_q[h](dec_z)).view(batch, 1, self.att_dim_k),
@@ -977,7 +973,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.mlp_k = torch.nn.ModuleList()
         self.mlp_v = torch.nn.ModuleList()
         self.gvec = torch.nn.ModuleList()
-        for _ in six.moves.range(aheads):
+        for _ in range(aheads):
             self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
             self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
             self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
@@ -1023,17 +1019,13 @@ class AttMultiHeadAdd(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_k = [
-                self.mlp_k[h](self.enc_h) for h in six.moves.range(self.aheads)
-            ]
+            self.pre_compute_k = [self.mlp_k[h](self.enc_h) for h in range(self.aheads)]
 
         if self.pre_compute_v is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_v = [
-                self.mlp_v[h](self.enc_h) for h in six.moves.range(self.aheads)
-            ]
+            self.pre_compute_v = [self.mlp_v[h](self.enc_h) for h in range(self.aheads)]
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -1042,7 +1034,7 @@ class AttMultiHeadAdd(torch.nn.Module):
 
         c = []
         w = []
-        for h in six.moves.range(self.aheads):
+        for h in range(self.aheads):
             e = self.gvec[h](
                 torch.tanh(
                     self.pre_compute_k[h]
@@ -1108,7 +1100,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.gvec = torch.nn.ModuleList()
         self.loc_conv = torch.nn.ModuleList()
         self.mlp_att = torch.nn.ModuleList()
-        for _ in six.moves.range(aheads):
+        for _ in range(aheads):
             self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
             self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
             self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
@@ -1166,17 +1158,13 @@ class AttMultiHeadLoc(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_k = [
-                self.mlp_k[h](self.enc_h) for h in six.moves.range(self.aheads)
-            ]
+            self.pre_compute_k = [self.mlp_k[h](self.enc_h) for h in range(self.aheads)]
 
         if self.pre_compute_v is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_v = [
-                self.mlp_v[h](self.enc_h) for h in six.moves.range(self.aheads)
-            ]
+            self.pre_compute_v = [self.mlp_v[h](self.enc_h) for h in range(self.aheads)]
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -1185,7 +1173,7 @@ class AttMultiHeadLoc(torch.nn.Module):
 
         if att_prev is None:
             att_prev = []
-            for _ in six.moves.range(self.aheads):
+            for _ in range(self.aheads):
                 # if no bias, 0 0-pad goes 0
                 mask = 1.0 - make_pad_mask(enc_hs_len).float()
                 att_prev += [
@@ -1194,7 +1182,7 @@ class AttMultiHeadLoc(torch.nn.Module):
 
         c = []
         w = []
-        for h in six.moves.range(self.aheads):
+        for h in range(self.aheads):
             att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
             att_conv = att_conv.squeeze(2).transpose(1, 2)
             att_conv = self.mlp_att[h](att_conv)
@@ -1268,7 +1256,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.gvec = torch.nn.ModuleList()
         self.loc_conv = torch.nn.ModuleList()
         self.mlp_att = torch.nn.ModuleList()
-        for h in six.moves.range(aheads):
+        for h in range(aheads):
             self.mlp_q += [torch.nn.Linear(dunits, att_dim_k)]
             self.mlp_k += [torch.nn.Linear(eprojs, att_dim_k, bias=False)]
             self.mlp_v += [torch.nn.Linear(eprojs, att_dim_v, bias=False)]
@@ -1322,17 +1310,13 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_k = [
-                self.mlp_k[h](self.enc_h) for h in six.moves.range(self.aheads)
-            ]
+            self.pre_compute_k = [self.mlp_k[h](self.enc_h) for h in range(self.aheads)]
 
         if self.pre_compute_v is None or self.han_mode:
             self.enc_h = enc_hs_pad  # utt x frame x hdim
             self.h_length = self.enc_h.size(1)
             # utt x frame x att_dim
-            self.pre_compute_v = [
-                self.mlp_v[h](self.enc_h) for h in six.moves.range(self.aheads)
-            ]
+            self.pre_compute_v = [self.mlp_v[h](self.enc_h) for h in range(self.aheads)]
 
         if dec_z is None:
             dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
@@ -1341,7 +1325,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
         if att_prev is None:
             att_prev = []
-            for _ in six.moves.range(self.aheads):
+            for _ in range(self.aheads):
                 # if no bias, 0 0-pad goes 0
                 mask = 1.0 - make_pad_mask(enc_hs_len).float()
                 att_prev += [
@@ -1350,7 +1334,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
 
         c = []
         w = []
-        for h in six.moves.range(self.aheads):
+        for h in range(self.aheads):
             att_conv = self.loc_conv[h](att_prev[h].view(batch, 1, 1, self.h_length))
             att_conv = att_conv.squeeze(2).transpose(1, 2)
             att_conv = self.mlp_att[h](att_conv)
@@ -1797,7 +1781,7 @@ def att_to_numpy(att_ws, att):
         # att_ws => list of list of each head attention
         n_heads = len(att_ws[0])
         att_ws_sorted_by_head = []
-        for h in six.moves.range(n_heads):
+        for h in range(n_heads):
             att_ws_head = torch.stack([aw[h] for aw in att_ws], dim=1)
             att_ws_sorted_by_head += [att_ws_head]
         att_ws = torch.stack(att_ws_sorted_by_head, dim=1).cpu().numpy()

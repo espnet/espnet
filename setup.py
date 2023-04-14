@@ -11,7 +11,7 @@ requirements = {
         "setuptools>=38.5.1",
         "packaging",
         "configargparse>=1.2.1",
-        "typeguard>=2.7.0",
+        "typeguard==2.13.3",
         "humanfriendly",
         "scipy>=1.4.1",
         "filelock",
@@ -20,7 +20,7 @@ requirements = {
         "PyYAML>=5.1.2",
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
-        "kaldiio>=2.17.0",
+        "kaldiio>=2.18.0",
         "torch>=1.3.0",
         "torch_complex",
         "nltk>=3.4.5",
@@ -30,7 +30,7 @@ requirements = {
         "hydra-core",
         "opt-einsum",
         # ASR
-        "sentencepiece",
+        "sentencepiece==0.1.97",
         "ctc-segmentation>=1.6.6",
         # TTS
         "pyworld>=0.2.10",
@@ -46,7 +46,6 @@ requirements = {
         # https://github.com/espnet/espnet/actions/runs/3174416926/jobs/5171182884#step:8:8419
         # https://importlib-metadata.readthedocs.io/en/latest/history.html#v5-0-0
         "importlib-metadata<5.0",
-        "six",
     ],
     # train: The modules invoked when training only.
     "train": [
@@ -72,7 +71,7 @@ requirements = {
         "fastdtw",
         "nara_wpe>=0.0.5",
         "sacrebleu>=1.5.1",
-        "praatio>=5.1.1",  # for librispeech phoneme alignment
+        "praatio>=6,<7",  # for librispeech phoneme alignment
         "scikit-learn>=1.0.0",  # for HuBERT kmeans
     ],
     # all: The modules should be optionally installled due to some reason.
