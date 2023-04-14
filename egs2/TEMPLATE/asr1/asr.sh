@@ -1675,7 +1675,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
                     done
                 done
                 # Generate the oracle permutation hyp.trn and ref.trn
-                scripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
+                pyscripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
                     --results-dir ${_scoredir}
             fi
 
