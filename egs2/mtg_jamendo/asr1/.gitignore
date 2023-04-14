@@ -1,0 +1,3 @@
+# Ignore everything except .gitkeep in download/ folder
+download/*
+!download/.gitkeep
