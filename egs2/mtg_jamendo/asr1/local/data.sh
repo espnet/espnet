@@ -38,8 +38,8 @@ ndev_utt=200
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparation"
-    mkdir -p data/{train,test}
-    touch data/{train,test}/{text,wav.scp,utt2spk}
+    mkdir -p data/{train,test,valid}
+    touch data/{train,test,valid}/{text,wav.scp,utt2spk}
 
     if [ ! -f ${MTG_JAMENDO}/.gitkeep ]; then
         echo Cannot find MTG_JAMENDO root! Exiting...

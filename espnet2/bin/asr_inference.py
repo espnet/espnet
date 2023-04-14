@@ -9,6 +9,7 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import torch
 import torch.quantization
+from tqdm import trange
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.decoder.s4_decoder import S4Decoder
@@ -91,6 +92,7 @@ class Speech2Text:
         hugging_face_decoder_max_length: int = 256,
         time_sync: bool = False,
         multi_asr: bool = False,
+        segment_size: Optional[float] = None,
     ):
         assert check_argument_types()
 
@@ -358,10 +360,14 @@ class Speech2Text:
         self.nbest = nbest
         self.enh_s2t_task = enh_s2t_task
         self.multi_asr = multi_asr
+        self.segmenting_asr = segment_size is not None
+        self.segment_size = segment_size
+        self.show_progressbar = False
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
+        # TODO: sppech is too long to fit the memory
+        self, speech: Union[torch.Tensor, np.ndarray], fs: int = 16000
     ) -> List[
         Tuple[
             Optional[str],
@@ -385,6 +391,7 @@ class Speech2Text:
             speech = torch.tensor(speech)
 
         # data: (Nsamples,) -> (1, Nsamples)
+        # TODO: cut speech, and then merge result. Refer disr_inference.py
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
@@ -393,9 +400,58 @@ class Speech2Text:
 
         # a. To device
         batch = to_device(batch, device=self.device)
+        speech = to_device(speech, device=self.device)
+        lengths = to_device(lengths, device=self.device)
 
-        # b. Forward Encoder
-        enc, _ = self.asr_model.encode(**batch)
+        if self.segmenting_asr and lengths[0] > self.segment_size * fs:
+            # Segment-wise speaker diarization
+            # Note that the segments are processed independently for now
+            # i.e., no speaker tracing is performed
+            num_segments = int(np.ceil(speech.size(1) / (self.segment_size * fs)))
+            t = T = int(self.segment_size * fs)
+            pad_shape = speech[:, :T].shape
+            encs = []
+            range_ = trange if self.show_progressbar else range
+            for i in range_(num_segments):
+                st = int(i * self.segment_size * fs)
+                en = st + T
+                if en >= lengths[0]:
+                    # en - st < T (last segment)
+                    en = lengths[0]
+                    speech_seg = speech.new_zeros(pad_shape)
+                    t = en - st
+                    speech_seg[:, :t] = speech[:, st:en]
+                else:
+                    t = T
+                    speech_seg = speech[:, st:en]  # B x T [x C]
+
+                lengths_seg = speech.new_full(
+                    [1], dtype=torch.long, fill_value=T
+                )
+                # b. Forward Encoder
+                enc_element, _ = self.asr_model.encode(
+                    speech_seg,
+                    lengths_seg,
+                )
+                encs.append(enc_element)
+            # Determine maximum estimated number of speakers among the segments
+            max_len = max([x.size(2) for x in encs])
+            # pad tensors in diarized_wavs with "float('-inf')" to have same size
+            encs = [
+                torch.nn.functional.pad(
+                    x, (0, max_len - x.size(2)), "constant", float("-inf")
+                )
+                for x in encs
+            ]
+            logging.info("max enc length: " + str(max_len))
+            enc = torch.cat(encs, dim=1)
+            logging.info("enc length: " + str(enc.size(1)))
+            mean_pooling = torch.nn.AdaptiveAvgPool1d(max_len)
+            enc = mean_pooling(enc)
+            logging.info("new enc length: " + str(enc.size(1)))
+        else:
+            # b. Forward Encoder
+            enc, _ = self.asr_model.encode(**batch)
         if self.multi_asr:
             enc = enc.unbind(dim=1)  # (batch, num_inf, ...) -> num_inf x [batch, ...]
         if self.enh_s2t_task or self.multi_asr:
@@ -571,6 +627,7 @@ def inference(
     hugging_face_decoder_max_length: int,
     time_sync: bool,
     multi_asr: bool,
+    segment_size: Optional[float],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -623,6 +680,7 @@ def inference(
         hugging_face_decoder=hugging_face_decoder,
         hugging_face_decoder_max_length=hugging_face_decoder_max_length,
         time_sync=time_sync,
+        segment_size=segment_size,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -900,6 +958,12 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Time synchronous beam search.",
+    )
+    group.add_argument(
+        "--segment_size",
+        type=float,
+        default=None,
+        help="Segment length in seconds for segment-wise speaker diarization",
     )
 
     return parser

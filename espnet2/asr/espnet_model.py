@@ -237,6 +237,8 @@ class ESPnetASRModel(AbsESPnetModel):
             if text_lengths is not None
             else torch.ones(batch_size).int() * text.shape[1]
         )
+        assert text_lengths.dim() == 1, text_lengths.shape
+        assert speech_lengths.dim() == 1, speech_lengths.shape
         text[text == -1] = self.ignore_id
 
         logging.info(speech_lengths, text_lengths)

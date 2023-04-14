@@ -63,6 +63,17 @@ if __name__ == "__main__":
     valid = FeatureDataset(root, os.path.join(root, "tsv"), 'valid')
     test = FeatureDataset(root, os.path.join(root, "tsv"), 'test')
 
+    all_tags = set()
+    for music in train.all_tags:
+        for tag in music:
+            all_tags.add(tag)
+    for music in test.all_tags:
+        for tag in music:
+            all_tags.add(tag)
+    for music in valid.all_tags:
+        for tag in music:
+            all_tags.add(tag)
+
     with open(
         os.path.join('data', 'train', 'text'), 'w+'
     ) as fw_train_text, open(
@@ -91,7 +102,19 @@ if __name__ == "__main__":
             album = train.all_album[i]
             uttid = "-".join([speaker, album, track])
             if os.path.exists(low_quality_audio_file):
-                fw_train_text.write(f"{uttid} {tags}\n")
+                tag_set = set()
+                tag_set.update(tags)
+                result = []
+                num_tags = 0
+                for tag in all_tags:
+                    if tag in tag_set:
+                        result.append("true")
+                        num_tags += 1
+                    else:
+                        result.append("false")
+                assert num_tags > 0
+                text = " ".join(result)
+                fw_train_text.write(f"{uttid} {text}\n")
                 fw_train_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
                 fw_train_utt2spk.write(f"{uttid} {speaker}\n")
         
@@ -104,7 +127,19 @@ if __name__ == "__main__":
             album = test.all_album[i]
             uttid = "-".join([speaker, album, track])
             if os.path.exists(low_quality_audio_file):
-                fw_test_text.write(f"{uttid} {tags}\n")
+                tag_set = set()
+                tag_set.update(tags)
+                result = []
+                num_tags = 0
+                for tag in all_tags:
+                    if tag in tag_set:
+                        result.append("true")
+                        num_tags += 1
+                    else:
+                        result.append("false")
+                assert num_tags > 0
+                text = " ".join(result)
+                fw_test_text.write(f"{uttid} {text}\n")
                 fw_test_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
                 fw_test_utt2spk.write(f"{uttid} {speaker}\n")
 
@@ -118,6 +153,18 @@ if __name__ == "__main__":
             album = valid.all_album[i]
             uttid = "-".join([speaker, album, track])
             if os.path.exists(low_quality_audio_file):
-                fw_valid_text.write(f"{uttid} {tags}\n")
+                tag_set = set()
+                tag_set.update(tags)
+                result = []
+                num_tags = 0
+                for tag in all_tags:
+                    if tag in tag_set:
+                        result.append("true")
+                        num_tags += 1
+                    else:
+                        result.append("false")
+                assert num_tags > 0
+                text = " ".join(result)
+                fw_valid_text.write(f"{uttid} {text}\n")
                 fw_valid_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
                 fw_valid_utt2spk.write(f"{uttid} {speaker}\n")
