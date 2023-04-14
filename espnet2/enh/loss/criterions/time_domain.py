@@ -440,6 +440,9 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             loss: (Batch,)
         """
         assert target.shape == estimate.shape, (target.shape, estimate.shape)
+        if target.dtype == torch.float16 or estimate.dtype == torch.float16:
+            target = target.float()
+            estimate = estimate.float()
         # shape bsz, samples
         scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (
             torch.sum(estimate**2, -1, keepdim=True) + self.eps

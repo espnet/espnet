@@ -50,6 +50,7 @@ class TFGridNet(AbsSeparator):
         activation: activation function to use in the whole TFGridNet model,
             you can use any torch supported activation e.g. 'relu' or 'elu'.
         eps: small epsilon for normalization layers.
+        use_builtin_complex: whether to use builtin complex type or not.
     """
 
     def __init__(
@@ -69,6 +70,7 @@ class TFGridNet(AbsSeparator):
         emb_hs=1,
         activation="prelu",
         eps=1.0e-5,
+        use_builtin_complex=False,
     ):
         super().__init__()
         self.n_srcs = n_srcs
@@ -78,7 +80,7 @@ class TFGridNet(AbsSeparator):
         n_freqs = n_fft // 2 + 1
 
         self.enc = STFTEncoder(
-            n_fft, n_fft, stride, window=window, use_builtin_complex=False
+            n_fft, n_fft, stride, window=window, use_builtin_complex=use_builtin_complex
         )
         self.dec = STFTDecoder(n_fft, n_fft, stride, window=window)
 
