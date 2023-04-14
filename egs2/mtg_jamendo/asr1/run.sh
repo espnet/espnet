@@ -13,7 +13,7 @@ asr_config=conf/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
-    --stage 1 \
+    --stage 11 \
     --stop_stage 13 \
     --lang en \
     --ngpu 1 \
@@ -32,5 +32,5 @@ inference_config=conf/decode_asr.yaml
     --test_sets "${test_sets}" \
     --lm_train_text "data/${train_set}/text" \
     --bpe_train_text "data/${train_set}/text" "$@" \
-    --max_wav_duration 30 \
-    --min_wav_duration 1
+    --max_wav_duration 90 \
+    --min_wav_duration 30

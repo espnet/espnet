@@ -225,6 +225,7 @@ class ChunkIterFactory(AbsIterFactory):
             state.shuffle(indices)
             batches = {k: [v[i] for i in indices] for k, v in batches.items()}
             id_list = [id_list[i] for i in indices]
+            logging.info(id_list, batches, shuffle)
 
         bs = self.batch_size
         while len(id_list) >= bs:

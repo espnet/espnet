@@ -204,9 +204,9 @@ class ESPnetASRModel(AbsESPnetModel):
     def forward(
         self,
         speech: torch.Tensor,
-        speech_lengths: torch.Tensor,
-        text: torch.Tensor,
-        text_lengths: torch.Tensor,
+        speech_lengths: torch.Tensor = None,
+        text: torch.Tensor = None,
+        text_lengths: torch.Tensor = None,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Frontend + Encoder + Decoder + Calc loss
@@ -218,20 +218,32 @@ class ESPnetASRModel(AbsESPnetModel):
             text_lengths: (Batch,)
             kwargs: "utt_id" is among the input.
         """
-        assert text_lengths.dim() == 1, text_lengths.shape
+        if text is None:
+            text = speech_lengths
+            speech_lengths = None
         # Check that batch_size is unified
         assert (
-            speech.shape[0]
-            == speech_lengths.shape[0]
-            == text.shape[0]
-            == text_lengths.shape[0]
-        ), (speech.shape, speech_lengths.shape, text.shape, text_lengths.shape)
+            speech.shape[0] == text.shape[0]
+        ), (speech.shape, text.shape)
         batch_size = speech.shape[0]
-
+        logging.info(batch_size)
+        speech_lengths = (
+            speech_lengths
+            if speech_lengths is not None
+            else torch.ones(batch_size).int() * speech.shape[1]
+        )
+        text_lengths = (
+            text_lengths
+            if text_lengths is not None
+            else torch.ones(batch_size).int() * text.shape[1]
+        )
         text[text == -1] = self.ignore_id
+
+        logging.info(speech_lengths, text_lengths)
 
         # for data-parallel
         text = text[:, : text_lengths.max()]
+        print(text)
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
