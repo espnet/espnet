@@ -17,11 +17,10 @@ inference_config=conf/decode_asr.yaml
     --stop_stage 13 \
     --lang en \
     --ngpu 1 \
-    --nj 16 \
+    --nj 2 \
     --gpu_inference true \
     --inference_nj 2 \
-    --nbpe 390 \
-    --max_wav_duration 30 \
+    --nbpe 50 \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --audio_format "wav" \
     --feats_type raw \
