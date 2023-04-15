@@ -5,8 +5,8 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy
 import torch
-from torch.cuda.amp import autocast
 from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import check_argument_types
 
 from espnet2.asr.ctc import CTC
