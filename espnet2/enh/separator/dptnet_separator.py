@@ -1,5 +1,4 @@
 from collections import OrderedDict
-from distutils.version import LooseVersion
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
@@ -9,8 +8,6 @@ from espnet2.enh.layers.complex_utils import is_complex
 from espnet2.enh.layers.dptnet import DPTNet
 from espnet2.enh.layers.tcn import choose_norm
 from espnet2.enh.separator.abs_separator import AbsSeparator
-
-is_torch_1_9_plus = LooseVersion(torch.__version__) >= LooseVersion("1.9.0")
 
 
 class DPTNetSeparator(AbsSeparator):

@@ -3,13 +3,9 @@ from typing import Tuple, Union
 import torch
 import torch.nn.functional as F
 import torch_complex.functional as FC
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import einsum, matmul, reverse
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
-
 
 """ WPE pytorch version: Ported from https://github.com/fgnt/nara_wpe
 Many functions aren't enough tested"""
@@ -32,7 +28,7 @@ def signal_framing(
         real = signal_framing(signal.real, frame_length, frame_step, pad_value)
         imag = signal_framing(signal.imag, frame_length, frame_step, pad_value)
         return ComplexTensor(real, imag)
-    elif is_torch_1_9_plus and torch.is_complex(signal):
+    elif torch.is_complex(signal):
         real = signal_framing(signal.real, frame_length, frame_step, pad_value)
         imag = signal_framing(signal.imag, frame_length, frame_step, pad_value)
         return torch.complex(real, imag)
@@ -167,7 +163,7 @@ def perform_filter_operation(
     if isinstance(Y, ComplexTensor):
         complex_module = FC
         pad_func = FC.pad
-    elif is_torch_1_9_plus and torch.is_complex(Y):
+    elif torch.is_complex(Y):
         complex_module = torch
         pad_func = F.pad
     else:

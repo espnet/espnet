@@ -4,11 +4,10 @@
 
 """VITS/VISinger module for GAN-SVS task."""
 
-from contextlib import contextmanager
-from distutils.version import LooseVersion
 from typing import Any, Dict, Optional
 
 import torch
+from torch.cuda.amp import autocast
 from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
@@ -40,14 +39,6 @@ AVAILABLE_DISCRIMINATORS = {
     "hifigan_multi_scale_discriminator": HiFiGANMultiScaleDiscriminator,
     "hifigan_multi_scale_multi_period_discriminator": HiFiGANMultiScaleMultiPeriodDiscriminator,  # NOQA
 }
-
-if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
 
 
 class VITS(AbsGANSVS):

@@ -245,15 +245,10 @@ def _conj(x):
 
 _c2r = torch.view_as_real
 _r2c = torch.view_as_complex
-if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
 
-    def _resolve_conj(x):
-        return x.conj().resolve_conj()
 
-else:
-
-    def _resolve_conj(x):
-        return x.conj()
+def _resolve_conj(x):
+    return x.conj().resolve_conj()
 
 
 """ Misc functional utilities """

@@ -2,7 +2,6 @@
 import argparse
 import logging
 import sys
-from distutils.version import LooseVersion
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
@@ -65,15 +64,6 @@ class Speech2Text:
         quantize_dtype: str = "qint8",
     ):
         assert check_argument_types()
-
-        if quantize_uasr_model or quantize_lm:
-            if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
-                "1.5.0"
-            ):
-                raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with "
-                    "torch version < 1.5.0. Switch to qint8 dtype instead."
-                )
 
         quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype = getattr(torch, quantize_dtype)

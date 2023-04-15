@@ -5,13 +5,9 @@ from abc import ABC
 import ci_sdr
 import fast_bss_eval
 import torch
-from packaging.version import parse as V
-from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.layers.stft import Stft
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class TimeDomainLoss(AbsEnhLoss, ABC):
@@ -419,11 +415,7 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         return "l1_timedomain+magspec_loss"
 
     def get_magnitude(self, stft):
-        if is_torch_1_9_plus:
-            stft = torch.complex(stft[..., 0], stft[..., 1])
-        else:
-            stft = ComplexTensor(stft[..., 0], stft[..., 1])
-
+        stft = torch.complex(stft[..., 0], stft[..., 1])
         return stft.abs()
 
     def forward(

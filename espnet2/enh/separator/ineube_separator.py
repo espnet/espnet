@@ -2,15 +2,12 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.layers.beamformer import tik_reg, to_double
 from espnet2.enh.layers.tcndenseunet import TCNDenseUNet
 from espnet2.enh.separator.abs_separator import AbsSeparator
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class iNeuBe(AbsSeparator):
@@ -84,10 +81,6 @@ class iNeuBe(AbsSeparator):
         self.freeze_dnn1 = freeze_dnn1
         self.tik_eps = tik_eps
         fft_c_channels = n_fft // 2 + 1
-        assert is_torch_1_9_plus, (
-            "iNeuBe model requires torch>=1.9.0, "
-            "please install latest torch version."
-        )
 
         self.enc = STFTEncoder(n_fft, n_fft, stride, window=window)
         self.dec = STFTDecoder(n_fft, n_fft, stride, window=window)

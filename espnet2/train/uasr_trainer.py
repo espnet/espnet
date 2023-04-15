@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
-from packaging.version import parse as V
+from torch.cuda.amp import GradScaler, autocast
 from typeguard import check_argument_types
 
 from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler, AbsScheduler
@@ -27,16 +27,6 @@ from espnet2.utils.types import str2bool
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import GradScaler, autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
-
-    GradScaler = None
 
 try:
     import fairscale

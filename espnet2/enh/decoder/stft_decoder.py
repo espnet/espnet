@@ -1,11 +1,8 @@
 import torch
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.stft import Stft
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class STFTDecoder(AbsDecoder):
@@ -39,9 +36,7 @@ class STFTDecoder(AbsDecoder):
             input (ComplexTensor): spectrum [Batch, T, (C,) F]
             ilens (torch.Tensor): input lengths [Batch]
         """
-        if not isinstance(input, ComplexTensor) and (
-            is_torch_1_9_plus and not torch.is_complex(input)
-        ):
+        if not isinstance(input, ComplexTensor) and not torch.is_complex(input):
             raise TypeError("Only support complex tensors for stft decoder")
 
         bs = input.size(0)

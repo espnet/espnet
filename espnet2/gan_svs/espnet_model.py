@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from typing import Any, Dict, Optional
 
 import torch
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
@@ -21,14 +21,6 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 )
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch < 1.6.0
-    @contextmanager
-    def autocast(enabled=True):  # NOQA
-        yield
 
 
 class ESPnetGANSVSModel(AbsGANESPnetModel):

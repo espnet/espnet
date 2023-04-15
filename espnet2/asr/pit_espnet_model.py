@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import check_argument_types
 
 from espnet2.asr.ctc import CTC
@@ -18,14 +18,6 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class PITLossWrapper(AbsLossWrapper):

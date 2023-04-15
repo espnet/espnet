@@ -4,7 +4,6 @@ from typing import Dict, List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complexnn import (
@@ -16,7 +15,6 @@ from espnet2.enh.layers.complexnn import (
 )
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 EPS = torch.finfo(torch.double).eps
 
 
@@ -291,7 +289,7 @@ class DCCRNSeparator(AbsSeparator):
             mask_imag = F.pad(mask_imag, [0, 0, 1, 0])
 
             # mask shape (B, T, F)
-            if is_torch_1_9_plus and self.use_builtin_complex:
+            if self.use_builtin_complex:
                 complex_mask = torch.complex(
                     mask_real.permute(0, 2, 1), mask_imag.permute(0, 2, 1)
                 )
@@ -350,7 +348,7 @@ class DCCRNSeparator(AbsSeparator):
                 real, imag = real * mask_real, imag * mask_imag
 
             # shape (B, F, T) --> (B, T, F)
-            if is_torch_1_9_plus and self.use_builtin_complex:
+            if self.use_builtin_complex:
                 masked.append(
                     torch.complex(real.permute(0, 2, 1), imag.permute(0, 2, 1))
                 )

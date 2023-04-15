@@ -5,6 +5,7 @@ from typing import Dict, List, Optional, Tuple, Union
 
 import numpy
 import torch
+from torch.cuda.amp import autocast
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
@@ -26,14 +27,6 @@ from espnet.nets.pytorch_backend.nets_utils import th_accuracy
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class MaskCTCModel(ESPnetASRModel):

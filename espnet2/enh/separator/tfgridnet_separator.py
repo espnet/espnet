@@ -5,7 +5,6 @@ from typing import Dict, List, Optional, Tuple, Union
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from packaging.version import parse as V
 from torch.nn import init
 from torch.nn.parameter import Parameter
 
@@ -13,8 +12,6 @@ from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.get_layer_from_string import get_layer
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class TFGridNet(AbsSeparator):
@@ -73,10 +70,6 @@ class TFGridNet(AbsSeparator):
         eps=1.0e-5,
     ):
         super().__init__()
-        assert is_torch_1_9_plus, (
-            "TFGridNet model requires torch>=1.9.0, "
-            "please install latest torch version."
-        )
         self.n_srcs = n_srcs
         self.n_layers = n_layers
         self.n_imics = n_imics

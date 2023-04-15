@@ -1,7 +1,6 @@
 """Activation functions for Transducer."""
 
 import torch
-from packaging.version import parse as V
 
 
 def get_activation(
@@ -36,7 +35,6 @@ def get_activation(
         : Activation function.
 
     """
-    torch_version = V(torch.__version__)
 
     activations = {
         "ftswish": (
@@ -53,7 +51,7 @@ def get_activation(
             {
                 "softplus_beta": softplus_beta,
                 "softplus_threshold": softplus_threshold,
-                "use_builtin": torch_version >= V("1.9"),
+                "use_builtin": True,
             },
         ),
         "relu": (torch.nn.ReLU, {}),
@@ -61,7 +59,7 @@ def get_activation(
         "smish": (Smish, {"alpha": smish_alpha, "beta": smish_beta}),
         "swish": (
             Swish,
-            {"beta": swish_beta, "use_builtin": torch_version >= V("1.8")},
+            {"beta": swish_beta, "use_builtin": True},
         ),
         "tanh": (torch.nn.Tanh, {}),
         "identity": (torch.nn.Identity, {}),

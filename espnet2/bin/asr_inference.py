@@ -2,7 +2,6 @@
 import argparse
 import logging
 import sys
-from distutils.version import LooseVersion
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -33,7 +32,6 @@ from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.beam_search_timesync import BeamSearchTimeSync
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
@@ -107,15 +105,6 @@ class Speech2Text:
         assert check_argument_types()
 
         task = ASRTask if not enh_s2t_task else EnhS2TTask
-
-        if quantize_asr_model or quantize_lm:
-            if quantize_dtype == "float16" and torch.__version__ < LooseVersion(
-                "1.5.0"
-            ):
-                raise ValueError(
-                    "float16 dtype for dynamic quantization is not supported with "
-                    "torch version < 1.5.0. Switch to qint8 dtype instead."
-                )
 
         quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype = getattr(torch, quantize_dtype)

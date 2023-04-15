@@ -17,6 +17,7 @@ import torch.nn
 import torch.optim
 import yaml
 from packaging.version import parse as V
+from torch.multiprocessing.spawn import ProcessContext
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types, check_return_type
 
@@ -70,11 +71,6 @@ try:
 except Exception:
     wandb = None
 
-if V(torch.__version__) >= V("1.5.0"):
-    from torch.multiprocessing.spawn import ProcessContext
-else:
-    from torch.multiprocessing.spawn import SpawnContext as ProcessContext
-
 
 optim_classes = dict(
     adam=torch.optim.Adam,
@@ -87,12 +83,8 @@ optim_classes = dict(
     lbfgs=torch.optim.LBFGS,
     rmsprop=torch.optim.RMSprop,
     rprop=torch.optim.Rprop,
+    radam=torch.optim.RAdam,
 )
-if V(torch.__version__) >= V("1.10.0"):
-    # From 1.10.0, RAdam is officially supported
-    optim_classes.update(
-        radam=torch.optim.RAdam,
-    )
 try:
     import torch_optimizer
 

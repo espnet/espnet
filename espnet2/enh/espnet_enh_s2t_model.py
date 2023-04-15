@@ -6,8 +6,8 @@ from typing import Dict, List, Tuple, Union
 import numpy as np
 import torch
 import torch.nn.functional as F
-from packaging.version import parse as V
 from scipy.optimize import linear_sum_assignment
+from torch.cuda.amp import autocast
 from typeguard import check_argument_types
 
 from espnet2.asr.espnet_model import ESPnetASRModel
@@ -16,14 +16,6 @@ from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.st.espnet_model import ESPnetSTModel
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class ESPnetEnhS2TModel(AbsESPnetModel):

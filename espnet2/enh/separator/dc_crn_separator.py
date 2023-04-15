@@ -2,7 +2,6 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex, new_complex_like
@@ -10,7 +9,6 @@ from espnet2.enh.layers.dc_crn import DC_CRN
 from espnet2.enh.separator.abs_separator import AbsSeparator
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class DC_CRNSeparator(AbsSeparator):

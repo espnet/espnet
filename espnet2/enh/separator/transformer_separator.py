@@ -2,7 +2,6 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
-from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.layers.complex_utils import is_complex
@@ -15,8 +14,6 @@ from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
 from espnet.nets.pytorch_backend.transformer.encoder import (
     Encoder as TransformerEncoder,
 )
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class TransformerSeparator(AbsSeparator):
