@@ -66,6 +66,7 @@ def prepare_single(utts: List[Dict], wav_id: str, max_sec: float=30, resolution:
     """Prepare a singe TED talk by generating long utterances with context/prompt."""
     
     new_utts: List[Dict] = []
+    uttids: List[str] = []
     for idx in range(len(utts)):
         max_utts = find_max_utts(utts, max_sec, idx)
 
@@ -101,11 +102,16 @@ def prepare_single(utts: List[Dict], wav_id: str, max_sec: float=30, resolution:
                 'src': ''.join(src),    # no space between special tokens
                 'tgt': ''.join(tgt),    # no space between special tokens
                 'src_ctc': ' '.join(src_ctc),
-                'prev_src': ' '.join(prev_src) if prev_src else '<blank>',
-                'prev_tgt': ' '.join(prev_tgt) if prev_tgt else '<blank>',
+                'prev_src': ' '.join(prev_src) if prev_src else '<na>',
+                'prev_tgt': ' '.join(prev_tgt) if prev_tgt else '<na>',
             }
             long_utt['utt_id'] = f"{wav_id}_{round(1000*long_utt['start']):07d}_{round(1000*long_utt['end']):07d}"
-            new_utts.append(long_utt)
+
+            if long_utt['utt_id'] not in uttids:
+                uttids.append(long_utt['utt_id'])
+                new_utts.append(long_utt)
+            else:
+                print(f"Long utt {long_utt['utt_id']} already exists.")
     
     return new_utts
 
@@ -127,12 +133,16 @@ def prepare_all(
         textctc_fp = open(out_dir / "text.ctc", 'w')    # text for ASR CTC w/o special tokens
         utt2spk_fp = open(out_dir / "utt2spk", 'w')
         for lang in langs:
+            print(f"Preparing {dataset} {lang}...")
             wav2utts = parse_data(data_path, lang, dataset)
             for wav_name, utts in wav2utts.items():
                 wav_id = f"ted_{int(wav_name[:-len('.wav')][len('ted_'):]):05d}_en_{lang}"
-                wavscp_fp.write(f"{wav_id} {utts[0]['wav']}\n")
-
                 long_utts = prepare_single(utts, wav_id, max_sec, resolution)
+                if long_utts:
+                    wavscp_fp.write(f"{wav_id} {utts[0]['wav']}\n")
+                else:
+                    print(f"Wav {wav_id} has no valid long utterances. Skip it.")
+
                 for u in long_utts:
                     # 1. transcribe: en -> en
                     utt_id = f"{u['utt_id']}_transcribe"
@@ -221,6 +231,7 @@ if __name__ == "__main__":
 
     # save special tokens
     category_tokens = [
+        "<nospeech>",
         "<en>",
     ]
     task_tokens = [
@@ -233,6 +244,7 @@ if __name__ == "__main__":
     ]
 
     specials = [
+        '<na>',     # text is not available
         *category_tokens,        
         *task_tokens,
         *timestamp_tokens,

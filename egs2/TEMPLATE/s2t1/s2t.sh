@@ -45,7 +45,6 @@ python=python3       # Specify python to execute espnet commands.
 # Data preparation related
 local_data_opts= # The options given to local/data.sh.
 post_process_local_data_opts= # The options given to local/data.sh for additional processing in stage 4.
-auxiliary_data_tags= # the names of training data for auxiliary tasks
 
 # Speed perturbation related
 speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
@@ -336,7 +335,7 @@ else
     exit 2
 fi
 
-# Extra files for prev/prompt and CTC
+# Extra files for prev/prompt and ASR CTC
 utt_extra_files="text.prev text.ctc"
 
 num_inf=${num_inf:=${num_ref}}
@@ -625,6 +624,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
             rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
 
+            # Copy extra text files
+            for extra_txt in ${utt_extra_files}; do
+                [ -f data/${dset}/${extra_txt} ] && cp data/${dset}/${extra_txt} ${data_feats}${_suf}/${dset}
+            done
+
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 # shellcheck disable=SC2068
@@ -686,6 +690,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 fi
             fi
 
+            # Copy extra text files
+            for extra_txt in ${utt_extra_files}; do
+                [ -f data/${dset}/${extra_txt} ] && cp data/${dset}/${extra_txt} ${data_feats}${_suf}/${dset}
+            done
+
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 # shellcheck disable=SC2068
@@ -713,6 +722,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             fi
             # 1. Copy datadir
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+
+            # Copy extra text files
+            for extra_txt in ${utt_extra_files}; do
+                [ -f data/${dset}/${extra_txt} ] && cp data/${dset}/${extra_txt} ${data_feats}${_suf}/${dset}
+            done
 
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
@@ -763,6 +777,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 fi
             fi
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+
+            # Copy extra text files
+            for extra_txt in ${utt_extra_files}; do
+                [ -f data/${dset}/${extra_txt} ] && cp data/${dset}/${extra_txt} ${data_feats}${_suf}/${dset}
+            done
 
             # Copy reference text files if there is more than 1 reference
             # shellcheck disable=SC2068
@@ -843,6 +862,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
         # Remove empty text
         # shellcheck disable=SC2068
+        for extra_txt in ${utt_extra_files}; do
+            <"${data_feats}/org/${dset}/${extra_txt}" \
+                awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/${extra_txt}"
+        done
         for ref_txt in ${ref_text_files[@]}; do
             <"${data_feats}/org/${dset}/${ref_txt}" \
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/${ref_txt}"
@@ -850,7 +873,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
         # fix_data_dir.sh leaves only utts which exist in all files
         utils/fix_data_dir.sh \
-            ${ref_text_files_str:+--utt_extra_files "${ref_text_files_str}"} \
+            --utt_extra_files "${utt_extra_files} ${ref_text_files_str}" \
             "${data_feats}/${dset}"
     done
 
@@ -875,16 +898,15 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
         # shellcheck disable=SC2002
         cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
         
-        # Set blank as the first special token
         if [ -n "${bpe_nlsyms}" ]; then
             if test -f "${bpe_nlsyms}"; then
                 bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
-                _opts_spm="--user_defined_symbols=${blank},${bpe_nlsyms_list}"
+                _opts_spm="--user_defined_symbols=${bpe_nlsyms_list}"
             else
-                _opts_spm="--user_defined_symbols=${blank},${bpe_nlsyms}"
+                _opts_spm="--user_defined_symbols=${bpe_nlsyms}"
             fi
         else
-            _opts_spm="--user_defined_symbols=${blank}"
+            _opts_spm=""
         fi
 
         spm_train \
@@ -897,69 +919,74 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             ${_opts_spm}
 
         {
-        # Remove <unk>, <s>, </s> from the vocabulary
-        <"${bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
-        echo "${oov}"
-        echo "${sos}"
-        echo "${eos}"
-        echo "${sop}"
+            echo "${blank}"
+            echo "${oov}"
+            # Remove <unk>, <s>, </s> from the vocabulary
+            <"${bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+            echo "${sos}"
+            echo "${eos}"
+            echo "${sop}"
         } > "${token_list}"
 
-    # elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
-    #     log "Stage 5: Generate character level token_list from ${lm_train_text}"
+    elif [ "${token_type}" = char ] || [ "${token_type}" = word ]; then
+        log "Stage 5: Generate character level token_list from ${lm_train_text}"
 
-    #     _opts="--non_linguistic_symbols ${nlsyms_txt}"
+        _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
-    #     # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-    #     # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-    #     ${python} -m espnet2.bin.tokenize_text  \
-    #         --token_type "${token_type}" \
-    #         --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
-    #         --field 2- \
-    #         --cleaner "${cleaner}" \
-    #         --g2p "${g2p}" \
-    #         --write_vocabulary true \
-    #         --add_symbol "${blank}:0" \
-    #         --add_symbol "${oov}:1" \
-    #         --add_symbol "${sos_eos}:-1"
+        # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+        # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+        ${python} -m espnet2.bin.tokenize_text  \
+            --token_type "${token_type}" \
+            --input "${data_feats}/lm_train.txt" --output "${token_list}" ${_opts} \
+            --field 2- \
+            --cleaner "${cleaner}" \
+            --g2p "${g2p}" \
+            --write_vocabulary true \
+            --add_symbol "${blank}:0" \
+            --add_symbol "${oov}:1" \
+            --add_symbol "${sop}:-1" \
+            --add_symbol "${eos}:-2" \
+            --add_symbol "${sos}:-3"
 
-    # elif grep -q "whisper" <<< ${token_type}; then
-    #     log "Stage 5: Generate whisper token_list from ${token_type} tokenizer"
+    elif grep -q "whisper" <<< ${token_type}; then
+        log "Stage 5: Generate whisper token_list from ${token_type} tokenizer"
 
-    #     # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-    #     # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-    #     echo ${token_list}
-    #     ${python} -m espnet2.bin.whisper_export_vocabulary  \
-    #         --whisper_model "${token_type}" \
-    #         --output "${token_list}"
-    # elif [ "${token_type}" = hugging_face ]; then
-    #     log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
+        # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+        # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+        echo ${token_list}
+        ${python} -m espnet2.bin.whisper_export_vocabulary  \
+            --whisper_model "${token_type}" \
+            --output "${token_list}"
+    elif [ "${token_type}" = hugging_face ]; then
+        log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
 
-    #     # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-    #     # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-    #     ${python} -m espnet2.bin.hugging_face_export_vocabulary  \
-    #         --model_name_or_path "${hugging_face_model_name_or_path}" \
-    #         --output "${token_list}"
+        # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+        # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+        ${python} -m espnet2.bin.hugging_face_export_vocabulary  \
+            --model_name_or_path "${hugging_face_model_name_or_path}" \
+            --output "${token_list}"
     else
         log "Error: not supported --token_type '${token_type}'"
         exit 2
     fi
 
-    # # Create word-list for word-LM training
-    # if ${use_word_lm} && [ "${token_type}" != word ]; then
-    #     log "Generate word level token_list from ${data_feats}/lm_train.txt"
-    #     ${python} -m espnet2.bin.tokenize_text \
-    #         --token_type word \
-    #         --input "${data_feats}/lm_train.txt" --output "${lm_token_list}" \
-    #         --field 2- \
-    #         --cleaner "${cleaner}" \
-    #         --g2p "${g2p}" \
-    #         --write_vocabulary true \
-    #         --vocabulary_size "${word_vocab_size}" \
-    #         --add_symbol "${blank}:0" \
-    #         --add_symbol "${oov}:1" \
-    #         --add_symbol "${sos_eos}:-1"
-    # fi
+    # Create word-list for word-LM training
+    if ${use_word_lm} && [ "${token_type}" != word ]; then
+        log "Generate word level token_list from ${data_feats}/lm_train.txt"
+        ${python} -m espnet2.bin.tokenize_text \
+            --token_type word \
+            --input "${data_feats}/lm_train.txt" --output "${lm_token_list}" \
+            --field 2- \
+            --cleaner "${cleaner}" \
+            --g2p "${g2p}" \
+            --write_vocabulary true \
+            --vocabulary_size "${word_vocab_size}" \
+            --add_symbol "${blank}:0" \
+            --add_symbol "${oov}:1" \
+            --add_symbol "${sop}:-1" \
+            --add_symbol "${eos}:-2" \
+            --add_symbol "${sos}:-3"
+    fi
 
 fi
 
@@ -1213,6 +1240,10 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${_scp},speech,${_type} "
     _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${_scp},speech,${_type} "
     # shellcheck disable=SC2068
+    for extra_txt in ${utt_extra_files}; do
+        _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${extra_txt},${extra_txt//./_},text "
+        _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${extra_txt},${extra_txt//./_},text "
+    done
     for i in ${!ref_text_files[@]}; do
         _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
         _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
@@ -1248,6 +1279,16 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
 
     # Append the num-tokens at the last dimensions. This is used for batch-bins count
     # shellcheck disable=SC2068
+    for extra_txt in ${utt_extra_files}; do
+        _extra_txt=${extra_txt//./_}
+        <"${s2t_stats_dir}/train/${_extra_txt}_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${s2t_stats_dir}/train/${_extra_txt}_shape.${token_type}"
+
+        <"${s2t_stats_dir}/valid/${_extra_txt}_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${s2t_stats_dir}/valid/${_extra_txt}_shape.${token_type}"
+    done
     for ref_txt in ${ref_text_names[@]}; do
         <"${s2t_stats_dir}/train/${ref_txt}_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
@@ -1305,14 +1346,14 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         # so the memory footprint can be limited to the memory required for each dataset.
 
         _split_dir="${s2t_stats_dir}/splits${num_splits_s2t}"
+        _all_scps="${_s2t_train_dir}/${_scp} ${_s2t_train_dir}/text ${s2t_stats_dir}/train/speech_shape ${s2t_stats_dir}/train/text_shape.${token_type} "
+        for extra_txt in ${utt_extra_files}; do
+            _all_scps+="${_s2t_train_dir}/${extra_txt} ${s2t_stats_dir}/train/${extra_txt//./_}_shape.${token_type} "
+        done
         if [ ! -f "${_split_dir}/.done" ]; then
             rm -f "${_split_dir}/.done"
             ${python} -m espnet2.bin.split_scps \
-              --scps \
-                  "${_s2t_train_dir}/${_scp}" \
-                  "${_s2t_train_dir}/text" \
-                  "${s2t_stats_dir}/train/speech_shape" \
-                  "${s2t_stats_dir}/train/text_shape.${token_type}" \
+              --scps ${_all_scps} \
               --num_splits "${num_splits_s2t}" \
               --output_dir "${_split_dir}"
             touch "${_split_dir}/.done"
@@ -1323,6 +1364,11 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
         _opts+="--train_shape_file ${_split_dir}/speech_shape "
         # shellcheck disable=SC2068
+        for extra_txt in ${utt_extra_files}; do
+            _opts+="--fold_length ${s2t_text_fold_length} "
+            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${extra_txt},${extra_txt//./_},text "
+            _opts+="--train_shape_file ${_split_dir}/${extra_txt//./_}_shape.${token_type} "
+        done
         for i in ${!ref_text_names[@]}; do
             _opts+="--fold_length ${s2t_text_fold_length} "
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
@@ -1334,14 +1380,12 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${_scp},speech,${_type} "
         _opts+="--train_shape_file ${s2t_stats_dir}/train/speech_shape "
 
-        read -r -a aux_list <<< "$auxiliary_data_tags"
-        if [ ${#aux_list[@]} != 0 ]; then
-            _opts+="--allow_variable_data_keys True "
-            for aux_dset in "${aux_list[@]}"; do
-                 _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${aux_dset},text,text "
-            done
-        fi
         # shellcheck disable=SC2068
+        for extra_txt in ${utt_extra_files}; do
+            _opts+="--fold_length ${s2t_text_fold_length} "
+            _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${extra_txt},${extra_txt//./_},text "
+            _opts+="--train_shape_file ${s2t_stats_dir}/train/${extra_txt//./_}_shape.${token_type} "
+        done
         for i in ${!ref_text_names[@]}; do
             _opts+="--fold_length ${s2t_text_fold_length} "
             _opts+="--train_data_path_and_name_and_type ${_s2t_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
@@ -1350,6 +1394,10 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
     fi
 
     # shellcheck disable=SC2068
+    for extra_txt in ${utt_extra_files}; do
+        _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${extra_txt},${extra_txt//./_},text "
+        _opts+="--valid_shape_file ${s2t_stats_dir}/valid/${extra_txt//./_}_shape.${token_type} "
+    done
     for i in ${!ref_text_names[@]}; do
         _opts+="--valid_data_path_and_name_and_type ${_s2t_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
         _opts+="--valid_shape_file ${s2t_stats_dir}/valid/${ref_text_names[$i]}_shape.${token_type} "

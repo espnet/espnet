@@ -5,9 +5,9 @@
 # set -u
 # set -o pipefail
 
-. ./db.sh || exit 1
-. ./path.sh || exit 1
-. ./cmd.sh || exit 1
+. ./db.sh || exit 1;
+. ./path.sh || exit 1;
+. ./cmd.sh || exit 1;
 
 log() {
     local fname=${BASH_SOURCE[1]##*/}
@@ -26,9 +26,21 @@ resolution=0.02
 log "$0 $*"
 . utils/parse_options.sh
 
+# Copied from utils/fix_data_dir.sh
+function check_sorted {
+  file=$1
+  sort -k1,1 -u <$file >$file.tmp
+  if ! cmp -s $file $file.tmp; then
+    echo "$0: file $1 is not in sorted order or not unique, sorting it"
+    mv $file.tmp $file
+  else
+    rm $file.tmp
+  fi
+}
+
 if [ -z "${MUST_C}" ]; then
     log "Fill the value of 'MUST_C' of db.sh"
-    exit 1
+    exit 1;
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && [ ! -d "${MUST_C}" ]; then
@@ -40,6 +52,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && [ ! -d "${MUST_C}" ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "stage 2: Data Preparation: ${datasets}"
+
     python local/data_prep.py \
         --data_path ${MUST_C} \
         --output_path ./data \
@@ -48,9 +62,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         --max_sec ${max_sec} \
         --resolution ${resolution}
 
+    utt_extra_files="text.prev text.ctc"
     for x in ${datasets}; do
-        utils/fix_data_dir.sh --utt_extra_files "text.prev text.ctc" data/${x} || exit 1
-        utils/validate_data_dir.sh --no-feats --non-print data/${x} || exit 1
+        # NOTE(yifan): extra text files must be sorted and unique
+        for f in ${utt_extra_files}; do
+            check_sorted data/${x}/${f}
+        done
+
+        utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" data/${x} || exit 1;
+        utils/validate_data_dir.sh --no-feats --non-print data/${x} || exit 1;
     done
 fi
 log "Successfully finished. [elapsed=${SECONDS}s]"
