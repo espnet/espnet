@@ -354,13 +354,9 @@ class SVSTask(AbsTask):
 
         # 3. SVS
 
-        # for diffsinger
-        feats_minmax = None
-        if (not getattr(args, "feats_minmax_conf", None)) is False: # dict empty
-            feats_minmax = GetFeatsMinMax(**args.feats_minmax_conf)
-
         svs_class = svs_choices.get_class(args.svs)
-        svs = svs_class(idim=vocab_size, odim=odim, feats_minmax = feats_minmax, **args.svs_conf)
+        feats_minmax = GetFeatsMinMax(**args.feats_minmax_conf)
+        svs = svs_class(idim=vocab_size, odim=odim, feats_minmax = feats_minmax(), **args.svs_conf)
 
         # 4. Extra components
         score_feats_extract = None
@@ -369,7 +365,6 @@ class SVSTask(AbsTask):
         pitch_normalize = None
         energy_normalize = None
         feats_minmax = None
-        logging.info(f"args:{args}")
         if getattr(args, "score_feats_extract", None) is not None:
             score_feats_extract_class = score_feats_extractor_choices.get_class(
                 args.score_feats_extract
