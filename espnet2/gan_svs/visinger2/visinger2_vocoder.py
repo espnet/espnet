@@ -416,6 +416,8 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
         hidden_channels=[256, 512, 512],
         domain="double",
         mel_scale=True,
+        divisors=[32, 16, 8, 4, 2, 1, 1],
+        strides=[1, 2, 1, 2, 1, 2, 1],
     ):
         super().__init__()
 
@@ -437,14 +439,14 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
         if domain == "double":
             self.discriminators = torch.nn.ModuleList(
                 [
-                    BaseFrequenceDiscriminator(2, c)
+                    BaseFrequenceDiscriminator(2, c, divisors=divisors, strides=strides)
                     for x, c in zip(hop_lengths, hidden_channels)
                 ]
             )
         else:
             self.discriminators = torch.nn.ModuleList(
                 [
-                    BaseFrequenceDiscriminator(1, c)
+                    BaseFrequenceDiscriminator(1, c, divisors=divisors, strides=strides)
                     for x, c in zip(hop_lengths, hidden_channels)
                 ]
             )
@@ -464,92 +466,37 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
 
 
 class BaseFrequenceDiscriminator(torch.nn.Module):
-    def __init__(self, in_channels, hidden_channels=512):
+    def __init__(
+        self,
+        in_channels,
+        hidden_channels=512,
+        divisors=[32, 16, 8, 4, 2, 1, 1],
+        strides=[1, 2, 1, 2, 1, 2, 1],
+    ):
         super().__init__()
 
+        layers = []
+        for i in range(len(divisors)):
+            in_ch = in_channels if i == 0 else hidden_channels // divisors[i - 1]
+            out_ch = hidden_channels // divisors[i]
+            stride = strides[i]
+            layers.append((in_ch, out_ch, stride))
         self.discriminators = torch.nn.ModuleList()
-        self.discriminators += [
-            torch.nn.Sequential(
+
+        for in_ch, out_ch, stride in layers:
+            seq = torch.nn.Sequential(
+                torch.nn.LeakyReLU(0.2, True) if out_ch != 1 else torch.nn.Identity(),
                 torch.nn.ReflectionPad2d((1, 1, 1, 1)),
                 torch.nn.utils.weight_norm(
                     torch.nn.Conv2d(
-                        in_channels,
-                        hidden_channels // 32,
+                        in_ch,
+                        out_ch,
                         kernel_size=(3, 3),
-                        stride=(1, 1),
+                        stride=(stride, stride),
                     )
                 ),
-            ),
-            torch.nn.Sequential(
-                torch.nn.LeakyReLU(0.2, True),
-                torch.nn.ReflectionPad2d((1, 1, 1, 1)),
-                torch.nn.utils.weight_norm(
-                    torch.nn.Conv2d(
-                        hidden_channels // 32,
-                        hidden_channels // 16,
-                        kernel_size=(3, 3),
-                        stride=(2, 2),
-                    )
-                ),
-            ),
-            torch.nn.Sequential(
-                torch.nn.LeakyReLU(0.2, True),
-                torch.nn.ReflectionPad2d((1, 1, 1, 1)),
-                torch.nn.utils.weight_norm(
-                    torch.nn.Conv2d(
-                        hidden_channels // 16,
-                        hidden_channels // 8,
-                        kernel_size=(3, 3),
-                        stride=(1, 1),
-                    )
-                ),
-            ),
-            torch.nn.Sequential(
-                torch.nn.LeakyReLU(0.2, True),
-                torch.nn.ReflectionPad2d((1, 1, 1, 1)),
-                torch.nn.utils.weight_norm(
-                    torch.nn.Conv2d(
-                        hidden_channels // 8,
-                        hidden_channels // 4,
-                        kernel_size=(3, 3),
-                        stride=(2, 2),
-                    )
-                ),
-            ),
-            torch.nn.Sequential(
-                torch.nn.LeakyReLU(0.2, True),
-                torch.nn.ReflectionPad2d((1, 1, 1, 1)),
-                torch.nn.utils.weight_norm(
-                    torch.nn.Conv2d(
-                        hidden_channels // 4,
-                        hidden_channels // 2,
-                        kernel_size=(3, 3),
-                        stride=(1, 1),
-                    )
-                ),
-            ),
-            torch.nn.Sequential(
-                torch.nn.LeakyReLU(0.2, True),
-                torch.nn.ReflectionPad2d((1, 1, 1, 1)),
-                torch.nn.utils.weight_norm(
-                    torch.nn.Conv2d(
-                        hidden_channels // 2,
-                        hidden_channels,
-                        kernel_size=(3, 3),
-                        stride=(2, 2),
-                    )
-                ),
-            ),
-            torch.nn.Sequential(
-                torch.nn.LeakyReLU(0.2, True),
-                torch.nn.ReflectionPad2d((1, 1, 1, 1)),
-                torch.nn.utils.weight_norm(
-                    torch.nn.Conv2d(
-                        hidden_channels, 1, kernel_size=(3, 3), stride=(1, 1)
-                    )
-                ),
-            ),
-        ]
+            )
+            self.discriminators += [seq]
 
     def forward(self, x):
         outs = []
@@ -605,6 +552,8 @@ class VISinger2Discriminator(torch.nn.Module):
             "hidden_channels": [256, 512, 512],
             "domain": "double",
             "mel_scale": True,
+            "divisors": [32, 16, 8, 4, 2, 1, 1],
+            "strides": [1, 2, 1, 2, 1, 2, 1],
         },
         use_spectral_norm=False,
     ):
@@ -628,15 +577,6 @@ class VISinger2Discriminator(torch.nn.Module):
         )
 
         self.mfd = MultiFrequencyDiscriminator(
-            # hop_lengths=[
-            #     int(sample_rate * 2.5 / 1000),
-            #     int(sample_rate * 5 / 1000),
-            #     int(sample_rate * 7.5 / 1000),
-            #     int(sample_rate * 10 / 1000),
-            #     int(sample_rate * 12.5 / 1000),
-            #     int(sample_rate * 15 / 1000),
-            # ],
-            # hidden_channels=[256, 256, 256, 256, 256],
             **multi_freq_disc_params,
         )
 

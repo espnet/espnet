@@ -22,9 +22,7 @@ import torch
 import torch.nn.functional as F
 
 from espnet2.gan_svs.vits.duration_predictor import DurationPredictor
-from espnet2.gan_svs.vits.frame_prior_net import FramePriorNet
 from espnet2.gan_svs.vits.length_regulator import LengthRegulator
-from espnet2.gan_svs.vits.modules import Projection, sequence_mask
 from espnet2.gan_svs.vits.phoneme_predictor import PhonemePredictor
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet2.gan_svs.vits.pitch_predictor import Decoder
@@ -41,7 +39,6 @@ from espnet2.gan_svs.uhifigan.sine_generator import SineGen
 from espnet2.gan_tts.utils import get_random_segments, get_segments
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 from espnet2.gan_svs.utils.expand_f0 import expand_f0
 
 from espnet2.gan_svs.visinger2.ddsp import (

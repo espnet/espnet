@@ -330,7 +330,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         output_dict = model.inference(**inputs)
         assert output_dict["wav"].size(0) == inputs["durations"].sum() * upsample_factor
 
-        # check inference with teachder forcing
+        # check inference with teacher forcing
         inputs = dict(
             text=torch.randint(
                 0,

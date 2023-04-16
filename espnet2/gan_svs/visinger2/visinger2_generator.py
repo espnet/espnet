@@ -14,7 +14,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet2.gan_svs.visinger2.duration_predictor import DurationPredictor
+from espnet2.gan_svs.vits.duration_predictor import DurationPredictor
 from espnet2.gan_svs.vits.frame_prior_net import FramePriorNet
 from espnet2.gan_svs.vits.length_regulator import LengthRegulator
 from espnet2.gan_svs.vits.modules import Projection, sequence_mask
