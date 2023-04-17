@@ -25,7 +25,6 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
-
 # Alias for typing
 ListOfHypothesis = List[
     Tuple[
@@ -39,8 +38,8 @@ ListOfHypothesis = List[
 
 class GenerateText:
     """GenerateText class
-    
-    TODO: 
+
+    TODO:
     Examples:
         >>> import soundfile
         >>> speech2text = Speech2Text("asr_config.yml", "asr.pth")
@@ -85,7 +84,7 @@ class GenerateText:
             lm = torch.quantization.quantize_dynamic(
                 lm,
                 qconfig_spec=set([getattr(torch.nn, q) for q in quantize_modules]),
-                dtype=getattr(torch, quantize_dtype)
+                dtype=getattr(torch, quantize_dtype),
             )
 
         token_list = lm_train_args.token_list
@@ -105,8 +104,8 @@ class GenerateText:
 
         # 3. Build BeamSearch object
         scorers = dict(
-            lm=lm.lm,   # full and batch scorer
-            ngram=ngram,    # full ngram is batch scorer
+            lm=lm.lm,  # full and batch scorer
+            ngram=ngram,  # full ngram is batch scorer
             length_bonus=LengthBonus(len(token_list)),  # full and batch scorer
         )
         weights = dict(
@@ -197,7 +196,7 @@ class GenerateText:
 
         Args:
             text: Input text used as condition for generation
-                If text is str, it will be converted to token ids 
+                If text is str, it will be converted to token ids
                 and a <sos> token will be added to the beginning.
                 If text is Tensor or ndarray, it will be used directly.
         Returns:
@@ -218,9 +217,9 @@ class GenerateText:
         logging.info(f"hyp primer: {hyp_primer}")
 
         nbest_hyps = self.beam_search(
-            x=torch.zeros(1, 1, device=self.device),    # only used to obtain device info
-            maxlenratio=-self.maxlen,   # negative int means a constant max length
-            minlenratio=-self.minlen    # same for min length
+            x=torch.zeros(1, 1, device=self.device),  # only used to obtain device info
+            maxlenratio=-self.maxlen,  # negative int means a constant max length
+            minlenratio=-self.minlen,  # same for min length
         )
 
         nbest_hyps = nbest_hyps[: self.nbest]
