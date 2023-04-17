@@ -119,7 +119,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             duration_syb (Optional[Tensor]): duration tensor (B, T_syllable).
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
             slur (Optional[Tensor]): slur tensor (B, T_slur).
-            slur_lengths (Optional[Tensor]): slur length tensor (B,).            
+            slur_lengths (Optional[Tensor]): slur length tensor (B,).
             pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
@@ -414,7 +414,9 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             )
         if self.energy_extract is not None:
             energy, energy_lengths = self.energy_extract(
-                singing, singing_lengths, feats_lengths=feats_lengths,
+                singing,
+                singing_lengths,
+                feats_lengths=feats_lengths,
             )
 
         # store in dict
