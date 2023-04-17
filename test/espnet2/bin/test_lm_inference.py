@@ -50,14 +50,9 @@ def lm_config_file(tmp_path: Path, token_list):
 
 @pytest.mark.execution_timeout(5)
 def test_GenerateText(lm_config_file):
-    generatetext = GenerateText(
-        lm_train_config=lm_config_file,
-        beam_size=1
-    )
+    generatetext = GenerateText(lm_train_config=lm_config_file, beam_size=1)
     text = np.random.randint(
-        low=1,
-        high=len(generatetext.lm_train_args.token_list) - 1,
-        size=(10,)
+        low=1, high=len(generatetext.lm_train_args.token_list) - 1, size=(10,)
     )
     results = generatetext(text)
     for text, token, token_int, hyp in results:
@@ -75,9 +70,7 @@ def test_GenerateText_quantized(lm_config_file):
         quantize_lm=True,
     )
     text = np.random.randint(
-        low=1,
-        high=len(generatetext.lm_train_args.token_list) - 1,
-        size=(10,)
+        low=1, high=len(generatetext.lm_train_args.token_list) - 1, size=(10,)
     )
     results = generatetext(text)
     for text, token, token_int, hyp in results:
