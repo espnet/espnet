@@ -334,41 +334,32 @@ class VITS(AbsGANSVS):
         self.generator_type = generator_type
         self.use_flow = True if generator_params["flow_flows"] > 0 else False
         self.use_phoneme_predictor = use_phoneme_predictor
-        self.vocoder_generator_type = vocoder_generator_type
         self.discriminator_type = discriminator_type
         if discriminator_type == "avocodo" or discriminator_type == "avocodo_plus":
             use_avocodo = True
+            vocoder_generator_type = "avocodo"
         else:
             use_avocodo = False
         self.use_avocodo = use_avocodo
+        self.vocoder_generator_type = vocoder_generator_type
 
         generator_params.update(vocoder_generator_type=vocoder_generator_type)
         generator_params.update(fs=mel_loss_params["fs"])
         generator_params.update(hop_length=mel_loss_params["hop_length"])
         generator_params.update(win_length=mel_loss_params["win_length"])
         generator_params.update(n_fft=mel_loss_params["n_fft"])
-        if vocoder_generator_type == "uhifigan" and "avocodo" in discriminator_type:
+        if vocoder_generator_type == "uhifigan" and use_avocodo:
             generator_params.update(use_avocodo=use_avocodo)
         self.generator = generator_class(
             **generator_params,
         )
 
         discriminator_class = AVAILABLE_DISCRIMINATORS[self.discriminator_type]
-        if vocoder_generator_type == "avocodo":
-            discriminator_params["avocodo"].update(
+        if use_avocodo:
+            discriminator_params.update(
                 projection_filters=generator_params["projection_filters"]
             )
-        # elif (
-        #     vocoder_generator_type == "visinger2"
-        #     or discriminator_type == "visinger2"
-        #     or discriminator_type == "hifigan_scale_discriminator"
-        #     or discriminator_type == "hifigan_multi_scale_discriminator"
-        #     or discriminator_type == "hifigan_period_discriminator"
-        #     or discriminator_type == "hifigan_multi_period_discriminator"
-        # ):
-        #     discriminator_type = "hifigan_multi_scale_multi_period_discriminator"
-        if discriminator_type == "avocodo_plus":
-            discriminator_type = "avocodo"
+
         self.discriminator = discriminator_class(
             **discriminator_params,
         )

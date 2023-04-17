@@ -184,12 +184,142 @@ def get_test_data():
             },
             {},
         ),
+        (
+            {
+                "generator_type": "visinger",
+                "vocoder_generator_type": "hifigan",
+                "generator_params": {
+                    "vocabs": 10,
+                    "aux_channels": 5,
+                    "hidden_channels": 4,
+                    "spks": -1,
+                    "langs": -1,
+                    "spk_embed_dim": -1,
+                    "global_channels": -1,
+                    "segment_size": 4,
+                    "text_encoder_attention_heads": 2,
+                    "text_encoder_ffn_expand": 2,
+                    "text_encoder_blocks": 2,
+                    "text_encoder_positionwise_layer_type": "conv1d",
+                    "text_encoder_positionwise_conv_kernel_size": 1,
+                    "text_encoder_positional_encoding_layer_type": "rel_pos",
+                    "text_encoder_self_attention_layer_type": "rel_selfattn",
+                    "text_encoder_activation_type": "swish",
+                    "text_encoder_normalize_before": True,
+                    "text_encoder_dropout_rate": 0.1,
+                    "text_encoder_positional_dropout_rate": 0.0,
+                    "text_encoder_attention_dropout_rate": 0.0,
+                    "text_encoder_conformer_kernel_size": 7,
+                    "use_macaron_style_in_text_encoder": True,
+                    "use_conformer_conv_in_text_encoder": True,
+                    "decoder_kernel_size": 7,
+                    "decoder_channels": 16,
+                    "decoder_upsample_scales": (2, 2, 4, 16),
+                    "decoder_upsample_kernel_sizes": (4, 4, 8, 32),
+                    "decoder_resblock_kernel_sizes": (3, 5),
+                    "decoder_resblock_dilations": [(1, 3), (1, 3)],
+                    "use_weight_norm_in_decoder": True,
+                    "posterior_encoder_kernel_size": 5,
+                    "posterior_encoder_layers": 2,
+                    "posterior_encoder_stacks": 1,
+                    "posterior_encoder_base_dilation": 1,
+                    "posterior_encoder_dropout_rate": 0.0,
+                    "use_weight_norm_in_posterior_encoder": True,
+                    "flow_flows": 2,
+                    "flow_kernel_size": 5,
+                    "flow_base_dilation": 1,
+                    "flow_layers": 2,
+                    "flow_dropout_rate": 0.0,
+                    "use_weight_norm_in_flow": True,
+                    "use_only_mean_in_flow": True,
+                    "generator_type": "visinger",
+                    "vocoder_generator_type": "hifigan",
+                    "fs": 22050,
+                    "hop_length": 256,
+                    "win_length": 1024,
+                    "n_fft": 1024,
+                    "use_phoneme_predictor": False,
+                    # avocodo
+                    "projection_filters": [0, 1, 1, 1],
+                    "projection_kernels": [0, 5, 7, 11],
+                },
+            },
+            {
+                "discriminator_type": "avocodo",
+                "discriminator_params": {
+                    "combd": {
+                        "combd_h_u": [
+                            [16, 64],
+                            [16, 64],
+                        ],
+                        "combd_d_k": [
+                            [3, 3],
+                            [3, 3],
+                        ],
+                        "combd_d_s": [
+                            [1, 1],
+                            [1, 1],
+                        ],
+                        "combd_d_d": [
+                            [1, 1],
+                            [1, 1],
+                        ],
+                        "combd_d_g": [
+                            [1, 4],
+                            [1, 4],
+                        ],
+                        "combd_d_p": [
+                            [3, 5],
+                            [5, 10],
+                        ],
+                        "combd_op_f": [1, 1],
+                        "combd_op_k": [3, 3],
+                        # combd_op_k: [1, 3] # change for uhifigan 1 avocodo
+                        "combd_op_g": [1, 1],
+                        "use_spectral_norm": False,
+                    },
+                    "sbd": {
+                        "sbd_filters": [
+                            [64, 128],
+                            [32, 64],
+                        ],
+                        "sbd_strides": [
+                            [1, 1],
+                            [1, 1],
+                        ],
+                        "sbd_kernel_sizes": [
+                            [[5, 5, 5], [5, 5, 5]],
+                            [[3, 3, 3], [3, 3, 3]],
+                        ],
+                        "sbd_dilations": [
+                            [[5, 7, 11], [5, 7, 11]],
+                            [[1, 2, 3], [1, 2, 3]],
+                        ],
+                        "sbd_band_ranges": [[0, 6], [0, 64]],
+                        "sbd_transpose": [False, True],
+                        "pqmf_config": {
+                            "sbd": [16, 256, 0.03, 10.0],
+                            "fsbd": [64, 256, 0.1, 9.0],
+                        },
+                        "segment_size": 1024,  # 4 * hop_size
+                        "use_spectral_norm": False,
+                    },
+                    "pqmf_config": {
+                        "lv1": [16, 256, 0.25, 10.0],
+                        "lv2": [64, 192, 0.13, 10.0],
+                    },
+                },
+            },
+            {},
+        ),
     ]
     return test_data
+
 
 def make_vits_generator_args(**kwargs):
     defaults = dict(
         generator_type="visinger",
+        vocoder_generator_type="hifigan",
         generator_params={
             "vocabs": 10,
             "aux_channels": 5,
@@ -241,6 +371,9 @@ def make_vits_generator_args(**kwargs):
             "win_length": 1024,
             "n_fft": 1024,
             "use_phoneme_predictor": False,
+            # avocodo
+            "projection_filters": [0, 1, 1, 1],
+            "projection_kernels": [0, 5, 7, 11],
         },
     )
     defaults.update(kwargs)
