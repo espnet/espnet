@@ -13,7 +13,6 @@ from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.vits.generator import VISingerGenerator
-from espnet2.gan_svs.visinger2.visinger2_generator import VISinger2Generator
 
 # from espnet2.gan_svs.pits.pisinger_generator import PISingerGenerator
 from espnet2.gan_tts.hifigan import (
@@ -48,7 +47,7 @@ from torch.nn import functional as F
 AVAILABLE_GENERATERS = {
     "visinger": VISingerGenerator,
     # TODO(yifeng): add more generators
-    "visinger2": VISinger2Generator,
+    "visinger2": VISingerGenerator,
     # "pisinger": PISingerGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
@@ -342,7 +341,7 @@ class VITS(AbsGANSVS):
             use_avocodo = False
         self.use_avocodo = use_avocodo
         self.vocoder_generator_type = vocoder_generator_type
-
+        generator_params.update(generator_type=generator_type)
         generator_params.update(vocoder_generator_type=vocoder_generator_type)
         generator_params.update(fs=mel_loss_params["fs"])
         generator_params.update(hop_length=mel_loss_params["hop_length"])
@@ -592,10 +591,17 @@ class VITS(AbsGANSVS):
 
         # parse outputs
         if "visinger" in self.generator_type:
-            if self.vocoder_generator_type == "visinger2":
-                singing_hat_, start_idxs, _, z_mask, outs_, singing_hat_ddsp_ = outs
-            else:
-                singing_hat_, start_idxs, _, z_mask, outs_ = outs
+            singing_hat_, start_idxs, _, z_mask, outs_, *extra_outs = outs
+
+            if (
+                self.vocoder_generator_type == "visinger2"
+                and self.generator_type == "visinger2"
+            ):
+                singing_hat_ddsp_, predict_mel = extra_outs
+            elif self.vocoder_generator_type == "visinger2":
+                singing_hat_ddsp_ = extra_outs[0]
+            elif self.generator_type == "visinger2":
+                predict_mel = extra_outs[0]
                 # print("singing_hat_[0] shape: ", singing_hat_[0].shape)
                 # print("singing_hat_[1] shape: ", singing_hat_[1].shape)
                 # print("singing_hat_[2] shape: ", singing_hat_[2].shape)
@@ -717,6 +723,9 @@ class VITS(AbsGANSVS):
             if self.vocoder_generator_type == "visinger2":
                 ddsp_mel_loss = ddsp_mel_loss * self.lambda_mel
                 loss += ddsp_mel_loss
+            if self.generator_type == "visinger2":
+                loss_mel_am = self.mse_loss(feats * z_mask, predict_mel * z_mask)
+                loss += loss_mel_am
 
             loss += pitch_loss
             loss += phoneme_dur_loss
@@ -733,7 +742,7 @@ class VITS(AbsGANSVS):
             generator_score_dur_loss=score_dur_loss.item(),
             generator_adv_loss=adv_loss.item(),
             generator_feat_match_loss=feat_match_loss.item(),
-            pitch_loss=pitch_loss.item(),
+            generator_pitch_loss=pitch_loss.item(),
             generator_kl_loss=kl_loss.item(),
         )
 
@@ -750,7 +759,13 @@ class VITS(AbsGANSVS):
                     generator_mel_ddsp_loss=ddsp_mel_loss.item(),
                 )
             )
-        elif "pisinger" in self.generator_type:
+        if self.generator_type == "visinger2":
+            stats.update(
+                dict(
+                    generator_mel_am_loss=loss_mel_am.item(),
+                )
+            )
+        if "pisinger" in self.generator_type:
             stats.update(
                 dict(
                     generator_yin_dec_loss=yin_dec_loss.item(),

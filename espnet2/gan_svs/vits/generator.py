@@ -528,7 +528,8 @@ class VISingerGenerator(torch.nn.Module):
         )
 
         # dur
-        # TODO (yifeng): Note this is different, we use frame level duration not time level
+        # Note this is different, we use frame level duration not time level
+        # but it has no big difference on performance
         predict_dur = self.duration_predictor(dur_input, x_mask, g=g)
         predict_dur = (torch.exp(predict_dur) - 1) * x_mask
         predict_dur = predict_dur * self.sample_rate / self.hop_length
@@ -537,21 +538,35 @@ class VISingerGenerator(torch.nn.Module):
         decoder_input, mel_len = self.lr(x, gt_dur, use_state_info=True)
         decoder_input_pitch, mel_len = self.lr(x_pitch, gt_dur, use_state_info=True)
 
-        # print("pitch: ", pitch)
         LF0 = 2595.0 * torch.log10(1.0 + pitch / 700.0)
         LF0 = LF0 / 500
         LF0 = LF0.transpose(1, 2)
-        # print("LF0: ", LF0)
-        # print("LF0: ", LF0.shape)
 
         # x_mask = torch.unsqueeze(sequence_mask(mel_len, x.size(2)), 1)
 
         predict_lf0, predict_bn_mask = self.f0_decoder(
             decoder_input + decoder_input_pitch, feats_lengths, g=g
         )
-        # print("predict_lf0: ", predict_lf0)
+        predict_lf0 = torch.max(
+            predict_lf0, torch.zeros_like(predict_lf0).to(predict_lf0)
+        )
+
+        if self.generator_type == "visinger2":
+            predict_mel, predict_bn_mask = self.mel_decoder(
+                decoder_input + self.f0_prenet(LF0), feats_lengths, g=g
+            )
+
+            predict_energy = (
+                predict_mel.detach().sum(1).unsqueeze(1) / self.aux_channels
+            )
 
         decoder_input = decoder_input + self.f0_prenet(LF0)
+        if self.generator_type == "visinger2":
+            decoder_input = (
+                decoder_input
+                + self.energy_prenet(predict_energy)
+                + self.mel_prenet(predict_mel.detach())
+            )
         decoder_output, predict_bn_mask = self.prior_decoder(
             decoder_input, feats_lengths, g=g
         )
@@ -658,10 +673,6 @@ class VISingerGenerator(torch.nn.Module):
 
             # wav = dsp_slice.sum(1, keepdim=True)
 
-        # TODO (yifeng): should the model predict log pitch? and then revert it back to f0?
-        # pred_pitch = 2595.0 * torch.log10(1.0 + pred_pitch / 700.0) / 500
-        # gt_pitch = 2595.0 * torch.log10(1.0 + gt_pitch / 700.0) / 500
-
         common_tuple = (
             posterior_z,
             z_flow,
@@ -676,10 +687,14 @@ class VISingerGenerator(torch.nn.Module):
             log_probs,
         )
 
+        output = (wav, z_start_idxs, x_mask, y_mask, common_tuple)
+
         if self.vocoder_generator_type == "visinger2":
-            return (wav, z_start_idxs, x_mask, y_mask, common_tuple, dsp_slice.sum(1))
-        else:
-            return (wav, z_start_idxs, x_mask, y_mask, common_tuple)
+            output += (dsp_slice.sum(1),)
+        if self.generator_type == "visinger2":
+            output += (predict_mel,)
+
+        return output
 
     def inference(
         self,
@@ -833,6 +848,12 @@ class VISingerGenerator(torch.nn.Module):
             )
 
             decoder_input = decoder_input + self.f0_prenet(predict_lf0)
+            if self.generator_type == "visinger2":
+                decoder_input = (
+                    decoder_input
+                    + self.energy_prenet(predict_energy)
+                    + self.mel_prenet(predict_mel)
+                )
 
             decoder_output, y_mask = self.prior_decoder(decoder_input, y_lengths, g=g)
 
