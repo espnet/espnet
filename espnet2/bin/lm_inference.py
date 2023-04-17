@@ -231,11 +231,10 @@ class GenerateText:
         for hyp in nbest_hyps:
             assert isinstance(hyp, Hypothesis), type(hyp)
 
-            # remove sos/eos and get results
-            if isinstance(hyp.yseq, list):
-                token_int = hyp.yseq[1:-1]
-            else:
-                token_int = hyp.yseq[1:-1].tolist()
+            # remove sos/eos and convert to list
+            token_int = hyp.yseq[1:-1]
+            if not isinstance(token_int, list):
+                token_int = token_int.tolist()
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))
@@ -243,10 +242,9 @@ class GenerateText:
             # Change integer-ids to tokens
             token = self.converter.ids2tokens(token_int)
 
+            text = None
             if self.tokenizer is not None:
                 text = self.tokenizer.tokens2text(token)
-            else:
-                text = None
             results.append((text, token, token_int, hyp))
 
         assert check_return_type(results)
