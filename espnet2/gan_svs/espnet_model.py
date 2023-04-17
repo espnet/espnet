@@ -22,7 +22,6 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 from espnet2.train.abs_gan_espnet_model import AbsGANESPnetModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
-
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
 else:

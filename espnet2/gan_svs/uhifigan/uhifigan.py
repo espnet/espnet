@@ -7,16 +7,13 @@ and https://github.com/DrWelles/ParallelWaveGAN/blob/master/parallel_wavegan/mod
 
 """
 
-import copy
 import logging
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-
-from parallel_wavegan.layers import CausalConv1d
-from parallel_wavegan.layers import CausalConvTranspose1d
+from parallel_wavegan.layers import CausalConv1d, CausalConvTranspose1d
 from parallel_wavegan.layers import HiFiGANResidualBlock as ResidualBlock
 from parallel_wavegan.utils import read_hdf5
 

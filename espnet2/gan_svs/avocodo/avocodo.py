@@ -12,11 +12,12 @@ from typing import Any, Dict, List, Optional
 
 import torch
 import torch.nn.functional as F
-from torch.nn import Conv1d, ConvTranspose1d, AvgPool1d, Conv2d
-from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
-from espnet2.gan_tts.melgan.pqmf import PQMF
-from espnet2.gan_tts.hifigan.residual_block import ResidualBlock
+from torch.nn import Conv1d
+from torch.nn.utils import spectral_norm, weight_norm
+
 from espnet2.gan_svs.visinger2.visinger2_vocoder import MultiFrequencyDiscriminator
+from espnet2.gan_tts.hifigan.residual_block import ResidualBlock
+from espnet2.gan_tts.melgan.pqmf import PQMF
 
 
 def get_padding(kernel_size, dilation=1):

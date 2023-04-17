@@ -9,13 +9,24 @@ This code is based on https://github.com/anonymous-pits/pits.
 """
 
 
+import math
 from typing import Dict, List, Optional, Tuple
 
-import math
 import numpy as np
 import torch
 import torch.nn.functional as F
 
+from espnet2.gan_svs.avocodo import AvocodoGenerator
+from espnet2.gan_svs.pits.ying_decoder import YingDecoder
+from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
+from espnet2.gan_svs.uhifigan.sine_generator import SineGen
+from espnet2.gan_svs.utils.expand_f0 import expand_f0
+from espnet2.gan_svs.visinger2 import (
+    Generator_Harm,
+    Generator_Noise,
+    VISinger2VocoderGenerator,
+)
+from espnet2.gan_svs.visinger2.ddsp import upsample
 from espnet2.gan_svs.vits.duration_predictor import DurationPredictor
 from espnet2.gan_svs.vits.frame_prior_net import FramePriorNet
 from espnet2.gan_svs.vits.length_regulator import LengthRegulator
@@ -24,25 +35,10 @@ from espnet2.gan_svs.vits.phoneme_predictor import PhonemePredictor
 from espnet2.gan_svs.vits.pitch_predictor import PitchPredictor
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
-from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
-from espnet2.gan_svs.visinger2 import (
-    VISinger2VocoderGenerator,
-    Generator_Harm,
-    Generator_Noise,
-)
-from espnet2.gan_svs.avocodo import AvocodoGenerator
-from espnet2.gan_svs.uhifigan.sine_generator import SineGen
 from espnet2.gan_tts.utils import get_random_segments, get_segments
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
-from espnet2.gan_svs.utils.expand_f0 import expand_f0
-
-from espnet2.gan_svs.visinger2.ddsp import (
-    upsample,
-)
-
-from espnet2.gan_svs.pits.ying_decoder import YingDecoder
 
 # from espnet2.gan_svs.pits.analysis import Ying
 
@@ -532,6 +528,24 @@ class PISingerGenerator(torch.nn.Module):
                 - Tensor: Posterior encoder projected scale (B, H, T_feats).
 
         """
+        print("phone", label.shape)
+        print("phone_lengths", label_lengths.shape)
+        print("pitchid", melody.shape)
+        print("dur", beat.shape)
+        # print("slur", slur.shape)
+        print("gtdur", duration.shape)
+        print("F0", pitch.shape)
+        print("mel", feats.shape)
+        print("bn_lengths", melody_lengths.shape)
+
+        print("phone", label)
+        print("pitchid", melody)
+        print("dur", beat)
+        print("gtdur", duration)
+        print("F0", pitch)
+        print("mel", feats)
+
+        # raise ValueError
         # calculate global conditioning
         g = None
         if self.spks is not None:

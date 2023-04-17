@@ -2,10 +2,9 @@
 # adapted from https://github.com/patriceguyot/Yin
 # https://github.com/NVIDIA/mellotron/blob/master/yin.py
 
+import numpy as np
 import torch
 import torch.nn.functional as F
-from math import log2, ceil
-import numpy as np
 
 
 def differenceFunction(x, N, tau_max):

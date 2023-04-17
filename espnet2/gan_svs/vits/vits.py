@@ -9,9 +9,17 @@ from distutils.version import LooseVersion
 from typing import Any, Dict, Optional
 
 import torch
+from torch.nn import functional as F
 from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
+from espnet2.gan_svs.avocodo.avocodo import (
+    SBD,
+    AvocodoDiscriminator,
+    AvocodoDiscriminatorPlus,
+    CoMBD,
+)
+from espnet2.gan_svs.visinger2.visinger2_vocoder import VISinger2Discriminator
 from espnet2.gan_svs.vits.generator import VISingerGenerator
 
 # from espnet2.gan_svs.pits.pisinger_generator import PISingerGenerator
@@ -31,18 +39,6 @@ from espnet2.gan_tts.hifigan.loss import (
 from espnet2.gan_tts.utils import get_segments
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss, KLDivergenceLossWithoutFlow
 from espnet2.torch_utils.device_funcs import force_gatherable
-
-from espnet2.gan_svs.avocodo.avocodo import (
-    CoMBD,
-    SBD,
-    AvocodoDiscriminator,
-    AvocodoDiscriminatorPlus,
-)
-from espnet2.gan_svs.visinger2.visinger2_vocoder import (
-    VISinger2Discriminator,
-)
-
-from torch.nn import functional as F
 
 AVAILABLE_GENERATERS = {
     "visinger": VISingerGenerator,

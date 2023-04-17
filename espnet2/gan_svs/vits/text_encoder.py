@@ -9,7 +9,7 @@ This code is based on https://github.com/jaywalnut310/vits and https://github.co
 """
 
 import math
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import torch
 

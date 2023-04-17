@@ -1,12 +1,12 @@
 # modified from https://github.com/dhchoi99/NANSY
 # We have modified the implementation of dhchoi99 to be fully differentiable.
 import math
+from typing import Any, Dict, Tuple, Union
+
 import torch
 
-from typing import Any, Dict, Tuple, Union
-from espnet2.tts.feats_extract.yin import *
-
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet2.tts.feats_extract.yin import *
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
@@ -211,9 +211,9 @@ class Ying(AbsFeatsExtract):
 
 
 if __name__ == "__main__":
-    import torch
     import librosa as rosa
     import matplotlib.pyplot as plt
+    import torch
 
     wav = torch.tensor(rosa.load("LJ001-0002.wav", fs=22050, mono=True)[0]).unsqueeze(0)
     #    wav = torch.randn(1,40965)

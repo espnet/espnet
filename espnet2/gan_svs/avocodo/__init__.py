@@ -1,21 +1,21 @@
 from espnet2.gan_svs.avocodo.avocodo import (
-    AvocodoGenerator,
-    CoMBDBlock,
-    CoMBD,
     MDC,
-    SBDBlock,
     SBD,
     AvocodoDiscriminator,
     AvocodoDiscriminatorPlus,
+    AvocodoGenerator,
+    CoMBD,
+    CoMBDBlock,
+    SBDBlock,
 )
 
 __all__ = [
-    "AvocodoGenerator",
-    "CoMBDBlock",
-    "CoMBD",
     "MDC",
-    "SBDBlock",
     "SBD",
     "AvocodoDiscriminator",
     "AvocodoDiscriminatorPlus",
+    "AvocodoGenerator",
+    "CoMBD",
+    "CoMBDBlock",
+    "SBDBlock",
 ]

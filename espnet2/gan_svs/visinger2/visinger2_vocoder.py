@@ -7,31 +7,26 @@ This code is based on https://github.com/zhangyongmao/VISinger2
 
 """
 
-import copy
 import logging
+import math
 from typing import Any, Dict, List, Optional
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-import math
-
-from parallel_wavegan.layers import CausalConv1d
-from parallel_wavegan.layers import CausalConvTranspose1d
 from parallel_wavegan.layers import HiFiGANResidualBlock as ResidualBlock
-from parallel_wavegan.utils import read_hdf5
+
+from espnet2.gan_svs.visinger2.ddsp import (
+    remove_above_nyquist,
+    scale_function,
+    upsample,
+)
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
     HiFiGANMultiScaleMultiPeriodDiscriminator,
     HiFiGANPeriodDiscriminator,
     HiFiGANScaleDiscriminator,
-)
-
-from espnet2.gan_svs.visinger2.ddsp import (
-    scale_function,
-    remove_above_nyquist,
-    upsample,
 )
 
 

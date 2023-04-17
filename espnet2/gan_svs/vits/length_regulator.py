@@ -8,7 +8,9 @@
 """Length regulator related modules."""
 
 import logging
+
 import torch
+
 from espnet.nets.pytorch_backend.nets_utils import pad_list
 
 
