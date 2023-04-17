@@ -73,10 +73,7 @@ from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import (
-    AbsPreprocessor,
-    S2TPreprocessor,
-)
+from espnet2.train.preprocessor import AbsPreprocessor, S2TPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -449,8 +446,9 @@ class S2TTask(AbsTask):
     ) -> Tuple[str, ...]:
         MAX_REFERENCE_NUM = 4
 
-        retval = ['text_prev', 'text_ctc'] + \
-            ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+        retval = ["text_prev", "text_ctc"] + [
+            "text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)
+        ]
         retval = tuple(retval)
 
         logging.info(f"Optional Data Names: {retval}")

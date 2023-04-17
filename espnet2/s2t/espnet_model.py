@@ -19,7 +19,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy, pad_list
+from espnet.nets.pytorch_backend.nets_utils import pad_list, th_accuracy
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
@@ -62,8 +62,8 @@ class ESPnetS2TModel(AbsESPnetModel):
         transducer_multi_blank_sigma: float = 0.05,
         sym_sos: str = "<sos>",
         sym_eos: str = "<eos>",
-        sym_sop: str = "<sop>", # start of prev
-        sym_na: str = "<na>",   # not available
+        sym_sop: str = "<sop>",  # start of prev
+        sym_na: str = "<na>",  # not available
         extract_feats_in_collect_stats: bool = True,
     ):
         assert check_argument_types()
@@ -221,10 +221,14 @@ class ESPnetS2TModel(AbsESPnetModel):
             == text_ctc.shape[0]
             == text_ctc_lengths.shape[0]
         ), (
-            speech.shape, speech_lengths.shape, 
-            text.shape, text_lengths.shape, 
-            text_prev.shape, text_prev_lengths.shape, 
-            text_ctc.shape, text_ctc_lengths.shape
+            speech.shape,
+            speech_lengths.shape,
+            text.shape,
+            text_lengths.shape,
+            text_prev.shape,
+            text_prev_lengths.shape,
+            text_ctc.shape,
+            text_ctc_lengths.shape,
         )
         batch_size = speech.shape[0]
 
@@ -308,9 +312,12 @@ class ESPnetS2TModel(AbsESPnetModel):
             # 2b. Attention decoder branch
             if self.ctc_weight != 1.0:
                 loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
-                    encoder_out, encoder_out_lens, 
-                    text, text_lengths,
-                    text_prev, text_prev_lengths
+                    encoder_out,
+                    encoder_out_lens,
+                    text,
+                    text_lengths,
+                    text_prev,
+                    text_prev_lengths,
                 )
 
             # 3. CTC-Att loss definition
@@ -440,7 +447,6 @@ class ESPnetS2TModel(AbsESPnetModel):
         ys_prev_pad: torch.Tensor,
         ys_prev_lens: torch.Tensor,
     ):
-
         # 0. Prepare input and output with sos, eos, sop
         ys = [y[y != self.ignore_id] for y in ys_pad]
         ys_prev = [y[y != self.ignore_id] for y in ys_prev_pad]

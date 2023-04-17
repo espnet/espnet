@@ -4,7 +4,7 @@ import random
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Collection, Dict, Iterable, List, Union, Tuple
+from typing import Collection, Dict, Iterable, List, Tuple, Union
 
 import numpy as np
 import scipy.signal
@@ -1354,12 +1354,12 @@ class S2TPreprocessor(CommonPreprocessor):
         text_prev_name: str = "text_prev",
         text_ctc_name: str = "text_ctc",
         fs: int = 16000,
-        na_symbol: str = "<na>",            # text is not available e.g. for prev or ctc
-        speech_length: float = 30,          # pad or trim speech to this value in seconds
-        speech_resolution: float = 0.02,    # speech time resolution
-        speech_init_silence: float = 1.0,   # max silence to add before speech for data augmentation
+        na_symbol: str = "<na>",  # text is not available e.g. for prev or ctc
+        speech_length: float = 30,  # pad or trim speech to this value in seconds
+        speech_resolution: float = 0.02,  # speech time resolution
+        speech_init_silence: float = 1.0,  # max silence to add before speech for data augmentation
         text_prev_apply_prob: float = 0.5,  # whether to condition on text_prev
-        time_apply_prob: float = 0.5,       # whether to include timestamps
+        time_apply_prob: float = 0.5,  # whether to include timestamps
         notime_symbol: str = "<notimestamps>",
         first_time_symbol: str = "<0.00>",
         last_time_symbol: str = "<30.00>",
@@ -1399,7 +1399,7 @@ class S2TPreprocessor(CommonPreprocessor):
         self.notime = self.token_id_converter.token2id[notime_symbol]
         self.first_time = self.token_id_converter.token2id[first_time_symbol]
         self.last_time = self.token_id_converter.token2id[last_time_symbol]
-    
+
     def _pad_or_trim_speech(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Tuple[Dict[str, Union[str, np.ndarray]], int]:
@@ -1414,25 +1414,28 @@ class S2TPreprocessor(CommonPreprocessor):
                 speech = speech[None, :]
             else:
                 speech = speech.T
-            
+
             # Add silence to the left
             if self.train and speech.shape[-1] < self.speech_length:
                 init_pad = np.random.randint(
-                    min(self.speech_length - speech.shape[-1], self.speech_init_silence) + 1
+                    min(self.speech_length - speech.shape[-1], self.speech_init_silence)
+                    + 1
                 )
                 speech = np.pad(speech, ((0, 0), (init_pad, 0)))
-            
+
             # Pad or trim to max_samples
             if speech.shape[-1] < self.speech_length:
-                speech = np.pad(speech, ((0, 0), (0, self.speech_length - speech.shape[-1])))
+                speech = np.pad(
+                    speech, ((0, 0), (0, self.speech_length - speech.shape[-1]))
+                )
             else:
-                speech = speech[:, :self.speech_length]
-            
-            data[self.speech_name] = speech.T   # convert back to time first
+                speech = speech[:, : self.speech_length]
+
+            data[self.speech_name] = speech.T  # convert back to time first
 
         assert check_return_type((data, init_pad))
         return data, init_pad
-    
+
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]], time_shift: int
     ) -> Dict[str, np.ndarray]:
@@ -1445,7 +1448,11 @@ class S2TPreprocessor(CommonPreprocessor):
                     text = data[name]
 
                     # Remove prev text by setting it to <na>
-                    if self.train and name == self.text_prev_name and np.random.uniform() > self.text_prev_apply_prob:
+                    if (
+                        self.train
+                        and name == self.text_prev_name
+                        and np.random.uniform() > self.text_prev_apply_prob
+                    ):
                         text = self.na_symbol
 
                     text = self.text_cleaner(text)
@@ -1463,12 +1470,22 @@ class S2TPreprocessor(CommonPreprocessor):
                         # Remove timestamps
                         if self.train and np.random.uniform() > self.time_apply_prob:
                             # Timestamps are continuous ints
-                            text_ints = text_ints[np.logical_or(text_ints < self.first_time, text_ints > self.last_time)]
+                            text_ints = text_ints[
+                                np.logical_or(
+                                    text_ints < self.first_time,
+                                    text_ints > self.last_time,
+                                )
+                            ]
                             # The first two tokens are <category> and <task>, respectively
                             text_ints = np.insert(text_ints, 2, self.notime)
 
                         # Shift timestamps
-                        text_ints[np.logical_and(text_ints >= self.first_time, text_ints <= self.last_time)] += time_shift
+                        text_ints[
+                            np.logical_and(
+                                text_ints >= self.first_time,
+                                text_ints <= self.last_time,
+                            )
+                        ] += time_shift
 
                     data[name] = text_ints
 

@@ -897,7 +897,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
         mkdir -p "${bpedir}"
         # shellcheck disable=SC2002
         cat ${bpe_train_text} | cut -f 2- -d" "  > "${bpedir}"/train.txt
-        
+
         if [ -n "${bpe_nlsyms}" ]; then
             if test -f "${bpe_nlsyms}"; then
                 bpe_nlsyms_list=$(awk '{print $1}' ${bpe_nlsyms} | paste -s -d, -)
