@@ -321,7 +321,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             batch.update(energy=energy, energy_lengths=energy_lengths)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
-        print(slur, flush=True)
         return self.svs(**batch)
 
     def collect_feats(
