@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from espnet2.bin.lm_inference import GenerateText, get_parser, main, inference
+from espnet2.bin.lm_inference import GenerateText, get_parser, inference, main
 from espnet2.tasks.lm import LMTask
 from espnet.nets.beam_search import Hypothesis
 
