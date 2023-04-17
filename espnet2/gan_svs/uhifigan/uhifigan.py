@@ -2,7 +2,7 @@
 
 """Unet-baed HiFi-GAN Modules.
 
-This code is based on https://github.com/jik876/hifi-gan 
+This code is based on https://github.com/jik876/hifi-gan
 and https://github.com/DrWelles/ParallelWaveGAN/blob/master/parallel_wavegan/models/uhifigan.py.
 
 """
@@ -120,7 +120,6 @@ class UHiFiGANGenerator(torch.nn.Module):
             )
         hidden_channels = channels
         for i in range(len(downsample_scales)):
-
             for j in range(len(resblock_kernel_sizes)):
                 self.downsamples_mrf += [
                     ResidualBlock(
