@@ -772,7 +772,8 @@ class VISingerGenerator(torch.nn.Module):
             z, m_q, logs_q, y_mask = self.posterior_encoder(feats, feats_lengths, g=g)
 
             # forward flow
-            z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
+            if self.use_flow:
+                z_p = self.flow(z, y_mask, g=g)  # (B, H, T_feats)
 
             # decoder
             pitch = pitch.transpose(0, 1).reshape(1, 1, -1)
