@@ -332,6 +332,8 @@ class VITS(AbsGANSVS):
                 value (LongTensor): Batch of padded duration (B, Tmax).
             duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of the lengths of padded duration (B, ).
+            slur (FloatTensor): Batch of padded slur (B, Tmax).
+            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -767,7 +769,7 @@ class VITS(AbsGANSVS):
             use_teacher_forcing (bool): Whether to use teacher forcing.
             duration (Optional[Dict]): key is "phn", "syb";
                 value (LongTensor): Batch of padded beat (B, Tmax).
-            pitch (LongTensor): Batch of padded slur (B, Tmax).
+            slur (LongTensor): Batch of padded slur (B, Tmax).
 
 
         Returns:
