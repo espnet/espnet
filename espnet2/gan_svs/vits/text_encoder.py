@@ -4,7 +4,8 @@
 
 """Text encoder module in VISinger.
 
-This code is based on https://github.com/jaywalnut310/vits and https://github.com/zhangyongmao/VISinger2.
+This code is based on https://github.com/jaywalnut310/vits
+and https://github.com/zhangyongmao/VISinger2.
 
 """
 
@@ -138,8 +139,10 @@ class TextEncoder(torch.nn.Module):
         Returns:
             Tensor: Encoded hidden representation (B, attention_dim, T_text).
             Tensor: Mask tensor for padded part (B, 1, T_text).
-            Tensor: Encoded hidden representation for duration (B, attention_dim, T_text).
-            Tensor: Encoded hidden representation for pitch (B, attention_dim, T_text).
+            Tensor: Encoded hidden representation for duration
+                (B, attention_dim, T_text).
+            Tensor: Encoded hidden representation for pitch
+                (B, attention_dim, T_text).
 
         """
         phone_end = self.emb_phone(phone) * math.sqrt(self.emb_phone_dim)

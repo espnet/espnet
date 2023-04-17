@@ -785,7 +785,6 @@ class PISingerGenerator(torch.nn.Module):
 
             # wav = dsp_slice.sum(1, keepdim=True)
 
-        # TODO (yifeng): should the model predict log pitch? and then revert it back to f0?
         pred_pitch = 2595.0 * torch.log10(1.0 + pred_pitch / 700.0) / 500
         gt_pitch = 2595.0 * torch.log10(1.0 + gt_pitch / 700.0) / 500
 

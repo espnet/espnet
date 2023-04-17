@@ -14,7 +14,6 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
-from parallel_wavegan.layers import HiFiGANResidualBlock as ResidualBlock
 
 from espnet2.gan_svs.visinger2.ddsp import (
     remove_above_nyquist,
@@ -28,6 +27,7 @@ from espnet2.gan_tts.hifigan import (
     HiFiGANPeriodDiscriminator,
     HiFiGANScaleDiscriminator,
 )
+from espnet2.gan_tts.hifigan.residual_block import ResidualBlock
 
 
 class VISinger2VocoderGenerator(torch.nn.Module):
@@ -740,9 +740,11 @@ class MelScale(torch.nn.Module):
         n_mels (int, optional): Number of mel filterbanks. (Default: ``128``)
         sample_rate (int, optional): Sample rate of audio signal. (Default: ``16000``)
         f_min (float, optional): Minimum frequency. (Default: ``0.``)
-        f_max (float or None, optional): Maximum frequency. (Default: ``sample_rate // 2``)
+        f_max (float or None, optional): Maximum frequency.
+            (Default: ``sample_rate // 2``)
         n_stft (int, optional): Number of bins in STFT. Calculated from first input
-            if None is given.  See ``n_fft`` in :class:`Spectrogram`. (Default: ``None``)
+            if None is given.  See ``n_fft`` in :class:`Spectrogram`.
+            (Default: ``None``)
     """
     __constants__ = ["n_mels", "sample_rate", "f_min", "f_max"]
 
@@ -819,7 +821,8 @@ def create_fb_matrix(
         f_max (float): Maximum frequency (Hz)
         n_mels (int): Number of mel filterbanks
         sample_rate (int): Sample rate of the audio waveform
-        norm (Optional[str]): If 'slaney', divide the triangular mel weights by the width of the mel band
+        norm (Optional[str]): If 'slaney',
+        divide the triangular mel weights by the width of the mel band
         (area normalization). (Default: ``None``)
     Returns:
         Tensor: Triangular filter banks (fb matrix) of size (``n_freqs``, ``n_mels``)

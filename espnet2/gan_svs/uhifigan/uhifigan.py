@@ -3,7 +3,7 @@
 """Unet-baed HiFi-GAN Modules.
 
 This code is based on https://github.com/jik876/hifi-gan
-and https://github.com/DrWelles/ParallelWaveGAN/blob/master/parallel_wavegan/models/uhifigan.py.
+and https://github.com/kan-bayashi/ParallelWaveGAN.
 
 """
 
@@ -57,7 +57,8 @@ class UHiFiGANGenerator(torch.nn.Module):
             upsample_kernel_sizes (list): List of kernel sizes for upsampling layers.
             resblock_kernel_sizes (list): List of kernel sizes for residual blocks.
             resblock_dilations (list): List of dilation list for residual blocks.
-            use_additional_convs (bool): Whether to use additional conv layers in residual blocks.
+            use_additional_convs (bool): Whether to use additional conv layers
+                in residual blocks.
             bias (bool): Whether to add bias parameter in convolution layers.
             nonlinear_activation (str): Activation function module name.
             nonlinear_activation_params (dict): Hyperparameters for activation function.
@@ -386,7 +387,6 @@ class UHiFiGANGenerator(torch.nn.Module):
             # logging.warn(f'self.upsamples_mrf:{self.upsamples_mrf}')
             cs = 0.0  # initialize
             for j in range(self.num_blocks):
-                # logging.warn(f'upsamples_mrf[{i * self.num_blocks + j}]:{self.upsamples_mrf[i * self.num_blocks + j]}')
                 tc = self.upsamples_mrf[i * self.num_blocks + j](hidden_mel)
                 # logging.info(f'{j}-th tc.shape:{tc.shape}')
                 cs += tc

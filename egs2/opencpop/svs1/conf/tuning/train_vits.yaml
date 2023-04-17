@@ -13,8 +13,8 @@
 svs: vits
 svs_conf:
     # generator related
-    generator_type: visinger
-    vocoder_generator_type: hifigan # hifigan, avocodo, uhifigan, visinger2
+    generator_type: visinger2
+    vocoder_generator_type: visinger2 # hifigan, avocodo, uhifigan, visinger2
     generator_params:
         hidden_channels: 192
         spks: -1
@@ -130,78 +130,80 @@ svs_conf:
                 negative_slope: 0.1
             use_weight_norm: True
             use_spectral_norm: False
-        # avocodo:
-        #     combd:
-        #         combd_h_u: [
-        #             [16, 64, 256, 1024, 1024, 1024],
-        #             [16, 64, 256, 1024, 1024, 1024],
-        #             [16, 64, 256, 1024, 1024, 1024]
-        #         ]
-        #         combd_d_k: [
-        #             [7, 11, 11, 11, 11, 5],
-        #             [11, 21, 21, 21, 21, 5],
-        #             [15, 41, 41, 41, 41, 5]
-        #         ]
-        #         combd_d_s: [
-        #             [1, 1, 4, 4, 4, 1],
-        #             [1, 1, 4, 4, 4, 1],
-        #             [1, 1, 4, 4, 4, 1]
-        #         ]
-        #         combd_d_d: [
-        #             [1, 1, 1, 1, 1, 1],
-        #             [1, 1, 1, 1, 1, 1],
-        #             [1, 1, 1, 1, 1, 1]
-        #         ]
-        #         combd_d_g: [
-        #             [1, 4, 16, 64, 256, 1],
-        #             [1, 4, 16, 64, 256, 1],
-        #             [1, 4, 16, 64, 256, 1]
-        #         ]
-        #         combd_d_p: [
-        #             [3, 5, 5, 5, 5, 2],
-        #             [5, 10, 10, 10, 10, 2],
-        #             [7, 20, 20, 20, 20, 2]
-        #         ]
-        #         combd_op_f: [1, 1, 1]
-        #         combd_op_k: [3, 3, 3]
-        #         # combd_op_k: [1, 3, 3] # change for uhifigan 1 avocodo
-        #         combd_op_g: [1, 1, 1]
-        #         use_spectral_norm: False
-        #     sbd:
-        #         sbd_filters: [
-        #             [64, 128, 256, 256, 256],
-        #             [64, 128, 256, 256, 256],
-        #             [64, 128, 256, 256, 256],
-        #             [32, 64, 128, 128, 128]
-        #         ]
-        #         sbd_strides: [
-        #             [1, 1, 3, 3, 1],
-        #             [1, 1, 3, 3, 1],
-        #             [1, 1, 3, 3, 1],
-        #             [1, 1, 3, 3, 1]
-        #         ]
-        #         sbd_kernel_sizes: [
-        #             [[7, 7, 7],[7, 7, 7],[7, 7, 7],[7, 7, 7],[7, 7, 7]],
-        #             [[5, 5, 5],[5, 5, 5],[5, 5, 5],[5, 5, 5],[5, 5, 5]],
-        #             [[3, 3, 3],[3, 3, 3],[3, 3, 3],[3, 3, 3],[3, 3, 3]],
-        #             [[5, 5, 5],[5, 5, 5],[5, 5, 5],[5, 5, 5],[5, 5, 5]]
-        #         ]
-        #         sbd_dilations: [
-        #             [[5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11]],
-        #             [[3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7]],
-        #             [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]],
-        #             [[1, 2, 3], [1, 2, 3], [1, 2, 3], [2, 3, 5], [2, 3, 5]]
-        #         ]
-        #         sbd_band_ranges: [[0, 6], [0, 11], [0, 16], [0, 64]]
-        #         sbd_transpose: [false, false, false, true]
-        #         pqmf_config:
-        #             sbd: [16, 256, 0.03, 10.0]
-        #             fsbd: [64, 256, 0.1, 9.0]
-        #         segment_size: 10240  # 20 * hop_size
-        #         use_spectral_norm: False
+
+        # avocodo (remove hifigan paramters)
+        # combd:
+        #     combd_h_u: [
+        #         [16, 64, 256, 1024, 1024, 1024],
+        #         [16, 64, 256, 1024, 1024, 1024],
+        #         [16, 64, 256, 1024, 1024, 1024]
+        #     ]
+        #     combd_d_k: [
+        #         [7, 11, 11, 11, 11, 5],
+        #         [11, 21, 21, 21, 21, 5],
+        #         [15, 41, 41, 41, 41, 5]
+        #     ]
+        #     combd_d_s: [
+        #         [1, 1, 4, 4, 4, 1],
+        #         [1, 1, 4, 4, 4, 1],
+        #         [1, 1, 4, 4, 4, 1]
+        #     ]
+        #     combd_d_d: [
+        #         [1, 1, 1, 1, 1, 1],
+        #         [1, 1, 1, 1, 1, 1],
+        #         [1, 1, 1, 1, 1, 1]
+        #     ]
+        #     combd_d_g: [
+        #         [1, 4, 16, 64, 256, 1],
+        #         [1, 4, 16, 64, 256, 1],
+        #         [1, 4, 16, 64, 256, 1]
+        #     ]
+        #     combd_d_p: [
+        #         [3, 5, 5, 5, 5, 2],
+        #         [5, 10, 10, 10, 10, 2],
+        #         [7, 20, 20, 20, 20, 2]
+        #     ]
+        #     combd_op_f: [1, 1, 1]
+        #     combd_op_k: [3, 3, 3]
+        #     # combd_op_k: [1, 3, 3] # change for uhifigan 1 avocodo
+        #     combd_op_g: [1, 1, 1]
+        #     use_spectral_norm: False
+        # sbd:
+        #     sbd_filters: [
+        #         [64, 128, 256, 256, 256],
+        #         [64, 128, 256, 256, 256],
+        #         [64, 128, 256, 256, 256],
+        #         [32, 64, 128, 128, 128]
+        #     ]
+        #     sbd_strides: [
+        #         [1, 1, 3, 3, 1], 
+        #         [1, 1, 3, 3, 1], 
+        #         [1, 1, 3, 3, 1], 
+        #         [1, 1, 3, 3, 1]
+        #     ]
+        #     sbd_kernel_sizes: [
+        #         [[7, 7, 7],[7, 7, 7],[7, 7, 7],[7, 7, 7],[7, 7, 7]],
+        #         [[5, 5, 5],[5, 5, 5],[5, 5, 5],[5, 5, 5],[5, 5, 5]],
+        #         [[3, 3, 3],[3, 3, 3],[3, 3, 3],[3, 3, 3],[3, 3, 3]],
+        #         [[5, 5, 5],[5, 5, 5],[5, 5, 5],[5, 5, 5],[5, 5, 5]]
+        #     ]
+        #     sbd_dilations: [
+        #         [[5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11], [5, 7, 11]],
+        #         [[3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7], [3, 5, 7]],
+        #         [[1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3], [1, 2, 3]],
+        #         [[1, 2, 3], [1, 2, 3], [1, 2, 3], [2, 3, 5], [2, 3, 5]]
+        #     ]
+        #     sbd_band_ranges: [[0, 6], [0, 11], [0, 16], [0, 64]]
+        #     sbd_transpose: [false, false, false, true]
         #     pqmf_config:
-        #         lv1: [2, 256, 0.25, 10.0]
-        #         lv2: [4, 192, 0.13, 10.0]
+        #         sbd: [16, 256, 0.03, 10.0]
+        #         fsbd: [64, 256, 0.1, 9.0]
+        #     segment_size: 10240  # 20 * hop_size
+        #     use_spectral_norm: False
+        # pqmf_config:
+        #     lv1: [2, 256, 0.25, 10.0] # first value should be the last upsample value 2
+        #     lv2: [8, 192, 0.13, 10.0] # adjust first value according to hifigan upsample rates
+        #     # for 8 8 4 2, this should be 2 * 4 (last two values) = 8.
 
     # loss function related
     generator_adv_loss_params:
@@ -273,7 +275,7 @@ generator_first: false # whether to start updating generator first
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000 # number of iterations per epoch
-max_epoch: 130            # number of epochs
+max_epoch: 100            # number of epochs
 accum_grad: 1             # gradient accumulation
 # batch_bins: 500000        # batch bins (feats_type=raw)
 batch_size: 8             # batch size

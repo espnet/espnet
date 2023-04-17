@@ -65,7 +65,8 @@ class Ying(AbsFeatsExtract):
         return lag
 
     def yingram_from_cmndf(self, cmndfs: torch.Tensor) -> torch.Tensor:
-        """yingram calculator from cMNDFs(cumulative Mean Normalized Difference Functions)
+        """yingram calculator from cMNDFs
+        (cumulative Mean Normalized Difference Functions)
 
         Args:
             cmndfs: torch.Tensor
@@ -110,7 +111,8 @@ class Ying(AbsFeatsExtract):
 
         frames = self.unfold(x.view(B, 1, 1, T))
         frames = frames.permute(0, 2, 1).contiguous().view(-1, self.W)  # [B* frames, W]
-        # If not using gpu, or torch not compatible, implemented numpy batch function is still fine
+        # If not using gpu, or torch not compatible,
+        # implemented numpy batch function is still fine
         dfs = differenceFunctionTorch(frames, frames.shape[-1], self.tau_max)
         cmndfs = cumulativeMeanNormalizedDifferenceFunctionTorch(dfs, self.tau_max)
         yingram = self.yingram_from_cmndf(cmndfs)  # [B*frames,F]
@@ -153,7 +155,8 @@ class Ying(AbsFeatsExtract):
         # ying = self.yingram(input)
         # ying_lengths = torch.ceil(input_lengths.float() * self.w_step / self.W).long()
 
-        # TODO(yifeng): now we pass batch_size = 1, maybe remove batch_size in self.yingram
+        # TODO(yifeng): now we pass batch_size = 1,
+        # maybe remove batch_size in self.yingram
         # print("input", input.shape)
         ying = [
             self.yingram(x[:xl].unsqueeze(0)).squeeze(0)

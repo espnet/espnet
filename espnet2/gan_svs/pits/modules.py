@@ -84,10 +84,10 @@ class WN(torch.nn.Module):
     def remove_weight_norm(self):
         if self.gin_channels != 0:
             torch.nn.utils.remove_weight_norm(self.cond_layer)
-        for l in self.in_layers:
-            torch.nn.utils.remove_weight_norm(l)
-        for l in self.res_skip_layers:
-            torch.nn.utils.remove_weight_norm(l)
+        for in_layer in self.in_layers:
+            torch.nn.utils.remove_weight_norm(in_layer)
+        for res_skip_layer in self.res_skip_layers:
+            torch.nn.utils.remove_weight_norm(res_skip_layer)
 
     def fused_add_tanh_sigmoid_multiply(self, input_a, input_b, n_channels):
         n_channels_int = n_channels[0]

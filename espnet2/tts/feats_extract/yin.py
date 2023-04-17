@@ -89,7 +89,8 @@ def cumulativeMeanNormalizedDifferenceFunction(df, N, eps=1e-8):
     """
     # np.seterr(divide='ignore', invalid='ignore')
     # scipy method, assert df>0 for all element
-    #   cmndf = df[1:] * np.asarray(list(range(1, N))) / (np.cumsum(df[1:]).astype(float) + eps)
+    #   cmndf = df[1:] * np.asarray(list(range(1, N)))
+    # / (np.cumsum(df[1:]).astype(float) + eps)
     B, _ = df.shape
     cmndf = (
         df[:, 1:]
