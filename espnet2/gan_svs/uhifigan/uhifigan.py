@@ -313,7 +313,7 @@ class UHiFiGANGenerator(torch.nn.Module):
                 )
 
         if global_channels > 0:
-            self.global_conv = torch.nn.Conv1d(global_channels, channels, 1)
+            self.global_conv = torch.nn.Conv1d(global_channels, in_channels, 1)
 
         # apply weight norm
         if use_weight_norm:
