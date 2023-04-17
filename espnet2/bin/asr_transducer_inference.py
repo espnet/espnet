@@ -676,9 +676,7 @@ def get_parser():
         help="LM training configuration",
     )
     group.add_argument(
-        "--lm_file",
-        type=str,
-        help="LM parameter file",
+        "--lm_file", type=str, help="LM parameter file",
     )
     group.add_argument(
         "--model_tag",

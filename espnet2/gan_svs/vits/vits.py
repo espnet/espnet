@@ -302,6 +302,8 @@ class VITS(AbsGANSVS):
         pitch_lengths: torch.Tensor = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        slur: torch.LongTensor = None,
+        slur_lengths: torch.Tensor = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -739,6 +741,7 @@ class VITS(AbsGANSVS):
         max_len: Optional[int] = None,
         use_teacher_forcing: bool = False,
         duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
 
@@ -764,6 +767,8 @@ class VITS(AbsGANSVS):
             use_teacher_forcing (bool): Whether to use teacher forcing.
             duration (Optional[Dict]): key is "phn", "syb";
                 value (LongTensor): Batch of padded beat (B, Tmax).
+            pitch (LongTensor): Batch of padded slur (B, Tmax).
+
 
         Returns:
             Dict[str, Tensor]:
