@@ -2,9 +2,9 @@ import pytest
 import torch
 from torch_complex import ComplexTensor
 
-from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.bin.enh_inference_streaming import merge_audio, split_audio
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
-from espnet2.bin.enh_inference_streaming import split_audio, merge_audio
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
 
 
 @pytest.mark.parametrize("n_fft", [512])
@@ -63,7 +63,6 @@ def test_STFTDecoder_invalid_type(
 
 
 def test_conv_enc_dec_streaming():
-
     input_audio = torch.randn((1, 16000))
     ilens = torch.LongTensor(
         [
