@@ -530,7 +530,7 @@ def get_parser():
         "--token_type",
         type=str_or_none,
         default=None,
-        choices=["char", "bpe", None],
+        choices=["char", "word", "bpe", None],
         help="Token type for LM. If not given, refers from the train args",
     )
     group.add_argument(
