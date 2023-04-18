@@ -142,7 +142,7 @@ def main(argv):
                 details = line.split()
                 spk2utt[details[0]] = details[1:]
 
-        wav_scp = SoundScpReader(os.path.join(args.in_folder, "wav.scp"))
+        wav_scp = SoundScpReader(os.path.join(args.in_folder, "wav.scp"), np.float32)
         os.makedirs(args.out_folder, exist_ok=True)
         writer_utt = kaldiio.WriteHelper(
             "ark,scp:{0}/xvector.ark,{0}/xvector.scp".format(args.out_folder)
@@ -157,9 +157,6 @@ def main(argv):
             xvectors = list()
             for utt in spk2utt[speaker]:
                 in_sr, wav = wav_scp[utt]
-                # Amp Normalization -1 ~ 1
-                amax = np.amax(np.absolute(wav))
-                wav = wav.astype(np.float32) / amax
                 # X-vector Embedding
                 embeds = xv_extractor(wav, in_sr)
                 writer_utt[utt] = np.squeeze(embeds)
