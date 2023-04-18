@@ -23,16 +23,18 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.bin.enh_inference import get_train_config, recursive_dict_update, build_model_from_args_and_file
+from espnet2.bin.enh_inference import (
+    get_train_config,
+    recursive_dict_update,
+    build_model_from_args_and_file,
+)
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
-
-
 class SeparateSpeechStreaming:
     """SeparateSpeechStreaming class. Separate a small audio chunk in streaming.
-    
+
     Examples:
         >>> import soundfile
         >>> separate_speech = SeparateSpeechStreaming("enh_config.yml", "enh.pth")
@@ -45,7 +47,7 @@ class SeparateSpeechStreaming:
         >>>     output = separate_speech(chunk)
         >>>     for channel in range(separate_speech.num_spk):
         >>>         output_chunks[channel].append(output[channel])
-        >>> 
+        >>>
         >>> separate_speech.reset()
         >>> waves = [
         >>>     merge_audio(chunks, frame_size, hop_size, rest_pad)
@@ -152,14 +154,12 @@ class SeparateSpeechStreaming:
         batch_size = speech_mix.size(0)
         speech_mix = speech_mix.to(getattr(torch, self.dtype))
 
-
         # a. To device
         speech_mix = to_device(speech_mix, device=self.device)
 
         # b. Enhancement/Separation Forward
         # frame_feature: (B, 1, F)
         frame_feature = self.enh_model.encoder.forward_streaming(speech_mix)
-
 
         # frame_separated: list of num_spk [(B, 1, F)]
         (
@@ -357,7 +357,7 @@ def merge_audio(chunks, frame_size, hop_size, rest):
     for i, chunk in enumerate(chunks):
         output[:, i * hop_size : i * hop_size + frame_size] += chunk
 
-    pad_len = math.ceil((frame_size // hop_size) // 2)  *hop_size
+    pad_len = math.ceil((frame_size // hop_size) // 2) * hop_size
 
     output = output[:, pad_len : -(pad_len + rest)]
 
@@ -370,7 +370,6 @@ def split_audio(audio, frame_size, hop_size):
     # audio: B, T
     batch_size, audio_len = audio.shape
 
-
     # rest = frame_size - (hop_size + audio_len % frame_size) % frame_size
 
     rest = hop_size - (audio_len - frame_size) % hop_size
@@ -379,11 +378,9 @@ def split_audio(audio, frame_size, hop_size):
         pad = torch.zeros((batch_size, rest), dtype=audio.dtype, device=audio.device)
         audio = torch.cat([audio, pad], 1)
 
-    pad_len = math.ceil((frame_size // hop_size) // 2)  *hop_size
+    pad_len = math.ceil((frame_size // hop_size) // 2) * hop_size
 
-    pad_aux = torch.zeros(
-        (batch_size, pad_len), dtype=audio.dtype, device=audio.device
-    )
+    pad_aux = torch.zeros((batch_size, pad_len), dtype=audio.dtype, device=audio.device)
 
     audio = torch.cat([pad_aux, audio, pad_aux], 1)
 

@@ -183,7 +183,9 @@ if __name__ == "__main__":
         f"{humanfriendly.format_size(sum(p.numel() for p in separator.parameters()))}"
     )
 
-    input_feature = ComplexTensor(torch.randn((1, SEQ_LEN, 128)), torch.randn((1, SEQ_LEN, 128)))
+    input_feature = ComplexTensor(
+        torch.randn((1, SEQ_LEN, 128)), torch.randn((1, SEQ_LEN, 128))
+    )
     ilens = torch.LongTensor([SEQ_LEN])
 
     with torch.no_grad():

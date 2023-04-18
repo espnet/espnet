@@ -53,7 +53,7 @@ class ConvEncoder(AbsEncoder):
         flens = (ilens - self.kernel_size) // self.stride + 1
 
         return feature, flens
-    
+
     def forward_streaming(self, input: torch.Tensor):
         output, _ = self.forward(input, 0)
         return output

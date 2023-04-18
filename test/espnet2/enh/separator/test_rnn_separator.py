@@ -111,15 +111,11 @@ def test_rnn_separator_output():
 def test_rnn_streaming():
     SEQ_LEN = 100
     num_spk = 2
-    BS=2
-    separator = RNNSeparator(
-        input_dim=128,
-        rnn_type="lstm",
-        num_spk=num_spk
-    )
+    BS = 2
+    separator = RNNSeparator(input_dim=128, rnn_type="lstm", num_spk=num_spk)
     separator.eval()
     input_feature = torch.randn((BS, SEQ_LEN, 128))
-    ilens = torch.LongTensor([SEQ_LEN]*BS)
+    ilens = torch.LongTensor([SEQ_LEN] * BS)
     with torch.no_grad():
         seq_output, _, _ = separator.forward(input_feature, ilens=ilens)
 

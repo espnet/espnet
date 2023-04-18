@@ -66,7 +66,7 @@ class STFTEncoder(AbsEncoder):
             spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
 
         return spectrum, flens
-    
+
     def _apply_window_func(self, input):
         B = input.shape[0]
 
@@ -77,9 +77,11 @@ class STFTEncoder(AbsEncoder):
 
         windowed = input * window
 
-        windowed = torch.cat([torch.zeros(B, n_pad_left), windowed, torch.zeros(B, n_pad_right)], 1)
+        windowed = torch.cat(
+            [torch.zeros(B, n_pad_left), windowed, torch.zeros(B, n_pad_right)], 1
+        )
         return windowed
-    
+
     def forward_streaming(self, input: torch.Tensor):
         """Forward.
         Args:
@@ -88,13 +90,15 @@ class STFTEncoder(AbsEncoder):
             B, 1, F
         """
 
-        assert input.dim() == 2, "forward_streaming only support for single-channel input currently, input shape: B, frame_length"
+        assert (
+            input.dim() == 2
+        ), "forward_streaming only support for single-channel input currently."
 
-        windowed= self._apply_window_func(input)
+        windowed = self._apply_window_func(input)
 
         feature = torch.fft.fft(windowed)
         if self.stft.onesided:
-            feature = feature[..., 0: - (self.n_fft)//2 + 1]
+            feature = feature[..., 0 : -(self.n_fft) // 2 + 1]
         feature = feature.unsqueeze(1)
 
         feature = ComplexTensor(feature.real, feature.imag)

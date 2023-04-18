@@ -143,7 +143,7 @@ def test_skim_separator_output():
 def test_skim_streaming():
     SEQ_LEN = 100
     num_spk = 2
-    BS=2
+    BS = 2
     separator = SkiMSeparator(
         input_dim=128,
         causal=True,
@@ -154,7 +154,7 @@ def test_skim_streaming():
     )
     separator.eval()
     input_feature = torch.randn((BS, SEQ_LEN, 128))
-    ilens = torch.LongTensor([SEQ_LEN]*BS)
+    ilens = torch.LongTensor([SEQ_LEN] * BS)
     with torch.no_grad():
         seq_output, _, _ = separator.forward(input_feature, ilens=ilens)
 

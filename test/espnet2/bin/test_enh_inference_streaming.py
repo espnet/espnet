@@ -6,7 +6,13 @@ import pytest
 import torch
 import yaml
 
-from espnet2.bin.enh_inference_streaming import SeparateSpeechStreaming, get_parser, main, split_audio, merge_audio
+from espnet2.bin.enh_inference_streaming import (
+    SeparateSpeechStreaming,
+    get_parser,
+    main,
+    split_audio,
+    merge_audio,
+)
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
@@ -38,15 +44,16 @@ def config_file(tmp_path: Path):
     with open(tmp_path / "enh" / "config.yaml", "r") as f:
         args = yaml.safe_load(f)
 
-    args.update({
-        "encoder": "stft",
-        "encoder_conf": {"n_fft": 64, "hop_length": 32},
-        "decoder": "stft",
-        "decoder_conf": {"n_fft": 64, "hop_length": 32},
-        "separator": "skim",
-        "separator_conf": {"causal":True, 'seg_overlap': False, "num_spk":2}
-    })
-
+    args.update(
+        {
+            "encoder": "stft",
+            "encoder_conf": {"n_fft": 64, "hop_length": 32},
+            "decoder": "stft",
+            "decoder_conf": {"n_fft": 64, "hop_length": 32},
+            "separator": "skim",
+            "separator_conf": {"causal": True, "seg_overlap": False, "num_spk": 2},
+        }
+    )
 
     with open(tmp_path / "enh" / "config.yaml", "w") as f:
         yaml_no_alias_safe_dump(args, f, indent=4, sort_keys=False)
@@ -56,11 +63,11 @@ def config_file(tmp_path: Path):
 
 @pytest.mark.execution_timeout(5)
 @pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize(
-    "input_size", [16000, 35000]
-)
+@pytest.mark.parametrize("input_size", [16000, 35000])
 def test_SeparateSpeech(
-    config_file, batch_size, input_size,
+    config_file,
+    batch_size,
+    input_size,
 ):
     separate_speech = SeparateSpeechStreaming(
         train_config=config_file,
@@ -79,12 +86,5 @@ def test_SeparateSpeech(
 
     separate_speech.reset()
     waves = [
-        merge_audio(chunks, frame_size, hop_size, rest_pad)
-        for chunks in output_chunks
+        merge_audio(chunks, frame_size, hop_size, rest_pad) for chunks in output_chunks
     ]
-
-
-
-
-
-
