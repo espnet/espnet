@@ -196,6 +196,8 @@ class Speech2TextStreaming:
                 incremental_decode=incremental_decode,
                 time_sync=time_sync,
                 block_size=0,   # recompute
+                ctc=st_model.st_ctc if hasattr(st_model, "st_ctc") else None,
+                hold_n=hold_n,
             )
 
         else:
