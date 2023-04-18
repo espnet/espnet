@@ -10,7 +10,9 @@ import humanfriendly
 import numpy as np
 import torch
 import yaml
+import math
 from typeguard import check_argument_types
+import torch_complex
 
 from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.tasks.enh import EnhancementTask
@@ -21,73 +23,33 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.bin.enh_inference import get_train_config, recursive_dict_update, build_model_from_args_and_file
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
 
-def get_train_config(train_config, model_file=None):
-    if train_config is None:
-        assert model_file is not None, (
-            "The argument 'model_file' must be provided "
-            "if the argument 'train_config' is not specified."
-        )
-        train_config = Path(model_file).parent / "config.yaml"
-    else:
-        train_config = Path(train_config)
-    return train_config
-
-
-def recursive_dict_update(dict_org, dict_patch, verbose=False, log_prefix=""):
-    """Update `dict_org` with `dict_patch` in-place recursively."""
-    for key, value in dict_patch.items():
-        if key not in dict_org:
-            if verbose:
-                logging.info(
-                    "Overwriting config: [{}{}]: None -> {}".format(
-                        log_prefix, key, value
-                    )
-                )
-            dict_org[key] = value
-        elif isinstance(value, dict):
-            recursive_dict_update(
-                dict_org[key], value, verbose=verbose, log_prefix=f"{key}."
-            )
-        else:
-            if verbose and dict_org[key] != value:
-                logging.info(
-                    "Overwriting config: [{}{}]: {} -> {}".format(
-                        log_prefix, key, dict_org[key], value
-                    )
-                )
-            dict_org[key] = value
-
-
-def build_model_from_args_and_file(task, args, model_file, device):
-    model = task.build_model(args)
-    if not isinstance(model, AbsESPnetModel):
-        raise RuntimeError(
-            f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
-        )
-    model.to(device)
-    if model_file is not None:
-        if device == "cuda":
-            # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
-            #   in PyTorch<=1.4
-            device = f"cuda:{torch.cuda.current_device()}"
-        model.load_state_dict(torch.load(model_file, map_location=device))
-    return model
 
 
 class SeparateSpeechStreaming:
-    """SeparateSpeech class
-
+    """SeparateSpeechStreaming class. Separate a small audio chunk in streaming.
+    
     Examples:
         >>> import soundfile
-        >>> separate_speech = SeparateSpeech("enh_config.yml", "enh.pth")
+        >>> separate_speech = SeparateSpeechStreaming("enh_config.yml", "enh.pth")
         >>> audio, rate = soundfile.read("speech.wav")
-        >>> separate_speech(audio)
-        [separated_audio1, separated_audio2, ...]
-
+        >>> frame_size, hop_size = separate_speech.frame_size, separate_speech.hop_size
+        >>> speech_sim_chunks, rest_pad = split_audio(wav, frame_size, hop_size)
+        >>> output_chunks = [[] for ii in range(separate_speech.num_spk)]
+        >>>
+        >>> for chunk in speech_sim_chunks:
+        >>>     output = separate_speech(chunk)
+        >>>     for channel in range(separate_speech.num_spk):
+        >>>         output_chunks[channel].append(output[channel])
+        >>> 
+        >>> separate_speech.reset()
+        >>> waves = [
+        >>>     merge_audio(chunks, frame_size, hop_size, rest_pad)
+        >>>     for chunks in output_chunks ]
     """
 
     def __init__(
@@ -96,7 +58,6 @@ class SeparateSpeechStreaming:
         model_file: Union[Path, str] = None,
         inference_config: Union[Path, str] = None,
         ref_channel: Optional[int] = None,
-        normalize_output_wav: bool = False,
         device: str = "cpu",
         dtype: str = "float32",
         enh_s2t_task: bool = False,
@@ -190,34 +151,29 @@ class SeparateSpeechStreaming:
         assert speech_mix.dim() > 1, speech_mix.size()
         batch_size = speech_mix.size(0)
         speech_mix = speech_mix.to(getattr(torch, self.dtype))
-        # lengths: (B,)
-        lengths = speech_mix.new_full(
-            [batch_size], dtype=torch.long, fill_value=speech_mix.size(1)
-        )
+
 
         # a. To device
         speech_mix = to_device(speech_mix, device=self.device)
-        lengths = to_device(lengths, device=self.device)
 
         # b. Enhancement/Separation Forward
-        frame_feature, f_lens = self.enh_model.encoder(speech_mix, lengths)
+        # frame_feature: (B, 1, F)
+        frame_feature = self.enh_model.encoder.forward_streaming(speech_mix)
 
+
+        # frame_separated: list of num_spk [(B, 1, F)]
         (
-            frame_out,
+            frame_separated,
             self.streaming_states,
             _,
         ) = self.enh_model.separator.forward_streaming(
             frame_feature, self.streaming_states
         )
 
-        frame_out = torch.cat(frame_out, 0)
+        # frame_separated: list of num_spk [(B, frame_size)]
+        waves = [self.enh_model.decoder.forward_streaming(f) for f in frame_separated]
 
-        lengths = torch.cat([lengths, lengths])
-
-        waves = self.enh_model.decoder(frame_out, lengths)[0].unbind(dim=0)
-        waves = [w[None, ...] for w in waves]
-
-        assert len(waves) == self.num_spk, len(waves) == self.num_spk
+        assert len(waves) == self.num_spk, (len(waves), self.num_spk)
         assert len(waves[0]) == batch_size, (len(waves[0]), batch_size)
 
         return waves
@@ -401,7 +357,11 @@ def merge_audio(chunks, frame_size, hop_size, rest):
     for i, chunk in enumerate(chunks):
         output[:, i * hop_size : i * hop_size + frame_size] += chunk
 
-    output = output[:, hop_size : -(hop_size + rest)]
+    pad_len = math.ceil((frame_size // hop_size) // 2)  *hop_size
+
+    output = output[:, pad_len : -(pad_len + rest)]
+
+    output = output / (frame_size / hop_size / 2)
 
     return output
 
@@ -410,14 +370,19 @@ def split_audio(audio, frame_size, hop_size):
     # audio: B, T
     batch_size, audio_len = audio.shape
 
-    rest = frame_size - (hop_size + audio_len % frame_size) % frame_size
+
+    # rest = frame_size - (hop_size + audio_len % frame_size) % frame_size
+
+    rest = hop_size - (audio_len - frame_size) % hop_size
 
     if rest > 0:
         pad = torch.zeros((batch_size, rest), dtype=audio.dtype, device=audio.device)
         audio = torch.cat([audio, pad], 1)
 
+    pad_len = math.ceil((frame_size // hop_size) // 2)  *hop_size
+
     pad_aux = torch.zeros(
-        (batch_size, hop_size), dtype=audio.dtype, device=audio.device
+        (batch_size, pad_len), dtype=audio.dtype, device=audio.device
     )
 
     audio = torch.cat([pad_aux, audio, pad_aux], 1)

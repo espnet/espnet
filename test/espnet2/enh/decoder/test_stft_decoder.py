@@ -2,8 +2,9 @@ import pytest
 import torch
 from torch_complex import ComplexTensor
 
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
-
+from espnet2.bin.enh_inference_streaming import split_audio, merge_audio
 
 @pytest.mark.parametrize("n_fft", [512])
 @pytest.mark.parametrize("win_length", [512])
@@ -58,3 +59,24 @@ def test_STFTDecoder_invalid_type(
         )
         x_lens = torch.tensor([300 * hop_length, 295 * hop_length], dtype=torch.long)
         y, ilens = decoder(real, x_lens)
+
+
+
+def test_conv_enc_dec_streaming():
+
+
+    input_audio = torch.randn((1, 16000))
+    ilens = torch.LongTensor([16000,])
+
+    encoder = STFTEncoder(n_fft=256, hop_length=128, onesided=True)
+    decoder = STFTDecoder(n_fft=256, hop_length=128, onesided=True)
+    frames, flens = encoder(input_audio, ilens)
+    seq_wav, ilens = decoder(frames, ilens)
+
+
+    splited, rest = split_audio(input_audio, frame_size=256, hop_size=128)
+    sframes = [encoder.forward_streaming(s) for s in splited]
+    swavs = [decoder.forward_streaming(s) for s in sframes]
+    merged_wav = merge_audio(swavs, 256, 128, rest)
+
+    torch.testing.assert_allclose(seq_wav, merged_wav)

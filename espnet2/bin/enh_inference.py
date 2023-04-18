@@ -596,7 +596,7 @@ def get_parser():
     group.add_argument(
         "--normalize_segment_scale",
         type=str2bool,
-        default=False,
+        default=True,
         help="Whether to normalize the energy of the separated streams in each segment",
     )
     group.add_argument(

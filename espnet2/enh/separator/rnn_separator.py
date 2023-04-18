@@ -127,7 +127,7 @@ class RNNSeparator(AbsSeparator):
         # input_frame # B, 1, N
 
         # if complex spectrum,
-        if is_complex(input):
+        if is_complex(input_frame):
             feature = abs(input_frame)
         else:
             feature = input_frame

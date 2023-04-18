@@ -1,5 +1,6 @@
 import torch
 from packaging.version import parse as V
+import torch_complex
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
@@ -32,8 +33,10 @@ class STFTDecoder(AbsDecoder):
             onesided=onesided,
         )
 
-        self.win_length = win_length
+        self.win_length = win_length if win_length else n_fft
+        self.n_fft = n_fft
         self.hop_length = hop_length
+        self.window = window
 
     @property
     def frame_size(self) -> int:
@@ -70,3 +73,35 @@ class STFTDecoder(AbsDecoder):
             wav = wav.reshape(bs, -1, wav.size(1)).transpose(1, 2)
 
         return wav, wav_lens
+    
+    def _get_window_func(self):
+        window_func = getattr(torch, f"{self.window}_window")
+        window = window_func(self.win_length)
+        n_pad_left = (self.n_fft - window.shape[0]) // 2
+        n_pad_right = self.n_fft - window.shape[0] - n_pad_left
+        window = torch.cat([torch.zeros(n_pad_left), window, torch.zeros(n_pad_right)], 0)
+        return window
+
+
+    def forward_streaming(self, input_frame: torch.Tensor):
+        """Forward.
+        Args:
+            input (ComplexTensor): spectrum [Batch, 1, F]
+            output: wavs [Batch, 1, self.win_length] 
+        """
+
+        if self.stft.onesided:
+            len_conj = self.stft.n_fft - input_frame.shape[2]
+            conj = ComplexTensor(input_frame[:, :, 1 : 1 + len_conj].real.flip(2),
+                                - input_frame[:, :, 1 : 1 + len_conj].imag.flip(2),)
+            input_frame = torch_complex.cat([input_frame, conj], 2)
+    
+        input_frame = input_frame.real + 1j* input_frame.imag
+        output_wav = torch.fft.ifft(input_frame).squeeze(1)
+
+        n_pad_left = (self.n_fft - self.win_length) // 2
+        output_wav = output_wav[..., n_pad_left:n_pad_left + self.win_length]
+
+        return output_wav.real
+    
+    

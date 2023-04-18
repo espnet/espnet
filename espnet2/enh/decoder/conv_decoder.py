@@ -41,3 +41,6 @@ class ConvDecoder(AbsDecoder):
         wav = wav.squeeze(1)
 
         return wav, ilens
+    
+    def forward_streaming(self, input_frame: torch.Tensor):
+        return self.forward(input_frame, ilens=torch.LongTensor([self.kernel_size]))[0]

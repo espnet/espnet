@@ -25,3 +25,6 @@ class AbsEncoder(torch.nn.Module, ABC):
     @property
     def hop_size(self) -> int:
         raise NotImplementedError
+
+    def forward_streaming(self, input: torch.Tensor):
+        raise NotImplementedError
