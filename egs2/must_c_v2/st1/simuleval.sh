@@ -1,7 +1,7 @@
 source=dump_wav/raw/tst-COMMON.en-de/wav.scp.noid
 target=dump_wav/raw/tst-COMMON.en-de/ref.trn.detok
 agent=pyscripts/utils/simuleval_agent.py
-nj=16
+nj=8
 python=python3
 
 batch_size=1
