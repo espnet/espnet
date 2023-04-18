@@ -55,6 +55,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.incremental_decode = incremental_decode
         self.time_sync = time_sync
         self.ctc = ctc
+        self.hold_n = hold_n
 
         if time_sync:
             if transducer_conf is not None:
@@ -174,11 +175,23 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 )
             )
 
-            if self.running_hyps is None:
+            if self.running_hyps is None:   # init hyps
+                init_scores = {}
+                init_states = {}
+                if 'ctc' in self.scorers.keys():
+                    self.scorers['ctc'].batch_init_state(h)
+                    init_scores['ctc'] = torch.tensor([0.0])
+                    init_states['ctc'] = [None]
+                if 'length_bonus' in self.scorers.keys():
+                    init_scores['length_bonus'] = torch.tensor([0.0])
+                    init_states['length_bonus'] = [None]
+                if 'decoder' in self.scorers.keys():
+                    init_scores['decoder'] = torch.tensor([0.0])
+                    init_states['decoder'] = [None]
                 self.running_hyps = BatchHypothesis(
                     score=torch.tensor([0.0]),
-                    scores={'decoder': torch.tensor([0.0]), 'length_bonus': torch.tensor([0.0])}, 
-                    states={'decoder': [None], 'length_bonus': [None]},
+                    scores=init_scores, 
+                    states=init_states,
                     length=torch.tensor([2]),
                     yseq=torch.tensor([[self.sos, 250003]], device=x.device),  # hacky way to avoid 2 2 hypothesis clogging decoding
                     hs=[],
@@ -186,7 +199,10 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 self.prev_incremental = self.running_hyps
 
             # ret = self.process_one_chunk(h, block_is_final, maxlen - self.process_idx, maxlenratio) #v1
-            ret = self.process_one_block(h, block_is_final, maxlen - self.process_idx, maxlenratio)
+            if self.time_sync:
+                ret = self.process_one_block_time_sync(h, block_is_final, maxlen, maxlenratio)
+            else:
+                ret = self.process_one_block(h, block_is_final, maxlen - self.process_idx, maxlenratio)
             logging.debug("Finished processing chunk: %d", self.processed_block)
             self.processed_block += 1
 
@@ -211,6 +227,27 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                             ]
                         )
                     )
+
+                # hold_n
+                if self.hold_n > 0 and self.running_hyps.length[0] > 2:
+                    self.running_hyps = BatchHypothesis(
+                        score=self.running_hyps.score,
+                        scores=self.running_hyps.scores, 
+                        states=self.running_hyps.states,
+                        length=self.running_hyps.length-self.hold_n,
+                        yseq=self.running_hyps.yseq[:,:-self.hold_n],
+                        hs=[],
+                    )
+                    if self.token_list is not None:
+                        logging.info(
+                            "best hypo after hold: "
+                            + "".join(
+                                [
+                                    self.token_list[x]
+                                    for x in self.running_hyps.yseq[0, 1 : ]
+                                ]
+                            )
+                        )
 
             if is_final:
                 if len(ret) == 0:
@@ -377,6 +414,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         """Recognize one block."""
         # extend states for ctc
         self.extend(h, self.running_hyps)
+        # import pdb;pdb.set_trace()
+        start_idx = self.process_idx
         while self.process_idx < maxlen:
             logging.debug("position " + str(self.process_idx))
             best = self.search(self.running_hyps, h)
@@ -407,8 +446,10 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     not self.disable_repetition_detection
                     and not prev_repeat
                     and best.yseq[i, -1] in best.yseq[i, :-1]
+                    # and best.yseq[i, -1] in best.yseq[i, start_idx:-1]   #only check for repeat in tokens generated this chunk
                     and not is_final
                 ):
+                    # import pdb;pdb.set_trace()
                     prev_repeat = True
             if prev_repeat:
                 logging.info("Detected repetition.")

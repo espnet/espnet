@@ -123,6 +123,8 @@ class DummyAgent(SpeechToTextAgent):
         self.token_delay = kwargs['token_delay']
         self.lang = kwargs['lang']
         self.recompute = kwargs['recompute']
+        self.chunk_decay = kwargs['chunk_decay']
+        self.n_chunks = 0
         self.clean()
 
     @staticmethod
@@ -396,6 +398,11 @@ class DummyAgent(SpeechToTextAgent):
             type=str2bool,
             default=False,
         )
+        group.add_argument(
+            "--chunk_decay",
+            type=float,
+            default=1.0,
+        )
 
         return parser
 
@@ -403,6 +410,7 @@ class DummyAgent(SpeechToTextAgent):
         self.processed_index = -1
         self.maxlen = 0
         self.prev_prediction = ""
+        self.n_chunks = 0
 
     def policy(self):
 
@@ -421,7 +429,17 @@ class DummyAgent(SpeechToTextAgent):
         # hacked streaming policy. takes running beam search hyp as an incremental output 
         else:
             unread_length = len(self.states.source) - self.processed_index - 1
-            if unread_length >= self.sim_chunk_length or self.states.source_finished:
+            if self.n_chunks > 0:
+                chunk_length = self.sim_chunk_length // self.chunk_decay
+            else:
+                chunk_length = self.sim_chunk_length
+            
+
+            # if unread_length >= self.sim_chunk_length or self.states.source_finished:
+            if unread_length >= chunk_length or self.states.source_finished:
+                print("chunk_length:", str(chunk_length))
+                self.n_chunks += 1
+
                 if self.recompute:
                     speech = torch.tensor(self.states.source)
                 else:

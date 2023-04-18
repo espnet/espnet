@@ -1,7 +1,7 @@
 source=dump_wav/raw/tst-COMMON.en-de/wav.scp.noid
 target=dump_wav/raw/tst-COMMON.en-de/ref.trn.detok
 agent=pyscripts/utils/simuleval_agent.py
-nj=8
+nj=16
 python=python3
 
 batch_size=1
@@ -22,6 +22,8 @@ source_segment_size=2000
 recompute=true
 token_delay=false
 target_type=text
+hold_n=0
+chunk_decay=1.0
 
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
 run_args=$(pyscripts/utils/print_args.py $0 "$@")
@@ -30,7 +32,7 @@ run_args=$(pyscripts/utils/print_args.py $0 "$@")
 . ./path.sh
 . ./cmd.sh
 
-output="$exp/beam${beam_size}_ctc${ctc_weight}_pen${penalty}_chunk${sim_chunk_length}_drd${disable_repetition_detection}_tokdelay${token_delay}"
+output="$exp/beam${beam_size}_ctc${ctc_weight}_pen${penalty}_chunk${sim_chunk_length}_drd${disable_repetition_detection}_tokdelay${token_delay}_holdn${hold_n}_decay${chunk_decay}"
 st_train_config=$exp/config.yaml
 st_model_file=$exp/$inference_st_model
 
@@ -53,6 +55,8 @@ ${_cmd} --gpu "${ngpu}" JOB=1:"${nj}" "${output}"/simuleval.JOB.log \
         --beam_size $beam_size \
         --ctc_weight $ctc_weight \
         --sim_chunk_length $sim_chunk_length \
+        --chunk_decay $chunk_decay \
+        --hold_n $hold_n \
         --backend $backend \
         --incremental_decode $incremental_decode \
         --penalty $penalty \
