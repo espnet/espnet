@@ -3,7 +3,6 @@ from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
-from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
 from espnet2.layers.stft import Stft
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
