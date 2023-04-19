@@ -11,11 +11,11 @@ log() {
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 # Default values
-ubuntu_ver=20.04
-cuda_ver=11.1
+ubuntu_ver=22.04
+cuda_ver=11.7
 build_ver=cpu
 build_cores=24
-th_ver=1.10.1
+th_ver=1.13.1
 
 
 cmd_usage() {
@@ -45,13 +45,13 @@ cmd_usage() {
             fully_local     like local, but also builds the base image
 
         Arguments
-            build-ver       cpu/gpu
+            build-ver       cpu/gpu (default: ${build_ver})
             ubuntu-ver      any ubuntu version available at docker hub (e.g. 18.04/20.04/...)
-                            (default: 18.04)
+                            (default: ${ubuntu_ver})
             cuda-ver        any cuda version available at nvidia (e.g. 9.0/9.1/...)
-                            (default: 10.1)
-            build-cores     cores employed for building the container
-            th-ver          Pytorch version for fully local build
+                            (default: ${cuda_ver})
+            build-cores     cores employed for building the container (default: ${build_cores})
+            th-ver          Pytorch version for fully local build (default: ${th_ver})
 
     CAVEATS
         For local builds, the image pulled from Docker Hub is based on Ubuntu 16,
@@ -272,8 +272,8 @@ done
 
 
 mode=$1
-default_ubuntu_ver=20.04
-default_cuda_ver=11.1
+default_ubuntu_ver=22.04
+default_cuda_ver=11.7
 
 check=true
 [ "${default_ubuntu_ver}" != "${ubuntu_ver}" ] || [ "${default_cuda_ver}" != "${cuda_ver}" ] && check=false
