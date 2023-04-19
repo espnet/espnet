@@ -133,6 +133,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-uasr-extract-feature-1">espnet2.bin.uasr_extract_feature</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-train-1">espnet2.bin.asr_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-uasr-inference-k2-1">espnet2.bin.uasr_inference_k2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-lm-inference-1">espnet2.bin.lm_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference-maskctc-1">espnet2.bin.asr_inference_maskctc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-svs-inference-1">espnet2.bin.svs_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-hubert-train-1">espnet2.bin.hubert_train</a></li>
@@ -550,6 +551,61 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 <dl class="function">
 <dt id="espnet2.bin.uasr_inference_k2.main">
 <code class="sig-prename descclassname">espnet2.bin.uasr_inference_k2.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/uasr_inference_k2.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.uasr_inference_k2.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="espnet2-bin-lm-inference-1">
+<span id="espnet2-bin-lm-inference"></span><h2>espnet2.bin.lm_inference<a class="headerlink" href="#espnet2-bin-lm-inference-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.lm_inference"></span><dl class="class">
+<dt id="espnet2.bin.lm_inference.GenerateText">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.lm_inference.</code><code class="sig-name descname">GenerateText</code><span class="sig-paren">(</span><em class="sig-param">lm_train_config: Union[pathlib.Path, str] = None, lm_file: Union[pathlib.Path, str] = None, ngram_scorer: str = 'full', ngram_file: Union[pathlib.Path, str] = None, token_type: str = None, bpemodel: str = None, device: str = 'cpu', maxlen: int = 100, minlen: int = 0, batch_size: int = 1, dtype: str = 'float32', beam_size: int = 20, ngram_weight: float = 0.0, penalty: float = 0.0, nbest: int = 1, quantize_lm: bool = False, quantize_modules: List[str] = ['Linear'], quantize_dtype: str = 'qint8'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_inference.html#GenerateText"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_inference.GenerateText" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>GenerateText class</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">generatetext</span> <span class="o">=</span> <span class="n">GenerateText</span><span class="p">(</span>
+<span class="go">        lm_train_config=&quot;lm_config.yaml&quot;,</span>
+<span class="go">        lm_file=&quot;lm.pth&quot;,</span>
+<span class="go">        token_type=&quot;bpe&quot;,</span>
+<span class="go">        bpemodel=&quot;bpe.model&quot;,</span>
+<span class="go">    )</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">prompt</span> <span class="o">=</span> <span class="s2">&quot;I have travelled to many &quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">generatetext</span><span class="p">(</span><span class="n">prompt</span><span class="p">)</span>
+<span class="go">[(text, token, token_int, hypothesis object), ...]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.bin.lm_inference.GenerateText.from_pretrained">
+<em class="property">static </em><code class="sig-name descname">from_pretrained</code><span class="sig-paren">(</span><em class="sig-param">model_tag: Optional[str] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_inference.html#GenerateText.from_pretrained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_inference.GenerateText.from_pretrained" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build GenerateText instance from the pretrained model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_tag</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Model tag of the pretrained models.
+Currently, the tags of espnet_model_zoo are supported.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>GenerateText instance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet2.bin.lm_inference.GenerateText" title="espnet2.bin.lm_inference.GenerateText">GenerateText</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.lm_inference.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.lm_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_inference.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.lm_inference.inference">
+<code class="sig-prename descclassname">espnet2.bin.lm_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, maxlen: int, minlen: int, batch_size: int, dtype: str, beam_size: int, ngpu: int, seed: int, ngram_weight: float, penalty: float, nbest: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], lm_train_config: Optional[str], lm_file: Optional[str], word_lm_train_config: Optional[str], word_lm_file: Optional[str], ngram_file: Optional[str], model_tag: Optional[str], token_type: Optional[str], bpemodel: Optional[str], allow_variable_data_keys: bool, quantize_lm: bool, quantize_modules: List[str], quantize_dtype: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_inference.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.lm_inference.main">
+<code class="sig-prename descclassname">espnet2.bin.lm_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/lm_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.lm_inference.main" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>

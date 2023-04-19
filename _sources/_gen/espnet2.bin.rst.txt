@@ -81,6 +81,17 @@ espnet2.bin.uasr_inference_k2
     :show-inheritance:
 
 
+.. _espnet2.bin.lm_inference:
+
+espnet2.bin.lm_inference
+------------------------
+
+.. automodule:: espnet2.bin.lm_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.asr_inference_maskctc:
 
 espnet2.bin.asr_inference_maskctc
