@@ -91,10 +91,13 @@ class STFTDecoder(AbsDecoder):
             output: wavs [Batch, 1, self.win_length]
         """
 
-
         input_frame = input_frame.real + 1j * input_frame.imag
-        output_wav = torch.fft.irfft(input_frame) if self.stft.onesided else torch.fft.ifft(input_frame).real
-        
+        output_wav = (
+            torch.fft.irfft(input_frame)
+            if self.stft.onesided
+            else torch.fft.ifft(input_frame).real
+        )
+
         output_wav = output_wav.squeeze(1)
 
         n_pad_left = (self.n_fft - self.win_length) // 2

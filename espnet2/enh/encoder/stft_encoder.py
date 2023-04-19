@@ -96,7 +96,9 @@ class STFTEncoder(AbsEncoder):
 
         windowed = self._apply_window_func(input)
 
-        feature = torch.fft.rfft(windowed) if self.stft.onesided else torch.fft.fft(windowed)
+        feature = (
+            torch.fft.rfft(windowed) if self.stft.onesided else torch.fft.fft(windowed)
+        )
         feature = feature.unsqueeze(1)
         feature = ComplexTensor(feature.real, feature.imag)
 
