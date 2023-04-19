@@ -64,6 +64,7 @@ class ErrorCalculator:
         Args:
             encoder_out: Encoder output sequences. (B, T, D_enc)
             target: Target label ID sequences. (B, L)
+            encoder_out_lens: Encoder output sequences length. (B,)
 
         Returns:
             : Sentence-level CER score.
