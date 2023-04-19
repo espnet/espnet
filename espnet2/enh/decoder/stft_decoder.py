@@ -1,6 +1,6 @@
 import torch
-from packaging.version import parse as V
 import torch_complex
+from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
@@ -104,8 +104,7 @@ class STFTDecoder(AbsDecoder):
 
 
 if __name__ == "__main__":
-
-    from espnet2.bin.enh_inference_streaming import split_audio, merge_audio
+    from espnet2.bin.enh_inference_streaming import merge_audio, split_audio
     from espnet2.enh.encoder.stft_encoder import STFTEncoder
 
     input_audio = torch.randn((1, 16000))

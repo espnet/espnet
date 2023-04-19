@@ -29,7 +29,7 @@ WITH_OMP=ON
 all: showenv python conda_packages.done ffmpeg.done sctk sph2pipe check_install
 
 python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done whisper.done rvad_fast.done
+extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done whisper.done rvad_fast.done sounfile_test
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_anaconda.sh"; exit 1; }
@@ -113,6 +113,9 @@ espnet.done: pytorch.done conda_packages.done
 	. ./activate_python.sh && python3 -m pip install -e "..[train, recipe]"  # Install editable mode by default
 	@echo NUMPY_VERSION=$(shell . ./activate_python.sh && python3 -c "import numpy; print(numpy.__version__)")
 	touch espnet.done
+
+sounfile_test: espnet.done
+	. ./activate_python.sh && python3 ./test_soundfile.py
 
 chainer.done: espnet.done
 	. ./activate_python.sh && ./installers/install_chainer.sh "${CUDA_VERSION}"

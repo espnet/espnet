@@ -10,8 +10,8 @@ from espnet2.bin.enh_inference_streaming import (
     SeparateSpeechStreaming,
     get_parser,
     main,
-    split_audio,
     merge_audio,
+    split_audio,
 )
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.tasks.enh import EnhancementTask

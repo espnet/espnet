@@ -615,9 +615,9 @@ if __name__ == "__main__":
     if args.dset_part == "train" and args.dset_name == "dipco":
         raise NotImplementedError("DiPCo has no training set. Exiting.")
 
-    if args.dset_part in ["train", "dev"]:
+    if args.dset_part in ["train", "dev"] and diarization_json_dir is None:
         valid_mics = ["mdm", "ihm"]
-    elif args.dset_part == "eval":
+    elif args.dset_part == "eval" or diarization_json_dir is not None:
         valid_mics = ["mdm"]
     for mic in valid_mics:
         if args.dset_name == "chime6":

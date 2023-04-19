@@ -149,18 +149,6 @@ def main():
         print("[ ] muskits")
         to_install.append("Use 'installers/install_muskits.sh' to install muskits")
 
-    if not Path("kaldi/egs/wsj/s5/utils/parse_options.sh").exists():
-        print("[ ] Kaldi")
-        to_install.append(
-            "Type 'git clone --depth 1 https://github.com/kaldi-asr/kaldi'"
-            " and see 'kaldi/tools/INSTALL' to install Kaldi"
-        )
-    elif not Path("kaldi/src/bin/copy-matrix").exists():
-        print("[x] Kaldi (not compiled)")
-        to_install.append("See 'kaldi/tools/INSTALL' to install Kaldi")
-    else:
-        print("[x] Kaldi (compiled)")
-
     print()
     print("Executables:")
 
@@ -187,6 +175,17 @@ def main():
             print(f"[ ] {name}")
             if installer is not None:
                 to_install.append(f"Use '{installer}' to install {name}")
+    if not Path("kaldi/egs/wsj/s5/utils/parse_options.sh").exists():
+        print("[ ] Kaldi")
+        to_install.append(
+            "Type 'git clone --depth 1 https://github.com/kaldi-asr/kaldi'"
+            " and see 'kaldi/tools/INSTALL' to install Kaldi"
+        )
+    elif not Path("kaldi/src/bin/copy-matrix").exists():
+        print("[x] Kaldi (not compiled)")
+        to_install.append("See 'kaldi/tools/INSTALL' to install Kaldi")
+    else:
+        print("[x] Kaldi (compiled)")
 
     print()
     print("INFO:")

@@ -1,1 +1,0 @@
-../../../asr1/scripts/utils/show_asr_result.sh

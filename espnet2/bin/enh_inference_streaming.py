@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import math
 import sys
 from itertools import chain
 from pathlib import Path
@@ -9,11 +10,15 @@ from typing import Any, List, Optional, Sequence, Tuple, Union
 import humanfriendly
 import numpy as np
 import torch
-import yaml
-import math
-from typeguard import check_argument_types
 import torch_complex
+import yaml
+from typeguard import check_argument_types
 
+from espnet2.bin.enh_inference import (
+    build_model_from_args_and_file,
+    get_train_config,
+    recursive_dict_update,
+)
 from espnet2.fileio.sound_scp import SoundScpWriter
 from espnet2.tasks.enh import EnhancementTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
@@ -23,11 +28,6 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.bin.enh_inference import (
-    get_train_config,
-    recursive_dict_update,
-    build_model_from_args_and_file,
-)
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 

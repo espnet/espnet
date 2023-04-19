@@ -45,8 +45,8 @@ def scoring(
         line.rstrip().split(maxsplit=1)[0] for line in open(key_file, encoding="utf-8")
     ]
 
-    ref_readers = [SoundScpReader(f, dtype=dtype, normalize=True) for f in ref_scp]
-    inf_readers = [SoundScpReader(f, dtype=dtype, normalize=True) for f in inf_scp]
+    ref_readers = [SoundScpReader(f, dtype=dtype) for f in ref_scp]
+    inf_readers = [SoundScpReader(f, dtype=dtype) for f in inf_scp]
 
     # get sample rate
     sample_rate, _ = ref_readers[0][keys[0]]

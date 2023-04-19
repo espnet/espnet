@@ -31,6 +31,7 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
+skip_upload_hf=true  # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 gpu_id=0             # GPU_id, only works when ngpu=1
 num_nodes=1          # The number of nodes.
@@ -112,6 +113,9 @@ g2p=g2p_en       # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 singing_fold_length=800 # fold_length for singing data.
+
+# Upload model related
+hf_repo=
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
@@ -867,6 +871,7 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
+                --fs "${fs}" \
                 --normalize "${feats_normalize}" \
                 --resume true \
                 --init_param ${pretrained_model} \
@@ -1125,6 +1130,114 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     #   % ./run.sh --stage 9 --svs_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
 fi
 
-### TODO: other stages
+if ! "${skip_upload}"; then
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Upload model to Zenodo: ${packed_model}"
+
+        # To upload your model, you need to do:
+        #   1. Signup to Zenodo: https://zenodo.org/
+        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
+        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="
+git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/svs1/ -> foo/svs1
+        _task="$(pwd | rev | cut -d/ -f1-2 | rev)"
+        # foo/svs1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # Generate description file
+        cat << EOF > "${svs_exp}"/description
+This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
+<p>&nbsp;</p>
+<ul>
+<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
+<li><strong>Evaluate in the recipe</strong><pre>
+<code class="language-bash">git clone https://github.com/espnet/espnet
+cd espnet${_checkout}
+pip install -e .
+cd $(pwd | rev | cut -d/ -f1-3 | rev)
+# Download the model file here
+./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
+</pre></li>
+<li><strong>Config</strong><pre><code>$(cat "${svs_exp}"/config.yaml)</code></pre></li>
+</ul>
+EOF
+
+        # NOTE(kamo): The model file is uploaded here, but not published yet.
+        #   Please confirm your record at Zenodo and publish by yourself.
+
+        # shellcheck disable=SC2086
+        espnet_model_zoo_upload \
+            --file "${packed_model}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --description_file "${svs_exp}"/description \
+            --creator_name "${_creator_name}" \
+            --license "CC-BY-4.0" \
+            --use_sandbox false \
+            --publish false
+    fi
+else
+    log "Skip the uploading stage"
+fi
+
+if ! "${skip_upload_hf}"; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1
+
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/svs1/ -> foo/svs1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/svs1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        # shellcheck disable=SC2034
+        hf_task=singing-voice-synthesis
+        # shellcheck disable=SC2034
+        espnet_task=SVS
+        # shellcheck disable=SC2034
+        task_exp=${svs_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+    fi
+else
+    log "Skip the uploading to HuggingFace stage"
+fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
