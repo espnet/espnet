@@ -91,21 +91,16 @@ class STFTDecoder(AbsDecoder):
             output: wavs [Batch, 1, self.win_length]
         """
 
-        if self.stft.onesided:
-            len_conj = self.stft.n_fft - input_frame.shape[2]
-            conj = ComplexTensor(
-                input_frame[:, :, 1 : 1 + len_conj].real.flip(2),
-                -input_frame[:, :, 1 : 1 + len_conj].imag.flip(2),
-            )
-            input_frame = torch_complex.cat([input_frame, conj], 2)
 
         input_frame = input_frame.real + 1j * input_frame.imag
-        output_wav = torch.fft.ifft(input_frame).squeeze(1)
+        output_wav = torch.fft.irfft(input_frame) if self.stft.onesided else torch.fft.ifft(input_frame).real
+        
+        output_wav = output_wav.squeeze(1)
 
         n_pad_left = (self.n_fft - self.win_length) // 2
         output_wav = output_wav[..., n_pad_left : n_pad_left + self.win_length]
 
-        return output_wav.real
+        return output_wav
 
 
 if __name__ == "__main__":
