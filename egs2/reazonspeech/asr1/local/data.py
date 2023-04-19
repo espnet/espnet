@@ -1,9 +1,9 @@
-import os
-import sys
-import glob
-import shlex
 import getopt
+import glob
+import os
 import random
+import shlex
+import sys
 
 from datasets import load_dataset
 

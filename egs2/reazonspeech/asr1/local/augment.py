@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
+import getopt
+import glob
 import io
 import os
-import sys
-import glob
 import random
-import getopt
-import librosa
-import soundfile
-import numpy as np
+import sys
 
+import librosa
+import numpy as np
+import soundfile
 
 SAMPLERATE = 16000
 
