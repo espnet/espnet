@@ -12,6 +12,7 @@ import torch.nn.functional as F
 from typeguard import check_argument_types
 
 from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.xiaoice.loss import XiaoiceSing2Loss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet.nets.pytorch_backend.conformer.encoder import (  # noqa: H301
@@ -107,7 +108,12 @@ class XiaoiceSing(AbsSVS):
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
+        loss_function: str = "XiaoiceSing2",  # FastSpeech1, XiaoiceSing2
         loss_type: str = "L1",
+        lambda_mel: float = 1,
+        lambda_dur: float = 0.1,
+        lambda_pitch: float = 0.01,
+        lambda_vuv: float = 0.01,
     ):
         """Initialize XiaoiceSing module.
 
@@ -167,6 +173,13 @@ class XiaoiceSing(AbsSVS):
                 calculation.
             use_weighted_masking (bool): Whether to apply weighted masking in loss
                 calculation.
+            loss_function (str): Loss functions ("FastSpeech1" or "XiaoiceSing2")
+            loss_type (str): Loss type ("L1" (MAE) or "L2" (MSE))
+            lambda_mel (float): Loss scaling coefficient for Mel loss.
+            lambda_dur (float): Loss scaling coefficient for duration loss.
+            lambda_pitch (float): Loss scaling coefficient for pitch loss.
+            lambda_vuv (float): Loss scaling coefficient for VUV loss.
+
         """
         assert check_argument_types()
         super().__init__()
@@ -182,7 +195,12 @@ class XiaoiceSing(AbsSVS):
         self.encoder_type = encoder_type
         self.decoder_type = decoder_type
         self.use_scaled_pos_enc = use_scaled_pos_enc
+        self.loss_function = loss_function
         self.loss_type = loss_type
+        self.lambda_mel = lambda_mel
+        self.lambda_dur = lambda_dur
+        self.lambda_pitch = lambda_pitch
+        self.lambda_vuv = lambda_vuv
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -353,6 +371,7 @@ class XiaoiceSing(AbsSVS):
 
         # define final projection
         self.feat_out = torch.nn.Linear(adim, odim * reduction_factor)
+        self.linear_projection = torch.nn.Linear(adim, odim * reduction_factor + 2)
 
         # define postnet
         self.postnet = (
@@ -377,9 +396,16 @@ class XiaoiceSing(AbsSVS):
         )
 
         # define criterions
-        self.criterion = XiaoiceSingLoss(
-            use_masking=use_masking, use_weighted_masking=use_weighted_masking
-        )
+        if self.loss_function == "FastSpeech1":
+            self.criterion = XiaoiceSingLoss(
+                use_masking=use_masking, use_weighted_masking=use_weighted_masking
+            )
+        elif self.loss_function == "XiaoiceSing2":
+            self.criterion = XiaoiceSing2Loss(
+                use_masking=use_masking, use_weighted_masking=use_weighted_masking
+            )
+        else:
+            raise ValueError(f"{self.loss_function} is not supported.")
 
     def forward(
         self,
@@ -395,6 +421,8 @@ class XiaoiceSing(AbsSVS):
         pitch_lengths: Optional[torch.Tensor] = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        slur: torch.LongTensor = None,
+        slur_lengths: torch.Tensor = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -422,6 +450,8 @@ class XiaoiceSing(AbsSVS):
                 value (LongTensor): Batch of padded duration (B, Tmax).
             duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of the lengths of padded duration (B, ).
+            slur (FloatTensor): Batch of padded slur (B, Tmax).
+            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -455,6 +485,9 @@ class XiaoiceSing(AbsSVS):
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
         label = label[:, : label_lengths.max()]  # for data-parallel
         tempo = tempo[:, : tempo_lengths.max()]  # for data-parallel
+        if self.loss_function == "XiaoiceSing2":
+            log_f0 = pitch[:, : pitch_lengths.max()]
+            vuv = pitch != 0
 
         batch_size = text.size(0)
 
@@ -487,9 +520,10 @@ class XiaoiceSing(AbsSVS):
         # forward decoder
         h_masks = self._source_mask(feats_lengths)
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs = self.feat_out(zs).view(
-            zs.size(0), -1, self.odim
-        )  # (B, T_feats, odim)
+        before_outs, log_f0_outs, vuv_outs = self.linear_projection(
+            zs
+        ).split_with_sizes([self.odim * self.reduction_factor, 1, 1], dim=2)
+        before_outs = before_outs.view(zs.size(0), -1, self.odim)  # (B. T_feats, odim)
 
         # postnet -> (B, Lmax//r * r, odim)
         if self.postnet is None:
@@ -509,31 +543,51 @@ class XiaoiceSing(AbsSVS):
             )
             max_olen = max(olens)
             ys = feats[:, :max_olen]
+            if self.loss_function == "XiaoiceSing2":
+                log_f0 = log_f0[:, :max_olen]
+                vuv = vuv[:, :max_olen]
         else:
             ys = feats
             olens = feats_lengths
 
         ilens = label_lengths
-        l1_loss, duration_loss = self.criterion(
-            after_outs, before_outs, d_outs, ys, ds, ilens, olens
-        )
-        loss = l1_loss + duration_loss
+        if self.loss_function == "FastSpeech1":
+            mel_loss, duration_loss = self.criterion(
+                after_outs, before_outs, d_outs, ys, ds, ilens, olens
+            )
+        elif self.loss_function == "XiaoiceSing2":
+            mel_loss, duration_loss, pitch_loss, vuv_loss = self.criterion(
+                after_outs=after_outs,
+                before_outs=before_outs,
+                d_outs=d_outs,
+                p_outs=log_f0_outs,
+                v_outs=vuv_outs,
+                ys=ys,
+                ds=ds,
+                ps=log_f0,
+                vs=vuv,
+                ilens=ilens,
+                olens=olens,
+                loss_type=self.loss_type,
+            )
 
-        stats = dict(
-            loss=loss.item(),
-            l1_loss=l1_loss.item(),
-            duration_loss=duration_loss.item(),
-        )
+        mel_loss = mel_loss * self.lambda_mel
+        duration_loss = duration_loss * self.lambda_dur
+        loss = mel_loss + duration_loss
+        stats = dict(mel_loss=mel_loss.item(), duration_loss=duration_loss.item())
+        if self.loss_function == "XiaoiceSing2":
+            pitch_loss = pitch_loss * self.lambda_pitch
+            vuv_loss = vuv_loss * self.lambda_vuv
+            loss += pitch_loss + vuv_loss
+            stats["pitch_loss"] = pitch_loss.item()
+            stats["vuv_loss"] = vuv_loss.item()
+        stats["loss"] = loss.item()
 
         # report extra information
         if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(
-                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
-            )
+            stats.update(encoder_alpha=self.encoder.embed[-1].alpha.data.item(),)
         if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
-            stats.update(
-                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
-            )
+            stats.update(decoder_alpha=self.decoder.embed[-1].alpha.data.item(),)
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -553,6 +607,7 @@ class XiaoiceSing(AbsSVS):
         melody: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -571,6 +626,7 @@ class XiaoiceSing(AbsSVS):
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (Tmax).
+            slur (LongTensor): Batch of padded slur (B, Tmax).
             spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).
             sids (Optional[Tensor]): Speaker ID (1,).
             lids (Optional[Tensor]): Language ID (1,).
