@@ -734,6 +734,8 @@ class VITS(AbsGANSVS):
         label: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -742,8 +744,6 @@ class VITS(AbsGANSVS):
         alpha: float = 1.0,
         max_len: Optional[int] = None,
         use_teacher_forcing: bool = False,
-        duration: Optional[Dict[str, torch.Tensor]] = None,
-        slur: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
 
@@ -759,6 +759,9 @@ class VITS(AbsGANSVS):
             beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded beat (B, Tmax).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
+            duration (Optional[Dict]): key is "phn", "syb";
+                value (LongTensor): Batch of padded beat (B, Tmax).
+            slur (LongTensor): Batch of padded slur (B, Tmax).
             sids (Tensor): Speaker index tensor (1,).
             spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
             lids (Tensor): Language index tensor (1,).
@@ -767,10 +770,6 @@ class VITS(AbsGANSVS):
             alpha (float): Alpha parameter to control the speed of generated singing.
             max_len (Optional[int]): Maximum length.
             use_teacher_forcing (bool): Whether to use teacher forcing.
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            slur (LongTensor): Batch of padded slur (B, Tmax).
-
 
         Returns:
             Dict[str, Tensor]:
