@@ -9,7 +9,6 @@ from espnet2.enh.loss.criterions.time_domain import (
     SNRLoss,
     TimeDomainL1,
     TimeDomainMSE,
-    MultiResL1SpecLoss,
 )
 
 
