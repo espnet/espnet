@@ -17,10 +17,10 @@ from espnet2.asr_transducer.encoder.modules.convolution import (  # noqa: H301
     DepthwiseConvolution,
 )
 from espnet2.asr_transducer.encoder.modules.multi_blocks import MultiBlocks
-from espnet2.asr_transducer.encoder.modules.normalization import get_normalization
 from espnet2.asr_transducer.encoder.modules.positional_encoding import (  # noqa: H301
     RelPositionalEncoding,
 )
+from espnet2.asr_transducer.normalization import get_normalization
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )

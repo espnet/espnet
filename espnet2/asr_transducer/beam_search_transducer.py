@@ -17,8 +17,7 @@ class Hypothesis:
     Args:
         score: Total log-probability.
         yseq: Label sequence as integer ID sequence.
-        dec_state: RNNDecoder or StatelessDecoder state.
-                     ((N, 1, D_dec), (N, 1, D_dec) or None) or None
+        dec_state: RNN/MEGA Decoder state (None if Stateless).
         lm_state: RNNLM state. ((N, D_lm), (N, D_lm)) or None
 
     """
@@ -51,7 +50,7 @@ class BeamSearchTransducer:
         decoder: Decoder module.
         joint_network: Joint network module.
         beam_size: Size of the beam.
-        lm: LM class.
+        lm: LM module.
         lm_weight: LM weight for soft fusion.
         search_type: Search algorithm to use during inference.
         max_sym_exp: Number of maximum symbol expansions at each time step. (TSD)
@@ -312,14 +311,7 @@ class BeamSearchTransducer:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
 
-                label = torch.full(
-                    (1, 1),
-                    max_hyp.yseq[-1],
-                    dtype=torch.long,
-                    device=self.decoder.device,
-                )
                 dec_out, state = self.decoder.score(
-                    label,
                     max_hyp.yseq,
                     max_hyp.dec_state,
                 )
