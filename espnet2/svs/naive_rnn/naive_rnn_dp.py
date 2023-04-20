@@ -264,7 +264,9 @@ class NaiveRNNDP(AbsSVS):
         )
 
         # initialize parameters
-        self._reset_parameters(init_type=init_type,)
+        self._reset_parameters(
+            init_type=init_type,
+        )
 
     def _reset_parameters(self, init_type):
         # initialize parameters
