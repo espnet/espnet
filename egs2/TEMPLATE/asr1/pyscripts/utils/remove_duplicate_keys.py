@@ -9,13 +9,13 @@ import argparse
 from pathlib import Path
 
 
-def read_2column_text(path):
+def read_2columns_text(path):
     """Read a text file having 2 column as dict object.
     Examples:
         wav.scp:
             key1 /some/path/a.wav
             key2 /some/path/b.wav
-        >>> read_2column_text('wav.scp')
+        >>> read_2columns_text('wav.scp')
         {'key1': '/some/path/a.wav', 'key2': '/some/path/b.wav'}
     """
 
@@ -42,7 +42,7 @@ def main():
     )
     args = parser.parse_args()
 
-    read_2column_text(args.index_file)
+    read_2columns_text(args.index_file)
 
 
 if __name__ == "__main__":

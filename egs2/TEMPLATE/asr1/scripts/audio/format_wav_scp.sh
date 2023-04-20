@@ -39,6 +39,8 @@ utt2ref_channels=
 audio_format=wav
 write_utt2num_samples=true
 vad_based_trim=
+multi_columns_input=false
+multi_columns_output=false
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -108,6 +110,8 @@ if [ -n "${segments}" ]; then
             --fs ${fs} \
             --audio-format "${audio_format}" \
             "--segment=${logdir}/segments.JOB" \
+            --multi-columns-input "${multi_columns_input}" \
+            --multi-columns-output "${multi_columns_output}" \
             "${scp}" "${outdir}/format.JOB" || { cat $(grep -l -i error "${logdir}"/format_wav_scp.*.log) ; exit 1; }
 else
     log "[info]: without segments"
@@ -126,6 +130,8 @@ else
         ${opts} \
         --fs "${fs}" \
         --audio-format "${audio_format}" \
+        --multi-columns-input "${multi_columns_input}" \
+        --multi-columns-output "${multi_columns_output}" \
         "${logdir}/wav.JOB.scp" "${outdir}/format.JOB" || { cat $(grep -l -i error "${logdir}"/format_wav_scp.*.log) ; exit 1; }
 fi
 
