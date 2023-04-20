@@ -43,10 +43,9 @@ RUN if [ -z "${CUDA_VER}" ]; then \
     echo "Make with options ${MY_OPTS}" && \
     ln -s /opt/kaldi ./ && \
    rm -f activate_python.sh && touch activate_python.sh && \
-   conda install -y conda "python=3.7.4" && \
+   conda install -y conda "python=3.9" && \
     make KALDI=/opt/kaldi ${MY_OPTS} && \
     . ./activate_python.sh && \
-    ./installers/install_warp-ctc.sh && \
     ./installers/install_kenlm.sh && \
     ./installers/install_chainer.sh cpu && \
     conda clean --all && \
