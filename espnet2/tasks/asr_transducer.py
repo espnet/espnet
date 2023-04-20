@@ -14,6 +14,7 @@ from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
+from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr_transducer.encoder.encoder import Encoder
@@ -65,6 +66,7 @@ decoder_choices = ClassChoices(
     classes=dict(
         rnn=RNNDecoder,
         stateless=StatelessDecoder,
+        mega=MEGADecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",

@@ -572,17 +572,31 @@ encoder_conf:
 
 #### Decoder
 
-The type can be defined through `decoder` parameter by passing a string (either `rnn` or `stateless`) and the internal parts can be configured
-
-For the decoder, two types of blocks are available: RNN and stateless (only embedding). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define define only one block here.
-The type of the stack of blocks is by passing a string (either `rnn` or `stateless`) to the parameter `decoder`. The internal parts are defined by the config `decoder_conf` containing the following (optional) parameters:
+For the decoder, three types of blocks are available: stateless ('stateless'), RNN ('rnn') or MEGA ('mega'). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define define only one block here.
+The type of the stack of blocks is defined by passing the corresponding type string to the parameter `decoder`. The internal parts are defined by the config `decoder_conf` containing the following -optional- parameters:
 
     decoder_conf:
-      rnn_type (RNN only, optional): Type of RNN cells (int, default = "lstm").
-      hidden_size (RNN only): Size of the hidden layers (int, default = 256).
       embed_size: Size of the embedding layer (int, default = 256).
-      dropout_rate: Dropout rate for the RNN output nodes (float, default = 0.0).
-      embed_dropout_rate: Dropout rate for the embedding layer (float, default = 0.0).
+      num_blocks: Number of decoder blocks/layers (int, default = 4 for MEGA or 1 for RNN).
+      rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
+      hidden_size (RNN only): Size of the hidden layers (int, default = 256).
+      block_size (MEGA only): Size of the block's input/output (int, default = 512).
+      linear_size (MEGA only): NormalizedPositionwiseFeedForward hidden size (int, default = 1024)
+      qk_size (MEGA only): Shared query and key size for attention module (int, default = 128).
+      v_size (MEGA only): Value size for attention module (int, default = 1024).
+      num_heads (MEGA only): Number of EMA heads (int, default = 4).
+      rel_pos_bias (MEGA only): Type of relative position bias in attention module (str, default = "simple").
+      max_positions (MEGA only): Maximum number of position for RelativePositionBias (int, default = 2048).
+      truncation_length (MEGA only): Maximum length for truncation in EMA module (int, default = None).
+      normalization_type (MEGA only): Normalization layer type (str, default = "layer_norm").
+      normalization_args (MEGA only): Normalization layer arguments (dict, default = {}).
+      activation_type (MEGA only): Activation function type (str, default = "swish").
+      activation_args (MEGA only): Activation function arguments (dict, default = {}).
+      dropout_rate: Dropout rate for main block modules (float, default = 0.0).
+      embed_dropout_rate: Dropout rate for embedding layer (float, default = 0.0).
+      att_dropout_rate (MEGA only): Dropout rate for the attention module.
+      ema_dropout_rate (MEGA only): Dropout rate for the EMA module.
+      ffn_dropout_rate (MEGA only): Dropout rate for the feed-forward module.
 
 #### Joint network
 
