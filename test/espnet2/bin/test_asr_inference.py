@@ -47,6 +47,8 @@ def asr_config_file(tmp_path: Path, token_list):
             str(token_list),
             "--token_type",
             "char",
+            "--decoder",
+            "rnn",
         ]
     )
     return tmp_path / "asr" / "config.yaml"
@@ -214,6 +216,8 @@ def enh_asr_config_file(tmp_path: Path, token_list):
             str(token_list),
             "--token_type",
             "char",
+            "--asr_decoder",
+            "rnn",
         ]
     )
     return tmp_path / "enh_asr" / "config.yaml"
@@ -342,3 +346,36 @@ def test_Speech2Text_pit(asr_config_file_pit, lm_config_file):
             assert isinstance(token[0], str)
             assert isinstance(token_int[0], int)
             assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(20)
+@pytest.mark.parametrize(
+    "encoder_class", ["transformer", "conformer", "e_branchformer"]
+)
+def test_Speech2Text_interctc(asr_config_file, lm_config_file, encoder_class):
+    # Change the configuration file to enable InterCTC
+    file = open(asr_config_file, "r", encoding="utf-8")
+    asr_train_config = file.read()
+    asr_train_config = yaml.full_load(asr_train_config)
+    asr_train_config["encoder"] = encoder_class
+    asr_train_config["encoder_conf"]["interctc_layer_idx"] = [1, 2]
+    asr_train_config["model_conf"]["interctc_weight"] = 0.5
+    with open(asr_config_file, "w", encoding="utf-8") as files:
+        yaml.dump(asr_train_config, files)
+
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
+    )
+    speech = np.random.randn(100000)
+    results, interctc_res = speech2text(speech)
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], int)
+        assert isinstance(hyp, Hypothesis)
+
+    assert isinstance(interctc_res, dict)
+    for k, tokens in interctc_res.items():
+        assert isinstance(k, int)
+        assert isinstance(tokens, list)
+        assert isinstance(tokens[0], str)

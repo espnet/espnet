@@ -31,6 +31,7 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
+skip_upload_hf=true  # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 gpu_id=0             # GPU_id, only works when ngpu=1
 num_nodes=1          # The number of nodes.
@@ -51,7 +52,7 @@ min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 use_sid=false        # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false        # Whether to use language id as the inputs (Need utt2lang in data directory).
-use_xvector=false    # Whether to use x-vector 
+use_xvector=false    # Whether to use x-vector
 feats_extract=fbank        # On-the-fly feature extractor.
 feats_normalize=global_mvn # On-the-fly feature normalizer.
 # Only used for feats_type != raw
@@ -113,6 +114,9 @@ lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 singing_fold_length=800 # fold_length for singing data.
 
+# Upload model related
+hf_repo=
+
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
 
@@ -132,10 +136,10 @@ Options:
     --dumpdir        # Directory to dump features (default="${dumpdir}").
     --expdir         # Directory to save experiments (default="${expdir}").
     --python         # Specify python to execute espnet2 commands (default="${python}").
-    
+
     # Data prep related
     --local_data_opts # Options to be passed to local/data.sh (default="${local_data_opts}").
-    
+
     # Feature extraction related
     --feats_type       # Feature type (fbank or stft or raw, default="${feats_type}").
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
@@ -156,7 +160,7 @@ Options:
     --oov              # Out of vocabrary symbol (default="${oov}").
     --blank            # CTC blank symbol (default="${blank}").
     --sos_eos          # sos and eos symbole (default="${sos_eos}").
-    
+
     # Training related
     --train_config  # Config for training (default="${train_config}").
     --train_args    # Arguments for training (default="${train_args}").
@@ -173,7 +177,7 @@ Options:
     --svs_task              # SVS task (svs or gan_svs, now only support svs)
     --pretrained_model=          # Pretrained model to load (default="${pretrained_model}").
     --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
-    
+
     # Decoding related
     --inference_config  # Config for decoding (default="${inference_config}").
     --inference_args    # Arguments for decoding, (default="${inference_args}").
@@ -184,7 +188,7 @@ Options:
     --vocoder_file      # Vocoder paramemter file (default=${vocoder_file}).
                         # If set to none, Griffin-Lim vocoder will be used.
     --download_model    # Download a model from Model Zoo and use it for decoding (default="${download_model}").
-    
+
     # [Task dependent] Set the datadir name created by local/data.sh.
     --train_set          # Name of training set (required).
     --valid_set          # Name of validation set used for monitoring/tuning network training (required).
@@ -204,7 +208,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 
@@ -308,7 +312,7 @@ if ! "${skip_data_prep}"; then
         # [Task dependent] Need to create data.sh for new corpus
         local/data.sh ${local_data_opts} --fs "${fs}" --g2p "${g2p}"
     fi
-    
+
 
 
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
@@ -320,7 +324,7 @@ if ! "${skip_data_prep}"; then
         # and also it can also change the audio-format and sampling rate.
         # If nothing is need, then format_wav_scp.sh does nothing:
         # i.e. the input file format and rate is same as the output.
-        
+
         if [ "${feats_type}" = raw ]; then
             log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
             for dset in "${train_set}" "${valid_set}" ${test_sets} ; do
@@ -471,7 +475,7 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${blank}:0" \
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
-        
+
     fi
 else
     log "Skip the stages for data preparation"
@@ -712,7 +716,7 @@ if ! "${skip_train}"; then
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/label,label,duration "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/score.scp,score,score "
                 # echo "svs_stats_dir: ${svs_stats_dir}"
-                
+
                 _opts+="--train_shape_file ${svs_stats_dir}/train/text_shape.${token_type} "
                 _opts+="--train_shape_file ${svs_stats_dir}/train/singing_shape "
             fi
@@ -788,6 +792,14 @@ if ! "${skip_train}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},energy,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},energy,${_type} "
         fi
+        if [ -e "${svs_stats_dir}/train/collect_feats/feats.scp" ]; then
+            _scp=feats.scp
+            _type=npy
+            _train_collect_dir=${svs_stats_dir}/train/collect_feats
+            _valid_collect_dir=${svs_stats_dir}/valid/collect_feats
+            _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},feats,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},feats,${_type} "
+        fi
 
         # Check extra statistics
         if [ -e "${svs_stats_dir}/train/pitch_stats.npz" ]; then
@@ -859,6 +871,7 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
+                --fs "${fs}" \
                 --normalize "${feats_normalize}" \
                 --resume true \
                 --init_param ${pretrained_model} \
@@ -1045,7 +1058,7 @@ if ! "${skip_eval}"; then
                 ${_gen_wavdir} \
                 ${_gt_wavscp} \
                 --outdir "${_dir}/MCD_res"
-            
+
             # Objective Evaluation - log-F0 RMSE
             log "Begin Scoring for F0 related metrics on ${dset}, results are written under ${_dir}/F0_res"
 
@@ -1117,6 +1130,114 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     #   % ./run.sh --stage 9 --svs_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
 fi
 
-### TODO: other stages
+if ! "${skip_upload}"; then
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Upload model to Zenodo: ${packed_model}"
+
+        # To upload your model, you need to do:
+        #   1. Signup to Zenodo: https://zenodo.org/
+        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
+        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="
+git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/svs1/ -> foo/svs1
+        _task="$(pwd | rev | cut -d/ -f1-2 | rev)"
+        # foo/svs1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # Generate description file
+        cat << EOF > "${svs_exp}"/description
+This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
+<p>&nbsp;</p>
+<ul>
+<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
+<li><strong>Evaluate in the recipe</strong><pre>
+<code class="language-bash">git clone https://github.com/espnet/espnet
+cd espnet${_checkout}
+pip install -e .
+cd $(pwd | rev | cut -d/ -f1-3 | rev)
+# Download the model file here
+./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
+</pre></li>
+<li><strong>Config</strong><pre><code>$(cat "${svs_exp}"/config.yaml)</code></pre></li>
+</ul>
+EOF
+
+        # NOTE(kamo): The model file is uploaded here, but not published yet.
+        #   Please confirm your record at Zenodo and publish by yourself.
+
+        # shellcheck disable=SC2086
+        espnet_model_zoo_upload \
+            --file "${packed_model}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --description_file "${svs_exp}"/description \
+            --creator_name "${_creator_name}" \
+            --license "CC-BY-4.0" \
+            --use_sandbox false \
+            --publish false
+    fi
+else
+    log "Skip the uploading stage"
+fi
+
+if ! "${skip_upload_hf}"; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1
+
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/svs1/ -> foo/svs1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/svs1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        # shellcheck disable=SC2034
+        hf_task=singing-voice-synthesis
+        # shellcheck disable=SC2034
+        espnet_task=SVS
+        # shellcheck disable=SC2034
+        task_exp=${svs_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+    fi
+else
+    log "Skip the uploading to HuggingFace stage"
+fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -9,15 +9,15 @@ frontend_conf:
         upstream: hubert_large_ll60k
       download_dir: ./hub
       multilayer_feature: True
-      
+
     - frontend_type: default
       n_fft: 512
       win_length: 400
       hop_length: 160
 
    align_method: linear_projection
-   proj_dim: 100 
-   
+   proj_dim: 100
+
 preencoder: linear
 preencoder_conf:
    input_size: 200 # Note: If the upstream is changed, please change this value accordingly.

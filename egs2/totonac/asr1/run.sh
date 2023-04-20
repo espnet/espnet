@@ -31,4 +31,3 @@ inference_config=conf/decode_asr.yaml
     --test_sets "${test_set}" \
     --inference_asr_model valid.acc.best.pth \
     --lm_train_text "data/${train_set}/text"  "$@"
-

@@ -19,7 +19,7 @@ tts_conf:                  # keyword arguments for the selected model
     dprenet_units: 256     # number of units in decoder prenet
     adim: 512              # attention dimension
     aheads: 8              # number of attention heads
-    
+
     elayers: 6             # number of encoder layers
     eunits: 1024           # number of encoder ff units
     dlayers: 6             # number of decoder layers

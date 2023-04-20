@@ -17,7 +17,7 @@ lowercase=false
 # Convert into lowercase if "true".
 remove_punctuation=false
 # Remove punctuation (except apostrophes) if "true".
-# Note that punctuation normalization will be performed in the "false" case. 
+# Note that punctuation normalization will be performed in the "false" case.
 remove_tag=false
 # Remove [TAGS] (e.g.[LAUGHTER]) if "true".
 remove_emo=
@@ -122,7 +122,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ ${convert_to_sentiment} != "true" ]; then
         log "stage 2: IEMOCAP Transcript Conversion"
         mkdir -p data/{train,valid,test}/{original,tmp}/
-        for dset in train valid test; do        
+        for dset in train valid test; do
             cp data/${dset}/text -t data/${dset}/original/
             if ${lowercase}; then
                 log "lowercase ${dset}"
@@ -144,7 +144,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             cp data/${dset}/tmp/text data/${dset}/text
         done
     fi
-    for dset in test valid train; do 
+    for dset in test valid train; do
         utils/validate_data_dir.sh --no-feats data/${dset} || exit 1
     done
 fi

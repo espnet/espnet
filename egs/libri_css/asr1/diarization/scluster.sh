@@ -94,7 +94,7 @@ fi
 
 if [ $stage -le 0 ]; then
   echo "$0: clustering scores"
-  for j in `seq $nj`; do 
+  for j in `seq $nj`; do
     utils/filter_scp.pl $sdata/$j/spk2utt $srcdir/scores.scp > $dir/scores.$j.scp
   done
   $cmd JOB=1:$nj $dir/log/spectral_cluster.JOB.log \

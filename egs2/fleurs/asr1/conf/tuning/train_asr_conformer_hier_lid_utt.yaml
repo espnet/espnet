@@ -47,9 +47,9 @@ model_conf:
     interctc_weight: 0.5
     length_normalized_loss: false
     extract_feats_in_collect_stats: false
-    aux_ctc: 
+    aux_ctc:
         '3': lid_utt
-        
+
 aux_ctc_tasks: ["lid_utt"]
 
 optim: adam

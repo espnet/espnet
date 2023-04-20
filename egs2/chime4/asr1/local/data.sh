@@ -47,7 +47,7 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data preparation"
-    
+
     wsj0_data=${CHIME4}/data/WSJ0
     local/clean_wsj0_data_prep.sh ${wsj0_data}
     local/clean_chime4_format_data.sh
@@ -57,13 +57,13 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         log "create data for 1ch tracks"
         python local/sym_channel.py ${CHIME4} 1ch
     fi
-    
+
     if [ ! -d ${CHIME4}/data/audio/16kHz/isolated_2ch_track ]; then
         log "create data for 2ch tracks"
         python local/sym_channel.py ${CHIME4} 2ch
     fi
 
-    # beamforming for multich 
+    # beamforming for multich
     local/run_beamform_2ch_track.sh --cmd "${train_cmd}" --nj 20 \
 	    ${CHIME4}/data/audio/16kHz/isolated_2ch_track enhan/beamformit_2mics
     local/run_beamform_6ch_track.sh --cmd "${train_cmd}" --nj 20 \
@@ -94,7 +94,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "combine real and simulation data"
 
     # TO DO:--extra-files but no utt2num_frames
-    utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy 
+    utils/combine_data.sh data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy
     utils/combine_data.sh data/tr05_multi_noisy_si284 data/tr05_multi_noisy data/train_si284
     utils/combine_data.sh data/${train_dev} data/dt05_simu_isolated_1ch_track data/dt05_real_isolated_1ch_track
 fi

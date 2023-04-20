@@ -47,9 +47,9 @@ separator_conf:
 
 
 
-criterions: 
+criterions:
   # The first criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-7
     # the wrapper for the current criterion

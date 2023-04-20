@@ -1,7 +1,7 @@
 %% score_SimData.m
 %%
 %% Evaluate speech enhancement results for SimData. This is
-%% designed for use in the REVERB challenge. 
+%% designed for use in the REVERB challenge.
 %%
 %% Written and distributed by the REVERB challenge organizers on 1 July, 2013
 %% Inquiries to the challenge organizers (REVERB-challenge@lab.ntt.co.jp)
@@ -39,10 +39,10 @@ else
 end
 
 for i1 = 1 : length(dists)
-  for i2 = 1 : length(rooms)    
+  for i2 = 1 : length(rooms)
     dist = dists{i1};
     room = rooms{i2};
-    
+
     tgtlist = scp_file;
     reflist = cln_scp_file;
 
@@ -82,13 +82,13 @@ for i1 = 1 : length(dists)
       dist   = dists{i1};
       room = rooms{i2};
       typ     = types{i3};
-      
+
       name    = ['et_', dist, '_', room, '_', typ];
-      resfile = fullfile(workdir, name);    
+      resfile = fullfile(workdir, name);
       fid     = fopen(resfile);
       while ~feof(fid)
 	l = fgetl(fid);
-	
+
 	%% CEPSDIST (MEAN)
 	if strfind(l, 'AVG CEPSDIST (MEAN)')
 	  [nul, l]   = strtok(strtrim(l));
@@ -98,7 +98,7 @@ for i1 = 1 : length(dists)
 	  if strcmp(l(1), ':')
 	    l = strtrim(l(2 : end));
 	  end
-	    
+
 	  cd_mean(i1, i2, i3) = str2num(strtrim(strtok(l)));
 	end
 
@@ -111,7 +111,7 @@ for i1 = 1 : length(dists)
 	  if strcmp(l(1), ':')
 	    l = strtrim(l(2 : end));
 	  end
-	    
+
 	  cd_med(i1, i2, i3) = str2num(strtrim(strtok(l)));
 	end
 
@@ -125,8 +125,8 @@ for i1 = 1 : length(dists)
 	  end
 
 	  srmr_mean(i1, i2, i3) = str2num(strtrim(strtok(l)));
-	end      
-	
+	end
+
 	%% LLR (MEAN)
 	if strfind(l, 'AVG LLR      (MEAN)')
 	  [nul, l]   = strtok(strtrim(l));
@@ -139,7 +139,7 @@ for i1 = 1 : length(dists)
 
 	  llr_mean(i1, i2, i3) = str2num(strtrim(strtok(l)));
 	end
-	
+
 	%% LLR (MED)
 	if strfind(l, 'AVG LLR      (MED)')
 	  [nul, l]   = strtok(strtrim(l));
@@ -152,7 +152,7 @@ for i1 = 1 : length(dists)
 
 	  llr_med(i1, i2, i3) = str2num(strtrim(strtok(l)));
 	end
-	
+
 	%% FWSEGSNR (MEAN)
 	if strfind(l, 'AVG FWSEGSNR (MEAN)')
 	  [nul, l]   = strtok(strtrim(l));
@@ -165,7 +165,7 @@ for i1 = 1 : length(dists)
 
 	  snr_mean(i1, i2, i3) = str2num(strtrim(strtok(l)));
 	end
-	
+
 	%% FWSEGSNR (MED)
   	if strfind(l, 'AVG FWSEGSNR (MED)')
 	  [nul, l]   = strtok(strtrim(l));
@@ -179,7 +179,7 @@ for i1 = 1 : length(dists)
 	  snr_med(i1, i2, i3) = str2num(strtrim(strtok(l)));
 	end
       end
-      
+
       %% PESQ
       if exist('pesqdir', 'var')
 	if strfind(l, 'AVG PESQ')
@@ -193,7 +193,7 @@ for i1 = 1 : length(dists)
 	  pesq_mean(i1, i2, i3) = str2num(strtrim(strtok(l)));
 	end
       end
-      
+
       fclose(fid);
     end
   end
@@ -221,7 +221,7 @@ for i1 = 1 : length(dists)
     dist   = dists{i1};
     room = rooms{i2};
     name    = ['et_', dist, '_', room];
-   
+
     for m = 1 : 2
       fprintf(fids(m), '%14s\t', name);
     end
@@ -232,14 +232,14 @@ for i1 = 1 : length(dists)
 	fprintf(fids(m), '%6.2f\t', cd_mean(i1, i2, i3));
       end
     end
-    
+
     for i3 = 1 : length(types)
       typ = types{i3};
       for m = 1 : 2
 	fprintf(fids(m), '%6.2f\t', cd_med(i1, i2, i3));
       end
     end
-    
+
     for m = 1 : 2
       fprintf(fids(m), '\n');
     end
@@ -276,7 +276,7 @@ for i1 = 1 : length(dists)
     dist   = dists{i1};
     room = rooms{i2};
     name    = ['et_', dist, '_', room];
-    
+
     for m = 1 : 2
       fprintf(fids(m), '%14s\t', name);
     end
@@ -287,11 +287,11 @@ for i1 = 1 : length(dists)
 	fprintf(fids(m), '%6.2f\t', srmr_mean(i1, i2, i3));
       end
     end
-    
+
     for m = 1 : 2
       fprintf(fids(m), '     -\t     -\t');
     end
-    
+
     for m = 1 : 2
       fprintf(fids(m), '\n');
     end
@@ -306,7 +306,7 @@ for m = 1 : 2
 %	  mean(mean(srmr_mean(:, :, 1), 1), 2), ...
 %	  mean(mean(srmr_mean(:, :, 2), 1), 2));
   fprintf(fids(m), '======================================\n\n\n');
-end  
+end
 
 
 %% LLR
@@ -317,7 +317,7 @@ for m = 1 : 2
   fprintf(fids(m), '            \t  mean\tmedian\n');
   fprintf(fids(m), '--------------------------------------\n');
   fprintf(fids(m), '            \t   enh\t   enh\n');
-  fprintf(fids(m), '--------------------------------------\n');  
+  fprintf(fids(m), '--------------------------------------\n');
 end
 
 for i1 = 1 : length(dists)
@@ -325,7 +325,7 @@ for i1 = 1 : length(dists)
     dist   = dists{i1};
     room = rooms{i2};
     name    = ['et_', dist, '_', room];
-    
+
     for m = 1 : 2
       fprintf(fids(m), '%14s\t', name);
     end
@@ -336,14 +336,14 @@ for i1 = 1 : length(dists)
 	fprintf(fids(m), '%6.2f\t', llr_mean(i1, i2, i3));
       end
     end
-    
+
     for i3 = 1 : length(types)
       typ = types{i3};
       for m = 1 : 2
 	fprintf(fids(m), '%6.2f\t', llr_med(i1, i2, i3));
       end
     end
-    
+
     for m = 1 : 2
       fprintf(fids(m), '\n');
     end
@@ -360,7 +360,7 @@ for m = 1 : 2
 %	  mean(mean(llr_med(:, :, 1), 1), 2), ...
 %	  mean(mean(llr_med(:, :, 2), 1), 2));
   fprintf(fids(m), '======================================\n\n\n');
-end  
+end
 
 
 %% FWSEGSNR
@@ -379,7 +379,7 @@ for i1 = 1 : length(dists)
     dist   = dists{i1};
     room = rooms{i2};
     name    = ['et_', dist, '_', room];
-    
+
     for m = 1 : 2
       fprintf(fids(m), '%14s\t', name);
     end
@@ -390,14 +390,14 @@ for i1 = 1 : length(dists)
 	fprintf(fids(m), '%6.2f\t', snr_mean(i1, i2, i3));
       end
     end
-    
+
     for i3 = 1 : length(types)
       typ = types{i3};
       for m = 1 : 2
 	fprintf(fids(m), '%6.2f\t', snr_med(i1, i2, i3));
       end
     end
-    
+
     for m = 1 : 2
       fprintf(fids(m), '\n');
     end
@@ -414,7 +414,7 @@ for m = 1 : 2
 %	  mean(mean(snr_med(:, :, 1), 1), 2), ...
 %	  mean(mean(snr_med(:, :, 2), 1), 2));
   fprintf(fids(m), '======================================\n\n\n');
-end  
+end
 
 
 %% SRMR
@@ -438,7 +438,7 @@ for i1 = 1 : length(dists)
     dist   = dists{i1};
     room = rooms{i2};
     name    = ['et_', dist, '_', room];
-    
+
     for m = 1 : 2
       fprintf(fids(m), '%14s\t', name);
     end
@@ -449,11 +449,11 @@ for i1 = 1 : length(dists)
 	fprintf(fids(m), '%6.2f\t', pesq_mean(i1, i2, i3));
       end
     end
-    
+
     for m = 1 : 2
       fprintf(fids(m), '     -\t     -\t');
     end
-    
+
     for m = 1 : 2
       fprintf(fids(m), '\n');
     end
@@ -468,7 +468,7 @@ for m = 1 : 2
 %	  mean(mean(pesq_mean(:, :, 1), 1), 2), ...
 %	  mean(mean(pesq_mean(:, :, 2), 1), 2));
   fprintf(fids(m), '======================================\n\n\n');
-end  
+end
 
 fclose(fid);
 
