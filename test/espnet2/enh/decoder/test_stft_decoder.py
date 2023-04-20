@@ -1,8 +1,11 @@
 import pytest
 import torch
+from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
+
+is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
 
 
 @pytest.mark.parametrize("n_fft", [512])
@@ -60,7 +63,7 @@ def test_STFTDecoder_invalid_type(
         y, ilens = decoder(real, x_lens)
 
 
-@pytest.mark.skipif(not hasattr(torch, "complex32"), reason="torch.complex32 is used")
+@pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")
 @pytest.mark.parametrize("n_fft", [512])
 @pytest.mark.parametrize("win_length", [512])
 @pytest.mark.parametrize("hop_length", [128])
