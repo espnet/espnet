@@ -486,7 +486,7 @@ class XiaoiceSing(AbsSVS):
         tempo = tempo[:, : tempo_lengths.max()]  # for data-parallel
         if self.loss_function == "XiaoiceSing2":
             log_f0 = pitch[:, : pitch_lengths.max()]
-            vuv = (log_f0 != 0)
+            vuv = log_f0 != 0
         batch_size = text.size(0)
 
         label_emb = self.phone_encode_layer(label)
@@ -685,9 +685,9 @@ class XiaoiceSing(AbsSVS):
         # forward decoder
         h_masks = None  # self._source_mask(feats_lengths)
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs, _, _ = self.linear_projection(
-            zs
-        ).split_with_sizes([self.odim * self.reduction_factor, 1, 1], dim=2)
+        before_outs, _, _ = self.linear_projection(zs).split_with_sizes(
+            [self.odim * self.reduction_factor, 1, 1], dim=2
+        )
         before_outs = before_outs.view(zs.size(0), -1, self.odim)  # (B. T_feats, odim)
         # (B, T_feats, odim)
 
