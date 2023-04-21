@@ -198,6 +198,7 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
+<span class="kn">from</span> <span class="nn">torch_complex.tensor</span> <span class="kn">import</span> <span class="n">ComplexTensor</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.stft_decoder</span> <span class="kn">import</span> <span class="n">STFTDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.stft_encoder</span> <span class="kn">import</span> <span class="n">STFTEncoder</span>
@@ -396,29 +397,23 @@
 
 <div class="viewcode-block" id="iNeuBe.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.ineube_separator.iNeuBe.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="nb">input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="nb">input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">],</span>
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">additional</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">ComplexTensor</span><span class="p">]],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            input (torch.Tensor): batched multi-channel audio tensor with</span>
+<span class="sd">            input (torch.Tensor/ComplexTensor): batched multi-channel audio tensor with</span>
 <span class="sd">                    C audio channels and T samples [B, T, C]</span>
 <span class="sd">            ilens (torch.Tensor): input lengths [Batch]</span>
 <span class="sd">            additional (Dict or None): other data, currently unused in this model.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            enhanced (List[Union(torch.Tensor)]):</span>
+<span class="sd">            enhanced (List[Union[torch.Tensor, ComplexTensor]]):</span>
 <span class="sd">                    [(B, T), ...] list of len n_spk</span>
 <span class="sd">                    of mono audio tensors with T samples.</span>
 <span class="sd">            ilens (torch.Tensor): (B,)</span>
-<span class="sd">                others predicted data, e.g. masks: OrderedDict[</span>
-<span class="sd">                    &#39;mask_spk1&#39;: torch.Tensor(Batch, Frames, Freq),</span>
-<span class="sd">                    &#39;mask_spk2&#39;: torch.Tensor(Batch, Frames, Freq),</span>
-<span class="sd">                    ...</span>
-<span class="sd">                    &#39;mask_spkn&#39;: torch.Tensor(Batch, Frames, Freq),</span>
-<span class="sd">                ]</span>
 <span class="sd">            additional (Dict or None): other data, currently unused in this model,</span>
 <span class="sd">                    we return it also in output.</span>
 <span class="sd">        &quot;&quot;&quot;</span>

@@ -195,21 +195,19 @@
   <h1>Source code for espnet2.enh.separator.tfgridnet_separator</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
 <span class="kn">from</span> <span class="nn">torch.nn</span> <span class="kn">import</span> <span class="n">init</span>
 <span class="kn">from</span> <span class="nn">torch.nn.parameter</span> <span class="kn">import</span> <span class="n">Parameter</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.stft_decoder</span> <span class="kn">import</span> <span class="n">STFTDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.stft_encoder</span> <span class="kn">import</span> <span class="n">STFTEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.layers.complex_utils</span> <span class="kn">import</span> <span class="n">new_complex_like</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.separator.abs_separator</span> <span class="kn">import</span> <span class="n">AbsSeparator</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.get_layer_from_string</span> <span class="kn">import</span> <span class="n">get_layer</span>
-
-<span class="n">is_torch_1_9_plus</span> <span class="o">=</span> <span class="n">V</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">V</span><span class="p">(</span><span class="s2">&quot;1.9.0&quot;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="TFGridNet"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.tfgridnet_separator.TFGridNet">[docs]</a><span class="k">class</span> <span class="nc">TFGridNet</span><span class="p">(</span><span class="n">AbsSeparator</span><span class="p">):</span>
@@ -247,6 +245,7 @@
 <span class="sd">        activation: activation function to use in the whole TFGridNet model,</span>
 <span class="sd">            you can use any torch supported activation e.g. &#39;relu&#39; or &#39;elu&#39;.</span>
 <span class="sd">        eps: small epsilon for normalization layers.</span>
+<span class="sd">        use_builtin_complex: whether to use builtin complex type or not.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -266,19 +265,18 @@
         <span class="n">emb_hs</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">activation</span><span class="o">=</span><span class="s2">&quot;prelu&quot;</span><span class="p">,</span>
         <span class="n">eps</span><span class="o">=</span><span class="mf">1.0e-5</span><span class="p">,</span>
+        <span class="n">use_builtin_complex</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="k">assert</span> <span class="n">is_torch_1_9_plus</span><span class="p">,</span> <span class="p">(</span>
-            <span class="s2">&quot;TFGridNet model requires torch&gt;=1.9.0, &quot;</span>
-            <span class="s2">&quot;please install latest torch version.&quot;</span>
-        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_srcs</span> <span class="o">=</span> <span class="n">n_srcs</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_layers</span> <span class="o">=</span> <span class="n">n_layers</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_imics</span> <span class="o">=</span> <span class="n">n_imics</span>
         <span class="k">assert</span> <span class="n">n_fft</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span>
         <span class="n">n_freqs</span> <span class="o">=</span> <span class="n">n_fft</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">1</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">STFTEncoder</span><span class="p">(</span><span class="n">n_fft</span><span class="p">,</span> <span class="n">n_fft</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc</span> <span class="o">=</span> <span class="n">STFTEncoder</span><span class="p">(</span>
+            <span class="n">n_fft</span><span class="p">,</span> <span class="n">n_fft</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">use_builtin_complex</span><span class="o">=</span><span class="n">use_builtin_complex</span>
+        <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dec</span> <span class="o">=</span> <span class="n">STFTDecoder</span><span class="p">(</span><span class="n">n_fft</span><span class="p">,</span> <span class="n">n_fft</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">)</span>
 
         <span class="n">t_ksize</span> <span class="o">=</span> <span class="mi">3</span>
@@ -308,10 +306,10 @@
 
 <div class="viewcode-block" id="TFGridNet.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.tfgridnet_separator.TFGridNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="nb">input</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">additional</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">]:</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
 <span class="sd">        Args:</span>
@@ -337,8 +335,8 @@
         <span class="nb">input</span> <span class="o">=</span> <span class="nb">input</span> <span class="o">/</span> <span class="n">mix_std_</span>  <span class="c1"># RMS normalization</span>
 
         <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># [B, T, M, F]</span>
-        <span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># [B, M, T, F]</span>
-        <span class="n">batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">batch</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">batch</span><span class="o">.</span><span class="n">imag</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [B, 2*M, T, F]</span>
+        <span class="n">batch0</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>  <span class="c1"># [B, M, T, F]</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">batch0</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">batch0</span><span class="o">.</span><span class="n">imag</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [B, 2*M, T, F]</span>
         <span class="n">n_batch</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">n_frames</span><span class="p">,</span> <span class="n">n_freqs</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">shape</span>
 
         <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>  <span class="c1"># [B, -1, T, F]</span>
@@ -349,7 +347,7 @@
         <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">deconv</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>  <span class="c1"># [B, n_srcs*2, T, F]</span>
 
         <span class="n">batch</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">view</span><span class="p">([</span><span class="n">n_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_srcs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">n_frames</span><span class="p">,</span> <span class="n">n_freqs</span><span class="p">])</span>
-        <span class="n">batch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">complex</span><span class="p">(</span><span class="n">batch</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">batch</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1"># [B, n_srcs, T, F]</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">new_complex_like</span><span class="p">(</span><span class="n">batch0</span><span class="p">,</span> <span class="p">(</span><span class="n">batch</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">batch</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]))</span>
 
         <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n_frames</span><span class="p">,</span> <span class="n">n_freqs</span><span class="p">),</span> <span class="n">ilens</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># [B, n_srcs, -1]</span>
 

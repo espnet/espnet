@@ -1359,37 +1359,31 @@ you can use any torch supported activation e.g. ‘relu’ or ‘elu’.</p></li
 </dl>
 <dl class="method">
 <dt id="espnet2.enh.separator.ineube_separator.iNeuBe.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">additional: Optional[Dict] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[List[torch.Tensor], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/ineube_separator.html#iNeuBe.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.ineube_separator.iNeuBe.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: Union[torch.Tensor, torch_complex.tensor.ComplexTensor], ilens: torch.Tensor, additional: Optional[Dict] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[List[Union[torch.Tensor, torch_complex.tensor.ComplexTensor]], torch.Tensor, collections.OrderedDict]<a class="reference internal" href="../_modules/espnet2/enh/separator/ineube_separator.html#iNeuBe.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.ineube_separator.iNeuBe.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>input</strong> (<em>torch.Tensor</em>) – batched multi-channel audio tensor with
+<li><p><strong>input</strong> (<em>torch.Tensor/ComplexTensor</em>) – batched multi-channel audio tensor with
 C audio channels and T samples [B, T, C]</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
 <li><p><strong>additional</strong> (<em>Dict</em><em> or </em><em>None</em>) – other data, currently unused in this model.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><dl>
+<dd class="field-even"><p><dl class="simple">
 <dt>[(B, T), …] list of len n_spk</dt><dd><p>of mono audio tensors with T samples.</p>
 </dd>
-<dt>ilens (torch.Tensor): (B,)</dt><dd><dl class="simple">
-<dt>others predicted data, e.g. masks: OrderedDict[</dt><dd><p>‘mask_spk1’: torch.Tensor(Batch, Frames, Freq),
-‘mask_spk2’: torch.Tensor(Batch, Frames, Freq),
-…
-‘mask_spkn’: torch.Tensor(Batch, Frames, Freq),</p>
-</dd>
 </dl>
-<p>]</p>
-</dd>
-<dt>additional (Dict or None): other data, currently unused in this model,</dt><dd><p>we return it also in output.</p>
-</dd>
-</dl>
+<p>ilens (torch.Tensor): (B,)
+additional (Dict or None): other data, currently unused in this model,</p>
+<blockquote>
+<div><p>we return it also in output.</p>
+</div></blockquote>
 </p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>enhanced (List[Union(torch.Tensor)])</p>
+<dd class="field-odd"><p>enhanced (List[Union[torch.Tensor, ComplexTensor]])</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1526,7 +1520,7 @@ registered hooks while the latter silently ignores them.</p>
 
 <dl class="class">
 <dt id="espnet2.enh.separator.tfgridnet_separator.TFGridNet">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnet_separator.</code><code class="sig-name descname">TFGridNet</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">n_srcs=2</em>, <em class="sig-param">n_fft=128</em>, <em class="sig-param">stride=64</em>, <em class="sig-param">window='hann'</em>, <em class="sig-param">n_imics=1</em>, <em class="sig-param">n_layers=6</em>, <em class="sig-param">lstm_hidden_units=192</em>, <em class="sig-param">attn_n_head=4</em>, <em class="sig-param">attn_approx_qk_dim=512</em>, <em class="sig-param">emb_dim=48</em>, <em class="sig-param">emb_ks=4</em>, <em class="sig-param">emb_hs=1</em>, <em class="sig-param">activation='prelu'</em>, <em class="sig-param">eps=1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#TFGridNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.TFGridNet" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.separator.tfgridnet_separator.</code><code class="sig-name descname">TFGridNet</code><span class="sig-paren">(</span><em class="sig-param">input_dim</em>, <em class="sig-param">n_srcs=2</em>, <em class="sig-param">n_fft=128</em>, <em class="sig-param">stride=64</em>, <em class="sig-param">window='hann'</em>, <em class="sig-param">n_imics=1</em>, <em class="sig-param">n_layers=6</em>, <em class="sig-param">lstm_hidden_units=192</em>, <em class="sig-param">attn_n_head=4</em>, <em class="sig-param">attn_approx_qk_dim=512</em>, <em class="sig-param">emb_dim=48</em>, <em class="sig-param">emb_ks=4</em>, <em class="sig-param">emb_hs=1</em>, <em class="sig-param">activation='prelu'</em>, <em class="sig-param">eps=1e-05</em>, <em class="sig-param">use_builtin_complex=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tfgridnet_separator.html#TFGridNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tfgridnet_separator.TFGridNet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.separator.abs_separator.AbsSeparator" title="espnet2.enh.separator.abs_separator.AbsSeparator"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.separator.abs_separator.AbsSeparator</span></code></a></p>
 <p>Offline TFGridNet</p>
 <p>Reference:
@@ -1561,6 +1555,7 @@ scale-invariant loss functions such as SI-SDR.</p>
 <li><p><strong>activation</strong> – activation function to use in the whole TFGridNet model,
 you can use any torch supported activation e.g. ‘relu’ or ‘elu’.</p></li>
 <li><p><strong>eps</strong> – small epsilon for normalization layers.</p></li>
+<li><p><strong>use_builtin_complex</strong> – whether to use builtin complex type or not.</p></li>
 </ul>
 </dd>
 </dl>
@@ -3063,7 +3058,7 @@ others: dict, in this PIT solver, permutation order will be returned</p>
 <span id="espnet2-enh-loss-wrappers-multilayer-pit-solver"></span><h2>espnet2.enh.loss.wrappers.multilayer_pit_solver<a class="headerlink" href="#espnet2-enh-loss-wrappers-multilayer-pit-solver-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.loss.wrappers.multilayer_pit_solver"></span><dl class="class">
 <dt id="espnet2.enh.loss.wrappers.multilayer_pit_solver.MultiLayerPITSolver">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.wrappers.multilayer_pit_solver.</code><code class="sig-name descname">MultiLayerPITSolver</code><span class="sig-paren">(</span><em class="sig-param">criterion: espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</em>, <em class="sig-param">weight=1.0</em>, <em class="sig-param">independent_perm=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/wrappers/multilayer_pit_solver.html#MultiLayerPITSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.wrappers.multilayer_pit_solver.MultiLayerPITSolver" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.loss.wrappers.multilayer_pit_solver.</code><code class="sig-name descname">MultiLayerPITSolver</code><span class="sig-paren">(</span><em class="sig-param">criterion: espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss</em>, <em class="sig-param">weight=1.0</em>, <em class="sig-param">independent_perm=True</em>, <em class="sig-param">layer_weights=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/loss/wrappers/multilayer_pit_solver.html#MultiLayerPITSolver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.loss.wrappers.multilayer_pit_solver.MultiLayerPITSolver" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper" title="espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper</span></code></a></p>
 <p>Multi-Layer Permutation Invariant Training Solver.</p>
 <p>Compute the PIT loss given inferences of multiple layers and a single reference.
@@ -3079,6 +3074,9 @@ If False, the permutation from the last LossWrapper output will be
 inherited.
 Note: You should be careful about the ordering of loss
 wrappers defined in the yaml config, if this argument is False.</p></li>
+<li><p><strong>layer_weights</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>float</em><em>]</em><em>]</em>) – weights for each layer
+If not None, the loss of each layer will be weighted-summed using the
+specified weights.</p></li>
 </ul>
 </dd>
 </dl>
