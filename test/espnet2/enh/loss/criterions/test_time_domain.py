@@ -1,5 +1,6 @@
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.enh.loss.criterions.time_domain import (
     CISDRLoss,
@@ -11,11 +12,13 @@ from espnet2.enh.loss.criterions.time_domain import (
     TimeDomainMSE,
 )
 
+is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
+
 
 @pytest.mark.parametrize(
     "criterion_class", [CISDRLoss, SISNRLoss, SNRLoss, SDRLoss, MultiResL1SpecLoss]
 )
-def test_tf_domain_criterion_forward(criterion_class):
+def test_time_domain_criterion_forward(criterion_class):
     criterion = criterion_class()
 
     batch = 2
@@ -28,7 +31,7 @@ def test_tf_domain_criterion_forward(criterion_class):
 
 @pytest.mark.parametrize("criterion_class", [TimeDomainL1, TimeDomainMSE])
 @pytest.mark.parametrize("input_ch", [1, 2])
-def test_tf_domain_l1_l2_forward(criterion_class, input_ch):
+def test_time_domain_l1_l2_forward(criterion_class, input_ch):
     criterion = criterion_class()
 
     batch = 2
@@ -44,3 +47,22 @@ def test_tf_domain_l1_l2_forward(criterion_class, input_ch):
             loss = criterion(ref[..., None, None], inf[..., None, None])
         else:
             loss = criterion(ref[..., None], inf[..., None])
+
+
+@pytest.mark.parametrize("window_sz", [[512], [256, 512]])
+@pytest.mark.parametrize("time_domain_weight", [0.5])
+@pytest.mark.parametrize("dtype", [torch.float16, torch.float32])
+def test_multi_res_l1_spec_loss_forward_backward(window_sz, time_domain_weight, dtype):
+    if dtype == torch.float16 and not is_torch_1_12_1_plus:
+        pytest.skip("Skip tests for dtype=torch.float16 due to lack of torch.complex32")
+    criterion = MultiResL1SpecLoss(
+        window_sz=window_sz, time_domain_weight=time_domain_weight
+    )
+
+    batch = 2
+    inf = torch.rand(batch, 2000, dtype=dtype, requires_grad=True)
+    ref = torch.rand(batch, 2000, dtype=dtype)
+
+    loss = criterion(ref, inf)
+    loss.sum().backward()
+    assert loss.shape == (batch,), "Invlid loss shape with " + criterion.name
