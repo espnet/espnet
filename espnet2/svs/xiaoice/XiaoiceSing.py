@@ -485,7 +485,8 @@ class XiaoiceSing(AbsSVS):
         label = label[:, : label_lengths.max()]  # for data-parallel
         tempo = tempo[:, : tempo_lengths.max()]  # for data-parallel
         if self.loss_function == "XiaoiceSing2":
-            log_f0 = pitch[:, : pitch_lengths.max()]
+            pitch = pitch[:, : pitch_lengths.max()]
+            log_f0 = torch.clamp(pitch, min = 0)
             vuv = log_f0 != 0
         batch_size = text.size(0)
 
