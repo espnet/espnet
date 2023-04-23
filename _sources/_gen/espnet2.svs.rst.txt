@@ -81,6 +81,17 @@ espnet2.svs.xiaoice.XiaoiceSing
     :show-inheritance:
 
 
+.. _espnet2.svs.xiaoice.loss:
+
+espnet2.svs.xiaoice.loss
+------------------------
+
+.. automodule:: espnet2.svs.xiaoice.loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.svs.naive_rnn.naive_rnn_dp:
 
 espnet2.svs.naive_rnn.naive_rnn_dp

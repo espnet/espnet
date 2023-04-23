@@ -278,6 +278,8 @@
         <span class="n">duration_ruled_phn_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">duration_syb</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">duration_syb_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slur</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slur_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -306,6 +308,8 @@
 <span class="sd">            duration_ruled_phn_lengths (Optional[Tensor]): duration length tensor (B,).</span>
 <span class="sd">            duration_syb (Optional[Tensor]): duration tensor (B, T_syllable).</span>
 <span class="sd">            duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).</span>
+<span class="sd">            slur (Optional[Tensor]): slur tensor (B, T_slur).</span>
+<span class="sd">            slur_lengths (Optional[Tensor]): slur length tensor (B,).</span>
 <span class="sd">            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence</span>
 <span class="sd">            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).</span>
 <span class="sd">            energy (Optional[Tensor]): Energy tensor.</span>
@@ -410,6 +414,7 @@
                     <span class="p">:,</span> <span class="p">:</span> <span class="n">duration_score_phn_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
                 <span class="p">]</span>
                 <span class="n">duration_score_syb</span> <span class="o">=</span> <span class="n">duration_syb</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">duration_score_syb_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+                <span class="n">slur</span> <span class="o">=</span> <span class="n">slur</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">slur_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span><span class="p">(</span>
@@ -488,6 +493,8 @@
             <span class="n">duration_lengths</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">score_syb</span><span class="o">=</span><span class="n">duration_score_syb_lengths</span><span class="p">)</span>
         <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">duration</span><span class="o">=</span><span class="n">duration</span><span class="p">,</span> <span class="n">duration_lengths</span><span class="o">=</span><span class="n">duration_lengths</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">slur</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">slur</span><span class="o">=</span><span class="n">slur</span><span class="p">,</span> <span class="n">slur_lengths</span><span class="o">=</span><span class="n">slur_lengths</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">batch</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">spembs</span><span class="o">=</span><span class="n">spembs</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">sids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -519,6 +526,8 @@
         <span class="n">duration_ruled_phn_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">duration_syb</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">duration_syb_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slur</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slur_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -547,6 +556,8 @@
 <span class="sd">            duration_ruled_phn_lengths (Optional[Tensor]): duration length tensor (B,).</span>
 <span class="sd">            duration_syb (Optional[Tensor]): duration tensor (B, T_syb).</span>
 <span class="sd">            duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).</span>
+<span class="sd">            slur (Optional[Tensor]): slur tensor (B, T_slur).</span>
+<span class="sd">            slur_lengths (Optional[Tensor]): slur length tensor (B,).</span>
 <span class="sd">            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence</span>
 <span class="sd">            pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).</span>
 <span class="sd">            energy (Optional[Tensor): Energy tensor.</span>
@@ -617,6 +628,7 @@
         <span class="n">duration_phn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">duration_ruled_phn</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">duration_syb</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slur</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">energy</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -635,6 +647,7 @@
 <span class="sd">            duration_phn (Optional[Tensor]): duration tensor (T_label).</span>
 <span class="sd">            duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).</span>
 <span class="sd">            duration_syb (Optional[Tensor]): duration tensor (T_phone).</span>
+<span class="sd">            slur (Optional[Tensor]): slur tensor (T_phone).</span>
 <span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (D,).</span>
 <span class="sd">            sids (Optional[Tensor]): Speaker ID tensor (1,).</span>
 <span class="sd">            lids (Optional[Tensor]): Language ID tensor (1,).</span>
@@ -649,6 +662,7 @@
         <span class="n">duration_phn_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">duration_phn</span><span class="p">)])</span>
         <span class="n">duration_ruled_phn_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">duration_ruled_phn</span><span class="p">)])</span>
         <span class="n">duration_syb_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">duration_syb</span><span class="p">)])</span>
+        <span class="n">slur_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">slur</span><span class="p">)])</span>
 
         <span class="c1"># unsqueeze of singing needed otherwise causing error in STFT dimension</span>
         <span class="c1"># for data-parallel</span>
@@ -660,6 +674,7 @@
         <span class="n">duration_ruled_phn</span> <span class="o">=</span> <span class="n">duration_ruled_phn</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">duration_syb</span> <span class="o">=</span> <span class="n">duration_syb</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="n">phn_cnt</span> <span class="o">=</span> <span class="n">phn_cnt</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">slur</span> <span class="o">=</span> <span class="n">slur</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
         <span class="c1"># Extract auxiliary features</span>
         <span class="c1"># melody : 128 midi pitch</span>
@@ -716,6 +731,7 @@
             <span class="n">midi_score</span> <span class="o">=</span> <span class="n">midi</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
             <span class="n">duration_score</span> <span class="o">=</span> <span class="n">duration_ruled_phn</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">duration_ruled_phn_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
             <span class="n">duration_score_syb</span> <span class="o">=</span> <span class="n">duration_syb</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">duration_syb_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+            <span class="n">slur</span> <span class="o">=</span> <span class="n">slur</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">slur_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
 
         <span class="n">input_dict</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">text</span><span class="o">=</span><span class="n">text</span><span class="p">)</span>
 
@@ -752,6 +768,8 @@
             <span class="n">duration</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">score_syb</span><span class="o">=</span><span class="n">duration_syb_score</span><span class="p">)</span>
         <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">duration</span><span class="o">=</span><span class="n">duration</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">slur</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">slur</span><span class="o">=</span><span class="n">slur</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">input_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">pitch</span><span class="o">=</span><span class="n">pitch</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>

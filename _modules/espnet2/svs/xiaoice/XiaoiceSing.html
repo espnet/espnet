@@ -207,6 +207,7 @@
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.svs.abs_svs</span> <span class="kn">import</span> <span class="n">AbsSVS</span>
+<span class="kn">from</span> <span class="nn">espnet2.svs.xiaoice.loss</span> <span class="kn">import</span> <span class="n">XiaoiceSing2Loss</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
@@ -302,7 +303,12 @@
         <span class="n">init_dec_alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">loss_function</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;XiaoiceSing2&quot;</span><span class="p">,</span>  <span class="c1"># FastSpeech1, XiaoiceSing2</span>
         <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;L1&quot;</span><span class="p">,</span>
+        <span class="n">lambda_mel</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">lambda_dur</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">lambda_pitch</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
+        <span class="n">lambda_vuv</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.01</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize XiaoiceSing module.</span>
 
@@ -362,6 +368,13 @@
 <span class="sd">                calculation.</span>
 <span class="sd">            use_weighted_masking (bool): Whether to apply weighted masking in loss</span>
 <span class="sd">                calculation.</span>
+<span class="sd">            loss_function (str): Loss functions (&quot;FastSpeech1&quot; or &quot;XiaoiceSing2&quot;)</span>
+<span class="sd">            loss_type (str): Loss type (&quot;L1&quot; (MAE) or &quot;L2&quot; (MSE))</span>
+<span class="sd">            lambda_mel (float): Loss scaling coefficient for Mel loss.</span>
+<span class="sd">            lambda_dur (float): Loss scaling coefficient for duration loss.</span>
+<span class="sd">            lambda_pitch (float): Loss scaling coefficient for pitch loss.</span>
+<span class="sd">            lambda_vuv (float): Loss scaling coefficient for VUV loss.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -377,7 +390,12 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">encoder_type</span> <span class="o">=</span> <span class="n">encoder_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder_type</span> <span class="o">=</span> <span class="n">decoder_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span> <span class="o">=</span> <span class="n">use_scaled_pos_enc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span> <span class="o">=</span> <span class="n">loss_function</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span> <span class="o">=</span> <span class="n">loss_type</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_mel</span> <span class="o">=</span> <span class="n">lambda_mel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_dur</span> <span class="o">=</span> <span class="n">lambda_dur</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_pitch</span> <span class="o">=</span> <span class="n">lambda_pitch</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lambda_vuv</span> <span class="o">=</span> <span class="n">lambda_vuv</span>
 
         <span class="c1"># use idx 0 as padding idx</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span> <span class="o">=</span> <span class="mi">0</span>
@@ -547,7 +565,7 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">decoder_type</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span><span class="p">)</span>
 
         <span class="c1"># define final projection</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">adim</span><span class="p">,</span> <span class="n">odim</span> <span class="o">*</span> <span class="n">reduction_factor</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">linear_projection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">adim</span><span class="p">,</span> <span class="n">odim</span> <span class="o">*</span> <span class="n">reduction_factor</span> <span class="o">+</span> <span class="mi">2</span><span class="p">)</span>
 
         <span class="c1"># define postnet</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="o">=</span> <span class="p">(</span>
@@ -572,9 +590,16 @@
         <span class="p">)</span>
 
         <span class="c1"># define criterions</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">XiaoiceSingLoss</span><span class="p">(</span>
-            <span class="n">use_masking</span><span class="o">=</span><span class="n">use_masking</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="o">=</span><span class="n">use_weighted_masking</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span> <span class="o">==</span> <span class="s2">&quot;FastSpeech1&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">XiaoiceSingLoss</span><span class="p">(</span>
+                <span class="n">use_masking</span><span class="o">=</span><span class="n">use_masking</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="o">=</span><span class="n">use_weighted_masking</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span> <span class="o">==</span> <span class="s2">&quot;XiaoiceSing2&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span> <span class="o">=</span> <span class="n">XiaoiceSing2Loss</span><span class="p">(</span>
+                <span class="n">use_masking</span><span class="o">=</span><span class="n">use_masking</span><span class="p">,</span> <span class="n">use_weighted_masking</span><span class="o">=</span><span class="n">use_weighted_masking</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span><span class="si">}</span><span class="s2"> is not supported.&quot;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="XiaoiceSing.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.svs.html#espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -590,6 +615,8 @@
         <span class="n">pitch_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">duration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">duration_lengths</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slur</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slur_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -617,6 +644,8 @@
 <span class="sd">                value (LongTensor): Batch of padded duration (B, Tmax).</span>
 <span class="sd">            duration_length (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
 <span class="sd">                value (LongTensor): Batch of the lengths of padded duration (B, ).</span>
+<span class="sd">            slur (LongTensor): Batch of padded slur (B, Tmax).</span>
+<span class="sd">            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).</span>
 <span class="sd">            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).</span>
 <span class="sd">            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).</span>
 <span class="sd">            lids (Optional[Tensor]): Batch of language IDs (B, 1).</span>
@@ -650,7 +679,10 @@
         <span class="n">midi</span> <span class="o">=</span> <span class="n">midi</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">label_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">tempo</span> <span class="o">=</span> <span class="n">tempo</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">tempo_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
-
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span> <span class="o">==</span> <span class="s2">&quot;XiaoiceSing2&quot;</span><span class="p">:</span>
+            <span class="n">pitch</span> <span class="o">=</span> <span class="n">pitch</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">pitch_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+            <span class="n">log_f0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">pitch</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">vuv</span> <span class="o">=</span> <span class="n">log_f0</span> <span class="o">!=</span> <span class="mi">0</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
         <span class="n">label_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phone_encode_layer</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
@@ -682,9 +714,10 @@
         <span class="c1"># forward decoder</span>
         <span class="n">h_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_mask</span><span class="p">(</span><span class="n">feats_lengths</span><span class="p">)</span>
         <span class="n">zs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>  <span class="c1"># (B, T_feats, adim)</span>
-        <span class="n">before_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
-            <span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span>
-        <span class="p">)</span>  <span class="c1"># (B, T_feats, odim)</span>
+        <span class="n">before_outs</span><span class="p">,</span> <span class="n">log_f0_outs</span><span class="p">,</span> <span class="n">vuv_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_projection</span><span class="p">(</span>
+            <span class="n">zs</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">split_with_sizes</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">before_outs</span> <span class="o">=</span> <span class="n">before_outs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">)</span>  <span class="c1"># (B. T_feats, odim)</span>
 
         <span class="c1"># postnet -&gt; (B, Lmax//r * r, odim)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -704,21 +737,45 @@
             <span class="p">)</span>
             <span class="n">max_olen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">olens</span><span class="p">)</span>
             <span class="n">ys</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_olen</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span> <span class="o">==</span> <span class="s2">&quot;XiaoiceSing2&quot;</span><span class="p">:</span>
+                <span class="n">log_f0</span> <span class="o">=</span> <span class="n">log_f0</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_olen</span><span class="p">]</span>
+                <span class="n">vuv</span> <span class="o">=</span> <span class="n">vuv</span><span class="p">[:,</span> <span class="p">:</span><span class="n">max_olen</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">ys</span> <span class="o">=</span> <span class="n">feats</span>
             <span class="n">olens</span> <span class="o">=</span> <span class="n">feats_lengths</span>
 
         <span class="n">ilens</span> <span class="o">=</span> <span class="n">label_lengths</span>
-        <span class="n">l1_loss</span><span class="p">,</span> <span class="n">duration_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span>
-            <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">olens</span>
-        <span class="p">)</span>
-        <span class="n">loss</span> <span class="o">=</span> <span class="n">l1_loss</span> <span class="o">+</span> <span class="n">duration_loss</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span> <span class="o">==</span> <span class="s2">&quot;FastSpeech1&quot;</span><span class="p">:</span>
+            <span class="n">mel_loss</span><span class="p">,</span> <span class="n">duration_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span>
+                <span class="n">after_outs</span><span class="p">,</span> <span class="n">before_outs</span><span class="p">,</span> <span class="n">d_outs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">olens</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span> <span class="o">==</span> <span class="s2">&quot;XiaoiceSing2&quot;</span><span class="p">:</span>
+            <span class="n">mel_loss</span><span class="p">,</span> <span class="n">duration_loss</span><span class="p">,</span> <span class="n">pitch_loss</span><span class="p">,</span> <span class="n">vuv_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion</span><span class="p">(</span>
+                <span class="n">after_outs</span><span class="o">=</span><span class="n">after_outs</span><span class="p">,</span>
+                <span class="n">before_outs</span><span class="o">=</span><span class="n">before_outs</span><span class="p">,</span>
+                <span class="n">d_outs</span><span class="o">=</span><span class="n">d_outs</span><span class="p">,</span>
+                <span class="n">p_outs</span><span class="o">=</span><span class="n">log_f0_outs</span><span class="p">,</span>
+                <span class="n">v_outs</span><span class="o">=</span><span class="n">vuv_outs</span><span class="p">,</span>
+                <span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span>
+                <span class="n">ds</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span>
+                <span class="n">ps</span><span class="o">=</span><span class="n">log_f0</span><span class="p">,</span>
+                <span class="n">vs</span><span class="o">=</span><span class="n">vuv</span><span class="p">,</span>
+                <span class="n">ilens</span><span class="o">=</span><span class="n">ilens</span><span class="p">,</span>
+                <span class="n">olens</span><span class="o">=</span><span class="n">olens</span><span class="p">,</span>
+                <span class="n">loss_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">loss_type</span><span class="p">,</span>
+            <span class="p">)</span>
 
-        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-            <span class="n">l1_loss</span><span class="o">=</span><span class="n">l1_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-            <span class="n">duration_loss</span><span class="o">=</span><span class="n">duration_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
-        <span class="p">)</span>
+        <span class="n">mel_loss</span> <span class="o">=</span> <span class="n">mel_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_mel</span>
+        <span class="n">duration_loss</span> <span class="o">=</span> <span class="n">duration_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_dur</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">mel_loss</span> <span class="o">+</span> <span class="n">duration_loss</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">mel_loss</span><span class="o">=</span><span class="n">mel_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span> <span class="n">duration_loss</span><span class="o">=</span><span class="n">duration_loss</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span> <span class="o">==</span> <span class="s2">&quot;XiaoiceSing2&quot;</span><span class="p">:</span>
+            <span class="n">pitch_loss</span> <span class="o">=</span> <span class="n">pitch_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_pitch</span>
+            <span class="n">vuv_loss</span> <span class="o">=</span> <span class="n">vuv_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_vuv</span>
+            <span class="n">loss</span> <span class="o">+=</span> <span class="n">pitch_loss</span> <span class="o">+</span> <span class="n">vuv_loss</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;pitch_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">pitch_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;vuv_loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vuv_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
 
         <span class="c1"># report extra information</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_type</span> <span class="o">==</span> <span class="s2">&quot;transformer&quot;</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_scaled_pos_enc</span><span class="p">:</span>
@@ -748,9 +805,11 @@
         <span class="n">melody</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">duration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slur</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">joint_training</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate the sequence of features given the sequences of characters.</span>
@@ -766,6 +825,7 @@
 <span class="sd">            pitch (FloatTensor): Batch of padded f0 (B, Tmax).</span>
 <span class="sd">            duration (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
 <span class="sd">                value (LongTensor): Batch of padded duration (Tmax).</span>
+<span class="sd">            slur (LongTensor): Batch of padded slur (B, Tmax).</span>
 <span class="sd">            spembs (Optional[Tensor]): Speaker embedding (spk_embed_dim,).</span>
 <span class="sd">            sids (Optional[Tensor]): Speaker ID (1,).</span>
 <span class="sd">            lids (Optional[Tensor]): Language ID (1,).</span>
@@ -782,7 +842,7 @@
         <span class="k">if</span> <span class="n">joint_training</span><span class="p">:</span>
             <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lscore_phn&quot;</span><span class="p">]</span>
+            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
         <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
 
         <span class="n">label_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phone_encode_layer</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
@@ -821,9 +881,11 @@
         <span class="c1"># forward decoder</span>
         <span class="n">h_masks</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># self._source_mask(feats_lengths)</span>
         <span class="n">zs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>  <span class="c1"># (B, T_feats, adim)</span>
-        <span class="n">before_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span>
-            <span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span>
-        <span class="p">)</span>  <span class="c1"># (B, T_feats, odim)</span>
+        <span class="n">before_outs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_projection</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">split_with_sizes</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">2</span>
+        <span class="p">)</span>
+        <span class="n">before_outs</span> <span class="o">=</span> <span class="n">before_outs</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">)</span>  <span class="c1"># (B. T_feats, odim)</span>
+        <span class="c1"># (B, T_feats, odim)</span>
 
         <span class="c1"># postnet -&gt; (B, Lmax//r * r, odim)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>

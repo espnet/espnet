@@ -1284,6 +1284,7 @@
             <span class="n">duration_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
             <span class="n">duration_ruled_phn</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
             <span class="n">duration_syb</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
+            <span class="n">slur</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">lab_len</span><span class="p">))</span>
             <span class="c1"># Load score info</span>
             <span class="n">tempo</span><span class="p">,</span> <span class="n">syb_info</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">midi_name</span><span class="p">]</span>
             <span class="n">phn_cnt</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1317,6 +1318,10 @@
                     <span class="n">duration_phn</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">_duration_phn</span>
                     <span class="n">duration_ruled_phn</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">_duration_ruled_phn</span>
                     <span class="n">duration_syb</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="n">_duration_syb</span>
+                    <span class="k">if</span> <span class="n">syb</span> <span class="o">==</span> <span class="s2">&quot;—&quot;</span><span class="p">:</span>
+                        <span class="n">slur</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">slur</span><span class="p">[</span><span class="n">index_lab</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
                     <span class="n">index_lab</span> <span class="o">+=</span> <span class="mi">1</span>
 
             <span class="k">assert</span> <span class="n">index_lab</span> <span class="o">==</span> <span class="n">lab_len</span>
@@ -1329,6 +1334,7 @@
             <span class="n">duration_syb</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
             <span class="n">duration_ruled_phn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
             <span class="n">phn_cnt</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="n">slur</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;label&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">label</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;midi&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">midi</span>
@@ -1336,6 +1342,7 @@
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;duration_ruled_phn&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duration_ruled_phn</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;duration_syb&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">duration_syb</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;phn_cnt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">phn_cnt</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;slur&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">slur</span>
 
         <span class="c1"># TODO(Yuning): Add score from midi</span>
 

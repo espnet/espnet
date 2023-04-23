@@ -548,12 +548,31 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform generator forward.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            text (Tensor): Text index tensor (B, T_text).</span>
-<span class="sd">            text_lengths (Tensor): Text length tensor (B,).</span>
-<span class="sd">            feats (Tensor): Feature tensor (B, T_feats, aux_channels).</span>
-<span class="sd">            feats_lengths (Tensor): Feature length tensor (B,).</span>
-<span class="sd">            speech (Tensor): Speech waveform tensor (B, T_wav).</span>
-<span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
+<span class="sd">            text (LongTensor): Batch of padded character ids (B, Tmax).</span>
+<span class="sd">            text_lengths (LongTensor): Batch of lengths of each input batch (B,).</span>
+<span class="sd">            feats (Tensor): Batch of padded target features (B, Lmax, odim).</span>
+<span class="sd">            feats_lengths (LongTensor): Batch of the lengths of each target (B,).</span>
+<span class="sd">            singing (Tensor): Singing waveform tensor (B, T_wav).</span>
+<span class="sd">            singing_lengths (Tensor): Singing length tensor (B,).</span>
+<span class="sd">            label (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded label ids (B, Tmax).</span>
+<span class="sd">            label_lengths (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded label ids (B, ).</span>
+<span class="sd">            melody (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded melody (B, Tmax).</span>
+<span class="sd">            melody_lengths (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded melody (B, ).</span>
+<span class="sd">            pitch (FloatTensor): Batch of padded f0 (B, Tmax).</span>
+<span class="sd">            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).</span>
+<span class="sd">            duration (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded duration (B, Tmax).</span>
+<span class="sd">            duration_length (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded duration (B, ).</span>
+<span class="sd">            slur (FloatTensor): Batch of padded slur (B, Tmax).</span>
+<span class="sd">            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).</span>
+<span class="sd">            spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).</span>
+<span class="sd">            sids (Optional[Tensor]): Batch of speaker IDs (B, 1).</span>
+<span class="sd">            lids (Optional[Tensor]): Batch of language IDs (B, 1).</span>
 <span class="sd">            forward_generator (bool): Whether to forward generator.</span>
 
 <span class="sd">        Returns:</span>
@@ -643,8 +662,31 @@
 <span class="sd">            text_lengths (Tensor): Text length tensor (B,).</span>
 <span class="sd">            feats (Tensor): Feature tensor (B, T_feats, aux_channels).</span>
 <span class="sd">            feats_lengths (Tensor): Feature length tensor (B,).</span>
-<span class="sd">            speech (Tensor): Speech waveform tensor (B, T_wav).</span>
-<span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
+<span class="sd">            singing (Tensor): Singing waveform tensor (B, T_wav).</span>
+<span class="sd">            singing_lengths (Tensor): Singing length tensor (B,).</span>
+<span class="sd">            duration (Optional[Dict]): key is &quot;phn&quot;, &quot;syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (B, Tmax).</span>
+<span class="sd">            label (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded label ids (B, Tmax).</span>
+<span class="sd">            label_lengths (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded label ids (B, ).</span>
+<span class="sd">            melody (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded melody (B, Tmax).</span>
+<span class="sd">            melody_lengths (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded melody (B, ).</span>
+<span class="sd">            tempo (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded tempo (B, Tmax).</span>
+<span class="sd">            tempo_lengths (Optional[Dict]):  key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded tempo (B, ).</span>
+<span class="sd">            beat (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (B, Tmax).</span>
+<span class="sd">            beat_length (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded beat (B, ).</span>
+<span class="sd">            pitch (FloatTensor): Batch of padded f0 (B, Tmax).</span>
+<span class="sd">            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).</span>
+<span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
+<span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Any]:</span>
@@ -773,8 +815,31 @@
 <span class="sd">            text_lengths (Tensor): Text length tensor (B,).</span>
 <span class="sd">            feats (Tensor): Feature tensor (B, T_feats, aux_channels).</span>
 <span class="sd">            feats_lengths (Tensor): Feature length tensor (B,).</span>
-<span class="sd">            speech (Tensor): Speech waveform tensor (B, T_wav).</span>
-<span class="sd">            speech_lengths (Tensor): Speech length tensor (B,).</span>
+<span class="sd">            singing (Tensor): Singing waveform tensor (B, T_wav).</span>
+<span class="sd">            singing_lengths (Tensor): Singing length tensor (B,).</span>
+<span class="sd">            duration (Optional[Dict]): key is &quot;phn&quot;, &quot;syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (B, Tmax).</span>
+<span class="sd">            label (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded label ids (B, Tmax).</span>
+<span class="sd">            label_lengths (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded label ids (B, ).</span>
+<span class="sd">            melody (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded melody (B, Tmax).</span>
+<span class="sd">            melody_lengths (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded melody (B, ).</span>
+<span class="sd">            tempo (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded tempo (B, Tmax).</span>
+<span class="sd">            tempo_lengths (Optional[Dict]):  key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded tempo (B, ).</span>
+<span class="sd">            beat (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (B, Tmax).</span>
+<span class="sd">            beat_length (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of the lengths of padded beat (B, ).</span>
+<span class="sd">            pitch (FloatTensor): Batch of padded f0 (B, Tmax).</span>
+<span class="sd">            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).</span>
+<span class="sd">            sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).</span>
+<span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).</span>
+<span class="sd">            lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Any]:</span>
@@ -868,6 +933,8 @@
         <span class="n">label</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">melody</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">pitch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">duration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">slur</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">spembs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">lids</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -876,12 +943,32 @@
         <span class="n">alpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">max_len</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">use_teacher_forcing</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">duration</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Run inference.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            text (Tensor): Input text index tensor (T_text,).</span>
+<span class="sd">            feats (Tensor): Feature tensor (T_feats, aux_channels).</span>
+<span class="sd">            label (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded label ids (B, Tmax).</span>
+<span class="sd">            melody (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded melody (B, Tmax).</span>
+<span class="sd">            tempo (Optional[Dict]): key is &quot;lab&quot; or &quot;score&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded tempo (B, Tmax).</span>
+<span class="sd">            beat (Optional[Dict]): key is &quot;lab&quot;, &quot;score_phn&quot; or &quot;score_syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (B, Tmax).</span>
+<span class="sd">            pitch (FloatTensor): Batch of padded f0 (B, Tmax).</span>
+<span class="sd">            duration (Optional[Dict]): key is &quot;phn&quot;, &quot;syb&quot;;</span>
+<span class="sd">                value (LongTensor): Batch of padded beat (B, Tmax).</span>
+<span class="sd">            slur (LongTensor): Batch of padded slur (B, Tmax).</span>
+<span class="sd">            sids (Tensor): Speaker index tensor (1,).</span>
+<span class="sd">            spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).</span>
+<span class="sd">            lids (Tensor): Language index tensor (1,).</span>
+<span class="sd">            noise_scale (float): Noise scale value for flow.</span>
+<span class="sd">            noise_scale_dur (float): Noise scale value for duration predictor.</span>
+<span class="sd">            alpha (float): Alpha parameter to control the speed of generated singing.</span>
+<span class="sd">            max_len (Optional[int]): Maximum length.</span>
+<span class="sd">            use_teacher_forcing (bool): Whether to use teacher forcing.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Dict[str, Tensor]:</span>
