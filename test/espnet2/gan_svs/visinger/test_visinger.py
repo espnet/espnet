@@ -931,6 +931,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
                 [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
+        slur=torch.randint(0, 2, (2, 8)),
         pitch=torch.randn(2, 16, 1),
     )
     gen_loss = model(forward_generator=True, **inputs)["loss"]
@@ -992,6 +993,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
+            slur=torch.randint(0, 2, (1, 5)),
             pitch=torch.randn(16, 1),
         )
         model.inference(**inputs)
@@ -1047,6 +1049,7 @@ def test_vits_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
+            slur=torch.randint(0, 2, (1, 5)),
             pitch=torch.randn(16, 1),
             feats=torch.randn(16, odim),
         )
@@ -1119,6 +1122,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
                 [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
+        slur=torch.randint(0, 2, (2, 8)),
         pitch=torch.randn(2, 16, 1),
     )
     if spks > 0:
@@ -1186,6 +1190,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
+            slur=torch.randint(0, 2, (1, 5)),
             pitch=torch.randn(16, 1),
         )
         if spks > 0:
@@ -1247,6 +1252,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable(
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
+            slur=torch.randint(0, 2, (1, 5)),
             pitch=torch.randn(16, 1),
             feats=torch.randn(16, odim),
         )
@@ -1318,6 +1324,7 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
                 [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
+        slur=torch.randint(0, 2, (2, 8)),
         pitch=torch.randn(2, 16, 1),
     )
     device = torch.device("cuda")
@@ -1387,6 +1394,7 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
+            slur=torch.randint(0, 2, (1, 5)),
             pitch=torch.randn(16, 1),
         )
         inputs = {
@@ -1448,6 +1456,7 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
+            slur=torch.randint(0, 2, (1, 5)),
             pitch=torch.randn(16, 1),
             feats=torch.randn(16, odim),
         )
@@ -1529,6 +1538,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 [[3, 3, 5, 5, 4, 4, 3, 3], [4, 4, 5, 5, 3, 3, 4, 4]], dtype=torch.int64
             ),
         },
+        slur=torch.randint(0, 2, (2, 8)),
         pitch=torch.randn(2, 16, 1),
     )
     if spks > 0:
@@ -1604,6 +1614,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
+            slur=torch.randint(0, 2, (1, 5)),
             pitch=torch.randn(16, 1),
         )
         if spks > 0:
@@ -1671,6 +1682,7 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
                 "score_phn": torch.tensor([[1, 2, 2, 3, 4]], dtype=torch.int64),
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
+            slur=torch.randint(0, 2, (1, 5)),
             pitch=torch.randn(16, 1),
             feats=torch.randn(16, odim),
         )

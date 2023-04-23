@@ -112,6 +112,7 @@ def test_vits_generator_forward(model_dict):
             [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
         ),
         score_dur=torch.randint(1, idim, (2, 8)),
+        slur=torch.randint(0, 2, (2, 8)),
         pitch=torch.randn(2, 16, 1),
     )
     if args["spk_embed_dim"] > 0:
@@ -164,6 +165,14 @@ def test_vits_generator_forward(model_dict):
                 5,
             ),
         ),
+        slur=torch.randint(
+            0,
+            2,
+            (
+                2,
+                5,
+            ),
+        ),
         pitch=torch.randn(2, 16, 1),
     )
     if args["spk_embed_dim"] > 0:
@@ -211,6 +220,14 @@ def test_vits_generator_forward(model_dict):
         score_dur=torch.randint(
             1,
             idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        slur=torch.randint(
+            0,
+            2,
             (
                 1,
                 5,
@@ -280,6 +297,7 @@ def test_multi_speaker_vits_generator_forward(model_dict):
             [[1, 2, 2, 3, 1, 3, 2, 2], [2, 2, 1, 4, 1, 2, 1, 3]], dtype=torch.int64
         ),
         score_dur=torch.randint(1, idim, (2, 8)),
+        slur=torch.randint(0, 2, (2, 8)),
         pitch=torch.randn(2, 16, 1),
         sids=torch.randint(0, spks, (2,)),
     )
@@ -328,6 +346,14 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         score_dur=torch.randint(
             1,
             idim,
+            (
+                2,
+                5,
+            ),
+        ),
+        slur=torch.randint(
+            0,
+            2,
             (
                 2,
                 5,
@@ -383,6 +409,14 @@ def test_multi_speaker_vits_generator_forward(model_dict):
         score_dur=torch.randint(
             1,
             idim,
+            (
+                1,
+                5,
+            ),
+        ),
+        slur=torch.randint(
+            0,
+            2,
             (
                 1,
                 5,
