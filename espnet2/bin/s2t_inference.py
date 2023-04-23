@@ -8,8 +8,8 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-import torch.quantization
 import torch.nn.functional as F
+import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.decoder.s4_decoder import S4Decoder
@@ -19,8 +19,8 @@ from espnet2.asr.transducer.beam_search_transducer import (
 )
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.tasks.s2t import S2TTask
 from espnet2.tasks.lm import LMTask
+from espnet2.tasks.s2t import S2TTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
@@ -341,7 +341,7 @@ class Speech2Text:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
-        
+
         self.category_id = converter.token2id[category_sym]
         self.task_id = converter.token2id[task_sym]
         self.time_id = converter.token2id[time_sym] if time_sym is not None else None
@@ -381,15 +381,15 @@ class Speech2Text:
             # Check if text_prev is valid
             if self.s2t_model.na in text_prev:
                 text_prev = None
-        
+
         if text_prev is not None:
-            hyp_primer = [self.s2t_model.sop] + text_prev + [
-                self.s2t_model.sos, self.category_id, self.task_id
-            ]
+            hyp_primer = (
+                [self.s2t_model.sop]
+                + text_prev
+                + [self.s2t_model.sos, self.category_id, self.task_id]
+            )
         else:
-            hyp_primer = [
-                self.s2t_model.sos, self.category_id, self.task_id
-            ]
+            hyp_primer = [self.s2t_model.sos, self.category_id, self.task_id]
         if self.time_id is not None:
             hyp_primer.append(self.time_id)
         self.beam_search.set_hyp_primer(hyp_primer)
@@ -425,7 +425,7 @@ class Speech2Text:
         if intermediate_outs is not None:
             encoder_interctc_res = self._decode_interctc(intermediate_outs)
             results = (results, encoder_interctc_res)
-        
+
         assert check_return_type(results)
 
         return results
@@ -503,7 +503,7 @@ class Speech2Text:
                 token_int = hyp.yseq[:last_pos]
             else:
                 token_int = hyp.yseq[:last_pos].tolist()
-            token_int = token_int[token_int.index(self.s2t_model.sos) + 1:]
+            token_int = token_int[token_int.index(self.s2t_model.sos) + 1 :]
 
             # remove blank symbol id
             token_int = list(filter(lambda x: x != self.s2t_model.blank_id, token_int))
@@ -518,7 +518,7 @@ class Speech2Text:
             results.append((text, token, token_int, hyp))
 
         return results
-    
+
     @torch.no_grad()
     def decode_long(
         self,
@@ -527,10 +527,10 @@ class Speech2Text:
         fs: int = 16000,
         condition_on_prev_text: bool = False,
         init_text: Optional[str] = None,
-        start_time: Optional[str] = '<0.00>',
-        end_time_threshold: str = '<29.00>',
-        first_time_sym: str = '<0.00>',
-        last_time_sym: str = '<30.00>',
+        start_time: Optional[str] = "<0.00>",
+        end_time_threshold: str = "<29.00>",
+        first_time_sym: str = "<0.00>",
+        last_time_sym: str = "<30.00>",
         resolution: float = 0.02,
     ):
         """Decode unsegmented long-form speech.
@@ -548,14 +548,16 @@ class Speech2Text:
             last_time_sym: last timestamp symbol
             resolution: time resolution
         """
-        
+
         assert check_argument_types()
 
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
         segment_len = int(segment_sec * fs)
-        start_time_id = self.converter.token2id[start_time] if start_time is not None else None
+        start_time_id = (
+            self.converter.token2id[start_time] if start_time is not None else None
+        )
         end_time_id_threshold = self.converter.token2id[end_time_threshold]
         first_time_id = self.converter.token2id[first_time_sym]
         last_time_id = self.converter.token2id[last_time_sym]
@@ -567,7 +569,7 @@ class Speech2Text:
         offset = 0
         text_prev = init_text
         while offset < len(speech):
-            segment = speech[offset:min(offset + segment_len, len(speech))]
+            segment = speech[offset : min(offset + segment_len, len(speech))]
             if len(segment) < segment_len:
                 segment = F.pad(segment, (0, segment_len - len(segment)))
 
@@ -579,34 +581,46 @@ class Speech2Text:
                 result = result[0]
 
             # NOTE(yifan): sos and eos have been removed
-            text, token, token_int, hyp = result[0]     # best hyp
-            token_int = token_int[2:]   # remove category and task
-            
+            text, token, token_int, hyp = result[0]  # best hyp
+            token_int = token_int[2:]  # remove category and task
+
             # Find all timestamp positions
             time_pos = [
-                idx for idx, tok in enumerate(token_int) 
+                idx
+                for idx, tok in enumerate(token_int)
                 if tok >= first_time_id and tok <= last_time_id
             ]
             if len(time_pos) % 2 == 0:  # Timestamps are all paired
-                if len(time_pos) > 2 and token_int[time_pos[-1]] > end_time_id_threshold:
+                if (
+                    len(time_pos) > 2
+                    and token_int[time_pos[-1]] > end_time_id_threshold
+                ):
                     # The last utterance is incomplete
                     new_start_time_id = token_int[time_pos[-2]]
                     time_pos = time_pos[:-2]
                 else:
                     new_start_time_id = token_int[time_pos[-1]]
-            else:   # The last utterance only has start time
+            else:  # The last utterance only has start time
                 new_start_time_id = token_int[time_pos[-1]]
                 time_pos = time_pos[:-1]
-            
+
             # Get utterances in this segment
             text_prev = ""
             for i in range(0, len(time_pos), 2):
                 utt = (
-                    round((token_int[time_pos[i]] - first_time_id) * resolution + offset / fs, 2),
-                    round((token_int[time_pos[i + 1]] - first_time_id) * resolution + offset / fs, 2),
+                    round(
+                        (token_int[time_pos[i]] - first_time_id) * resolution
+                        + offset / fs,
+                        2,
+                    ),
+                    round(
+                        (token_int[time_pos[i + 1]] - first_time_id) * resolution
+                        + offset / fs,
+                        2,
+                    ),
                     self.tokenizer.tokens2text(
                         self.converter.ids2tokens(
-                            token_int[time_pos[i] + 1:time_pos[i + 1]]
+                            token_int[time_pos[i] + 1 : time_pos[i + 1]]
                         )
                     ),
                 )
@@ -786,9 +800,7 @@ def inference(
             if isinstance(results, tuple):
                 results, encoder_interctc_res = results
 
-            for n, (text, token, token_int, hyp) in zip(
-                range(1, nbest + 1), results
-            ):
+            for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
                 # Create a directory: outdir/{n}best_recog
                 ibest_writer = writer[f"{n}best_recog"]
 
@@ -805,9 +817,9 @@ def inference(
             ibest_writer = writer[f"1best_recog"]
             if encoder_interctc_res is not None:
                 for idx, text in encoder_interctc_res.items():
-                    ibest_writer[f"encoder_interctc_layer{idx}.txt"][
-                        key
-                    ] = " ".join(text)
+                    ibest_writer[f"encoder_interctc_layer{idx}.txt"][key] = " ".join(
+                        text
+                    )
 
 
 def get_parser():
@@ -977,22 +989,16 @@ def get_parser():
     )
 
     group.add_argument(
-        "--category_sym",
-        type=str,
-        default="<en>",
-        help="Category symbol."
+        "--category_sym", type=str, default="<en>", help="Category symbol."
     )
     group.add_argument(
-        "--task_sym",
-        type=str,
-        default="<transcribe>",
-        help="Task symbol."
+        "--task_sym", type=str, default="<transcribe>", help="Task symbol."
     )
     group.add_argument(
         "--time_sym",
         type=str,
         default="<notimestamps>",
-        help="First start time symbol."
+        help="First start time symbol.",
     )
 
     group = parser.add_argument_group("Text converter related")
