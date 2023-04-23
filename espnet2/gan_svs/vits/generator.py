@@ -704,6 +704,7 @@ class VISingerGenerator(torch.nn.Module):
         label_lengths: torch.Tensor = None,
         melody: torch.Tensor = None,
         score_dur: torch.Tensor = None,
+        slur: torch.Tensor = None,
         gt_dur: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -744,7 +745,7 @@ class VISingerGenerator(torch.nn.Module):
         """
         # encoder
         x, x_mask, dur_input, x_pitch = self.text_encoder(
-            label, label_lengths, melody, score_dur
+            label, label_lengths, melody, score_dur, slur
         )
         g = None
         if self.spks is not None:
