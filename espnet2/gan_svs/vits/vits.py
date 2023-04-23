@@ -482,6 +482,7 @@ class VITS(AbsGANSVS):
                 melody=melody,
                 gt_dur=gt_dur,
                 score_dur=score_dur,
+                slur=slur,
                 pitch=pitch,
                 ying=ying,
                 sids=sids,
@@ -501,6 +502,7 @@ class VITS(AbsGANSVS):
                 melody=melody,
                 gt_dur=gt_dur,
                 score_dur=score_dur,
+                slur=slur,
                 pitch=pitch,
                 ying=ying,
                 sids=sids,
@@ -521,6 +523,7 @@ class VITS(AbsGANSVS):
         melody: torch.Tensor = None,
         gt_dur: torch.Tensor = None,
         score_dur: torch.Tensor = None,
+        slur: torch.Tensor = None,
         pitch: torch.Tensor = None,
         ying: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -541,6 +544,7 @@ class VITS(AbsGANSVS):
             melody (Tensor): Melody index tensor (B, T_text).
             gt_dur (Tensor): Groundtruth duration tensor (B, T_text).
             score_dur (Tensor): Score duration tensor (B, T_text).
+            slur (Tensor): Slur index tensor (B, T_text).
             pitch (FloatTensor): Batch of padded f0 (B, T_feats).
             ying (Optional[Tensor]): Yin pitch tensor (B, T_feats).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
@@ -574,6 +578,7 @@ class VITS(AbsGANSVS):
                 melody=melody,
                 gt_dur=gt_dur,
                 score_dur=score_dur,
+                slur=slur,
                 pitch=pitch,
                 ying=ying,
                 sids=sids,
@@ -796,6 +801,7 @@ class VITS(AbsGANSVS):
         melody: torch.Tensor = None,
         gt_dur: torch.Tensor = None,
         score_dur: torch.Tensor = None,
+        slur: torch.Tensor = None,
         pitch: torch.Tensor = None,
         ying: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -816,6 +822,7 @@ class VITS(AbsGANSVS):
             melody (Tensor): Melody index tensor (B, T_text).
             gt_dur (Tensor): Groundtruth duration tensor (B, T_text).
             score_dur (Tensor): Score duration tensor (B, T_text).
+            slur (Tensor): Slur index tensor (B, T_text).
             pitch (FloatTensor): Batch of padded f0 (B, T_feats).
             ying (Optional[Tensor]): Yin pitch tensor (B, T_feats).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
@@ -849,6 +856,7 @@ class VITS(AbsGANSVS):
                 label_lengths=label_lengths,
                 melody=melody,
                 score_dur=score_dur,
+                slur=slur,
                 pitch=pitch,
                 ying=ying,
                 sids=sids,
@@ -990,6 +998,7 @@ class VITS(AbsGANSVS):
                 label_lengths=label_lengths,
                 melody=melody,
                 score_dur=score_dur,
+                slur=slur,
                 gt_dur=gt_dur,
                 pitch=pitch,
                 sids=sids,
@@ -1009,6 +1018,7 @@ class VITS(AbsGANSVS):
                 label_lengths=label_lengths,
                 melody=melody,
                 score_dur=score_dur,
+                slur=slur,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,

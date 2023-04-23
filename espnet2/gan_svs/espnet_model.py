@@ -91,7 +91,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         duration_syb: Optional[torch.Tensor] = None,
         duration_syb_lengths: Optional[torch.Tensor] = None,
         slur: Optional[torch.Tensor] = None,
-        slur_lengths: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
@@ -123,7 +122,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             duration_syb (Optional[Tensor]): duration tensor (B, T_syllable).
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
             slur (Optional[Tensor]): slur tensor (B, T_slur).
-            slur_lengths (Optional[Tensor]): slur length tensor (B,).
             pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
@@ -232,7 +230,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                     :, : duration_score_phn_lengths.max()
                 ]
                 duration_score_syb = duration_syb[:, : duration_score_syb_lengths.max()]
-                slur = slur[:, : slur_lengths.max()]
+                slur = slur[:, : label_score_lengths.max()]
 
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
@@ -310,7 +308,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         batch.update(duration=duration)
 
         if slur is not None:
-            batch.update(slur=slur, slur_lengths=slur_lengths)
+            batch.update(slur=slur)
         if spembs is not None:
             batch.update(spembs=spembs)
         if sids is not None:
@@ -347,7 +345,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         duration_syb: Optional[torch.Tensor] = None,
         duration_syb_lengths: Optional[torch.Tensor] = None,
         slur: Optional[torch.Tensor] = None,
-        slur_lengths: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
@@ -375,7 +372,6 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).
             duration_syb (Optional[Tensor]): duration tensor (T_phone).
             slur (Optional[Tensor]): slur tensor (B, T_slur).
-            slur_lengths (Optional[Tensor]): slur length tensor (B,).
             pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.

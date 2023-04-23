@@ -51,6 +51,7 @@ class TextEncoder(torch.nn.Module):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
+        use_slur=True,
     ):
         """Initialize TextEncoder module.
 
@@ -72,6 +73,7 @@ class TextEncoder(torch.nn.Module):
             dropout_rate (float): Dropout rate.
             positional_dropout_rate (float): Dropout rate for positional encoding.
             attention_dropout_rate (float): Dropout rate for attention.
+            use_slur (bool): Whether to use slur embedding.
 
         """
         super().__init__()
@@ -109,10 +111,14 @@ class TextEncoder(torch.nn.Module):
         )  # Should we count the number of midis instead of 129?
         torch.nn.init.normal_(self.emb_pitch.weight, 0.0, self.emb_pitch_dim**-0.5)
 
-        # self.emb_slur = torch.nn.Embedding(len(ttsing_slur_set), 64)
-        # torch.nn.init.normal_(self.emb_slur.weight, 0.0, 64**-0.5)
+        if use_slur:
+            self.emb_slur = torch.nn.Embedding(2, 64)
+            torch.nn.init.normal_(self.emb_slur.weight, 0.0, 64**-0.5)
 
-        self.emb_dur = torch.nn.Linear(1, 128)
+        if use_slur:
+            self.emb_dur = torch.nn.Linear(1, 64)
+        else:
+            self.emb_dur = torch.nn.Linear(1, 128)
 
         self.pre_net = torch.nn.Linear(512, attention_dim)
         self.pre_dur_net = torch.nn.Linear(512, attention_dim)
@@ -148,13 +154,13 @@ class TextEncoder(torch.nn.Module):
         phone_end = self.emb_phone(phone) * math.sqrt(self.emb_phone_dim)
         pitch_end = self.emb_pitch(midi_id) * math.sqrt(self.emb_pitch_dim)
 
-        if slur:
+        if slur is not None:
             slur_end = self.emb_slur(slur) * math.sqrt(64)
 
         dur = dur.float()
         dur_end = self.emb_dur(dur.unsqueeze(-1))
 
-        if slur:
+        if slur is not None:
             x = torch.cat([phone_end, pitch_end, slur_end, dur_end], dim=-1)
         else:
             x = torch.cat([phone_end, pitch_end, dur_end], dim=-1)
