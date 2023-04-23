@@ -108,6 +108,7 @@ class SingingGenerate:
         duration_ruled_phn: Union[torch.Tensor, np.ndarray] = None,
         duration_syb: Union[torch.Tensor, np.ndarray] = None,
         phn_cnt: Union[torch.Tensor, np.ndarray] = None,
+        slur: Union[torch.Tensor, np.ndarray] = None,
         pitch: Union[torch.Tensor, np.ndarray] = None,
         energy: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
@@ -136,6 +137,7 @@ class SingingGenerate:
             duration_ruled_phn = data["duration_ruled_phn"]
             duration_syb = data["duration_syb"]
             phn_cnt = data["phn_cnt"]
+            slur = data["slur"]
             batch = dict(text=data["label"])
         else:
             batch = dict(text=text)
@@ -156,6 +158,8 @@ class SingingGenerate:
             batch.update(pitch=pitch)
         if phn_cnt is not None:
             batch.update(phn_cnt=phn_cnt)
+        if slur is not None:
+            batch.update(slur=slur)
         if energy is not None:
             batch.update(energy=energy)
         if spembs is not None:

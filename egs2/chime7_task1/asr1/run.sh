@@ -109,7 +109,7 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
         continue
       fi
 
-      if [ $use_chime6_falign ] && [ $dset == chime6 ]; then
+      if [ $use_chime6_falign == 1 ] && [ $dset == chime6 ]; then
            if ! [ -d ./CHiME7_DASR_falign ]; then
                log "Getting forced alignment annotation for CHiME-6 Scenario"
                git clone https://github.com/chimechallenge/CHiME7_DASR_falign

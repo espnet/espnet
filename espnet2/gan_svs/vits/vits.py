@@ -425,6 +425,7 @@ class VITS(AbsGANSVS):
         pitch: torch.LongTensor = None,
         ying: torch.Tensor = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: torch.LongTensor = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -448,6 +449,7 @@ class VITS(AbsGANSVS):
             pitch (FloatTensor): Batch of padded f0 (B, T_feats).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (B, T_text).
+            slur (FloatTensor): Batch of padded slur (B, T_text).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -909,6 +911,8 @@ class VITS(AbsGANSVS):
         label: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -917,7 +921,6 @@ class VITS(AbsGANSVS):
         alpha: float = 1.0,
         max_len: Optional[int] = None,
         use_teacher_forcing: bool = False,
-        duration: Optional[Dict[str, torch.Tensor]] = None,
     ) -> Dict[str, torch.Tensor]:
         """Run inference.
 
@@ -929,6 +932,7 @@ class VITS(AbsGANSVS):
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, T_text).
             pitch (FloatTensor): Batch of padded f0 (B, T_feats).
+            slur (LongTensor): Batch of padded slur (B, T_text).
             sids (Tensor): Speaker index tensor (1,).
             spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).
             lids (Tensor): Language index tensor (1,).
