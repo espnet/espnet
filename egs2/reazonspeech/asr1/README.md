@@ -31,11 +31,6 @@ The dataset is available on Hugging Face. For more details, please visit:
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_lm_lm_train_lm_jp_char_valid.loss.ave_asr_model_valid.acc.ave/test|64|2364|87.7|3.0|9.2|2.8|15.1|46.9|
 
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-
 ## Pretrained model
 
 https://huggingface.co/reazon-research/reazonspeech-espnet-next
