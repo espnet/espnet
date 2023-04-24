@@ -1,5 +1,6 @@
 """MEGA decoder definition for Transducer models."""
 
+import math
 from typing import Dict, List, Optional, Tuple
 
 import torch
@@ -34,6 +35,7 @@ class MEGADecoder(AbsDecoder):
         normalization_args: Normalization layer arguments.
         activation_type: Activation function type.
         activation_args: Activation function arguments.
+        chunk_size: Chunk size for attention computation (-1 = full context).
         num_blocks: Number of MEGA blocks.
         dropout_rate: Dropout rate for MEGA internal modules.
         embed_dropout_rate: Dropout rate for embedding layer.
@@ -59,6 +61,7 @@ class MEGADecoder(AbsDecoder):
         normalization_args: Dict = {},
         activation_type: str = "swish",
         activation_args: Dict = {},
+        chunk_size: int = -1,
         num_blocks: int = 4,
         dropout_rate: float = 0.0,
         embed_dropout_rate: float = 0.0,
@@ -94,6 +97,7 @@ class MEGADecoder(AbsDecoder):
                             rel_pos_bias_type=rel_pos_bias_type,
                             max_positions=max_positions,
                             truncation_length=truncation_length,
+                            chunk_size=chunk_size,
                             dropout_rate=dropout_rate,
                             att_dropout_rate=att_dropout_rate,
                             ema_dropout_rate=ema_dropout_rate,
@@ -115,6 +119,7 @@ class MEGADecoder(AbsDecoder):
 
         self.vocab_size = vocab_size
         self.output_size = block_size
+        self.chunk_size = chunk_size
 
         self.mega_num_heads = num_heads
         self.mega_att_k_size = qk_size
@@ -141,11 +146,25 @@ class MEGADecoder(AbsDecoder):
         """
         batch, length = labels.size()
 
+        if 0 < self.chunk_size < length and length % self.chunk_size != 0:
+            num_paddings = (
+                math.ceil(length / self.chunk_size) * self.chunk_size - length
+            )
+            labels = torch.nn.functional.pad(
+                labels, (0, num_paddings), value=self.pad_idx
+            )
+        else:
+            num_paddings = 0
+
         mask = (labels == self.pad_idx).unsqueeze(1)
         mask[..., 0] = False
         mask = mask.to(device=labels.device, dtype=torch.bool)
 
-        attn_mask = torch.ones((length, length), device=labels.device, dtype=torch.bool)
+        _length = self.chunk_size if 0 < self.chunk_size < length else length
+
+        attn_mask = torch.ones(
+            (_length, _length), device=labels.device, dtype=torch.bool
+        )
         attn_mask = torch.triu(attn_mask, 1, out=attn_mask).unsqueeze(0)
 
         x = self.dropout_embed(self.embed(labels)).transpose(0, 1)
@@ -156,6 +175,9 @@ class MEGADecoder(AbsDecoder):
             x = nffn(x)
 
         out = self.final_norm(x).transpose(0, 1)
+
+        if num_paddings > 0:
+            out = out[:, :length, :]
 
         return out
 
@@ -327,11 +349,11 @@ class MEGADecoder(AbsDecoder):
                 "ema_state": torch.stack(
                     [state[n_b]["ema_state"] for state in new_states]
                 ),
-                "prev_key": self.stack_pad_att_states(
+                "prev_key": self.stack_qk_states(
                     [state[n_b]["prev_key"] for state in new_states],
                     self.mega_att_k_size,
                 ),
-                "prev_value": self.stack_pad_att_states(
+                "prev_value": self.stack_qk_states(
                     [state[n_b]["prev_value"] for state in new_states],
                     self.mega_att_v_size,
                 ),

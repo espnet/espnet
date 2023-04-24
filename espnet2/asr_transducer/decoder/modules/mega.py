@@ -33,6 +33,7 @@ class MEGA(torch.nn.Module):
         rel_pos_bias_type: Type of relative position bias in attention module.
         max_positions: Maximum number of position for RelativePositionBias.
         truncation_length: Maximum length for truncation in EMA module.
+        chunk_size: Chunk size for attention computation (-1 = full context).
         dropout_rate: Dropout rate for inner modules.
         att_dropout_rate: Dropout rate for the attention module.
         ema_dropout_rate: Dropout rate for the EMA module.
@@ -50,6 +51,7 @@ class MEGA(torch.nn.Module):
         rel_pos_bias_type: str = "simple",
         max_positions: int = 2048,
         truncation_length: Optional[int] = None,
+        chunk_size: int = -1,
         dropout_rate: float = 0.0,
         att_dropout_rate: float = 0.0,
         ema_dropout_rate: float = 0.0,
@@ -63,6 +65,9 @@ class MEGA(torch.nn.Module):
             activation=activation,
             truncation_length=truncation_length,
         )
+
+        if chunk_size > 0:
+            max_positions = chunk_size
 
         if rel_pos_bias_type == "rotary":
             self.rel_pos_bias = RotaryRelativePositionBias(qk_size, max_positions)
@@ -93,6 +98,7 @@ class MEGA(torch.nn.Module):
         self.v_size = v_size
 
         self.size = size
+        self.chunk_size = chunk_size
 
         self.reset_parameters()
 
@@ -214,11 +220,40 @@ class MEGA(torch.nn.Module):
             if state["prev_value"] is not None:
                 value = torch.cat([state["prev_value"], value], dim=1)
 
-            state = {"prev_key": key, "prev_value": value, "ema_state": ema_state}
+            # Note (b-flo): Initially, we reset the cache when reaching chunk_size.
+            # It's an issue for beam-batched decoding algorithms where we stack
+            # QK states of different lengths.
+            state = {
+                "prev_key": key[:, -(self.chunk_size - 1):, :],
+                "prev_value": value[:, -(self.chunk_size - 1):, :],
+                "ema_state": ema_state,
+            }
 
-        query = query.unsqueeze(1)
-        key = key.unsqueeze(1)
-        value = value.unsqueeze(1)
+        if self.chunk_size <= 0:
+            query = query.unsqueeze(1)
+            key = key.unsqueeze(1)
+            value = value.unsqueeze(1)
+        else:
+            ctx_size = key.size(1)
+
+            if length < self.chunk_size:
+                query = query.unsqueeze(1)
+            else:
+                num_chunks = length // self.chunk_size
+
+                query = query.reshape(batch, num_chunks, self.chunk_size, self.qk_size)
+
+            if ctx_size < self.chunk_size:
+                key = key.unsqueeze(1)
+                value = value.unsqueeze(1)
+            else:
+                num_chunks = ctx_size // self.chunk_size
+
+                key = key.reshape(batch, num_chunks, self.chunk_size, self.qk_size)
+                value = value.reshape(batch, num_chunks, self.chunk_size, self.v_size)
+
+                if mask is not None:
+                    mask = mask.view(batch, num_chunks, self.chunk_size)
 
         attn_weights = self.softmax_attention(
             query, key, mask=mask, attn_mask=attn_mask
