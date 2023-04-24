@@ -19,11 +19,6 @@ The dataset is available on Hugging Face. For more details, please visit:
   - Commit date: `Fri Apr 21 10:15:47 2023 +0900`
 
 ## exp/asr_train_asr_conformer_raw_jp_char
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|decode_asr_lm_lm_train_lm_jp_char_valid.loss.ave_asr_model_valid.acc.ave/test|64|64|53.1|46.9|0.0|0.0|46.9|46.9|
 
 ### CER
 
