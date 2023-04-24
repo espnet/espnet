@@ -33,12 +33,14 @@ def split_scps(
         (Path(output_dir) / name).mkdir(parents=True, exist_ok=True)
 
     scp_files = [open(s, "r", encoding="utf-8") for s in scps]
-    
+
     # Create output files in 'w' mode to overwrite existing files if any
     out_files = {
         name: {
-            num: (Path(output_dir) / name / f"split.{num}").open('w', encoding="utf-8") for num in range(num_splits)
-        } for name in names
+            num: (Path(output_dir) / name / f"split.{num}").open("w", encoding="utf-8")
+            for num in range(num_splits)
+        }
+        for name in names
     }
 
     counter = Counter()
