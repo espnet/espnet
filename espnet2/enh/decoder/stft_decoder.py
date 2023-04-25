@@ -3,6 +3,7 @@ from packaging.version import parse as V
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
+from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
 from espnet2.layers.stft import Stft
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
@@ -52,7 +53,19 @@ class STFTDecoder(AbsDecoder):
         else:
             multi_channel = False
 
-        wav, wav_lens = self.stft.inverse(input, ilens)
+        # for supporting half-precision training
+        if input.dtype in (torch.float16, torch.bfloat16):
+            wav, wav_lens = self.stft.inverse(input.float(), ilens)
+            wav = wav.to(dtype=input.dtype)
+        elif (
+            is_torch_complex_tensor(input)
+            and hasattr(torch, "complex32")
+            and input.dtype == torch.complex32
+        ):
+            wav, wav_lens = self.stft.inverse(input.cfloat(), ilens)
+            wav = wav.to(dtype=input.dtype)
+        else:
+            wav, wav_lens = self.stft.inverse(input, ilens)
 
         if multi_channel:
             # wav: (Batch * C, Nsamples) -> (Batch, Nsamples, C)

@@ -1,8 +1,11 @@
-# We trained this model using Nvidia A100 x 8 with 40GiB Memory.
+# This recipe requires a machine with 8 Nvidia A100 (80GiB memory).
+# Recommend to tweak "batch_bins" and "accum_grad" if your machine
+# has a different architecture.
 batch_type: numel
-batch_bins: 30000000
-accum_grad: 3
+batch_bins: 200000000
+accum_grad: 1
 max_epoch: 33
+use_amp: true
 patience: none
 init: xavier_uniform
 best_model_criterion:
@@ -22,7 +25,8 @@ encoder_conf:
     attention_dropout_rate: 0.1
     input_layer: conv2d6
     normalize_before: true
-    macaron_style: false
+    macaron_style: true
+    rel_pos_type: latest
     pos_enc_layer_type: "rel_pos"
     selfattention_layer_type: "rel_selfattn"
     activation_type: "swish"
