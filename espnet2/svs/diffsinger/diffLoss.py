@@ -94,11 +94,10 @@ class DiffLoss(torch.nn.Module):
             duration_loss = (
                 duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
             )
-            
-        if loss_type == 'L1':
-            l2_loss = torch.tensor(0.).to(ds.device)
-        else:
-            l1_loss = torch.tensor(0.).to(ds.device)
-        
-        return l1_loss, l2_loss, duration_loss
 
+        if loss_type == "L1":
+            l2_loss = torch.tensor(0.0).to(ds.device)
+        else:
+            l1_loss = torch.tensor(0.0).to(ds.device)
+
+        return l1_loss, l2_loss, duration_loss

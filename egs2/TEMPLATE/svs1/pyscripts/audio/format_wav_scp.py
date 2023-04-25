@@ -1,1 +1,0 @@
-../../../../TEMPLATE/asr1/pyscripts/audio/format_wav_scp.py

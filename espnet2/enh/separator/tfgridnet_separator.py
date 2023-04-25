@@ -1,20 +1,18 @@
 import math
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from packaging.version import parse as V
 from torch.nn import init
 from torch.nn.parameter import Parameter
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
+from espnet2.enh.layers.complex_utils import new_complex_like
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.torch_utils.get_layer_from_string import get_layer
-
-is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class TFGridNet(AbsSeparator):
@@ -52,6 +50,7 @@ class TFGridNet(AbsSeparator):
         activation: activation function to use in the whole TFGridNet model,
             you can use any torch supported activation e.g. 'relu' or 'elu'.
         eps: small epsilon for normalization layers.
+        use_builtin_complex: whether to use builtin complex type or not.
     """
 
     def __init__(
@@ -71,19 +70,18 @@ class TFGridNet(AbsSeparator):
         emb_hs=1,
         activation="prelu",
         eps=1.0e-5,
+        use_builtin_complex=False,
     ):
         super().__init__()
-        assert is_torch_1_9_plus, (
-            "TFGridNet model requires torch>=1.9.0, "
-            "please install latest torch version."
-        )
         self.n_srcs = n_srcs
         self.n_layers = n_layers
         self.n_imics = n_imics
         assert n_fft % 2 == 0
         n_freqs = n_fft // 2 + 1
 
-        self.enc = STFTEncoder(n_fft, n_fft, stride, window=window)
+        self.enc = STFTEncoder(
+            n_fft, n_fft, stride, window=window, use_builtin_complex=use_builtin_complex
+        )
         self.dec = STFTDecoder(n_fft, n_fft, stride, window=window)
 
         t_ksize = 3
@@ -113,10 +111,10 @@ class TFGridNet(AbsSeparator):
 
     def forward(
         self,
-        input: Union[torch.Tensor],
+        input: torch.Tensor,
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[torch.Tensor], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
@@ -142,8 +140,8 @@ class TFGridNet(AbsSeparator):
         input = input / mix_std_  # RMS normalization
 
         batch = self.enc(input, ilens)[0]  # [B, T, M, F]
-        batch = batch.transpose(1, 2)  # [B, M, T, F]
-        batch = torch.cat((batch.real, batch.imag), dim=1)  # [B, 2*M, T, F]
+        batch0 = batch.transpose(1, 2)  # [B, M, T, F]
+        batch = torch.cat((batch0.real, batch0.imag), dim=1)  # [B, 2*M, T, F]
         n_batch, _, n_frames, n_freqs = batch.shape
 
         batch = self.conv(batch)  # [B, -1, T, F]
@@ -154,7 +152,7 @@ class TFGridNet(AbsSeparator):
         batch = self.deconv(batch)  # [B, n_srcs*2, T, F]
 
         batch = batch.view([n_batch, self.n_srcs, 2, n_frames, n_freqs])
-        batch = torch.complex(batch[:, :, 0], batch[:, :, 1])  # [B, n_srcs, T, F]
+        batch = new_complex_like(batch0, (batch[:, :, 0], batch[:, :, 1]))
 
         batch = self.dec(batch.view(-1, n_frames, n_freqs), ilens)[0]  # [B, n_srcs, -1]
 

@@ -1,10 +1,9 @@
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Dict, Tuple, Union
 
 import numpy as np
 import torch
 from typeguard import check_argument_types
-from typing import Dict
 
 
 class GetFeatsMinMax(torch.nn.Module):
@@ -31,7 +30,7 @@ class GetFeatsMinMax(torch.nn.Module):
             # New style: Npz file
             feats_min = stats["feats_min"]
             feats_max = stats["feats_max"]
-        
+
         if isinstance(feats_min, np.ndarray):
             feats_min = torch.from_numpy(feats_min)
         if isinstance(feats_max, np.ndarray):
@@ -41,7 +40,7 @@ class GetFeatsMinMax(torch.nn.Module):
         self.register_buffer("feats_max", feats_max)
 
     def extra_repr(self):
-        return(
+        return (
             f"stats_file={self.stats_file}, "
             f"feats_min={self.feats_min}, feats_max={self.feats_max}"
         )
@@ -50,6 +49,6 @@ class GetFeatsMinMax(torch.nn.Module):
         self,
     ) -> Dict[str, torch.Tensor]:
         return {
-            'feats_min': self.feats_min, 
-            'feats_max': self.feats_max,
+            "feats_min": self.feats_min,
+            "feats_max": self.feats_max,
         }

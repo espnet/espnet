@@ -15,6 +15,8 @@ from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.diffsinger.diffsinger import DiffSinger
+from espnet2.svs.diffsinger.get_feats_minmax import GetFeatsMinMax
 from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
@@ -23,8 +25,6 @@ from espnet2.svs.feats_extract.score_feats_extract import (
 from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
 from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
-from espnet2.svs.diffsinger.diffsinger import DiffSinger
-from espnet2.svs.diffsinger.get_feats_minmax import GetFeatsMinMax
 
 # TODO(Yuning): Models to be added
 # from espnet2.svs.encoder_decoder.transformer.transformer import Transformer

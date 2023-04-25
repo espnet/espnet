@@ -69,7 +69,7 @@ def aggregate_stats_dirs(
                         with (idir / p).open("r", encoding="utf-8") as fin:
                             for line in fin:
                                 fout.write(line)
-        
+
         minmax_stats = None
         for idir in input_dirs:
             stats = np.load(idir / mode / "feats_minmax_stats.npz")
@@ -77,11 +77,15 @@ def aggregate_stats_dirs(
             if minmax_stats is None:
                 minmax_stats = dict(**stats)
             else:
-                minmax_stats["feats_min"] = np.minimum(minmax_stats["feats_min"], stats["feats_min"])
-                minmax_stats["feats_max"] = np.maximum(minmax_stats["feats_max"], stats["feats_max"])
+                minmax_stats["feats_min"] = np.minimum(
+                    minmax_stats["feats_min"], stats["feats_min"]
+                )
+                minmax_stats["feats_max"] = np.maximum(
+                    minmax_stats["feats_max"], stats["feats_max"]
+                )
 
         np.savez(output_dir / mode / "feats_minmax_stats.npz", **minmax_stats)
-        
+
 
 def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(

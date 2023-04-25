@@ -6,7 +6,6 @@
 """Singing-voice-synthesis ESPnet model."""
 
 import logging
-
 from contextlib import contextmanager
 from distutils.version import LooseVersion
 from typing import Dict, Optional, Tuple
@@ -87,6 +86,8 @@ class ESPnetSVSModel(AbsESPnetModel):
         duration_ruled_phn_lengths: Optional[torch.Tensor] = None,
         duration_syb: Optional[torch.Tensor] = None,
         duration_syb_lengths: Optional[torch.Tensor] = None,
+        slur: Optional[torch.Tensor] = None,
+        slur_lengths: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
@@ -115,6 +116,8 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_ruled_phn_lengths (Optional[Tensor]): duration length tensor (B,).
             duration_syb (Optional[Tensor]): duration tensor (B, T_syllable).
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
+            slur (Optional[Tensor]): slur tensor (B, T_slur).
+            slur_lengths (Optional[Tensor]): slur length tensor (B,).
             pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
@@ -161,7 +164,7 @@ class ESPnetSVSModel(AbsESPnetModel):
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
 
-            # logging.info(f'fetas: {feats.shape}') # [B, T, 80]       
+            # logging.info(f'fetas: {feats.shape}') # [B, T, 80]
 
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
@@ -228,6 +231,7 @@ class ESPnetSVSModel(AbsESPnetModel):
                     :, : duration_score_phn_lengths.max()
                 ]
                 duration_score_syb = duration_syb[:, : duration_score_syb_lengths.max()]
+                slur = slur[:, : slur_lengths.max()]
 
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
@@ -250,7 +254,6 @@ class ESPnetSVSModel(AbsESPnetModel):
                 pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
             if self.energy_normalize is not None:
                 energy, energy_lengths = self.energy_normalize(energy, energy_lengths)
-            
 
         # Make batch for svs inputs
         batch = dict(
@@ -307,6 +310,8 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_lengths.update(score_syb=duration_score_syb_lengths)
         batch.update(duration=duration, duration_lengths=duration_lengths)
 
+        if slur is not None:
+            batch.update(slur=slur, slur_lengths=slur_lengths)
         if spembs is not None:
             batch.update(spembs=spembs)
         if sids is not None:
@@ -339,6 +344,8 @@ class ESPnetSVSModel(AbsESPnetModel):
         duration_ruled_phn_lengths: Optional[torch.Tensor] = None,
         duration_syb: Optional[torch.Tensor] = None,
         duration_syb_lengths: Optional[torch.Tensor] = None,
+        slur: Optional[torch.Tensor] = None,
+        slur_lengths: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
@@ -367,6 +374,8 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_ruled_phn_lengths (Optional[Tensor]): duration length tensor (B,).
             duration_syb (Optional[Tensor]): duration tensor (B, T_syb).
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
+            slur (Optional[Tensor]): slur tensor (B, T_slur).
+            slur_lengths (Optional[Tensor]): slur length tensor (B,).
             pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
@@ -437,6 +446,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         duration_phn: Optional[torch.Tensor] = None,
         duration_ruled_phn: Optional[torch.Tensor] = None,
         duration_syb: Optional[torch.Tensor] = None,
+        slur: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
@@ -455,6 +465,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_phn (Optional[Tensor]): duration tensor (T_label).
             duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).
             duration_syb (Optional[Tensor]): duration tensor (T_phone).
+            slur (Optional[Tensor]): slur tensor (T_phone).
             spembs (Optional[Tensor]): Speaker embedding tensor (D,).
             sids (Optional[Tensor]): Speaker ID tensor (1,).
             lids (Optional[Tensor]): Language ID tensor (1,).
@@ -469,6 +480,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         duration_phn_lengths = torch.tensor([len(duration_phn)])
         duration_ruled_phn_lengths = torch.tensor([len(duration_ruled_phn)])
         duration_syb_lengths = torch.tensor([len(duration_syb)])
+        slur_lengths = torch.tensor([len(slur)])
 
         # unsqueeze of singing needed otherwise causing error in STFT dimension
         # for data-parallel
@@ -480,6 +492,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         duration_ruled_phn = duration_ruled_phn.unsqueeze(0)
         duration_syb = duration_syb.unsqueeze(0)
         phn_cnt = phn_cnt.unsqueeze(0)
+        slur = slur.unsqueeze(0)
 
         # Extract auxiliary features
         # melody : 128 midi pitch
@@ -536,6 +549,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             midi_score = midi[:, : midi_lengths.max()]
             duration_score = duration_ruled_phn[:, : duration_ruled_phn_lengths.max()]
             duration_score_syb = duration_syb[:, : duration_syb_lengths.max()]
+            slur = slur[:, : slur_lengths.max()]
 
         input_dict = dict(text=text)
 
@@ -572,6 +586,8 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration.update(score_syb=duration_syb_score)
         input_dict.update(duration=duration)
 
+        if slur is not None:
+            input_dict.update(slur=slur)
         if pitch is not None:
             input_dict.update(pitch=pitch)
         if spembs is not None:
@@ -580,7 +596,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             input_dict.update(sids=sids)
         if lids is not None:
             input_dict.update(lids=lids)
-            
+
         output_dict = self.svs.inference(**input_dict, **decode_config)
 
         if self.normalize is not None and output_dict.get("feat_gen") is not None:
