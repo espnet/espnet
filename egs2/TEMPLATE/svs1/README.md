@@ -218,6 +218,22 @@ $ ./run.sh --stage 5 \
     --vocoder_file ${your vocoder path} \
 ```
 
+### Naive_RNN_DP training
+First, complete the data preparation:
+```sh
+$ ./run.sh \
+    --stage 1 \
+    --stop_stage 4 \
+```
+Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllable level* in RNN_DP) and modify "vocoder_file" with your own vocoder path.
+```sh
+$ ./run.sh --stage 5 \
+    --train_config conf/tuning/train_naive_rnn.yaml \
+    --score_feats_extract frame_score_feats \
+    --pitch_extract dio \
+    --vocoder_file ${your vocoder path} \
+```
+
 ### XiaoiceSing training
 First, complete the data preparation:
 ```sh

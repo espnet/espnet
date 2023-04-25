@@ -1,0 +1,6 @@
+# This configuration is the decoding setting for Diffsinger.
+
+##########################################################
+#                    DECODING SETTING                    #
+##########################################################
+use_teacher_forcing: false  # whether use tearcher forcing
