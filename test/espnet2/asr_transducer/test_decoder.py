@@ -1,9 +1,9 @@
 import pytest
 import torch
 
+from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
-from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 
 
 def prepare():
