@@ -111,11 +111,7 @@ if __name__ == "__main__":
     from espnet2.enh.encoder.stft_encoder import STFTEncoder
 
     input_audio = torch.randn((1, 16000))
-    ilens = torch.LongTensor(
-        [
-            16000,
-        ]
-    )
+    ilens = torch.LongTensor([16000])
 
     encoder = STFTEncoder(n_fft=256, hop_length=128, onesided=True)
     decoder = STFTDecoder(n_fft=256, hop_length=128, onesided=True)
