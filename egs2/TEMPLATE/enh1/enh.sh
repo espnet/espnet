@@ -953,6 +953,7 @@ if "${score_with_asr}"; then
                     if [[ "$(basename "$line")" =~ ^.*\.ark(:[[:digit:]]+)?$ ]]; then
                         # scripts/audio/format_wav_scp.sh will not work for *.ark
                         log "Skip the formatting stage for the 'ark' format"
+                        ln -s wav_ori.scp ${_ddir}/wav.scp
                     else
                         scripts/audio/format_wav_scp.sh --nj "${inference_nj}" --cmd "${_cmd}" \
                             --out-filename "wav.scp" \
