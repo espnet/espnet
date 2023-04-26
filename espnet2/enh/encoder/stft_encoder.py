@@ -41,7 +41,6 @@ class STFTEncoder(AbsEncoder):
         self.n_fft = n_fft
         self.center = center
 
-
     @property
     def output_dim(self) -> int:
         return self._output_dim
@@ -103,21 +102,32 @@ class STFTEncoder(AbsEncoder):
             feature = ComplexTensor(feature.real, feature.imag)
 
         return feature
-    
+
     def streaming_frame(self, audio):
-        # audio: B, T
-        batch_size, _ = audio.shape
+        """streaming_frame. It splits the continuous audio into frame-level
+        audio chunks in the streaming *simulation*. It is noted that this
+        function takes the entire long audio as input for a streaming simulation.
+        You may refer to this function to manage your streaming input
+        buffer in a real streaming application.
+
+        Args:
+            audio: (B, T)
+        Returns:
+            chunked: List [(B, frame_size),]
+        """
 
         if self.center:
             pad_len = int(self.win_length // 2)
             signal_dim = audio.dim()
             extended_shape = [1] * (3 - signal_dim) + list(audio.size())
-            # the default STFT pad mode is "reflect", which is not configurable in STFT encoder,
-            # so, here we just use "reflect mode" 
-            audio = torch.nn.functional.pad(audio.view(extended_shape), [pad_len, pad_len], "reflect")
+            # the default STFT pad mode is "reflect",
+            # which is not configurable in STFT encoder,
+            # so, here we just use "reflect mode"
+            audio = torch.nn.functional.pad(
+                audio.view(extended_shape), [pad_len, pad_len], "reflect"
+            )
             audio = audio.view(audio.shape[-signal_dim:])
 
-        
         _, audio_len = audio.shape
 
         n_frames = 1 + (audio_len - self.win_length) // self.hop_length

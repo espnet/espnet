@@ -37,16 +37,29 @@ class ConvDecoder(AbsDecoder):
 
     def forward_streaming(self, input_frame: torch.Tensor):
         return self.forward(input_frame, ilens=torch.LongTensor([self.kernel_size]))[0]
-    
-    def streaming_merge(self, chunks: torch.Tensor, ilens: torch.tensor = None):
 
+    def streaming_merge(self, chunks: torch.Tensor, ilens: torch.tensor = None):
+        """streaming_merge. It merges the frame-level processed audio chunks
+        in the streaming *simulation*. It is noted that, in real applications,
+        the processed audio should be sent to the output channel frame by frame.
+        You may refer to this function to manage your streaming output buffer.
+
+        Args:
+            chunks: List [(B, frame_size),]
+            ilens: [B]
+        Returns:
+            merge_audio: [B, T]
+        """
         hop_size = self.stride
         frame_size = self.kernel_size
 
-
         num_chunks = len(chunks)
         batch_size = chunks[0].shape[0]
-        audio_len = int(hop_size * num_chunks + frame_size - hop_size) if not ilens else ilens.max()
+        audio_len = (
+            int(hop_size * num_chunks + frame_size - hop_size)
+            if not ilens
+            else ilens.max()
+        )
 
         output = torch.zeros((batch_size, audio_len), dtype=chunks[0].dtype).to(
             chunks[0].device
@@ -56,6 +69,7 @@ class ConvDecoder(AbsDecoder):
             output[:, i * hop_size : i * hop_size + frame_size] += chunk
 
         return output
+
 
 if __name__ == "__main__":
     from espnet2.enh.encoder.conv_encoder import ConvEncoder

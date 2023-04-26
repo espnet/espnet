@@ -114,13 +114,21 @@ class STFTDecoder(AbsDecoder):
 
         # return output_wav
 
-
     def streaming_merge(self, chunks, ilens=None):
-        # [chunk: (B, frame_size)]
+        """streaming_merge. It merges the frame-level processed audio chunks
+        in the streaming *simulation*. It is noted that, in real applications,
+        the processed audio should be sent to the output channel frame by frame.
+        You may refer to this function to manage your streaming output buffer.
+
+        Args:
+            chunks: List [(B, frame_size),]
+            ilens: [B]
+        Returns:
+            merge_audio: [B, T]
+        """
 
         frame_size = self.win_length
         hop_size = self.hop_length
-
 
         num_chunks = len(chunks)
         batch_size = chunks[0].shape[0]
@@ -134,17 +142,17 @@ class STFTDecoder(AbsDecoder):
             output[:, i * hop_size : i * hop_size + frame_size] += chunk
 
         window_sq = self._get_window_func().pow(2)
-        window_envelop = torch.zeros((batch_size, audio_len), dtype=chunks[0].dtype).to(chunks[0].device)   
+        window_envelop = torch.zeros((batch_size, audio_len), dtype=chunks[0].dtype).to(
+            chunks[0].device
+        )
         for i in range(len(chunks)):
             window_envelop[:, i * hop_size : i * hop_size + frame_size] += window_sq
         output = output / window_envelop
 
         # We need to trim the front padding away if center.
         start = (frame_size // 2) if self.center else 0
-        end = - (frame_size // 2) if ilens.max() is None else start + ilens.max()
+        end = -(frame_size // 2) if ilens.max() is None else start + ilens.max()
 
-
-        
         return output[..., start:end]
 
 
@@ -158,8 +166,12 @@ if __name__ == "__main__":
     win_length = 28
     hop = 10
 
-    encoder = STFTEncoder(n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True)
-    decoder = STFTDecoder(n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True)
+    encoder = STFTEncoder(
+        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True
+    )
+    decoder = STFTDecoder(
+        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True
+    )
     frames, flens = encoder(input_audio, ilens)
     wav, ilens = decoder(frames, ilens)
 

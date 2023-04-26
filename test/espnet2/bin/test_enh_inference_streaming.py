@@ -10,8 +10,6 @@ from espnet2.bin.enh_inference_streaming import (
     SeparateSpeechStreaming,
     get_parser,
     main,
-    merge_audio,
-    split_audio,
 )
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.tasks.enh import EnhancementTask
@@ -73,10 +71,9 @@ def test_SeparateSpeech(
         train_config=config_file,
     )
     wav = torch.rand(batch_size, input_size)
+    ilens = torch.LongTensor([input_size])
 
-    frame_size, hop_size = separate_speech.frame_size, separate_speech.hop_size
-
-    speech_sim_chunks, rest_pad = split_audio(wav, frame_size, hop_size)
+    speech_sim_chunks = separate_speech.frame(wav)
     output_chunks = [[] for ii in range(separate_speech.num_spk)]
 
     for chunk in speech_sim_chunks:
@@ -85,6 +82,4 @@ def test_SeparateSpeech(
             output_chunks[channel].append(output[channel])
 
     separate_speech.reset()
-    waves = [
-        merge_audio(chunks, frame_size, hop_size, rest_pad) for chunks in output_chunks
-    ]
+    waves = [separate_speech.merge(chunks, ilens) for chunks in output_chunks]

@@ -1,9 +1,9 @@
 import pytest
 import torch
 from packaging.version import parse as V
+import torch_complex
 from torch_complex import ComplexTensor
 
-from espnet2.bin.enh_inference_streaming import merge_audio, split_audio
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 
@@ -65,21 +65,35 @@ def test_STFTDecoder_invalid_type(
         y, ilens = decoder(real, x_lens)
 
 
-def test_conv_enc_dec_streaming():
+@pytest.mark.parametrize("n_fft", [512])
+@pytest.mark.parametrize("win_length", [512, 400])
+@pytest.mark.parametrize("hop_length", [128, 256])
+@pytest.mark.parametrize("onesided", [True, False])
+def test_stft_enc_dec_streaming(n_fft, win_length, hop_length, onesided):
     input_audio = torch.randn((1, 16000))
     ilens = torch.LongTensor([16000])
 
-    encoder = STFTEncoder(n_fft=256, hop_length=128, onesided=True)
-    decoder = STFTDecoder(n_fft=256, hop_length=128, onesided=True)
+    encoder = STFTEncoder(
+        n_fft=n_fft, win_length=win_length, hop_length=hop_length, onesided=onesided
+    )
+    decoder = STFTDecoder(
+        n_fft=n_fft, win_length=win_length, hop_length=hop_length, onesided=onesided
+    )
     frames, flens = encoder(input_audio, ilens)
-    seq_wav, ilens = decoder(frames, ilens)
+    wav, ilens = decoder(frames, ilens)
 
-    splited, rest = split_audio(input_audio, frame_size=256, hop_size=128)
+    splited = encoder.streaming_frame(input_audio)
+
     sframes = [encoder.forward_streaming(s) for s in splited]
     swavs = [decoder.forward_streaming(s) for s in sframes]
-    merged_wav = merge_audio(swavs, 256, 128, rest)
+    merged = decoder.streaming_merge(swavs, ilens)
 
-    torch.testing.assert_allclose(seq_wav, merged_wav)
+    sframes = torch_complex.cat(sframes, dim=1)
+
+    torch.testing.assert_allclose(sframes.real, frames.real)
+    torch.testing.assert_allclose(sframes.imag, frames.imag)
+    torch.testing.assert_allclose(wav, input_audio)
+    torch.testing.assert_allclose(wav, merged)
 
 
 @pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")

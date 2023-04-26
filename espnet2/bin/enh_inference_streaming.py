@@ -39,8 +39,8 @@ class SeparateSpeechStreaming:
         >>> import soundfile
         >>> separate_speech = SeparateSpeechStreaming("enh_config.yml", "enh.pth")
         >>> audio, rate = soundfile.read("speech.wav")
-        >>> frame_size, hop_size = separate_speech.frame_size, separate_speech.hop_size
-        >>> speech_sim_chunks, rest_pad = split_audio(wav, frame_size, hop_size)
+        >>> lengths = torch.LongTensor(audio.shape[-1])
+        >>> speech_sim_chunks = separate_speech.frame(wav)
         >>> output_chunks = [[] for ii in range(separate_speech.num_spk)]
         >>>
         >>> for chunk in speech_sim_chunks:
@@ -50,7 +50,7 @@ class SeparateSpeechStreaming:
         >>>
         >>> separate_speech.reset()
         >>> waves = [
-        >>>     merge_audio(chunks, frame_size, hop_size, rest_pad)
+        >>>     separate_speech.merge(chunks, length)
         >>>     for chunks in output_chunks ]
     """
 
@@ -127,7 +127,7 @@ class SeparateSpeechStreaming:
 
     def frame(self, audio):
         return self.enh_model.encoder.streaming_frame(audio)
-    
+
     def merge(self, chunks, ilens=None):
         return self.enh_model.decoder.streaming_merge(chunks, ilens=ilens)
 
@@ -344,7 +344,6 @@ def inference(
 
     for writer in writers:
         writer.close()
-
 
 
 def get_parser():

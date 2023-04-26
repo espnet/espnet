@@ -4,7 +4,6 @@ import math
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 
 
-
 class ConvEncoder(AbsEncoder):
     """Convolutional encoder for speech enhancement and separation"""
 
@@ -51,9 +50,19 @@ class ConvEncoder(AbsEncoder):
     def forward_streaming(self, input: torch.Tensor):
         output, _ = self.forward(input, 0)
         return output
-    
+
     def streaming_frame(self, audio: torch.Tensor):
-        # audio: B, T
+        """streaming_frame. It splits the continuous audio into frame-level
+        audio chunks in the streaming *simulation*. It is noted that this
+        function takes the entire long audio as input for a streaming simulation.
+        You may refer to this function to manage your streaming input
+        buffer in a real streaming application.
+
+        Args:
+            audio: (B, T)
+        Returns:
+            chunked: List [(B, frame_size),]
+        """
         batch_size, audio_len = audio.shape
 
         hop_size = self.stride
@@ -65,7 +74,7 @@ class ConvEncoder(AbsEncoder):
         ]
 
         return audio
-    
+
 
 if __name__ == "__main__":
 
