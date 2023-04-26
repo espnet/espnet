@@ -45,8 +45,8 @@ class SeparateSpeechStreaming:
         >>>
         >>> for chunk in speech_sim_chunks:
         >>>     output = separate_speech(chunk)
-        >>>     for channel in range(separate_speech.num_spk):
-        >>>         output_chunks[channel].append(output[channel])
+        >>>     for spk in range(separate_speech.num_spk):
+        >>>         output_chunks[spk].append(output[spk])
         >>>
         >>> separate_speech.reset()
         >>> waves = [
