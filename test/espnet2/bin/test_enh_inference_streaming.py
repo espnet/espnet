@@ -49,7 +49,13 @@ def config_file(tmp_path: Path):
             "decoder": "stft",
             "decoder_conf": {"n_fft": 512, "hop_length": 256},
             "separator": "skim",
-            "separator_conf": {"causal": True, "seg_overlap": False, "num_spk": 2},
+            "separator_conf": {
+                "causal": True,
+                "seg_overlap": False,
+                "num_spk": 2,
+                "unit": 128,
+                "layer": 2,
+            },
         }
     )
 
