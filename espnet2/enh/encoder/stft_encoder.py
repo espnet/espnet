@@ -105,6 +105,7 @@ class STFTEncoder(AbsEncoder):
             torch.fft.rfft(windowed) if self.stft.onesided else torch.fft.fft(windowed)
         )
         feature = feature.unsqueeze(1)
-        feature = ComplexTensor(feature.real, feature.imag)
+        if not (is_torch_1_9_plus and self.use_builtin_complex):
+            feature = ComplexTensor(feature.real, feature.imag)
 
         return feature
