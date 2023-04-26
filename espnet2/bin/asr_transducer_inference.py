@@ -209,6 +209,8 @@ class Speech2Text:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
+        speech = speech.to(device=self.device)
+
         feats, feats_length = self.audio_processor.compute_features(
             speech.to(getattr(torch, self.dtype)), is_final
         )
@@ -244,8 +246,12 @@ class Speech2Text:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+        speech = speech.unsqueeze(0).to(
+            dtype=getattr(torch, self.dtype), device=self.device
+        )
+        lengths = speech.new_full(
+            [1], dtype=torch.long, fill_value=speech.size(1), device=self.device
+        )
 
         feats, feats_length = self.asr_model._extract_feats(speech, lengths)
 
