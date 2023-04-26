@@ -1,6 +1,8 @@
 import torch
+import math
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
+
 
 
 class ConvEncoder(AbsEncoder):
@@ -20,14 +22,6 @@ class ConvEncoder(AbsEncoder):
         self.kernel_size = kernel_size
 
         self._output_dim = channel
-
-    @property
-    def frame_size(self) -> int:
-        return self.kernel_size
-
-    @property
-    def hop_size(self) -> int:
-        return self.stride
 
     @property
     def output_dim(self) -> int:
@@ -57,3 +51,38 @@ class ConvEncoder(AbsEncoder):
     def forward_streaming(self, input: torch.Tensor):
         output, _ = self.forward(input, 0)
         return output
+    
+    def streaming_frame(self, audio: torch.Tensor):
+        # audio: B, T
+        batch_size, audio_len = audio.shape
+
+        hop_size = self.stride
+        frame_size = self.kernel_size
+
+        audio = [
+            audio[:, i * hop_size : i * hop_size + frame_size]
+            for i in range((audio_len - frame_size) // hop_size + 1)
+        ]
+
+        return audio
+    
+
+if __name__ == "__main__":
+
+    input_audio = torch.randn((2, 100))
+    ilens = torch.LongTensor([100, 98])
+
+    nfft = 32
+    win_length = 28
+    hop = 10
+
+    encoder = ConvEncoder(kernel_size=nfft, stride=hop, channel=16)
+    frames, flens = encoder(input_audio, ilens)
+
+    splited = encoder.streaming_frame(input_audio)
+
+    sframes = [encoder.forward_streaming(s) for s in splited]
+
+    sframes = torch.cat(sframes, dim=1)
+
+    torch.testing.assert_allclose(sframes, frames)

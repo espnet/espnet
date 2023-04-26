@@ -39,14 +39,8 @@ class STFTEncoder(AbsEncoder):
         self.hop_length = hop_length
         self.window = window
         self.n_fft = n_fft
+        self.center = center
 
-    @property
-    def frame_size(self) -> int:
-        return self.n_fft
-
-    @property
-    def hop_size(self) -> int:
-        return self.win_length
 
     @property
     def output_dim(self) -> int:
@@ -109,3 +103,27 @@ class STFTEncoder(AbsEncoder):
             feature = ComplexTensor(feature.real, feature.imag)
 
         return feature
+    
+    def streaming_frame(self, audio):
+        # audio: B, T
+        batch_size, _ = audio.shape
+
+        if self.center:
+            pad_len = int(self.win_length // 2)
+            signal_dim = audio.dim()
+            extended_shape = [1] * (3 - signal_dim) + list(audio.size())
+            # the default STFT pad mode is "reflect", which is not configurable in STFT encoder,
+            # so, here we just use "reflect mode" 
+            audio = torch.nn.functional.pad(audio.view(extended_shape), [pad_len, pad_len], "reflect")
+            audio = audio.view(audio.shape[-signal_dim:])
+
+        
+        _, audio_len = audio.shape
+
+        n_frames = 1 + (audio_len - self.win_length) // self.hop_length
+        strides = list(audio.stride())
+
+        shape = list(audio.shape[:-1]) + [self.win_length, n_frames]
+        strides = strides + [self.hop_length]
+
+        return audio.as_strided(shape, strides, storage_offset=0).unbind(dim=-1)

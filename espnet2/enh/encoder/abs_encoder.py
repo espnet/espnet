@@ -18,13 +18,8 @@ class AbsEncoder(torch.nn.Module, ABC):
     def output_dim(self) -> int:
         raise NotImplementedError
 
-    @property
-    def frame_size(self) -> int:
-        raise NotImplementedError
-
-    @property
-    def hop_size(self) -> int:
-        raise NotImplementedError
-
     def forward_streaming(self, input: torch.Tensor):
         raise NotImplementedError
+
+    def streaming_frame(self, audio: torch.Tensor):
+        NotImplementedError

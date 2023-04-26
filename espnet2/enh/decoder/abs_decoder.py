@@ -13,13 +13,9 @@ class AbsDecoder(torch.nn.Module, ABC):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
 
-    @property
-    def frame_size(self) -> int:
-        raise NotImplementedError
-
-    @property
-    def hop_size(self) -> int:
-        raise NotImplementedError
 
     def forward_streaming(self, input_frame: torch.Tensor):
+        raise NotImplementedError
+
+    def streaming_merge(self, chunks:torch.Tensor, ilens:torch.tensor=None):
         raise NotImplementedError

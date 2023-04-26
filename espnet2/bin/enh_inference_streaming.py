@@ -111,9 +111,6 @@ class SeparateSpeechStreaming:
         self.enh_model = enh_model
         self.num_spk = enh_model.num_spk
 
-        self.frame_size = enh_model.encoder.frame_size
-        self.hop_size = enh_model.encoder.hop_size
-
         task = "enhancement" if self.num_spk == 1 else "separation"
 
         # reference channel for processing multi-channel speech
@@ -127,6 +124,12 @@ class SeparateSpeechStreaming:
             self.ref_channel = enh_model.ref_channel
 
         self.streaming_states = None
+
+    def frame(self, audio):
+        return self.enh_model.encoder.streaming_frame(audio)
+    
+    def merge(self, chunks, ilens=None):
+        return self.enh_model.decoder.streaming_merge(chunks, ilens=ilens)
 
     def reset(self):
         self.streaming_states = None
@@ -268,9 +271,6 @@ def inference(
         **separate_speech_kwargs,
     )
 
-    # get frame_size and hop_size of the streaming model
-    frame_size, hop_size = separate_speech.frame_size, separate_speech.hop_size
-
     # 3. Build data-iterator
     loader = EnhancementTask.build_streaming_iterator(
         data_path_and_name_and_type,
@@ -307,9 +307,12 @@ def inference(
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
         speech = batch["speech_mix"]
+        lengths = speech.new_full(
+            [batch_size], dtype=torch.long, fill_value=speech.size(1)
+        )
 
         # split continuous speech into small chunks to simulate streaming
-        speech_sim_chunks, rest_pad = split_audio(speech, frame_size, hop_size)
+        speech_sim_chunks = separate_speech.frame(speech)
         output_chunks = [[] for ii in range(separate_speech.num_spk)]
 
         # the main loop for streaming processing
@@ -325,7 +328,7 @@ def inference(
 
         # merge chunks
         waves = [
-            merge_audio(chunks, frame_size, hop_size, rest_pad)
+            separate_speech.merge(chunks, lengths)
             for chunks in output_chunks
         ]
 
@@ -342,56 +345,6 @@ def inference(
     for writer in writers:
         writer.close()
 
-
-def merge_audio(chunks, frame_size, hop_size, rest):
-    # [chunk: (B, frame_size)]
-
-    num_chunks = len(chunks)
-    batch_size = chunks[0].shape[0]
-    audio_len = int(hop_size * num_chunks + frame_size - hop_size)
-
-    output = torch.zeros((batch_size, audio_len), dtype=chunks[0].dtype).to(
-        chunks[0].device
-    )
-
-    for i, chunk in enumerate(chunks):
-        output[:, i * hop_size : i * hop_size + frame_size] += chunk
-
-    pad_len = math.ceil((frame_size // hop_size) // 2) * hop_size
-
-    output = output[:, pad_len : -(pad_len + rest)]
-
-    output = output / (frame_size / hop_size / 2)
-
-    return output
-
-
-def split_audio(audio, frame_size, hop_size):
-    # audio: B, T
-    batch_size, audio_len = audio.shape
-
-    # rest = frame_size - (hop_size + audio_len % frame_size) % frame_size
-
-    rest = hop_size - (audio_len - frame_size) % hop_size
-
-    if rest > 0:
-        pad = torch.zeros((batch_size, rest), dtype=audio.dtype, device=audio.device)
-        audio = torch.cat([audio, pad], 1)
-
-    pad_len = math.ceil((frame_size // hop_size) // 2) * hop_size
-
-    pad_aux = torch.zeros((batch_size, pad_len), dtype=audio.dtype, device=audio.device)
-
-    audio = torch.cat([pad_aux, audio, pad_aux], 1)
-
-    new_len = audio.shape[1]
-
-    audio = [
-        audio[:, i * hop_size : i * hop_size + frame_size]
-        for i in range((new_len - frame_size) // hop_size + 1)
-    ]
-
-    return audio, rest
 
 
 def get_parser():

@@ -6,6 +6,7 @@ from torch_complex.tensor import ComplexTensor
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.layers.complex_utils import is_torch_complex_tensor
 from espnet2.layers.stft import Stft
+import math
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
@@ -38,14 +39,7 @@ class STFTDecoder(AbsDecoder):
         self.n_fft = n_fft
         self.hop_length = hop_length
         self.window = window
-
-    @property
-    def frame_size(self) -> int:
-        return self.win_length
-
-    @property
-    def hop_size(self) -> int:
-        return self.hop_length
+        self.center = center
 
     def forward(self, input: ComplexTensor, ilens: torch.Tensor):
         """Forward.
@@ -92,9 +86,9 @@ class STFTDecoder(AbsDecoder):
         window = window_func(self.win_length)
         n_pad_left = (self.n_fft - window.shape[0]) // 2
         n_pad_right = self.n_fft - window.shape[0] - n_pad_left
-        window = torch.cat(
-            [torch.zeros(n_pad_left), window, torch.zeros(n_pad_right)], 0
-        )
+        # window = torch.cat(
+        #     [torch.zeros(n_pad_left), window, torch.zeros(n_pad_right)], 0
+        # )
         return window
 
     def forward_streaming(self, input_frame: torch.Tensor):
@@ -116,26 +110,71 @@ class STFTDecoder(AbsDecoder):
         n_pad_left = (self.n_fft - self.win_length) // 2
         output_wav = output_wav[..., n_pad_left : n_pad_left + self.win_length]
 
-        return output_wav
+        return output_wav * self._get_window_func()
+
+        # return output_wav
+
+
+    def streaming_merge(self, chunks, ilens=None):
+        # [chunk: (B, frame_size)]
+
+        frame_size = self.win_length
+        hop_size = self.hop_length
+
+
+        num_chunks = len(chunks)
+        batch_size = chunks[0].shape[0]
+        audio_len = int(hop_size * num_chunks + frame_size - hop_size)
+
+        output = torch.zeros((batch_size, audio_len), dtype=chunks[0].dtype).to(
+            chunks[0].device
+        )
+
+        for i, chunk in enumerate(chunks):
+            output[:, i * hop_size : i * hop_size + frame_size] += chunk
+
+        window_sq = self._get_window_func().pow(2)
+        window_envelop = torch.zeros((batch_size, audio_len), dtype=chunks[0].dtype).to(chunks[0].device)   
+        for i in range(len(chunks)):
+            window_envelop[:, i * hop_size : i * hop_size + frame_size] += window_sq
+        output = output / window_envelop
+
+        # We need to trim the front padding away if center.
+        start = (frame_size // 2) if self.center else 0
+        end = - (frame_size // 2) if ilens.max() is None else start + ilens.max()
+
+
+        
+        return output[..., start:end]
 
 
 if __name__ == "__main__":
-    from espnet2.bin.enh_inference_streaming import merge_audio, split_audio
     from espnet2.enh.encoder.stft_encoder import STFTEncoder
 
-    input_audio = torch.randn((1, 16000))
-    ilens = torch.LongTensor([16000])
+    input_audio = torch.randn((1, 100))
+    ilens = torch.LongTensor([100])
 
-    encoder = STFTEncoder(n_fft=256, hop_length=128, onesided=True)
-    decoder = STFTDecoder(n_fft=256, hop_length=128, onesided=True)
+    nfft = 32
+    win_length = 28
+    hop = 10
+
+    encoder = STFTEncoder(n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True)
+    decoder = STFTDecoder(n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True)
     frames, flens = encoder(input_audio, ilens)
     wav, ilens = decoder(frames, ilens)
 
-    splited, rest = split_audio(input_audio, frame_size=256, hop_size=128)
+    splited = encoder.streaming_frame(input_audio)
 
     sframes = [encoder.forward_streaming(s) for s in splited]
 
     swavs = [decoder.forward_streaming(s) for s in sframes]
-    merged = merge_audio(swavs, 256, 128, rest)
+    merged = decoder.streaming_merge(swavs, ilens)
+
+    sframes = torch_complex.cat(sframes, dim=1)
+
+    torch.testing.assert_allclose(sframes.real, frames.real)
+    torch.testing.assert_allclose(sframes.imag, frames.imag)
+
+    torch.testing.assert_allclose(wav, input_audio)
 
     torch.testing.assert_allclose(wav, merged)
