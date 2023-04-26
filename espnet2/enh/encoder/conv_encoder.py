@@ -1,5 +1,6 @@
-import torch
 import math
+
+import torch
 
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
 
@@ -77,7 +78,6 @@ class ConvEncoder(AbsEncoder):
 
 
 if __name__ == "__main__":
-
     input_audio = torch.randn((2, 100))
     ilens = torch.LongTensor([100, 98])
 

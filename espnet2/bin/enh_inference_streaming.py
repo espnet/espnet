@@ -327,10 +327,7 @@ def inference(
         separate_speech.reset()
 
         # merge chunks
-        waves = [
-            separate_speech.merge(chunks, lengths)
-            for chunks in output_chunks
-        ]
+        waves = [separate_speech.merge(chunks, lengths) for chunks in output_chunks]
 
         waves = [
             (w / abs(w).max(dim=1, keepdim=True)[0] * 0.9).cpu().numpy() for w in waves
