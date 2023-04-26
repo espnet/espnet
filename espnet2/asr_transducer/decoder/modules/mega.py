@@ -220,14 +220,18 @@ class MEGA(torch.nn.Module):
             if state["prev_value"] is not None:
                 value = torch.cat([state["prev_value"], value], dim=1)
 
-            # Note (b-flo): Initially, we reset the cache when reaching chunk_size.
-            # It's an issue for beam-batched decoding algorithms where we stack
-            # QK states of different lengths.
-            state = {
-                "prev_key": key[:, -(self.chunk_size - 1):, :],
-                "prev_value": value[:, -(self.chunk_size - 1):, :],
-                "ema_state": ema_state,
-            }
+            if self.chunk_size > 0 and (key.size(1) % self.chunk_size) == 0:
+                # (b-flo): In the original version, the Q and K states are deleted when
+                # reaching chunk_size (i.e. set to None). It's an issue for beam-batched
+                # decoding algorithms where we stack states of different lengths/paths.
+                # Until revision, we keep the last predicted Q and K instead.
+                state = {
+                    "prev_key": key[:, -1:, :],
+                    "prev_value": value[:, -1:, :],
+                    "ema_state": ema_state,
+                }
+            else:
+                state = {"prev_key": key, "prev_value": value, "ema_state": ema_state}
 
         if self.chunk_size <= 0:
             query = query.unsqueeze(1)

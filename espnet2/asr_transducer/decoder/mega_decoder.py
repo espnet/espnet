@@ -282,7 +282,17 @@ class MEGADecoder(AbsDecoder):
 
         """
         return [
-            {"ema_state": None, "prev_key": None, "prev_value": None}
+            {
+                "ema_state": torch.zeros(
+                    (self.output_size, self.mega_ema_num_heads), device=self.device
+                ),
+                "prev_key": torch.zeros(
+                    (1, 1, self.mega_att_k_size), device=self.device
+                ),
+                "prev_value": torch.zeros(
+                    (1, 1, self.mega_att_v_size), device=self.device
+                ),
+            }
             for _ in range(self.num_blocks)
         ]
 
@@ -341,9 +351,6 @@ class MEGADecoder(AbsDecoder):
             : Decoder hidden states. [N x Dict]
 
         """
-        if new_states[0][0]["ema_state"] is None:
-            return new_states[0]
-
         return [
             {
                 "ema_state": torch.stack(
