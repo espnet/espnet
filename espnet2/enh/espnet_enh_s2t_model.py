@@ -35,6 +35,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         s2t_model: Union[ESPnetASRModel, ESPnetSTModel, ESPnetDiarizationModel],
         calc_enh_loss: bool = True,
         bypass_enh_prob: float = 0,  # 0 means do not bypass enhancement for all data
+        enh_checkpointing: bool = False,
     ):
         assert check_argument_types()
 
@@ -43,6 +44,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         self.s2t_model = s2t_model  # ASR or ST or DIAR model
 
         self.bypass_enh_prob = bypass_enh_prob
+        self.enh_checkpointing = enh_checkpointing
 
         self.calc_enh_loss = calc_enh_loss
         if isinstance(self.s2t_model, ESPnetDiarizationModel):
@@ -234,14 +236,18 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         loss_enh = None
         perm = None
         if not bypass_enh_flag:
-            (
-                speech_pre,
-                feature_mix,
-                feature_pre,
-                others,
-            ) = self.enh_model.forward_enhance(
-                speech, speech_lengths, {"num_spk": num_spk}
-            )
+            if self.enh_checkpointing:
+                ret = torch.utils.checkpoint.checkpoint(
+                    self.enh_model.forward_enhance,
+                    speech,
+                    speech_lengths,
+                    {"num_spk": num_spk},
+                )
+            else:
+                ret = self.enh_model.forward_enhance(
+                    speech, speech_lengths, {"num_spk": num_spk}
+                )
+            speech_pre, feature_mix, feature_pre, others = ret
             # loss computation
             if not skip_enhloss_flag:
                 loss_enh, _, _, perm = self.enh_model.forward_loss(
