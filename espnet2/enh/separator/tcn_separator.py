@@ -136,5 +136,3 @@ class TCNSeparator(AbsSeparator):
     @property
     def num_spk(self):
         return self._num_spk
-    
-
