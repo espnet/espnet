@@ -64,11 +64,7 @@ def test_STFTDecoder_invalid_type(
 
 def test_conv_enc_dec_streaming():
     input_audio = torch.randn((1, 16000))
-    ilens = torch.LongTensor(
-        [
-            16000,
-        ]
-    )
+    ilens = torch.LongTensor([16000])
 
     encoder = STFTEncoder(n_fft=256, hop_length=128, onesided=True)
     decoder = STFTDecoder(n_fft=256, hop_length=128, onesided=True)
