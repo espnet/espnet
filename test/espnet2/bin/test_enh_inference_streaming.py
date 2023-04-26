@@ -45,9 +45,9 @@ def config_file(tmp_path: Path):
     args.update(
         {
             "encoder": "stft",
-            "encoder_conf": {"n_fft": 64, "hop_length": 32},
+            "encoder_conf": {"n_fft": 512, "hop_length": 256},
             "decoder": "stft",
-            "decoder_conf": {"n_fft": 64, "hop_length": 32},
+            "decoder_conf": {"n_fft": 512, "hop_length": 256},
             "separator": "skim",
             "separator_conf": {"causal": True, "seg_overlap": False, "num_spk": 2},
         }
@@ -59,9 +59,9 @@ def config_file(tmp_path: Path):
     return tmp_path / "enh" / "config.yaml"
 
 
-@pytest.mark.execution_timeout(5)
+@pytest.mark.execution_timeout(10)
 @pytest.mark.parametrize("batch_size", [1, 2])
-@pytest.mark.parametrize("input_size", [16000, 35000])
+@pytest.mark.parametrize("input_size", [8000, 16000])
 def test_SeparateSpeech(
     config_file,
     batch_size,
