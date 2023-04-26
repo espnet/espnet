@@ -81,7 +81,7 @@ def test_conv_enc_dec_streaming():
 
     torch.testing.assert_allclose(seq_wav, merged_wav)
 
-    
+
 @pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")
 @pytest.mark.parametrize("n_fft", [512])
 @pytest.mark.parametrize("win_length", [512])
