@@ -949,11 +949,17 @@ if "${score_with_asr}"; then
                     utils/fix_data_dir.sh "${_ddir}"
                     mv ${_ddir}/wav.scp ${_ddir}/wav_ori.scp
 
-                    scripts/audio/format_wav_scp.sh --nj "${inference_nj}" --cmd "${_cmd}" \
-                        --out-filename "wav.scp" \
-                        --audio-format "${audio_format}" --fs "${fs}" \
-                        "${_ddir}/wav_ori.scp" "${_ddir}" \
-                        "${_ddir}/formated/logs/" "${_ddir}/formated/"
+                    line=$(head -n 1 "${_ddir}/wav_ori.scp" | awk '{print $NF}')
+                    if [[ "$(basename "$line")" =~ ^.*\.ark(:[[:digit:]]+)?$ ]]; then
+                        # scripts/audio/format_wav_scp.sh will not work for *.ark
+                        log "Skip the formatting stage for the 'ark' format"
+                    else
+                        scripts/audio/format_wav_scp.sh --nj "${inference_nj}" --cmd "${_cmd}" \
+                            --out-filename "wav.scp" \
+                            --audio-format "${audio_format}" --fs "${fs}" \
+                            "${_ddir}/wav_ori.scp" "${_ddir}" \
+                            "${_ddir}/formated/logs/" "${_ddir}/formated/"
+                    fi
 
                     if [[ "${audio_format}" == *ark* ]]; then
                         _type=kaldi_ark
