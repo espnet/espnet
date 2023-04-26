@@ -91,7 +91,8 @@ def scoring(
             assert inf_reader.keys() == ref_reader.keys()
 
     with DatadirWriter(output_dir) as writer:
-        for key in keys:
+        for n, key in enumerate(keys):
+            logging.info(f"[{n}] Scoring {keys}")
             if not flexible_numspk:
                 ref_audios = [
                     read_audio(ref_reader, key, audio_format=ref_audio_format)

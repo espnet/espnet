@@ -1030,7 +1030,7 @@ if "${score_with_asr}"; then
                 if "${score_obs}"; then
                     _dir="${data_feats}/${inference_asr_tag}/${dset}"
                 else
-                    _dir="${enh_exp}/${inference_asr_tag}/${dset}/"
+                    _dir="${enh_exp}/${inference_asr_tag}/${dset}"
                 fi
 
                 for spk in $(seq "${ref_num}"); do
