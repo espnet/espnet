@@ -59,7 +59,12 @@ class STFTEncoder(AbsEncoder):
             input (torch.Tensor): mixed speech [Batch, sample]
             ilens (torch.Tensor): input lengths [Batch]
         """
-        spectrum, flens = self.stft(input, ilens)
+        # for supporting half-precision training
+        if input.dtype in (torch.float16, torch.bfloat16):
+            spectrum, flens = self.stft(input.float(), ilens)
+            spectrum = spectrum.to(dtype=input.dtype)
+        else:
+            spectrum, flens = self.stft(input, ilens)
         if is_torch_1_9_plus and self.use_builtin_complex:
             spectrum = torch.complex(spectrum[..., 0], spectrum[..., 1])
         else:

@@ -287,6 +287,8 @@ class NaiveRNNDP(AbsSVS):
         pitch_lengths: Optional[torch.Tensor] = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        slur: torch.LongTensor = None,
+        slur_lengths: torch.Tensor = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -314,6 +316,8 @@ class NaiveRNNDP(AbsSVS):
                 value (LongTensor): Batch of padded duration (B, Tmax).
             duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of the lengths of padded duration (B, ).
+            slur (LongTensor): Batch of padded slur (B, Tmax).
+            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -460,6 +464,7 @@ class NaiveRNNDP(AbsSVS):
         melody: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -478,6 +483,7 @@ class NaiveRNNDP(AbsSVS):
             pitch (FloatTensor): Batch of padded f0 (Tmax).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (Tmax).
+            slur (LongTensor): Batch of padded slur (B, Tmax).
             spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (1).
             lids (Optional[Tensor]): Batch of language IDs (1).
