@@ -2,6 +2,7 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from torch_complex.tensor import ComplexTensor
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
@@ -194,29 +195,23 @@ class iNeuBe(AbsSeparator):
 
     def forward(
         self,
-        input: Union[torch.Tensor],
+        input: Union[torch.Tensor, ComplexTensor],
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
-    ) -> Tuple[List[Union[torch.Tensor]], torch.Tensor, OrderedDict]:
+    ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Forward.
 
         Args:
-            input (torch.Tensor): batched multi-channel audio tensor with
+            input (torch.Tensor/ComplexTensor): batched multi-channel audio tensor with
                     C audio channels and T samples [B, T, C]
             ilens (torch.Tensor): input lengths [Batch]
             additional (Dict or None): other data, currently unused in this model.
 
         Returns:
-            enhanced (List[Union(torch.Tensor)]):
+            enhanced (List[Union[torch.Tensor, ComplexTensor]]):
                     [(B, T), ...] list of len n_spk
                     of mono audio tensors with T samples.
             ilens (torch.Tensor): (B,)
-                others predicted data, e.g. masks: OrderedDict[
-                    'mask_spk1': torch.Tensor(Batch, Frames, Freq),
-                    'mask_spk2': torch.Tensor(Batch, Frames, Freq),
-                    ...
-                    'mask_spkn': torch.Tensor(Batch, Frames, Freq),
-                ]
             additional (Dict or None): other data, currently unused in this model,
                     we return it also in output.
         """

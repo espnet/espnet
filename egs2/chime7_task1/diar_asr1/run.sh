@@ -37,11 +37,11 @@ diarization_dir=exp/diarization
 diar_inf_dset="dev"
 pyan_merge_closer=0.5
 pyan_max_length_merged=20
-pyan_inf_max_batch=128
+pyan_inf_max_batch=32
 pyan_use_pretrained= #popcornell/pyannote-segmentation-chime6-mixer6
 # fine-tune
 pyan_finetune_dir=exp/pyannote_finetuned
-pyan_batch_size=64
+pyan_batch_size=32
 pyan_learning_rate="1e-5"
 
 
