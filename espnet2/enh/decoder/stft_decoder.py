@@ -182,11 +182,14 @@ if __name__ == "__main__":
     swavs = [decoder.forward_streaming(s) for s in sframes]
     merged = decoder.streaming_merge(swavs, ilens)
 
-    sframes = torch_complex.cat(sframes, dim=1)
+    if not (is_torch_1_9_plus and encoder.use_builtin_complex):
+        sframes = torch_complex.cat(sframes, dim=1)
+    else:
+        sframes = torch.cat(sframes, dim=1)
 
-    torch.testing.assert_allclose(sframes.real, frames.real)
-    torch.testing.assert_allclose(sframes.imag, frames.imag)
+    torch.testing.assert_close(sframes.real, frames.real)
+    torch.testing.assert_close(sframes.imag, frames.imag)
 
-    torch.testing.assert_allclose(wav, input_audio)
+    torch.testing.assert_close(wav, input_audio)
 
-    torch.testing.assert_allclose(wav, merged)
+    torch.testing.assert_close(wav, merged)
