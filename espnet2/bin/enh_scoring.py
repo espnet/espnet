@@ -27,14 +27,14 @@ def get_readers(scps: List[str], dtype: str):
     # Determine the audio format (sound or kaldi_ark)
     with open(scps[0], "r") as f:
         line = f.readline()
-        filename = Path(line.split(maxsplit=1)[1]).name
+        filename = Path(line.strip().split(maxsplit=1)[1]).name
     if re.fullmatch(r".*\.ark(:\d+)?", filename):
         # xxx.ark or xxx.ark:123
         readers = [kaldi_loader(f, float_dtype=dtype) for f in scps]
-        audio_format = "sound"
+        audio_format = "kaldi_ark"
     else:
         readers = [SoundScpReader(f, dtype=dtype) for f in scps]
-        audio_format = "kaldi_ark"
+        audio_format = "sound"
     return readers, audio_format
 
 
@@ -164,7 +164,15 @@ def scoring(
                 writer[f"SIR_spk{i + 1}"][key] = str(sir[i])
                 # save permutation assigned script file
                 if i < len(ref_scp):
-                    writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
+                    if inf_audio_format == "sound":
+                        writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
+                    elif inf_audio_format == "kaldi_ark":
+                        # NOTE: SegmentsExtractor is not supported
+                        writer[f"wav_spk{i + 1}"][key] = inf_readers[
+                            perm[i]
+                        ].loader._dict[key]
+                    else:
+                        raise ValueError(f"Unknown audio format: {inf_audio_format}")
 
 
 def get_parser():
