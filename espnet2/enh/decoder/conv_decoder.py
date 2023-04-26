@@ -1,5 +1,6 @@
-import torch
 import math
+
+import torch
 
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 

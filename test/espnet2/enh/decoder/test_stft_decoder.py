@@ -1,7 +1,7 @@
 import pytest
 import torch
-from packaging.version import parse as V
 import torch_complex
+from packaging.version import parse as V
 from torch_complex import ComplexTensor
 
 from espnet2.enh.decoder.stft_decoder import STFTDecoder
