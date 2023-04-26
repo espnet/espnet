@@ -3,6 +3,7 @@ import torch
 
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
+from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 
 
 def prepare():
@@ -37,6 +38,22 @@ def test_stateless_decoder():
     vocab_size, labels = prepare()
 
     decoder = StatelessDecoder(vocab_size, embed_size=2)
+    _ = decoder(labels)
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {},
+        {"rel_pos_bias_type": "rotary"},
+        {"chunk_size": 8},
+        {"chunk_size": 16},
+    ],
+)
+def test_mega_decoder(params):
+    vocab_size, labels = prepare()
+
+    decoder = MEGADecoder(vocab_size, **params)
     _ = decoder(labels)
 
 

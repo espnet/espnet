@@ -5,6 +5,7 @@ import pytest
 import torch
 
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr_transducer.encoder.encoder import Encoder
@@ -51,6 +52,8 @@ def prepare(model, input_size, vocab_size, batch_size):
 def get_decoder(vocab_size, params):
     if "rnn_type" in params:
         decoder = RNNDecoder(vocab_size, **params)
+    elif "block_size" in params:
+        decoder = MEGADecoder(vocab_size, **params)
     else:
         decoder = StatelessDecoder(vocab_size, **params)
 
@@ -228,6 +231,39 @@ def get_specaug():
             {"joint_space_size": 4},
             {"transducer_weight": 1.0},
         ),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                },
+                {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
+            ],
+            {
+                "dynamic_chunk_training": True,
+                "short_chunk_size": 1,
+                "num_left_chunks": 1,
+            },
+            {"block_size": 4, "chunk_size": 3},
+            {"joint_space_size": 4},
+            {"transducer_weight": 1.0},
+        ),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
+            {},
+            {"block_size": 4, "rel_pos_bias_type": "rotary"},
+            {"joint_space_size": 4},
+            {"report_cer": True, "report_wer": True},
+        ),
     ],
 )
 def test_model_training(
@@ -247,7 +283,6 @@ def test_model_training(
     )
 
     specaug = get_specaug() if main_params.pop("specaug", False) else None
-    #    normalize = get_normalize() if main_params.pop("normalize", False) else None
 
     normalize = main_params.pop("normalize", None)
     if normalize is not None:
