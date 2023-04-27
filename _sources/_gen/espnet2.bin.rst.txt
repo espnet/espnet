@@ -158,6 +158,17 @@ espnet2.bin.asr_inference_streaming
     :show-inheritance:
 
 
+.. _espnet2.bin.enh_inference_streaming:
+
+espnet2.bin.enh_inference_streaming
+-----------------------------------
+
+.. automodule:: espnet2.bin.enh_inference_streaming
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.st_inference_streaming:
 
 espnet2.bin.st_inference_streaming

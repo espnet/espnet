@@ -309,6 +309,25 @@
 
         <span class="k">return</span> <span class="n">masked</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">others</span></div>
 
+<div class="viewcode-block" id="TCNSeparator.forward_streaming"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.separator.tcn_separator.TCNSeparator.forward_streaming">[docs]</a>    <span class="k">def</span> <span class="nf">forward_streaming</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_frame</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">buffer</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># input_frame: B, 1, N</span>
+
+        <span class="n">B</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">N</span> <span class="o">=</span> <span class="n">input_frame</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">receptive_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tcn</span><span class="o">.</span><span class="n">receptive_field</span>
+
+        <span class="k">if</span> <span class="n">buffer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">buffer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">receptive_field</span><span class="p">,</span> <span class="n">N</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">input_frame</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="n">buffer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="n">shifts</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">buffer</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">input_frame</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+
+        <span class="n">masked</span><span class="p">,</span> <span class="n">ilens</span><span class="p">,</span> <span class="n">others</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="n">buffer</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="n">masked</span> <span class="o">=</span> <span class="p">[</span><span class="n">m</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">masked</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">masked</span><span class="p">,</span> <span class="n">buffer</span><span class="p">,</span> <span class="n">others</span></div>
+
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">num_spk</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_spk</span></div>

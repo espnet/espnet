@@ -148,6 +148,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-gan-svs-train-1">espnet2.bin.gan_svs_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-mt-train-1">espnet2.bin.mt_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference-streaming-1">espnet2.bin.asr_inference_streaming</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-inference-streaming-1">espnet2.bin.enh_inference_streaming</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-st-inference-streaming-1">espnet2.bin.st_inference_streaming</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-slu-train-1">espnet2.bin.slu_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-scoring-1">espnet2.bin.enh_scoring</a></li>
@@ -908,6 +909,88 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 <dl class="function">
 <dt id="espnet2.bin.asr_inference_streaming.main">
 <code class="sig-prename descclassname">espnet2.bin.asr_inference_streaming.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference_streaming.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference_streaming.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="espnet2-bin-enh-inference-streaming-1">
+<span id="espnet2-bin-enh-inference-streaming"></span><h2>espnet2.bin.enh_inference_streaming<a class="headerlink" href="#espnet2-bin-enh-inference-streaming-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.enh_inference_streaming"></span><dl class="class">
+<dt id="espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.enh_inference_streaming.</code><code class="sig-name descname">SeparateSpeechStreaming</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">inference_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">ref_channel: Optional[int] = None</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">dtype: str = 'float32'</em>, <em class="sig-param">enh_s2t_task: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference_streaming.html#SeparateSpeechStreaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>SeparateSpeechStreaming class. Separate a small audio chunk in streaming.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">separate_speech</span> <span class="o">=</span> <span class="n">SeparateSpeechStreaming</span><span class="p">(</span><span class="s2">&quot;enh_config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;enh.pth&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">audio</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;speech.wav&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">audio</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech_sim_chunks</span> <span class="o">=</span> <span class="n">separate_speech</span><span class="o">.</span><span class="n">frame</span><span class="p">(</span><span class="n">wav</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">output_chunks</span> <span class="o">=</span> <span class="p">[[]</span> <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">separate_speech</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">speech_sim_chunks</span><span class="p">:</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">output</span> <span class="o">=</span> <span class="n">separate_speech</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">separate_speech</span><span class="o">.</span><span class="n">num_spk</span><span class="p">):</span>
+<span class="gp">&gt;&gt;&gt; </span>        <span class="n">output_chunks</span><span class="p">[</span><span class="n">spk</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="n">spk</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">separate_speech</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">waves</span> <span class="o">=</span> <span class="p">[</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="n">separate_speech</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">chunks</span><span class="p">,</span> <span class="n">length</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span>    <span class="k">for</span> <span class="n">chunks</span> <span class="ow">in</span> <span class="n">output_chunks</span> <span class="p">]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming.frame">
+<code class="sig-name descname">frame</code><span class="sig-paren">(</span><em class="sig-param">audio</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference_streaming.html#SeparateSpeechStreaming.frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming.frame" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming.from_pretrained">
+<em class="property">static </em><code class="sig-name descname">from_pretrained</code><span class="sig-paren">(</span><em class="sig-param">model_tag: Optional[str] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference_streaming.html#SeparateSpeechStreaming.from_pretrained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming.from_pretrained" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build SeparateSpeech instance from the pretrained model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_tag</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Model tag of the pretrained models.
+Currently, the tags of espnet_model_zoo are supported.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>SeparateSpeech instance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet2.bin.enh_inference.SeparateSpeech" title="espnet2.bin.enh_inference.SeparateSpeech">SeparateSpeech</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming.merge">
+<code class="sig-name descname">merge</code><span class="sig-paren">(</span><em class="sig-param">chunks</em>, <em class="sig-param">ilens=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference_streaming.html#SeparateSpeechStreaming.merge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming.merge" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference_streaming.html#SeparateSpeechStreaming.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference_streaming.SeparateSpeechStreaming.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference_streaming.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference_streaming.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference_streaming.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference_streaming.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference_streaming.humanfriendly_or_none">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference_streaming.</code><code class="sig-name descname">humanfriendly_or_none</code><span class="sig-paren">(</span><em class="sig-param">value: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference_streaming.html#humanfriendly_or_none"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference_streaming.humanfriendly_or_none" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference_streaming.inference">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference_streaming.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, fs: int, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], model_tag: Optional[str], inference_config: Optional[str], allow_variable_data_keys: bool, ref_channel: Optional[int], enh_s2t_task: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference_streaming.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference_streaming.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.enh_inference_streaming.main">
+<code class="sig-prename descclassname">espnet2.bin.enh_inference_streaming.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/enh_inference_streaming.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.enh_inference_streaming.main" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>

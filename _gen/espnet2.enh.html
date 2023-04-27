@@ -585,6 +585,34 @@ registered hooks while the latter silently ignores them.</p>
 </aside>
 </dd></dl>
 
+<dl class="method">
+<dt id="espnet2.enh.decoder.abs_decoder.AbsDecoder.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input_frame: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/abs_decoder.html#AbsDecoder.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.abs_decoder.AbsDecoder.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.decoder.abs_decoder.AbsDecoder.streaming_merge">
+<code class="sig-name descname">streaming_merge</code><span class="sig-paren">(</span><em class="sig-param">chunks: torch.Tensor</em>, <em class="sig-param">ilens: torch._VariableFunctionsClass.tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/abs_decoder.html#AbsDecoder.streaming_merge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.abs_decoder.AbsDecoder.streaming_merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>streaming_merge. It merges the frame-level processed audio chunks
+in the streaming <em>simulation</em>. It is noted that, in real applications,
+the processed audio should be sent to the output channel frame by frame.
+You may refer to this function to manage your streaming output buffer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chunks</strong> – List [(B, frame_size),]</p></li>
+<li><p><strong>ilens</strong> – [B]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>[B, T]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>merge_audio</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -607,6 +635,34 @@ input (torch.Tensor): spectrum [Batch, T, F]
 ilens (torch.Tensor): input lengths [Batch]</p>
 </dd></dl>
 
+<dl class="method">
+<dt id="espnet2.enh.decoder.conv_decoder.ConvDecoder.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input_frame: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/conv_decoder.html#ConvDecoder.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.conv_decoder.ConvDecoder.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.decoder.conv_decoder.ConvDecoder.streaming_merge">
+<code class="sig-name descname">streaming_merge</code><span class="sig-paren">(</span><em class="sig-param">chunks: torch.Tensor</em>, <em class="sig-param">ilens: torch._VariableFunctionsClass.tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/conv_decoder.html#ConvDecoder.streaming_merge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.conv_decoder.ConvDecoder.streaming_merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>streaming_merge. It merges the frame-level processed audio chunks
+in the streaming <em>simulation</em>. It is noted that, in real applications,
+the processed audio should be sent to the output channel frame by frame.
+You may refer to this function to manage your streaming output buffer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chunks</strong> – List [(B, frame_size),]</p></li>
+<li><p><strong>ilens</strong> – [B]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>[B, T]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>merge_audio</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -627,6 +683,38 @@ ilens (torch.Tensor): input lengths [Batch]</p>
 <li><p><strong>input</strong> (<em>ComplexTensor</em>) – spectrum [Batch, T, (C,) F]</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.decoder.stft_decoder.STFTDecoder.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input_frame: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/stft_decoder.html#STFTDecoder.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.stft_decoder.STFTDecoder.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.
+:param input: spectrum [Batch, 1, F]
+:type input: ComplexTensor
+:param output: wavs [Batch, 1, self.win_length]</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.decoder.stft_decoder.STFTDecoder.streaming_merge">
+<code class="sig-name descname">streaming_merge</code><span class="sig-paren">(</span><em class="sig-param">chunks</em>, <em class="sig-param">ilens=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/decoder/stft_decoder.html#STFTDecoder.streaming_merge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.decoder.stft_decoder.STFTDecoder.streaming_merge" title="Permalink to this definition">¶</a></dt>
+<dd><p>streaming_merge. It merges the frame-level processed audio chunks
+in the streaming <em>simulation</em>. It is noted that, in real applications,
+the processed audio should be sent to the output channel frame by frame.
+You may refer to this function to manage your streaming output buffer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>chunks</strong> – List [(B, frame_size),]</p></li>
+<li><p><strong>ilens</strong> – [B]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>[B, T]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>merge_audio</p>
 </dd>
 </dl>
 </dd></dl>
@@ -690,6 +778,11 @@ others predicted data, e.g. masks: OrderedDict[</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.tcn_separator.TCNSeparator.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input_frame: torch.Tensor</em>, <em class="sig-param">buffer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/tcn_separator.html#TCNSeparator.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.tcn_separator.TCNSeparator.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="espnet2.enh.separator.tcn_separator.TCNSeparator.num_spk">
@@ -909,6 +1002,11 @@ others predicted data, e.g. masks: OrderedDict[</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="espnet2.enh.separator.skim_separator.SkiMSeparator.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input_frame: torch.Tensor</em>, <em class="sig-param">states=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/skim_separator.html#SkiMSeparator.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.skim_separator.SkiMSeparator.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="espnet2.enh.separator.skim_separator.SkiMSeparator.num_spk">
 <em class="property">property </em><code class="sig-name descname">num_spk</code><a class="headerlink" href="#espnet2.enh.separator.skim_separator.SkiMSeparator.num_spk" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -970,6 +1068,11 @@ others predicted data, e.g. masks: OrderedDict[</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.rnn_separator.RNNSeparator.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input_frame: torch.Tensor</em>, <em class="sig-param">states=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/rnn_separator.html#RNNSeparator.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.rnn_separator.RNNSeparator.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="espnet2.enh.separator.rnn_separator.RNNSeparator.num_spk">
@@ -1208,6 +1311,11 @@ instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
 </aside>
 </dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.separator.abs_separator.AbsSeparator.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input_frame: torch.Tensor</em>, <em class="sig-param">buffer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/separator/abs_separator.html#AbsSeparator.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.separator.abs_separator.AbsSeparator.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="method">
 <dt id="espnet2.enh.separator.abs_separator.AbsSeparator.num_spk">
@@ -3462,6 +3570,11 @@ registered hooks while the latter silently ignores them.</p>
 </aside>
 </dd></dl>
 
+<dl class="method">
+<dt id="espnet2.enh.layers.skim.MemLSTM.forward_one_step">
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">hc</em>, <em class="sig-param">state</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/skim.html#MemLSTM.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.skim.MemLSTM.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="class">
@@ -3539,6 +3652,11 @@ instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
 </aside>
 </dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.skim.SkiM.forward_stream">
+<code class="sig-name descname">forward_stream</code><span class="sig-paren">(</span><em class="sig-param">input_frame</em>, <em class="sig-param">states</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/skim.html#SkiM.forward_stream"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.skim.SkiM.forward_stream" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -3834,7 +3952,7 @@ registered hooks while the latter silently ignores them.</p>
 </dl>
 <dl class="method">
 <dt id="espnet2.enh.layers.dprnn.SingleRNN.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#SingleRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.SingleRNN.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">state=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dprnn.html#SingleRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dprnn.SingleRNN.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the computation performed at every call.</p>
 <p>Should be overridden by all subclasses.</p>
 <div class="admonition note">
@@ -6263,9 +6381,35 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="espnet2.enh.encoder.abs_encoder.AbsEncoder.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/abs_encoder.html#AbsEncoder.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="espnet2.enh.encoder.abs_encoder.AbsEncoder.output_dim">
 <em class="property">abstract property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder.output_dim" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.encoder.abs_encoder.AbsEncoder.streaming_frame">
+<code class="sig-name descname">streaming_frame</code><span class="sig-paren">(</span><em class="sig-param">audio: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/abs_encoder.html#AbsEncoder.streaming_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.abs_encoder.AbsEncoder.streaming_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>streaming_frame. It splits the continuous audio into frame-level
+audio chunks in the streaming <em>simulation</em>. It is noted that this
+function takes the entire long audio as input for a streaming simulation.
+You may refer to this function to manage your streaming input
+buffer in a real streaming application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>audio</strong> – (B, T)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List [(B, frame_size),]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>chunked</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -6295,9 +6439,43 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="espnet2.enh.encoder.stft_encoder.STFTEncoder.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/stft_encoder.html#STFTEncoder.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.stft_encoder.STFTEncoder.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.
+:param input: mixed speech [Batch, frame_length]
+:type input: torch.Tensor</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>B, 1, F</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="espnet2.enh.encoder.stft_encoder.STFTEncoder.output_dim">
 <em class="property">property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#espnet2.enh.encoder.stft_encoder.STFTEncoder.output_dim" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.encoder.stft_encoder.STFTEncoder.streaming_frame">
+<code class="sig-name descname">streaming_frame</code><span class="sig-paren">(</span><em class="sig-param">audio</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/stft_encoder.html#STFTEncoder.streaming_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.stft_encoder.STFTEncoder.streaming_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>streaming_frame. It splits the continuous audio into frame-level
+audio chunks in the streaming <em>simulation</em>. It is noted that this
+function takes the entire long audio as input for a streaming simulation.
+You may refer to this function to manage your streaming input
+buffer in a real streaming application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>audio</strong> – (B, T)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List [(B, frame_size),]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>chunked</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 
@@ -6330,9 +6508,35 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="espnet2.enh.encoder.conv_encoder.ConvEncoder.forward_streaming">
+<code class="sig-name descname">forward_streaming</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/conv_encoder.html#ConvEncoder.forward_streaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.conv_encoder.ConvEncoder.forward_streaming" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
 <dt id="espnet2.enh.encoder.conv_encoder.ConvEncoder.output_dim">
 <em class="property">property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#espnet2.enh.encoder.conv_encoder.ConvEncoder.output_dim" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.encoder.conv_encoder.ConvEncoder.streaming_frame">
+<code class="sig-name descname">streaming_frame</code><span class="sig-paren">(</span><em class="sig-param">audio: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/encoder/conv_encoder.html#ConvEncoder.streaming_frame"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.encoder.conv_encoder.ConvEncoder.streaming_frame" title="Permalink to this definition">¶</a></dt>
+<dd><p>streaming_frame. It splits the continuous audio into frame-level
+audio chunks in the streaming <em>simulation</em>. It is noted that this
+function takes the entire long audio as input for a streaming simulation.
+You may refer to this function to manage your streaming input
+buffer in a real streaming application.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>audio</strong> – (B, T)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List [(B, frame_size),]</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>chunked</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

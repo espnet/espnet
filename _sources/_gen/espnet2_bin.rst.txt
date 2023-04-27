@@ -2052,11 +2052,80 @@ enh_inference.py
                             enhancement/separation (default: None)
       --normalize_segment_scale NORMALIZE_SEGMENT_SCALE
                             Whether to normalize the energy of the separated
-                            streams in each segment (default: False)
+                            streams in each segment (default: True)
       --show_progressbar SHOW_PROGRESSBAR
                             Whether to show a progress bar when performing
                             segment-wise speech enhancement/separation (default:
                             False)
+      --ref_channel REF_CHANNEL
+                            If not None, this will overwrite the ref_channel
+                            defined in the separator module (for multi-channel
+                            speech processing) (default: None)
+.. _enh_inference_streaming.py:
+
+enh_inference_streaming.py
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: none
+
+    usage: enh_inference_streaming.py [-h] [--config CONFIG]
+                                      [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                                      --output_dir OUTPUT_DIR [--ngpu NGPU]
+                                      [--seed SEED]
+                                      [--dtype {float16,float32,float64}]
+                                      [--fs FS] [--num_workers NUM_WORKERS]
+                                      --data_path_and_name_and_type
+                                      DATA_PATH_AND_NAME_AND_TYPE
+                                      [--key_file KEY_FILE]
+                                      [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
+                                      [--train_config TRAIN_CONFIG]
+                                      [--model_file MODEL_FILE]
+                                      [--model_tag MODEL_TAG]
+                                      [--inference_config INFERENCE_CONFIG]
+                                      [--enh_s2t_task ENH_S2T_TASK]
+                                      [--batch_size BATCH_SIZE]
+                                      [--ref_channel REF_CHANNEL]
+    
+    Frontend inference
+    
+    optional arguments:
+      --config CONFIG       Give config file in yaml format (default: None)
+      --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                            The verbose level of logging (default: INFO)
+      --output_dir OUTPUT_DIR
+      --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
+      --seed SEED           Random seed (default: 0)
+      --dtype {float16,float32,float64}
+                            Data type (default: float32)
+      --fs FS               Sampling rate (default: 8000)
+      --num_workers NUM_WORKERS
+                            The number of workers used for DataLoader (default: 1)
+    
+    Input data related:
+      --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
+      --key_file KEY_FILE
+      --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
+    
+    The model configuration related:
+      --train_config TRAIN_CONFIG
+                            Training configuration file (default: None)
+      --model_file MODEL_FILE
+                            Model parameter file (default: None)
+      --model_tag MODEL_TAG
+                            Pretrained model tag. If specify this option,
+                            train_config and model_file will be overwritten
+                            (default: None)
+      --inference_config INFERENCE_CONFIG
+                            Optional configuration file for overwriting enh model
+                            attributes during inference (default: None)
+      --enh_s2t_task ENH_S2T_TASK
+                            enhancement and asr joint model (default: False)
+    
+    Data loading related:
+      --batch_size BATCH_SIZE
+                            The batch size for inference (default: 1)
+    
+    SeparateSpeech related:
       --ref_channel REF_CHANNEL
                             If not None, this will overwrite the ref_channel
                             defined in the separator module (for multi-channel

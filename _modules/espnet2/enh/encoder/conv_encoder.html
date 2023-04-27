@@ -193,7 +193,9 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.enh.encoder.conv_encoder</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 
@@ -239,7 +241,55 @@
 
         <span class="n">flens</span> <span class="o">=</span> <span class="p">(</span><span class="n">ilens</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">)</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span> <span class="o">+</span> <span class="mi">1</span>
 
-        <span class="k">return</span> <span class="n">feature</span><span class="p">,</span> <span class="n">flens</span></div></div>
+        <span class="k">return</span> <span class="n">feature</span><span class="p">,</span> <span class="n">flens</span></div>
+
+<div class="viewcode-block" id="ConvEncoder.forward_streaming"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.encoder.conv_encoder.ConvEncoder.forward_streaming">[docs]</a>    <span class="k">def</span> <span class="nf">forward_streaming</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+        <span class="n">output</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward</span><span class="p">(</span><span class="nb">input</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span></div>
+
+<div class="viewcode-block" id="ConvEncoder.streaming_frame"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.encoder.conv_encoder.ConvEncoder.streaming_frame">[docs]</a>    <span class="k">def</span> <span class="nf">streaming_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">audio</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;streaming_frame. It splits the continuous audio into frame-level</span>
+<span class="sd">        audio chunks in the streaming *simulation*. It is noted that this</span>
+<span class="sd">        function takes the entire long audio as input for a streaming simulation.</span>
+<span class="sd">        You may refer to this function to manage your streaming input</span>
+<span class="sd">        buffer in a real streaming application.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            audio: (B, T)</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            chunked: List [(B, frame_size),]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">batch_size</span><span class="p">,</span> <span class="n">audio_len</span> <span class="o">=</span> <span class="n">audio</span><span class="o">.</span><span class="n">shape</span>
+
+        <span class="n">hop_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">stride</span>
+        <span class="n">frame_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span>
+
+        <span class="n">audio</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">audio</span><span class="p">[:,</span> <span class="n">i</span> <span class="o">*</span> <span class="n">hop_size</span> <span class="p">:</span> <span class="n">i</span> <span class="o">*</span> <span class="n">hop_size</span> <span class="o">+</span> <span class="n">frame_size</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">((</span><span class="n">audio_len</span> <span class="o">-</span> <span class="n">frame_size</span><span class="p">)</span> <span class="o">//</span> <span class="n">hop_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">audio</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">input_audio</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">100</span><span class="p">))</span>
+    <span class="n">ilens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">98</span><span class="p">])</span>
+
+    <span class="n">nfft</span> <span class="o">=</span> <span class="mi">32</span>
+    <span class="n">win_length</span> <span class="o">=</span> <span class="mi">28</span>
+    <span class="n">hop</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="n">encoder</span> <span class="o">=</span> <span class="n">ConvEncoder</span><span class="p">(</span><span class="n">kernel_size</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">hop</span><span class="p">,</span> <span class="n">channel</span><span class="o">=</span><span class="mi">16</span><span class="p">)</span>
+    <span class="n">frames</span><span class="p">,</span> <span class="n">flens</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">input_audio</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
+
+    <span class="n">splited</span> <span class="o">=</span> <span class="n">encoder</span><span class="o">.</span><span class="n">streaming_frame</span><span class="p">(</span><span class="n">input_audio</span><span class="p">)</span>
+
+    <span class="n">sframes</span> <span class="o">=</span> <span class="p">[</span><span class="n">encoder</span><span class="o">.</span><span class="n">forward_streaming</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">splited</span><span class="p">]</span>
+
+    <span class="n">sframes</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">sframes</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="n">torch</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_allclose</span><span class="p">(</span><span class="n">sframes</span><span class="p">,</span> <span class="n">frames</span><span class="p">)</span>
 </pre></div>
 
            </div>
