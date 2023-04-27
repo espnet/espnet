@@ -249,13 +249,17 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">report_wer</span> <span class="o">=</span> <span class="n">report_wer</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">target</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate sentence-level WER or/and CER score for Transducer model.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            encoder_out: Encoder output sequences. (B, T, D_enc)</span>
 <span class="sd">            target: Target label ID sequences. (B, L)</span>
+<span class="sd">            encoder_out_lens: Encoder output sequences length. (B,)</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            : Sentence-level CER score.</span>
@@ -268,7 +272,10 @@
 
         <span class="n">encoder_out</span> <span class="o">=</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">parameters</span><span class="p">())</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
 
-        <span class="n">batch_nbest</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">[</span><span class="n">b</span><span class="p">])</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batchsize</span><span class="p">)]</span>
+        <span class="n">batch_nbest</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">[</span><span class="n">b</span><span class="p">][:</span> <span class="n">encoder_out_lens</span><span class="p">[</span><span class="n">b</span><span class="p">]])</span>
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">batchsize</span><span class="p">)</span>
+        <span class="p">]</span>
         <span class="n">pred</span> <span class="o">=</span> <span class="p">[</span><span class="n">nbest_hyp</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">nbest_hyp</span> <span class="ow">in</span> <span class="n">batch_nbest</span><span class="p">]</span>
 
         <span class="n">char_pred</span><span class="p">,</span> <span class="n">char_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">convert_to_char</span><span class="p">(</span><span class="n">pred</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>

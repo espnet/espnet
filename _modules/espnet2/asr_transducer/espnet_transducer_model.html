@@ -583,7 +583,9 @@
                     <span class="n">report_wer</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">report_wer</span><span class="p">,</span>
                 <span class="p">)</span>
 
-            <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
+            <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span><span class="p">(</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">t_len</span>
+            <span class="p">)</span>
 
             <span class="k">return</span> <span class="n">loss_transducer</span><span class="p">,</span> <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span>
 
