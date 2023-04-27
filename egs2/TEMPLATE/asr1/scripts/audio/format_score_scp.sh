@@ -100,7 +100,7 @@ else
 
     utils/split_scp.pl "${scp}" ${split_scps}
     ${cmd} "JOB=1:${nj}" "${logdir}/format_score_scp.JOB.log" \
-        pyscripts/audio/format_score_scp.py \
+        pyscripts/utils/format_score_scp.py \
         ${opts} \
         "${logdir}/score.JOB.scp" "${outdir}/format_score.JOB"
 fi

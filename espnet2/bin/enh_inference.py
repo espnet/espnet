@@ -473,7 +473,7 @@ def inference(
         assert len(keys) == _bs, f"{len(keys)} != {_bs}"
         batch = {k: v for k, v in batch.items() if not k.endswith("_lengths")}
 
-        waves = separate_speech(**batch)
+        waves = separate_speech(**batch, fs=fs)
         for spk, w in enumerate(waves):
             for b in range(batch_size):
                 writers[spk][keys[b]] = fs, w[b]
