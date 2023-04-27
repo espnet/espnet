@@ -57,6 +57,30 @@ def test_mega_decoder(params):
     _ = decoder(labels)
 
 
+def test_mega_rel_pos_bias_type():
+    vocab_size, labels = prepare()
+
+    with pytest.raises(ValueError):
+        decoder = MEGADecoder(vocab_size, rel_pos_bias_type="foo")
+
+
+@pytest.mark.parametrize(
+    "rel_pos_bias_type", ["simple", "rotary"],
+)
+def test_mega_rel_pos_bias(rel_pos_bias_type):
+    vocab_size, labels = prepare()
+
+    decoder = MEGADecoder(
+        vocab_size, max_positions=1, rel_pos_bias_type=rel_pos_bias_type
+    )
+
+    if rel_pos_bias_type == "simple":
+        with pytest.raises(ValueError):
+            _ = decoder(labels)
+    else:
+        _ = decoder(labels)
+
+
 def test_rnn_type():
     vocab_size, labels = prepare()
 

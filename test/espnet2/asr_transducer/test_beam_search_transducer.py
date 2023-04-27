@@ -25,7 +25,7 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
         (StatelessDecoder, {}, {"search_type": "default", "lm": None}),
         (StatelessDecoder, {}, {"search_type": "default"}),
         (MEGADecoder, {}, {"search_type": "default", "lm": None}),
-        (MEGADecoder, {}, {"search_type": "default"}),
+        (MEGADecoder, {"chunk_size": 2}, {"search_type": "default"}),
         (RNNDecoder, {"hidden_size": 4}, {"search_type": "alsd", "u_max": 10}),
         (
             RNNDecoder,
@@ -55,7 +55,11 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
         (StatelessDecoder, {}, {"search_type": "maes", "nstep": 2}),
         (StatelessDecoder, {}, {"search_type": "maes", "nstep": 2, "lm": None}),
         (MEGADecoder, {}, {"search_type": "maes", "nstep": 2}),
-        (MEGADecoder, {}, {"search_type": "maes", "nstep": 2, "lm": None}),
+        (
+            MEGADecoder,
+            {"chunk_size": 2},
+            {"search_type": "maes", "nstep": 2, "lm": None}
+        ),
     ],
 )
 def test_transducer_beam_search(decoder_class, decoder_opts, search_opts):
