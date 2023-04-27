@@ -1038,13 +1038,14 @@
         <span class="s2">&quot;--enh_s2t_task&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;enhancement and asr joint model&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether we are using an enhancement and ASR joint model&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--multi_asr&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;multi-speaker asr model&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether we are using a monolithic multi-speaker ASR model &quot;</span>
+        <span class="s2">&quot;(This flag should be False if a speech separation model is used before ASR)&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Quantization related&quot;</span><span class="p">)</span>

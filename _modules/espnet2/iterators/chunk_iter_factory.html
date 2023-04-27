@@ -290,7 +290,7 @@
         <span class="c1">#  - have one of the prefixes in `excluded_key_prefixes` and end with numbers</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">excluded_key_pattern</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="s2">&quot;[0-9]*)|(&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">excluded_key_prefixes</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;[0-9]*)&quot;</span>
-            <span class="k">if</span> <span class="n">excluded_key_prefixes</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="n">excluded_key_prefixes</span>
             <span class="k">else</span> <span class="kc">None</span>
         <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">excluded_key_pattern</span><span class="p">:</span>

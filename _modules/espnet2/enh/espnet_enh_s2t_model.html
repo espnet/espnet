@@ -429,14 +429,10 @@
         <span class="n">loss_enh</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">perm</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">bypass_enh_flag</span><span class="p">:</span>
-            <span class="p">(</span>
-                <span class="n">speech_pre</span><span class="p">,</span>
-                <span class="n">feature_mix</span><span class="p">,</span>
-                <span class="n">feature_pre</span><span class="p">,</span>
-                <span class="n">others</span><span class="p">,</span>
-            <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">forward_enhance</span><span class="p">(</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">forward_enhance</span><span class="p">(</span>
                 <span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;num_spk&quot;</span><span class="p">:</span> <span class="n">num_spk</span><span class="p">}</span>
             <span class="p">)</span>
+            <span class="n">speech_pre</span><span class="p">,</span> <span class="n">feature_mix</span><span class="p">,</span> <span class="n">feature_pre</span><span class="p">,</span> <span class="n">others</span> <span class="o">=</span> <span class="n">ret</span>
             <span class="c1"># loss computation</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_enhloss_flag</span><span class="p">:</span>
                 <span class="n">loss_enh</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">perm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">forward_loss</span><span class="p">(</span>

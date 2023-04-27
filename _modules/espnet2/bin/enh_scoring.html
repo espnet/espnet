@@ -196,7 +196,9 @@
 <span></span><span class="ch">#!/usr/bin/env python3</span>
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -208,11 +210,36 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.loss.criterions.time_domain</span> <span class="kn">import</span> <span class="n">SISNRLoss</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.datadir_writer</span> <span class="kn">import</span> <span class="n">DatadirWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.sound_scp</span> <span class="kn">import</span> <span class="n">SoundScpReader</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.dataset</span> <span class="kn">import</span> <span class="n">kaldi_loader</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
 
 <span class="n">si_snr_loss</span> <span class="o">=</span> <span class="n">SISNRLoss</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="get_readers"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_scoring.get_readers">[docs]</a><span class="k">def</span> <span class="nf">get_readers</span><span class="p">(</span><span class="n">scps</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+    <span class="c1"># Determine the audio format (sound or kaldi_ark)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">scps</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">line</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">readline</span><span class="p">()</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">fullmatch</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;.*\.ark(:\d+)?&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+        <span class="c1"># xxx.ark or xxx.ark:123</span>
+        <span class="n">readers</span> <span class="o">=</span> <span class="p">[</span><span class="n">kaldi_loader</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">scps</span><span class="p">]</span>
+        <span class="n">audio_format</span> <span class="o">=</span> <span class="s2">&quot;kaldi_ark&quot;</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">readers</span> <span class="o">=</span> <span class="p">[</span><span class="n">SoundScpReader</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">scps</span><span class="p">]</span>
+        <span class="n">audio_format</span> <span class="o">=</span> <span class="s2">&quot;sound&quot;</span>
+    <span class="k">return</span> <span class="n">readers</span><span class="p">,</span> <span class="n">audio_format</span></div>
+
+
+<div class="viewcode-block" id="read_audio"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_scoring.read_audio">[docs]</a><span class="k">def</span> <span class="nf">read_audio</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">audio_format</span><span class="o">=</span><span class="s2">&quot;sound&quot;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">audio_format</span> <span class="o">==</span> <span class="s2">&quot;sound&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">reader</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">audio_format</span> <span class="o">==</span> <span class="s2">&quot;kaldi_ark&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">reader</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown audio format: </span><span class="si">{</span><span class="n">audio_format</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="scoring"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_scoring.scoring">[docs]</a><span class="k">def</span> <span class="nf">scoring</span><span class="p">(</span>
@@ -240,11 +267,18 @@
         <span class="n">line</span><span class="o">.</span><span class="n">rstrip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">maxsplit</span><span class="o">=</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="nb">open</span><span class="p">(</span><span class="n">key_file</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
     <span class="p">]</span>
 
-    <span class="n">ref_readers</span> <span class="o">=</span> <span class="p">[</span><span class="n">SoundScpReader</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">ref_scp</span><span class="p">]</span>
-    <span class="n">inf_readers</span> <span class="o">=</span> <span class="p">[</span><span class="n">SoundScpReader</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">inf_scp</span><span class="p">]</span>
+    <span class="n">ref_readers</span><span class="p">,</span> <span class="n">ref_audio_format</span> <span class="o">=</span> <span class="n">get_readers</span><span class="p">(</span><span class="n">ref_scp</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
+    <span class="n">inf_readers</span><span class="p">,</span> <span class="n">inf_audio_format</span> <span class="o">=</span> <span class="n">get_readers</span><span class="p">(</span><span class="n">inf_scp</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
 
     <span class="c1"># get sample rate</span>
-    <span class="n">sample_rate</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ref_readers</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="n">retval</span> <span class="o">=</span> <span class="n">ref_readers</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+    <span class="k">if</span> <span class="n">ref_audio_format</span> <span class="o">==</span> <span class="s2">&quot;kaldi_ark&quot;</span><span class="p">:</span>
+        <span class="n">sample_rate</span> <span class="o">=</span> <span class="n">ref_readers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">rate</span>
+    <span class="k">elif</span> <span class="n">ref_audio_format</span> <span class="o">==</span> <span class="s2">&quot;sound&quot;</span><span class="p">:</span>
+        <span class="n">sample_rate</span> <span class="o">=</span> <span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">ref_audio_format</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">sample_rate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="n">sample_rate</span><span class="p">,</span> <span class="n">ref_audio_format</span><span class="p">)</span>
 
     <span class="c1"># check keys</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">flexible_numspk</span><span class="p">:</span>
@@ -252,18 +286,25 @@
             <span class="k">assert</span> <span class="n">inf_reader</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">==</span> <span class="n">ref_reader</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
 
     <span class="k">with</span> <span class="n">DatadirWriter</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">] Scoring </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">flexible_numspk</span><span class="p">:</span>
-                <span class="n">ref_audios</span> <span class="o">=</span> <span class="p">[</span><span class="n">ref_reader</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">ref_reader</span> <span class="ow">in</span> <span class="n">ref_readers</span><span class="p">]</span>
-                <span class="n">inf_audios</span> <span class="o">=</span> <span class="p">[</span><span class="n">inf_reader</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">inf_reader</span> <span class="ow">in</span> <span class="n">inf_readers</span><span class="p">]</span>
+                <span class="n">ref_audios</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">read_audio</span><span class="p">(</span><span class="n">ref_reader</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">audio_format</span><span class="o">=</span><span class="n">ref_audio_format</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">ref_reader</span> <span class="ow">in</span> <span class="n">ref_readers</span>
+                <span class="p">]</span>
+                <span class="n">inf_audios</span> <span class="o">=</span> <span class="p">[</span>
+                    <span class="n">read_audio</span><span class="p">(</span><span class="n">inf_reader</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">audio_format</span><span class="o">=</span><span class="n">inf_audio_format</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">inf_reader</span> <span class="ow">in</span> <span class="n">inf_readers</span>
+                <span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">ref_audios</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">ref_reader</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">read_audio</span><span class="p">(</span><span class="n">ref_reader</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">audio_format</span><span class="o">=</span><span class="n">ref_audio_format</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">ref_reader</span> <span class="ow">in</span> <span class="n">ref_readers</span>
                     <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">ref_reader</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
                 <span class="p">]</span>
                 <span class="n">inf_audios</span> <span class="o">=</span> <span class="p">[</span>
-                    <span class="n">inf_reader</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">read_audio</span><span class="p">(</span><span class="n">inf_reader</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">audio_format</span><span class="o">=</span><span class="n">inf_audio_format</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">inf_reader</span> <span class="ow">in</span> <span class="n">inf_readers</span>
                     <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">inf_reader</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
                 <span class="p">]</span>
@@ -319,7 +360,15 @@
                 <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;SIR_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">sir</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
                 <span class="c1"># save permutation assigned script file</span>
                 <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_scp</span><span class="p">):</span>
-                    <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;wav_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inf_readers</span><span class="p">[</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+                    <span class="k">if</span> <span class="n">inf_audio_format</span> <span class="o">==</span> <span class="s2">&quot;sound&quot;</span><span class="p">:</span>
+                        <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;wav_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inf_readers</span><span class="p">[</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="n">inf_audio_format</span> <span class="o">==</span> <span class="s2">&quot;kaldi_ark&quot;</span><span class="p">:</span>
+                        <span class="c1"># NOTE: SegmentsExtractor is not supported</span>
+                        <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;wav_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">inf_readers</span><span class="p">[</span>
+                            <span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                        <span class="p">]</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown audio format: </span><span class="si">{</span><span class="n">inf_audio_format</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.enh_scoring.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
