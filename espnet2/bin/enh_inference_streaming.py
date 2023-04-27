@@ -318,7 +318,7 @@ def inference(
         # the main loop for streaming processing
         for chunk in speech_sim_chunks:
             # process a single chunk
-            output = separate_speech(chunk)
+            output = separate_speech(chunk, fs=fs)
             for channel in range(separate_speech.num_spk):
                 # append processed chunks to ouput channels
                 output_chunks[channel].append(output[channel])
