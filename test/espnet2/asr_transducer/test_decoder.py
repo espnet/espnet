@@ -65,7 +65,8 @@ def test_mega_rel_pos_bias_type():
 
 
 @pytest.mark.parametrize(
-    "rel_pos_bias_type", ["simple", "rotary"],
+    "rel_pos_bias_type",
+    ["simple", "rotary"],
 )
 def test_mega_rel_pos_bias(rel_pos_bias_type):
     vocab_size, labels = prepare()

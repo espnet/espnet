@@ -58,7 +58,7 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
         (
             MEGADecoder,
             {"chunk_size": 2},
-            {"search_type": "maes", "nstep": 2, "lm": None}
+            {"search_type": "maes", "nstep": 2, "lm": None},
         ),
     ],
 )

@@ -203,7 +203,8 @@ class MultiHeadDampedEMA(torch.nn.Module):
             return ema_output, new_state
 
         kernel = self.compute_ema_kernel(
-            length if self.truncation_length is None
+            length
+            if self.truncation_length is None
             else min(self.truncation_length, length)
         )
 
