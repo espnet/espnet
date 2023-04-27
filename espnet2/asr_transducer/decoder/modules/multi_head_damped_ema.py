@@ -15,8 +15,6 @@ import torch
 class MultiHeadDampedEMA(torch.nn.Module):
     """MultiHeadDampedEMA module definition.
 
-    Note: We assume unidirectionality.
-
     Args:
         size: Module size.
         num_heads: Number of attention heads.
@@ -139,99 +137,10 @@ class MultiHeadDampedEMA(torch.nn.Module):
             : Previous timestep weight / Q-th order coefficient. (size, num_heads, 1)
 
         """
-        if self.training:
-            return self.compute_ema_coefficients()
-
         if self._coeffs is None:
             self._coeffs = self.compute_ema_coefficients()
 
         return self._coeffs
-
-    def get_ema_kernel(self, length: int):
-        """Get EMA kernel / vandermonde product.
-
-        Args:
-            length: Sequence length.
-
-        Returns:
-            kernel: EMA kernel / Vandermonde product. (size, L)
-
-        """
-        length = (
-            length
-            if self.truncation_length is None
-            else min(self.truncation_length, length)
-        )
-
-        if self.training:
-            return self.compute_ema_kernel(length)
-
-        if self._kernel is None or self.kernel.size(-1) < length:
-            self._kernel = self.compute_ema_kernel(length)
-
-        return self._kernel[..., :length]
-
-    def ema_step(
-        self, x: torch.Tensor, length: int, state: Optional[torch.Tensor] = None
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Perform exponential moving average for multiple steps.
-
-        Args:
-            x: MultiHeadDampedEMA input sequences. (B, D, L)
-            length: Sequence length.
-            state: MultiHeadDampedEMA state. (B, D, num_heads)
-
-        Returns:
-            ema_output: MultiHeadDampedEMA output sequences. (L, B, D)
-            new_state: MultiHeadDampedEMA state. (B, size, num_heads)
-
-        """
-        if length == 1:
-            return self.ema_one_step(x, state=state)
-
-        damping_factor, prev_timestep_weight = self.get_ema_coefficients()
-
-        vander = torch.exp(
-            torch.arange(length + 1).to(damping_factor).view(1, 1, length + 1)
-            * torch.log(prev_timestep_weight)
-        )
-
-        if state is not None:
-            prev_ema_proj = vander[:, :, 1:] * (
-                self.kernel_projection_matrix * self.scaling
-            ).unsqueeze(-1)
-
-            prev_ema_state = torch.einsum("bdn, dnl -> bdl", state, prev_ema_proj)
-
-            prev_vandermonde = vander[:, :, -1] * state
-        else:
-            prev_ema_state = None
-            prev_vandermonde = None
-
-        vander = vander[:, :, :-1]
-        kernel = (damping_factor * self.ema_expansion_matrix) * vander
-
-        kernel_proj = torch.einsum(
-            "dnl, dn -> dl", kernel, self.kernel_projection_matrix * self.scaling
-        )
-
-        input_fft = torch.fft.rfft(x.float(), n=(2 * length))
-        kernel_fft = torch.fft.rfft(kernel_proj.float(), n=(2 * length))
-
-        ema_output = torch.fft.irfft(input_fft * kernel_fft, n=2 * length)[..., :length]
-        ema_output = ema_output.type_as(x)
-
-        if prev_ema_state is not None:
-            ema_output = ema_output + prev_ema_state
-
-        new_state = torch.einsum(
-            "bdl, dnl -> bdn", ema_output, torch.flip(kernel, dims=[2])
-        )
-
-        if prev_vandermonde is not None:
-            new_state = new_state + prev_vandermonde
-
-        return ema_output.permute(2, 0, 1), new_state
 
     def ema_one_step(
         self, x: torch.Tensor, state: Optional[torch.Tensor] = None
@@ -288,12 +197,15 @@ class MultiHeadDampedEMA(torch.nn.Module):
             x = x.masked_fill(mask, 0.0)
 
         if state is not None:
-            ema_output, new_state = self.ema_step(x, length, state=state["ema_state"])
+            ema_output, new_state = self.ema_one_step(x, state=state["ema_state"])
             ema_output = self.activation(ema_output + residual)
 
             return ema_output, new_state
 
-        kernel = self.compute_ema_kernel(length)
+        kernel = self.compute_ema_kernel(
+            length if self.truncation_length is None
+            else min(self.truncation_length, length)
+        )
 
         input_fft = torch.fft.rfft(x.float(), n=(2 * length))
         kernel_fft = torch.fft.rfft(kernel.float(), n=(2 * length))
