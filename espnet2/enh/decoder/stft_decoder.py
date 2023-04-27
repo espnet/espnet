@@ -87,9 +87,6 @@ class STFTDecoder(AbsDecoder):
         window = window_func(self.win_length)
         n_pad_left = (self.n_fft - window.shape[0]) // 2
         n_pad_right = self.n_fft - window.shape[0] - n_pad_left
-        # window = torch.cat(
-        #     [torch.zeros(n_pad_left), window, torch.zeros(n_pad_right)], 0
-        # )
         return window
 
     def forward_streaming(self, input_frame: torch.Tensor):
@@ -113,7 +110,6 @@ class STFTDecoder(AbsDecoder):
 
         return output_wav * self._get_window_func()
 
-        # return output_wav
 
     def streaming_merge(self, chunks, ilens=None):
         """streaming_merge. It merges the frame-level processed audio chunks
