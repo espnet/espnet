@@ -333,7 +333,6 @@ def inference(
             (w / abs(w).max(dim=1, keepdim=True)[0] * 0.9).cpu().numpy() for w in waves
         ]
 
-        # waves = [w.cpu().numpy() for w in waves]
 
         for spk, w in enumerate(waves):
             for b in range(batch_size):
