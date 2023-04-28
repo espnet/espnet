@@ -44,6 +44,8 @@ def main():
                 utt2text[utt] = text
 
     # sentence-level scoring
+    spk2incorrect_sent = {}
+    spk2correct_sent = {}
     with open(args.hyp, encoding="utf-8") as f:
         for hyp in f:
             hyp = hyp.strip().split()  # utt [APH]
@@ -64,12 +66,23 @@ def main():
 
             if ref_aph == hyp_aph:
                 correct_aph += 1
-            elif utt_id in utt2text:
-                print(
-                    f"Incorrect prediction (should be {ref_aph}) of {utt_id}: {utt2text[utt_id]}"
-                )
+                spk2correct_sent.setdefault(spk, 0)
+                spk2correct_sent[spk] += 1
+            else:
+                spk2incorrect_sent.setdefault(spk, 0)
+                spk2incorrect_sent[spk] += 1
+
+                if utt_id in utt2text:
+                    print(
+                        f"Incorrect prediction (should be {ref_aph}) of {utt_id}: {utt2text[utt_id]}"
+                    )
 
             utt_num += 1
+
+    for spk in spk2tags:
+        incorrect = spk2incorrect_sent.get(spk, 0)
+        correct = spk2correct_sent.get(spk, 0)
+        print(f"Correct/incorrect sentence-level prediction for {spk}: {correct}/{incorrect}")
 
     print("=" * 80)
     print(
@@ -92,8 +105,9 @@ def main():
 
         if spk2ref[spk] == pred:
             correct_speakers += 1
+            print(f"CORRECT majority voted prediction for {spk}: {count}")
         else:
-            print(f"Incorrect majority voted prediction for {spk}: {count}")
+            print(f"INCORRECT majority voted prediction for {spk}: {count}")
         n_speakers += 1
 
     print("=" * 80)
