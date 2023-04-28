@@ -31,7 +31,7 @@ svs_conf:                              # keyword arguments for the selected mode
     diffnet_residual_channels: 256     # number of residual channel in diffnet
     diffnet_dilation_cycle_length: 4   # dilation of Conv1d
     diffnet_input_dim: 80              # size of input dim in diffnet
- 
+
     schedule_type: "linear"            # beta schedule type
     timesteps: 200                     # diffsion step
     max_beta: 0.06                     # max betas

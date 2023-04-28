@@ -1,13 +1,11 @@
+import math
 from pathlib import Path
-from typing import Tuple, Union
-from typeguard import check_argument_types
-from typing import Dict
+from typing import Dict, Tuple, Union
 
 import numpy as np
 import torch
 import torch.nn as nn
-
-import math
+from typeguard import check_argument_types
 
 
 class GetFeatsMinMax(torch.nn.Module):
@@ -34,7 +32,7 @@ class GetFeatsMinMax(torch.nn.Module):
             # New style: Npz file
             feats_min = stats["feats_min"]
             feats_max = stats["feats_max"]
-        
+
         if isinstance(feats_min, np.ndarray):
             feats_min = torch.from_numpy(feats_min)
         if isinstance(feats_max, np.ndarray):
@@ -44,7 +42,7 @@ class GetFeatsMinMax(torch.nn.Module):
         self.register_buffer("feats_max", feats_max)
 
     def extra_repr(self):
-        return(
+        return (
             f"stats_file={self.stats_file}, "
             f"feats_min={self.feats_min}, feats_max={self.feats_max}"
         )
@@ -53,21 +51,21 @@ class GetFeatsMinMax(torch.nn.Module):
         self,
     ) -> Dict[str, torch.Tensor]:
         return {
-            'feats_min': self.feats_min, 
-            'feats_max': self.feats_max,
+            "feats_min": self.feats_min,
+            "feats_max": self.feats_max,
         }
-    
+
 
 class PitchPredictor(torch.nn.Module):
     def __init__(
-        self, 
-        idim, 
-        n_layers: int = 5, 
-        n_chans: int = 384, 
-        odim: int = 2, 
+        self,
+        idim,
+        n_layers: int = 5,
+        n_chans: int = 384,
+        odim: int = 2,
         kernel_size: int = 5,
         dropout_rate: float = 0.1,
-        padding: str = 'SAME',
+        padding: str = "SAME",
     ):
         """Initilize pitch predictor module.
         Args:
@@ -85,13 +83,18 @@ class PitchPredictor(torch.nn.Module):
             in_chans = idim if idx == 0 else n_chans
             self.conv += [
                 torch.nn.Sequential(
-                    torch.nn.ConstantPad1d(((kernel_size - 1) // 2, (kernel_size - 1) // 2)
-                                       if padding == 'SAME'
-                                       else (kernel_size - 1, 0), 0),
-                    torch.nn.Conv1d(in_chans, n_chans, kernel_size, stride=1, padding=0),
+                    torch.nn.ConstantPad1d(
+                        ((kernel_size - 1) // 2, (kernel_size - 1) // 2)
+                        if padding == "SAME"
+                        else (kernel_size - 1, 0),
+                        0,
+                    ),
+                    torch.nn.Conv1d(
+                        in_chans, n_chans, kernel_size, stride=1, padding=0
+                    ),
                     torch.nn.ReLU(),
                     LayerNorm(n_chans, dim=1),
-                    torch.nn.Dropout(dropout_rate)
+                    torch.nn.Dropout(dropout_rate),
                 )
             ]
         self.linear = torch.nn.Linear(n_chans, odim)
@@ -99,8 +102,8 @@ class PitchPredictor(torch.nn.Module):
         self.pos_embed_alpha = nn.Parameter(torch.Tensor([1]))
 
     def forward(
-        self, 
-        xs: torch.Tensor, 
+        self,
+        xs: torch.Tensor,
         x_masks: torch.Tensor = None,
     ) -> torch.Tensor:
         """Calculate forward propagation.
@@ -120,8 +123,8 @@ class PitchPredictor(torch.nn.Module):
             xs = f(xs)  # (B, C, Tmax)
         # NOTE: calculate in log domain
         xs = self.linear(xs.transpose(1, -1))  # (B, Tmax, H)
-        return xs 
-    
+        return xs
+
 
 class LayerNorm(torch.nn.LayerNorm):
     """Layer normalization module.
@@ -160,7 +163,7 @@ class SinusoidalPositionalEmbedding(nn.Module):
             embedding_dim,
             padding_idx,
         )
-        self.register_buffer('_float_tensor', torch.FloatTensor(1))
+        self.register_buffer("_float_tensor", torch.FloatTensor(1))
 
     @staticmethod
     def get_embedding(num_embeddings, embedding_dim, padding_idx=None):
@@ -172,8 +175,12 @@ class SinusoidalPositionalEmbedding(nn.Module):
         half_dim = embedding_dim // 2
         emb = math.log(10000) / (half_dim - 1)
         emb = torch.exp(torch.arange(half_dim, dtype=torch.float) * -emb)
-        emb = torch.arange(num_embeddings, dtype=torch.float).unsqueeze(1) * emb.unsqueeze(0)
-        emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1).view(num_embeddings, -1)
+        emb = torch.arange(num_embeddings, dtype=torch.float).unsqueeze(
+            1
+        ) * emb.unsqueeze(0)
+        emb = torch.cat([torch.sin(emb), torch.cos(emb)], dim=1).view(
+            num_embeddings, -1
+        )
         if embedding_dim % 2 == 1:
             # zero pad
             emb = torch.cat([emb, torch.zeros(num_embeddings, 1)], dim=1)
@@ -181,7 +188,9 @@ class SinusoidalPositionalEmbedding(nn.Module):
             emb[padding_idx, :] = 0
         return emb
 
-    def forward(self, input, incremental_state=None, timestep=None, positions=None, **kwargs):
+    def forward(
+        self, input, incremental_state=None, timestep=None, positions=None, **kwargs
+    ):
         """Input is expected to be of size [bsz x seqlen]."""
         bsz, seq_len = input.shape[:2]
         max_pos = self.padding_idx + 1 + seq_len
@@ -199,8 +208,14 @@ class SinusoidalPositionalEmbedding(nn.Module):
             pos = timestep.view(-1)[0] + 1 if timestep is not None else seq_len
             return self.weights[self.padding_idx + pos, :].expand(bsz, 1, -1)
 
-        positions = make_positions(input, self.padding_idx) if positions is None else positions
-        return self.weights.index_select(0, positions.view(-1)).view(bsz, seq_len, -1).detach()
+        positions = (
+            make_positions(input, self.padding_idx) if positions is None else positions
+        )
+        return (
+            self.weights.index_select(0, positions.view(-1))
+            .view(bsz, seq_len, -1)
+            .detach()
+        )
 
     def max_positions(self):
         """Maximum number of supported positions."""
@@ -209,7 +224,7 @@ class SinusoidalPositionalEmbedding(nn.Module):
 
 def Embedding(num_embeddings, embedding_dim, padding_idx=None):
     m = nn.Embedding(num_embeddings, embedding_dim, padding_idx=padding_idx)
-    nn.init.normal_(m.weight, mean=0, std=embedding_dim ** -0.5)
+    nn.init.normal_(m.weight, mean=0, std=embedding_dim**-0.5)
     if padding_idx is not None:
         nn.init.constant_(m.weight[padding_idx], 0)
     return m
@@ -225,10 +240,7 @@ def make_positions(tensor, padding_idx):
     # prefers ints, cumsum defaults to output longs, and ONNX doesn't know
     # how to handle the dtype kwarg in cumsum.
     mask = tensor.ne(padding_idx).int()
-    return (
-                   torch.cumsum(mask, dim=1).type_as(mask) * mask
-           ).long() + padding_idx
-    
+    return (torch.cumsum(mask, dim=1).type_as(mask) * mask).long() + padding_idx
 
 
 ### pitch related ###
@@ -253,22 +265,27 @@ f0_mel_max = 1127 * np.log(1 + f0_max / 700)
 def f0_to_coarse(f0):
     is_torch = isinstance(f0, torch.Tensor)
     f0_mel = 1127 * (1 + f0 / 700).log() if is_torch else 1127 * np.log(1 + f0 / 700)
-    f0_mel[f0_mel > 0] = (f0_mel[f0_mel > 0] - f0_mel_min) * (f0_bin - 2) / (f0_mel_max - f0_mel_min) + 1
+    f0_mel[f0_mel > 0] = (f0_mel[f0_mel > 0] - f0_mel_min) * (f0_bin - 2) / (
+        f0_mel_max - f0_mel_min
+    ) + 1
 
     f0_mel[f0_mel <= 1] = 1
     f0_mel[f0_mel > f0_bin - 1] = f0_bin - 1
     f0_coarse = (f0_mel + 0.5).long() if is_torch else np.rint(f0_mel).astype(np.int)
-    assert f0_coarse.max() <= 255 and f0_coarse.min() >= 1, (f0_coarse.max(), f0_coarse.min())
+    assert f0_coarse.max() <= 255 and f0_coarse.min() >= 1, (
+        f0_coarse.max(),
+        f0_coarse.min(),
+    )
     return f0_coarse
 
 
 def norm_f0(f0, uv, hparams):
     is_torch = isinstance(f0, torch.Tensor)
-    if hparams['pitch_norm'] == 'standard':
-        f0 = (f0 - hparams['f0_mean']) / hparams['f0_std']
-    if hparams['pitch_norm'] == 'log':
+    if hparams["pitch_norm"] == "standard":
+        f0 = (f0 - hparams["f0_mean"]) / hparams["f0_std"]
+    if hparams["pitch_norm"] == "log":
         f0 = torch.log2(f0) if is_torch else np.log2(f0)
-    if uv is not None and hparams['use_uv']:
+    if uv is not None and hparams["use_uv"]:
         f0[uv > 0] = 0
     return f0
 
@@ -292,15 +309,15 @@ def norm_interp_f0(f0, hparams):
 
 
 def denorm_f0(f0, uv, hparams, pitch_padding=None, min=None, max=None):
-    if hparams['pitch_norm'] == 'standard':
-        f0 = f0 * hparams['f0_std'] + hparams['f0_mean']
-    if hparams['pitch_norm'] == 'log':
-        f0 = 2 ** f0
+    if hparams["pitch_norm"] == "standard":
+        f0 = f0 * hparams["f0_std"] + hparams["f0_mean"]
+    if hparams["pitch_norm"] == "log":
+        f0 = 2**f0
     if min is not None:
         f0 = f0.clamp(min=min)
     if max is not None:
         f0 = f0.clamp(max=max)
-    if uv is not None and hparams['use_uv']:
+    if uv is not None and hparams["use_uv"]:
         f0[uv > 0] = 0
     if pitch_padding is not None:
         f0[pitch_padding] = 0

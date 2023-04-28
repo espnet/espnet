@@ -354,7 +354,7 @@ class DiffSinger(AbsSVS):
             noise, noise_pred, noise_mask, d_outs, ds, label_lengths, self.loss_type
         )
         loss = noise_l1_loss + noise_l2_loss + duration_loss
-        if self.loss_type == 'L1':
+        if self.loss_type == "L1":
             stats = dict(
                 loss=loss.item(),
                 noise_l1_loss=noise_l1_loss.item(),
@@ -570,13 +570,13 @@ class DiffSinger(AbsSVS):
         return noise, noise_pred, mel_pred
 
     def norm_spec(self, x, feats_minmax):
-        spec_min = feats_minmax['feats_min']
-        spec_max = feats_minmax['feats_max']
+        spec_min = feats_minmax["feats_min"]
+        spec_max = feats_minmax["feats_max"]
         return (x - spec_min) / (spec_max - spec_min) * 2 - 1
 
     def denorm_spec(self, x, feats_minmax):
-        spec_min = feats_minmax['feats_min'].unsqueeze(0)
-        spec_max = feats_minmax['feats_max'].unsqueeze(0)
+        spec_min = feats_minmax["feats_min"].unsqueeze(0)
+        spec_max = feats_minmax["feats_max"].unsqueeze(0)
         return (x + 1) / 2 * (spec_max - spec_min) + spec_min
 
     def _reset_parameters(
