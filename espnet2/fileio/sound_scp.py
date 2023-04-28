@@ -34,7 +34,9 @@ def soundfile_read(
                 frames = -1
             if dtype == "float16":
                 array = f.read(
-                    frames, dtype="float32", always_2d=always_2d,
+                    frames,
+                    dtype="float32",
+                    always_2d=always_2d,
                 ).astype(dtype)
             else:
                 array = f.read(frames, dtype=dtype, always_2d=always_2d)
