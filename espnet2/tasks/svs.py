@@ -406,10 +406,8 @@ class SVSTask(AbsTask):
             )
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
 
-
         if args.feats_minmax_conf:
             feats_minmax = GetFeatsMinMax(**args.feats_minmax_conf)
-
 
         # 5. Build model
         model = ESPnetSVSModel(

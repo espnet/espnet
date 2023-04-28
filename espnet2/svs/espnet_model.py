@@ -248,8 +248,17 @@ class ESPnetSVSModel(AbsESPnetModel):
                 )
 
             # Normalize
+            feats_minmax_dict = None
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
+                if self.feats_minmax is not None:
+                    feats_minmax_list = torch.stack((self.feats_minmax()['feats_min'], self.feats_minmax()['feats_max']))
+                    feats_minmax_list, _ = self.normalize(feats_minmax_list)
+                    feats_minmax_dict = dict(
+                        feats_min=feats_minmax_list[0],
+                        feats_max=feats_minmax_list[1],
+                    )
+                
             if self.pitch_normalize is not None:
                 pitch, pitch_lengths = self.pitch_normalize(pitch, pitch_lengths)
             if self.energy_normalize is not None:
@@ -263,6 +272,9 @@ class ESPnetSVSModel(AbsESPnetModel):
             feats_lengths=feats_lengths,
             flag_IsValid=flag_IsValid,
         )
+        
+        if feats_minmax_dict is not None:
+            batch.update(feats_minmax=feats_minmax_dict)
 
         # label
         # NOTE(Yuning): Label can be word, syllable or phoneme,
@@ -551,7 +563,19 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_score_syb = duration_syb[:, : duration_syb_lengths.max()]
             slur = slur[:, : slur_lengths.max()]
 
+        feats_minmax_dict = None
+        if self.normalize is not None and self.feats_minmax is not None:
+            feats_minmax_list = torch.stack((self.feats_minmax()['feats_min'], self.feats_minmax()['feats_max']))
+            feats_minmax_list, _ = self.normalize(feats_minmax_list)
+            feats_minmax_dict = dict(
+                feats_min=feats_minmax_list[0],
+                feats_max=feats_minmax_list[1],
+            )
+        
         input_dict = dict(text=text)
+        
+        if feats_minmax_dict is not None:
+            input_dict.update(feats_minmax=feats_minmax_dict)
 
         # label
         label = dict()

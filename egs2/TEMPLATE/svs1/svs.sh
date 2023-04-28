@@ -86,6 +86,7 @@ write_collected_feats=false # Whether to dump features in stats collection.
 svs_task=svs                # SVS task (svs or gan_svs)
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
+use_feats_minmax=false  # use feats_minmax_norm(diffsinger only)
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -833,7 +834,7 @@ if ! "${skip_train}"; then
             _opts+="--energy_extract_conf win_length=${win_length} "
             _opts+="--energy_normalize_conf stats_file=${svs_stats_dir}/train/energy_stats.npz "
         fi
-        if [ -e "${svs_stats_dir}/train/feats_minmax_stats.npz" ]; then
+        if [ -e "${svs_stats_dir}/train/feats_minmax_stats.npz" ] && [ "${use_feats_minmax}" = true ]; then
             _opts+="--feats_minmax_conf stats_file=${svs_stats_dir}/train/feats_minmax_stats.npz "
         fi
 

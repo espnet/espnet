@@ -259,6 +259,7 @@ class DiffSinger(AbsSVS):
         text_lengths: torch.Tensor,
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
+        feats_minmax: Optional[Dict[str, torch.Tensor]] = None,
         label: Optional[Dict[str, torch.Tensor]] = None,
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
@@ -267,6 +268,8 @@ class DiffSinger(AbsSVS):
         pitch_lengths: Optional[torch.Tensor] = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        slur: torch.LongTensor = None,
+        slur_lengths: torch.Tensor = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -339,7 +342,7 @@ class DiffSinger(AbsSVS):
         # [B, T, adim] -> [B, adim, T]
         cond = hs.transpose(1, 2)
         t = torch.randint(0, self.K_step, (batch_size,), device=device).long()
-        x = self.norm_spec(mel_gt)
+        x = self.norm_spec(mel_gt, feats_minmax)
         # [B, T, M] -> [B, 1, M, T]
         x = x.transpose(1, 2)[:, None, :, :]
 
@@ -351,12 +354,18 @@ class DiffSinger(AbsSVS):
             noise, noise_pred, noise_mask, d_outs, ds, label_lengths, self.loss_type
         )
         loss = noise_l1_loss + noise_l2_loss + duration_loss
-        stats = dict(
-            loss=loss.item(),
-            noise_l1_loss=noise_l1_loss.item(),
-            noise_l2_loss=noise_l2_loss.item(),
-            duration_loss=duration_loss.item(),
-        )
+        if self.loss_type == 'L1':
+            stats = dict(
+                loss=loss.item(),
+                noise_l1_loss=noise_l1_loss.item(),
+                duration_loss=duration_loss.item(),
+            )
+        else:
+            stats = dict(
+                loss=loss.item(),
+                noise_l2_loss=noise_l2_loss.item(),
+                duration_loss=duration_loss.item(),
+            )
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
         return loss, stats, weight
@@ -365,10 +374,12 @@ class DiffSinger(AbsSVS):
         self,
         text: torch.Tensor,
         feats: Optional[torch.Tensor] = None,
+        feats_minmax: Optional[Dict[str, torch.Tensor]] = None,
         label: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -421,7 +432,7 @@ class DiffSinger(AbsSVS):
         x = torch.randn(shape, device=device)  # naive diffsinger
 
         if self.shallow_diffusion is True:  # diffsinger with shallow diffusion
-            fs2_mel = self.norm_spec(fs2_mel)
+            fs2_mel = self.norm_spec(fs2_mel, feats_minmax)
             fs2_mel = fs2_mel.transpose(1, 2)[:, None, :, :]  # [B, 1, M, T]
             x = self.q_sample(
                 x_start=fs2_mel, t=torch.tensor([t - 1], device=device).long()
@@ -434,7 +445,7 @@ class DiffSinger(AbsSVS):
 
         # [B, 1, M, T] -> [B, M, T] -> [B, T, M] and B = 1
         x = x[:, 0].transpose(1, 2)
-        before_outs = self.denorm_spec(x)
+        before_outs = self.denorm_spec(x, feats_minmax)
 
         if self.postnet is None:
             after_outs = before_outs
@@ -558,11 +569,15 @@ class DiffSinger(AbsSVS):
 
         return noise, noise_pred, mel_pred
 
-    def norm_spec(self, x):
-        return (x - self.spec_min) / (self.spec_max - self.spec_min) * 2 - 1
+    def norm_spec(self, x, feats_minmax):
+        spec_min = feats_minmax['feats_min']
+        spec_max = feats_minmax['feats_max']
+        return (x - spec_min) / (spec_max - spec_min) * 2 - 1
 
-    def denorm_spec(self, x):
-        return (x + 1) / 2 * (self.spec_max - self.spec_min) + self.spec_min
+    def denorm_spec(self, x, feats_minmax):
+        spec_min = feats_minmax['feats_min'].unsqueeze(0)
+        spec_max = feats_minmax['feats_max'].unsqueeze(0)
+        return (x + 1) / 2 * (spec_max - spec_min) + spec_min
 
     def _reset_parameters(
         self,
