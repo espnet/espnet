@@ -9,7 +9,7 @@ class SineGen(torch.nn.Module):
             voiced_threshold = 0,
             flag_for_pulse=False)
 
-    samp_rate: sampling rate in Hz
+    sample_rate: sampling rate in Hz
     harmonic_num: number of harmonic overtones (default 0)
     sine_amp: amplitude of sine-wavefrom (default 0.1)
     noise_std: std of Gaussian noise (default 0.003)

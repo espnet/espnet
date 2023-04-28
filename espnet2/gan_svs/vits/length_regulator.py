@@ -27,6 +27,17 @@ class LengthRegulator(torch.nn.Module):
         self.pad_value = pad_value
 
     def LR(self, x, duration, use_state_info=False):
+        """Length regulates input mel-spectrograms to match duration.
+
+        Args:
+            x (Tensor): Input tensor (B, dim, T).
+            duration (Tensor): Duration tensor (B, T).
+            use_state_info (bool, optional): Whether to use position information or not.
+
+        Returns:
+            Tensor: Output tensor (B, dim, D_frame).
+            Tensor: Output length (B,).
+        """
         x = torch.transpose(x, 1, 2)
         output = list()
         mel_len = list()
@@ -40,6 +51,16 @@ class LengthRegulator(torch.nn.Module):
         return output, torch.LongTensor(mel_len)
 
     def expand(self, batch, predicted, use_state_info=False):
+        """Expand input mel-spectrogram based on the predicted duration.
+
+        Args:
+            batch (Tensor): Input tensor (T, dim).
+            predicted (Tensor): Predicted duration tensor (T,).
+            use_state_info (bool, optional): Whether to use position information or not.
+
+        Returns:
+            Tensor: Output tensor (D_frame, dim).
+        """
         predicted = torch.squeeze(predicted)
         out = list()
 
@@ -65,11 +86,13 @@ class LengthRegulator(torch.nn.Module):
         return out
 
     def forward(self, x, duration, use_state_info=False):
-        """
+        """Forward pass through the length regulator module.
+
         Args:
             x (Tensor): Input tensor (B, dim, T).
             duration (Tensor): Duration tensor (B, T).
-            use_state_info (bool): Whether to use position information or not.
+            use_state_info (bool, optional): Whether to use position information or not.
+
         Returns:
             Tensor: Output tensor (B, dim, D_frame).
             Tensor: Output length (B,).

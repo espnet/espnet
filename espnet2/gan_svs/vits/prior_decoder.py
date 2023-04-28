@@ -10,7 +10,7 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 class PriorDecoder(torch.nn.Module):
     def __init__(
         self,
-        out_channels: int = 192,
+        out_channels: int = 192 * 2,
         attention_dim: int = 192,
         attention_heads: int = 2,
         linear_units: int = 768,
@@ -29,6 +29,29 @@ class PriorDecoder(torch.nn.Module):
         attention_dropout_rate: float = 0.0,
         global_channels: int = 0,
     ):
+        """
+        Initialize prior decoder module.
+
+        Args:
+            out_channels (int, optional): Output channels of the prior decoder. Defaults to 384.
+            attention_dim (int, optional): Dimension of the attention mechanism. Defaults to 192.
+            attention_heads (int, optional): Number of attention heads. Defaults to 2.
+            linear_units (int, optional): Number of units in the linear layer. Defaults to 768.
+            blocks (int, optional): Number of blocks in the encoder. Defaults to 6.
+            positionwise_layer_type (str, optional): Type of the positionwise layer. Defaults to "conv1d".
+            positionwise_conv_kernel_size (int, optional): Kernel size of the positionwise convolutional layer. Defaults to 3.
+            positional_encoding_layer_type (str, optional): Type of positional encoding layer. Defaults to "rel_pos".
+            self_attention_layer_type (str, optional): Type of self-attention layer. Defaults to "rel_selfattn".
+            activation_type (str, optional): Type of activation. Defaults to "swish".
+            normalize_before (bool, optional): Flag for normalization. Defaults to True.
+            use_macaron_style (bool, optional): Flag for macaron style. Defaults to False.
+            use_conformer_conv (bool, optional): Flag for using conformer convolution. Defaults to False.
+            conformer_kernel_size (int, optional): Kernel size for conformer convolution. Defaults to 7.
+            dropout_rate (float, optional): Dropout rate. Defaults to 0.1.
+            positional_dropout_rate (float, optional): Dropout rate for positional encoding. Defaults to 0.0.
+            attention_dropout_rate (float, optional): Dropout rate for attention. Defaults to 0.0.
+            global_channels (int, optional): Number of global channels. Defaults to 0.
+        """
         super().__init__()
 
         self.prenet = torch.nn.Conv1d(attention_dim + 2, attention_dim, 3, padding=1)
@@ -58,6 +81,19 @@ class PriorDecoder(torch.nn.Module):
             self.conv = torch.nn.Conv1d(global_channels, attention_dim, 1)
 
     def forward(self, x, x_lengths, g=None):
+        """
+        Forward pass of the PriorDecoder module.
+
+        Args:
+            x (Tensor): Input tensor (B, attention_dim + 2, T).
+            x_lengths (Tensor): Length tensor (B,).
+            g (Tensor, optional): Tensor for multi-singer. (B, global_channels, 1)
+
+        Returns:
+            Tensor: Output tensor (B, out_channels, T).
+            Tensor: Output mask tensor (B, 1, T).
+        """
+
         x_mask = (
             make_non_pad_mask(x_lengths)
             .to(

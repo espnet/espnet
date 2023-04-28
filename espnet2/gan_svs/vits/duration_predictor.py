@@ -19,6 +19,16 @@ class DurationPredictor(torch.nn.Module):
         dropout_rate,
         global_channels=0,
     ):
+        """Initialize duration predictor module.
+
+        Args:
+            channels (int): Number of input channels.
+            filter_channels (int): Number of filter channels.
+            kernel_size (int): Size of the convolutional kernel.
+            dropout_rate (float): Dropout rate.
+            global_channels (int, optional): Number of global conditioning channels.
+
+        """
         super().__init__()
 
         self.in_channels = channels
@@ -45,7 +55,16 @@ class DurationPredictor(torch.nn.Module):
             self.conv = torch.nn.Conv1d(global_channels, channels, 1)
 
     def forward(self, x, x_mask, g=None):
-        # x = torch.detach(x)
+        """Forward pass through the duration predictor module.
+
+        Args:
+            x (Tensor): Input tensor (B, in_channels, T).
+            x_mask (Tensor): Mask tensor (B, 1, T).
+            g (Tensor, optional): Global condition tensor (B, global_channels, 1).
+
+        Returns:
+            Tensor: Predicted duration tensor (B, 2, T).
+        """
 
         # multi-singer
         if g is not None:

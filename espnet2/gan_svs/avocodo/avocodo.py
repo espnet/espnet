@@ -25,6 +25,8 @@ def get_padding(kernel_size, dilation=1):
 
 
 class AvocodoGenerator(torch.nn.Module):
+    """Avocodo generator module."""
+
     def __init__(
         self,
         in_channels: int = 80,
@@ -44,6 +46,29 @@ class AvocodoGenerator(torch.nn.Module):
         nonlinear_activation_params: Dict[str, Any] = {"negative_slope": 0.2},
         use_weight_norm: bool = True,
     ):
+        """Initialize AvocodoGenerator module.
+
+        Args:
+            in_channels (int): Number of input channels.
+            out_channels (int): Number of output channels.
+            channels (int): Number of hidden representation channels.
+            global_channels (int): Number of global conditioning channels.
+            kernel_size (int): Kernel size of initial and final conv layer.
+            upsample_scales (List[int]): List of upsampling scales.
+            upsample_kernel_sizes (List[int]): List of kernel sizes for upsample layers.
+            resblock_kernel_sizes (List[int]): List of kernel sizes for residual blocks.
+            resblock_dilations (List[List[int]]): List of list of dilations for residual
+                blocks.
+            use_additional_convs (bool): Whether to use additional conv layers in
+                residual blocks.
+            bias (bool): Whether to add bias parameter in convolution layers.
+            nonlinear_activation (str): Activation function module name.
+            nonlinear_activation_params (Dict[str, Any]): Hyperparameters for activation
+                function.
+            use_weight_norm (bool): Whether to use weight norm. If set to true, it will
+                be applied to all of the conv layers.
+
+        """
         super().__init__()
 
         # check hyperparameters are valid
@@ -193,6 +218,8 @@ class AvocodoGenerator(torch.nn.Module):
 
 # CoMBD
 class CoMBDBlock(torch.nn.Module):
+    """CoMBD (Collaborative Multi-band Discriminator) block module"""
+
     def __init__(
         self,
         h_u: List[int],
@@ -237,6 +264,16 @@ class CoMBDBlock(torch.nn.Module):
         )
 
     def forward(self, x):
+        """
+        Forward pass through the CoMBD block.
+
+        Args:
+            x (Tensor): Input tensor of shape (B, C_in, T_in).
+
+        Returns:
+            Tuple[Tensor, List[Tensor]]: Tuple containing the output tensor of shape (B, C_out, T_out)
+            and a list of feature maps of shape (B, C, T) at each Conv1d layer.
+        """
         fmap = []
         for block in self.convs:
             x = block(x)
@@ -247,6 +284,9 @@ class CoMBDBlock(torch.nn.Module):
 
 
 class CoMBD(torch.nn.Module):
+    """CoMBD (Collaborative Multi-band Discriminator) module
+    from from https://arxiv.org/abs/2206.13404"""
+
     def __init__(self, h, pqmf_list=None, use_spectral_norm=False):
         super(CoMBD, self).__init__()
         self.h = h
@@ -325,12 +365,22 @@ class CoMBD(torch.nn.Module):
         return outs_real, outs_fake, f_maps_real, f_maps_fake
 
     def forward(self, ys, ys_hat):
+        """
+        Args:
+            ys (List[Tensor]): List of ground truth signals of shape (B, 1, T).
+            ys_hat (List[Tensor]): List of predicted signals of shape (B, 1, T).
+        Returns:
+            Tuple[List[Tensor], List[Tensor], List[List[Tensor]], List[List[Tensor]]]:
+            Tuple containing the list of output tensors of shape (B, C_out, T_out) for real and fake, respectively, and the list of feature maps of shape (B, C, T) at each Conv1d layer for real and fake, respectively.
+        """
         outs_real, outs_fake, f_maps_real, f_maps_fake = self._pqmf_forward(ys, ys_hat)
         return outs_real, outs_fake, f_maps_real, f_maps_fake
 
 
 # SBD
 class MDC(torch.nn.Module):
+    """Multiscale Dilated Convolution from https://arxiv.org/pdf/1609.07093.pdf"""
+
     def __init__(
         self,
         in_channels,
@@ -383,6 +433,8 @@ class MDC(torch.nn.Module):
 
 
 class SBDBlock(torch.nn.Module):
+    """SBD (Sub-band Discriminator) Block"""
+
     def __init__(
         self,
         segment_dim,
@@ -443,6 +495,8 @@ class MDCDConfig:
 
 
 class SBD(torch.nn.Module):
+    """SBD (Sub-band Discriminator) from https://arxiv.org/pdf/2206.13404.pdf"""
+
     def __init__(self, h, use_spectral_norm=False):
         super(SBD, self).__init__()
         self.config = MDCDConfig(h)
@@ -511,6 +565,8 @@ class SBD(torch.nn.Module):
 
 
 class AvocodoDiscriminator(torch.nn.Module):
+    """Avocodo Discriminator module"""
+
     def __init__(
         self,
         combd: Dict[str, Any] = {
@@ -633,6 +689,8 @@ class AvocodoDiscriminator(torch.nn.Module):
 
 
 class AvocodoDiscriminatorPlus(torch.nn.Module):
+    """Avocodo discriminator with additional MFD."""
+
     def __init__(
         self,
         combd: Dict[str, Any] = {
@@ -730,15 +788,6 @@ class AvocodoDiscriminatorPlus(torch.nn.Module):
             use_spectral_norm=sbd["use_spectral_norm"],
         )
         self.mfd = MultiFrequencyDiscriminator(
-            # hop_lengths=[
-            #     int(sample_rate * 2.5 / 1000),
-            #     int(sample_rate * 5 / 1000),
-            #     int(sample_rate * 7.5 / 1000),
-            #     int(sample_rate * 10 / 1000),
-            #     int(sample_rate * 12.5 / 1000),
-            #     int(sample_rate * 15 / 1000),
-            # ],
-            # hidden_channels=[256, 256, 256, 256, 256],
             **multi_freq_disc_params,
         )
         self.projection_filters = projection_filters
