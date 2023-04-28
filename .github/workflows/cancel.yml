@@ -1,7 +1,7 @@
 name: Cancel
 on:
   workflow_run:
-    workflows: ["CI", "centos7", "debian9", "doc"]
+    workflows: ["CI", "centos7", "debian11", "doc"]
     types:
       - requested
 jobs:
