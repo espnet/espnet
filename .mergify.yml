@@ -3,7 +3,7 @@ pull_request_rules:
     conditions:
       - "label=auto-merge"
       - "check-success=test_centos7"
-      - "check-success=test_debian9"
+      - "check-success=test_debian11"
       - "check-success=linter_and_test (ubuntu-latest, 3.7, 1.10.2, 6.0.0, false)"
       - "check-success=linter_and_test (ubuntu-latest, 3.7, 1.11.0, 6.0.0, false)"
       - "check-success=linter_and_test (ubuntu-latest, 3.7, 1.12.1, 6.0.0, false)"
