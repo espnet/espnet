@@ -18,7 +18,6 @@ from espnet2.torch_utils.device_funcs import to_device
 # deepspeed version >= 0.8.1
 
 
-
 def get_parser() -> argparse.Namespace:
     """Create an argument parser."""
 

@@ -82,7 +82,9 @@ def main():
     for spk in spk2tags:
         incorrect = spk2incorrect_sent.get(spk, 0)
         correct = spk2correct_sent.get(spk, 0)
-        print(f"Correct/incorrect sentence-level prediction for {spk}: {correct}/{incorrect}")
+        print(
+            f"Correct/incorrect sentence-level prediction for {spk}: {correct}/{incorrect}"
+        )
 
     print("=" * 80)
     print(
