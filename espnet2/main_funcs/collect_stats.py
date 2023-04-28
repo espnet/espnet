@@ -55,7 +55,6 @@ def collect_stats(
 
                 # 1. Write shape file
                 for name in batch:
-                    logging.info(f"{name}, {batch[name].shape}")
                     if name.endswith("_lengths"):
                         continue
                     for i, (key, data) in enumerate(zip(keys, batch[name])):

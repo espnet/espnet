@@ -355,8 +355,7 @@ class SVSTask(AbsTask):
         # 3. SVS
 
         svs_class = svs_choices.get_class(args.svs)
-        feats_minmax = GetFeatsMinMax(**args.feats_minmax_conf)
-        svs = svs_class(idim=vocab_size, odim=odim, feats_minmax = feats_minmax(), **args.svs_conf)
+        svs = svs_class(idim=vocab_size, odim=odim, **args.svs_conf)
 
         # 4. Extra components
         score_feats_extract = None
@@ -406,6 +405,11 @@ class SVSTask(AbsTask):
                 args.energy_normalize
             )
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
+
+
+        if args.feats_minmax_conf:
+            feats_minmax = GetFeatsMinMax(**args.feats_minmax_conf)
+
 
         # 5. Build model
         model = ESPnetSVSModel(

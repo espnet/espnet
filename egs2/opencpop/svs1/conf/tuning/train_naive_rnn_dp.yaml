@@ -7,7 +7,7 @@ svs: naive_rnn_dp                   # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi dimension (note number + silence)
     embed_dim: 512               # char or phn embedding dimension
-    tempo_dim: 500
+    tempo_dim: 512
     eprenet_conv_layers: 0       # prenet (from bytesing) conv layers
     eprenet_conv_chans: 256      # prenet (from bytesing) conv channels numbers
     eprenet_conv_filts: 3        # prenet (from bytesing) conv filters size
@@ -49,14 +49,14 @@ optim_conf:           # keyword arguments for selected optimizer
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-# num_iters_per_epoch: 200    # number of iterations per epoch
-max_epoch: 500              # number of epochs
+num_iters_per_epoch: 400    # number of iterations per epoch
+max_epoch: 400              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
 
 batch_type: sorted
-batch_size: 8
+batch_size: 16
 
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
