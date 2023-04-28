@@ -74,7 +74,8 @@ def main():
 
                 if utt_id in utt2text:
                     print(
-                        f"Incorrect prediction (should be {ref_aph}) of {utt_id}: {utt2text[utt_id]}"
+                        f"Incorrect prediction (should be {ref_aph}) of "
+                        f"{utt_id}: {utt2text[utt_id]}"
                     )
 
             utt_num += 1
@@ -83,7 +84,8 @@ def main():
         incorrect = spk2incorrect_sent.get(spk, 0)
         correct = spk2correct_sent.get(spk, 0)
         print(
-            f"Correct/incorrect sentence-level prediction for {spk}: {correct}/{incorrect}"
+            f"Correct/incorrect sentence-level prediction for {spk}: "
+            f"{correct}/{incorrect}"
         )
 
     print("=" * 80)
@@ -115,7 +117,8 @@ def main():
     print("=" * 80)
     print(
         f"Speaker-level Aphasia detection accuracy "
-        f"{(correct_speakers / float(n_speakers)):.4f} ({correct_speakers}/{n_speakers})"
+        f"{(correct_speakers / float(n_speakers)):.4f} "
+        f"({correct_speakers}/{n_speakers})"
     )
     print("=" * 80)
 

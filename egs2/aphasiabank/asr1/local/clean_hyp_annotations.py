@@ -1,5 +1,6 @@
 """
-Remove [APH] and [NONAPH] tags from the hypothesis file. Works for both character- and word-level tokenization.
+Remove [APH] and [NONAPH] tags from the hypothesis file.
+Works for both character- and word-level tokenization.
 """
 from argparse import ArgumentParser
 

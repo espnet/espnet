@@ -890,7 +890,8 @@ lang2label = {
     "French": "FR",
 }
 
-# these speakers' aphasia type information is missing, but we actually know for sure if they have Aphasia or not
+# these speakers' aphasia type information is missing, but we actually know
+# for sure if they have Aphasia or not
 spk2missing_aphasia_types = {
     "UMD01": "control",
     "UMD02": "control",
