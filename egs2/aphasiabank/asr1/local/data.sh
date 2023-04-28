@@ -37,7 +37,8 @@ stage=1
 stop_stage=7  # stage 8 is for interctc labels
 include_control=false
 include_lang_id=false
-languages="English French"
+# languages="English French"
+languages="English"
 asr_data_dir=  # see asr.sh stage 4
 tag_insertion=none
 
