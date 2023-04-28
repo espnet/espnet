@@ -635,7 +635,7 @@ class VISinger2Discriminator(torch.nn.Module):
             "use_spectral_norm": False,
         },
         multi_freq_disc_params: Dict[str, Any] = {
-            "hop_lengths": [128, 256, 512],
+            "hop_length_factors": [4, 8, 16],
             "hidden_channels": [256, 512, 512],
             "domain": "double",
             "mel_scale": True,
@@ -677,6 +677,20 @@ class VISinger2Discriminator(torch.nn.Module):
             periods=periods,
             discriminator_params=period_discriminator_params,
         )
+        if "hop_lengths" not in multi_freq_disc_params:
+            # Transfer hop lengths factors to hop lengths
+            multi_freq_disc_params["hop_lengths"] = []
+
+            for i in range(len(multi_freq_disc_params["hop_length_factors"])):
+                multi_freq_disc_params["hop_lengths"].append(
+                    int(
+                        sample_rate
+                        * multi_freq_disc_params["hop_length_factors"][i]
+                        / 1000
+                    )
+                )
+
+            del multi_freq_disc_params["hop_length_factors"]
 
         self.mfd = MultiFrequencyDiscriminator(
             **multi_freq_disc_params,

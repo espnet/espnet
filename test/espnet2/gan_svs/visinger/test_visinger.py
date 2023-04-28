@@ -174,7 +174,7 @@ def get_test_data():
                         "use_spectral_norm": False,
                     },
                     "multi_freq_disc_params": {
-                        "hop_lengths": [32, 64, 128],
+                        "hop_length_factors": [1, 2, 4],
                         "hidden_channels": [2, 2, 4],
                         "domain": "double",
                         "mel_scale": True,

@@ -98,6 +98,13 @@ svs_conf:
                 negative_slope: 0.1
             use_weight_norm: True
             use_spectral_norm: False
+        multi_freq_disc_params:
+            hop_length_factors: [2.5, 5, 7.5, 10, 12.5, 15]
+            hidden_channels: [256, 256, 256, 256, 256]
+            domain: "double"
+            mel_scale: True
+            divisors: [32, 16, 8, 4, 2, 1, 1]
+            strides: [1, 2, 1, 2, 1, 2, 1]
 
     # loss function related
     generator_adv_loss_params:
