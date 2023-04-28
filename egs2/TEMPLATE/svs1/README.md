@@ -274,6 +274,9 @@ $   ./run.sh \
     --vocoder_file ${your vocoder path} \
     --pretrained_model ${your pretrained model path} \
     --use_feats_minmax true \
+
+# for exmaple
+$  --pretrained_model /exp/xiaoice-2-24-250k/500epoch.pth:svs:svs.fftsinger \
 ```
 
 
