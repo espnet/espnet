@@ -873,6 +873,17 @@
                             <span class="n">scaler</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
 
                 <span class="k">else</span><span class="p">:</span>
+                    <span class="n">reporter</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+                        <span class="p">{</span>
+                            <span class="s2">&quot;grad_norm&quot;</span><span class="p">:</span> <span class="n">grad_norm</span><span class="p">,</span>
+                            <span class="s2">&quot;clip&quot;</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                                <span class="n">grad_norm</span> <span class="o">&gt;</span> <span class="n">grad_clip</span><span class="p">,</span>
+                                <span class="n">grad_norm</span><span class="o">.</span><span class="n">new_tensor</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+                                <span class="n">grad_norm</span><span class="o">.</span><span class="n">new_tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                            <span class="p">),</span>
+                            <span class="s2">&quot;loss_scale&quot;</span><span class="p">:</span> <span class="n">scaler</span><span class="o">.</span><span class="n">get_scale</span><span class="p">()</span> <span class="k">if</span> <span class="n">scaler</span> <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
+                        <span class="p">}</span>
+                    <span class="p">)</span>
                     <span class="n">all_steps_are_invalid</span> <span class="o">=</span> <span class="kc">False</span>
                     <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">measure_time</span><span class="p">(</span><span class="s2">&quot;optim_step_time&quot;</span><span class="p">):</span>
                         <span class="k">for</span> <span class="n">iopt</span><span class="p">,</span> <span class="p">(</span><span class="n">optimizer</span><span class="p">,</span> <span class="n">scheduler</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
