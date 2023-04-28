@@ -209,6 +209,9 @@
     <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">always_2d</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">concat_axis</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="n">start</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">end</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">return_subtype</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">,</span> <span class="nb">int</span><span class="p">]:</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">wavs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">wavs</span> <span class="o">=</span> <span class="p">[</span><span class="n">wavs</span><span class="p">]</span>
@@ -219,11 +222,19 @@
     <span class="n">prev_wav</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">for</span> <span class="n">wav</span> <span class="ow">in</span> <span class="n">wavs</span><span class="p">:</span>
         <span class="k">with</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">SoundFile</span><span class="p">(</span><span class="n">wav</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-            <span class="c1"># for supporting half-precision training</span>
-            <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;float16&quot;</span><span class="p">:</span>
-                <span class="n">array</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="n">always_2d</span><span class="o">=</span><span class="n">always_2d</span><span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">start</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">end</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">frames</span> <span class="o">=</span> <span class="n">end</span> <span class="o">-</span> <span class="n">start</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">array</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">always_2d</span><span class="o">=</span><span class="n">always_2d</span><span class="p">)</span>
+                <span class="n">frames</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="k">if</span> <span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;float16&quot;</span><span class="p">:</span>
+                <span class="n">array</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span>
+                    <span class="n">frames</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+                    <span class="n">always_2d</span><span class="o">=</span><span class="n">always_2d</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">array</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">frames</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">always_2d</span><span class="o">=</span><span class="n">always_2d</span><span class="p">)</span>
             <span class="n">rate</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">samplerate</span>
             <span class="n">subtype</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">subtype</span>
             <span class="n">subtypes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">subtype</span><span class="p">)</span>
@@ -256,7 +267,10 @@
     <span class="k">else</span><span class="p">:</span>
         <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">concat_axis</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">array</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">subtypes</span></div>
+    <span class="k">if</span> <span class="n">return_subtype</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">array</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">subtypes</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">array</span><span class="p">,</span> <span class="n">rate</span></div>
 
 
 <div class="viewcode-block" id="SoundScpReader"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.sound_scp.SoundScpReader">[docs]</a><span class="k">class</span> <span class="nc">SoundScpReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
@@ -319,7 +333,7 @@
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
         <span class="n">wavs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
 
-        <span class="n">array</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">soundfile_read</span><span class="p">(</span>
+        <span class="n">array</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile_read</span><span class="p">(</span>
             <span class="n">wavs</span><span class="p">,</span>
             <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">always_2d</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">always_2d</span><span class="p">,</span>
