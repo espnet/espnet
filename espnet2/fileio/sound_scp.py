@@ -24,7 +24,11 @@ def soundfile_read(
     prev_wav = None
     for wav in wavs:
         with soundfile.SoundFile(wav) as f:
-            array = f.read(dtype=dtype, always_2d=always_2d)
+            # for supporting half-precision training
+            if dtype == "float16":
+                array = f.read(dtype="float32", always_2d=always_2d).astype(dtype)
+            else:
+                array = f.read(dtype=dtype, always_2d=always_2d)
             rate = f.samplerate
             subtype = f.subtype
             subtypes.append(subtype)

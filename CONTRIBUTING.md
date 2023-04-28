@@ -63,7 +63,7 @@ To upload your model, you need first (This is currently deprecated , uploading t
 To port models from zenodo using Hugging Face hub,
 1. Create a Hugging Face account - https://huggingface.co/
 2. Request to be added to espnet organisation - https://huggingface.co/espnet
-3. Go to `egs2/RECIPE/*/scripts/utils` and run `./upload_models_to_hub.sh "ZENODO_MODEL_NAME"`
+3. Go to `egs2/RECIPE/*` and run `./scripts/utils/upload_models_to_hub.sh "ZENODO_MODEL_NAME"`
 
 To upload models using Huggingface-cli follow the following steps:
 You can also refer to https://huggingface.co/docs/transformers/model_sharing

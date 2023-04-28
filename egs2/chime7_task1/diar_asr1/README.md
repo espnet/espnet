@@ -89,12 +89,15 @@ More detailed results for each scenario (as produced by the evaluation script in
 
 We can see that the DER and JER values are quite competitive on CHiME-6 with the state-of-the-art but
 the WER figures are quite poor. <br>
-**Note that here we report DER and JER which are computed against manual annotation for CHiME-6.** <br>
-The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) are a bit lower actually (38.94%).
-In general this model is competitive with the [Kaldi TS-VAD implementation](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5c_track2) but
-it is arguably much simpler and faster to run (and can be adapted to run in a streaming fashion actually).
+**Note that here we report DER and JER which are computed against manual annotation with 0.25 seconds collar for CHiME-6.** <br>
+The DER and JER obtained with respect to the [forced-alignment annotation](https://github.com/chimechallenge/CHiME7_DASR_falign) are a bit lower actually (38.94%). <br>
+Note that the previous challenge used no DER and JER collars e.g. the [Kaldi TS-VAD implementation](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5c_track2) obtains
+around 44% DER with respect to forced alignment annotation with no collar. <br>
+This same model achieves around 54% DER w.r.t. the same annotation but it is because it is optimized towards looser segmentation which
+we found it yielded better WER especially on Mixer 6 compared to optimizing the pipeline towards lower DER w.r.t. forced alignment no collar ground truth.
 
-This may due to the fact that we use an E2E ASR system which may be more sensitive to segmentation errors compared to
+
+The high WER figures may due to the fact that we use an E2E ASR system which may be more sensitive to segmentation errors compared to
 hybrid ASR models. We found that using an higher weight in decoding for CTC helped a bit (we use here 0.6, see `conf/decode_asr_transformer.yaml`). <br>
 On the other hand, using ESPNet2 E2E ASR allows to keep the baseline arguably simpler (than e.g. Kaldi) and allows more easily to explore some techniques such as serialized output training,
 target speaker ASR and E2E integration with speech enhancement and separation front-ends. <br>
@@ -102,7 +105,7 @@ But you are free to explore other techniques (e.g. by using [K2](https://github.
 [lhotse](https://github.com/lhotse-speech/lhotse), used in this recipe for data preparation).
 
 It is worth to point out also that it is quite challenging to optimize the diarization
-hyperparameters (for example merging the segments that are X apart) for all three scenarios. <br> E.g. best parameters for CHiME-6 lead to degradation to
+hyper-parameters (for example merging the segments that are X apart) for all three scenarios. <br> E.g. best parameters for CHiME-6 lead to degradation to
 Mixer 6 performance. <br>
 
 
@@ -179,6 +182,12 @@ You can check the fine-tuning progress by using tensorboard e.g.:
 ```bash
 tensorboard --logdir=./exp/pyannote_finetune/lightning_logs/
 ```
+
+## Common Issues
+1. ```huggingface_hub.utils._validators.HFValidationError: Repo id must be in the form 'repo_name' or 'namespace/repo_name': 'exp/pyannote_finetuned/lightning_logs/version_0/checkpoints/best.ckpt'. Use `repo_type` argument if needed.
+It requests “.../version_0/….” while I have “.../version_461/…``` the pyannote diarization pipeline uses **pytorch-lightning** which puts the experiment logs and checkpoint in `lightning_logs/version_XX` starting from 0
+and increasing at each new launch of training. Probably the first attempts failed on your end and the checkpoint was put into the 461th folder. You should delete the `lightning_logs` folder and restart the recipe or copy the checkpoint in the `version_0` folder as
+it's there where the `local/pyannote_diarize.py` script expects the model to be.
 
 ## References
 
