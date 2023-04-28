@@ -5,7 +5,7 @@ Calculate sentence-level and speaker-level Aphasia detection accuracy
 import argparse
 from collections import Counter
 
-from config import spk2aphasia_label, utt2spk
+from data import spk2aphasia_label, utt2spk
 
 
 def get_args():

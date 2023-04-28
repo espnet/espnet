@@ -1,7 +1,7 @@
 import os
 from argparse import ArgumentParser
 
-from config import utt2spk, utt2time
+from data import utt2spk, utt2time
 
 
 def get_args():

@@ -7,7 +7,7 @@ Aphasia detection models
 
 import argparse
 
-from config import spk2aphasia_label, utt2spk
+from data import spk2aphasia_label, utt2spk
 
 
 def main():

@@ -6,7 +6,7 @@ import argparse
 import os
 from typing import Iterable
 
-from config import severity2spks, utt2spk
+from data import severity2spks, utt2spk
 
 
 def filter_text(in_file: str, out_file: str, spks: Iterable[str]):

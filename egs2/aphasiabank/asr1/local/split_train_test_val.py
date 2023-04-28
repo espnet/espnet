@@ -5,7 +5,7 @@ import os
 from argparse import ArgumentParser
 
 import numpy as np
-from config import test_spks, train_spks, utt2spk, val_spks
+from data import test_spks, train_spks, utt2spk, val_spks
 
 
 def get_args():

@@ -34,12 +34,12 @@ EOF
 SECONDS=0
 
 stage=1
-stop_stage=7  # stage 8 is for interctc labels
+stop_stage=7 # stage 8 is for interctc labels
 include_control=false
 include_lang_id=false
 # languages="English French"
 languages="English"
-asr_data_dir=  # see asr.sh stage 4
+asr_data_dir= # see asr.sh stage 4
 tag_insertion=none
 
 log "$0 $*"
@@ -84,19 +84,22 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-  log "Extracting speaker information"
+  log "Download data split from https://github.com/tjysdsg/AphasiaBank_config"
 
-  # install pylangacq
-  pip install --upgrade pylangacq
-
-  # generate data/spk_info.txt
-  for lang in ${languages}; do
-    python local/extract_speaker_info.py --transcript-dir="${APHASIABANK}/${lang}/transcripts" --out-dir=data/${lang}
-  done
+  if [ ! -f data/split.csv ]; then
+    wget -O data/split.csv \
+      https://github.com/tjysdsg/AphasiaBank_config/releases/latest/download/split.csv
+    log "Data split downloaded to data/split.csv"
+  else
+    log "Using existing data/split.csv"
+  fi
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   log "Extracting sentence information"
+
+  # install pylangacq
+  pip install --upgrade pylangacq
 
   # generate data/local/<lang>/text
   for lang in ${languages}; do

@@ -18,6 +18,9 @@ Parameters:
 
 ## Evaluation
 
+- Use `run.sh --nlsyms_txt none --stage 13` to score your model.
+    - It's important to set `--nlsyms_txt none` to avoid removing the Aphasia tags,
+      which will be used by the scripts below.
 - [local/score_cleaned.sh](local/score_cleaned.sh) is used to calculate CER/WER per
   Aphasia subset.
   It doesn't require the input hypothesis file to contain language or Aph tags.
@@ -26,8 +29,7 @@ Parameters:
   calculates CER/WER per Aphasia severity.
   But if the input does contain, it will automatically remove them.
 - [local/score_interctc_aux.sh](local/score_interctc_aux.sh) is used to calculate
-  InterCTC-based Aphasia
-  detection accuracy.
+  InterCTC-based Aphasia detection accuracy.
 - [local/score_aphasia_detection.py](local/score_aphasia_detection.py) is used to
   calculate Aphasia
   detection accuracy from input in Kaldi text format.
@@ -54,5 +56,5 @@ Parameters:
 | [EBF+WavLM+Tag-both](conf/tuning/train_asr_ebranchformer_small_wavlm_large1.yaml)                        | 26.3    | 16.8    | 22.1    | Front: 90.8, Back: 90.6           | Front: 95.7, Back: 95.7          |
 | [EBF+WavLM+InterCTC6](conf/tuning/train_asr_ebranchformer_small_wavlm_large1_interctc6.yaml)             | 26.3    | 16.9    | 22.1    | 85.2                              | 97.3                             |
 | [EBF+WavLM+InterCTC3+6](conf/tuning/train_asr_ebranchformer_small_wavlm_large1_interctc3+6.yaml)         | 26.5    | 17.1    | 22.3    | 83.5                              | 96.7                             |
-| [EBF+WavLM+InterCTC9](conf/tuning/train_asr_ebranchformer_small_wavlm_large1_interctc9.yaml)             | 26.3    | 16.9    | 22.2    | 84.5                              | 97.3                             |
+| EBF+WavLM+InterCTC9 (set `interctc_layer_idx` and `aux_ctc` to 9 in the InterCTC6 config)                | 26.3    | 16.9    | 22.2    | 84.5                              | 97.3                             |
 | [EBF+WavLM+InterCTC6+Tag-prepend](conf/tuning/train_asr_ebranchformer_small_wavlm_large1_interctc6.yaml) | 26.3    | 16.9    | 22.1    | Tag: 89.7, InterCTC: 89.6         | Tag: 96.7, InterCTC: 96.7        |

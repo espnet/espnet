@@ -8,7 +8,7 @@ import re
 from argparse import ArgumentParser
 
 import pylangacq as pla
-from config import get_utt, lang2label, spk2aphasia_label
+from data import get_utt, lang2lang_id, spk2aphasia_label
 
 
 def get_args():
@@ -95,7 +95,7 @@ def main():
 
     lang = None
     if args.lang is not None:
-        lang = lang2label[args.lang]
+        lang = lang2lang_id[args.lang]
 
     # get a list of all CHAT files
     files = []
