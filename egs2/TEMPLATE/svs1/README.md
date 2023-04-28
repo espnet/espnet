@@ -19,6 +19,7 @@ This is a template of SVS recipe for ESPnet2.
   * [How to run](#how-to-run)
     * [Naive_RNN training](#naive_rnn-training)
     * [XiaoiceSing training](#xiaoicesing-training)
+    * [Diffsinger training](#diffsinger-training)
     * [VISinger training](#visinger-training)
     * [Multi speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
     * [Multi language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
@@ -229,7 +230,7 @@ Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" 
 ```sh
 $ ./run.sh --stage 5 \
     --train_config conf/tuning/train_naive_rnn.yaml \
-    --score_feats_extract frame_score_feats \
+    --score_feats_extract syllabel_score_feats \
     --pitch_extract dio \
     --vocoder_file ${your vocoder path} \
 ```
@@ -248,6 +249,31 @@ $ ./run.sh --stage 5 \
     --score_feats_extract syllable_score_feats \
     --pitch_extract dio \
     --vocoder_file ${your vocoder path} \
+```
+
+
+### Diffsinger training
+First, complete the data preparation:
+```sh
+$ ./run.sh \
+    --stage 1 \
+    --stop_stage 4 \
+```
+To train Diffsinger, you need to train a XiaoiceSing first(see [XiaoiceSing training](#xiaoicesing-training)).
+And load pretrain model of XiaoiceSing as Diffsinger:FFTSinger.you can see details of `--pretrained_model` [here](https://github.com/espnet/espnet/blob/master/espnet2/torch_utils/load_pretrained_model.py#L39).
+
+```sh
+$   ./run.sh \
+    --stage 5 \
+    --train_config conf/tuning/train_diffsinger.yaml \
+    --inference_config conf/tuning/decode_diffsinger.yaml \
+    --score_feats_extract syllable_score_feats \
+    --pitch_extract dio \
+    --expdir exp/diffsinger \
+    --inference_model latest.pth \
+    --vocoder_file ${your vocoder path} \
+    --pretrained_model ${your pretrained model path} \
+    --use_feats_minmax true \
 ```
 
 
