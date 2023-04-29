@@ -598,7 +598,6 @@ class VISinger2Discriminator(torch.nn.Module):
     def __init__(
         self,
         # Multi-scale discriminator related
-        sample_rate: int = 22050,
         scales: int = 1,
         scale_downsample_pooling: str = "AvgPool1d",
         scale_downsample_pooling_params: Dict[str, Any] = {
@@ -634,6 +633,8 @@ class VISinger2Discriminator(torch.nn.Module):
             "use_weight_norm": True,
             "use_spectral_norm": False,
         },
+        # Multi-frequency discriminator related
+        sample_rate: int = 22050,
         multi_freq_disc_params: Dict[str, Any] = {
             "hop_length_factors": [4, 8, 16],
             "hidden_channels": [256, 512, 512],
@@ -642,7 +643,6 @@ class VISinger2Discriminator(torch.nn.Module):
             "divisors": [32, 16, 8, 4, 2, 1, 1],
             "strides": [1, 2, 1, 2, 1, 2, 1],
         },
-        use_spectral_norm=False,
     ):
         """
         Discriminator module for VISinger2, including MSD, MPD, and MFD.
@@ -662,7 +662,6 @@ class VISinger2Discriminator(torch.nn.Module):
         super().__init__()
 
         # Multi-scale discriminator related
-        scale_discriminator_params["use_spectral_norm"] = use_spectral_norm
         self.msd = HiFiGANMultiScaleDiscriminator(
             scales=scales,
             downsample_pooling=scale_downsample_pooling,
@@ -672,11 +671,12 @@ class VISinger2Discriminator(torch.nn.Module):
         )
 
         # Multi-period discriminator related
-        period_discriminator_params["use_spectral_norm"] = use_spectral_norm
         self.mpd = HiFiGANMultiPeriodDiscriminator(
             periods=periods,
             discriminator_params=period_discriminator_params,
         )
+
+        # Multi-frequency discriminator related
         if "hop_lengths" not in multi_freq_disc_params:
             # Transfer hop lengths factors to hop lengths
             multi_freq_disc_params["hop_lengths"] = []
