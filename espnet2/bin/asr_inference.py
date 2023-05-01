@@ -843,13 +843,14 @@ def get_parser():
         "--enh_s2t_task",
         type=str2bool,
         default=False,
-        help="enhancement and asr joint model",
+        help="Whether we are using an enhancement and ASR joint model",
     )
     group.add_argument(
         "--multi_asr",
         type=str2bool,
         default=False,
-        help="multi-speaker asr model",
+        help="Whether we are using a monolithic multi-speaker ASR model "
+        "(This flag should be False if a speech separation model is used before ASR)",
     )
 
     group = parser.add_argument_group("Quantization related")

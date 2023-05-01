@@ -14,6 +14,9 @@ def soundfile_read(
     dtype=None,
     always_2d: bool = False,
     concat_axis: int = 1,
+    start: int = 0,
+    end: int = None,
+    return_subtype: bool = False,
 ) -> Tuple[np.array, int]:
     if isinstance(wavs, str):
         wavs = [wavs]
@@ -24,11 +27,19 @@ def soundfile_read(
     prev_wav = None
     for wav in wavs:
         with soundfile.SoundFile(wav) as f:
-            # for supporting half-precision training
-            if dtype == "float16":
-                array = f.read(dtype="float32", always_2d=always_2d).astype(dtype)
+            f.seek(start)
+            if end is not None:
+                frames = end - start
             else:
-                array = f.read(dtype=dtype, always_2d=always_2d)
+                frames = -1
+            if dtype == "float16":
+                array = f.read(
+                    frames,
+                    dtype="float32",
+                    always_2d=always_2d,
+                ).astype(dtype)
+            else:
+                array = f.read(frames, dtype=dtype, always_2d=always_2d)
             rate = f.samplerate
             subtype = f.subtype
             subtypes.append(subtype)
@@ -61,7 +72,10 @@ def soundfile_read(
     else:
         array = np.concatenate(arrays, axis=concat_axis)
 
-    return array, rate, subtypes
+    if return_subtype:
+        return array, rate, subtypes
+    else:
+        return array, rate
 
 
 class SoundScpReader(collections.abc.Mapping):
@@ -124,7 +138,7 @@ class SoundScpReader(collections.abc.Mapping):
     def __getitem__(self, key) -> Tuple[int, np.ndarray]:
         wavs = self.data[key]
 
-        array, rate, _ = soundfile_read(
+        array, rate = soundfile_read(
             wavs,
             dtype=self.dtype,
             always_2d=self.always_2d,
