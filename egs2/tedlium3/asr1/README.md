@@ -96,7 +96,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_lm_lm_train_lm_en_bpe500_valid.loss.ave_asr_model_valid.acc.ave/dev|507|36002|95.0|2.2|2.8|0.9|5.8|68.6|
 |decode_lm_lm_train_lm_en_bpe500_valid.loss.ave_asr_model_valid.acc.ave/test|1155|54206|95.5|1.7|2.7|0.6|5.1|61.1|
-
-
-
-
