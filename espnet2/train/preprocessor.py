@@ -904,7 +904,7 @@ class EnhPreprocessor(CommonPreprocessor):
                 (sref[detect_non_silence(sref)] ** 2).mean() for sref in speech_ref
             ]
 
-            speech_mix = data[self.speech_name]
+            speech_mix = self._ensure_2d(data[self.speech_name])
             # 1. Convolve RIR
             if self.rirs is not None and self.rir_apply_prob >= np.random.random():
                 if self.noise_ref_name_prefix + "1" in data:
@@ -1095,6 +1095,7 @@ class SVSPreprocessor(AbsPreprocessor):
             duration_phn = np.zeros((lab_len))
             duration_ruled_phn = np.zeros((lab_len))
             duration_syb = np.zeros((lab_len))
+            slur = np.zeros((lab_len))
             # Load score info
             tempo, syb_info = data[self.midi_name]
             phn_cnt = []
@@ -1128,6 +1129,10 @@ class SVSPreprocessor(AbsPreprocessor):
                     duration_phn[index_lab] = _duration_phn
                     duration_ruled_phn[index_lab] = _duration_ruled_phn
                     duration_syb[index_lab] = _duration_syb
+                    if syb == "—":
+                        slur[index_lab] = 1
+                    else:
+                        slur[index_lab] = 0
                     index_lab += 1
 
             assert index_lab == lab_len
@@ -1140,6 +1145,7 @@ class SVSPreprocessor(AbsPreprocessor):
             duration_syb.astype(np.int64)
             duration_ruled_phn.astype(np.int64)
             phn_cnt.astype(np.int64)
+            slur.astype(np.int64)
 
             data["label"] = label
             data["midi"] = midi
@@ -1147,6 +1153,7 @@ class SVSPreprocessor(AbsPreprocessor):
             data["duration_ruled_phn"] = duration_ruled_phn
             data["duration_syb"] = duration_syb
             data["phn_cnt"] = phn_cnt
+            data["slur"] = slur
 
         # TODO(Yuning): Add score from midi
 
