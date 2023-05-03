@@ -1,8 +1,9 @@
 """Prepare AISHELL data for Chinese ASR."""
-import librosa
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
+
+import librosa
 
 from utils import (
     SYMBOL_NA,
@@ -21,15 +22,17 @@ def collect_data(
     data_dir = Path(data_dir)
 
     name2text = {}
-    with open(data_dir / 'data_aishell' / 'transcript' / 'aishell_transcript_v0.8.txt', 'r') as fp:
+    with open(
+        data_dir / "data_aishell" / "transcript" / "aishell_transcript_v0.8.txt", "r"
+    ) as fp:
         for line in fp.readlines():
             name, text = line.split(maxsplit=1)
-            name2text[name] = ''.join(text.split())
+            name2text[name] = "".join(text.split())
 
     ret = []
-    for wav_file in (data_dir / 'data_aishell' / 'wav' / split).glob('*/*.wav'):
-        if wav_file.name.removesuffix('.wav') in name2text:
-            text = name2text[wav_file.name.removesuffix('.wav')]
+    for wav_file in (data_dir / "data_aishell" / "wav" / split).glob("*/*.wav"):
+        if wav_file.name.removesuffix(".wav") in name2text:
+            text = name2text[wav_file.name.removesuffix(".wav")]
             ret.append(
                 [
                     Utterance(
@@ -38,8 +41,8 @@ def collect_data(
                         wav_path=str(wav_file.resolve()),
                         start_time=0.0,
                         end_time=librosa.get_duration(filename=wav_file),
-                        lang='<zh>',
-                        task='<asr>',
+                        lang="<zh>",
+                        task="<asr>",
                         text=text,
                         asr_text=text,
                     )
