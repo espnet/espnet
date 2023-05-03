@@ -6,16 +6,26 @@ MuST-C contains data of two tasks:
 
 """
 
-import yaml
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
-from utils import Utterance, LongUtterance, generate_long_utterances, SYMBOL_NA, SYMBOL_NOSPEECH, SYMBOLS_TIME
+import yaml
+
+from utils import (
+    SYMBOL_NA,
+    SYMBOL_NOSPEECH,
+    SYMBOLS_TIME,
+    LongUtterance,
+    Utterance,
+    generate_long_utterances,
+)
 
 
-def collect_data(data_dir: Union[Path, str], lang: str, split: str, prefix: str) -> List[List[Utterance]]:
+def collect_data(
+    data_dir: Union[Path, str], lang: str, split: str, prefix: str
+) -> List[List[Utterance]]:
     """Collect utterances in each long talk."""
 
     data_dir = Path(data_dir)
@@ -38,34 +48,34 @@ def collect_data(data_dir: Union[Path, str], lang: str, split: str, prefix: str)
         wav_name: str = utt["wav"]  # e.g.: 'ted_767.wav'
         wav_path = str((wav_dir / wav_name).resolve())
         wav_id = f"{prefix}_en-{lang}_{wav_name.removesuffix('.wav')}"
-        start_time = float(utt['offset'])
-        end_time = start_time + float(utt['duration'])
+        start_time = float(utt["offset"])
+        end_time = start_time + float(utt["duration"])
 
         # NOTE(yifan): each utterance can be used in two tasks (asr, st)
-        wav2utts[wav_name + '.asr'].append(
+        wav2utts[wav_name + ".asr"].append(
             Utterance(
                 utt_id=f"{wav_id}_{round(1000 * start_time):07d}_{round(1000 * end_time):07d}_asr",
                 wav_id=wav_id,
                 wav_path=wav_path,
                 start_time=start_time,
                 end_time=end_time,
-                lang='<en>',
-                task='<asr>',
-                text=' '.join(src.split()),
-                asr_text=' '.join(src.split()),
+                lang="<en>",
+                task="<asr>",
+                text=" ".join(src.split()),
+                asr_text=" ".join(src.split()),
             )
         )
-        wav2utts[wav_name + f'.st_{lang}'].append(
+        wav2utts[wav_name + f".st_{lang}"].append(
             Utterance(
                 utt_id=f"{wav_id}_{round(1000 * start_time):07d}_{round(1000 * end_time):07d}_st_{lang}",
                 wav_id=wav_id,
                 wav_path=wav_path,
                 start_time=start_time,
                 end_time=end_time,
-                lang='<en>',
-                task=f'<st_{lang}>',
-                text=' '.join(tgt.split()),
-                asr_text=' '.join(src.split()),
+                lang="<en>",
+                task=f"<st_{lang}>",
+                text=" ".join(tgt.split()),
+                asr_text=" ".join(src.split()),
             )
         )
 
@@ -76,9 +86,7 @@ def parse_args():
     parser = ArgumentParser(description="Prepare data.")
     parser.add_argument("--data_dir", type=Path, help="Path to raw data.")
     parser.add_argument(
-        "--prefix",
-        type=str,
-        help="Prefix that will be added to utt id."
+        "--prefix", type=str, help="Prefix that will be added to utt id."
     )
     parser.add_argument(
         "--output_dir",
@@ -99,7 +107,7 @@ def parse_args():
         default=[],
         help="Target languages that will be prepared.",
     )
-    
+
     args = parser.parse_args()
     return args
 
@@ -112,17 +120,23 @@ if __name__ == "__main__":
     if len(args.languages) > 0:
         languages = args.languages
     else:
-        languages = [d.name.removeprefix('en-') for d in args.data_dir.iterdir() if d.is_dir()]
+        languages = [
+            d.name.removeprefix("en-") for d in args.data_dir.iterdir() if d.is_dir()
+        ]
 
     for split in args.splits:
         write_dir = args.output_dir / split
         write_dir.mkdir(parents=True, exist_ok=True)
 
-        wavscp_fp = open(write_dir / "wav.scp", "w")        # wav-id wav-path
-        segments_fp = open(write_dir / "segments", "w")     # utt-id wav-id start-time end-time
-        text_fp = open(write_dir / "text", "w")             # utt-id transcript
+        wavscp_fp = open(write_dir / "wav.scp", "w")  # wav-id wav-path
+        segments_fp = open(
+            write_dir / "segments", "w"
+        )  # utt-id wav-id start-time end-time
+        text_fp = open(write_dir / "text", "w")  # utt-id transcript
         textprev_fp = open(write_dir / "text.prev", "w")
-        textctc_fp = open(write_dir / "text.ctc", "w")      # text for ASR CTC w/o special tokens
+        textctc_fp = open(
+            write_dir / "text.ctc", "w"
+        )  # text for ASR CTC w/o special tokens
         utt2spk_fp = open(write_dir / "utt2spk", "w")
 
         for lang in languages:
@@ -135,12 +149,14 @@ if __name__ == "__main__":
             for talk in talks:
                 for u in generate_long_utterances(talk):
                     wavscp_fp.write(f"{u.wav_id} {u.wav_path}\n")
-                    segments_fp.write(f"{u.utt_id} {u.wav_id} {u.start_time:.2f} {u.end_time:.2f}\n")
+                    segments_fp.write(
+                        f"{u.utt_id} {u.wav_id} {u.start_time:.2f} {u.end_time:.2f}\n"
+                    )
                     text_fp.write(f"{u.utt_id} {u.lang}{u.task}{u.text_with_time}\n")
                     textprev_fp.write(f"{u.utt_id} {u.prev_text}\n")
                     textctc_fp.write(f"{u.utt_id} {u.asr_text}\n")
                     utt2spk_fp.write(f"{u.utt_id} {u.utt_id}\n")
-        
+
         wavscp_fp.close()
         segments_fp.close()
         text_fp.close()
@@ -151,11 +167,11 @@ if __name__ == "__main__":
     special_tokens = [
         SYMBOL_NA,
         SYMBOL_NOSPEECH,
-        '<en>',
-        '<asr>',
-        *[f'<st_{l}>' for l in languages],
+        "<en>",
+        "<asr>",
+        *[f"<st_{l}>" for l in languages],
         *SYMBOLS_TIME,
     ]
-    with open(args.output_dir / 'nlsyms.txt', 'w') as fp:
+    with open(args.output_dir / "nlsyms.txt", "w") as fp:
         for tok in special_tokens:
-            fp.write(f'{tok}\n')
+            fp.write(f"{tok}\n")
