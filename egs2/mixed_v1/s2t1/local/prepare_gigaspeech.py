@@ -1,4 +1,5 @@
 """Prepare GigaSpeech data for English ASR."""
+import json
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
@@ -7,41 +8,56 @@ from typing import Dict, List, Optional, Tuple, Union
 from utils import Utterance, LongUtterance, generate_long_utterances, SYMBOL_NA, SYMBOL_NOSPEECH, SYMBOLS_TIME
 
 
+def preprocess_text(text: str) -> str:
+    garbage_tags = [
+        "<SIL>",
+        "<MUSIC>",
+        "<NOISE>",
+        "<OTHER>",
+    ]
+    for g in garbage_tags:
+        if g in text:
+            return ''
+
+    text = text.replace(' <COMMA>', ',')
+    text = text.replace(' <PERIOD>', '.')
+    text = text.replace(' <QUESTIONMARK>', '?')
+    text = text.replace(' <EXCLAMATIONPOINT>', '!')
+
+    assert '<' not in text and '>' not in text, text
+    return text.lower()
+
+
 def collect_data(data_dir: Union[Path, str], split: str, prefix: str) -> List[List[Utterance]]:
     """Collect utterances in each long talk."""
     data_dir = Path(data_dir)
-    speakers = [d.name for d in (data_dir / split).iterdir() if d.is_dir()]
-
+    with open(data_dir / 'GigaSpeech.json', 'r') as fp:
+        info = json.load(fp)
+    
     ret = []
-    for speaker in speakers:
-        for chapter in (data_dir / 'mp3' / speaker).iterdir():
-            if chapter.is_dir():
-                utts = []
-                audio = str((chapter / f'{chapter.name}.mp3').resolve())
-                with open(chapter / f'{speaker}-{chapter.name}.sents.seg.txt', 'r') as seg_f, open(
-                    chapter / f'{speaker}-{chapter.name}.sents.trans.txt', 'r'
-                ) as trans_f:
-                    seg_lines = [line.strip() for line in seg_f.readlines()]
-                    trans_lines = [line.strip() for line in trans_f.readlines()]
-                    assert len(seg_lines) == len(trans_lines)
-                    for seg, trans in zip(seg_lines, trans_lines):
-                        utt_id, start_time, end_time = seg.split()
-                        assert utt_id == trans.split(maxsplit=1)[0]
-                        text = trans.split(maxsplit=1)[1].lower()
-                        utts.append(
-                            Utterance(
-                                utt_id=f"{prefix}_{utt_id}",
-                                wav_id=f"{prefix}_{speaker}_{chapter.name}",
-                                wav_path=f"sox {audio} -t wav -c 1 -r 16000 - |",
-                                start_time=float(start_time),
-                                end_time=float(end_time),
-                                lang='<en>',
-                                task='<asr>',
-                                text=text,
-                                asr_text=text,
-                            )
+    for audio in info['audios']:
+        if ('{' + split + '}') in audio['subsets']:
+            wav_path = data_dir / audio['path']
+            assert wav_path.is_file()
+
+            utts = []
+            for seg in audio['segments']:
+                text = preprocess_text(seg['text_tn'])
+                if text:
+                    utts.append(
+                        Utterance(
+                            utt_id=f"{prefix}_{seg['sid']}",
+                            wav_id=f"{prefix}_{audio['aid']}",
+                            wav_path=f"ffmpeg -i {str(wav_path.resolve())} -ac 1 -ar 16000 - |",
+                            start_time=seg['begin_time'],
+                            end_time=seg['end_time'],
+                            lang='<en>',
+                            task='<asr>',
+                            text=text,
+                            asr_text=text,
                         )
-                ret.append(utts)
+                    )
+            ret.append(utts)
     return ret
 
 
