@@ -14,27 +14,25 @@ from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
-
-from espnet2.vad.espnet_model import ESPnetVADModel
 from espnet2.tasks.asr import ASRTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.preprocessor import VADPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
+from espnet2.vad.espnet_model import ESPnetVADModel
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -84,13 +82,11 @@ preencoder_choices = ClassChoices(
 )
 encoder_choices = ClassChoices(
     "encoder",
-    classes=dict(
-        rnn=RNNEncoder,
-        transformer=TransformerEncoder
-    ),
+    classes=dict(rnn=RNNEncoder, transformer=TransformerEncoder),
     type_check=AbsEncoder,
     default="rnn",
 )
+
 
 class VADTask(ASRTask):
     # If you need more than one optimizers, change this value
@@ -109,7 +105,7 @@ class VADTask(ASRTask):
         # --preencoder and --preencoder_conf
         preencoder_choices,
         # --encoder and --encoder_conf
-        encoder_choices
+        encoder_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here

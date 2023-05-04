@@ -1,4 +1,4 @@
-lm_conf:        
+lm_conf:
     nlayers: 4
     unit: 2048
 optim: adam

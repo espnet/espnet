@@ -3,7 +3,7 @@ from typing import Iterator, Tuple
 
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
@@ -36,7 +36,7 @@ class UnsortedBatchSampler(AbsSampler):
         # utt2shape:
         #    uttA <anything is o.k>
         #    uttB <anything is o.k>
-        utt2any = read_2column_text(key_file)
+        utt2any = read_2columns_text(key_file)
         if len(utt2any) == 0:
             logging.warning(f"{key_file} is empty")
         # In this case the, the first column in only used
@@ -46,7 +46,7 @@ class UnsortedBatchSampler(AbsSampler):
 
         category2utt = {}
         if utt2category_file is not None:
-            utt2category = read_2column_text(utt2category_file)
+            utt2category = read_2columns_text(utt2category_file)
             if set(utt2category) != set(keys):
                 raise RuntimeError(
                     f"keys are mismatched between {utt2category_file} != {key_file}"

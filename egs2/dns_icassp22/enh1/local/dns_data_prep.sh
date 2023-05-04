@@ -31,7 +31,7 @@ rm -r ${data}/tt_synthetic 2>/dev/null || true
 
 tmpdir=data/temp
 rm -r  $tmpdir 2>/dev/null || true
-mkdir -p $tmpdir 
+mkdir -p $tmpdir
 
 mixwav_dir=${dns_wav}/noisy
 
@@ -56,7 +56,7 @@ for x in tr cv tt; do
   ddir=${x}_synthetic
   mkdir -p ${data}/${ddir}
   cp $tmpdir/${x}.scp ${data}/${ddir}/wav.scp
-  
+
   awk '{print($1, "dummy")}' ${data}/${ddir}/wav.scp | \
     sort -u> ${data}/${ddir}/utt2spk
   utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt

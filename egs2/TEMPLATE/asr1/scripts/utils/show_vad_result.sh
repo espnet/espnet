@@ -69,4 +69,3 @@ EOF
     fi
 
 done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)
-

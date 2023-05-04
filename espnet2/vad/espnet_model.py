@@ -59,9 +59,7 @@ class ESPnetVADModel(ESPnetASRModel):
         # VAD should use binary cross entropy loss
         self.criterion_vad = torch.nn.CrossEntropyLoss()
 
-        self.vad_linear = torch.nn.Linear(
-            encoder.output_size(), frame_type
-        )
+        self.vad_linear = torch.nn.Linear(encoder.output_size(), frame_type)
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
@@ -104,9 +102,7 @@ class ESPnetVADModel(ESPnetASRModel):
 
         stats = dict()
 
-        loss, frame_error = self._calc_vad_loss(
-            encoder_out, text
-        )
+        loss, frame_error = self._calc_vad_loss(encoder_out, text)
 
         # Collect frame accuracy stats
         stats["frame_error"] = frame_error
@@ -182,9 +178,7 @@ class ESPnetVADModel(ESPnetASRModel):
         if intermediate_outs is not None:
             return (encoder_out, intermediate_outs), encoder_out_lens
 
-        encoder_out = self.vad_linear(
-            encoder_out
-        )
+        encoder_out = self.vad_linear(encoder_out)
 
         return encoder_out, encoder_out_lens
 
@@ -196,9 +190,7 @@ class ESPnetVADModel(ESPnetASRModel):
         encoder_out = torch.transpose(encoder_out, 1, 2)
         loss = self.criterion_vad(encoder_out, ys_out)
         encoder_out = torch.argmax(encoder_out, dim=1)
-        numerator = torch.sum(
-            encoder_out == ys_out
-        )
+        numerator = torch.sum(encoder_out == ys_out)
         denominator = ys_out.numel()
         acc = float(numerator) / float(denominator)
         return loss, 1 - acc

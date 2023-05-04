@@ -33,4 +33,3 @@ inference_config=conf/tuning/decode_rnn.yaml
     --test_sets "${test_sets}" \
     --local_data_opts "--stage 2" \
     --gpu_inference true
-

@@ -26,4 +26,3 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_lm_lm_train_lm_bpe500_valid.loss.ave_asr_model_valid.acc.ave/test|518|20708|74.2|17.7|8.1|3.9|29.7|99.0|
-

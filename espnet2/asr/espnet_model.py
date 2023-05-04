@@ -60,6 +60,8 @@ class ESPnetASRModel(AbsESPnetModel):
         report_wer: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        transducer_multi_blank_durations: List = [],
+        transducer_multi_blank_sigma: float = 0.05,
         # In a regular ESPnet recipe, <sos> and <eos> are both "<sos/eos>"
         # Pretrained HF Tokenizer needs custom sym_sos and sym_eos
         sym_sos: str = "<sos/eos>",
@@ -112,15 +114,29 @@ class ESPnetASRModel(AbsESPnetModel):
         self.error_calculator = None
 
         if self.use_transducer_decoder:
-            from warprnnt_pytorch import RNNTLoss
-
             self.decoder = decoder
             self.joint_network = joint_network
 
-            self.criterion_transducer = RNNTLoss(
-                blank=self.blank_id,
-                fastemit_lambda=0.0,
-            )
+            if not transducer_multi_blank_durations:
+                from warprnnt_pytorch import RNNTLoss
+
+                self.criterion_transducer = RNNTLoss(
+                    blank=self.blank_id,
+                    fastemit_lambda=0.0,
+                )
+            else:
+                from espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank import (
+                    MultiblankRNNTLossNumba,
+                )
+
+                self.criterion_transducer = MultiblankRNNTLossNumba(
+                    blank=self.blank_id,
+                    big_blank_durations=transducer_multi_blank_durations,
+                    sigma=transducer_multi_blank_sigma,
+                    reduction="mean",
+                    fastemit_lambda=0.0,
+                )
+                self.transducer_multi_blank_durations = transducer_multi_blank_durations
 
             if report_cer or report_wer:
                 self.error_calculator_trans = ErrorCalculatorTransducer(

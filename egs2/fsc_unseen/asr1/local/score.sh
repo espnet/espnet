@@ -50,4 +50,3 @@ sclite \
 echo "Write ASR result in ${asr_expdir}/${utt_test_inference_folder}/score_wer/result_asr.txt"
                 grep -e Avg -e SPKR -m 2 "${asr_expdir}/${utt_test_inference_folder}/score_wer/result_asr.txt"
 exit 0
-

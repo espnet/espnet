@@ -41,5 +41,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decoder_asr_asr_model_valid.acc.ave_5best/test|2608|35287|57.6|21.8|20.5|7.8|50.2|96.5|
 |decoder_asr_asr_model_valid.acc.ave_5best/valid|1104|14430|57.4|23.2|19.4|6.1|48.6|96.2|
-
-

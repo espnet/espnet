@@ -42,7 +42,7 @@ if [ $stage -le 0 ]; then
         | sed 's/XPLACEHOLDERX/<UNK>/g' \
         > data/nsc/text
 
-    # Create a train and test splits by following 
+    # Create a train and test splits by following
     # https://github.com/pzelasko/kaldi/blob/feature/nsc-recipe/egs/nsc/s5/local/nsc_data_prep.sh#L30-L35
     n_spk=$(wc -l data/nsc/spk2utt | cut -f1 -d' ')
     tail -10 data/nsc/spk2utt | cut -f1 -d' ' > data/test.spk

@@ -33,11 +33,15 @@ def split_scps(
         (Path(output_dir) / name).mkdir(parents=True, exist_ok=True)
 
     scp_files = [open(s, "r", encoding="utf-8") for s in scps]
-    # Remove existing files
-    for n in range(num_splits):
-        for name in names:
-            if (Path(output_dir) / name / f"split.{n}").exists():
-                (Path(output_dir) / name / f"split.{n}").unlink()
+
+    # Create output files in 'w' mode to overwrite existing files if any
+    out_files = {
+        name: {
+            num: (Path(output_dir) / name / f"split.{num}").open("w", encoding="utf-8")
+            for num in range(num_splits)
+        }
+        for name in names
+    }
 
     counter = Counter()
     linenum = -1
@@ -50,17 +54,14 @@ def split_scps(
             key = line.rstrip().split(maxsplit=1)[0]
             if prev_key is not None and prev_key != key:
                 raise RuntimeError("Not sorted or not having same keys")
+            prev_key = key
 
         # Select a piece from split texts alternatively
         num = linenum % num_splits
         counter[num] += 1
         # Write lines respectively
         for line, name in zip(lines, names):
-            # To reduce the number of opened file descriptors, open now
-            with (Path(output_dir) / name / f"split.{num}").open(
-                "a", encoding="utf-8"
-            ) as f:
-                f.write(line)
+            out_files[name][num].write(line)
 
     if linenum + 1 < num_splits:
         raise RuntimeError(

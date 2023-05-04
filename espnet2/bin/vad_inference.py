@@ -11,7 +11,6 @@ import torch
 import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
-
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.vad import VADTask
 from espnet2.torch_utils.device_funcs import to_device
@@ -78,7 +77,7 @@ class VoiceActivityDetect:
             vad_model = torch.quantization.quantize_dynamic(
                 vad_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
             )
-        
+
         self.vad_model = vad_model
         self.vad_train_args = vad_train_args
         self.maxlenratio = maxlenratio
@@ -90,11 +89,7 @@ class VoiceActivityDetect:
         self.speech_to_silence_thresh = speech_to_silence_thresh
 
     @torch.no_grad()
-    def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[
-        List[float]
-    ]:
+    def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> List[List[float]]:
         """Inference
 
         Args:
@@ -122,14 +117,25 @@ class VoiceActivityDetect:
         # b. Forward Encoder
         enc, _ = self.vad_model.encode(**batch)
         enc = torch.softmax(enc, dim=-1).detach().cpu().numpy()
-        
+
         # c. Passed the encoder result to do post-processing
-        results = self.vad_post_processing(enc[0][:, 1], self.threshold, self.silence_to_speech_thresh, self.speech_to_silence_thresh)
+        results = self.vad_post_processing(
+            enc[0][:, 1],
+            self.threshold,
+            self.silence_to_speech_thresh,
+            self.speech_to_silence_thresh,
+        )
         assert check_return_type(results)
 
         return results
 
-    def vad_post_processing(self, enc: np.ndarray, threshold: float, silence_to_speech_thresh: int, speech_to_silence_thresh: int) -> List[List[float]]:
+    def vad_post_processing(
+        self,
+        enc: np.ndarray,
+        threshold: float,
+        silence_to_speech_thresh: int,
+        speech_to_silence_thresh: int,
+    ) -> List[List[float]]:
         state = 0 if enc[0] > threshold else 1
         silence_frame_count = 0
         speech_frame_count = 0
@@ -229,7 +235,7 @@ def inference(
     quantize_dtype: str,
     threshold: float,
     silence_to_speech_thresh: int,
-    speech_to_silence_thresh: int
+    speech_to_silence_thresh: int,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -263,7 +269,7 @@ def inference(
         quantize_dtype=quantize_dtype,
         threshold=threshold,
         silence_to_speech_thresh=silence_to_speech_thresh,
-        speech_to_silence_thresh=speech_to_silence_thresh
+        speech_to_silence_thresh=speech_to_silence_thresh,
     )
     voiceactivitydetect = VoiceActivityDetect.from_pretrained(
         model_tag=model_tag,
@@ -277,7 +283,9 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=VADTask.build_preprocess_fn(voiceactivitydetect.vad_train_args, False),
+        preprocess_fn=VADTask.build_preprocess_fn(
+            voiceactivitydetect.vad_train_args, False
+        ),
         collate_fn=VADTask.build_collate_fn(voiceactivitydetect.vad_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
@@ -301,11 +309,11 @@ def inference(
             # Only supporting batch_size==1
             key = keys[0]
             print(key)
-            
+
             str_result = []
             for item in results:
-                str_result.append(' '.join([str(x) for x in item]))
-            str_result = ' '.join(str_result)
+                str_result.append(" ".join([str(x) for x in item]))
+            str_result = " ".join(str_result)
             # Create a directory: vad_result
             ibest_writer = writer[f"vad_result"]
             # Write the result to each file

@@ -118,7 +118,7 @@ svs_conf:
     fmin: 0            # minimum frequency for Mel basis
     fmax: null         # maximum frequency for Mel basis
     log_base: null     # null represent natural log
-  
+
   lambda_score2mel: 1.0   # loss scaling coefficient for score2mel loss
   lambda_adv: 1.0        # loss scaling coefficient for adversarial loss
   lambda_mel: 45.0       # loss scaling coefficient for Mel loss

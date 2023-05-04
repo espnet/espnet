@@ -1,6 +1,6 @@
-cudnn_benchmark: false 
-cudnn_deterministic: false 
-use_amp: true 
+cudnn_benchmark: false
+cudnn_deterministic: false
+use_amp: true
 encoder: conformer
 encoder_conf:
     output_size: 512
@@ -67,4 +67,4 @@ best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 10 
+keep_nbest_models: 10
