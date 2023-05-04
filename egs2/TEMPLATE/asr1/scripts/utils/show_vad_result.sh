@@ -45,27 +45,28 @@ EOF
 
 while IFS= read -r expdir; do
 
-    echo "## ${expdir}"
-    for type in precision recall F1_score; do
-        cat << EOF
+    if ls "${expdir}"/*/*/result.txt &> /dev/null; then
+        echo "## ${expdir}"
+        for type in precision recall F1_score; do
+            cat << EOF
 ### ${type^^}
 
 |dataset|value|
 |---|---|
 EOF
-        echo "${exp}"/*/*/result.txt
-        echo $type
-		if  [[ $type == "precision" ]] && ls "${exp}"/*/*/result.txt  &> /dev/null; then
-            grep Precision "${exp}"/*/*/result.txt |
-	    	echo 
-        elif [[ $type == "recall" ]] && ls "${exp}"/*/*/result.txt  &> /dev/null; then
-            grep Recall "${exp}"/*/*/result.txt |
-            echo
-        elif [[ $type == "F1_score" ]] && ls "${exp}"/*/*/result.txt  &> /dev/null; then
-            grep F1 "${exp}"/*/*/result.txt |
-            echo
-        fi
-    done
+
+		    if  [[ $type == "precision" ]] && ls "${expdir}"/*/*/result.txt  &> /dev/null; then
+                grep Precision "${expdir}"/*/*/result.txt 
+                echo
+            elif [[ $type == "recall" ]] && ls "${expdir}"/*/*/result.txt  &> /dev/null; then
+                grep Recall "${expdir}"/*/*/result.txt 
+                echo
+            elif [[ $type == "F1_score" ]] && ls "${expdir}"/*/*/result.txt  &> /dev/null; then
+                grep F1 "${expdir}"/*/*/result.txt 
+                echo
+            fi
+        done
+    fi
 
 done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)
 

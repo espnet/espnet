@@ -799,9 +799,6 @@ if ! "${skip_eval}"; then
                 --hyp_file "${_logdir}"/output.1/vad_result/segments \
                 --ref_file "${_data}"/text \
                 --output_file "${_dir}"/result.txt
-            
-            cat "${_dir}"/result.txt
-
         done
 
         # Show results in Markdown syntax
