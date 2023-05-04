@@ -57,7 +57,7 @@ EOF
         echo $type
 		if  [[ $type == "precision" ]] && ls "${exp}"/*/*/result.txt  &> /dev/null; then
             grep Precision "${exp}"/*/*/result.txt |
-	    	echo 
+	    	echo
         elif [[ $type == "recall" ]] && ls "${exp}"/*/*/result.txt  &> /dev/null; then
             grep Recall "${exp}"/*/*/result.txt |
             echo
@@ -68,4 +68,3 @@ EOF
     done
 
 done < <(find ${exp} -mindepth ${mindepth} -maxdepth ${maxdepth} -type d)
-

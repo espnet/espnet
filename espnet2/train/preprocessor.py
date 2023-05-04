@@ -468,7 +468,7 @@ class VADPreprocessor(CommonPreprocessor):
         if self.text_name in data:
             # transform float time intervals to sequence of integers of length len(speech)
             text = data[self.text_name]
-            text_split = [float(item) * 100 for item in text.split(' ')]
+            text_split = [float(item) * 100 for item in text.split(" ")]
             # input is split to 10s chunks, so we need to multiply the original timestamp by 100
             # text_array = np.zeros([1000, 2], dtype=np.int64)
             # if len(text_split) != 0:
@@ -478,10 +478,11 @@ class VADPreprocessor(CommonPreprocessor):
             text_array = np.zeros([1001], dtype=np.int64)
             if len(text_split) != 0:
                 for i in range(0, len(text_split), 2):
-                    text_array[int(text_split[i]):int(text_split[i+1])] = 1
+                    text_array[int(text_split[i]) : int(text_split[i + 1])] = 1
             data[self.text_name] = text_array
         return data
-    
+
+
 class CommonPreprocessor_multi(CommonPreprocessor):
     def __init__(
         self,
