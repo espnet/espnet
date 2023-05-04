@@ -1,0 +1,4 @@
+batch_size: 1
+beam_size: 10
+ctc_weight: 0.2
+lm_weight: 0.2
