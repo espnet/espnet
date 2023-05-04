@@ -27,4 +27,3 @@ exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_eval/re
 |---|---|
 exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_dev/result.txt:F1_score: 0.9294
 exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_eval/result.txt:F1_score: 0.9479
-
