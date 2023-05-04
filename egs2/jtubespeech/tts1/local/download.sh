@@ -18,7 +18,7 @@ if [ ! -e ${download_dir}/jtuberaw ]; then
     mkdir -p ${download_dir}
     cd ${download_dir}
     FILE_NAME=jtuberaw.tar.gz
-    gdown "https://drive.google.com/uc?id=1X_harC0e1tjMX1FtCldD67XOysQuq_Ib" 
+    gdown "https://drive.google.com/uc?id=1X_harC0e1tjMX1FtCldD67XOysQuq_Ib"
     tar -zxvf ${FILE_NAME} jtuberaw
     rm -rf ${FILE_NAME}
     cd ${cwd}

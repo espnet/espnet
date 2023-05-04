@@ -4,8 +4,8 @@
 # matches case-insensitive --Arnab (Jan 2013)
 
 if ($ARGV[0] eq "-f") {
-  shift @ARGV; 
-  $field_spec = shift @ARGV; 
+  shift @ARGV;
+  $field_spec = shift @ARGV;
   if ($field_spec =~ m/^\d+$/) {
     $field_begin = $field_spec - 1; $field_end = $field_spec - 1;
   }
@@ -18,7 +18,7 @@ if ($ARGV[0] eq "-f") {
     }
   }
   if (!defined $field_begin && !defined $field_end) {
-    die "Bad argument to -f option: $field_spec"; 
+    die "Bad argument to -f option: $field_spec";
   }
 }
 
@@ -44,7 +44,7 @@ while (<>) {
       # which is a  mistake in the input.
       $a =~ s:^\{(.+)\}$:$1:;                 # e.g. {YUPPIEDOM} -> YUPPIEDOM
       $a =~ s:[A-Z]\[([^][])+\][A-Z]:$1-$3:i; # e.g. AMMU[N]IT- -> AMMU-IT-
-      $a =~ s:_\d$::;                         # e.g. THEM_1 -> THEM 
+      $a =~ s:_\d$::;                         # e.g. THEM_1 -> THEM
     }
     $A[$n] = $a;
   }

@@ -191,9 +191,9 @@ exp/tr_it_a10/decode_et_it_beam20_eacc.best_p0_len0.0-0.8/result.txt:| Sum/Avg  
 |-|NSC³|7.8|29.0|88.6|0.224|
 |-|mAES|7.8|28.9|88.7|0.109|
 
-¹ Reported on the test set only.  
-² RTF was computed using `line-profiler` tool applied to [recognize method](https://github.com/espnet/espnet/blob/master/espnet/nets/pytorch_backend/e2e_asr_transducer.py#L470). The reported value is averaged on 5 runs with `nj=1`. All experiments were performed using a single AMD EPYC 7502P.  
-³ Here, the number of required expansions at each timestep for the time-synchronous algorithms can be lowered with almost no degradation in terms of CER/WER. Because of its adaptive nature, mAES will automatically adjusts the number of required expansions at each time step.  
+¹ Reported on the test set only.
+² RTF was computed using `line-profiler` tool applied to [recognize method](https://github.com/espnet/espnet/blob/master/espnet/nets/pytorch_backend/e2e_asr_transducer.py#L470). The reported value is averaged on 5 runs with `nj=1`. All experiments were performed using a single AMD EPYC 7502P.
+³ Here, the number of required expansions at each timestep for the time-synchronous algorithms can be lowered with almost no degradation in terms of CER/WER. Because of its adaptive nature, mAES will automatically adjusts the number of required expansions at each time step.
   Thus, we use `max-sym-exp: 3` for TSD and `nstep: 2` for NSC when decoding with Conformer/RNN-T model trained with aux. tasks.
 
 ## RNN-Transducer (Enc: VGG + 4x BLSTM, Dec: 1x LSTM)

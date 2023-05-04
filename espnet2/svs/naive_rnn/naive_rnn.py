@@ -298,6 +298,8 @@ class NaiveRNN(AbsSVS):
         pitch_lengths: Optional[torch.Tensor] = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        slur: torch.LongTensor = None,
+        slur_lengths: torch.Tensor = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -324,6 +326,8 @@ class NaiveRNN(AbsSVS):
                 value (LongTensor): Batch of padded duration (B, Tmax).
             duration_lengths (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of the lengths of padded duration (B, ).
+            slur (LongTensor): Batch of padded slur (B, Tmax).
+            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -445,6 +449,7 @@ class NaiveRNN(AbsSVS):
         melody: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -460,6 +465,7 @@ class NaiveRNN(AbsSVS):
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (Tmax).
             pitch (FloatTensor): Batch of padded f0 (Tmax).
+            slur (LongTensor): Batch of padded slur (B, Tmax).
             duration (Optional[Dict]): key is "lab", "score";
                 value (LongTensor): Batch of padded duration (Tmax).
             spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).

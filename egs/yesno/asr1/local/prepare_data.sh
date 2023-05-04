@@ -26,11 +26,10 @@ cd data/local
 
 cd ../..
 # This stage was copied from WSJ example
-for x in train_yesno test_yesno; do 
+for x in train_yesno test_yesno; do
   mkdir -p data/$x
   cp data/local/${x}_wav.scp data/$x/wav.scp
   cp data/local/$x.txt data/$x/text
   cat data/$x/text | awk '{printf("%s global\n", $1);}' > data/$x/utt2spk
   utils/utt2spk_to_spk2utt.pl <data/$x/utt2spk >data/$x/spk2utt
 done
-

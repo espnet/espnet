@@ -23,7 +23,7 @@ decoder_conf:
 frontend: s3prl
 frontend_conf:
   frontend_conf:
-      upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder  
+      upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder
   download_dir: ./hub
   multilayer_feature: True
 

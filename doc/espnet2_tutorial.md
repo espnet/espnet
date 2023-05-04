@@ -44,30 +44,30 @@ The usage of recipes is **almost the same** as that of ESPnet1.
     # e.g.
     cd egs2/an4/asr1/
     ```
-    `an4` is a tiny corpus and can be freely obtained, so it might be suitable for this tutorial. 
+    `an4` is a tiny corpus and can be freely obtained, so it might be suitable for this tutorial.
     You can perform any other recipes as the same way. e.g. `wsj`, `librispeech`, and etc.
 
     Keep in mind that all scripts should be ran at the level of `egs2/*/{asr1,tts1,...}`.
-    
+
     ```bash
     # Doesn't work
     cd egs2/an4/
     ./asr1/run.sh
     ./asr1/scripts/<some-script>.sh
-    
+
     # Doesn't work
     cd egs2/an4/asr1/local/
     ./data.sh
-    
+
     # Work
     cd egs2/an4/asr1
     ./run.sh
     ./scripts/<some-script>.sh
     ```
-    
+
 1. Change the configuration
     Describing the directory structure as follows:
-    
+
     ```
     egs2/an4/asr1/
      - conf/      # Configuration files for training, inference, etc.
@@ -175,8 +175,8 @@ run.sh --skip_upload false    # Enable packing and uploading stages.
 Note that `skip_upload` is true by default. Please change it to false when uploading your model.
 
 ## Change the configuration for training
-Please keep in mind that `run.sh` is a wrapper script of several tools including DNN training command. 
-You need to do one of the following two ways to change the training configuration. 
+Please keep in mind that `run.sh` is a wrapper script of several tools including DNN training command.
+You need to do one of the following two ways to change the training configuration.
 
 ```sh
 # Give a configuration file
@@ -260,7 +260,7 @@ ESPnet encourages you to share your results using platforms like [Hugging Face](
 
 For sharing your models, the last three stages of each task simplify this process. The model is packed into a zip file and uploaded to the selected platform (one or both).
 
-For **Hugging Face**, you need to first create a repository (`<my_repo> = <user_name>/<repo_name>`).  
+For **Hugging Face**, you need to first create a repository (`<my_repo> = <user_name>/<repo_name>`).
 Remember to install `git-lfs ` before continuing.
 Then, execute `run.sh` as follows:
 
@@ -323,7 +323,7 @@ For more details, please refer to the [paper](https://arxiv.org/pdf/2006.14941.p
 ### Training
 
 To achieve streaming ASR, please employ blockwise Transformer/Conformer encoder in the configuration file. Taking `blockwise Transformer` as an example:
-The `encoder` name can be `contextual_block_transformer` or `contextual_block_conformer`. 
+The `encoder` name can be `contextual_block_transformer` or `contextual_block_conformer`.
 
 ```sh
 encoder: contextual_block_transformer
@@ -331,10 +331,10 @@ encoder_conf:
     block_size: 40         # block size for block processing
     hop_size: 16           # hop size for block processing
     look_ahead: 16         # look-ahead size for block processing
-    init_average: true     # whether to use average input as initial context 
-    ctx_pos_enc: true      # whether to use positional encoding for the context vectors 
+    init_average: true     # whether to use average input as initial context
+    ctx_pos_enc: true      # whether to use positional encoding for the context vectors
 ```
-   
+
 ### Decoding
 
 To enable online decoding, the argument `--use_streaming true` should be added to `run.sh`.

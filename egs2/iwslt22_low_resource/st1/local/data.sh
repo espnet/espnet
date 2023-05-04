@@ -55,7 +55,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    
+
     for set in train train_full valid test
     do
         python local/preprocess.py --out data/${set} --data data/${set}/org

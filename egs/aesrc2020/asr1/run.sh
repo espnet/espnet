@@ -122,7 +122,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     utils/fix_data_dir.sh data/train_sp
     # compute global CMVN
     compute-cmvn-stats scp:data/${train_sp}/feats.scp data/${train_sp}/cmvn.ark
- 
+
     # dump features for training
     if [[ $(hostname -f) == *.clsp.jhu.edu ]] && [ ! -d ${feat_tr_dir}/storage ]; then
     utils/create_split_dir.pl \

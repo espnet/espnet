@@ -11,7 +11,7 @@
 #                  SVS MODEL SETTING                     #
 ##########################################################
 svs: joint_score2wav                     # model architecture
-svs_conf:  
+svs_conf:
   # score2mel related
   score2mel_type: naive_rnn_dp
   score2mel_params:                       # keyword arguments for the selected model
@@ -121,7 +121,7 @@ svs_conf:
     fmin: 0            # minimum frequency for Mel basis
     fmax: null         # maximum frequency for Mel basis
     log_base: null     # null represent natural log
-  
+
   lambda_score2mel: 1.0   # loss scaling coefficient for score2mel loss
   lambda_adv: 1.0        # loss scaling coefficient for adversarial loss
   lambda_mel: 45.0       # loss scaling coefficient for Mel loss

@@ -136,4 +136,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 fi
 
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 3: Prepare data files for train-100 and train-360"
+    mkdir -p data/{train-100,train-360}
+
+    for subset in "train-100" "train-360"; do
+        grep -e "${subset}" "data/train/wav.scp" > "data/${subset}/wav.scp"
+        for f in data/train/*.scp; do
+            [ "$f" = "data/train/wav.scp" ] || utils/filter_scp.pl "data/${subset}/wav.scp" "$f" > "data/${subset}/$(basename $f)"
+        done
+        utils/filter_scp.pl "data/${subset}/wav.scp" data/train/utt2spk > data/${subset}/utt2spk
+    done
+fi
+
 log "Successfully finished. [elapsed=${SECONDS}s]"

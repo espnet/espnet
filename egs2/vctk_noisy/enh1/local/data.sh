@@ -11,7 +11,7 @@ log() {
 
 
 help_message=$(cat << EOF
-Usage: $0 
+Usage: $0
   optional argument:
     None
 EOF
@@ -33,7 +33,7 @@ fi
 if [ ! -e "${NOISY_SPEECH}" ] ; then
     log "
     Please fill the value of 'NOISY_SPEECH' in db.sh
-    The 'NOISY_SPEECH' (https://doi.org/10.7488/ds/2117) directory 
+    The 'NOISY_SPEECH' (https://doi.org/10.7488/ds/2117) directory
     should at least contain the noisy speech and the clean reference:
         noisy_speech
         ├── clean_testset_wav
@@ -48,5 +48,3 @@ log "Data preparation"
 # The following datasets will be created:
 # tr_26spk, {cv,tt}_2spk
 local/vctk_data_prep.sh  ${NOISY_SPEECH} || exit 1;
-
-

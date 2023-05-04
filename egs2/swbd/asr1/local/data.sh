@@ -50,7 +50,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     local/eval2000_data_prep.sh ${eval2000_dir}
     if [ -n "${fisher_dir}" ]; then
          local/fisher_data_prep.sh ${fisher_dir}
-    fi 
+    fi
     # upsample audio from 8k to 16k to make a recipe consistent with others
     for x in train eval2000; do
         sed -i.bak -e "s/$/ sox -R -t wav - -t wav - rate 16000 dither | /" data/${x}/wav.scp
@@ -64,9 +64,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
          | perl -pe 's| \(\%.*\)||g' | perl -pe 's| \<.*\>||g' \
          | sed -e "s/(//g" -e "s/)//g") \
          | sed -e 's/\s\+/ /g' > data/${x}/text.org2 # for ci check
-    # remove the file with empty text, otherwise bug in stage calc perplexity 
-    awk -F ' ' '{if(length($2)!=0)print $0}' data/${x}/text.org2 > data/${x}/text 
-    
+    # remove the file with empty text, otherwise bug in stage calc perplexity
+    awk -F ' ' '{if(length($2)!=0)print $0}' data/${x}/text.org2 > data/${x}/text
+
 
     utils/fix_data_dir.sh data/train
     utils/fix_data_dir.sh data/eval2000
@@ -79,7 +79,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log " Data Formatting"
-     # remove ._ . _1 symbols from text  
+     # remove ._ . _1 symbols from text
      cp data/train_nodup/text data/train_nodup/text.backup
      cp data/train_dev/text data/train_dev/text.backup
      sed -i 's/\._/ /g; s/\.//g; s/them_1/them/g' data/train_nodup/text

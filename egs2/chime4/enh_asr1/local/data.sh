@@ -76,7 +76,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     <data/dt05_real_isolated_1ch_track/wav.scp awk '{print($1, "REAL")}' > data/dt05_real_isolated_1ch_track/utt2category
 
     utils/combine_data.sh --extra_files "utt2category spk1.scp" \
-        data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy 
+        data/tr05_multi_noisy data/tr05_simu_noisy data/tr05_real_noisy
     utils/combine_data.sh --extra_files "utt2category spk1.scp" \
         data/tr05_multi_noisy_si284 data/tr05_multi_noisy data/train_si284
     utils/combine_data.sh --extra_files "utt2category spk1.scp" data/${train_dev} \

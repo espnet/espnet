@@ -40,7 +40,7 @@ annotation_dir=local/Pueble-Nahuatl-Manifest
 
 log "data preparation started"
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then 
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage1: Download data to ${PUEBLA_NAHUATL}"
     mkdir -p ${PUEBLA_NAHUATL}
     local/download_and_untar.sh local  https://www.openslr.org/resources/92/Puebla-Nahuatl-Manifest.tgz Puebla-Nahuatl-Manifest.tgz
@@ -59,7 +59,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         mkdir -p remixed
         ./data/${x}/remix_script.sh
     done
-    
+
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
