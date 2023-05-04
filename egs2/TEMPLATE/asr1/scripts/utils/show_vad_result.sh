@@ -56,13 +56,13 @@ while IFS= read -r expdir; do
 EOF
 
 		    if  [[ $type == "precision" ]] && ls "${expdir}"/*/*/result.txt  &> /dev/null; then
-                grep Precision "${expdir}"/*/*/result.txt 
+                grep Precision "${expdir}"/*/*/result.txt
                 echo
             elif [[ $type == "recall" ]] && ls "${expdir}"/*/*/result.txt  &> /dev/null; then
-                grep Recall "${expdir}"/*/*/result.txt 
+                grep Recall "${expdir}"/*/*/result.txt
                 echo
             elif [[ $type == "F1_score" ]] && ls "${expdir}"/*/*/result.txt  &> /dev/null; then
-                grep F1 "${expdir}"/*/*/result.txt 
+                grep F1 "${expdir}"/*/*/result.txt
                 echo
             fi
         done
