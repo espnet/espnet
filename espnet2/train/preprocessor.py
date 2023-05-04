@@ -474,10 +474,10 @@ class VADPreprocessor(CommonPreprocessor):
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
         if self.text_name in data:
-            # transform float time intervals to sequence of integers of length len(speech)
+            # transform float time intervals to integers of length len(speech)
             text = data[self.text_name]
             text_split = [float(item) * 100 for item in text.split(" ")]
-            # input is split to 10s chunks, so we need to multiply the original timestamp by 100
+            # input is split to 10s chunks, multiply the original timestamp by 100
             # text_array = np.zeros([1000, 2], dtype=np.int64)
             # if len(text_split) != 0:
             #     for i in range(0, len(text_split), 2):

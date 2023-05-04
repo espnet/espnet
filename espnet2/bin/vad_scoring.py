@@ -37,8 +37,8 @@ def scoring(
             hyp_time_stamps = [
                 int(float(item) * 100) for item in time_stamp_hyp.split(" ")
             ]
-        except:
-            print("array is empty!")
+        except (ValueError, TypeError, AttributeError):
+            print("Unable to process time stamps!")
             print(lines_hyp[i].strip())
             continue
 
