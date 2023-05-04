@@ -140,12 +140,15 @@ class TDSpeakerBeamExtractor(AbsExtractor):
         B, L, N = feature.shape
 
         feature = feature.transpose(1, 2)  # B, N, L
+        # NOTE(wangyou): When `self.use_spk_emb` is True, `aux_feature` is assumed to be
+        # a speaker embedding; otherwise, it is assumed to be an enrollment audio.
         if self.use_spk_emb:
             # B, N, L'=1
-            if input_aux.dim() == 2:
-                aux_feature = input_aux.unsqueeze(-1)
-            elif input_aux.size(-2) == 1:
-                aux_feature = input_aux.moveaxis(-2, -1)
+            if aux_feature.dim() == 2:
+                aux_feature = aux_feature.unsqueeze(-1)
+            elif aux_feature.size(-2) == 1:
+                assert aux_feature.dim() == 3, aux_feature.shape
+                aux_feature = aux_feature.transpose(1, 2)
         else:
             aux_feature = aux_feature.transpose(1, 2)  # B, N, L'
 
