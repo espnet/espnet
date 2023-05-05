@@ -1,11 +1,11 @@
 import argparse
+import json
 import os
 import shutil
 
 import librosa
 import miditoolkit
 import numpy as np
-import json
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 
@@ -44,9 +44,7 @@ def makedir(data_url):
 def load_midi(args, uid, song_name):
     # Note(Yuning): note duration from '.midi' for M4Singer cannot be used here.
     # We only extract tempo from '.midi'.
-    midi_path = os.path.join(
-        args.src_data, "midi", song_name, "{}.mid".format(uid)
-    )
+    midi_path = os.path.join(args.src_data, "midi", song_name, "{}.mid".format(uid))
     midi_obj = miditoolkit.midi.parser.MidiFile(midi_path)
     tempos = midi_obj.tempo_changes
     tempos.sort(key=lambda x: (x.time, x.tempo))
@@ -120,20 +118,21 @@ def process_utterance(
 
     # load tempo from midi
     uid = name.encode("unicode_escape").decode().replace("\\u", "#U")
-    song_name = uid[:uid.rindex('#')]
-    uid = uid.replace(' ', '+')
+    song_name = uid[: uid.rindex("#")]
+    uid = uid.replace(" ", "+")
 
     text.write("m4singer_{} {}\n".format(uid, " ".join(phns)))
     utt2spk.write("m4singer_{} {}\n".format(uid, spk))
 
     # apply bit convert, there is a known issue in direct convert in format wavscp
     cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/m4singer_{}.wav".format(
-        os.path.join(audio_dir, song_name.replace(' ', '\ '), uid.replace('+', '\ ')), tgt_sr, wav_dumpdir, uid,
+        os.path.join(audio_dir, song_name.replace(" ", "\ "), uid.replace("+", "\ ")),
+        tgt_sr,
+        wav_dumpdir,
+        uid,
     )
     os.system(cmd)
-    wavscp.write(
-        "m4singer_{} {}/m4singer_{}.wav\n".format(uid, wav_dumpdir, uid)
-    )
+    wavscp.write("m4singer_{} {}/m4singer_{}.wav\n".format(uid, wav_dumpdir, uid))
 
     # write annotation duration info into label
     running_dur = 0
@@ -147,8 +146,8 @@ def process_utterance(
     label.write("m4singer_{} {}\n".format(uid, " ".join(label_entry)))
 
     # load tempo from midi
-    tempo = load_midi(args, uid.replace('+', ' '), song_name)
-    
+    tempo = load_midi(args, uid.replace("+", " "), song_name)
+
     # prepare music score
     note_list = create_score(uid, phns, midis, syb_dur, keep)
     score = dict(
@@ -212,7 +211,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    with open(os.path.join(args.src_data, "meta.json"), "r", encoding = "utf-8") as f: 
+    with open(os.path.join(args.src_data, "meta.json"), "r", encoding="utf-8") as f:
         meta = json.load(f)
 
     data = split_subset(args, meta)
