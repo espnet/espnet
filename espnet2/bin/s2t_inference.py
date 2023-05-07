@@ -723,6 +723,11 @@ def inference(
     else:
         device = "cpu"
 
+    # NOTE(yifan): < and > cannot be passed in command line
+    category_sym = f"<{category_sym.lstrip('<').rstrip('>')}>"
+    task_sym = f"<{task_sym.lstrip('<').rstrip('>')}>"
+    time_sym = f"<{time_sym.lstrip('<').rstrip('>')}>"
+
     # 1. Set random-seed
     set_all_random_seed(seed)
 
