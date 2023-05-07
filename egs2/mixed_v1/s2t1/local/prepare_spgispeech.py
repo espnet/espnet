@@ -1,9 +1,9 @@
-"""Prepare GigaSpeech data for English ASR."""
-import json
+"""Prepare SPGISpeech data for English ASR."""
 from argparse import ArgumentParser
-from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
+
+import librosa
 
 from utils import (
     SYMBOL_NA,
@@ -15,58 +15,35 @@ from utils import (
 )
 
 
-def preprocess_text(text: str) -> str:
-    garbage_tags = [
-        "<SIL>",
-        "<MUSIC>",
-        "<NOISE>",
-        "<OTHER>",
-    ]
-    for g in garbage_tags:
-        if g in text:
-            return ""
-
-    text = text.replace(" <COMMA>", ",")
-    text = text.replace(" <PERIOD>", ".")
-    text = text.replace(" <QUESTIONMARK>", "?")
-    text = text.replace(" <EXCLAMATIONPOINT>", "!")
-
-    assert "<" not in text and ">" not in text, text
-    return text.lower()
-
-
 def collect_data(
     data_dir: Union[Path, str], split: str, prefix: str
 ) -> List[List[Utterance]]:
-    """Collect utterances in each long talk."""
+    """Collect utterances."""
     data_dir = Path(data_dir)
-    with open(data_dir / "GigaSpeech.json", "r") as fp:
-        info = json.load(fp)
 
+    with open(data_dir / f"{split}.csv", 'r') as fp:
+        lines = [line.strip() for line in fp.readlines()]
+        lines = lines[1:]   # skip header
+    
     ret = []
-    for audio in info["audios"]:
-        if ("{" + split + "}") in audio["subsets"]:
-            wav_path = data_dir / audio["path"]
-            assert wav_path.is_file()
-
-            utts = []
-            for seg in audio["segments"]:
-                text = preprocess_text(seg["text_tn"])
-                if text:
-                    utts.append(
-                        Utterance(
-                            utt_id=f"{prefix}_{seg['sid']}",
-                            wav_id=f"{prefix}_{audio['aid']}",
-                            wav_path=f"ffmpeg -i {str(wav_path.resolve())} -ac 1 -ar 16000 -f wav - |",
-                            start_time=seg["begin_time"],
-                            end_time=seg["end_time"],
-                            lang="<en>",
-                            task="<asr>",
-                            text=text,
-                            asr_text=text,
-                        )
-                    )
-            ret.append(utts)
+    for line in lines:
+        wav_rel_path, _, trans = line.split('|')
+        wav_abs_path = data_dir / 'spgispeech' / split / wav_rel_path
+        ret.append(
+            [
+                Utterance(
+                    utt_id=f"{prefix}_{split}_{wav_rel_path.removesuffix('.wav').replace('/', '_')}",
+                    wav_id=f"{prefix}_{split}_{wav_rel_path.removesuffix('.wav').replace('/', '_')}",
+                    wav_path=str(wav_abs_path.resolve()),
+                    start_time=0.0,
+                    end_time=librosa.get_duration(filename=wav_abs_path),
+                    lang="<en>",
+                    task="<asr>",
+                    text=trans,
+                    asr_text=trans,
+                )
+            ]
+        )
     return ret
 
 
@@ -85,7 +62,7 @@ def parse_args():
         "--splits",
         type=str,
         nargs="+",
-        default=["dev", "train"],
+        default=["val", "train"],
         help="Data splits to prepare.",
     )
 

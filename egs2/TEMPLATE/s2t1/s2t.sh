@@ -111,18 +111,7 @@ num_inf=    # Number of inferences output by the model
 hf_repo=
 
 # Decoding related
-use_k2=false      # Whether to use k2 based decoder
-k2_ctc_decoding=true
-use_nbest_rescoring=true # use transformer-decoder
-                         # and transformer language model for nbest rescoring
-num_paths=1000 # The 3rd argument of k2.random_paths.
-nll_batch_size=100 # Affect GPU memory usage when computing nll
-                   # during nbest rescoring
-k2_config=./conf/decode_s2t_transformer_with_k2.yaml
-
 use_streaming=false # Whether to use streaming decoding
-
-use_maskctc=false # Whether to use maskctc decoding
 
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
@@ -246,7 +235,6 @@ Options:
     --inference_s2t_model # S2T model path for decoding (default="${inference_s2t_model}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
-    --use_maskctc         # Whether to use maskctc decoding (default="${use_streaming}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -523,12 +511,6 @@ if [ -z "${inference_tag}" ]; then
         inference_tag+="_ngram_$(basename "${ngram_exp}")_$(echo "${inference_ngram}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
     fi
     inference_tag+="_s2t_model_$(echo "${inference_s2t_model}" | sed -e "s/\//_/g" -e "s/\.[^.]*$//g")"
-
-    if "${use_k2}"; then
-      inference_tag+="_use_k2"
-      inference_tag+="_k2_ctc_decoding_${k2_ctc_decoding}"
-      inference_tag+="_use_nbest_rescoring_${use_nbest_rescoring}"
-    fi
 fi
 
 if "${skip_data_prep}"; then
@@ -1506,19 +1488,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
     mkdir -p "${s2t_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${s2t_exp}/${inference_tag}/run.sh"; chmod +x "${s2t_exp}/${inference_tag}/run.sh"
 
     inference_bin_tag=""
-    if "${use_k2}"; then
-        # Now only _nj=1 is verified if using k2
-        inference_bin_tag="_k2"
-
-        _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
-        _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
-        _opts+="--num_paths ${num_paths} "
-        _opts+="--nll_batch_size ${nll_batch_size} "
-        _opts+="--k2_config ${k2_config} "
-    elif "${use_streaming}"; then
+    if "${use_streaming}"; then
         inference_bin_tag="_streaming"
-    elif "${use_maskctc}"; then
-        inference_bin_tag="_maskctc"
     fi
 
     if "${eval_valid_set}"; then
@@ -1551,12 +1522,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         # 1. Split the key file
         key_file=${_data}/${_scp}
         split_scps=""
-        if "${use_k2}"; then
-          # Now only _nj=1 is verified if using k2
-          _nj=1
-        else
-          _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-        fi
+        _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
 
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -1579,23 +1545,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
                 --output_dir "${_logdir}"/output.JOB \
                 ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/s2t_inference.*.log) ; exit 1; }
 
-        # 3. Calculate and report RTF based on decoding logs
-        if [ -z ${inference_bin_tag} ]; then
-            log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
-            rm -f "${_logdir}"/calculate_rtf.log
-            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
-            ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
-                pyscripts/utils/calculate_rtf.py \
-                    --log-dir ${_logdir} \
-                    --log-name "s2t_inference" \
-                    --input-shift ${_sample_shift} \
-                    --start-times-marker "speech length" \
-                    --end-times-marker "best hypo" \
-                    --inf-num ${num_inf} || { cat "${_logdir}"/calculate_rtf.log; exit 1; }
-        fi
-
-        # 4. Concatenates the output files from each jobs
+        # 3. Concatenates the output files from each jobs
         # shellcheck disable=SC2068
         for ref_txt in ${ref_text_files[@]}; do
             suffix=$(echo ${ref_txt} | sed 's/text//')
