@@ -1,9 +1,4 @@
-from utils import (
-    SYMBOL_NA,
-    SYMBOL_NOSPEECH,
-    SYMBOLS_TIME,
-    LANGUAGES,
-)
+from utils import LANGUAGES, SYMBOL_NA, SYMBOL_NOSPEECH, SYMBOLS_TIME
 
 if __name__ == "__main__":
     out = "data/nlsyms.txt"
@@ -17,6 +12,6 @@ if __name__ == "__main__":
         *SYMBOLS_TIME,
     ]
 
-    with open(out, 'w') as fp:
+    with open(out, "w") as fp:
         for tok in special_tokens:
             fp.write(f"{tok}\n")

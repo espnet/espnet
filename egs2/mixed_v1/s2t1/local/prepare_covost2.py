@@ -16,26 +16,32 @@ from utils import (
 
 
 def collect_data(
-    data_dir: Union[Path, str], split: str, prefix: str, src_lang: str, tgt_lang: str,
+    data_dir: Union[Path, str],
+    split: str,
+    prefix: str,
+    src_lang: str,
+    tgt_lang: str,
 ) -> List[List[Utterance]]:
     """Collect utterances."""
     data_dir = Path(data_dir) / f"{split}.{src_lang}-{tgt_lang}"
 
     ret = []
-    with open(data_dir / f"text.tc.{src_lang}", 'r') as f_src, open(
-        data_dir / f"text.tc.{tgt_lang}", 'r'
-    ) as f_tgt, open(
-        data_dir / 'wav.scp', 'r'
-    ) as f_wav:
+    with open(data_dir / f"text.tc.{src_lang}", "r") as f_src, open(
+        data_dir / f"text.tc.{tgt_lang}", "r"
+    ) as f_tgt, open(data_dir / "wav.scp", "r") as f_wav:
         for src_line, tgt_line, wav_line in zip(f_src, f_tgt, f_wav):
             uttid = tgt_line.split(maxsplit=1)[0]
-            assert src_line.split(maxsplit=1)[0] == uttid \
+            assert (
+                src_line.split(maxsplit=1)[0] == uttid
                 and wav_line.split(maxsplit=1)[0] == uttid
+            )
 
-            audio_file = wav_line.split("ffmpeg -i ")[-1].split(' -f wav -ar')[0].strip()
+            audio_file = (
+                wav_line.split("ffmpeg -i ")[-1].split(" -f wav -ar")[0].strip()
+            )
             assert Path(audio_file).is_file()
             duration = librosa.get_duration(filename=audio_file)
-            
+
             ret.append(
                 [
                     Utterance(
@@ -88,16 +94,10 @@ def parse_args():
         help="Data splits to prepare.",
     )
     parser.add_argument(
-        "--src_langs",
-        type=str,
-        nargs="+",
-        help="Source languages: X -> En."
+        "--src_langs", type=str, nargs="+", help="Source languages: X -> En."
     )
     parser.add_argument(
-        "--tgt_langs",
-        type=str,
-        nargs="+",
-        help="Target languages: En -> X."
+        "--tgt_langs", type=str, nargs="+", help="Target languages: En -> X."
     )
 
     args = parser.parse_args()
@@ -123,8 +123,9 @@ if __name__ == "__main__":
         for tok in special_tokens:
             fp.write(f"{tok}\n")
 
-
-    lang_pairs = [(src, 'en') for src in args.src_langs] + [('en', tgt) for tgt in args.tgt_langs]
+    lang_pairs = [(src, "en") for src in args.src_langs] + [
+        ("en", tgt) for tgt in args.tgt_langs
+    ]
 
     for split in args.splits:
         write_dir = args.output_dir / split

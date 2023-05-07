@@ -21,14 +21,14 @@ def collect_data(
     """Collect utterances."""
     data_dir = Path(data_dir)
 
-    with open(data_dir / f"{split}.csv", 'r') as fp:
+    with open(data_dir / f"{split}.csv", "r") as fp:
         lines = [line.strip() for line in fp.readlines()]
-        lines = lines[1:]   # skip header
-    
+        lines = lines[1:]  # skip header
+
     ret = []
     for line in lines:
-        wav_rel_path, _, trans = line.split('|')
-        wav_abs_path = data_dir / 'spgispeech' / split / wav_rel_path
+        wav_rel_path, _, trans = line.split("|")
+        wav_abs_path = data_dir / "spgispeech" / split / wav_rel_path
         ret.append(
             [
                 Utterance(
