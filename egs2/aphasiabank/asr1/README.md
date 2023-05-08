@@ -33,6 +33,8 @@ Parameters:
 - [local/score_aphasia_detection.py](local/score_aphasia_detection.py) is used to
   calculate Aphasia
   detection accuracy from input in Kaldi text format.
+- Calculate MACS and FLOPS of the encoder
+  using [this script](https://github.com/pyf98/espnet_utils/blob/master/profile.sh)
 
 ## RESULTS (WER)
 
