@@ -126,7 +126,7 @@ def process_utterance(
 
     # apply bit convert, there is a known issue in direct convert in format wavscp
     cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/m4singer_{}.wav".format(
-        os.path.join(audio_dir, song_name.replace(" ", "\ "), uid.replace("+", "\ ")),
+        os.path.join(audio_dir, song_name.replace(" ", "\\ "), uid.replace("+", "\\ ")),
         tgt_sr,
         wav_dumpdir,
         uid,
