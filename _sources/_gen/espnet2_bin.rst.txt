@@ -32,6 +32,8 @@ asr_align.py
     [nltk_data]   Unzipping taggers/averaged_perceptron_tagger.zip.
     [nltk_data] Downloading package cmudict to /home/runner/nltk_data...
     [nltk_data]   Unzipping corpora/cmudict.zip.
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: asr_align.py [-h] [--config CONFIG]
                         [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                         [--ngpu NGPU] [--dtype {float16,float32,float64}]
@@ -132,6 +134,8 @@ asr_inference_streaming.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: asr_inference_streaming.py [-h] [--config CONFIG]
                                       [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                                       --output_dir OUTPUT_DIR [--ngpu NGPU]
@@ -768,6 +772,8 @@ asr_train.py
                             The preprocessor type (default: default)
       --preprocessor_conf PREPROCESSOR_CONF
                             The keyword arguments for preprocessor (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _asr_transducer_inference.py:
 
 asr_transducer_inference.py
@@ -775,6 +781,8 @@ asr_transducer_inference.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: asr_transducer_inference.py [-h] [--config CONFIG]
                                        [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                                        --output_dir OUTPUT_DIR [--ngpu NGPU]
@@ -1401,6 +1409,8 @@ asr_transducer_train.py
                             The decoder type (default: rnn)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _diar_inference.py:
 
 diar_inference.py
@@ -1408,6 +1418,8 @@ diar_inference.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: diar_inference.py [-h] [--config CONFIG]
                              [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                              --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -1974,6 +1986,8 @@ diar_train.py
                             The attractor type (default: None)
       --attractor_conf ATTRACTOR_CONF
                             The keyword arguments for attractor (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _enh_inference.py:
 
 enh_inference.py
@@ -1981,6 +1995,8 @@ enh_inference.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: enh_inference.py [-h] [--config CONFIG]
                             [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                             --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -2068,6 +2084,8 @@ enh_inference_streaming.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: enh_inference_streaming.py [-h] [--config CONFIG]
                                       [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                                       --output_dir OUTPUT_DIR [--ngpu NGPU]
@@ -2781,6 +2799,8 @@ enh_s2t_train.py
                             The diar_attractor type (default: None)
       --diar_attractor_conf DIAR_ATTRACTOR_CONF
                             The keyword arguments for diar_attractor (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _enh_scoring.py:
 
 enh_scoring.py
@@ -3326,6 +3346,8 @@ enh_train.py
                             The preprocessor type (default: None)
       --preprocessor_conf PREPROCESSOR_CONF
                             The keyword arguments for preprocessor (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _enh_tse_inference.py:
 
 enh_tse_inference.py
@@ -3333,6 +3355,8 @@ enh_tse_inference.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: enh_tse_inference.py [-h] [--config CONFIG]
                                 [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                                 --output_dir OUTPUT_DIR [--ngpu NGPU]
@@ -3928,6 +3952,8 @@ enh_tse_train.py
       --preprocessor {tse}  The preprocessor type (default: tse)
       --preprocessor_conf PREPROCESSOR_CONF
                             The keyword arguments for preprocessor (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _gan_svs_train.py:
 
 gan_svs_train.py
@@ -4456,6 +4482,8 @@ gan_svs_train.py
                             The energy_normalize type (default: None)
       --energy_normalize_conf ENERGY_NORMALIZE_CONF
                             The keyword arguments for energy_normalize (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _gan_tts_train.py:
 
 gan_tts_train.py
@@ -4976,6 +5004,8 @@ gan_tts_train.py
                             The energy_normalize type (default: None)
       --energy_normalize_conf ENERGY_NORMALIZE_CONF
                             The keyword arguments for energy_normalize (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _hubert_train.py:
 
 hubert_train.py
@@ -5508,6 +5538,8 @@ hubert_train.py
                             The model type (default: fairseq)
       --model_conf MODEL_CONF
                             The keyword arguments for model (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _hugging_face_export_vocabulary.py:
 
 hugging_face_export_vocabulary.py
@@ -5594,6 +5626,8 @@ lm_calc_perplexity.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: lm_calc_perplexity.py [-h] [--config CONFIG]
                                  [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                                  --output_dir OUTPUT_DIR [--ngpu NGPU]
@@ -6096,6 +6130,8 @@ lm_train.py
       --lm {seq_rnn,transformer}
                             The lm type (default: seq_rnn)
       --lm_conf LM_CONF     The keyword arguments for lm (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _mt_inference.py:
 
 mt_inference.py
@@ -6103,6 +6139,8 @@ mt_inference.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: mt_inference.py [-h] [--config CONFIG]
                            [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                            --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -6689,6 +6727,8 @@ mt_train.py
                             The decoder type (default: rnn)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _pack.py:
 
 pack.py
@@ -6736,6 +6776,8 @@ st_inference.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: st_inference.py [-h] [--config CONFIG]
                            [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                            --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -7370,6 +7412,8 @@ st_train.py
                             The extra_mt_decoder type (default: rnn)
       --extra_mt_decoder_conf EXTRA_MT_DECODER_CONF
                             The keyword arguments for extra_mt_decoder (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _tts_inference.py:
 
 tts_inference.py
@@ -7377,6 +7421,8 @@ tts_inference.py
 
 .. code-block:: none
 
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
     usage: tts_inference.py [-h] [--config CONFIG]
                             [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                             --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -7972,3 +8018,5 @@ tts_train.py
                             The energy_normalize type (default: None)
       --energy_normalize_conf ENERGY_NORMALIZE_CONF
                             The keyword arguments for energy_normalize (default: {})
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):

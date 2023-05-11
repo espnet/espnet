@@ -4,72 +4,6 @@ espnet.bin package
 Initialize sub package.
 
 
-.. _espnet.bin.mt_trans:
-
-espnet.bin.mt_trans
--------------------
-
-.. automodule:: espnet.bin.mt_trans
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.bin.mt_train:
-
-espnet.bin.mt_train
--------------------
-
-.. automodule:: espnet.bin.mt_train
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.bin.lm_train:
-
-espnet.bin.lm_train
--------------------
-
-.. automodule:: espnet.bin.lm_train
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.bin.tts_decode:
-
-espnet.bin.tts_decode
----------------------
-
-.. automodule:: espnet.bin.tts_decode
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.bin.asr_train:
-
-espnet.bin.asr_train
---------------------
-
-.. automodule:: espnet.bin.asr_train
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.bin.st_trans:
-
-espnet.bin.st_trans
--------------------
-
-.. automodule:: espnet.bin.st_trans
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.bin.tts_train:
 
 espnet.bin.tts_train
@@ -81,12 +15,12 @@ espnet.bin.tts_train
     :show-inheritance:
 
 
-.. _espnet.bin.st_train:
+.. _espnet.bin.mt_trans:
 
-espnet.bin.st_train
+espnet.bin.mt_trans
 -------------------
 
-.. automodule:: espnet.bin.st_train
+.. automodule:: espnet.bin.mt_trans
     :members:
     :undoc-members:
     :show-inheritance:
@@ -103,6 +37,39 @@ espnet.bin.vc_train
     :show-inheritance:
 
 
+.. _espnet.bin.tts_decode:
+
+espnet.bin.tts_decode
+---------------------
+
+.. automodule:: espnet.bin.tts_decode
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.bin.st_train:
+
+espnet.bin.st_train
+-------------------
+
+.. automodule:: espnet.bin.st_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.bin.mt_train:
+
+espnet.bin.mt_train
+-------------------
+
+.. automodule:: espnet.bin.mt_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.bin.__init__:
 
 espnet.bin.__init__
@@ -114,23 +81,23 @@ espnet.bin.__init__
     :show-inheritance:
 
 
-.. _espnet.bin.asr_enhance:
+.. _espnet.bin.asr_recog:
 
-espnet.bin.asr_enhance
-----------------------
+espnet.bin.asr_recog
+--------------------
 
-.. automodule:: espnet.bin.asr_enhance
+.. automodule:: espnet.bin.asr_recog
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-.. _espnet.bin.asr_align:
+.. _espnet.bin.lm_train:
 
-espnet.bin.asr_align
---------------------
+espnet.bin.lm_train
+-------------------
 
-.. automodule:: espnet.bin.asr_align
+.. automodule:: espnet.bin.lm_train
     :members:
     :undoc-members:
     :show-inheritance:
@@ -147,12 +114,45 @@ espnet.bin.vc_decode
     :show-inheritance:
 
 
-.. _espnet.bin.asr_recog:
+.. _espnet.bin.asr_align:
 
-espnet.bin.asr_recog
+espnet.bin.asr_align
 --------------------
 
-.. automodule:: espnet.bin.asr_recog
+.. automodule:: espnet.bin.asr_align
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.bin.asr_train:
+
+espnet.bin.asr_train
+--------------------
+
+.. automodule:: espnet.bin.asr_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.bin.asr_enhance:
+
+espnet.bin.asr_enhance
+----------------------
+
+.. automodule:: espnet.bin.asr_enhance
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.bin.st_trans:
+
+espnet.bin.st_trans
+-------------------
+
+.. automodule:: espnet.bin.st_trans
     :members:
     :undoc-members:
     :show-inheritance:
