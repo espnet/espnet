@@ -21,7 +21,7 @@ inference_config=conf/decode.yaml
     --feats_type raw \
     --audio_format "flac" \
     --token_type bpe \
-    --nbpe 2000
+    --nbpe 2000 \
     --use_lm false \
     --max_wav_duration 30.0 \
     --speed_perturb_factors "0.9 1.0 1.1" \
