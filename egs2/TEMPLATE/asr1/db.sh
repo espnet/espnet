@@ -72,6 +72,7 @@ JSSS=downloads
 JSUT=downloads
 JTUBESPEECH=downloads
 JVS=downloads
+KSC=downloads
 KSS=
 QASR_TTS=downloads
 SNIPS= # smart-light-en-closed-field data path
