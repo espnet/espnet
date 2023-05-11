@@ -13,7 +13,7 @@ asr_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
 ./asr.sh \
-    --stage 1 \
+    --stage 4 \
     --stop_stage 13 \
     --nj 32 \
     --ngpu 1 \
@@ -30,4 +30,5 @@ inference_config=conf/decode.yaml
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --bpe_train_text "data/local/text"
+    --bpe_train_text "data/local/text" \
+    --lm_train_text "data/local/text"
