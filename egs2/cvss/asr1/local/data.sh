@@ -12,13 +12,11 @@ stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
 src_lang=es # ar ca cy de et es fa fr id it ja lv mn nl pt ru sl sv ta tr zh
-version=c # c or t (please refer to cvss paper for details)
 
  . utils/parse_options.sh || exit 1;
 
 # base url for download commonvoice
 cv_data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-4-2019-12-10/${src_lang}.tar.gz
-cvss_data_url=https://storage.googleapis.com/cvss/cvss_t_v1.0/cvss_${version}_${src_lang}_en_v1.0.tar.gz
 
 
 log() {
@@ -49,7 +47,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage2: Preparing data for commonvoice and cvss"
+    log "stage2: Preparing data for commonvoic"
     ### Task dependent. You have to make data the following preparation part by yourself.
     for part in "train" "test" "dev"; do
 
