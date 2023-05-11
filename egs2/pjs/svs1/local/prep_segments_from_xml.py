@@ -138,4 +138,3 @@ if __name__ == "__main__":
             update_text.write("\n")
             score = dict(tempo=tempo, item_list=["st", "et", "lyric", "midi"], note=val)
             writer[key] = score
-
