@@ -171,9 +171,7 @@ class Speech2Text:
                 if streaming:
                     beam_search.__class__ = BatchBeamSearchOnlineSim
                     beam_search.set_streaming_config(s2t_train_config)
-                    logging.info(
-                        "BatchBeamSearchOnlineSim implementation is selected."
-                    )
+                    logging.info("BatchBeamSearchOnlineSim implementation is selected.")
                 else:
                     beam_search.__class__ = BatchBeamSearch
                     logging.info("BatchBeamSearch implementation is selected.")
@@ -657,7 +655,9 @@ def inference(
             if isinstance(results, tuple):
                 results, encoder_interctc_res = results
 
-            for n, (text, token, token_int, text_nospecial, hyp) in zip(range(1, nbest + 1), results):
+            for n, (text, token, token_int, text_nospecial, hyp) in zip(
+                range(1, nbest + 1), results
+            ):
                 # Create a directory: outdir/{n}best_recog
                 ibest_writer = writer[f"{n}best_recog"]
 
