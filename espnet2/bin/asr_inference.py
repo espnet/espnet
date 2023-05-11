@@ -3,8 +3,9 @@ import argparse
 import logging
 import sys
 from distutils.version import LooseVersion
+from itertools import groupby
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -32,6 +33,7 @@ from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.beam_search_timesync import BeamSearchTimeSync
+from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
@@ -45,6 +47,16 @@ try:
     is_transformers_available = True
 except ImportError:
     is_transformers_available = False
+
+# Alias for typing
+ListOfHypothesis = List[
+    Tuple[
+        Optional[str],
+        List[str],
+        List[int],
+        Union[Hypothesis, ExtTransHypothesis, TransHypothesis],
+    ]
+]
 
 
 class Speech2Text:
@@ -362,13 +374,12 @@ class Speech2Text:
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[
+    ) -> Union[
+        ListOfHypothesis,
         Tuple[
-            Optional[str],
-            List[str],
-            List[int],
-            Union[Hypothesis, ExtTransHypothesis, TransHypothesis],
-        ]
+            ListOfHypothesis,
+            Optional[Dict[int, List[str]]],
+        ],
     ]:
         """Inference
 
@@ -395,7 +406,7 @@ class Speech2Text:
         batch = to_device(batch, device=self.device)
 
         # b. Forward Encoder
-        enc, _ = self.asr_model.encode(**batch)
+        enc, enc_olens = self.asr_model.encode(**batch)
         if self.multi_asr:
             enc = enc.unbind(dim=1)  # (batch, num_inf, ...) -> num_inf x [batch, ...]
         if self.enh_s2t_task or self.multi_asr:
@@ -420,15 +431,40 @@ class Speech2Text:
 
         else:
             # Normal ASR
+            intermediate_outs = None
             if isinstance(enc, tuple):
+                intermediate_outs = enc[1]
                 enc = enc[0]
             assert len(enc) == 1, len(enc)
 
             # c. Passed the encoder result and the beam search
             results = self._decode_single_sample(enc[0])
+
+            # Encoder intermediate CTC predictions
+            if intermediate_outs is not None:
+                encoder_interctc_res = self._decode_interctc(intermediate_outs)
+                results = (results, encoder_interctc_res)
             assert check_return_type(results)
 
         return results
+
+    def _decode_interctc(
+        self, intermediate_outs: List[Tuple[int, torch.Tensor]]
+    ) -> Dict[int, List[str]]:
+        assert check_argument_types()
+
+        exclude_ids = [self.asr_model.blank_id, self.asr_model.sos, self.asr_model.eos]
+        res = {}
+        token_list = self.beam_search.token_list
+
+        for layer_idx, encoder_out in intermediate_outs:
+            y = self.asr_model.ctc.argmax(encoder_out)[0]  # batch_size = 1
+            y = [x[0] for x in groupby(y) if x[0] not in exclude_ids]
+            y = [token_list[x] for x in y]
+
+            res[layer_idx] = y
+
+        return res
 
     def _decode_single_sample(self, enc: torch.Tensor):
         if self.beam_search_transducer:
@@ -686,6 +722,10 @@ def inference(
 
             else:
                 # Normal ASR
+                encoder_interctc_res = None
+                if isinstance(results, tuple):
+                    results, encoder_interctc_res = results
+
                 for n, (text, token, token_int, hyp) in zip(
                     range(1, nbest + 1), results
                 ):
@@ -699,6 +739,15 @@ def inference(
 
                     if text is not None:
                         ibest_writer["text"][key] = text
+
+                # Write intermediate predictions to
+                # encoder_interctc_layer<layer_idx>.txt
+                ibest_writer = writer[f"1best_recog"]
+                if encoder_interctc_res is not None:
+                    for idx, text in encoder_interctc_res.items():
+                        ibest_writer[f"encoder_interctc_layer{idx}.txt"][
+                            key
+                        ] = " ".join(text)
 
 
 def get_parser():
@@ -794,13 +843,14 @@ def get_parser():
         "--enh_s2t_task",
         type=str2bool,
         default=False,
-        help="enhancement and asr joint model",
+        help="Whether we are using an enhancement and ASR joint model",
     )
     group.add_argument(
         "--multi_asr",
         type=str2bool,
         default=False,
-        help="multi-speaker asr model",
+        help="Whether we are using a monolithic multi-speaker ASR model "
+        "(This flag should be False if a speech separation model is used before ASR)",
     )
 
     group = parser.add_argument_group("Quantization related")

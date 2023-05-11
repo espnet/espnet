@@ -44,6 +44,7 @@ cmd_gss=run.pl # change to suit your needs e.g. slurm !
 # note with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
 gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev"
+gss_iterations=20
 top_k=80
 # we do not train with mixer 6 training + GSS here, but you can try.
 
@@ -67,6 +68,7 @@ asr_max_epochs=8
 # put popcornell/chime7_task1_asr1_baseline if you want to test with pretrained model
 use_pretrained=
 decode_only=0
+diar_score=0
 
 . ./path.sh
 . ./cmd.sh
@@ -107,7 +109,7 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
         continue
       fi
 
-      if [ $use_chime6_falign ] && [ $dset == chime6 ]; then
+      if [ $use_chime6_falign == 1 ] && [ $dset == chime6 ]; then
            if ! [ -d ./CHiME7_DASR_falign ]; then
                log "Getting forced alignment annotation for CHiME-6 Scenario"
                git clone https://github.com/chimechallenge/CHiME7_DASR_falign
@@ -160,7 +162,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
           --max-batch-duration $gss_max_batch_dur \
           --channels $channels \
           --use-selection $use_selection \
-          --top-k $top_k
+          --top-k $top_k \
+          --gss-iterations $gss_iterations
     log "Guided Source Separation processing for ${dset_name}/${dset_part} was successful !"
   done
 fi
@@ -173,6 +176,10 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   if [ -n "$use_pretrained" ]; then
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
+  fi
+
+  if [ $diar_score ]; then
+    asr_dprep_stage=3
   fi
 
   # these are args to ASR data prep, done in local/data.sh
@@ -252,5 +259,5 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   split=dev
   LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
   python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
-     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d 0 2>&1 | tee $LOG_OUT
+     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d $diar_score 2>&1 | tee $LOG_OUT
 fi

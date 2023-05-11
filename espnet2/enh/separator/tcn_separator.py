@@ -114,6 +114,25 @@ class TCNSeparator(AbsSeparator):
 
         return masked, ilens, others
 
+    def forward_streaming(self, input_frame: torch.Tensor, buffer=None):
+        # input_frame: B, 1, N
+
+        B, _, N = input_frame.shape
+
+        receptive_field = self.tcn.receptive_field
+
+        if buffer is None:
+            buffer = torch.zeros((B, receptive_field, N), device=input_frame.device)
+
+        buffer = torch.roll(buffer, shifts=-1, dims=1)
+        buffer[:, -1, :] = input_frame[:, 0, :]
+
+        masked, ilens, others = self.forward(buffer, None)
+
+        masked = [m[:, -1, :].unsqueeze(1) for m in masked]
+
+        return masked, buffer, others
+
     @property
     def num_spk(self):
         return self._num_spk

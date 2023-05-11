@@ -387,6 +387,8 @@ class BeamSearch(torch.nn.Module):
                 If maxlenratio<0.0, its absolute value is interpreted
                 as a constant max output length.
             minlenratio (float): Input length ratio to obtain min output length.
+                If minlenratio<0.0, its absolute value is interpreted
+                as a constant min output length.
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
 
         Returns:
@@ -404,7 +406,10 @@ class BeamSearch(torch.nn.Module):
             maxlen = -1 * int(maxlenratio)
         else:
             maxlen = max(1, int(maxlenratio * inp.size(0)))
-        minlen = int(minlenratio * inp.size(0))
+        if minlenratio < 0:
+            minlen = -1 * int(minlenratio)
+        else:
+            minlen = int(minlenratio * inp.size(0))
         logging.info("decoder input length: " + str(inp.shape[0]))
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
