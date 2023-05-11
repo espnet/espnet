@@ -219,7 +219,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         dict_tag_or_path="${dictionary}"
         src_dict="${HOME}/Documents/MFA/pretrained_models/dictionary/${dictionary}.dict"
     fi
-    
+
 echo '''
     log "Generating Dictionary & OOV Dictionary..."
     # create OOV dictionary using validation and skip acoustics
