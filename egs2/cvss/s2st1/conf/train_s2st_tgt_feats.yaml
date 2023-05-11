@@ -92,7 +92,6 @@ optim: adamw
 accum_grad: 1
 grad_clip: 1.0
 grad_noise: false
-max_epoch: 50
 optim_conf:
     lr: 1.0e-03
     eps: 1.0e-06
