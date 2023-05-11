@@ -16,6 +16,7 @@ channels=
 sel_nj=32
 top_k=80
 use_selection=0
+gss_iterations=20
 
 . ./path.sh
 . parse_options.sh
@@ -75,7 +76,7 @@ if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
     gss enhance cuts \
       ${exp_dir}/${dset_name}/${dset_part}/cuts.jsonl.gz  ${exp_dir}/${dset_name}/${dset_part}/split$nj/cuts_per_segment.JOB.jsonl.gz \
        ${exp_dir}/${dset_name}/${dset_part}/enhanced \
-      --bss-iterations 20 \
+      --bss-iterations $gss_iterations \
       --context-duration 15.0 \
       --use-garbage-class \
       --min-segment-length 0.0 \
