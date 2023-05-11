@@ -18,21 +18,6 @@ frontend_conf:
     win_length: 400
     hop_length: 160
 
-# specaug: specaug
-# specaug_conf:
-#     apply_time_warp: true
-#     time_warp_window: 5
-#     time_warp_mode: bicubic
-#     apply_freq_mask: true
-#     freq_mask_width_range:
-#     - 0
-#     - 27
-#     num_freq_mask: 2
-#     apply_time_mask: true
-#     time_mask_width_ratio_range:
-#     - 0.
-#     - 0.05
-#     num_time_mask: 5
 
 encoder: e_branchformer
 encoder_conf:
