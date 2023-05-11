@@ -148,7 +148,7 @@ s2t_text_fold_length=150   # fold_length for text data during S2T training.
 lm_fold_length=150         # fold_length for LM training.
 
 help_message=$(cat << EOF
-Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
+Usage: $0 --train_set "<train_set_name>" --valid_set "<valid_set_name>" --test_sets "<test_set_names>"
 
 Options:
     # General configuration
@@ -1614,7 +1614,6 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
                     <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                         >"${_scoredir}/ref${suffix:-${suffix}}.trn"
 
-                # NOTE(kamo): Don't use cleaner for hyp
                 paste \
                     <(<"${_dir}/${ref_txt}"  \
                         ${python} -m espnet2.bin.tokenize_text  \
@@ -1626,22 +1625,6 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
                         >"${_scoredir}/hyp${suffix:-${suffix}}.trn"
 
             done
-
-            # Note(simpleoier): score across all possible permutations
-            if [ ${num_ref} -gt 1 ] && [ -n "${suffix}" ]; then
-                for i in $(seq ${num_ref}); do
-                    for j in $(seq ${num_inf}); do
-                        sclite \
-                            ${score_opts} \
-                            -r "${_scoredir}/ref_spk${i}.trn" trn \
-                            -h "${_scoredir}/hyp_spk${j}.trn" trn \
-                            -i rm -o all stdout > "${_scoredir}/result_r${i}h${j}.txt"
-                    done
-                done
-                # Generate the oracle permutation hyp.trn and ref.trn
-                scripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
-                    --results-dir ${_scoredir}
-            fi
 
             sclite \
                 ${score_opts} \

@@ -13,11 +13,6 @@ import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.decoder.s4_decoder import S4Decoder
-from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
-from espnet2.asr.transducer.beam_search_transducer import (
-    ExtendedHypothesis as ExtTransHypothesis,
-)
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.s2t import S2TTask
@@ -31,21 +26,11 @@ from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
-from espnet.nets.beam_search_timesync import BeamSearchTimeSync
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
-
-try:
-    from transformers import AutoModelForSeq2SeqLM
-    from transformers.file_utils import ModelOutput
-
-    is_transformers_available = True
-except ImportError:
-    is_transformers_available = False
 
 # Alias for typing
 ListOfHypothesis = List[
@@ -53,7 +38,8 @@ ListOfHypothesis = List[
         Optional[str],
         List[str],
         List[int],
-        Union[Hypothesis, ExtTransHypothesis, TransHypothesis],
+        Optional[str],
+        Hypothesis,
     ]
 ]
 
@@ -75,7 +61,6 @@ class Speech2Text:
         self,
         s2t_train_config: Union[Path, str] = None,
         s2t_model_file: Union[Path, str] = None,
-        transducer_conf: dict = None,
         lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         ngram_scorer: str = "full",
@@ -98,11 +83,8 @@ class Speech2Text:
         quantize_lm: bool = False,
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
-        hugging_face_decoder: bool = False,
-        hugging_face_decoder_max_length: int = 256,
-        time_sync: bool = False,
         category_sym: str = "<en>",
-        task_sym: str = "<transcribe>",
+        task_sym: str = "<asr>",
         time_sym: Optional[str] = "<notimestamps>",
     ):
         assert check_argument_types()
@@ -160,135 +142,46 @@ class Speech2Text:
             scorers["ngram"] = ngram
 
         # 4. Build BeamSearch object
-        if s2t_model.use_transducer_decoder:
-            # In multi-blank RNNT, we assume all big blanks are
-            # just before the standard blank in token_list
-            multi_blank_durations = getattr(
-                s2t_model, "transducer_multi_blank_durations", []
-            )[::-1] + [1]
-            multi_blank_indices = [
-                s2t_model.blank_id - i + 1
-                for i in range(len(multi_blank_durations), 0, -1)
+        weights = dict(
+            decoder=1.0 - ctc_weight,
+            ctc=ctc_weight,
+            lm=lm_weight,
+            ngram=ngram_weight,
+            length_bonus=penalty,
+        )
+        beam_search = BeamSearch(
+            beam_size=beam_size,
+            weights=weights,
+            scorers=scorers,
+            sos=s2t_model.sos,
+            eos=s2t_model.eos,
+            vocab_size=len(token_list),
+            token_list=token_list,
+            pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+        )
+
+        # TODO(karita): make all scorers batchfied
+        if batch_size == 1:
+            non_batch = [
+                k
+                for k, v in beam_search.full_scorers.items()
+                if not isinstance(v, BatchScorerInterface)
             ]
-
-            if transducer_conf is None:
-                transducer_conf = {}
-
-            beam_search_transducer = BeamSearchTransducer(
-                decoder=s2t_model.decoder,
-                joint_network=s2t_model.joint_network,
-                beam_size=beam_size,
-                lm=scorers["lm"] if "lm" in scorers else None,
-                lm_weight=lm_weight,
-                multi_blank_durations=multi_blank_durations,
-                multi_blank_indices=multi_blank_indices,
-                token_list=token_list,
-                **transducer_conf,
-            )
-            beam_search = None
-            hugging_face_model = None
-            hugging_face_linear_in = None
-        elif (
-            decoder.__class__.__name__ == "HuggingFaceTransformersDecoder"
-            and hugging_face_decoder
-        ):
-            if not is_transformers_available:
-                raise ImportError(
-                    "`transformers` is not available."
-                    " Please install it via `pip install transformers`"
-                    " or `cd /path/to/espnet/tools && . ./activate_python.sh"
-                    " && ./installers/install_transformers.sh`."
-                )
-
-            hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
-                decoder.model_name_or_path
-            )
-
-            hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
-
-            if hasattr(hugging_face_model, "model"):
-                hugging_face_model.model.decoder.load_state_dict(
-                    decoder.decoder.state_dict()
-                )
-                del hugging_face_model.model.encoder
-            else:
-                hugging_face_model.decoder.load_state_dict(decoder.decoder.state_dict())
-                del hugging_face_model.encoder
-
-            del s2t_model.decoder.lm_head
-            del s2t_model.decoder.decoder
-
-            hugging_face_linear_in = decoder.linear_in
-            hugging_face_model.to(device=device).eval()
-
-            beam_search = None
-            beam_search_transducer = None
-        else:
-            beam_search_transducer = None
-            hugging_face_model = None
-            hugging_face_linear_in = None
-
-            weights = dict(
-                decoder=1.0 - ctc_weight,
-                ctc=ctc_weight,
-                lm=lm_weight,
-                ngram=ngram_weight,
-                length_bonus=penalty,
-            )
-
-            if time_sync:
-                if not hasattr(s2t_model, "ctc"):
-                    raise NotImplementedError(
-                        "BeamSearchTimeSync without CTC is not supported."
+            if len(non_batch) == 0:
+                if streaming:
+                    beam_search.__class__ = BatchBeamSearchOnlineSim
+                    beam_search.set_streaming_config(s2t_train_config)
+                    logging.info(
+                        "BatchBeamSearchOnlineSim implementation is selected."
                     )
-                if batch_size != 1:
-                    raise NotImplementedError(
-                        "BeamSearchTimeSync with batching is not yet supported."
-                    )
-                logging.info("BeamSearchTimeSync implementation is selected.")
-
-                scorers["ctc"] = s2t_model.ctc
-                beam_search = BeamSearchTimeSync(
-                    beam_size=beam_size,
-                    weights=weights,
-                    scorers=scorers,
-                    sos=s2t_model.sos,
-                    token_list=token_list,
-                )
+                else:
+                    beam_search.__class__ = BatchBeamSearch
+                    logging.info("BatchBeamSearch implementation is selected.")
             else:
-                beam_search = BeamSearch(
-                    beam_size=beam_size,
-                    weights=weights,
-                    scorers=scorers,
-                    sos=s2t_model.sos,
-                    eos=s2t_model.eos,
-                    vocab_size=len(token_list),
-                    token_list=token_list,
-                    pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+                logging.warning(
+                    f"As non-batch scorers {non_batch} are found, "
+                    f"fall back to non-batch implementation."
                 )
-
-                # TODO(karita): make all scorers batchfied
-                if batch_size == 1:
-                    non_batch = [
-                        k
-                        for k, v in beam_search.full_scorers.items()
-                        if not isinstance(v, BatchScorerInterface)
-                    ]
-                    if len(non_batch) == 0:
-                        if streaming:
-                            beam_search.__class__ = BatchBeamSearchOnlineSim
-                            beam_search.set_streaming_config(s2t_train_config)
-                            logging.info(
-                                "BatchBeamSearchOnlineSim implementation is selected."
-                            )
-                        else:
-                            beam_search.__class__ = BatchBeamSearch
-                            logging.info("BatchBeamSearch implementation is selected.")
-                    else:
-                        logging.warning(
-                            f"As non-batch scorers {non_batch} are found, "
-                            f"fall back to non-batch implementation."
-                        )
 
             beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
             for scorer in scorers.values():
@@ -331,11 +224,6 @@ class Speech2Text:
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
-        self.beam_search_transducer = beam_search_transducer
-        self.hugging_face_model = hugging_face_model
-        self.hugging_face_linear_in = hugging_face_linear_in
-        self.hugging_face_beam_size = beam_size
-        self.hugging_face_decoder_max_length = hugging_face_decoder_max_length
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
         self.device = device
@@ -449,56 +337,24 @@ class Speech2Text:
         return res
 
     def _decode_single_sample(self, enc: torch.Tensor):
-        if self.beam_search_transducer:
-            logging.info("encoder output length: " + str(enc.shape[0]))
-            nbest_hyps = self.beam_search_transducer(enc)
-
-            best = nbest_hyps[0]
-            logging.info(f"total log probability: {best.score:.2f}")
-            logging.info(
-                f"normalized log probability: {best.score / len(best.yseq):.2f}"
-            )
-            logging.info(
-                "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
-            )
-        elif self.hugging_face_model:
-            decoder_start_token_id = (
-                self.hugging_face_model.config.decoder_start_token_id
-            )
-            yseq = self.hugging_face_model.generate(
-                encoder_outputs=ModelOutput(
-                    last_hidden_state=self.hugging_face_linear_in(enc).unsqueeze(0)
-                ),
-                use_cache=True,
-                decoder_start_token_id=decoder_start_token_id,
-                num_beams=self.hugging_face_beam_size,
-                max_length=self.hugging_face_decoder_max_length,
-            )
-            nbest_hyps = [Hypothesis(yseq=yseq[0])]
-            logging.info(
-                "best hypo: "
-                + "".join(self.converter.ids2tokens(nbest_hyps[0].yseq[1:]))
-                + "\n"
-            )
-        else:
-            if hasattr(self.beam_search.nn_dict, "decoder"):
-                if isinstance(self.beam_search.nn_dict.decoder, S4Decoder):
-                    # Setup: required for S4 autoregressive generation
-                    for module in self.beam_search.nn_dict.decoder.modules():
-                        if hasattr(module, "setup_step"):
-                            module.setup_step()
-            nbest_hyps = self.beam_search(
-                x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
-            )
+        if hasattr(self.beam_search.nn_dict, "decoder"):
+            if isinstance(self.beam_search.nn_dict.decoder, S4Decoder):
+                # Setup: required for S4 autoregressive generation
+                for module in self.beam_search.nn_dict.decoder.modules():
+                    if hasattr(module, "setup_step"):
+                        module.setup_step()
+        nbest_hyps = self.beam_search(
+            x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
+        )
 
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
         for hyp in nbest_hyps:
-            assert isinstance(hyp, (Hypothesis, TransHypothesis)), type(hyp)
+            assert isinstance(hyp, Hypothesis), type(hyp)
 
             # remove sos/eos and get results
-            last_pos = None if self.s2t_model.use_transducer_decoder else -1
+            last_pos = -1
             if isinstance(hyp.yseq, list):
                 token_int = hyp.yseq[:last_pos]
             else:
@@ -511,11 +367,15 @@ class Speech2Text:
             # Change integer-ids to tokens
             token = self.converter.ids2tokens(token_int)
 
+            # remove special tokens (task, timestamp, etc.)
+            token_nospecial = [x for x in token if not (x[0] == "<" and x[-1] == ">")]
+
             if self.tokenizer is not None:
                 text = self.tokenizer.tokens2text(token)
+                text_nospecial = self.tokenizer.tokens2text(token_nospecial)
             else:
-                text = None
-            results.append((text, token, token_int, hyp))
+                text, text_nospecial = None, None
+            results.append((text, token, token_int, text_nospecial, hyp))
 
         return results
 
@@ -581,7 +441,7 @@ class Speech2Text:
                 result = result[0]
 
             # NOTE(yifan): sos and eos have been removed
-            text, token, token_int, hyp = result[0]  # best hyp
+            text, token, token_int, text_nospecial, hyp = result[0]  # best hyp
             token_int = token_int[2:]  # remove category and task
 
             # Find all timestamp positions
@@ -692,15 +552,11 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
-    transducer_conf: Optional[dict],
     streaming: bool,
     quantize_s2t_model: bool,
     quantize_lm: bool,
     quantize_modules: List[str],
     quantize_dtype: str,
-    hugging_face_decoder: bool,
-    hugging_face_decoder_max_length: int,
-    time_sync: bool,
     category_sym: str,
     task_sym: str,
     time_sym: str,
@@ -735,7 +591,6 @@ def inference(
     speech2text_kwargs = dict(
         s2t_train_config=s2t_train_config,
         s2t_model_file=s2t_model_file,
-        transducer_conf=transducer_conf,
         lm_train_config=lm_train_config,
         lm_file=lm_file,
         ngram_file=ngram_file,
@@ -756,9 +611,6 @@ def inference(
         quantize_lm=quantize_lm,
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
-        hugging_face_decoder=hugging_face_decoder,
-        hugging_face_decoder_max_length=hugging_face_decoder_max_length,
-        time_sync=time_sync,
         category_sym=category_sym,
         task_sym=task_sym,
         time_sym=time_sym,
@@ -805,7 +657,7 @@ def inference(
             if isinstance(results, tuple):
                 results, encoder_interctc_res = results
 
-            for n, (text, token, token_int, hyp) in zip(range(1, nbest + 1), results):
+            for n, (text, token, token_int, text_nospecial, hyp) in zip(range(1, nbest + 1), results):
                 # Create a directory: outdir/{n}best_recog
                 ibest_writer = writer[f"{n}best_recog"]
 
@@ -816,6 +668,8 @@ def inference(
 
                 if text is not None:
                     ibest_writer["text"][key] = text
+                if text_nospecial is not None:
+                    ibest_writer["text_nospecial"][key] = text_nospecial
 
             # Write intermediate predictions to
             # encoder_interctc_layer<layer_idx>.txt
@@ -984,14 +838,6 @@ def get_parser():
     group.add_argument("--lm_weight", type=float, default=0.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.0, help="ngram weight")
     group.add_argument("--streaming", type=str2bool, default=False)
-    group.add_argument("--hugging_face_decoder", type=str2bool, default=False)
-    group.add_argument("--hugging_face_decoder_max_length", type=int, default=256)
-
-    group.add_argument(
-        "--transducer_conf",
-        default=None,
-        help="The keyword arguments for transducer beam search.",
-    )
 
     group.add_argument(
         "--category_sym", type=str, default="<en>", help="Category symbol."
@@ -1021,12 +867,6 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
-    )
-    group.add_argument(
-        "--time_sync",
-        type=str2bool,
-        default=False,
-        help="Time synchronous beam search.",
     )
 
     return parser
