@@ -90,10 +90,6 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-if [[ "$(basename "$(pwd)")" != tts* ]]; then
-    log "Error: You must cd to a tts directory"
-    exit 1
-fi
 
 if [ -z "${split_sets}" ]; then
     log "Error: You need to add the split sets with --split_sets <train> <dev> <tests>"
@@ -223,7 +219,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         dict_tag_or_path="${dictionary}"
         src_dict="${HOME}/Documents/MFA/pretrained_models/dictionary/${dictionary}.dict"
     fi
-
+    
+echo '''
     log "Generating Dictionary & OOV Dictionary..."
     # create OOV dictionary using validation and skip acoustics
     ${train_cmd} ${tempdir}/logs/validate_oov.log \
@@ -247,7 +244,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             "${oov_dict}"
 
     cat "${src_dict}" "${oov_dict}" > "${workdir}/${dictionary}.dict"
-
+'''
     # # Validate data set with acoustics.
     log "Validating corpus..."
     ${train_cmd} ${tempdir}/logs/validate.log \

@@ -105,7 +105,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        # shellcheck disableSC2046,SC2086
+        # shellcheck disable=SC2046,SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/dump_feats.JOB.log \
             ${python} pyscripts/feats/dump_feats.py \
                 --in_filetype "${in_filetype}" \

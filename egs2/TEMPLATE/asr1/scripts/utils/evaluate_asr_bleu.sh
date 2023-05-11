@@ -239,7 +239,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/ref.trn.org" > "${_scoredir}/ref.trn"
     perl -pe 's/\([^\)]+\)$//g;' "${_scoredir}/hyp.trn.org" > "${_scoredir}/hyp.trn"
 
-    if [ -n ${tgt_lang} ]; then
+    if [ -n "${tgt_lang}" ]; then
         # detokenizer
         detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn" > "${_scoredir}/ref.trn.detok"
         detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/hyp.trn" > "${_scoredir}/hyp.trn.detok"
