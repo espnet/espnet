@@ -167,7 +167,7 @@ class BatchBeamSearch(BeamSearch):
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
-            pre_x (torch.Tensor): Encoded speech feature for 
+            pre_x (torch.Tensor): Encoded speech feature for
                 sequential attention (T, D)
 
         Returns:

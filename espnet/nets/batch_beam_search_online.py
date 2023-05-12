@@ -59,14 +59,17 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.prev_output = None
 
     def score_full(
-        self, hyp: BatchHypothesis, x: torch.Tensor, pre_x: torch.Tensor = None,
+        self,
+        hyp: BatchHypothesis,
+        x: torch.Tensor,
+        pre_x: torch.Tensor = None,
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
-            pre_x (torch.Tensor): Encoded speech feature for 
+            pre_x (torch.Tensor): Encoded speech feature for
                 sequential attention (T, D)
 
         Returns:
@@ -94,7 +97,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 ]
             else:
                 temp_yseq = hyp.yseq
-            
+
             if "decoder" in k and self.return_hs:
                 (scores[k], hs), states[k] = d.batch_score(
                     temp_yseq, hyp.states[k], x, return_hs=self.return_hs
