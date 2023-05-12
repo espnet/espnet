@@ -294,6 +294,7 @@ class LongformerEncoder(ConformerEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -302,7 +303,7 @@ class LongformerEncoder(ConformerEncoder):
             ilens (torch.Tensor): Input length (#batch).
             prev_states (torch.Tensor): Not to be used now.
             ctc (CTC): ctc module for intermediate CTC loss
-            return_all_hiddens (bool): whether to return all hidden states
+            return_all_hs (bool): whether to return all hidden states
 
         Returns:
             torch.Tensor: Output tensor (#batch, L, output_size).
@@ -348,7 +349,7 @@ class LongformerEncoder(ConformerEncoder):
         if len(self.interctc_layer_idx) == 0:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
-                if return_all_hiddens:
+                if return_all_hs:
                     intermediate_outs.append(xs_pad)
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
