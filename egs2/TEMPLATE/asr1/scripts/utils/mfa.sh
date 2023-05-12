@@ -220,7 +220,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         src_dict="${HOME}/Documents/MFA/pretrained_models/dictionary/${dictionary}.dict"
     fi
     
-echo '''
     log "Generating Dictionary & OOV Dictionary..."
     # create OOV dictionary using validation and skip acoustics
     ${train_cmd} ${tempdir}/logs/validate_oov.log \
@@ -244,7 +243,7 @@ echo '''
             "${oov_dict}"
 
     cat "${src_dict}" "${oov_dict}" > "${workdir}/${dictionary}.dict"
-'''
+
     # # Validate data set with acoustics.
     log "Validating corpus..."
     ${train_cmd} ${tempdir}/logs/validate.log \

@@ -211,8 +211,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "KMeans stage 4: Generate char-based fairseq style dictionary: <token> <count>"
     # generate dictionaries
     oov="<unk>"         # Out of vocabulary symbol.
-    blank="<blank>"     # CTC blank symbol
-    pad="<pad>"
     sos_eos="<sos/eos>" # sos and eos symbole
 
     mkdir -p ${dictdir}
