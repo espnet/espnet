@@ -1,5 +1,5 @@
 # PyTorch version: 1.4.0, 1.5.1, 1.6.0, 1.7.1, 1.8.1, 1.9.1, 1.10.0, 1.10.1, 1.11.0 and 1.12.1 are tested.
-TH_VERSION := 1.12.1
+TH_VERSION := 1.13.1
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)
@@ -14,8 +14,7 @@ endif
 ifneq ($(shell which nvcc 2>/dev/null),)
 CPU_ONLY :=
 # Derive CUDA version from nvcc
-# CUDA_VERSION := $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" " -f5 | sed s/,//)
-CUDA_VERSION := 11.6
+CUDA_VERSION := $(shell nvcc --version | grep "Cuda compilation tools" | cut -d" " -f5 | sed s/,//)
 CUDA_VERSION_WITHOUT_DOT := $(strip $(subst .,,$(CUDA_VERSION)))
 
 else
@@ -101,6 +100,11 @@ numba.done: activate_python.sh
 # NOTE(kamo): Install numba before installing torch because numba requires specific numpy version now
 # (Pytorch is not related to numba directly)
 pytorch.done: packaging.done numba.done
+ifeq ($(strip $(USE_CONDA)),)
+	. ./activate_python.sh && ./installers/install_torch.sh "false" "${TH_VERSION}" "${CUDA_VERSION}"
+else
+	. ./activate_python.sh && ./installers/install_torch.sh "true" "${TH_VERSION}" "${CUDA_VERSION}"
+endif
 	touch pytorch.done
 
 # NOTE(kamo): conda_packages is not necessary for installation of espnet, but add it the dependencies just in case.
