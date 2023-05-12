@@ -45,6 +45,7 @@ from espnet2.torch_utils.initialize import initialize
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import (
     CommonPreprocessor,
+    DiarPreprocessor,
     CommonPreprocessor_multi,
     MutliTokenizerCommonPreprocessor,
 )
@@ -478,7 +479,7 @@ class EnhS2TTask(AbsTask):
                     text_name=["text", "src_text"],
                 )
             elif "diar" in args.subtask_series:
-                retval = CommonPreprocessor(train=train)
+                retval = DiarPreprocessor(train=train, num_spk=args.diar_num_spk)
             else:
                 retval = CommonPreprocessor_multi(
                     train=train,

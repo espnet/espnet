@@ -193,9 +193,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 feature_mix, flens
             )
             if additional.get("num_spk") is not None:
-                feature_pre, flens, others = self.mask_module(
-                    feature_mix, flens, bottleneck_feats, additional["num_spk"]
-                )
+                if additional.get("batch_num_spk") is not None:
+                    feature_pre, flens, others = self.mask_module(
+                        feature_mix, flens, bottleneck_feats, additional["num_spk"], additional["batch_num_spk"],
+                    )
+                else:
+                    feature_pre, flens, others = self.mask_module(
+                        feature_mix, flens, bottleneck_feats, additional["num_spk"],
+                    ) 
+    
                 others["bottleneck_feats"] = bottleneck_feats
                 others["bottleneck_feats_lengths"] = bottleneck_feats_lengths
             else:
@@ -218,6 +224,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             # some models (e.g. neural beamformer trained with mask loss)
             # do not predict time-domain signal in the training stage
             speech_pre = None
+
+        if additional.get("batch_num_spk") is not None:
+            # mask other speakers's speech in batch
+            num_spk = additional.get("num_spk")
+            batch_num_spk = additional.get("batch_num_spk")
+            for spk in range(num_spk):
+                speech_pre[spk][torch.where(spk >= batch_num_spk)]=0.0001
+        
         return speech_pre, feature_mix, feature_pre, others
 
     def forward_loss(

@@ -10,6 +10,8 @@ import torch.nn.functional as F
 from torch_complex.tensor import ComplexTensor
 
 from espnet2.diar.layers.abs_mask import AbsMask
+from typing import Dict, Optional
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class MultiMask(AbsMask):
@@ -55,6 +57,7 @@ class MultiMask(AbsMask):
         ilens: torch.Tensor,
         bottleneck_feat: torch.Tensor,
         num_spk: int,
+        batch_num_spk: Optional[int] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """Keep this API same with TasNet.
 
@@ -65,6 +68,7 @@ class MultiMask(AbsMask):
             num_spk: number of speakers
             (Training: oracle,
             Inference: estimated by other module (e.g, EEND-EDA))
+            batch_num_spk: number of speakers per batch: (M, )
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(M, K, N), ...]
@@ -79,17 +83,26 @@ class MultiMask(AbsMask):
         """
         M, K, N = input.size()
         bottleneck_feat = bottleneck_feat.transpose(1, 2)  # [M, B, K]
-        score = self.mask_conv1x1[num_spk - 1](
+
+        if batch_num_spk is None:
+            batch_num_spk = torch.tensor([num_spk]*M)
+        num_spk_oh = to_device(self, F.one_hot(batch_num_spk, num_spk+1))
+
+        # initialize score with proper_size
+        score = num_spk_oh[:, num_spk].view(-1, 1, 1) * self.mask_conv1x1[num_spk - 1](
             bottleneck_feat
         )  # [M, B, K] -> [M, num_spk*N, K]
-        # add other outputs of the module list with factor 0.0
-        # to enable distributed training
         for z in range(self._max_num_spk):
-            if z != num_spk - 1:
+            if z < num_spk:
+                if z != num_spk:
+                    score += num_spk_oh[:, z+1].view(-1, 1, 1) * (F.pad(
+                        self.mask_conv1x1[z](bottleneck_feat), (0, 0, 0, (num_spk-z-1)*N, 0, 0)))
+            else:
+                # all other cases 0.0
                 score += 0.0 * F.interpolate(
-                    self.mask_conv1x1[z](bottleneck_feat).transpose(1, 2),
-                    size=num_spk * N,
-                ).transpose(1, 2)
+                    self.mask_conv1x1[z](bottleneck_feat).transpose(1, 2),size=num_spk * N,
+                    ).transpose(1, 2)
+        
         score = score.view(M, num_spk, N, K)  # [M, num_spk*N, K] -> [M, num_spk, N, K]
         if self.mask_nonlinear == "softmax":
             est_mask = F.softmax(score, dim=1)
