@@ -140,7 +140,7 @@ class DurationPredictor(nn.Module):
         batch_size = encoder_outputs.size(0)
         hidden_length = encoder_outputs.size(1)
 
-        ## remove pad activations
+        # remove pad activations
         if input_lengths is not None:
             encoder_outputs = pack_padded_sequence(
                 encoder_outputs, input_lengths, batch_first=True, enforce_sorted=False
@@ -162,7 +162,7 @@ class GaussianUpsampling(nn.Module):
     Non-attention Tacotron:
         - https://arxiv.org/abs/2010.04301
     this source code is implemenation of the ExpressiveTacotron from BridgetteSong
-        - https://github.com/BridgetteSong/ExpressiveTacotron/blob/master/model_duration.py
+        - https://github.com/BridgetteSong/ExpressiveTacotron/
     """
 
     def __init__(self):
@@ -179,7 +179,8 @@ class GaussianUpsampling(nn.Module):
             input_lengths : [batch_size]
 
         Return:
-            encoder_upsampling_outputs: upsampled encoder_output  [batch_size, frame_length, dim]
+            encoder_upsampling_outputs: upsampled encoder_output 
+                [batch_size, frame_length, dim]
         """
         batch_size = encoder_outputs.size(0)
         hidden_length = encoder_outputs.size(1)

@@ -131,7 +131,7 @@ class ESPnetS2STModel(AbsESPnetModel):
         if self.s2st_type == "discrete_unit":
             assert isinstance(self.encoder, ConformerEncoder) or isinstance(
                 self.encoder, TransformerEncoder
-            ), "only support conformer or transformer-based encoder because the model needs to return all hiddens, which is not supported by other encoders"
+            ), "only support conformer or transformer-based encoder now"
 
         # synthesizer
         assert (
@@ -646,7 +646,7 @@ class ESPnetS2STModel(AbsESPnetModel):
 
         else:
             raise ValueError(
-                "Not supported s2st type {}, available type include ('translatotron', 'translatotron2', 'discrete_unit')"
+                "Not supported s2st type {}"
             )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
@@ -726,7 +726,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             )
         else:
             raise ValueError(
-                "Not supported s2st type {}, available type include ('translatotron', 'translatotron2')"
+                "Not supported s2st type {}"
             )
 
         if self.tgt_normalize is not None and output_dict.get("feat_gen") is not None:
@@ -1012,7 +1012,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             ctc = self.st_ctc
         else:
             raise RuntimeError(
-                "Cannot recognize the ctc type (need to be either 'src' or 'tgt', but found ".format(
+                "Cannot recognize the ctc-type (need 'src'/'tgt', but found ".format(
                     ctc_type
                 )
             )

@@ -24,7 +24,8 @@ class TransformerDiscreteSynthesizer(AbsSynthesizer, BatchScorerInterface):
 
     This is a module of discrete unit prediction network in discrete-unit described
     in `Direct speech-to-speech translation with discrete units`_,
-    which converts the sequence of hidden states into the sequence of discrete unit (from SSLs).
+    which converts the sequence of hidden states into the sequence of
+    discrete unit (from SSLs).
 
     .. _`Direct speech-to-speech translation with discrete units`:
        https://arxiv.org/abs/2107.05604

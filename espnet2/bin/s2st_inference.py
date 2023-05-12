@@ -313,7 +313,8 @@ class Speech2Speech:
                     input_discrete_unit = to_device(
                         torch.tensor(token_int).view(-1, 1), device=self.device
                     )
-                    # NOTE(jiatong): we default take the last token in the token list as <unk>
+                    # NOTE(jiatong): we default take the last token
+                    # in the token list as <unk>
                     # see scripts/feats/performa_kemans.sh for details
                     input_discrete_unit = input_discrete_unit[
                         input_discrete_unit != self.model.unit_vocab_size - 1
@@ -408,7 +409,8 @@ class Speech2Speech:
                     input_discrete_unit = to_device(
                         torch.tensor(token_int).view(-1, 1), device=self.device
                     )
-                    # NOTE(jiatong): we default take the last token in the token list as <unk>
+                    # NOTE(jiatong): we default take the last token 
+                    # in the token list as <unk>
                     # see scripts/feats/performa_kemans.sh for details
                     input_discrete_unit = input_discrete_unit[
                         input_discrete_unit != self.model.unit_vocab_size - 1
