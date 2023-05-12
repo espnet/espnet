@@ -20,9 +20,9 @@ from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 class UnitYSynthesizer(AbsSynthesizer):
     """UnitY Synthesizer related modules for speech-to-speech translation.
 
-    This is a module of discrete unit prediction network in discrete-unit 
+    This is a module of discrete unit prediction network in discrete-unit
     described in `Direct speech-to-speech translation with discrete units`_,
-    which converts the sequence of hidden states into the sequence of 
+    which converts the sequence of hidden states into the sequence of
     discrete unit (from SSLs).
 
     """
