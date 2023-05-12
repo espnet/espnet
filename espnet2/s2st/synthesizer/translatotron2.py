@@ -179,7 +179,7 @@ class GaussianUpsampling(nn.Module):
             input_lengths : [batch_size]
 
         Return:
-            encoder_upsampling_outputs: upsampled encoder_output 
+            encoder_upsampling_outputs: upsampled encoder_output
                 [batch_size, frame_length, dim]
         """
         batch_size = encoder_outputs.size(0)

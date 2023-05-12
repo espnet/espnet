@@ -645,9 +645,7 @@ class ESPnetS2STModel(AbsESPnetModel):
             )
 
         else:
-            raise ValueError(
-                "Not supported s2st type {}"
-            )
+            raise ValueError("Not supported s2st type {}")
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -725,9 +723,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                 use_teacher_forcing,
             )
         else:
-            raise ValueError(
-                "Not supported s2st type {}"
-            )
+            raise ValueError("Not supported s2st type {}")
 
         if self.tgt_normalize is not None and output_dict.get("feat_gen") is not None:
             # NOTE: normalize.inverse is in-place operation
