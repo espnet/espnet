@@ -172,6 +172,8 @@ CATSLU=downloads
 ELRA_E0024=
 ELRA_S0272=
 ELRA_S0371=
+M4SINGER=
+ONIKU=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
