@@ -195,13 +195,20 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             if additional.get("num_spk") is not None:
                 if additional.get("batch_num_spk") is not None:
                     feature_pre, flens, others = self.mask_module(
-                        feature_mix, flens, bottleneck_feats, additional["num_spk"], additional["batch_num_spk"],
+                        feature_mix,
+                        flens,
+                        bottleneck_feats,
+                        additional["num_spk"],
+                        additional["batch_num_spk"],
                     )
                 else:
                     feature_pre, flens, others = self.mask_module(
-                        feature_mix, flens, bottleneck_feats, additional["num_spk"],
-                    ) 
-    
+                        feature_mix,
+                        flens,
+                        bottleneck_feats,
+                        additional["num_spk"],
+                    )
+
                 others["bottleneck_feats"] = bottleneck_feats
                 others["bottleneck_feats_lengths"] = bottleneck_feats_lengths
             else:
@@ -230,8 +237,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             num_spk = additional.get("num_spk")
             batch_num_spk = additional.get("batch_num_spk")
             for spk in range(num_spk):
-                speech_pre[spk][torch.where(spk >= batch_num_spk)]=0.0001
-        
+                speech_pre[spk][torch.where(spk >= batch_num_spk)] = 0.0001
+
         return speech_pre, feature_mix, feature_pre, others
 
     def forward_loss(

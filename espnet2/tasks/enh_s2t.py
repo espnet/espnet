@@ -45,8 +45,8 @@ from espnet2.torch_utils.initialize import initialize
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import (
     CommonPreprocessor,
-    DiarPreprocessor,
     CommonPreprocessor_multi,
+    DiarPreprocessor,
     MutliTokenizerCommonPreprocessor,
 )
 from espnet2.train.trainer import Trainer

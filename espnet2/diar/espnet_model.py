@@ -331,7 +331,7 @@ class ESPnetDiarizationModel(AbsESPnetModel):
         # create attractor label [1, 1, ..., 1, 0]
         # att_label: (Batch, num_spk + 1, 1)
         att_label = to_device(self, torch.zeros(batch_size, label.size(2) + 1, 1))
-        batch_num_spk = (label.sum(axis=1)!= 0).sum(axis=1) # (Batch)
+        batch_num_spk = (label.sum(axis=1) != 0).sum(axis=1)  # (Batch)
         for i in range(label.size(0)):
             att_label[i, : batch_num_spk[i], :] = 1
         loss = bce_loss(att_prob, att_label)

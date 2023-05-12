@@ -1341,6 +1341,7 @@ class TSEPreprocessor(EnhPreprocessor):
         data = self._speech_process(uid, data)
         return data
 
+
 class DiarPreprocessor(CommonPreprocessor):
     def __init__(
         self,
@@ -1352,25 +1353,25 @@ class DiarPreprocessor(CommonPreprocessor):
         self.train = train
         self.num_spk = num_spk
         self.text_name = text_name
-        
+
     def _rttm_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
         if self.text_name in data:
             text = data[self.text_name]
             pad_value = 0.0
-            
+
             # Update spk information
             spk_size = text.shape[1]
             if self.num_spk > spk_size:
                 new_text = np.zeros((text.shape[0], self.num_spk))
                 new_text.fill(pad_value)
-                new_text[:, :text.shape[1]] = text
+                new_text[:, : text.shape[1]] = text
                 data[self.text_name] = new_text
 
         assert check_return_type(data)
         return data
-    
+
     def __call__(
         self, uid: str, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:

@@ -181,7 +181,7 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         num_spk = text.shape[2] if text.dim() == 3 else self.enh_model.num_spk
         if text.dim() == 3:
             # Get batchwise number of speakers
-            batch_num_spk = (text.sum(axis=1)!= 0).sum(axis=1) #(B, )
+            batch_num_spk = (text.sum(axis=1) != 0).sum(axis=1)  # (B, )
 
         if self.enh_model.num_spk is not None:
             # for compatibility with TCNSeparatorNomask in enh_diar
@@ -191,12 +191,12 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         speech_ref = None
         if self.calc_enh_loss:
             assert "speech_ref1" in kwargs
-            speech_ref=[]
+            speech_ref = []
             for spk in range(num_spk):
                 speech_ref.append(kwargs["speech_ref{}".format(spk + 1)])
                 if text.dim() == 3:
                     # Set batch-wise dummy speaker reference to very small value
-                    speech_ref[spk][torch.where(spk >= batch_num_spk)]= 0.0005
+                    speech_ref[spk][torch.where(spk >= batch_num_spk)] = 0.0005
             # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
             speech_ref = torch.stack(speech_ref, dim=1)
             # for data-parallel
@@ -242,7 +242,9 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         perm = None
         if not bypass_enh_flag:
             ret = self.enh_model.forward_enhance(
-                speech, speech_lengths, {"num_spk": num_spk, "batch_num_spk": batch_num_spk}
+                speech,
+                speech_lengths,
+                {"num_spk": num_spk, "batch_num_spk": batch_num_spk},
             )
             speech_pre, feature_mix, feature_pre, others = ret
             # loss computation
