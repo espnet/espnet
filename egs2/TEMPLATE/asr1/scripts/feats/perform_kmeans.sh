@@ -76,9 +76,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "Kmeans stage 1: Dump ${feature_type} feature"
 
     if ${use_gpu}; then
+        # shellcheck disable=SC2154
         _cmd="${cuda_cmd}"
         _ngpu=1
     else
+        # shellcheck disable=SC2154
         _cmd="${train_cmd}"
         _ngpu=0
     fi

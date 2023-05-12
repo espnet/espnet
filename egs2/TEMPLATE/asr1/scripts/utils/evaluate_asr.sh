@@ -32,8 +32,8 @@ nj=8
 gpu_inference=false
 fs=16000
 
-# Inference framework
-inference_framework=espnet # whisper, espnet, huggingface
+# TODO (jiatong): Inference framework
+# inference_framework=espnet # whisper, espnet, huggingface
 
 # Model related configuration
 model_tag=""
