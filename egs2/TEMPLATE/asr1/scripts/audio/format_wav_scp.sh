@@ -114,7 +114,7 @@ if [ -n "${segments}" ]; then
             --multi-columns-input "${multi_columns_input}" \
             --multi-columns-output "${multi_columns_output}" \
             "${scp}" "${outdir}/format${suffix}.JOB" || { cat $(grep -l -i error "${logdir}"/format_wav_scp.*.log) ; exit 1; }
-            "${scp}" "${outdir}/format.JOB" || { cat "$(grep -l -i error "${logdir}"/format_wav_scp.*.log)" ; exit 1; }
+            "${scp}" "${outdir}/format.JOB" || { cat $(grep -l -i error "${logdir}"/format_wav_scp.*.log) ; exit 1; }
 else
     log "[info]: without segments"
     nutt=$(<${scp} wc -l)
