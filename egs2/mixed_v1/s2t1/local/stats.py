@@ -5,7 +5,7 @@ from pathlib import Path
 
 def collect_stats(data_dir: Path):
     stats = defaultdict(float)
-    with open(data_dir / 'text', 'r') as fp:
+    with open(data_dir / "text", "r") as fp:
         for line in fp:
             line = line.strip().split(maxsplit=1)[-1]
             duration = float(line.split("<")[-1][:-1])
@@ -18,15 +18,9 @@ def collect_stats(data_dir: Path):
 
 
 def get_parser():
-    parser = ArgumentParser(
-        description="Show statistics of the data directory."
-    )
+    parser = ArgumentParser(description="Show statistics of the data directory.")
     parser.add_argument(
-        "-d",
-        "--data_dir",
-        type=Path,
-        required=True,
-        help="Data directory."
+        "-d", "--data_dir", type=Path, required=True, help="Data directory."
     )
     return parser
 
@@ -39,7 +33,7 @@ if __name__ == "__main__":
     stats = sorted(list(stats.items()), key=lambda x: x[-1], reverse=True)
     total_duration = sum(x[1] for x in stats)
 
-    with open(args.data_dir / "stats.txt", 'w') as fp:
+    with open(args.data_dir / "stats.txt", "w") as fp:
         fp.write(f"Total duration: {total_duration / 60 / 60:.2f} hours\n")
         for (src, tgt), duration in stats:
             fp.write(f"{src} -> {tgt}: {duration / 60 / 60:.2f} hours\n")
