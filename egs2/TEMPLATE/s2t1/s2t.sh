@@ -1549,7 +1549,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         # shellcheck disable=SC2068
         for ref_txt in ${ref_text_files[@]}; do
             suffix=$(echo ${ref_txt} | sed 's/text//')
-            for f in token token_int score text; do
+            for f in token token_int score text text_nospecial; do
                 if [ -f "${_logdir}/output.1/1best_recog/${f}${suffix}" ]; then
                     for i in $(seq "${_nj}"); do
                         cat "${_logdir}/output.${i}/1best_recog/${f}${suffix}"
@@ -1615,7 +1615,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
                         >"${_scoredir}/ref${suffix:-${suffix}}.trn"
 
                 paste \
-                    <(<"${_dir}/${ref_txt}"  \
+                    <(<"${_dir}/${ref_txt}_nospecial"  \
                         ${python} -m espnet2.bin.tokenize_text  \
                             -f 2- --input - --output - \
                             ${_opts} \
@@ -1640,7 +1640,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
     [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${s2t_exp}"
 
     # Show results in Markdown syntax
-    scripts/utils/show_s2t_result.sh "${s2t_exp}" > "${s2t_exp}"/RESULTS.md
+    scripts/utils/show_asr_result.sh "${s2t_exp}" > "${s2t_exp}"/RESULTS.md
     cat "${s2t_exp}"/RESULTS.md
 
 fi
