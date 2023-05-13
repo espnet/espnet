@@ -5,23 +5,23 @@ set -e
 set -u
 set -o pipefail
 
-train_set=CoVoST2/train
-valid_set=CoVoST2/dev
-test_sets="${valid_set}"
+train_set=train
+valid_set=dev
+test_sets="dev"
 
 nbpe=20000
-s2t_config=conf/tuning/train_s2t_ebf_lr1e-3_warmup5k.yaml
+s2t_config=conf/tuning/train_s2t_transformer_lr1e-3_warmup5k.yaml
 inference_config=conf/decode_s2t.yaml
 
 ./s2t.sh \
-    --stage 3 \
-    --stop_stage 4 \
+    --stage 11 \
+    --stop_stage 11 \
     --use_lm false \
     --ngpu 4 \
-    --nj 64 \
+    --nj 128 \
     --gpu_inference true \
-    --inference_nj 8 \
-    --num_splits_s2t 1 \
+    --inference_nj 4 \
+    --num_splits_s2t 5 \
     --feats_type raw \
     --audio_format flac.ark \
     --token_type bpe \
@@ -31,6 +31,6 @@ inference_config=conf/decode_s2t.yaml
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --bpe_train_text "data/${train_set}/text" \
+    --bpe_train_text "dump/raw/${train_set}/text" \
     --bpe_nlsyms data/nlsyms.txt \
-    --lm_train_text "data/${train_set}/text" "$@"
+    --lm_train_text "dump/raw/${train_set}/text" "$@"

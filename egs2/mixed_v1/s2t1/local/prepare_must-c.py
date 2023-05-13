@@ -47,7 +47,7 @@ def collect_data(
     for utt, src, tgt in zip(utts, src_text, tgt_text):
         wav_name: str = utt["wav"]  # e.g.: 'ted_767.wav'
         wav_path = str((wav_dir / wav_name).resolve())
-        wav_id = f"{prefix}_en-{lang}_{wav_name.removesuffix('.wav')}"
+        wav_id = f"{prefix}_{wav_name.removesuffix('.wav')}"
         start_time = float(utt["offset"])
         end_time = start_time + float(utt["duration"])
 

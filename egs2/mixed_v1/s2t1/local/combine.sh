@@ -25,10 +25,8 @@ log() {
 }
 SECONDS=0
 
-# data/CoVoST2/train
-# data/CoVoST2/dev
-train_sets="dump/raw/AISHELL-1/train dump/raw/GigaSpeech/XL dump/raw/LibriSpeech/train-clean-100 dump/raw/LibriSpeech/train-clean-360 dump/raw/LibriSpeech/train-other-500 dump/raw/MuST-C_v1.2/train dump/raw/MuST-C_v2/train dump/raw/MuST-C_v3/train dump/raw/SPGISpeech/train dump/raw/TEDLIUM3/train"
-dev_sets="dump/raw/AISHELL-1/dev dump/raw/GigaSpeech/DEV dump/raw/LibriSpeech/dev-clean dump/raw/LibriSpeech/dev-other dump/raw/MuST-C_v1.2/dev dump/raw/MuST-C_v2/dev dump/raw/MuST-C_v3/dev dump/raw/SPGISpeech/val dump/raw/TEDLIUM3/dev"
+train_sets="dump/raw/AISHELL-1/train dump/raw/CoVoST2/train dump/raw/GigaSpeech/XL dump/raw/LibriSpeech/train-clean-100 dump/raw/LibriSpeech/train-clean-360 dump/raw/LibriSpeech/train-other-500 dump/raw/MuST-C_v1.2/train dump/raw/MuST-C_v2/train dump/raw/MuST-C_v3/train dump/raw/SPGISpeech/train dump/raw/TEDLIUM3/train"
+dev_sets="dump/raw/AISHELL-1/dev dump/raw/CoVoST2/dev dump/raw/GigaSpeech/DEV dump/raw/LibriSpeech/dev-clean dump/raw/LibriSpeech/dev-other dump/raw/MuST-C_v1.2/dev dump/raw/MuST-C_v2/dev dump/raw/MuST-C_v3/dev dump/raw/SPGISpeech/val dump/raw/TEDLIUM3/dev"
 
 train_out=dump/raw/train
 dev_out=dump/raw/dev

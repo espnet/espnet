@@ -42,6 +42,13 @@ python local/prepare_covost2.py \
 
 utt_extra_files="text.prev text.ctc"
 for x in ${splits}; do
+    # remove invalid whitespaces
+    for f in text ${utt_extra_files}; do
+        mv ${output_dir}/${x}/${f} ${output_dir}/${x}/${f}.old
+        python3 local/remove_invalid_spaces.py \
+            --input ${output_dir}/${x}/${f}.old \
+            --output ${output_dir}/${x}/${f}
+    done
     # NOTE(yifan): extra text files must be sorted and unique
     for f in ${utt_extra_files}; do
         check_sorted ${output_dir}/${x}/${f}
