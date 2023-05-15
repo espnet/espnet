@@ -62,6 +62,7 @@ svs_conf:
         use_weight_norm_in_flow: true
         use_only_mean_in_flow: true
         use_phoneme_predictor: false
+        expand_f0_method: "repeat"
     # discriminator related
     discriminator_type: visinger2 # avocodo, hifigan_multi_scale_multi_period_discriminator, visinger2, avocodo_plus
     discriminator_params:

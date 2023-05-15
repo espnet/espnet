@@ -131,6 +131,7 @@ class VITS(AbsGANSVS):
             "flow_dropout_rate": 0.0,
             "use_weight_norm_in_flow": True,
             "use_only_mean_in_flow": True,
+            "expand_f0_method": "repeat",
         },
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
@@ -330,7 +331,7 @@ class VITS(AbsGANSVS):
         self.use_flow = True if generator_params["flow_flows"] > 0 else False
         self.use_phoneme_predictor = use_phoneme_predictor
         self.discriminator_type = discriminator_type
-        if discriminator_type == "avocodo" or discriminator_type == "avocodo_plus":
+        if "avocodo" in discriminator_type:
             use_avocodo = True
             vocoder_generator_type = "avocodo"
         else:

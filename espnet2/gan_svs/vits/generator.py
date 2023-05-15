@@ -107,6 +107,7 @@ class VISingerGenerator(torch.nn.Module):
         win_length: int = 1024,
         n_fft: int = 1024,
         use_phoneme_predictor: bool = False,
+        expand_f0_method: str = "repeat",
     ):
         """Initialize VITS generator module.
 
@@ -430,6 +431,7 @@ class VISingerGenerator(torch.nn.Module):
 
         self.vocoder_generator_type = vocoder_generator_type
         self.dropout = torch.nn.Dropout(0.2)
+        self.expand_f0_method = expand_f0_method
 
     def forward(
         self,
@@ -779,7 +781,7 @@ class VISingerGenerator(torch.nn.Module):
 
             if self.vocoder_generator_type == "uhifigan":
                 pitch_segments_expended = expand_f0(
-                    pitch, self.hop_length, method="repeat"
+                    pitch, self.hop_length, method=self.expand_f0_method
                 )
                 pitch_segments_expended = pitch_segments_expended.reshape(
                     -1, pitch_segments_expended.shape[-1], 1
@@ -877,7 +879,7 @@ class VISingerGenerator(torch.nn.Module):
 
             if self.vocoder_generator_type == "uhifigan":
                 pitch_segments_expended = expand_f0(
-                    F0, self.hop_length, method="repeat"
+                    F0, self.hop_length, method=self.expand_f0_method
                 )
                 pitch_segments_expended = pitch_segments_expended.reshape(
                     -1, pitch_segments_expended.shape[-1], 1
