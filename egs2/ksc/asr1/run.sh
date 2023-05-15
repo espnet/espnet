@@ -12,8 +12,9 @@ test_sets="test dev"
 asr_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
+#if stage 10 fails, try setting the '--nj 1'
 ./asr.sh \
-    --stage 4 \
+    --stage 11 \
     --stop_stage 13 \
     --nj 32 \
     --ngpu 1 \
