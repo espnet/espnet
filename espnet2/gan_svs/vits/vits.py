@@ -21,7 +21,6 @@ from espnet2.gan_svs.avocodo.avocodo import (
 )
 from espnet2.gan_svs.visinger2.visinger2_vocoder import VISinger2Discriminator
 from espnet2.gan_svs.vits.generator import VISingerGenerator
-
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
