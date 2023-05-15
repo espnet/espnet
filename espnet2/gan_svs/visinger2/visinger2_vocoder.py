@@ -420,8 +420,6 @@ class Generator_Noise(torch.nn.Module):
         Returns:
             Tensor: Output tensor (B, 1, T * hop_size).
         """
-        print("x.shape", x.shape)
-        print("mask.shape", mask.shape)
         istft_x = x
         istft_x = self.istft_pre(istft_x)
 
@@ -553,11 +551,12 @@ class BaseFrequenceDiscriminator(torch.nn.Module):
         super().__init__()
 
         layers = []
-        for i in range(len(divisors)):
+        for i in range(len(divisors) - 1):
             in_ch = in_channels if i == 0 else hidden_channels // divisors[i - 1]
             out_ch = hidden_channels // divisors[i]
             stride = strides[i]
             layers.append((in_ch, out_ch, stride))
+        layers.append((hidden_channels // divisors[-1], 1, strides[-1]))
         self.discriminators = torch.nn.ModuleList()
 
         for in_ch, out_ch, stride in layers:
