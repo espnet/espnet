@@ -22,7 +22,6 @@ from espnet2.gan_svs.avocodo.avocodo import (
 from espnet2.gan_svs.visinger2.visinger2_vocoder import VISinger2Discriminator
 from espnet2.gan_svs.vits.generator import VISingerGenerator
 
-# from espnet2.gan_svs.pits.pisinger_generator import PISingerGenerator
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
@@ -652,8 +651,6 @@ class VITS(AbsGANSVS):
 
         # calculate discriminator outputs
         if "avocodo" in self.discriminator_type:
-            # print("singing_hat_.shape", singing_hat_[0].shape)
-            # print("singing_.shape", singing_.shape)
             p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
                 singing_, singing_hat_
             )
@@ -693,10 +690,7 @@ class VITS(AbsGANSVS):
 
             if "avocodo" in self.discriminator_type:
                 adv_loss = self.generator_adv_loss(p_hat)
-                # print("fmaps_fake[0]", fmaps_fake[0][0].shape)
-                # print("fmaps_real[0]", fmaps_real[0][0].shape)
                 feat_match_loss = self.feat_match_loss(fmaps_fake, fmaps_real)
-                # raise ValueError
             else:
                 adv_loss = self.generator_adv_loss(p_hat)
                 feat_match_loss = self.feat_match_loss(p_hat, p)

@@ -15,7 +15,7 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -602,8 +602,6 @@ class VISingerGenerator(torch.nn.Module):
 
         if self.vocoder_generator_type == "uhifigan":
             # get sine wave
-            # print("gt_pitch", gt_pitch)
-            # print("gt_pitch.shape", gt_pitch.shape)
 
             # def plot_sine_waves(sine_waves, name):
             #     import matplotlib.pyplot as plt
@@ -631,7 +629,6 @@ class VISingerGenerator(torch.nn.Module):
             pitch_segments_expended = pitch_segments_expended.reshape(
                 -1, pitch_segments_expended.shape[-1], 1
             )
-            # print("pitch_segments_expended", pitch_segments_expended.shape)
 
             sine_waves, uv, noise = self.sine_generator(pitch_segments_expended)
 
