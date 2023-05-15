@@ -50,12 +50,15 @@ def process_pho_info(phone):
     pho_info = []
     for line in info.readlines():
         line = line.strip().split()
+        phn = line[2].strip()
+        if phn == "U":
+            phn = "u"
         label_info.append(
             "{} {} {}".format(
-                float(line[0]) / 1e7, float(line[1]) / 1e7, line[2].strip()
+                float(line[0]) / 1e7, float(line[1]) / 1e7, phn
             )
         )
-        pho_info.append(line[2].strip())
+        pho_info.append(phn)
     return " ".join(label_info), " ".join(pho_info)
 
 
