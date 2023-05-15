@@ -937,7 +937,7 @@ buffer in a real streaming application.</p>
 <span id="espnet2-enh-extractor-td-speakerbeam-extractor"></span><h2>espnet2.enh.extractor.td_speakerbeam_extractor<a class="headerlink" href="#espnet2-enh-extractor-td-speakerbeam-extractor-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.enh.extractor.td_speakerbeam_extractor"></span><dl class="class">
 <dt id="espnet2.enh.extractor.td_speakerbeam_extractor.TDSpeakerBeamExtractor">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.extractor.td_speakerbeam_extractor.</code><code class="sig-name descname">TDSpeakerBeamExtractor</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">layer: int = 8</em>, <em class="sig-param">stack: int = 3</em>, <em class="sig-param">bottleneck_dim: int = 128</em>, <em class="sig-param">hidden_dim: int = 512</em>, <em class="sig-param">skip_dim: int = 128</em>, <em class="sig-param">kernel: int = 3</em>, <em class="sig-param">causal: bool = False</em>, <em class="sig-param">norm_type: str = 'gLN'</em>, <em class="sig-param">nonlinear: str = 'relu'</em>, <em class="sig-param">i_adapt_layer: int = 7</em>, <em class="sig-param">adapt_layer_type: str = 'mul'</em>, <em class="sig-param">adapt_enroll_dim: int = 128</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/extractor/td_speakerbeam_extractor.html#TDSpeakerBeamExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.extractor.td_speakerbeam_extractor.TDSpeakerBeamExtractor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.extractor.td_speakerbeam_extractor.</code><code class="sig-name descname">TDSpeakerBeamExtractor</code><span class="sig-paren">(</span><em class="sig-param">input_dim: int</em>, <em class="sig-param">layer: int = 8</em>, <em class="sig-param">stack: int = 3</em>, <em class="sig-param">bottleneck_dim: int = 128</em>, <em class="sig-param">hidden_dim: int = 512</em>, <em class="sig-param">skip_dim: int = 128</em>, <em class="sig-param">kernel: int = 3</em>, <em class="sig-param">causal: bool = False</em>, <em class="sig-param">norm_type: str = 'gLN'</em>, <em class="sig-param">pre_nonlinear: str = 'prelu'</em>, <em class="sig-param">nonlinear: str = 'relu'</em>, <em class="sig-param">i_adapt_layer: int = 7</em>, <em class="sig-param">adapt_layer_type: str = 'mul'</em>, <em class="sig-param">adapt_enroll_dim: int = 128</em>, <em class="sig-param">use_spk_emb: bool = False</em>, <em class="sig-param">spk_emb_dim: int = 256</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/extractor/td_speakerbeam_extractor.html#TDSpeakerBeamExtractor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.extractor.td_speakerbeam_extractor.TDSpeakerBeamExtractor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.extractor.abs_extractor.AbsExtractor" title="espnet2.enh.extractor.abs_extractor.AbsExtractor"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.extractor.abs_extractor.AbsExtractor</span></code></a></p>
 <p>Time-Domain SpeakerBeam Extractor.</p>
 <dl class="field-list simple">
@@ -952,12 +952,17 @@ buffer in a real streaming application.</p>
 <li><p><strong>kernel</strong> – int, kernel size.</p></li>
 <li><p><strong>causal</strong> – bool, defalut False.</p></li>
 <li><p><strong>norm_type</strong> – str, choose from ‘BN’, ‘gLN’, ‘cLN’</p></li>
+<li><p><strong>pre_nonlinear</strong> – the nonlinear function right before mask estimation
+select from ‘prelu’, ‘relu’, ‘tanh’, ‘sigmoid’, ‘linear’</p></li>
 <li><p><strong>nonlinear</strong> – the nonlinear function for mask estimation,
-select from ‘relu’, ‘tanh’, ‘sigmoid’</p></li>
+select from ‘relu’, ‘tanh’, ‘sigmoid’, ‘linear’</p></li>
 <li><p><strong>i_adapt_layer</strong> – int, index of adaptation layer</p></li>
 <li><p><strong>adapt_layer_type</strong> – str, type of adaptation layer
 see espnet2.enh.layers.adapt_layers for options</p></li>
 <li><p><strong>adapt_enroll_dim</strong> – int, dimensionality of the speaker embedding</p></li>
+<li><p><strong>use_spk_emb</strong> – bool, whether to use speaker embeddings as enrollment</p></li>
+<li><p><strong>spk_emb_dim</strong> – int, dimension of input speaker embeddings
+only used when <cite>use_spk_emb</cite> is True</p></li>
 </ul>
 </dd>
 </dl>
@@ -971,7 +976,7 @@ see espnet2.enh.layers.adapt_layers for options</p></li>
 <li><p><strong>input</strong> (<em>torch.Tensor</em><em> or </em><em>ComplexTensor</em>) – Encoded feature [B, T, N]</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – input lengths [Batch]</p></li>
 <li><p><strong>input_aux</strong> (<em>torch.Tensor</em><em> or </em><em>ComplexTensor</em>) – Encoded auxiliary feature
-for the target speaker [B, T, N]</p></li>
+for the target speaker [B, T, N] or [B, N]</p></li>
 <li><p><strong>ilens_aux</strong> (<em>torch.Tensor</em>) – input lengths of auxiliary input for the
 target speaker [Batch]</p></li>
 <li><p><strong>suffix_tag</strong> (<em>str</em>) – suffix to append to the keys in <cite>others</cite></p></li>
@@ -1268,7 +1273,7 @@ skip_out: [M, Sc, K]</p>
 
 <dl class="class">
 <dt id="espnet2.enh.layers.tcn.TemporalConvNet">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">TemporalConvNet</code><span class="sig-paren">(</span><em class="sig-param">N</em>, <em class="sig-param">B</em>, <em class="sig-param">H</em>, <em class="sig-param">P</em>, <em class="sig-param">X</em>, <em class="sig-param">R</em>, <em class="sig-param">C</em>, <em class="sig-param">Sc=None</em>, <em class="sig-param">out_channel=None</em>, <em class="sig-param">norm_type='gLN'</em>, <em class="sig-param">causal=False</em>, <em class="sig-param">mask_nonlinear='relu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#TemporalConvNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.TemporalConvNet" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">TemporalConvNet</code><span class="sig-paren">(</span><em class="sig-param">N</em>, <em class="sig-param">B</em>, <em class="sig-param">H</em>, <em class="sig-param">P</em>, <em class="sig-param">X</em>, <em class="sig-param">R</em>, <em class="sig-param">C</em>, <em class="sig-param">Sc=None</em>, <em class="sig-param">out_channel=None</em>, <em class="sig-param">norm_type='gLN'</em>, <em class="sig-param">causal=False</em>, <em class="sig-param">pre_mask_nonlinear='linear'</em>, <em class="sig-param">mask_nonlinear='relu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#TemporalConvNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.TemporalConvNet" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Basic Module of tasnet.</p>
 <dl class="field-list simple">
@@ -1286,6 +1291,7 @@ skip_out: [M, Sc, K]</p>
 if it is None, <cite>N</cite> will be used instead.</p></li>
 <li><p><strong>norm_type</strong> – BN, gLN, cLN</p></li>
 <li><p><strong>causal</strong> – causal or non-causal</p></li>
+<li><p><strong>pre_mask_nonlinear</strong> – the non-linear function before masknet</p></li>
 <li><p><strong>mask_nonlinear</strong> – use which non-linear function to generate mask</p></li>
 </ul>
 </dd>
@@ -1311,7 +1317,7 @@ if it is None, <cite>N</cite> will be used instead.</p></li>
 
 <dl class="class">
 <dt id="espnet2.enh.layers.tcn.TemporalConvNetInformed">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">TemporalConvNetInformed</code><span class="sig-paren">(</span><em class="sig-param">N</em>, <em class="sig-param">B</em>, <em class="sig-param">H</em>, <em class="sig-param">P</em>, <em class="sig-param">X</em>, <em class="sig-param">R</em>, <em class="sig-param">Sc=None</em>, <em class="sig-param">out_channel=None</em>, <em class="sig-param">norm_type='gLN'</em>, <em class="sig-param">causal=False</em>, <em class="sig-param">mask_nonlinear='relu'</em>, <em class="sig-param">i_adapt_layer: int = 7</em>, <em class="sig-param">adapt_layer_type: str = 'mul'</em>, <em class="sig-param">adapt_enroll_dim: int = 128</em>, <em class="sig-param">**adapt_layer_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#TemporalConvNetInformed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.TemporalConvNetInformed" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.tcn.</code><code class="sig-name descname">TemporalConvNetInformed</code><span class="sig-paren">(</span><em class="sig-param">N</em>, <em class="sig-param">B</em>, <em class="sig-param">H</em>, <em class="sig-param">P</em>, <em class="sig-param">X</em>, <em class="sig-param">R</em>, <em class="sig-param">Sc=None</em>, <em class="sig-param">out_channel=None</em>, <em class="sig-param">norm_type='gLN'</em>, <em class="sig-param">causal=False</em>, <em class="sig-param">pre_mask_nonlinear='prelu'</em>, <em class="sig-param">mask_nonlinear='relu'</em>, <em class="sig-param">i_adapt_layer: int = 7</em>, <em class="sig-param">adapt_layer_type: str = 'mul'</em>, <em class="sig-param">adapt_enroll_dim: int = 128</em>, <em class="sig-param">**adapt_layer_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/tcn.html#TemporalConvNetInformed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.tcn.TemporalConvNetInformed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.enh.layers.tcn.TemporalConvNet" title="espnet2.enh.layers.tcn.TemporalConvNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.enh.layers.tcn.TemporalConvNet</span></code></a></p>
 <p>Basic Module of TasNet with adaptation layers.</p>
 <dl class="field-list simple">
@@ -1328,6 +1334,7 @@ if it is None, <cite>N</cite> will be used instead.</p></li>
 if it is None, <cite>N</cite> will be used instead.</p></li>
 <li><p><strong>norm_type</strong> – BN, gLN, cLN</p></li>
 <li><p><strong>causal</strong> – causal or non-causal</p></li>
+<li><p><strong>pre_mask_nonlinear</strong> – the non-linear function before masknet</p></li>
 <li><p><strong>mask_nonlinear</strong> – use which non-linear function to generate mask</p></li>
 <li><p><strong>i_adapt_layer</strong> – int, index of the adaptation layer</p></li>
 <li><p><strong>adapt_layer_type</strong> – str, type of adaptation layer

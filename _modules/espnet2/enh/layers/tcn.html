@@ -226,6 +226,7 @@
         <span class="n">out_channel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">norm_type</span><span class="o">=</span><span class="s2">&quot;gLN&quot;</span><span class="p">,</span>
         <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">pre_mask_nonlinear</span><span class="o">=</span><span class="s2">&quot;linear&quot;</span><span class="p">,</span>
         <span class="n">mask_nonlinear</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Basic Module of tasnet.</span>
@@ -243,6 +244,7 @@
 <span class="sd">                if it is None, `N` will be used instead.</span>
 <span class="sd">            norm_type: BN, gLN, cLN</span>
 <span class="sd">            causal: causal or non-causal</span>
+<span class="sd">            pre_mask_nonlinear: the non-linear function before masknet</span>
 <span class="sd">            mask_nonlinear: use which non-linear function to generate mask</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -289,9 +291,20 @@
         <span class="c1"># [M, B, K] -&gt; [M, C*N, K]</span>
         <span class="n">mask_conv1x1</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="n">C</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">out_channel</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="c1"># Put together (for compatibility with older versions)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-            <span class="n">layer_norm</span><span class="p">,</span> <span class="n">bottleneck_conv1x1</span><span class="p">,</span> <span class="n">temporal_conv_net</span><span class="p">,</span> <span class="n">mask_conv1x1</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">pre_mask_nonlinear</span> <span class="o">==</span> <span class="s2">&quot;linear&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                <span class="n">layer_norm</span><span class="p">,</span> <span class="n">bottleneck_conv1x1</span><span class="p">,</span> <span class="n">temporal_conv_net</span><span class="p">,</span> <span class="n">mask_conv1x1</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">activ</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;prelu&quot;</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">(),</span>
+                <span class="s2">&quot;relu&quot;</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">(),</span>
+                <span class="s2">&quot;tanh&quot;</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Tanh</span><span class="p">(),</span>
+                <span class="s2">&quot;sigmoid&quot;</span><span class="p">:</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sigmoid</span><span class="p">(),</span>
+            <span class="p">}[</span><span class="n">pre_mask_nonlinear</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">network</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                <span class="n">layer_norm</span><span class="p">,</span> <span class="n">bottleneck_conv1x1</span><span class="p">,</span> <span class="n">temporal_conv_net</span><span class="p">,</span> <span class="n">activ</span><span class="p">,</span> <span class="n">mask_conv1x1</span>
+            <span class="p">)</span>
 
 <div class="viewcode-block" id="TemporalConvNet.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.layers.tcn.TemporalConvNet.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mixture_w</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Keep this API same with TasNet.</span>
@@ -305,7 +318,7 @@
         <span class="n">M</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">K</span> <span class="o">=</span> <span class="n">mixture_w</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
         <span class="n">bottleneck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
         <span class="n">tcns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">masknet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">masknet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
         <span class="n">output</span> <span class="o">=</span> <span class="n">bottleneck</span><span class="p">(</span><span class="n">mixture_w</span><span class="p">)</span>
         <span class="n">skip_conn</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">for</span> <span class="n">block</span> <span class="ow">in</span> <span class="n">tcns</span><span class="p">:</span>
@@ -353,6 +366,7 @@
         <span class="n">out_channel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="n">norm_type</span><span class="o">=</span><span class="s2">&quot;gLN&quot;</span><span class="p">,</span>
         <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">pre_mask_nonlinear</span><span class="o">=</span><span class="s2">&quot;prelu&quot;</span><span class="p">,</span>
         <span class="n">mask_nonlinear</span><span class="o">=</span><span class="s2">&quot;relu&quot;</span><span class="p">,</span>
         <span class="n">i_adapt_layer</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">7</span><span class="p">,</span>
         <span class="n">adapt_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mul&quot;</span><span class="p">,</span>
@@ -373,6 +387,7 @@
 <span class="sd">                if it is None, `N` will be used instead.</span>
 <span class="sd">            norm_type: BN, gLN, cLN</span>
 <span class="sd">            causal: causal or non-causal</span>
+<span class="sd">            pre_mask_nonlinear: the non-linear function before masknet</span>
 <span class="sd">            mask_nonlinear: use which non-linear function to generate mask</span>
 <span class="sd">            i_adapt_layer: int, index of the adaptation layer</span>
 <span class="sd">            adapt_layer_type: str, type of adaptation layer</span>
@@ -391,6 +406,7 @@
             <span class="n">out_channel</span><span class="o">=</span><span class="n">out_channel</span><span class="p">,</span>
             <span class="n">norm_type</span><span class="o">=</span><span class="n">norm_type</span><span class="p">,</span>
             <span class="n">causal</span><span class="o">=</span><span class="n">causal</span><span class="p">,</span>
+            <span class="n">pre_mask_nonlinear</span><span class="o">=</span><span class="n">pre_mask_nonlinear</span><span class="p">,</span>
             <span class="n">mask_nonlinear</span><span class="o">=</span><span class="n">mask_nonlinear</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">i_adapt_layer</span> <span class="o">=</span> <span class="n">i_adapt_layer</span>
@@ -419,7 +435,7 @@
 
         <span class="n">bottleneck</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
         <span class="n">tcns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">masknet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+        <span class="n">masknet</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">network</span><span class="p">[</span><span class="mi">3</span><span class="p">:]</span>
         <span class="n">output</span> <span class="o">=</span> <span class="n">bottleneck</span><span class="p">(</span><span class="n">mixture_w</span><span class="p">)</span>
         <span class="n">skip_conn</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">block</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tcns</span><span class="p">):</span>
