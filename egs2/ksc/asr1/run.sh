@@ -14,7 +14,7 @@ inference_config=conf/decode.yaml
 
 #if stage 10 fails, try setting the '--nj 1'
 ./asr.sh \
-    --stage 11 \
+    --stage 1 \
     --stop_stage 13 \
     --nj 32 \
     --ngpu 1 \
