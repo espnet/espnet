@@ -45,6 +45,6 @@ echo local/download_data.sh
 local/download_data.sh "${KSC}"
 
 echo local/prepare_data.sh
-local/prepare_data.sh "${KSC}" 
+local/prepare_data.sh "${KSC}"
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

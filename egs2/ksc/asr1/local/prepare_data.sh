@@ -37,5 +37,5 @@ for filename in $KSC/ISSAI_KSC_335RS_v1.1_flac/Meta/*; do
   utils/validate_data_dir.sh --no-feats $dir || exit 1
 done
 
-# create LM training data 
+# create LM training data
 mkdir -p data/local && cp data/train/text data/local
