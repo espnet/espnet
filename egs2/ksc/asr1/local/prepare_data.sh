@@ -7,7 +7,6 @@
 . ./path.sh
 
 KSC=$1
-
 #export LC_ALL=C
 
 if [ -d "data" ]; then
