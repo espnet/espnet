@@ -22,7 +22,7 @@ val_scheduler_criterion:
 - loss
 best_model_criterion:
 -   - valid
-    - si_snr
+    - snr
     - max
 -   - valid
     - loss
