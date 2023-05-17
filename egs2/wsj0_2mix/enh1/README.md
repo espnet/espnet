@@ -202,3 +202,17 @@ config: conf/tuning/train_enh_dptnet.yaml
 |---|---|---|---|---|---|
 |enhanced_cv_min_8k|97.98|22.62|22.29|34.54|22.24|
 |enhanced_tt_min_8k|98.68|23.23|22.90|35.30|22.81|
+
+
+
+## enh_train_enh_skim_causal_small_raw
+
+ - config: conf/tuning/train_enh_skim_causal_small.yaml
+ - Pretrained model: https://huggingface.co/lichenda/wsj0_2mix_skim_small_causal
+
+|dataset|STOI|SAR|SDR|SIR|SI_SNR|
+|---|---|---|---|---|---|
+|enhanced_cv_min_8k|93.41|15.54|14.92|24.87|14.51|
+|enhanced_tt_min_8k|94.20|15.00|14.33|24.18|13.92|
+
+
