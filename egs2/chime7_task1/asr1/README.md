@@ -114,7 +114,7 @@ Note that DiPCo will be downloaded and extracted automatically. <br>
 To **ONLY** generate the data you will need to run:
 ```bash
 ./run.sh --chime5-root YOUR_PATH_TO_CHiME5 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
---mixer6-root YOUR_PATH_TO_MIXER6 --chime6-path PATH_WHERE_STORE_CHiME6 --stage 0 --stop-stage 0
+--mixer6-root YOUR_PATH_TO_MIXER6 --chime6-root PATH_WHERE_STORE_CHiME6 --stage 0 --stop-stage 0
 ```
 If you have already CHiME-6 data you can use that without re-creating it from CHiME-5.
 ```bash
