@@ -4,7 +4,7 @@ import logging
 import re
 import sys
 from pathlib import Path
-from typing import List, Union
+from typing import Dict, List, Union
 
 import numpy as np
 import torch
@@ -56,6 +56,8 @@ def scoring(
     inf_scp: List[str],
     ref_channel: int,
     flexible_numspk: bool,
+    dnsmos: bool,
+    dnsmos_args: Dict,
 ):
     assert check_argument_types()
 
@@ -63,6 +65,41 @@ def scoring(
         level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
+
+    if dnsmos:
+        if dnsmos_args["mode"] == "local":
+            from espnet2.enh.layers.dnsmos import DNSMOS_local
+
+            if not Path(dnsmos_args["primary_model"]).exists():
+                raise ValueError(
+                    f"The primary model '{dnsmos_args['primary_model']}' does not exist. "
+                    "You can download the model from https://github.com/microsoft/"
+                    "DNS-Challenge/tree/master/DNSMOS/DNSMOS"
+                )
+            if not Path(dnsmos_args["p808_model"]).exists():
+                raise ValueError(
+                    f"The P808 model '{dnsmos_args['p808_model']}' does not exist."
+                    "You can download the model from https://github.com/microsoft/"
+                    "DNS-Challenge/tree/master/DNSMOS/DNSMOS"
+                )
+            dnsmos = DNSMOS_local(
+                dnsmos_args["primary_model"], dnsmos_args["p808_model"]
+            )
+            logging.warning("Using local DNSMOS models for evaluation")
+
+        elif dnsmos_args["mode"] == "web":
+            from espnet2.enh.layers.dnsmos import DNSMOS_web
+
+            if not dnsmos_args["auth_key"]:
+                raise ValueError(
+                    "Please specify the authentication key for access to the Web-API. "
+                    "You can apply for the AUTH_KEY at https://github.com/microsoft/"
+                    "DNS-Challenge/blob/master/DNSMOS/README.md#to-use-the-web-api"
+                )
+            dnsmos = DNSMOS_web(dnsmos_args["auth_key"])
+            logging.warning("Using the DNSMOS Web-API for evaluation")
+    else:
+        dnsmos = None
 
     if not flexible_numspk:
         assert len(ref_scp) == len(inf_scp), ref_scp
@@ -157,6 +194,12 @@ def scoring(
                         torch.from_numpy(inf[int(perm[i])][None, ...]),
                     )
                 )
+                if dnsmos:
+                    dnsmos_score = dnsmos(inf[int(perm[i])], sample_rate)
+                    writer[f"OVRL_spk{i + 1}"][key] = str(dnsmos_score["OVRL"])
+                    writer[f"SIG_spk{i + 1}"][key] = str(dnsmos_score["SIG"])
+                    writer[f"BAK_spk{i + 1}"][key] = str(dnsmos_score["BAK"])
+                    writer[f"P808_MOS_spk{i + 1}"][key] = str(dnsmos_score["P808_MOS"])
                 writer[f"STOI_spk{i + 1}"][key] = str(stoi_score * 100)  # in percentage
                 writer[f"ESTOI_spk{i + 1}"][key] = str(estoi_score * 100)
                 writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
@@ -219,6 +262,31 @@ def get_parser():
     group.add_argument("--ref_channel", type=int, default=0)
     group.add_argument("--flexible_numspk", type=str2bool, default=False)
 
+    group = parser.add_argument_group("DNSMOS related")
+    group.add_argument("--dnsmos", type=str2bool, default=False)
+    group.add_argument(
+        "--dnsmos_mode",
+        type=str,
+        choices=("local", "web"),
+        default="local",
+        help="Use local DNSMOS model or web API for DNSMOS calculation",
+    )
+    group.add_argument(
+        "--dnsmos_auth_key", type=str, default="", help="Required if dnsmsos_mode='web'"
+    )
+    group.add_argument(
+        "--dnsmos_primary_model",
+        type=str,
+        default="./DNSMOS/model_v8.onnx",
+        help="Path to the primary DNSMOS model. Required if dnsmsos_mode='local'",
+    )
+    group.add_argument(
+        "--dnsmos_p808_model",
+        type=str,
+        default="./DNSMOS/sig_bak_ovr.onnx",
+        help="Path to the p808 model. Required if dnsmsos_mode='local'",
+    )
+
     return parser
 
 
@@ -228,6 +296,14 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop("config", None)
+
+    dnsmos_args = {
+        "mode": kwargs.pop("dnsmos_mode"),
+        "auth_key": kwargs.pop("dnsmos_auth_key"),
+        "primary_model": kwargs.pop("dnsmos_primary_model"),
+        "p808_model": kwargs.pop("dnsmos_p808_model"),
+    }
+    kwargs["dnsmos_args"] = dnsmos_args
     scoring(**kwargs)
 
 
