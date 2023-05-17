@@ -83,7 +83,23 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         # Divide songs by 'P' (pause) or 'B' (breath) or GlottalStop
         note = notes[i]
         # fix errors in dataset
-        if ("i_vow_to_thee_my_country" in file_id and note.lyric in sil and notes[i + 1].lyric == "ろ") or ("shabondama" in file_id and note.lyric in sil and notes[i + 1].lyric == "だ") or ("kusakeiba" in file_id and note.lyric in sil and notes[i - 3].lyric == "’い"):
+        if (
+            (
+                "i_vow_to_thee_my_country" in file_id
+                and note.lyric in sil
+                and notes[i + 1].lyric == "ろ"
+            )
+            or (
+                "shabondama" in file_id
+                and note.lyric in sil
+                and notes[i + 1].lyric == "だ"
+            )
+            or (
+                "kusakeiba" in file_id
+                and note.lyric in sil
+                and notes[i - 3].lyric == "’い"
+            )
+        ):
             notes[i + 1].st = note.st
             continue
         if note.lyric in sil:
@@ -91,7 +107,38 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
-        elif (note.lyric is not None and note.lyric[0] in ["・", "’"]) or ("hana" in file_id and note.lyric == "あ" and notes[i - 1].lyric == "や") or ("hana" in file_id and note.lyric == "も" and notes[i - 1].lyric == "に") or ("santa_lucia" in file_id and note.lyric == "な" and notes[i - 1].lyric == "わ") or ("santa_lucia" in file_id and note.lyric == "そ" and notes[i - 8].lyric == "ぜ") or ("furusato" in file_id and note.lyric == "か" and notes[i + 2].lyric == "か") or ("aria" in file_id and note.lyric == "でぃ" and notes[i - 1].lyric == "い") or ("aria" in file_id and note.lyric == "ぷ" and notes[i - 1].lyric == "じ") or ("antagata_dokosa" in file_id and notes[i - 1].lyric == "さ" and notes[i - 2].lyric != "こ") or ("kusakeiba" in file_id and note.lyric == "どぅ" and notes[i - 1].lyric == "ぎ"):
+        elif (
+            (note.lyric is not None and note.lyric[0] in ["・", "’"])
+            or ("hana" in file_id and note.lyric == "あ" and notes[i - 1].lyric == "や")
+            or ("hana" in file_id and note.lyric == "も" and notes[i - 1].lyric == "に")
+            or (
+                "santa_lucia" in file_id
+                and note.lyric == "な"
+                and notes[i - 1].lyric == "わ"
+            )
+            or (
+                "santa_lucia" in file_id
+                and note.lyric == "そ"
+                and notes[i - 8].lyric == "ぜ"
+            )
+            or (
+                "furusato" in file_id
+                and note.lyric == "か"
+                and notes[i + 2].lyric == "か"
+            )
+            or ("aria" in file_id and note.lyric == "でぃ" and notes[i - 1].lyric == "い")
+            or ("aria" in file_id and note.lyric == "ぷ" and notes[i - 1].lyric == "じ")
+            or (
+                "antagata_dokosa" in file_id
+                and notes[i - 1].lyric == "さ"
+                and notes[i - 2].lyric != "こ"
+            )
+            or (
+                "kusakeiba" in file_id
+                and note.lyric == "どぅ"
+                and notes[i - 1].lyric == "ぎ"
+            )
+        ):
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()

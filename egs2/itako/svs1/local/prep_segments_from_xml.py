@@ -82,10 +82,22 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
     for i in range(len(notes)):
         note = notes[i]
         # fix errors in dataset
-        if "itako04" in file_id and i in [191, 193, 194, 195, 197, 199, 200, 201, 202, 203, 207]:
+        if "itako04" in file_id and i in [
+            191,
+            193,
+            194,
+            195,
+            197,
+            199,
+            200,
+            201,
+            202,
+            203,
+            207,
+        ]:
             notes[i + 1].st = note.st
             continue
-            #print(i, note.lyric, note.st, note.et)
+            # print(i, note.lyric, note.st, note.et)
         if "itako02" in file_id and note.lyric == "—":
             note.lyric = "P"
         if "itako22" in file_id and note.lyric == "ろ" and notes[i + 2].lyric == "こ":
@@ -95,8 +107,19 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         if "itako27" in file_id and note.lyric == "<Melodyne>":
             note.lyric = "すぃ"
         # Divide songs by 'P' (pause) or 'B' (breath)
-        if note.lyric in sil: 
-            if i < len(notes) - 1 and (("itako21" in file_id and (notes[i + 1].lyric == "び" or notes[i + 2].lyric == "うぉ" or notes[i + 1].lyric == "け" or notes[i + 1].lyric == "だ")) or ("itako04" in file_id and notes[i + 1].lyric == "こ")):
+        if note.lyric in sil:
+            if i < len(notes) - 1 and (
+                (
+                    "itako21" in file_id
+                    and (
+                        notes[i + 1].lyric == "び"
+                        or notes[i + 2].lyric == "うぉ"
+                        or notes[i + 1].lyric == "け"
+                        or notes[i + 1].lyric == "だ"
+                    )
+                )
+                or ("itako04" in file_id and notes[i + 1].lyric == "こ")
+            ):
                 notes[i + 1].st = note.st
                 continue
             if len(segment.segs) > 0:

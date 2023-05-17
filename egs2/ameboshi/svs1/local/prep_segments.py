@@ -84,7 +84,25 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
-        if ("turkey_in_the_straw" in file_id and label.label_id == "s" and labels[i + 1].label_id == "e" and labels[i + 2].label_id == "N") or ("yuki" in file_id and label.label_id == "w" and labels[i + 1].label_id == "a" and labels[i + 2].label_id == "t") or ("alps_ichimanjaku" in file_id and label.label_id == "a" and labels[i - 1].label_id == "e"):
+        if (
+            (
+                "turkey_in_the_straw" in file_id
+                and label.label_id == "s"
+                and labels[i + 1].label_id == "e"
+                and labels[i + 2].label_id == "N"
+            )
+            or (
+                "yuki" in file_id
+                and label.label_id == "w"
+                and labels[i + 1].label_id == "a"
+                and labels[i + 2].label_id == "t"
+            )
+            or (
+                "alps_ichimanjaku" in file_id
+                and label.label_id == "a"
+                and labels[i - 1].label_id == "e"
+            )
+        ):
             segments.extend(segment.split(threshold=threshold))
             segment = SegInfo()
         segment.add(label.start, label.end, label.label_id)
@@ -127,7 +145,7 @@ if __name__ == "__main__":
         temp_info = []
         for i in range(len(phn_info) // 3):
             if phn_info[i * 3 + 2] == "U":
-                phn_info[i * 3 + 2] = "u" 
+                phn_info[i * 3 + 2] = "u"
             temp_info.append(
                 LabelInfo(phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2])
             )

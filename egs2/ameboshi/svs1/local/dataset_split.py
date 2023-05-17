@@ -3,8 +3,20 @@ import os
 import shutil
 
 UTT_PREFIX = "ameboshi"
-DEV_LIST = ["alps_ichimanjaku", "aura_lea", "fuyugeshiki", "hotaruno_hikari", "kamomeno_suiheisan"]
-TEST_LIST = ["antagata_dokosa", "chouchou", "haruga_kita", "ichigatsuichijitsu", "koujouno_tsuki"]
+DEV_LIST = [
+    "alps_ichimanjaku",
+    "aura_lea",
+    "fuyugeshiki",
+    "hotaruno_hikari",
+    "kamomeno_suiheisan",
+]
+TEST_LIST = [
+    "antagata_dokosa",
+    "chouchou",
+    "haruga_kita",
+    "ichigatsuichijitsu",
+    "koujouno_tsuki",
+]
 
 
 def train_check(song):

@@ -56,10 +56,10 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
     musicxmlscp = open(os.path.join(subset, "score.scp"), "w", encoding="utf-8")
 
     for item in subfolder:
-        name = item[0: 7]
+        name = item[0:7]
         if not check_func(name):
             continue
-        #utt_id = "{}_{}".format(UTT_PREFIX, pack_zero(name[5: 7]))
+        # utt_id = "{}_{}".format(UTT_PREFIX, pack_zero(name[5: 7]))
         utt_id = name
 
         cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(

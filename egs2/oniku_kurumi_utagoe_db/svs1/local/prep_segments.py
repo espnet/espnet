@@ -123,7 +123,7 @@ if __name__ == "__main__":
         temp_info = []
         for i in range(len(phn_info) // 3):
             if phn_info[i * 3 + 2] == "U":
-                phn_info[i * 3 + 2] = "u" 
+                phn_info[i * 3 + 2] = "u"
             temp_info.append(
                 LabelInfo(phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2])
             )
