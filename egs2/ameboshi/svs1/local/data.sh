@@ -37,7 +37,7 @@ recog_set="eval"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
-    # The ameboshi data should be downloaded from https://github.com/r9y9/nnsvs/tree/master/recipes/ameboshi_cipher_utagoe_db
+    # The ameboshi data should be downloaded from https://parapluie2c56m.wixsite.com/mysite
     # with authentication
 
 fi
