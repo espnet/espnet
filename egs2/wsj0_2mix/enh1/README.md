@@ -214,5 +214,3 @@ config: conf/tuning/train_enh_dptnet.yaml
 |---|---|---|---|---|---|
 |enhanced_cv_min_8k|93.41|15.54|14.92|24.87|14.51|
 |enhanced_tt_min_8k|94.20|15.00|14.33|24.18|13.92|
-
-
