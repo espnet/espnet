@@ -195,6 +195,12 @@ class VADTask(ASRTask):
             help="If len(noise) / len(speech) is smaller than this threshold during "
             "dynamic mixing, a warning will be displayed.",
         )
+        group.add_argument(
+            "--segment_length",
+            type=float,
+            default=10.0,
+            help="The length of segments in seconds. "
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -227,6 +233,7 @@ class VADTask(ASRTask):
                 speech_volume_normalize=args.speech_volume_normalize
                 if hasattr(args, "rir_scp")
                 else None,
+                segment_length=args.segment_length,
             )
         else:
             retval = None

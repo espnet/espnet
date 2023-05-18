@@ -197,20 +197,10 @@ fi
 
 num_inf=${num_inf:=${num_ref}}
 # Preprocessor related
-if [ ${num_ref} -eq 1 ]; then
-    # For single speaker, text file path and name are text
-    ref_text_files_str="text "
-    ref_text_names_str="text "
-else
-    # For multiple speakers, text file path and name are text_spk[1-N] and [text, text_spk2, ...]
-    #TODO(simpleoier): later to support flexibly defined text prefix
-    ref_text_files_str="text_spk1 "
-    ref_text_names_str="text "
-    for n in $(seq 2 ${num_ref}); do
-        ref_text_files_str+="text_spk${n} "
-        ref_text_names_str+="text_spk${n} "
-    done
-fi
+# For single speaker, text file path and name are text
+ref_text_files_str="text "
+ref_text_names_str="text "
+
 # shellcheck disable=SC2206
 ref_text_files=(${ref_text_files_str// / })
 # shellcheck disable=SC2206
@@ -284,14 +274,6 @@ if ! "${skip_data_prep}"; then
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
 
-                # Copy reference text files if there is more than 1 reference
-                if [ ${#ref_text_files[@]} -gt 1 ]; then
-                    # shellcheck disable=SC2068
-                    for ref_txt in ${ref_text_files[@]}; do
-                        [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
-                    done
-                fi
-
                 _opts=
                 if [ -e data/"${dset}"/segments ]; then
                     # "segments" is used for splitting wav files which are written in "wav".scp
@@ -320,14 +302,6 @@ if ! "${skip_data_prep}"; then
                 fi
                 # 1. Copy datadir
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-
-                # Copy reference text files if there is more than 1 reference
-                if [ ${#ref_text_files[@]} -gt 1 ]; then
-                    # shellcheck disable=SC2068
-                    for ref_txt in ${ref_text_files[@]}; do
-                        [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
-                    done
-                fi
 
                 # 2. Feature extract
                 _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
@@ -370,14 +344,6 @@ if ! "${skip_data_prep}"; then
                     fi
                 fi
                 utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-
-                # Copy reference text files if there is more than 1 reference
-                # shellcheck disable=SC2068
-                if [ ${#ref_text_files[@]} -gt 1 ]; then
-                    for ref_txt in ${ref_text_files[@]}; do
-                        [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
-                    done
-                fi
 
                 # Derive the the frame length and feature dimension
                 _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
@@ -446,13 +412,6 @@ if ! "${skip_data_prep}"; then
                     utils/filter_scp.pl "${data_feats}/${dset}/feats_shape"  \
                     >"${data_feats}/${dset}/feats.scp"
             fi
-
-            # Remove empty text
-            # shellcheck disable=SC2068
-            for ref_txt in ${ref_text_files[@]}; do
-                <"${data_feats}/org/${dset}/${ref_txt}" \
-                    awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/${ref_txt}"
-            done
 
             # fix_data_dir.sh leaves only utts which exist in all files
             utils/fix_data_dir.sh \
@@ -538,11 +497,6 @@ if ! "${skip_train}"; then
 
         _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${_scp},speech,${_type} "
         _opts+="--valid_data_path_and_name_and_type ${_vad_valid_dir}/${_scp},speech,${_type} "
-        # shellcheck disable=SC2068
-        for i in ${!ref_text_files[@]}; do
-            _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-            _opts+="--valid_data_path_and_name_and_type ${_vad_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-        done
 
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -626,14 +580,6 @@ if ! "${skip_train}"; then
 
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
             _opts+="--train_shape_file ${_split_dir}/speech_shape "
-            # shellcheck disable=SC2068
-            for i in ${!ref_text_names[@]}; do
-                _opts+="--fold_length ${vad_text_fold_length} "
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-                _opts+="--train_shape_file ${_split_dir}/${ref_text_names[$i]}_shape "
-            done
-            _opts+="--multiple_iterator true "
-
         else
             _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_shape_file ${vad_stats_dir}/train/speech_shape "
@@ -645,19 +591,7 @@ if ! "${skip_train}"; then
                      _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${aux_dset},text,text "
                 done
             fi
-            # shellcheck disable=SC2068
-            for i in ${!ref_text_names[@]}; do
-                _opts+="--fold_length ${vad_text_fold_length} "
-                _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-                _opts+="--train_shape_file ${vad_stats_dir}/train/${ref_text_names[$i]}_shape "
-            done
         fi
-
-        # shellcheck disable=SC2068
-        for i in ${!ref_text_names[@]}; do
-            _opts+="--valid_data_path_and_name_and_type ${_vad_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-            _opts+="--valid_shape_file ${vad_stats_dir}/valid/${ref_text_names[$i]}_shape "
-        done
 
         log "Generate '${vad_exp}/run.sh'. You can resume the process from stage 5 using this script"
         mkdir -p "${vad_exp}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${vad_exp}/run.sh"; chmod +x "${vad_exp}/run.sh"

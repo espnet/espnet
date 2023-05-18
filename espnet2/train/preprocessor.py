@@ -455,6 +455,7 @@ class VADPreprocessor(CommonPreprocessor):
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: str = "text",
+        segment_length= 10.0
     ):
         super().__init__(
             train=train,
@@ -468,7 +469,7 @@ class VADPreprocessor(CommonPreprocessor):
             speech_name=speech_name,
             text_name=text_name,
         )
-        pass
+        self.segment_length = segment_length
 
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
@@ -477,13 +478,15 @@ class VADPreprocessor(CommonPreprocessor):
             # transform float time intervals to integers of length len(speech)
             text = data[self.text_name]
             text_split = [float(item) * 100 for item in text.split(" ")]
-            # input is split to 10s chunks, multiply the original timestamp by 100
+            # input is split to chunks of length segment_length, multiply the original timestamp by 100
+            # the default value for segment_length = 10
             # text_array = np.zeros([1000, 2], dtype=np.int64)
             # if len(text_split) != 0:
             #     for i in range(0, len(text_split), 2):
             #         text_array[int(text_split[i]):int(text_split[i+1]), :] = 1
             #     text_array[:, 1] = 1 - text_array[:, 0]
-            text_array = np.zeros([1001], dtype=np.int64)
+            # need extra 1 because of the residual of feature extraction
+            text_array = np.zeros([int(self.segment_length * 10) + 1], dtype=np.int64)
             if len(text_split) != 0:
                 for i in range(0, len(text_split), 2):
                     text_array[int(text_split[i]) : int(text_split[i + 1])] = 1
