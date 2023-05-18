@@ -455,7 +455,7 @@ class VADPreprocessor(CommonPreprocessor):
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: str = "text",
-        segment_length= 10.0
+        segment_length=10.0,
     ):
         super().__init__(
             train=train,

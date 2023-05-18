@@ -199,7 +199,7 @@ class VADTask(ASRTask):
             "--segment_length",
             type=float,
             default=10.0,
-            help="The length of segments in seconds. "
+            help="The length of segments in seconds. ",
         )
 
         for class_choices in cls.class_choices_list:
