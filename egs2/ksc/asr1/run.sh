@@ -24,5 +24,4 @@ inference_config=conf/decode.yaml
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --bpe_train_text "data/local/text" \
-    --lm_train_text "data/local/text"
+    --bpe_train_text "data/local/text" "$@"
