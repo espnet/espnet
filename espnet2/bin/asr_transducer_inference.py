@@ -587,7 +587,11 @@ def inference(
                         _end = (i + 1) * speech2text._chunk_ctx
 
                         speech2text.streaming_decode(
-                            speech[i * speech2text._chunk_ctx : _end + speech2text._right_ctx], is_final=False
+                            speech[
+                                i * speech2text._chunk_ctx : _end
+                                + speech2text._right_ctx
+                            ],
+                            is_final=False,
                         )
 
                     final_hyps = speech2text.streaming_decode(
