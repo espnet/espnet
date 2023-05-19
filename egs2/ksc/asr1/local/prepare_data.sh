@@ -26,7 +26,6 @@ for filename in $KSC/ISSAI_KSC_335RS_v1.1_flac/Meta/*; do
       echo "$uttID $(cat $KSC/ISSAI_KSC_335RS_v1.1_flac/Transcriptions/${uttID}.txt)" >> ${dir}/text
       echo "$uttID $KSC/ISSAI_KSC_335RS_v1.1_flac/Audios_flac/${uttID}.flac" >> ${dir}/wav.scp
       echo "$uttID $uttID" >> ${dir}/utt2spk
-      #echo $text
     done
   } < $filename
 
