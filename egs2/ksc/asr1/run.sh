@@ -12,7 +12,6 @@ test_sets="test dev"
 asr_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
-#if stage 10 fails, try setting the '--nj 1'.
 ./asr.sh \
     --token_type bpe \
     --nbpe 2000 \
