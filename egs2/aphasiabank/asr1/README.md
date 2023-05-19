@@ -5,6 +5,8 @@
 1. Download AphasiaBank from https://aphasia.talkbank.org
 2. See [data.sh](local/data.sh) for instructions
 
+Data splits are stored in [a separate repository](https://github.com/tjysdsg/AphasiaBank_config).
+
 ## Experiments
 
 - Use `run.sh` for baselines and tag-based experiments.
@@ -27,7 +29,6 @@ Parameters:
   But if the input does contain, it will automatically remove them.
 - [local/score_per_severity.sh](local/score_per_severity.sh) is similar, but it
   calculates CER/WER per Aphasia severity.
-  But if the input does contain, it will automatically remove them.
 - [local/score_interctc_aux.sh](local/score_interctc_aux.sh) is used to calculate
   InterCTC-based Aphasia detection accuracy.
 - [local/score_aphasia_detection.py](local/score_aphasia_detection.py) is used to
