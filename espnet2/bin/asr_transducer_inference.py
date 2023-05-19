@@ -185,9 +185,11 @@ class Speech2Text:
         else:
             self.frontend_window_size = self.n_fft
 
-        self.window_size = self.chunk_size + self.right_context
-        self._raw_ctx = self.asr_model.encoder.get_encoder_input_raw_size(
-            self.window_size, self.hop_length
+        self._chunk_ctx = self.asr_model.encoder.get_encoder_input_raw_size(
+            self.chunk_size, self.hop_length
+        )
+        self._right_ctx = self.asr_model.encoder.get_encoder_input_raw_size(
+            self.right_context, self.hop_length
         )
 
         self.last_chunk_length = (
@@ -578,14 +580,14 @@ def inference(
                 if speech2text.streaming:
                     speech = batch["speech"]
 
-                    _steps = len(speech) // speech2text._raw_ctx
+                    _steps = len(speech) // speech2text._chunk_ctx
                     _end = 0
 
                     for i in range(_steps):
-                        _end = (i + 1) * speech2text._raw_ctx
+                        _end = (i + 1) * speech2text._chunk_ctx
 
                         speech2text.streaming_decode(
-                            speech[i * speech2text._raw_ctx : _end], is_final=False
+                            speech[i * speech2text._chunk_ctx : _end + speech2text._right_ctx], is_final=False
                         )
 
                     final_hyps = speech2text.streaming_decode(
