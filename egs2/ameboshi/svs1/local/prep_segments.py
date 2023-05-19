@@ -77,12 +77,34 @@ def get_parser():
 def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
     segments = []
     segment = SegInfo()
-    for label in labels:
+    for i in range(len(labels)):
+        label = labels[i]
         if label.label_id in sil:
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
+        if (
+            (
+                "turkey_in_the_straw" in file_id
+                and label.label_id == "s"
+                and labels[i + 1].label_id == "e"
+                and labels[i + 2].label_id == "N"
+            )
+            or (
+                "yuki" in file_id
+                and label.label_id == "w"
+                and labels[i + 1].label_id == "a"
+                and labels[i + 2].label_id == "t"
+            )
+            or (
+                "alps_ichimanjaku" in file_id
+                and label.label_id == "a"
+                and labels[i - 1].label_id == "e"
+            )
+        ):
+            segments.extend(segment.split(threshold=threshold))
+            segment = SegInfo()
         segment.add(label.start, label.end, label.label_id)
 
     if len(segment.segs) > 0:
