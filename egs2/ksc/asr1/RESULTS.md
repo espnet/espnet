@@ -8,6 +8,8 @@
 - Git hash: `3949a7db023d591e91627efb997eda353b54005d`
   - Commit date: `Thu May 11 17:54:50 2023 +0800`
 
+## HuggingFace model link: https://huggingface.co/espnet/khassan_KSC_transformer
+
 ## exp/asr_train_raw_bpe2000_sp
 ### WER
 
