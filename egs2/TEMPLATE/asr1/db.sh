@@ -175,6 +175,9 @@ ELRA_S0272=
 ELRA_S0371=
 M4SINGER=
 ONIKU=
+PJS=
+AMEBOSHI=
+ITAKO=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

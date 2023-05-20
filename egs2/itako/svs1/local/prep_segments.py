@@ -77,11 +77,54 @@ def get_parser():
 def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
     segments = []
     segment = SegInfo()
-    for label in labels:
+    for i in range(len(labels)):
+        label = labels[i]
+        # fix errors in dataset
+        if "itako30" in file_id and label.label_id == "o" and i == len(labels) - 2:
+            label.label_id = "u"
         if label.label_id in sil:
+            if (
+                "itako25" in file_id
+                and i < len(labels) - 1
+                and labels[i + 1].label_id == "N"
+            ):
+                inter = float(label.start) + (float(label.end) - float(label.start)) / 3
+                segment.add(label.start, inter, "j")
+                segment.add(inter, label.end, "a")
+                continue
+            if i < len(labels) - 1 and (
+                ("itako09" in file_id and labels[i + 4].label_id == "r")
+                or ("itako48" in file_id and labels[i + 4].label_id == "k")
+            ):
+                labels[i + 1].start = label.start
+                continue
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
+            continue
+        if "itako21" in file_id and (
+            (label.label_id == "a" and labels[i - 1].label_id == "u")
+            or (
+                label.label_id == "o"
+                and labels[i - 1].label_id in ["i", "e"]
+                and labels[i + 1].label_id == "o"
+            )
+            or (
+                label.label_id == "i"
+                and labels[i - 1].label_id == "o"
+                and labels[i - 2].label_id == "w"
+            )
+        ):
+            segments.extend(segment.split(threshold=threshold))
+            segment = SegInfo()
+        if (
+            "itako27" in file_id
+            and label.label_id == "i"
+            and labels[i - 1].label_id == "s"
+        ):
+            inter = float(label.start) + (float(label.end) - float(label.start)) / 2
+            segment.add(label.start, inter, "i")
+            segment.add(inter, label.end, "i")
             continue
         segment.add(label.start, label.end, label.label_id)
 
@@ -122,8 +165,6 @@ if __name__ == "__main__":
         phn_info = label_line.strip().split()[1:]
         temp_info = []
         for i in range(len(phn_info) // 3):
-            if phn_info[i * 3 + 2] == "U":
-                phn_info[i * 3 + 2] = "u"
             temp_info.append(
                 LabelInfo(phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2])
             )
