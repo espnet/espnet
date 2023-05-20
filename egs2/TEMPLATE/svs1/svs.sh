@@ -68,7 +68,7 @@ pitch_extract=None
 ying_extract=None
 # Only used for the model using pitch features (e.g. FastSpeech2)
 f0min=80          # Maximum f0 for pitch extraction.
-f0max=400         # Minimum f0 for pitch extraction.
+f0max=800         # Minimum f0 for pitch extraction.
 
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
