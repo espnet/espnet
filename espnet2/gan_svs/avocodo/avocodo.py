@@ -767,11 +767,15 @@ class AvocodoDiscriminatorPlus(torch.nn.Module):
             "lv2": [4, 192, 0.13, 10.0],
         },
         projection_filters: List[int] = [0, 1, 1, 1],
+        # Multi-frequency discriminator related
+        sample_rate: int = 22050,
         multi_freq_disc_params: Dict[str, Any] = {
-            "hop_lengths": [128, 256, 512],
+            "hop_length_factors": [4, 8, 16],
             "hidden_channels": [256, 512, 512],
             "domain": "double",
             "mel_scale": True,
+            "divisors": [32, 16, 8, 4, 2, 1, 1],
+            "strides": [1, 2, 1, 2, 1, 2, 1],
         },
     ):
         super().__init__()
