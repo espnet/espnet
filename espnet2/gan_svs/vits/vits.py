@@ -281,7 +281,7 @@ class VITS(AbsGANSVS):
         lambda_feat_match: float = 2.0,
         lambda_dur: float = 0.1,
         lambda_kl: float = 1.0,
-        lambda_pitch: float = 1.0,
+        lambda_pitch: float = 10.0,
         lambda_phoneme: float = 1.0,
         lambda_c_yin: float = 45.0,
         cache_generator_outputs: bool = True,
@@ -604,9 +604,6 @@ class VITS(AbsGANSVS):
                 singing_hat_ddsp_ = extra_outs[0]
             elif self.generator_type == "visinger2":
                 predict_mel = extra_outs[0]
-                # print("singing_hat_[0] shape: ", singing_hat_[0].shape)
-                # print("singing_hat_[1] shape: ", singing_hat_[1].shape)
-                # print("singing_hat_[2] shape: ", singing_hat_[2].shape)
         elif "pisinger" in self.generator_type:
             if self.vocoder_generator_type == "visinger2":
                 (

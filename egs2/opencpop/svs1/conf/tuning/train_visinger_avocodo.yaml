@@ -95,43 +95,7 @@ svs_conf:
     # discriminator related
     discriminator_type: avocodo # avocodo, hifigan_multi_scale_multi_period_discriminator, visinger2, avocodo_plus
     discriminator_params:
-        # scales: 1
-        # scale_downsample_pooling: "AvgPool1d"
-        # scale_downsample_pooling_params:
-        #     kernel_size: 4
-        #     stride: 2
-        #     padding: 2
-        # scale_discriminator_params:
-        #     in_channels: 1
-        #     out_channels: 1
-        #     kernel_sizes: [15, 41, 5, 3]
-        #     channels: 128
-        #     max_downsample_channels: 1024
-        #     max_groups: 16
-        #     bias: True
-        #     downsample_scales: [2, 2, 4, 4, 1]
-        #     nonlinear_activation: "LeakyReLU"
-        #     nonlinear_activation_params:
-        #         negative_slope: 0.1
-        #     use_weight_norm: True
-        #     use_spectral_norm: False
-        # follow_official_norm: False
-        # periods: [2, 3, 5, 7, 11]
-        # period_discriminator_params:
-        #     in_channels: 1
-        #     out_channels: 1
-        #     kernel_sizes: [5, 3]
-        #     channels: 32
-        #     downsample_scales: [3, 3, 3, 3, 1]
-        #     max_downsample_channels: 1024
-        #     bias: True
-        #     nonlinear_activation: "LeakyReLU"
-        #     nonlinear_activation_params:
-        #         negative_slope: 0.1
-        #     use_weight_norm: True
-        #     use_spectral_norm: False
-
-        # avocodo (remove hifigan paramters)
+        # avocodo
         combd:
             combd_h_u: [
                 [16, 64, 256, 1024, 1024, 1024],
@@ -230,7 +194,7 @@ svs_conf:
     lambda_mel: 45.0       # loss scaling coefficient for Mel loss
     lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
     lambda_dur: 0.1        # loss scaling coefficient for duration loss
-    lambda_pitch: 1.0      # loss scaling coefficient for pitch loss
+    lambda_pitch: 10.0      # loss scaling coefficient for pitch loss
     lambda_phoneme: 1.0    # loss scaling coefficient for ctc loss
     lambda_kl: 1.0         # loss scaling coefficient for KL divergence loss
     # others
@@ -275,7 +239,7 @@ generator_first: false # whether to start updating generator first
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000 # number of iterations per epoch
-max_epoch: 100            # number of epochs
+max_epoch: 500            # number of epochs
 accum_grad: 1             # gradient accumulation
 batch_size: 8             # batch size
 batch_type: sorted        # how to make batch

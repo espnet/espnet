@@ -40,7 +40,7 @@ svs_conf:
         use_conformer_conv_in_text_encoder: false
         text_encoder_conformer_kernel_size: -1
         decoder_kernel_size: 7
-        decoder_channels: 512
+        decoder_channels: 256
         decoder_upsample_scales: [8, 8, 4, 2]
         decoder_upsample_kernel_sizes: [16, 16, 8, 4]
         decoder_resblock_kernel_sizes: [3, 7, 11]
@@ -75,9 +75,9 @@ svs_conf:
             kernel_sizes: [15, 41, 5, 3]
             channels: 128
             max_downsample_channels: 1024
-            max_groups: 16
+            max_groups: 256
             bias: True
-            downsample_scales: [2, 2, 4, 4, 1]
+            downsample_scales: [4, 4, 4, 4]
             nonlinear_activation: "LeakyReLU"
             nonlinear_activation_params:
                 negative_slope: 0.1
@@ -131,7 +131,7 @@ svs_conf:
     lambda_mel: 45.0       # loss scaling coefficient for Mel loss
     lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
     lambda_dur: 0.1        # loss scaling coefficient for duration loss
-    lambda_pitch: 1.0      # loss scaling coefficient for pitch loss
+    lambda_pitch: 10.0      # loss scaling coefficient for pitch loss
     lambda_phoneme: 1.0    # loss scaling coefficient for ctc loss
     lambda_kl: 1.0         # loss scaling coefficient for KL divergence loss
     # others
@@ -176,7 +176,7 @@ generator_first: false # whether to start updating generator first
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000 # number of iterations per epoch
-max_epoch: 200            # number of epochs
+max_epoch: 500            # number of epochs
 accum_grad: 1             # gradient accumulation
 batch_size: 8             # batch size
 batch_type: sorted        # how to make batch

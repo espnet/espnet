@@ -134,7 +134,7 @@ svs_conf:
     lambda_mel: 45.0       # loss scaling coefficient for Mel loss
     lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
     lambda_dur: 0.1        # loss scaling coefficient for duration loss
-    lambda_pitch: 1.0      # loss scaling coefficient for pitch loss
+    lambda_pitch: 10.0      # loss scaling coefficient for pitch loss
     lambda_phoneme: 1.0    # loss scaling coefficient for ctc loss
     lambda_kl: 1.0         # loss scaling coefficient for KL divergence loss
     # others
@@ -179,7 +179,7 @@ generator_first: false # whether to start updating generator first
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 1000 # number of iterations per epoch
-max_epoch: 100            # number of epochs
+max_epoch: 500            # number of epochs
 accum_grad: 1             # gradient accumulation
 batch_size: 8             # batch size
 batch_type: sorted        # how to make batch
