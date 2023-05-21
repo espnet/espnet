@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
-# Aphasia English E-Branchformer experiment
+# Aphasia English recognition + detection experiment
+#   - E-Branchformer
+#   - WavLM
+#   - InterCTC-6
 
 set -e
 set -u
@@ -12,7 +15,7 @@ test_sets="test"
 include_control=true
 tag_insertion=none
 
-asr_config=conf/train_asr.yaml
+asr_config=conf/tuning/train_asr_ebranchformer_small_wavlm_large1_interctc6.yaml
 inference_config=conf/decode.yaml
 
 feats_normalize=global_mvn
@@ -37,4 +40,6 @@ fi
   --speed_perturb_factors "0.9 1.0 1.1" \
   --feats_normalize ${feats_normalize} \
   --local_data_opts "--include_control ${include_control} --tag_insertion ${tag_insertion}" \
+  --auxiliary_data_tags "utt2aph" \
+  --post_process_local_data_opts "--stage 8" \
   --lm_train_text "data/${train_set}/text" "$@"
