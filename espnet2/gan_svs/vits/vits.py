@@ -350,7 +350,8 @@ class VITS(AbsGANSVS):
                 projection_filters=generator_params["projection_filters"]
             )
             discriminator_params["sbd"].update(
-                segment_size=generator_params["segment_size"] * mel_loss_params["hop_length"]
+                segment_size=generator_params["segment_size"]
+                * mel_loss_params["hop_length"]
             )
         if "visinger2" in discriminator_type:
             discriminator_params["multi_freq_disc_params"].update(
