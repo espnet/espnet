@@ -240,10 +240,6 @@ class VITS(AbsGANSVS):
                         "sbd": [16, 256, 0.03, 10.0],
                         "fsbd": [64, 256, 0.1, 9.0],
                     },
-                    "segment_size": 8192,  # 32 * hop_size
-                    # TODO(Yifeng): Is it better that segment_size should be
-                    #  the same as the one in the generator, which is 32,
-                    #  and we should multiply it by hop_size?
                 },
                 "pqmf_config": {
                     "lv1": [2, 256, 0.25, 10.0],
@@ -352,6 +348,9 @@ class VITS(AbsGANSVS):
         if use_avocodo:
             discriminator_params.update(
                 projection_filters=generator_params["projection_filters"]
+            )
+            discriminator_params["sbd"].update(
+                segment_size=generator_params["segment_size"] * mel_loss_params["hop_length"]
             )
         if "visinger2" in discriminator_type:
             discriminator_params["multi_freq_disc_params"].update(
