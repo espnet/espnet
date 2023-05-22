@@ -36,9 +36,6 @@ max_epoch: 50
 freeze_param: [
 "frontend.upstream"
 ]
-frontend_conf:
-  n_fft: 512
-  hop_length: 256
 frontend: s3prl
 frontend_conf:
     frontend_conf:

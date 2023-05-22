@@ -2,7 +2,7 @@ optim: adam
 init: xavier_uniform
 max_epoch: 100
 batch_type: folded
-batch_size: 8 
+batch_size: 8
 iterator_type: chunk
 chunk_length: 32000
 num_workers: 4
@@ -47,9 +47,9 @@ separator_conf:
 
 
 
-criterions: 
+criterions:
   # The first criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-7
     # the wrapper for the current criterion

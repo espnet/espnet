@@ -24,4 +24,3 @@ transformer-input-layer: conv2d
 transformer-length-normalized-loss: false
 transformer-lr: 5.0
 transformer-warmup-steps: 20000
-

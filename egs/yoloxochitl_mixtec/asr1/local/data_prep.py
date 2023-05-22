@@ -40,7 +40,6 @@ def ExtractAudioID(audioname, wav_spk_info=None):
 
 
 def XMLRefine(input_xml, output_xml, readable=False):
-
     if readable:
         append = "\n"
     else:

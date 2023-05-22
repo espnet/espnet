@@ -1,5 +1,5 @@
 """Beamformer module."""
-from typing import List, Optional, Union
+from typing import List, Union
 
 import torch
 from packaging.version import parse as V
@@ -205,7 +205,6 @@ def get_rtf(
     mode="power",
     reference_vector: Union[int, torch.Tensor] = 0,
     iterations: int = 3,
-    use_torch_solver: bool = True,
 ):
     """Calculate the relative transfer function (RTF)
 
@@ -228,15 +227,11 @@ def get_rtf(
             "evd": eigenvalue decomposition
         reference_vector (torch.Tensor or int): (..., C) or scalar
         iterations (int): number of iterations in power method
-        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
     Returns:
         rtf (torch.complex64/ComplexTensor): (..., F, C, 1)
     """
     if mode == "power":
-        if use_torch_solver:
-            phi = solve(psd_speech, psd_noise)
-        else:
-            phi = matmul(inverse(psd_noise), psd_speech)
+        phi = solve(psd_speech, psd_noise)
         rtf = (
             phi[..., reference_vector, None]
             if isinstance(reference_vector, int)
@@ -263,7 +258,6 @@ def get_mvdr_vector(
     psd_s,
     psd_n,
     reference_vector: torch.Tensor,
-    use_torch_solver: bool = True,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
@@ -283,7 +277,6 @@ def get_mvdr_vector(
         psd_n (torch.complex64/ComplexTensor):
             observation/noise covariance matrix (..., F, C, C)
         reference_vector (torch.Tensor): (..., C)
-        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
@@ -293,10 +286,7 @@ def get_mvdr_vector(
     if diagonal_loading:
         psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
 
-    if use_torch_solver:
-        numerator = solve(psd_s, psd_n)
-    else:
-        numerator = matmul(inverse(psd_n), psd_s)
+    numerator = solve(psd_s, psd_n)
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
     # support bacth processing. Use FC.trace() as fallback.
     # ws: (..., C, C) / (...,) -> (..., C, C)
@@ -312,8 +302,6 @@ def get_mvdr_vector_with_rtf(
     psd_noise: Union[torch.Tensor, ComplexTensor],
     iterations: int = 3,
     reference_vector: Union[int, torch.Tensor, None] = None,
-    normalize_ref_channel: Optional[int] = None,
-    use_torch_solver: bool = True,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
@@ -337,8 +325,6 @@ def get_mvdr_vector_with_rtf(
             noise covariance matrix (..., F, C, C)
         iterations (int): number of iterations in power method
         reference_vector (torch.Tensor or int): (..., C) or scalar
-        normalize_ref_channel (int): reference channel for normalizing the RTF
-        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
@@ -352,19 +338,21 @@ def get_mvdr_vector_with_rtf(
     rtf = get_rtf(
         psd_speech,
         psd_noise,
+        mode="power",
         reference_vector=reference_vector,
         iterations=iterations,
-        use_torch_solver=use_torch_solver,
     )
 
     # numerator: (..., C_1, C_2) x (..., C_2, 1) -> (..., C_1)
-    if use_torch_solver:
-        numerator = solve(rtf, psd_n).squeeze(-1)
-    else:
-        numerator = matmul(inverse(psd_n), rtf).squeeze(-1)
+    numerator = solve(rtf, psd_n).squeeze(-1)
     denominator = einsum("...d,...d->...", rtf.squeeze(-1).conj(), numerator)
-    if normalize_ref_channel is not None:
-        scale = rtf.squeeze(-1)[..., normalize_ref_channel, None].conj()
+    if reference_vector is not None:
+        if isinstance(reference_vector, int):
+            scale = rtf.squeeze(-1)[..., reference_vector, None].conj()
+        else:
+            scale = (rtf.squeeze(-1).conj() * reference_vector[..., None, :]).sum(
+                dim=-1, keepdim=True
+            )
         beamforming_vector = numerator * scale / (denominator.real.unsqueeze(-1) + eps)
     else:
         beamforming_vector = numerator / (denominator.real.unsqueeze(-1) + eps)
@@ -384,7 +372,6 @@ def get_mwf_vector(
     psd_s,
     psd_n,
     reference_vector: Union[torch.Tensor, int],
-    use_torch_solver: bool = True,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
@@ -399,7 +386,6 @@ def get_mwf_vector(
         psd_n (torch.complex64/ComplexTensor):
             power-normalized observation covariance matrix (..., F, C, C)
         reference_vector (torch.Tensor or int): (..., C) or scalar
-        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
@@ -409,10 +395,7 @@ def get_mwf_vector(
     if diagonal_loading:
         psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
 
-    if use_torch_solver:
-        ws = solve(psd_s, psd_n)
-    else:
-        ws = matmul(inverse(psd_n), psd_s)
+    ws = solve(psd_s, psd_n)
     # h: (..., F, C_1, C_2) x (..., C_2) -> (..., F, C_1)
     if isinstance(reference_vector, int):
         beamform_vector = ws[..., reference_vector]
@@ -428,7 +411,6 @@ def get_sdw_mwf_vector(
     denoising_weight: float = 1.0,
     approx_low_rank_psd_speech: bool = False,
     iterations: int = 3,
-    use_torch_solver: bool = True,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
@@ -463,13 +445,12 @@ def get_sdw_mwf_vector(
             with its low-rank approximation as in [2]
         iterations (int): number of iterations in power method, only used when
             `approx_low_rank_psd_speech = True`
-        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
     Returns:
         beamform_vector (torch.complex64/ComplexTensor): (..., F, C)
-    """  # noqa: H405, D205, D400
+    """  # noqa: H405, D205, D400, E501
     if approx_low_rank_psd_speech:
         if diagonal_loading:
             psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
@@ -481,7 +462,6 @@ def get_sdw_mwf_vector(
             mode="power",
             iterations=iterations,
             reference_vector=reference_vector,
-            use_torch_solver=use_torch_solver,
         )
         # Eq. (25) in Ref[2]
         psd_speech_r1 = matmul(recon_vec, recon_vec.conj().transpose(-1, -2))
@@ -494,10 +474,7 @@ def get_sdw_mwf_vector(
     if diagonal_loading:
         psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
 
-    if use_torch_solver:
-        ws = solve(psd_speech, psd_n)
-    else:
-        ws = matmul(inverse(psd_n), psd_speech)
+    ws = solve(psd_speech, psd_n)
 
     if isinstance(reference_vector, int):
         beamform_vector = ws[..., reference_vector]
@@ -513,7 +490,6 @@ def get_rank1_mwf_vector(
     denoising_weight: float = 1.0,
     approx_low_rank_psd_speech: bool = False,
     iterations: int = 3,
-    use_torch_solver: bool = True,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
@@ -545,7 +521,6 @@ def get_rank1_mwf_vector(
             with its low-rank approximation as in [1]
         iterations (int): number of iterations in power method, only used when
             `approx_low_rank_psd_speech = True`
-        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
@@ -563,7 +538,6 @@ def get_rank1_mwf_vector(
             mode="power",
             iterations=iterations,
             reference_vector=reference_vector,
-            use_torch_solver=use_torch_solver,
         )
         # Eq. (25) in Ref[1]
         psd_speech_r1 = matmul(recon_vec, recon_vec.conj().transpose(-1, -2))
@@ -574,10 +548,7 @@ def get_rank1_mwf_vector(
     elif diagonal_loading:
         psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
 
-    if use_torch_solver:
-        numerator = solve(psd_speech, psd_noise)
-    else:
-        numerator = matmul(inverse(psd_noise), psd_speech)
+    numerator = solve(psd_speech, psd_noise)
 
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
     # support bacth processing. Use FC.trace() as fallback.
@@ -598,7 +569,6 @@ def get_rtf_matrix(
     diagonal_loading: bool = True,
     ref_channel: int = 0,
     rtf_iterations: int = 3,
-    use_torch_solver: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
 ):
@@ -611,9 +581,9 @@ def get_rtf_matrix(
             get_rtf(
                 psd_speeches[spk],
                 tik_reg(psd_n, reg=diag_eps, eps=eps) if diagonal_loading else psd_n,
+                mode="power",
                 reference_vector=ref_channel,
                 iterations=rtf_iterations,
-                use_torch_solver=use_torch_solver,
             )
             for spk, psd_n in enumerate(psd_noises)
         ],
@@ -627,7 +597,6 @@ def get_lcmv_vector_with_rtf(
     psd_n: Union[torch.Tensor, ComplexTensor],
     rtf_mat: Union[torch.Tensor, ComplexTensor],
     reference_vector: Union[int, torch.Tensor, None] = None,
-    use_torch_solver: bool = True,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
@@ -647,7 +616,6 @@ def get_lcmv_vector_with_rtf(
         rtf_mat (torch.complex64/ComplexTensor):
             RTF matrix (..., F, C, num_spk)
         reference_vector (torch.Tensor or int): (..., num_spk) or scalar
-        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
@@ -658,10 +626,7 @@ def get_lcmv_vector_with_rtf(
         psd_n = tik_reg(psd_n, reg=diag_eps, eps=eps)
 
     # numerator: (..., C_1, C_2) x (..., C_2, num_spk) -> (..., C_1, num_spk)
-    if use_torch_solver:
-        numerator = solve(rtf_mat, psd_n)
-    else:
-        numerator = matmul(inverse(psd_n), rtf_mat)
+    numerator = solve(rtf_mat, psd_n)
     denominator = matmul(rtf_mat.conj().transpose(-1, -2), numerator)
     if isinstance(reference_vector, int):
         ws = inverse(denominator)[..., reference_vector, None]
@@ -761,7 +726,6 @@ def get_gev_vector(
     mode="power",
     reference_vector: Union[int, torch.Tensor] = 0,
     iterations: int = 3,
-    use_torch_solver: bool = True,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
@@ -784,7 +748,6 @@ def get_gev_vector(
             "evd": eigenvalue decomposition (only for torch builtin complex tensors)
         reference_vector (torch.Tensor or int): (..., C) or scalar
         iterations (int): number of iterations in power method
-        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
@@ -795,10 +758,7 @@ def get_gev_vector(
         psd_noise = tik_reg(psd_noise, reg=diag_eps, eps=eps)
 
     if mode == "power":
-        if use_torch_solver:
-            phi = solve(psd_speech, psd_noise)
-        else:
-            phi = matmul(inverse(psd_noise), psd_speech)
+        phi = solve(psd_speech, psd_noise)
         e_vec = (
             phi[..., reference_vector, None]
             if isinstance(reference_vector, int)
@@ -979,7 +939,6 @@ def get_WPD_filter(
     Phi: Union[torch.Tensor, ComplexTensor],
     Rf: Union[torch.Tensor, ComplexTensor],
     reference_vector: torch.Tensor,
-    use_torch_solver: bool = True,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-8,
@@ -1005,7 +964,6 @@ def get_WPD_filter(
             is the power normalized spatio-temporal covariance matrix.
         reference_vector (torch.Tensor): (B, (btaps+1) * C)
             is the reference_vector.
-        use_torch_solver (bool): Whether to use `solve` instead of `inverse`
         diagonal_loading (bool): Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
         eps (float):
@@ -1017,10 +975,7 @@ def get_WPD_filter(
         Rf = tik_reg(Rf, reg=diag_eps, eps=eps)
 
     # numerator: (..., C_1, C_2) x (..., C_2, C_3) -> (..., C_1, C_3)
-    if use_torch_solver:
-        numerator = solve(Phi, Rf)
-    else:
-        numerator = matmul(inverse(Rf), Phi)
+    numerator = solve(Phi, Rf)
     # NOTE (wangyou): until PyTorch 1.9.0, torch.trace does not
     # support bacth processing. Use FC.trace() as fallback.
     # ws: (..., C, C) / (...,) -> (..., C, C)
@@ -1083,8 +1038,6 @@ def get_WPD_filter_with_rtf(
     psd_noise: Union[torch.Tensor, ComplexTensor],
     iterations: int = 3,
     reference_vector: Union[int, torch.Tensor, None] = None,
-    normalize_ref_channel: Optional[int] = None,
-    use_torch_solver: bool = True,
     diagonal_loading: bool = True,
     diag_eps: float = 1e-7,
     eps: float = 1e-15,
@@ -1112,10 +1065,6 @@ def get_WPD_filter_with_rtf(
             noise covariance matrix (..., F, C, C)
         iterations (int): number of iterations in power method
         reference_vector (torch.Tensor or int): (..., C) or scalar
-        normalize_ref_channel (int):
-            reference channel for normalizing the RTF
-        use_torch_solver (bool):
-            Whether to use `solve` instead of `inverse`
         diagonal_loading (bool):
             Whether to add a tiny term to the diagonal of psd_n
         diag_eps (float):
@@ -1140,21 +1089,23 @@ def get_WPD_filter_with_rtf(
     rtf = get_rtf(
         psd_speech,
         psd_noise,
+        mode="power",
         reference_vector=reference_vector,
         iterations=iterations,
-        use_torch_solver=use_torch_solver,
     )
 
     # (B, F, (K+1)*C, 1)
     rtf = pad_func(rtf, (0, 0, 0, psd_observed_bar.shape[-1] - C), "constant", 0)
     # numerator: (..., C_1, C_2) x (..., C_2, 1) -> (..., C_1)
-    if use_torch_solver:
-        numerator = solve(rtf, psd_observed_bar).squeeze(-1)
-    else:
-        numerator = matmul(inverse(psd_observed_bar), rtf).squeeze(-1)
+    numerator = solve(rtf, psd_observed_bar).squeeze(-1)
     denominator = einsum("...d,...d->...", rtf.squeeze(-1).conj(), numerator)
-    if normalize_ref_channel is not None:
-        scale = rtf.squeeze(-1)[..., normalize_ref_channel, None].conj()
+    if reference_vector is not None:
+        if isinstance(reference_vector, int):
+            scale = rtf.squeeze(-1)[..., reference_vector, None].conj()
+        else:
+            scale = (
+                rtf.squeeze(-1)[:, :, :C].conj() * reference_vector[..., None, :]
+            ).sum(dim=-1, keepdim=True)
         beamforming_vector = numerator * scale / (denominator.real.unsqueeze(-1) + eps)
     else:
         beamforming_vector = numerator / (denominator.real.unsqueeze(-1) + eps)

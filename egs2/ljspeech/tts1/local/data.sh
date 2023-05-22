@@ -47,6 +47,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     utt2spk=data/train/utt2spk
     spk2utt=data/train/spk2utt
     text=data/train/text
+    durations=data/train/durations
 
     # check file existence
     [ ! -e data/train ] && mkdir -p data/train
@@ -54,16 +55,18 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     [ -e ${utt2spk} ] && rm ${utt2spk}
     [ -e ${spk2utt} ] && rm ${spk2utt}
     [ -e ${text} ] && rm ${text}
+    [ -e ${durations} ] && rm ${durations}
 
+    wavs_dir="${db_root}/LJSpeech-1.1/wavs"
     # make scp, utt2spk, and spk2utt
-    find ${db_root}/LJSpeech-1.1 -follow -name "*.wav" | sort | while read -r filename;do
+    find "${wavs_dir}" -name "*.wav" | sort | while read -r filename; do
         id=$(basename ${filename} | sed -e "s/\.[^\.]*$//g")
         echo "${id} ${filename}" >> ${scp}
         echo "${id} LJ" >> ${utt2spk}
     done
     utils/utt2spk_to_spk2utt.pl ${utt2spk} > ${spk2utt}
 
-    # make text usign the original text
+    # make text using the original text
     # cleaning and phoneme conversion are performed on-the-fly during the training
     paste -d " " \
         <(cut -d "|" -f 1 < ${db_root}/LJSpeech-1.1/metadata.csv) \
@@ -74,7 +77,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    log "stage 2: utils/subset_data_dir.sg"
+    log "stage 1: utils/subset_data_dir.sh"
     # make evaluation and devlopment sets
     utils/subset_data_dir.sh --last data/train 500 data/deveval
     utils/subset_data_dir.sh --last data/deveval 250 data/${eval_set}

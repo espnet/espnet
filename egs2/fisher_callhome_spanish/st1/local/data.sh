@@ -75,7 +75,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # utils/combine_data.sh \
     #     --extra-files "text.lc.en text.lc.es text.lc.rm.en text.lc.rm.es text.tc.en text.tc.es" \
     #     data/train \
-    #     data/fisher_train data/callhome_train/ 
+    #     data/fisher_train data/callhome_train/
 
     cp -r data/fisher_train data/train
     cp -r data/fisher_dev data/dev

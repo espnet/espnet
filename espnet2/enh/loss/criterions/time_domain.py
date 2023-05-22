@@ -101,7 +101,6 @@ class CISDRLoss(TimeDomainLoss):
         ref: torch.Tensor,
         inf: torch.Tensor,
     ) -> torch.Tensor:
-
         assert ref.shape == inf.shape, (ref.shape, inf.shape)
 
         return ci_sdr.pt.ci_sdr_loss(
@@ -441,6 +440,10 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             loss: (Batch,)
         """
         assert target.shape == estimate.shape, (target.shape, estimate.shape)
+        half_precision = (torch.float16, torch.bfloat16)
+        if target.dtype in half_precision or estimate.dtype in half_precision:
+            target = target.float()
+            estimate = estimate.float()
         # shape bsz, samples
         scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (
             torch.sum(estimate**2, -1, keepdim=True) + self.eps

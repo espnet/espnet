@@ -49,14 +49,13 @@ separator_conf:
     norm_type: "gLN"
     nonlinear: relu
 
-criterions: 
+criterions:
   # The first criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-7
     # the wrapper for the current criterion
     # for single-talker case, we simplely use fixed_order wrapper
-    wrapper: 
-      - type: fixed_order
-        wrapper_conf:
-            weight: 1.0
+    wrapper: fixed_order
+    wrapper_conf:
+        weight: 1.0

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import re
 import sys
+from pathlib import Path
 from typing import List, Union
 
 import numpy as np
@@ -13,11 +15,36 @@ from typeguard import check_argument_types
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.train.dataset import kaldi_loader
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool
 from espnet.utils.cli_utils import get_commandline_args
 
 si_snr_loss = SISNRLoss()
+
+
+def get_readers(scps: List[str], dtype: str):
+    # Determine the audio format (sound or kaldi_ark)
+    with open(scps[0], "r") as f:
+        line = f.readline()
+        filename = Path(line.strip().split(maxsplit=1)[1]).name
+    if re.fullmatch(r".*\.ark(:\d+)?", filename):
+        # xxx.ark or xxx.ark:123
+        readers = [kaldi_loader(f, float_dtype=dtype) for f in scps]
+        audio_format = "kaldi_ark"
+    else:
+        readers = [SoundScpReader(f, dtype=dtype) for f in scps]
+        audio_format = "sound"
+    return readers, audio_format
+
+
+def read_audio(reader, key, audio_format="sound"):
+    if audio_format == "sound":
+        return reader[key][1]
+    elif audio_format == "kaldi_ark":
+        return reader[key]
+    else:
+        raise ValueError(f"Unknown audio format: {audio_format}")
 
 
 def scoring(
@@ -45,11 +72,18 @@ def scoring(
         line.rstrip().split(maxsplit=1)[0] for line in open(key_file, encoding="utf-8")
     ]
 
-    ref_readers = [SoundScpReader(f, dtype=dtype, normalize=True) for f in ref_scp]
-    inf_readers = [SoundScpReader(f, dtype=dtype, normalize=True) for f in inf_scp]
+    ref_readers, ref_audio_format = get_readers(ref_scp, dtype)
+    inf_readers, inf_audio_format = get_readers(inf_scp, dtype)
 
     # get sample rate
-    sample_rate, _ = ref_readers[0][keys[0]]
+    retval = ref_readers[0][keys[0]]
+    if ref_audio_format == "kaldi_ark":
+        sample_rate = ref_readers[0].rate
+    elif ref_audio_format == "sound":
+        sample_rate = retval[0]
+    else:
+        raise NotImplementedError(ref_audio_format)
+    assert sample_rate is not None, (sample_rate, ref_audio_format)
 
     # check keys
     if not flexible_numspk:
@@ -57,18 +91,25 @@ def scoring(
             assert inf_reader.keys() == ref_reader.keys()
 
     with DatadirWriter(output_dir) as writer:
-        for key in keys:
+        for n, key in enumerate(keys):
+            logging.info(f"[{n}] Scoring {keys}")
             if not flexible_numspk:
-                ref_audios = [ref_reader[key][1] for ref_reader in ref_readers]
-                inf_audios = [inf_reader[key][1] for inf_reader in inf_readers]
+                ref_audios = [
+                    read_audio(ref_reader, key, audio_format=ref_audio_format)
+                    for ref_reader in ref_readers
+                ]
+                inf_audios = [
+                    read_audio(inf_reader, key, audio_format=inf_audio_format)
+                    for inf_reader in inf_readers
+                ]
             else:
                 ref_audios = [
-                    ref_reader[key][1]
+                    read_audio(ref_reader, key, audio_format=ref_audio_format)
                     for ref_reader in ref_readers
                     if key in ref_reader.keys()
                 ]
                 inf_audios = [
-                    inf_reader[key][1]
+                    read_audio(inf_reader, key, audio_format=inf_audio_format)
                     for inf_reader in inf_readers
                     if key in inf_reader.keys()
                 ]
@@ -124,7 +165,15 @@ def scoring(
                 writer[f"SIR_spk{i + 1}"][key] = str(sir[i])
                 # save permutation assigned script file
                 if i < len(ref_scp):
-                    writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
+                    if inf_audio_format == "sound":
+                        writer[f"wav_spk{i + 1}"][key] = inf_readers[perm[i]].data[key]
+                    elif inf_audio_format == "kaldi_ark":
+                        # NOTE: SegmentsExtractor is not supported
+                        writer[f"wav_spk{i + 1}"][key] = inf_readers[
+                            perm[i]
+                        ].loader._dict[key]
+                    else:
+                        raise ValueError(f"Unknown audio format: {inf_audio_format}")
 
 
 def get_parser():

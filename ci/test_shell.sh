@@ -15,11 +15,12 @@ if ! [ -x "$(command -v shellcheck)" ]; then
     tar -xvf shellcheck-stable.linux.x86_64.tar.xz
 fi
 . tools/activate_python.sh
+. tools/extra_path.sh
 
 set -euo pipefail
 
 echo "=== run shellcheck ==="
-rm -fv tools/miniconda.sh  # exclude from schellcheck
+rm -fv tools/Miniconda*.sh  # exclude from schellcheck
 find ci utils doc egs2/TEMPLATE/*/scripts egs2/TEMPLATE/*/setup.sh tools/*.sh -name "*.sh" -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee check_shellcheck
 find egs2/*/*/local/data.sh -printf "=> %p\n" -execdir sh -c 'cd .. ; shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 local/$1 ; ' -- {} \; | tee -a check_shellcheck
 find egs egs2 \( -name "run.sh" -o -name asr.sh -o -name tts.sh -o -name enh.sh \) -printf "=> %p\n" -execdir shellcheck -Calways -x -e SC2001 -e SC1091 -e SC2086 {} \; | tee -a check_shellcheck
@@ -30,4 +31,4 @@ if grep -q "SC[0-9]\{4\}" check_shellcheck; then
 fi
 
 echo "=== run bats ==="
-bats test_utils/test_*.bats
+bats test_utils/test_*.bats test_utils/espnet2_scripts/test_*.bats

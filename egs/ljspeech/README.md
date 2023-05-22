@@ -4,19 +4,19 @@ Written by Tomoki Hayashi @ Nagoya University (2018/09/09)
 
 ## tts1 recipe
 
-`tts1` recipe is based on Tacotron2 [1] (spectrogram prediction network) w/o WaveNet.  
-Tacotron2 generates log mel-filter bank from text and then converts it to linear spectrogram using inverse mel-basis.  
+`tts1` recipe is based on Tacotron2 [1] (spectrogram prediction network) w/o WaveNet.
+Tacotron2 generates log mel-filter bank from text and then converts it to linear spectrogram using inverse mel-basis.
 Finally, phase components are recovered with Griffin-Lim.
 
 - (2019/06/16) we also support TTS-Transformer [3].
 - (2019/06/17) we also support Feed-forward Transformer [4].
 - (2019/12/12) we also support Knowledge distillation Feed-forward Transformer [4].
 
-You can view the several configurations `conf/tuning/*.yaml` and you can switch them via `--train-config` in `run.sh`.  
-There is a brief explanation of the configuration in the header of each yaml file.  
+You can view the several configurations `conf/tuning/*.yaml` and you can switch them via `--train-config` in `run.sh`.
+There is a brief explanation of the configuration in the header of each yaml file.
 Please check it to understand the difference of each configuration.
 
-If you want to train fastspeech, at first, you need to train Tacotron 2 or Transformer.  
+If you want to train fastspeech, at first, you need to train Tacotron 2 or Transformer.
 Note that both Tactoron 2 and Transformer can be used as a teacher of FastSpeech.
 
 After that you can train two types of FastSpeech:
@@ -24,11 +24,11 @@ After that you can train two types of FastSpeech:
 1. FastSpeech without Knowledge distillation (`v1`, `v2`, `v3`)
 2. FastSpeech with Knowledge distillation (`v4`)
 
-In the case (1), you need to update `teacher-model` in yaml config to use your trained Tacotron 2 or Transformer.  
+In the case (1), you need to update `teacher-model` in yaml config to use your trained Tacotron 2 or Transformer.
 In this case, groundtruth of mel spectrogram and duration calculated by the teacher model with teacher-forcing are used as targets of FastSpeech.
 Note that the duration is calculated on-the-fly during training.
 
-In the case (2), you need to specify `teacher_model_path` in `run.sh`.  
+In the case (2), you need to specify `teacher_model_path` in `run.sh`.
 If this case, first we generate training data (mel-spectrogram and durations) without teacher-forcing using the teacher model and dump them.
 Note that to generate training data we use special decoding config `conf/decode_for_knowledge_dist.yaml` and we do not use groundtruth of mel-spectrogram for training.
 After that we re-generate the json files for FastSpeech training and then train FastSpeech with new json files.

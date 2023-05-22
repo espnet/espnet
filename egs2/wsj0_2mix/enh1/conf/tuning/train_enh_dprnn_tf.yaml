@@ -40,7 +40,6 @@ separator_conf:
     layer: 4
     rnn_type: lstm
     bidirectional: True  # this is for the inter-block rnn
-    nonlinear: relu
     unit: 256
     segment_size: 16
     dropout: 0.1
@@ -50,9 +49,9 @@ separator_conf:
 # The overlall loss in the multi-task learning will be:
 # loss = weight_1 * loss_1 + ... + weight_N * loss_N
 # The default `weight` for each sub-loss is 1.0
-criterions: 
+criterions:
   # The first criterion
-  - name: mse 
+  - name: mse
     conf:
       compute_on_mask: True
       mask_type: PSM
@@ -62,18 +61,18 @@ criterions:
     wrapper_conf:
       weight: 1.0
   # The second criterion
-  - name: l1 
+  - name: l1
     conf:
       compute_on_mask: False
     wrapper: pit
     wrapper_conf:
       weight: 1.0
       # whether the permutation is computed independently
-      # If false, it will use the permutation order from 
+      # If false, it will use the permutation order from
       # the pervious criterion (if it exists)
-      independent_perm: False  
+      independent_perm: False
   # The third criterion
-  - name: si_snr 
+  - name: si_snr
     conf:
       eps: 1.0e-7
     wrapper: pit

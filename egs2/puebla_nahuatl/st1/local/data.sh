@@ -62,6 +62,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         # shellcheck disable=SC1090
         . ./data/${x}_st/remix_script.sh
     sort -o data/${x}_${annotation_id}/text.lc.rm.${tgt_lang} data/${x}_${annotation_id}/text.lc.rm.${tgt_lang}
-    sort -o data/${x}_${annotation_id}/text.lc.rm.${src_lang} data/${x}_${annotation_id}/text.lc.rm.${src_lang} 
+    sort -o data/${x}_${annotation_id}/text.lc.rm.${src_lang} data/${x}_${annotation_id}/text.lc.rm.${src_lang}
     done
 fi

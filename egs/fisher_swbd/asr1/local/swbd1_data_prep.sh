@@ -136,4 +136,3 @@ done
 
 
 echo Switchboard-1 data preparation succeeded.
-

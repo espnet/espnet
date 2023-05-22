@@ -307,11 +307,11 @@ class Encoder(torch.nn.Module):
 
         Args:
             xs (torch.Tensor): Input tensor (#batch, time, idim).
-            masks (torch.Tensor): Mask tensor (#batch, time).
+            masks (torch.Tensor): Mask tensor (#batch, 1, time).
 
         Returns:
             torch.Tensor: Output tensor (#batch, time, attention_dim).
-            torch.Tensor: Mask tensor (#batch, time).
+            torch.Tensor: Mask tensor (#batch, 1, time).
 
         """
         if isinstance(

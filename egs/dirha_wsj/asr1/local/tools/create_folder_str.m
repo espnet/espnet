@@ -15,14 +15,14 @@ sum=0;
 for i=1:length(paths)
 
     if paths(i).isdir==1
-    
+
     sum=sum+1;
-    
+
     folder_new_sub=strcat(folder_new,'/',paths(i).name);
     folder_old_sub=strcat(folder_old,'/',paths(i).name);
     mkdir(folder_new_sub)
     create_folder_str(folder_old_sub,folder_new_sub);
-    
+
     end
 
 end
@@ -33,4 +33,3 @@ end
 
 
 end
-

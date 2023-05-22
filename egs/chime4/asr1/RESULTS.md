@@ -100,7 +100,7 @@
 |decode_et05_simu_beamformit_5mics_decode_lm_word65000|1320|21416|83.6|13.3|3.2|2.3|18.7|77.0|
 |decode_et05_simu_isolated_1ch_track_decode_lm_word65000|1320|21416|76.1|19.8|4.0|3.2|27.0|84.8|
 
-# Transformer result(mix si284 + speed perturb + default transformer with n_average = 10, epoch = 35, ngpu=2) 
+# Transformer result(mix si284 + speed perturb + default transformer with n_average = 10, epoch = 35, ngpu=2)
 ## speed perturbation at 0.9, 1.0, 1.1
 ### CER
 

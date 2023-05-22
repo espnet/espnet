@@ -15,7 +15,6 @@ import chainer
 import chainer.functions as F
 import chainer.links as L
 import numpy as np
-import six
 from chainer import link, reporter, training
 from chainer.dataset import convert
 
@@ -208,7 +207,7 @@ class RNNLM(chainer.Chain):
         if self.typ == "lstm":
             c = [None] * self.n_layers
             c[0], h[0] = self.rnn[0](state["c"][0], state["h"][0], F.dropout(emb))
-            for n in six.moves.range(1, self.n_layers):
+            for n in range(1, self.n_layers):
                 c[n], h[n] = self.rnn[n](
                     state["c"][n], state["h"][n], F.dropout(h[n - 1])
                 )
@@ -221,7 +220,7 @@ class RNNLM(chainer.Chain):
                         xp.zeros((emb.shape[0], self.n_units), dtype=emb.dtype)
                     )
             h[0] = self.rnn[0](state["h"][0], F.dropout(emb))
-            for n in six.moves.range(1, self.n_layers):
+            for n in range(1, self.n_layers):
                 if state["h"][n] is None:
                     xp = self.xp
                     with chainer.backends.cuda.get_device_from_id(self._device_id):
@@ -272,7 +271,7 @@ class BPTTUpdater(training.updaters.StandardUpdater):
             loss = 0
             state = None
             batch_size, sequence_length = x.shape
-            for i in six.moves.range(sequence_length):
+            for i in range(sequence_length):
                 # Compute the loss at this time step and accumulate it
                 state, loss_batch = optimizer.target(
                     state, chainer.Variable(x[:, i]), chainer.Variable(t[:, i])
@@ -313,7 +312,7 @@ class LMEvaluator(BaseEvaluator):
             x, t = convert.concat_examples(batch, device=self.device, padding=(0, -1))
             xp = chainer.backends.cuda.get_array_module(x)
             state = None
-            for i in six.moves.range(len(x[0])):
+            for i in range(len(x[0])):
                 state, loss_batch = target(state, x[:, i], t[:, i])
                 non_zeros = xp.count_nonzero(x[:, i])
                 loss += loss_batch.data * non_zeros

@@ -1,5 +1,6 @@
 import kaldiio
 import numpy as np
+import pytest
 
 from espnet.transform.add_deltas import add_deltas
 from espnet.transform.cmvn import CMVN
@@ -8,6 +9,7 @@ from espnet.transform.spectrogram import logmelspectrogram
 from espnet.transform.transformation import Transformation
 
 
+@pytest.mark.execution_timeout(10)
 def test_preprocessing(tmpdir):
     cmvn_ark = str(tmpdir.join("cmvn.ark"))
     kwargs = {

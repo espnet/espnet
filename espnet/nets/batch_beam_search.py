@@ -4,9 +4,12 @@ import logging
 from typing import Any, Dict, List, NamedTuple, Tuple
 
 import torch
+from packaging.version import parse as V
 from torch.nn.utils.rnn import pad_sequence
 
 from espnet.nets.beam_search import BeamSearch, Hypothesis
+
+is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
 
 class BatchHypothesis(NamedTuple):
@@ -99,7 +102,10 @@ class BatchBeamSearch(BeamSearch):
         # Because of the flatten above, `top_ids` is organized as:
         # [hyp1 * V + token1, hyp2 * V + token2, ..., hypK * V + tokenK],
         # where V is `self.n_vocab` and K is `self.beam_size`
-        prev_hyp_ids = top_ids // self.n_vocab
+        if is_torch_1_9_plus:
+            prev_hyp_ids = torch.div(top_ids, self.n_vocab, rounding_mode="trunc")
+        else:
+            prev_hyp_ids = top_ids // self.n_vocab
         new_token_ids = top_ids % self.n_vocab
         return prev_hyp_ids, new_token_ids, prev_hyp_ids, new_token_ids
 
@@ -118,13 +124,17 @@ class BatchBeamSearch(BeamSearch):
         for k, d in self.scorers.items():
             init_states[k] = d.batch_init_state(x)
             init_scores[k] = 0.0
+
+        # NOTE (Shih-Lun): added for OpenAI Whisper ASR
+        primer = [self.sos] if self.hyp_primer is None else self.hyp_primer
+
         return self.batchfy(
             [
                 Hypothesis(
                     score=0.0,
                     scores=init_scores,
                     states=init_states,
-                    yseq=torch.tensor([self.sos], device=x.device),
+                    yseq=torch.tensor(primer, device=x.device),
                 )
             ]
         )
@@ -339,5 +349,5 @@ class BatchBeamSearch(BeamSearch):
         for b in torch.nonzero(is_eos, as_tuple=False).view(-1):
             hyp = self._select(running_hyps, b)
             ended_hyps.append(hyp)
-        remained_ids = torch.nonzero(is_eos == 0, as_tuple=False).view(-1)
+        remained_ids = torch.nonzero(is_eos == 0, as_tuple=False).view(-1).cpu()
         return self._batch_select(running_hyps, remained_ids)

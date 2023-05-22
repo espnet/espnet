@@ -52,7 +52,7 @@ def config_file(tmp_path: Path, token_list):
     return tmp_path / "config.yaml"
 
 
-@pytest.mark.execution_timeout(5)
+@pytest.mark.execution_timeout(10)
 def test_Text2Speech(config_file):
     text2speech = Text2Speech(train_config=config_file)
     text = "aiueo"

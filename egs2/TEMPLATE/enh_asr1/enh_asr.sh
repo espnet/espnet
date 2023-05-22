@@ -265,7 +265,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -492,7 +492,7 @@ if ! "${skip_data_prep}"; then
             fi
 
            for factor in ${speed_perturb_factors}; do
-               if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+               if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                    scripts/utils/perturb_enh_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
                    _dirs+="data/${train_set}_sp${factor} "
                else
@@ -703,6 +703,12 @@ if ! "${skip_data_prep}"; then
                 fi
             done | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
         fi
+        if [ "$lm_dev_text" = "${data_feats}/${valid_set}/text" ]; then
+            for n in $(seq ${spk_num}); do
+                awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${valid_set}/text_spk${n}"
+            done | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/lm_dev.txt"
+            lm_dev_text="${data_feats}/lm_dev.txt"
+        fi
     fi
 
 
@@ -793,13 +799,6 @@ fi
 
 if ! "${skip_train}"; then
     if "${use_lm}"; then
-        if [ "$lm_dev_text" = "${data_feats}/${valid_set}/text" ]; then
-            for n in $(seq ${spk_num}); do
-                awk -v spk=$n '{$1=$1 "_spk" spk; print $0}' "${data_feats}/${valid_set}/text_spk${n}"
-            done | awk ' { if( NF != 1 ) print $0; } '  > "${data_feats}/lm_dev.txt"
-            lm_dev_text="${data_feats}/lm_dev.txt"
-        fi
-
         if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             log "Stage 6: LM collect stats: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
@@ -1104,6 +1103,10 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
+        if [ "${feats_normalize}" != global_mvn ]; then
+            # Skip summerizaing stats if not using global MVN
+            _opts+="--skip_sum_stats"
+        fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${enh_asr_stats_dir}"
 
@@ -1337,7 +1340,7 @@ if ! "${skip_train}"; then
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
                 --resume true \
-                --init_param ${pretrained_model} \
+                ${pretrained_model:+--init_param $pretrained_model} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --output_dir "${enh_asr_exp}" \
                 ${_opts} ${enh_asr_args}
@@ -1463,7 +1466,7 @@ if ! "${skip_eval}"; then
             for spk in $(seq "${spk_num}"); do
                 for f in token token_int score text; do
                     for i in $(seq "${_nj}"); do
-                        cat "${_logdir}/output.${i}/1best_recog_spk${spk}/${f}"
+                        cat "${_logdir}/output.${i}/1best_recog/${f}_spk${spk}"
                     done | LC_ALL=C sort -k1 >"${_dir}/${f}_spk${spk}"
                 done
             done
@@ -1650,7 +1653,7 @@ if ! "${skip_eval}"; then
                     done
                 done
 
-                scripts/utils/eval_perm_free_error.py --num-spkrs ${spk_num} \
+                pyscripts/utils/eval_perm_free_error.py --num-spkrs ${spk_num} \
                     --results-dir ${_scoredir}
 
                 sclite \

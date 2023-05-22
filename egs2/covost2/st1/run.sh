@@ -8,6 +8,8 @@ set -o pipefail
 # language related
 src_lang=es
 tgt_lang=en
+use_src_lang=true
+
 # English (en)
 # French (fr)
 # German (de)
@@ -98,6 +100,7 @@ fi
     --token_joint false \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
+    --use_src_lang ${use_src_lang} \
     --src_token_type "bpe" \
     --src_nbpe $src_nbpe \
     --tgt_token_type "bpe" \
