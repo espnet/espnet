@@ -478,6 +478,7 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
 
         super().__init__()
 
+        # TODO (Yifeng): Maybe use LogMelFbank instead of TorchSTFT
         self.stfts = torch.nn.ModuleList(
             [
                 TorchSTFT(
