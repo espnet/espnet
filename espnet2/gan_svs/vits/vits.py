@@ -293,6 +293,7 @@ class VITS(AbsGANSVS):
             sampling_rate (int): Sampling rate, not used for the training but it will
                 be referred in saving waveform during the inference.
             generator_type (str): Generator type.
+            vocoder_generator_type (str): Type of vocoder generator to use in the model.
             generator_params (Dict[str, Any]): Parameter dict for generator.
             discriminator_type (str): Discriminator type.
             discriminator_params (Dict[str, Any]): Parameter dict for discriminator.
@@ -307,7 +308,11 @@ class VITS(AbsGANSVS):
             lambda_feat_match (float): Loss scaling coefficient for feat match loss.
             lambda_dur (float): Loss scaling coefficient for duration loss.
             lambda_kl (float): Loss scaling coefficient for KL divergence loss.
+            lambda_pitch (float): Loss scaling coefficient for pitch loss.
+            lambda_phoneme (float): Loss scaling coefficient for phoneme loss.
+            lambda_c_yin (float): Loss scaling coefficient for yin loss.
             cache_generator_outputs (bool): Whether to cache generator outputs.
+            use_phoneme_predictor (bool): Whether to use phoneme predictor in the model.
 
         """
         assert check_argument_types()
