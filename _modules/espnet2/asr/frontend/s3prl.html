@@ -245,14 +245,10 @@
             <span class="n">normalize</span><span class="o">=</span><span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;normalize&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
             <span class="n">extra_conf</span><span class="o">=</span><span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extra_conf&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">upstream</span><span class="o">.</span><span class="n">upstream</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">upstream</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;feature_grad_mult&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">upstream</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">feature_grad_mult</span> <span class="o">=</span> <span class="mf">1.0</span>
         <span class="n">upstream</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span>
-            <span class="n">upstream</span><span class="o">.</span><span class="n">upstream</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">,</span> <span class="kc">None</span>
-        <span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">upstream</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="ow">in</span> <span class="p">[</span>
-            <span class="s2">&quot;Wav2Vec2Model&quot;</span><span class="p">,</span>
-            <span class="s2">&quot;HubertModel&quot;</span><span class="p">,</span>
-        <span class="p">]:</span>
-            <span class="n">upstream</span><span class="o">.</span><span class="n">upstream</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">layerdrop</span> <span class="o">=</span> <span class="mf">0.0</span>
 
         <span class="k">if</span> <span class="n">layer</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
             <span class="n">layer_selections</span> <span class="o">=</span> <span class="p">[</span><span class="n">layer</span><span class="p">]</span>
