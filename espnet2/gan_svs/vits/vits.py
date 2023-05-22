@@ -353,6 +353,10 @@ class VITS(AbsGANSVS):
             discriminator_params.update(
                 projection_filters=generator_params["projection_filters"]
             )
+        if "visinger2" in discriminator_type:
+            discriminator_params["multi_freq_disc_params"].update(
+                sample_rate=sampling_rate
+            )
 
         self.discriminator = discriminator_class(
             **discriminator_params,

@@ -454,6 +454,7 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
 
     def __init__(
         self,
+        sample_rate: int = 22050,
         hop_lengths=[128, 256, 512],
         hidden_channels=[256, 512, 512],
         domain="double",
@@ -478,6 +479,7 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
         self.stfts = torch.nn.ModuleList(
             [
                 TorchSTFT(
+                    sample_rate=sample_rate,
                     fft_size=x * 4,
                     hop_size=x,
                     win_size=x * 4,
@@ -633,8 +635,8 @@ class VISinger2Discriminator(torch.nn.Module):
             "use_spectral_norm": False,
         },
         # Multi-frequency discriminator related
-        sample_rate: int = 22050,
         multi_freq_disc_params: Dict[str, Any] = {
+            "sample_rate": 22050,
             "hop_length_factors": [4, 8, 16],
             "hidden_channels": [256, 512, 512],
             "domain": "double",
@@ -647,7 +649,6 @@ class VISinger2Discriminator(torch.nn.Module):
         Discriminator module for VISinger2, including MSD, MPD, and MFD.
 
         Args:
-            sample_rate (int): Sample rate of the audio.
             scales (int): Number of scales to be used in the multi-scale discriminator.
             scale_downsample_pooling (str): Type of pooling used for downsampling.
             scale_downsample_pooling_params (Dict[str, Any]): Parameters for the downsampling pooling layer.
@@ -683,7 +684,7 @@ class VISinger2Discriminator(torch.nn.Module):
             for i in range(len(multi_freq_disc_params["hop_length_factors"])):
                 multi_freq_disc_params["hop_lengths"].append(
                     int(
-                        sample_rate
+                        multi_freq_disc_params["sample_rate"]
                         * multi_freq_disc_params["hop_length_factors"][i]
                         / 1000
                     )
@@ -781,6 +782,7 @@ class ConvReluNorm(torch.nn.Module):
 class TorchSTFT(torch.nn.Module):
     def __init__(
         self,
+        sample_rate,
         fft_size,
         hop_size,
         win_size,
@@ -800,7 +802,11 @@ class TorchSTFT(torch.nn.Module):
         self.normalized = normalized
         self.domain = domain
         self.mel_scale = (
-            MelScale(n_mels=(fft_size // 2 + 1), n_stft=(fft_size // 2 + 1))
+            MelScale(
+                sample_rate=sample_rate,
+                n_mels=(fft_size // 2 + 1),
+                n_stft=(fft_size // 2 + 1),
+            )
             if mel_scale
             else None
         )
