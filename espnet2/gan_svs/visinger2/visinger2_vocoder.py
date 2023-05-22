@@ -470,8 +470,10 @@ class MultiFrequencyDiscriminator(torch.nn.Module):
             hidden_channels (list): List of number of channels in hidden layers.
             domain (str): Domain of input signal. Default is "double".
             mel_scale (bool): Whether to use mel-scale frequency. Default is True.
-            divisors (list): List of divisors for each layer in the discriminator. Default is [32, 16, 8, 4, 2, 1, 1].
-            strides (list): List of strides for each layer in the discriminator. Default is [1, 2, 1, 2, 1, 2, 1].
+            divisors (list): List of divisors for each layer in the discriminator.
+                             Default is [32, 16, 8, 4, 2, 1, 1].
+            strides (list): List of strides for each layer in the discriminator.
+                            Default is [1, 2, 1, 2, 1, 2, 1].
         """
 
         super().__init__()
@@ -542,12 +544,15 @@ class BaseFrequenceDiscriminator(torch.nn.Module):
         """
         Args:
             in_channels (int): Number of input channels.
-            hidden_channels (int, optional): Number of channels in hidden layers. Defaults to 512.
-            divisors (List[int], optional): List of divisors for the number of channels in each
-                layer. The length of the list determines the number of layers. Defaults to
-                [32, 16, 8, 4, 2, 1, 1].
-            strides (List[int], optional): List of stride values for each layer. The length of
-                the list determines the number of layers. Defaults to [1, 2, 1, 2, 1, 2, 1].
+            hidden_channels (int, optional): Number of channels in hidden layers.
+                                             Defaults to 512.
+            divisors (List[int], optional): List of divisors for the number of channels
+                                            in each layer. The length of the list
+                                            determines the number of layers. Defaults
+                                            to [32, 16, 8, 4, 2, 1, 1].
+            strides (List[int], optional): List of stride values for each layer. The
+                                           length of the list determines the number
+                                           of layers.Defaults to [1, 2, 1, 2, 1, 2, 1].
         """
 
         super().__init__()
@@ -580,11 +585,13 @@ class BaseFrequenceDiscriminator(torch.nn.Module):
         """Perform forward pass through the base frequency discriminator.
 
         Args:
-            x (torch.Tensor): Input tensor of shape (B, in_channels, freq_bins, time_steps).
+            x (torch.Tensor): Input tensor of shape
+                              (B, in_channels, freq_bins, time_steps).
 
         Returns:
-            List[torch.Tensor]: List of output tensors from each layer of the discriminator,
-            where the first tensor corresponds to the output of the first layer, and so on.
+            List[torch.Tensor]: List of output tensors from each layer of the
+                                discriminator, where the first tensor corresponds to
+                                the output of the first layer, and so on.
         """
 
         outs = []
@@ -651,12 +658,18 @@ class VISinger2Discriminator(torch.nn.Module):
         Args:
             scales (int): Number of scales to be used in the multi-scale discriminator.
             scale_downsample_pooling (str): Type of pooling used for downsampling.
-            scale_downsample_pooling_params (Dict[str, Any]): Parameters for the downsampling pooling layer.
-            scale_discriminator_params (Dict[str, Any]): Parameters for the scale discriminator.
-            follow_official_norm (bool): Whether to follow the official normalization or not.
-            periods (List[int]): List of periods to be used in the multi-period discriminator.
-            period_discriminator_params (Dict[str, Any]): Parameters for the period discriminator.
-            multi_freq_disc_params (Dict[str, Any]): Parameters for the multi-frequency discriminator.
+            scale_downsample_pooling_params (Dict[str, Any]): Parameters for the
+                                                              downsampling pooling
+                                                              layer.
+            scale_discriminator_params (Dict[str, Any]): Parameters for the scale
+                                                         discriminator.
+            follow_official_norm (bool): Whether to follow the official normalization.
+            periods (List[int]): List of periods to be used in the multi-period
+                                 discriminator.
+            period_discriminator_params (Dict[str, Any]): Parameters for the period
+                                                          discriminator.
+            multi_freq_disc_params (Dict[str, Any]): Parameters for the
+                                                     multi-frequency discriminator.
             use_spectral_norm (bool): Whether to use spectral normalization or not.
         """
         super().__init__()

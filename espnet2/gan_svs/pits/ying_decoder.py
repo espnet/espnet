@@ -28,8 +28,10 @@ class YingDecoder(nn.Module):
             n_layers (int): Number of convolutional layers.
             yin_start (int): Start point of the yin target signal.
             yin_scope (int): Scope of the yin target signal.
-            yin_shift_range (int): Maximum number of frames to shift the yin target signal.
-            gin_channels (int, optional): Number of global conditioning channels. Defaults to 0.
+            yin_shift_range (int): Maximum number of frames to shift the yin
+                                   target signal.
+            gin_channels (int, optional): Number of global conditioning channels.
+                                          Defaults to 0.
         """
         super().__init__()
         self.in_channels = yin_scope
@@ -108,13 +110,16 @@ class YingDecoder(nn.Module):
 
         Args:
             z_yin (torch.Tensor): The input yin note sequence of shape (B, C, T_yin).
-            yin_gt (torch.Tensor): The ground truth yin note sequence of shape (B, C, T_yin).
+            yin_gt (torch.Tensor): The ground truth yin note sequence of shape
+                                   (B, C, T_yin).
             z_mask (torch.Tensor): The mask tensor of shape (B, 1, T_yin).
             g (torch.Tensor): The global conditioning tensor.
         Returns:
             torch.Tensor: The predicted yin note sequence of shape (B, C, T_yin).
-            torch.Tensor: The shifted ground truth yin note sequence of shape (B, C, T_yin).
-            torch.Tensor: The cropped ground truth yin note sequence of shape (B, C, T_yin).
+            torch.Tensor: The shifted ground truth yin note sequence of shape
+                          (B, C, T_yin).
+            torch.Tensor: The cropped ground truth yin note sequence of shape
+                          (B, C, T_yin).
             torch.Tensor: The cropped input yin note sequence of shape (B, C, T_yin).
             torch.Tensor: The scope shift tensor of shape (B,).
 

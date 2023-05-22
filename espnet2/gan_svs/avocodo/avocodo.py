@@ -271,7 +271,8 @@ class CoMBDBlock(torch.nn.Module):
             x (Tensor): Input tensor of shape (B, C_in, T_in).
 
         Returns:
-            Tuple[Tensor, List[Tensor]]: Tuple containing the output tensor of shape (B, C_out, T_out)
+            Tuple[Tensor, List[Tensor]]: Tuple containing the output tensor of
+                                         shape (B, C_out, T_out)
             and a list of feature maps of shape (B, C, T) at each Conv1d layer.
         """
         fmap = []
@@ -371,7 +372,9 @@ class CoMBD(torch.nn.Module):
             ys_hat (List[Tensor]): List of predicted signals of shape (B, 1, T).
         Returns:
             Tuple[List[Tensor], List[Tensor], List[List[Tensor]], List[List[Tensor]]]:
-            Tuple containing the list of output tensors of shape (B, C_out, T_out) for real and fake, respectively, and the list of feature maps of shape (B, C, T) at each Conv1d layer for real and fake, respectively.
+            Tuple containing the list of output tensors of shape (B, C_out, T_out)
+            for real and fake, respectively, and the list of feature maps of shape
+            (B, C, T) at each Conv1d layer for real and fake, respectively.
         """
         outs_real, outs_fake, f_maps_real, f_maps_fake = self._pqmf_forward(ys, ys_hat)
         return outs_real, outs_fake, f_maps_real, f_maps_fake

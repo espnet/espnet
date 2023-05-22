@@ -33,24 +33,32 @@ class PriorDecoder(torch.nn.Module):
         Initialize prior decoder module.
 
         Args:
-            out_channels (int, optional): Output channels of the prior decoder. Defaults to 384.
-            attention_dim (int, optional): Dimension of the attention mechanism. Defaults to 192.
-            attention_heads (int, optional): Number of attention heads. Defaults to 2.
-            linear_units (int, optional): Number of units in the linear layer. Defaults to 768.
-            blocks (int, optional): Number of blocks in the encoder. Defaults to 6.
-            positionwise_layer_type (str, optional): Type of the positionwise layer. Defaults to "conv1d".
-            positionwise_conv_kernel_size (int, optional): Kernel size of the positionwise convolutional layer. Defaults to 3.
-            positional_encoding_layer_type (str, optional): Type of positional encoding layer. Defaults to "rel_pos".
-            self_attention_layer_type (str, optional): Type of self-attention layer. Defaults to "rel_selfattn".
-            activation_type (str, optional): Type of activation. Defaults to "swish".
-            normalize_before (bool, optional): Flag for normalization. Defaults to True.
-            use_macaron_style (bool, optional): Flag for macaron style. Defaults to False.
-            use_conformer_conv (bool, optional): Flag for using conformer convolution. Defaults to False.
-            conformer_kernel_size (int, optional): Kernel size for conformer convolution. Defaults to 7.
-            dropout_rate (float, optional): Dropout rate. Defaults to 0.1.
-            positional_dropout_rate (float, optional): Dropout rate for positional encoding. Defaults to 0.0.
-            attention_dropout_rate (float, optional): Dropout rate for attention. Defaults to 0.0.
-            global_channels (int, optional): Number of global channels. Defaults to 0.
+            out_channels (int): Output channels of the prior decoder. Defaults to 384.
+            attention_dim (int): Dimension of the attention mechanism. Defaults to 192.
+            attention_heads (int): Number of attention heads. Defaults to 2.
+            linear_units (int): Number of units in the linear layer. Defaults to 768.
+            blocks (int): Number of blocks in the encoder. Defaults to 6.
+            positionwise_layer_type (str): Type of the positionwise layer.
+                                           Defaults to "conv1d".
+            positionwise_conv_kernel_size (int): Kernel size of the positionwise
+                                                 convolutional layer. Defaults to 3.
+            positional_encoding_layer_type (str): Type of positional encoding layer.
+                                                  Defaults to "rel_pos".
+            self_attention_layer_type (str): Type of self-attention layer.
+                                             Defaults to "rel_selfattn".
+            activation_type (str): Type of activation. Defaults to "swish".
+            normalize_before (bool): Flag for normalization. Defaults to True.
+            use_macaron_style (bool): Flag for macaron style. Defaults to False.
+            use_conformer_conv (bool): Flag for using conformer convolution.
+                                                 Defaults to False.
+            conformer_kernel_size (int): Kernel size for conformer convolution.
+                                                   Defaults to 7.
+            dropout_rate (float): Dropout rate. Defaults to 0.1.
+            positional_dropout_rate (float): Dropout rate for positional encoding.
+                                                       Defaults to 0.0.
+            attention_dropout_rate (float): Dropout rate for attention.
+                                                      Defaults to 0.0.
+            global_channels (int): Number of global channels. Defaults to 0.
         """
         super().__init__()
 
@@ -87,7 +95,7 @@ class PriorDecoder(torch.nn.Module):
         Args:
             x (Tensor): Input tensor (B, attention_dim + 2, T).
             x_lengths (Tensor): Length tensor (B,).
-            g (Tensor, optional): Tensor for multi-singer. (B, global_channels, 1)
+            g (Tensor): Tensor for multi-singer. (B, global_channels, 1)
 
         Returns:
             Tensor: Output tensor (B, out_channels, T).

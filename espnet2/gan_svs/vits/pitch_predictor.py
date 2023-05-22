@@ -39,18 +39,22 @@ class Decoder(torch.nn.Module):
             linear_units (int): The number of units in the linear layer.
             blocks (int): The number of encoder blocks.
             pw_layer_type (str): The type of position-wise layer to use.
-            pw_conv_kernel_size (int): The kernel size of the position-wise convolutional layer.
+            pw_conv_kernel_size (int): The kernel size of the position-wise
+                                       convolutional layer.
             pos_enc_layer_type (str): The type of positional encoding layer to use.
             self_attention_layer_type (str): The type of self-attention layer to use.
             activation_type (str): The type of activation function to use.
-            normalize_before (bool): Whether to normalize the data before the position-wise layer or after.
+            normalize_before (bool): Whether to normalize the data before the
+                                     position-wise layer or after.
             use_macaron_style (bool): Whether to use the macaron style or not.
-            use_conformer_conv (bool): Whether to use Conformer style convolution or not.
-            conformer_kernel_size (int): The kernel size of the conformer convolutional layer.
+            use_conformer_conv (bool): Whether to use Conformer style conv or not.
+            conformer_kernel_size (int): The kernel size of the conformer
+                                         convolutional layer.
             dropout_rate (float): The dropout rate to use.
             positional_dropout_rate (float): The positional dropout rate to use.
             attention_dropout_rate (float): The attention dropout rate to use.
-            global_channels (int): The number of channels to use for global conditioning.
+            global_channels (int): The number of channels to use for global
+                                   conditioning.
         """
         super().__init__()
 

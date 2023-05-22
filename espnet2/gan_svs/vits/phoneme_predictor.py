@@ -43,11 +43,13 @@ class PhonemePredictor(torch.nn.Module):
             linear_units (int): The number of linear units.
             blocks (int): The number of encoder blocks.
             positionwise_layer_type (str): The type of position-wise layer.
-            positionwise_conv_kernel_size (int): The size of position-wise convolution kernel.
+            positionwise_conv_kernel_size (int): The size of position-wise
+                                                 convolution kernel.
             positional_encoding_layer_type (str): The type of positional encoding layer.
             self_attention_layer_type (str): The type of self-attention layer.
             activation_type (str): The type of activation function.
-            normalize_before (bool): Whether to apply normalization before the position-wise layer or not.
+            normalize_before (bool): Whether to apply normalization before the
+                                     position-wise layer or not.
             use_macaron_style (bool): Whether to use macaron style or not.
             use_conformer_conv (bool): Whether to use Conformer convolution or not.
             conformer_kernel_size (int): The size of Conformer kernel.
