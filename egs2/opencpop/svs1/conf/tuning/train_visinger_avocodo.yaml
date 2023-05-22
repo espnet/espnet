@@ -42,30 +42,9 @@ svs_conf:
         decoder_kernel_size: 7
 
         # HifiGAN
-        decoder_channels: 256
+        decoder_channels: 512
         decoder_upsample_scales: [8, 8, 4, 2]
         decoder_upsample_kernel_sizes: [16, 16, 8, 4]
-
-        # UHifiGAN 0
-        # decoder_channels: 64
-        # decoder_downsample_scales: [2, 2, 8, 8]
-        # decoder_downsample_kernel_sizes: [4, 4, 16, 16]
-        # decoder_upsample_scales: [8, 8, 2, 2]
-        # decoder_upsample_kernel_sizes: [16, 16, 4, 4]
-
-        # UHifiGAN 1
-        # decoder_channels: 64
-        # decoder_downsample_scales: [8, 8, 2, 2]
-        # decoder_downsample_kernel_sizes: [16, 16, 4, 4]
-        # decoder_upsample_scales: [2, 2, 8, 8]
-        # decoder_upsample_kernel_sizes: [4, 4, 16, 16]
-
-        # UHifiGAN 2 (better)
-        # decoder_channels: 128
-        # decoder_downsample_scales: [8, 8, 4]
-        # decoder_downsample_kernel_sizes: [16, 16, 8]
-        # decoder_upsample_scales: [4, 8, 8]
-        # decoder_upsample_kernel_sizes: [8, 16, 16]
 
         # avocodo
         projection_filters: [0, 1, 1, 1]
