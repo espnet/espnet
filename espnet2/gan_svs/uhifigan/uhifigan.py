@@ -13,9 +13,15 @@ from typing import List, Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
-from parallel_wavegan.layers import CausalConv1d, CausalConvTranspose1d
-from parallel_wavegan.layers import HiFiGANResidualBlock as ResidualBlock
-from parallel_wavegan.utils import read_hdf5
+
+try:
+    from parallel_wavegan.layers import CausalConv1d, CausalConvTranspose1d
+    from parallel_wavegan.layers import HiFiGANResidualBlock as ResidualBlock
+    from parallel_wavegan.utils import read_hdf5
+except ImportError:
+    CausalConv1d, CausalConvTranspose1d = None, None
+    ResidualBlock = None
+    read_hdf5 = None
 
 
 class UHiFiGANGenerator(torch.nn.Module):
@@ -91,10 +97,17 @@ class UHiFiGANGenerator(torch.nn.Module):
 
         self.output_conv = None
         self.use_avocodo = use_avocodo
-        # print("in_channels", in_channels)
-        # print("out_channels", out_channels)
-        # print("channels", channels)
-        # raise ValueError
+
+        if (
+            CausalConv1d is None
+            or CausalConvTranspose1d is None
+            or ResidualBlock is None
+        ):
+            raise ImportError(
+                "`parallel_wavegan` is not installed. "
+                "Please install via `pip install -U parallel_wavegan`."
+            )
+
         if not use_causal_conv:
             self.input_conv = torch.nn.Sequential(
                 torch.nn.Conv1d(
@@ -250,21 +263,6 @@ class UHiFiGANGenerator(torch.nn.Module):
                 ]
 
             channels = channels // 2
-
-            # hidden_channel for MRF module
-            # for j in range(len(resblock_kernel_sizes)):
-            #     self.blocks += [
-            #         ResidualBlock(
-            #             kernel_size=resblock_kernel_sizes[j],
-            #             channels=channels // (2 ** (i + 1)),
-            #             dilations=resblock_dilations[j],
-            #             bias=bias,
-            #             use_additional_convs=use_additional_convs,
-            #             nonlinear_activation=nonlinear_activation,
-            #             nonlinear_activation_params=nonlinear_activation_params,
-            #             use_causal_conv=use_causal_conv,
-            #         )
-            #     ]
 
             if use_avocodo:
                 if projection_filters[i] != 0:
