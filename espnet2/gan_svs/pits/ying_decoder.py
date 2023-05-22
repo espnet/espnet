@@ -89,7 +89,8 @@ class YingDecoder(nn.Module):
         Args:
             z_yin (torch.Tensor): Input yin target tensor of shape [B, yin_scope, C].
             z_mask (torch.Tensor): Input mask tensor of shape [B, yin_scope, 1].
-            g (torch.Tensor, optional): Global conditioning tensor of shape [B, gin_channels, 1]. Defaults to None.
+            g (torch.Tensor, optional): Global conditioning tensor of shape
+                                        [B, gin_channels, 1]. Defaults to None.
 
         Returns:
             torch.Tensor: Predicted yin tensor of shape [B, yin_scope, C].
