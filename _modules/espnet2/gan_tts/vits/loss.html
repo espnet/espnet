@@ -203,6 +203,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.distributions</span> <span class="k">as</span> <span class="nn">D</span>
 
 
 <div class="viewcode-block" id="KLDivergenceLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.loss.KLDivergenceLoss">[docs]</a><span class="k">class</span> <span class="nc">KLDivergenceLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
@@ -239,6 +240,30 @@
         <span class="n">kl</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">kl</span> <span class="o">*</span> <span class="n">z_mask</span><span class="p">)</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="n">kl</span> <span class="o">/</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">z_mask</span><span class="p">)</span>
 
+        <span class="k">return</span> <span class="n">loss</span></div></div>
+
+
+<div class="viewcode-block" id="KLDivergenceLossWithoutFlow"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.loss.KLDivergenceLossWithoutFlow">[docs]</a><span class="k">class</span> <span class="nc">KLDivergenceLossWithoutFlow</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;KL divergence loss without flow.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KLDivergenceLossWithoutFlow.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.loss.KLDivergenceLossWithoutFlow.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">m_q</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">logs_q</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">m_p</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">logs_p</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate KL divergence loss without flow.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            m_q (Tensor): Posterior encoder projected mean (B, H, T_feats).</span>
+<span class="sd">            logs_q (Tensor): Posterior encoder projected scale (B, H, T_feats).</span>
+<span class="sd">            m_p (Tensor): Expanded text encoder projected mean (B, H, T_feats).</span>
+<span class="sd">            logs_p (Tensor): Expanded text encoder projected scale (B, H, T_feats).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">posterior_norm</span> <span class="o">=</span> <span class="n">D</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">m_q</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">logs_q</span><span class="p">))</span>
+        <span class="n">prior_norm</span> <span class="o">=</span> <span class="n">D</span><span class="o">.</span><span class="n">Normal</span><span class="p">(</span><span class="n">m_p</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">logs_p</span><span class="p">))</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="n">D</span><span class="o">.</span><span class="n">kl_divergence</span><span class="p">(</span><span class="n">posterior_norm</span><span class="p">,</span> <span class="n">prior_norm</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">loss</span></div></div>
 </pre></div>
 

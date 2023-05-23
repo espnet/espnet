@@ -220,103 +220,89 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad_value</span> <span class="o">=</span> <span class="n">pad_value</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">winlen</span> <span class="o">=</span> <span class="mi">1024</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hoplen</span> <span class="o">=</span> <span class="mi">256</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">=</span> <span class="mi">24000</span>
 
-<div class="viewcode-block" id="LengthRegulator.LR"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.length_regulator.LengthRegulator.LR">[docs]</a>    <span class="k">def</span> <span class="nf">LR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">notepitch</span><span class="p">,</span> <span class="n">ds</span><span class="p">):</span>
+<div class="viewcode-block" id="LengthRegulator.LR"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.length_regulator.LengthRegulator.LR">[docs]</a>    <span class="k">def</span> <span class="nf">LR</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Length regulates input mel-spectrograms to match duration.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (Tensor): Input tensor (B, dim, T).</span>
+<span class="sd">            duration (Tensor): Duration tensor (B, T).</span>
+<span class="sd">            use_state_info (bool, optional): Whether to use position information or not.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Output tensor (B, dim, D_frame).</span>
+<span class="sd">            Tensor: Output length (B,).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">output</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
-        <span class="n">frame_pitch</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">frame_lengths</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
-
-        <span class="k">for</span> <span class="n">batch</span><span class="p">,</span> <span class="n">expand_target</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ds</span><span class="p">):</span>
-            <span class="n">expanded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">expand_target</span><span class="p">)</span>
+        <span class="n">mel_len</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">batch</span><span class="p">,</span> <span class="n">expand_target</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">duration</span><span class="p">):</span>
+            <span class="n">expanded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">expand_target</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="n">use_state_info</span><span class="p">)</span>
             <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expanded</span><span class="p">)</span>
-            <span class="n">frame_lengths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expanded</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">mel_len</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expanded</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
 
-        <span class="k">for</span> <span class="n">batch</span><span class="p">,</span> <span class="n">expand_target</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">notepitch</span><span class="p">,</span> <span class="n">ds</span><span class="p">):</span>
-            <span class="n">expanded_pitch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">expand_pitch</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">expand_target</span><span class="p">)</span>
-            <span class="n">frame_pitch</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">expanded_pitch</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">pad_list</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad_value</span><span class="p">)</span>  <span class="c1"># (B, D_frame, dim)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">mel_len</span><span class="p">)</span></div>
 
-        <span class="n">max_len</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">frame_lengths</span><span class="p">)</span>
-        <span class="n">output_padded</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">max_len</span><span class="p">,</span> <span class="n">xs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
-        <span class="n">output_padded</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-        <span class="n">frame_pitch_padded</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">FloatTensor</span><span class="p">(</span><span class="n">notepitch</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">max_len</span><span class="p">)</span>
-        <span class="n">frame_pitch_padded</span><span class="o">.</span><span class="n">zero_</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">output_padded</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
-            <span class="n">output_padded</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span> <span class="n">frame_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">output</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">frame_pitch_padded</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
-            <span class="n">length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">frame_pitch</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-            <span class="n">frame_pitch</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_len</span> <span class="o">-</span> <span class="n">length</span><span class="p">))</span>
-            <span class="n">frame_pitch_tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">frame_pitch</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-            <span class="n">frame_pitch_padded</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">frame_pitch_tensor</span>
-        <span class="n">output_padded</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">output_padded</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<div class="viewcode-block" id="LengthRegulator.expand"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.length_regulator.LengthRegulator.expand">[docs]</a>    <span class="k">def</span> <span class="nf">expand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">predicted</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Expand input mel-spectrogram based on the predicted duration.</span>
 
-        <span class="k">return</span> <span class="n">output_padded</span><span class="p">,</span> <span class="n">frame_pitch_padded</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">frame_lengths</span><span class="p">)</span></div>
+<span class="sd">        Args:</span>
+<span class="sd">            batch (Tensor): Input tensor (T, dim).</span>
+<span class="sd">            predicted (Tensor): Predicted duration tensor (T,).</span>
+<span class="sd">            use_state_info (bool, optional): Whether to use position information or not.</span>
 
-<div class="viewcode-block" id="LengthRegulator.expand_pitch"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.length_regulator.LengthRegulator.expand_pitch">[docs]</a>    <span class="k">def</span> <span class="nf">expand_pitch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">predicted</span><span class="p">):</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Output tensor (D_frame, dim).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">predicted</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">predicted</span><span class="p">)</span>
         <span class="n">out</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
-        <span class="n">predicted</span> <span class="o">=</span> <span class="n">predicted</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">vec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
-            <span class="n">duration</span> <span class="o">=</span> <span class="n">predicted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">*</span> <span class="n">duration</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">winlen</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">expand_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">*</span> <span class="n">duration</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">winlen</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">hoplen</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">duration</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">expand_size</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">expand_size</span> <span class="o">=</span> <span class="mi">1</span>
-            <span class="n">vec_expand</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">vec</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">expand_size</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-            <span class="p">)</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">vec_expand</span><span class="p">)</span>
+            <span class="n">expand_size</span> <span class="o">=</span> <span class="n">predicted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">use_state_info</span><span class="p">:</span>
+                <span class="n">state_info_index</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">expand_size</span><span class="p">),</span> <span class="mi">1</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+                <span class="n">state_info_length</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">([</span><span class="n">expand_size</span><span class="p">]</span> <span class="o">*</span> <span class="n">expand_size</span><span class="p">),</span> <span class="mi">1</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+                <span class="n">state_info</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">state_info_index</span><span class="p">,</span> <span class="n">state_info_length</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                    <span class="n">vec</span><span class="o">.</span><span class="n">device</span>
+                <span class="p">)</span>
+            <span class="n">new_vec</span> <span class="o">=</span> <span class="n">vec</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">expand_size</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">use_state_info</span><span class="p">:</span>
+                <span class="n">new_vec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">new_vec</span><span class="p">,</span> <span class="n">state_info</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
 
-        <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">(</span><span class="n">out</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">vec</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">out</span></div>
-
-<div class="viewcode-block" id="LengthRegulator.expand"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.length_regulator.LengthRegulator.expand">[docs]</a>    <span class="k">def</span> <span class="nf">expand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">predicted</span><span class="p">):</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
-        <span class="n">predicted</span> <span class="o">=</span> <span class="n">predicted</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">vec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">batch</span><span class="p">):</span>
-            <span class="n">duration</span> <span class="o">=</span> <span class="n">predicted</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">*</span> <span class="n">duration</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">winlen</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">expand_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">sr</span> <span class="o">*</span> <span class="n">duration</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">winlen</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">hoplen</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="k">elif</span> <span class="n">duration</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">expand_size</span> <span class="o">=</span> <span class="mi">0</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">expand_size</span> <span class="o">=</span> <span class="mi">1</span>
-            <span class="n">vec_expand</span> <span class="o">=</span> <span class="n">vec</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">expand_size</span><span class="p">),</span> <span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vec_expand</span><span class="p">)</span>
-
+            <span class="n">out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_vec</span><span class="p">)</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">out</span></div>
 
-<div class="viewcode-block" id="LengthRegulator.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.length_regulator.LengthRegulator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">notepitch</span><span class="p">,</span> <span class="n">ds</span><span class="p">,</span> <span class="n">x_lengths</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">ds</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<div class="viewcode-block" id="LengthRegulator.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.length_regulator.LengthRegulator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward pass through the length regulator module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (Tensor): Input tensor (B, dim, T).</span>
+<span class="sd">            duration (Tensor): Duration tensor (B, T).</span>
+<span class="sd">            use_state_info (bool, optional): Whether to use position information or not.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Output tensor (B, dim, D_frame).</span>
+<span class="sd">            Tensor: Output length (B,).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">duration</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">&quot;predicted durations includes all 0 sequences. &quot;</span>
                 <span class="s2">&quot;fill the first element with 1.&quot;</span>
             <span class="p">)</span>
-            <span class="n">ds</span><span class="p">[</span><span class="n">ds</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">duration</span><span class="p">[</span><span class="n">duration</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">eq</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
 
-        <span class="c1"># expand xs</span>
-        <span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="c1"># print(&quot;ds&quot;, ds)</span>
-        <span class="n">phn_repeat</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ds</span><span class="p">)]</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="n">pad_list</span><span class="p">(</span><span class="n">phn_repeat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad_value</span><span class="p">)</span>  <span class="c1"># (B, D_frame, dim)</span>
-        <span class="n">output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="n">output</span><span class="p">,</span> <span class="n">mel_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LR</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">use_state_info</span><span class="o">=</span><span class="n">use_state_info</span><span class="p">)</span>
 
-        <span class="c1"># expand pitch</span>
-        <span class="n">notepitch</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">detach</span><span class="p">(</span><span class="n">notepitch</span><span class="p">)</span>
-        <span class="n">pitch_repeat</span> <span class="o">=</span> <span class="p">[</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">repeat_interleave</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">notepitch</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>
-        <span class="p">]</span>
-        <span class="n">frame_pitch</span> <span class="o">=</span> <span class="n">pad_list</span><span class="p">(</span><span class="n">pitch_repeat</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad_value</span><span class="p">)</span>  <span class="c1"># (B, D_frame)</span>
-
-        <span class="n">x_lengths</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">pitch_repeat</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
-            <span class="n">frame_pitch</span><span class="o">.</span><span class="n">device</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">frame_pitch</span><span class="p">,</span> <span class="n">x_lengths</span></div></div>
+        <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">mel_len</span></div></div>
 </pre></div>
 
            </div>

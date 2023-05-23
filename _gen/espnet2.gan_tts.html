@@ -3217,6 +3217,30 @@ Tensor: Log-determinant tensor for NLL (B,) if not inverse.</p>
 
 </dd></dl>
 
+<dl class="class">
+<dt id="espnet2.gan_tts.vits.loss.KLDivergenceLossWithoutFlow">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.vits.loss.</code><code class="sig-name descname">KLDivergenceLossWithoutFlow</code><a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#KLDivergenceLossWithoutFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.KLDivergenceLossWithoutFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>KL divergence loss without flow.</p>
+<p>Initializes internal Module state, shared by both nn.Module and ScriptModule.</p>
+<dl class="method">
+<dt id="espnet2.gan_tts.vits.loss.KLDivergenceLossWithoutFlow.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">m_q: torch.Tensor</em>, <em class="sig-param">logs_q: torch.Tensor</em>, <em class="sig-param">m_p: torch.Tensor</em>, <em class="sig-param">logs_p: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/vits/loss.html#KLDivergenceLossWithoutFlow.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.vits.loss.KLDivergenceLossWithoutFlow.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate KL divergence loss without flow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m_q</strong> (<em>Tensor</em>) – Posterior encoder projected mean (B, H, T_feats).</p></li>
+<li><p><strong>logs_q</strong> (<em>Tensor</em>) – Posterior encoder projected scale (B, H, T_feats).</p></li>
+<li><p><strong>m_p</strong> (<em>Tensor</em>) – Expanded text encoder projected mean (B, H, T_feats).</p></li>
+<li><p><strong>logs_p</strong> (<em>Tensor</em>) – Expanded text encoder projected scale (B, H, T_feats).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </section>
 <section id="espnet2-gan-tts-vits-flow-1">
 <span id="espnet2-gan-tts-vits-flow"></span><h2>espnet2.gan_tts.vits.flow<a class="headerlink" href="#espnet2-gan-tts-vits-flow-1" title="Permalink to this headline">¶</a></h2>

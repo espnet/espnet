@@ -199,19 +199,22 @@
 <span class="kn">import</span> <span class="nn">torch</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder</span> <span class="kn">import</span> <span class="n">Encoder</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_non_pad_mask</span>
 
 
-<div class="viewcode-block" id="PitchPredictor"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.pitch_predictor.PitchPredictor">[docs]</a><span class="k">class</span> <span class="nc">PitchPredictor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="Decoder"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.pitch_predictor.Decoder">[docs]</a><span class="k">class</span> <span class="nc">Decoder</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pitch or Mel decoder module in VISinger 2.&quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">hidden_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">192</span><span class="p">,</span>
+        <span class="n">out_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">192</span><span class="p">,</span>
         <span class="n">attention_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">192</span><span class="p">,</span>
         <span class="n">attention_heads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
         <span class="n">linear_units</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">768</span><span class="p">,</span>
         <span class="n">blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
-        <span class="n">positionwise_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;conv1d&quot;</span><span class="p">,</span>
-        <span class="n">positionwise_conv_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
-        <span class="n">positional_encoding_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;rel_pos&quot;</span><span class="p">,</span>
+        <span class="n">pw_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;conv1d&quot;</span><span class="p">,</span>
+        <span class="n">pw_conv_kernel_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+        <span class="n">pos_enc_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;rel_pos&quot;</span><span class="p">,</span>
         <span class="n">self_attention_layer_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;rel_selfattn&quot;</span><span class="p">,</span>
         <span class="n">activation_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;swish&quot;</span><span class="p">,</span>
         <span class="n">normalize_before</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -221,9 +224,37 @@
         <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
         <span class="n">positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">attention_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">global_channels</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Args:</span>
+<span class="sd">            out_channels (int): The output dimension of the module.</span>
+<span class="sd">            attention_dim (int): The dimension of the attention mechanism.</span>
+<span class="sd">            attention_heads (int): The number of attention heads.</span>
+<span class="sd">            linear_units (int): The number of units in the linear layer.</span>
+<span class="sd">            blocks (int): The number of encoder blocks.</span>
+<span class="sd">            pw_layer_type (str): The type of position-wise layer to use.</span>
+<span class="sd">            pw_conv_kernel_size (int): The kernel size of the position-wise</span>
+<span class="sd">                                       convolutional layer.</span>
+<span class="sd">            pos_enc_layer_type (str): The type of positional encoding layer to use.</span>
+<span class="sd">            self_attention_layer_type (str): The type of self-attention layer to use.</span>
+<span class="sd">            activation_type (str): The type of activation function to use.</span>
+<span class="sd">            normalize_before (bool): Whether to normalize the data before the</span>
+<span class="sd">                                     position-wise layer or after.</span>
+<span class="sd">            use_macaron_style (bool): Whether to use the macaron style or not.</span>
+<span class="sd">            use_conformer_conv (bool): Whether to use Conformer style conv or not.</span>
+<span class="sd">            conformer_kernel_size (int): The kernel size of the conformer</span>
+<span class="sd">                                         convolutional layer.</span>
+<span class="sd">            dropout_rate (float): The dropout rate to use.</span>
+<span class="sd">            positional_dropout_rate (float): The positional dropout rate to use.</span>
+<span class="sd">            attention_dropout_rate (float): The attention dropout rate to use.</span>
+<span class="sd">            global_channels (int): The number of channels to use for global</span>
+<span class="sd">                                   conditioning.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">pitch_net</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">attention_dim</span> <span class="o">+</span> <span class="mi">2</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">padding</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span>
             <span class="n">idim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">input_layer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">attention_dim</span><span class="o">=</span><span class="n">attention_dim</span><span class="p">,</span>
@@ -234,24 +265,54 @@
             <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">positional_dropout_rate</span><span class="p">,</span>
             <span class="n">attention_dropout_rate</span><span class="o">=</span><span class="n">attention_dropout_rate</span><span class="p">,</span>
             <span class="n">normalize_before</span><span class="o">=</span><span class="n">normalize_before</span><span class="p">,</span>
-            <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="n">positionwise_layer_type</span><span class="p">,</span>
-            <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">positionwise_conv_kernel_size</span><span class="p">,</span>
+            <span class="n">positionwise_layer_type</span><span class="o">=</span><span class="n">pw_layer_type</span><span class="p">,</span>
+            <span class="n">positionwise_conv_kernel_size</span><span class="o">=</span><span class="n">pw_conv_kernel_size</span><span class="p">,</span>
             <span class="n">macaron_style</span><span class="o">=</span><span class="n">use_macaron_style</span><span class="p">,</span>
-            <span class="n">pos_enc_layer_type</span><span class="o">=</span><span class="n">positional_encoding_layer_type</span><span class="p">,</span>
+            <span class="n">pos_enc_layer_type</span><span class="o">=</span><span class="n">pos_enc_layer_type</span><span class="p">,</span>
             <span class="n">selfattention_layer_type</span><span class="o">=</span><span class="n">self_attention_layer_type</span><span class="p">,</span>
             <span class="n">activation_type</span><span class="o">=</span><span class="n">activation_type</span><span class="p">,</span>
             <span class="n">use_cnn_module</span><span class="o">=</span><span class="n">use_conformer_conv</span><span class="p">,</span>
             <span class="n">cnn_module_kernel</span><span class="o">=</span><span class="n">conformer_kernel_size</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">hidden_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">proj</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">attention_dim</span><span class="p">,</span> <span class="n">out_channels</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
-<div class="viewcode-block" id="PitchPredictor.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.pitch_predictor.PitchPredictor.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x_mask</span>
+        <span class="k">if</span> <span class="n">global_channels</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">global_conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="n">global_channels</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Decoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.pitch_predictor.Decoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_lengths</span><span class="p">,</span> <span class="n">g</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Forward pass of the Decoder.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (Tensor): Input tensor (B, 2 + attention_dim, T).</span>
+<span class="sd">            x_lengths (Tensor): Length tensor (B,).</span>
+<span class="sd">            g (Tensor, optional): Global conditioning tensor (B, global_channels, 1).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: Output tensor (B, 1, T).</span>
+<span class="sd">            Tensor: Output mask (B, 1, T).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">x_mask</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">make_non_pad_mask</span><span class="p">(</span><span class="n">x_lengths</span><span class="p">)</span>
+            <span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">x_mask</span>
+
+        <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_conv</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">pitch_embedding</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_net</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">)</span>
-        <span class="n">pitch_embedding</span> <span class="o">=</span> <span class="n">pitch_embedding</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">pred_pitch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">pitch_embedding</span><span class="p">)</span> <span class="o">*</span> <span class="n">x_mask</span>
-        <span class="k">return</span> <span class="n">pred_pitch</span><span class="p">,</span> <span class="n">pitch_embedding</span></div></div>
+        <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">)</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">proj</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">*</span> <span class="n">x_mask</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span></div></div>
 </pre></div>
 
            </div>

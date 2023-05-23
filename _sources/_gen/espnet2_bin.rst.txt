@@ -4062,6 +4062,8 @@ gan_svs_train.py
                             [--pitch_extract_conf PITCH_EXTRACT_CONF]
                             [--pitch_normalize {global_mvn,utterance_mvn,None}]
                             [--pitch_normalize_conf PITCH_NORMALIZE_CONF]
+                            [--ying_extract {ying,None}]
+                            [--ying_extract_conf YING_EXTRACT_CONF]
                             [--energy_extract {energy,None}]
                             [--energy_extract_conf ENERGY_EXTRACT_CONF]
                             [--energy_normalize {global_mvn,utterance_mvn,None}]
@@ -4474,6 +4476,10 @@ gan_svs_train.py
                             The pitch_normalize type (default: None)
       --pitch_normalize_conf PITCH_NORMALIZE_CONF
                             The keyword arguments for pitch_normalize (default: {})
+      --ying_extract {ying,None}
+                            The ying_extract type (default: None)
+      --ying_extract_conf YING_EXTRACT_CONF
+                            The keyword arguments for ying_extract (default: {})
       --energy_extract {energy,None}
                             The energy_extract type (default: None)
       --energy_extract_conf ENERGY_EXTRACT_CONF

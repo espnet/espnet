@@ -202,6 +202,10 @@
 
 
 <div class="viewcode-block" id="PhonemePredictor"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.phoneme_predictor.PhonemePredictor">[docs]</a><span class="k">class</span> <span class="nc">PhonemePredictor</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Phoneme Predictor module in VISinger.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">vocabs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
@@ -223,6 +227,32 @@
         <span class="n">positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">attention_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize PhonemePredictor module.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            vocabs (int): The number of vocabulary.</span>
+<span class="sd">            hidden_channels (int): The number of hidden channels.</span>
+<span class="sd">            attention_dim (int): The number of attention dimension.</span>
+<span class="sd">            attention_heads (int): The number of attention heads.</span>
+<span class="sd">            linear_units (int): The number of linear units.</span>
+<span class="sd">            blocks (int): The number of encoder blocks.</span>
+<span class="sd">            positionwise_layer_type (str): The type of position-wise layer.</span>
+<span class="sd">            positionwise_conv_kernel_size (int): The size of position-wise</span>
+<span class="sd">                                                 convolution kernel.</span>
+<span class="sd">            positional_encoding_layer_type (str): The type of positional encoding layer.</span>
+<span class="sd">            self_attention_layer_type (str): The type of self-attention layer.</span>
+<span class="sd">            activation_type (str): The type of activation function.</span>
+<span class="sd">            normalize_before (bool): Whether to apply normalization before the</span>
+<span class="sd">                                     position-wise layer or not.</span>
+<span class="sd">            use_macaron_style (bool): Whether to use macaron style or not.</span>
+<span class="sd">            use_conformer_conv (bool): Whether to use Conformer convolution or not.</span>
+<span class="sd">            conformer_kernel_size (int): The size of Conformer kernel.</span>
+<span class="sd">            dropout_rate (float): The dropout rate.</span>
+<span class="sd">            positional_dropout_rate (float): The dropout rate for positional encoding.</span>
+<span class="sd">            attention_dropout_rate (float): The dropout rate for attention.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">phoneme_predictor</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span>
             <span class="n">idim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
@@ -247,13 +277,25 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">linear1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">hidden_channels</span><span class="p">,</span> <span class="n">vocabs</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PhonemePredictor.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.phoneme_predictor.PhonemePredictor.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Perform forward propagation.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            x (Tensor): The input tensor of shape (B, dim, length).</span>
+<span class="sd">            x_mask (Tensor): The mask tensor for the input tensor of shape (B, length).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tensor: The predicted phoneme tensor of shape (length, B, vocab_size).</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">x_mask</span>
         <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">phoneme_embedding</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phoneme_predictor</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">x_mask</span><span class="p">)</span>
         <span class="n">phoneme_embedding</span> <span class="o">=</span> <span class="n">phoneme_embedding</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
         <span class="n">x1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear1</span><span class="p">(</span><span class="n">phoneme_embedding</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">))</span>
         <span class="n">x1</span> <span class="o">=</span> <span class="n">x1</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-        <span class="c1"># print(&quot;shape&quot;, x1.shape)</span>
+
         <span class="k">return</span> <span class="n">x1</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span></div></div>
 </pre></div>
 

@@ -37,6 +37,39 @@ espnet2.gan_svs.abs_gan_svs
     :show-inheritance:
 
 
+.. _espnet2.gan_svs.uhifigan.sine_generator:
+
+espnet2.gan_svs.uhifigan.sine_generator
+---------------------------------------
+
+.. automodule:: espnet2.gan_svs.uhifigan.sine_generator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.uhifigan.uhifigan:
+
+espnet2.gan_svs.uhifigan.uhifigan
+---------------------------------
+
+.. automodule:: espnet2.gan_svs.uhifigan.uhifigan
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.uhifigan.__init__:
+
+espnet2.gan_svs.uhifigan.__init__
+---------------------------------
+
+.. automodule:: espnet2.gan_svs.uhifigan.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_svs.joint.joint_score2wav:
 
 espnet2.gan_svs.joint.joint_score2wav
@@ -54,6 +87,105 @@ espnet2.gan_svs.joint.__init__
 ------------------------------
 
 .. automodule:: espnet2.gan_svs.joint.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.avocodo.avocodo:
+
+espnet2.gan_svs.avocodo.avocodo
+-------------------------------
+
+.. automodule:: espnet2.gan_svs.avocodo.avocodo
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.avocodo.__init__:
+
+espnet2.gan_svs.avocodo.__init__
+--------------------------------
+
+.. automodule:: espnet2.gan_svs.avocodo.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.utils.__init__:
+
+espnet2.gan_svs.utils.__init__
+------------------------------
+
+.. automodule:: espnet2.gan_svs.utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.utils.expand_f0:
+
+espnet2.gan_svs.utils.expand_f0
+-------------------------------
+
+.. automodule:: espnet2.gan_svs.utils.expand_f0
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.visinger2.visinger2_vocoder:
+
+espnet2.gan_svs.visinger2.visinger2_vocoder
+-------------------------------------------
+
+.. automodule:: espnet2.gan_svs.visinger2.visinger2_vocoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.visinger2.__init__:
+
+espnet2.gan_svs.visinger2.__init__
+----------------------------------
+
+.. automodule:: espnet2.gan_svs.visinger2.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.visinger2.ddsp:
+
+espnet2.gan_svs.visinger2.ddsp
+------------------------------
+
+.. automodule:: espnet2.gan_svs.visinger2.ddsp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.pits.modules:
+
+espnet2.gan_svs.pits.modules
+----------------------------
+
+.. automodule:: espnet2.gan_svs.pits.modules
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.gan_svs.pits.ying_decoder:
+
+espnet2.gan_svs.pits.ying_decoder
+---------------------------------
+
+.. automodule:: espnet2.gan_svs.pits.ying_decoder
     :members:
     :undoc-members:
     :show-inheritance:
@@ -103,6 +235,17 @@ espnet2.gan_svs.vits.length_regulator
     :show-inheritance:
 
 
+.. _espnet2.gan_svs.vits.prior_decoder:
+
+espnet2.gan_svs.vits.prior_decoder
+----------------------------------
+
+.. automodule:: espnet2.gan_svs.vits.prior_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.gan_svs.vits.vits:
 
 espnet2.gan_svs.vits.vits
@@ -131,17 +274,6 @@ espnet2.gan_svs.vits.text_encoder
 ---------------------------------
 
 .. automodule:: espnet2.gan_svs.vits.text_encoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.gan_svs.vits.frame_prior_net:
-
-espnet2.gan_svs.vits.frame_prior_net
-------------------------------------
-
-.. automodule:: espnet2.gan_svs.vits.frame_prior_net
     :members:
     :undoc-members:
     :show-inheritance:

@@ -257,6 +257,17 @@ espnet2.tts.feats_extract.energy
     :show-inheritance:
 
 
+.. _espnet2.tts.feats_extract.ying:
+
+espnet2.tts.feats_extract.ying
+------------------------------
+
+.. automodule:: espnet2.tts.feats_extract.ying
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tts.feats_extract.log_spectrogram:
 
 espnet2.tts.feats_extract.log_spectrogram
@@ -307,6 +318,17 @@ espnet2.tts.feats_extract.dio
 -----------------------------
 
 .. automodule:: espnet2.tts.feats_extract.dio
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.tts.feats_extract.yin:
+
+espnet2.tts.feats_extract.yin
+-----------------------------
+
+.. automodule:: espnet2.tts.feats_extract.yin
     :members:
     :undoc-members:
     :show-inheritance:

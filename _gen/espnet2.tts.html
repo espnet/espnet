@@ -146,11 +146,13 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-transformer-init-1">espnet2.tts.transformer.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-transformer-transformer-1">espnet2.tts.transformer.transformer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-energy-1">espnet2.tts.feats_extract.energy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-ying-1">espnet2.tts.feats_extract.ying</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-spectrogram-1">espnet2.tts.feats_extract.log_spectrogram</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-abs-feats-extract-1">espnet2.tts.feats_extract.abs_feats_extract</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-log-mel-fbank-1">espnet2.tts.feats_extract.log_mel_fbank</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-init-1">espnet2.tts.feats_extract.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-dio-1">espnet2.tts.feats_extract.dio</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-yin-1">espnet2.tts.feats_extract.yin</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tts-feats-extract-linear-spectrogram-1">espnet2.tts.feats_extract.linear_spectrogram</a></li>
 </ul>
 </li>
@@ -1927,6 +1929,112 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-tts-feats-extract-ying-1">
+<span id="espnet2-tts-feats-extract-ying"></span><h2>espnet2.tts.feats_extract.ying<a class="headerlink" href="#espnet2-tts-feats-extract-ying-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.feats_extract.ying"></span><dl class="class">
+<dt id="espnet2.tts.feats_extract.ying.Ying">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tts.feats_extract.ying.</code><code class="sig-name descname">Ying</code><span class="sig-paren">(</span><em class="sig-param">fs: int = 22050</em>, <em class="sig-param">w_step: int = 256</em>, <em class="sig-param">W: int = 2048</em>, <em class="sig-param">tau_max: int = 2048</em>, <em class="sig-param">midi_start: int = -5</em>, <em class="sig-param">midi_end: int = 75</em>, <em class="sig-param">octave_range: int = 24</em>, <em class="sig-param">use_token_averaged_ying: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/ying.html#Ying"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.ying.Ying" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract" title="espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tts.feats_extract.abs_feats_extract.AbsFeatsExtract</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.ying.Ying.crop_scope">
+<code class="sig-name descname">crop_scope</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">yin_start</em>, <em class="sig-param">scope_shift</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/ying.html#Ying.crop_scope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.ying.Ying.crop_scope" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.ying.Ying.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor = None</em>, <em class="sig-param">feats_lengths: torch.Tensor = None</em>, <em class="sig-param">durations: torch.Tensor = None</em>, <em class="sig-param">durations_lengths: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/ying.html#Ying.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.ying.Ying.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.ying.Ying.get_parameters">
+<code class="sig-name descname">get_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; Dict[str, Any]<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/ying.html#Ying.get_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.ying.Ying.get_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.ying.Ying.midi_to_lag">
+<code class="sig-name descname">midi_to_lag</code><span class="sig-paren">(</span><em class="sig-param">m: int</em>, <em class="sig-param">octave_range: float = 12</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/ying.html#Ying.midi_to_lag"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.ying.Ying.midi_to_lag" title="Permalink to this definition">¶</a></dt>
+<dd><p>converts midi-to-lag, eq. (4)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>m</strong> – midi</p></li>
+<li><p><strong>fs</strong> – sample_rate</p></li>
+<li><p><strong>octave_range</strong> – </p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>time lag(tau, c(m)) calculated from midi, eq. (4)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>lag</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.ying.Ying.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/ying.html#Ying.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.ying.Ying.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.ying.Ying.yingram">
+<code class="sig-name descname">yingram</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/ying.html#Ying.yingram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.ying.Ying.yingram" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculates yingram from raw audio (multi segment)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – raw audio, torch.Tensor of shape (t)</p></li>
+<li><p><strong>W</strong> – yingram Window Size</p></li>
+<li><p><strong>tau_max</strong> – </p></li>
+<li><p><strong>fs</strong> – sampling rate</p></li>
+<li><p><strong>w_step</strong> – yingram bin step size</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>yingram. torch.Tensor of shape (80 x t’)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>yingram</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tts.feats_extract.ying.Ying.yingram_from_cmndf">
+<code class="sig-name descname">yingram_from_cmndf</code><span class="sig-paren">(</span><em class="sig-param">cmndfs: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/ying.html#Ying.yingram_from_cmndf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.ying.Ying.yingram_from_cmndf" title="Permalink to this definition">¶</a></dt>
+<dd><p>yingram calculator from cMNDFs
+(cumulative Mean Normalized Difference Functions)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cmndfs</strong> – torch.Tensor
+calculated cumulative mean normalized difference function
+for details, see models/yin.py or eq. (1) and (2)</p></li>
+<li><p><strong>ms</strong> – list of midi(int)</p></li>
+<li><p><strong>fs</strong> – sampling rate</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>calculated batch yingram</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>y</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-tts-feats-extract-log-spectrogram-1">
 <span id="espnet2-tts-feats-extract-log-spectrogram"></span><h2>espnet2.tts.feats_extract.log_spectrogram<a class="headerlink" href="#espnet2-tts-feats-extract-log-spectrogram-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.tts.feats_extract.log_spectrogram"></span><dl class="class">
@@ -2075,6 +2183,90 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/dio.html#Dio.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.dio.Dio.output_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+</dd></dl>
+
+</section>
+<section id="espnet2-tts-feats-extract-yin-1">
+<span id="espnet2-tts-feats-extract-yin"></span><h2>espnet2.tts.feats_extract.yin<a class="headerlink" href="#espnet2-tts-feats-extract-yin-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tts.feats_extract.yin"></span><dl class="function">
+<dt id="espnet2.tts.feats_extract.yin.cumulativeMeanNormalizedDifferenceFunction">
+<code class="sig-prename descclassname">espnet2.tts.feats_extract.yin.</code><code class="sig-name descname">cumulativeMeanNormalizedDifferenceFunction</code><span class="sig-paren">(</span><em class="sig-param">df</em>, <em class="sig-param">N</em>, <em class="sig-param">eps=1e-08</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/yin.html#cumulativeMeanNormalizedDifferenceFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.yin.cumulativeMeanNormalizedDifferenceFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute cumulative mean normalized difference function (CMND).</p>
+<p>This corresponds to equation (8) in [1]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>df</strong> – Difference function</p></li>
+<li><p><strong>N</strong> – length of data</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>cumulative mean normalized difference function</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.tts.feats_extract.yin.cumulativeMeanNormalizedDifferenceFunctionTorch">
+<code class="sig-prename descclassname">espnet2.tts.feats_extract.yin.</code><code class="sig-name descname">cumulativeMeanNormalizedDifferenceFunctionTorch</code><span class="sig-paren">(</span><em class="sig-param">dfs: torch.Tensor</em>, <em class="sig-param">N</em>, <em class="sig-param">eps=1e-08</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/yin.html#cumulativeMeanNormalizedDifferenceFunctionTorch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.yin.cumulativeMeanNormalizedDifferenceFunctionTorch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.tts.feats_extract.yin.differenceFunction">
+<code class="sig-prename descclassname">espnet2.tts.feats_extract.yin.</code><code class="sig-name descname">differenceFunction</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">N</em>, <em class="sig-param">tau_max</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/yin.html#differenceFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.yin.differenceFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute difference function of data x. This corresponds to equation (6) in [1]
+This solution is implemented directly with torch rfft.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – audio data (Tensor)</p></li>
+<li><p><strong>N</strong> – length of data</p></li>
+<li><p><strong>tau_max</strong> – integration window size</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>difference function</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.tts.feats_extract.yin.differenceFunctionTorch">
+<code class="sig-prename descclassname">espnet2.tts.feats_extract.yin.</code><code class="sig-name descname">differenceFunctionTorch</code><span class="sig-paren">(</span><em class="sig-param">xs: torch.Tensor</em>, <em class="sig-param">N</em>, <em class="sig-param">tau_max</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/tts/feats_extract/yin.html#differenceFunctionTorch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.yin.differenceFunctionTorch" title="Permalink to this definition">¶</a></dt>
+<dd><p>pytorch backend batch-wise differenceFunction
+has 1e-4 level error with input shape of (32, 22050*1.5)
+:param xs:
+:param N:
+:param tau_max:</p>
+<p>Returns:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.tts.feats_extract.yin.differenceFunction_np">
+<code class="sig-prename descclassname">espnet2.tts.feats_extract.yin.</code><code class="sig-name descname">differenceFunction_np</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">N</em>, <em class="sig-param">tau_max</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tts/feats_extract/yin.html#differenceFunction_np"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tts.feats_extract.yin.differenceFunction_np" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute difference function of data x. This corresponds to equation (6) in [1]
+This solution is implemented directly with Numpy fft.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – audio data</p></li>
+<li><p><strong>N</strong> – length of data</p></li>
+<li><p><strong>tau_max</strong> – integration window size</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>difference function</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
 </dd></dl>
 
 </section>
