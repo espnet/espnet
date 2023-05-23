@@ -142,6 +142,8 @@ class SingingGenerate:
         else:
             batch = dict(text=text)
 
+        if singing is not None:
+            batch.update(singing=singing)
         if label is not None:
             batch.update(label=label)
         if midi is not None:
