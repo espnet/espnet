@@ -588,5 +588,9 @@ class ContextualBlockConformerEncoder(AbsEncoder):
                 "past_encoder_ctx": past_encoder_ctx,
             }
 
-        return ys_pad, torch.tensor([y_length], dtype=xs_pad.dtype, device=ys_pad.device), next_states
+        return (
+            ys_pad,
+            torch.tensor([y_length], dtype=xs_pad.dtype, device=ys_pad.device),
+            next_states,
+        )
         # return ys_pad, None, next_states

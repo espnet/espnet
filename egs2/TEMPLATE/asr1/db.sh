@@ -63,7 +63,7 @@ LIBRIMIX=downloads
 LIBRITTS=
 LJSPEECH=downloads
 MUSAN=
-MUST_C=downloads
+MUST_C=/scratch/bbjs/yan2/corpora
 NSC=
 JMD=downloads
 JSSS=downloads
@@ -169,6 +169,8 @@ CATSLU=downloads
 ELRA_E0024=
 ELRA_S0272=
 ELRA_S0371=
+FISHER_CALLHOME_SPANISH=/scratch/bbjs/peng6/corpora/fisher_callhome_spanish
+COVOST2=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

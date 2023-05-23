@@ -43,7 +43,7 @@ class DecoderLayer(nn.Module):
         dropout_rate,
         normalize_before=True,
         concat_after=False,
-        sequential_attn=None
+        sequential_attn=None,
     ):
         """Construct an DecoderLayer object."""
         super(DecoderLayer, self).__init__()
@@ -66,7 +66,16 @@ class DecoderLayer(nn.Module):
             if sequential_attn is not None:
                 self.concat_linear3 = nn.Linear(size + size, size)
 
-    def forward(self, tgt, tgt_mask, memory, memory_mask, cache=None, pre_memory=None, pre_memory_mask=None):
+    def forward(
+        self,
+        tgt,
+        tgt_mask,
+        memory,
+        memory_mask,
+        cache=None,
+        pre_memory=None,
+        pre_memory_mask=None,
+    ):
         """Compute decoded features.
 
         Args:
@@ -76,7 +85,7 @@ class DecoderLayer(nn.Module):
             memory_mask (torch.Tensor): Encoded memory mask (#batch, maxlen_in).
             cache (List[torch.Tensor]): List of cached tensors.
                 Each tensor shape should be (#batch, maxlen_out - 1, size).
-            pre_memory (torch.Tensor): First encoded memory for sequential attn, float32 (#batch, maxlen_in, size).
+            pre_memory (torch.Tensor): Encoded memory (#batch, maxlen_in, size).
             pre_memory_mask (torch.Tensor): Encoded memory mask (#batch, maxlen_in).
 
         Returns:
@@ -122,7 +131,13 @@ class DecoderLayer(nn.Module):
                 x = self.norm4(x)
             if self.concat_after:
                 x_concat = torch.cat(
-                    (x, self.sequential_attn(x, pre_memory, pre_memory, pre_memory_mask)), dim=-1
+                    (
+                        x,
+                        self.sequential_attn(
+                            x, pre_memory, pre_memory, pre_memory_mask
+                        ),
+                    ),
+                    dim=-1,
                 )
                 x = residual + self.concat_linear3(x_concat)
             else:

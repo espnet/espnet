@@ -6,7 +6,7 @@
 
 import copy
 import logging
-from typing import Any, List, Sequence, Tuple
+from typing import Any, List, Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -116,12 +116,21 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
 
     def score(self, ys, state, x, speech=None):
         # import pdb;pdb.set_trace()
-        model_kwargs = {"encoder_outputs": ModelOutput(
-                    last_hidden_state=self.linear_in(x).unsqueeze(0)
-                ),}
-        # TODO caching
-        model_inputs = self.hf_generate.prepare_inputs_for_generation(ys.unsqueeze(0), **model_kwargs)
-        outputs = self.hf_generate(**model_inputs, return_dict=True, output_attentions=False, output_hidden_states=False)
+        model_kwargs = {
+            "encoder_outputs": ModelOutput(
+                last_hidden_state=self.linear_in(x).unsqueeze(0)
+            ),
+        }
+        # TODO(brian): caching
+        model_inputs = self.hf_generate.prepare_inputs_for_generation(
+            ys.unsqueeze(0), **model_kwargs
+        )
+        outputs = self.hf_generate(
+            **model_inputs,
+            return_dict=True,
+            output_attentions=False,
+            output_hidden_states=False
+        )
         next_token_logits = outputs.logits[:, -1, :]
         next_token_scores = torch.nn.functional.log_softmax(
             next_token_logits, dim=-1
@@ -129,14 +138,25 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         return next_token_scores.squeeze(0), None
 
     def batch_score(
-        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, speech: torch.Tensor = None,
+        self,
+        ys: torch.Tensor,
+        states: List[Any],
+        xs: torch.Tensor,
+        speech: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, List[Any]]:
         # import pdb;pdb.set_trace()
-        model_kwargs = {"encoder_outputs": ModelOutput(
-                    last_hidden_state=self.linear_in(xs)
-                ),}
-        model_inputs = self.hf_generate.prepare_inputs_for_generation(ys, **model_kwargs)
-        outputs = self.hf_generate(**model_inputs, return_dict=True, output_attentions=False, output_hidden_states=False)
+        model_kwargs = {
+            "encoder_outputs": ModelOutput(last_hidden_state=self.linear_in(xs)),
+        }
+        model_inputs = self.hf_generate.prepare_inputs_for_generation(
+            ys, **model_kwargs
+        )
+        outputs = self.hf_generate(
+            **model_inputs,
+            return_dict=True,
+            output_attentions=False,
+            output_hidden_states=False
+        )
         next_token_logits = outputs.logits[:, -1, :]
         next_token_scores = torch.nn.functional.log_softmax(
             next_token_logits, dim=-1

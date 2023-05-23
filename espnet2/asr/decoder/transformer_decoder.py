@@ -199,18 +199,30 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
         if return_hs:
-            logp, state = self.forward_one_step(
-                ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state, return_hs=return_hs
+            logp, hs, state = self.forward_one_step(
+                ys.unsqueeze(0),
+                ys_mask,
+                x.unsqueeze(0),
+                cache=state,
+                return_hs=return_hs,
             )
             return logp.squeeze(0), hs, state
         else:
             logp, state = self.forward_one_step(
-                ys.unsqueeze(0), ys_mask, x.unsqueeze(0), cache=state, return_hs=return_hs
+                ys.unsqueeze(0),
+                ys_mask,
+                x.unsqueeze(0),
+                cache=state,
+                return_hs=return_hs,
             )
             return logp.squeeze(0), state
 
     def batch_score(
-        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, return_hs: bool = False
+        self,
+        ys: torch.Tensor,
+        states: List[Any],
+        xs: torch.Tensor,
+        return_hs: bool = False,
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 
@@ -242,9 +254,13 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
 
         if return_hs:
-            logp, hs, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state, return_hs=return_hs)
+            logp, hs, states = self.forward_one_step(
+                ys, ys_mask, xs, cache=batch_state, return_hs=return_hs
+            )
         else:
-            logp, states = self.forward_one_step(ys, ys_mask, xs, cache=batch_state, return_hs=return_hs)
+            logp, states = self.forward_one_step(
+                ys, ys_mask, xs, cache=batch_state, return_hs=return_hs
+            )
 
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
@@ -551,6 +567,7 @@ class DynamicConvolution2DTransformerDecoder(BaseTransformerDecoder):
             ),
         )
 
+
 class TransformerMDDecoder(BaseTransformerDecoder):
     def __init__(
         self,
@@ -568,7 +585,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         pos_enc_class=PositionalEncoding,
         normalize_before: bool = True,
         concat_after: bool = False,
-        use_speech_attn: bool = True
+        use_speech_attn: bool = True,
     ):
         assert check_argument_types()
         super().__init__(
@@ -599,7 +616,9 @@ class TransformerMDDecoder(BaseTransformerDecoder):
                 concat_after,
                 MultiHeadedAttention(
                     attention_heads, attention_dim, src_attention_dropout_rate
-                ) if use_speech_attn else None,
+                )
+                if use_speech_attn
+                else None,
             ),
         )
 
@@ -646,9 +665,9 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         )
 
         if speech is not None:
-            speech_mask = (~make_pad_mask(speech_lens, maxlen=speech.size(1)))[:, None, :].to(
-                speech.device
-            )
+            speech_mask = (~make_pad_mask(speech_lens, maxlen=speech.size(1)))[
+                :, None, :
+            ].to(speech.device)
         else:
             speech_mask = None
 
@@ -708,7 +727,7 @@ class TransformerMDDecoder(BaseTransformerDecoder):
                     x, tgt_mask, memory, None, c, speech, None
                 )
             else:
-                 x, tgt_mask, memory, memory_mask = decoder(
+                x, tgt_mask, memory, memory_mask = decoder(
                     x, tgt_mask, memory, None, cache=c
                 )
             new_cache.append(x)
@@ -732,12 +751,20 @@ class TransformerMDDecoder(BaseTransformerDecoder):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
         logp, state = self.forward_one_step(
-            ys.unsqueeze(0), ys_mask, x.unsqueeze(0), speech.unsqueeze(0) if speech is not None else None, cache=state
+            ys.unsqueeze(0),
+            ys_mask,
+            x.unsqueeze(0),
+            speech.unsqueeze(0) if speech is not None else None,
+            cache=state,
         )
         return logp.squeeze(0), state
 
     def batch_score(
-        self, ys: torch.Tensor, states: List[Any], xs: torch.Tensor, speech: torch.Tensor = None,
+        self,
+        ys: torch.Tensor,
+        states: List[Any],
+        xs: torch.Tensor,
+        speech: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, List[Any]]:
         """Score new token batch.
 

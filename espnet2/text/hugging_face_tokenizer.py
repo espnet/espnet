@@ -12,6 +12,10 @@ try:
 except ImportError:
     is_transformers_available = False
 
+import os
+
+os.environ["CURL_CA_BUNDLE"] = ""
+
 
 class HuggingFaceTokenizer(AbsTokenizer):
     def __init__(self, model: Union[Path, str]):

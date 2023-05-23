@@ -5,10 +5,10 @@ max_epoch: 25
 patience: none
 init: none
 best_model_criterion:
--   - train
-    - loss
-    - min
-keep_nbest_models: 25
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
 # use_amp: true       # automatic mixed precision (amp)
 num_workers: 4
 

@@ -8,12 +8,13 @@ from typing import Tuple  # noqa: H301
 
 import torch
 
+from espnet2.asr.transducer.beam_search_transducer_streaming import BeamSearchTransducer
 from espnet.nets.batch_beam_search import BatchBeamSearch  # noqa: H301
 from espnet.nets.batch_beam_search import BatchHypothesis  # noqa: H301
 from espnet.nets.beam_search import Hypothesis
-from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.beam_search_timesync_streaming import BeamSearchTimeSync
-from espnet2.asr.transducer.beam_search_transducer_streaming import BeamSearchTransducer
+from espnet.nets.e2e_asr_common import end_detect
+
 
 class BatchBeamSearchOnline(BatchBeamSearch):
     """Online beam search implementation.
@@ -175,56 +176,69 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 )
             )
 
-            if self.running_hyps is None:   # init hyps
+            if self.running_hyps is None:  # init hyps
                 init_scores = {}
                 init_states = {}
-                if 'ctc' in self.scorers.keys():
-                    self.scorers['ctc'].batch_init_state(h)
-                    init_scores['ctc'] = torch.tensor([0.0])
-                    init_states['ctc'] = [None]
-                if 'length_bonus' in self.scorers.keys():
-                    init_scores['length_bonus'] = torch.tensor([0.0])
-                    init_states['length_bonus'] = [None]
-                if 'decoder' in self.scorers.keys():
-                    init_scores['decoder'] = torch.tensor([0.0])
-                    init_states['decoder'] = [None]
+                if "ctc" in self.scorers.keys():
+                    self.scorers["ctc"].batch_init_state(h)
+                    init_scores["ctc"] = torch.tensor([0.0])
+                    init_states["ctc"] = [None]
+                if "length_bonus" in self.scorers.keys():
+                    init_scores["length_bonus"] = torch.tensor([0.0])
+                    init_states["length_bonus"] = [None]
+                if "decoder" in self.scorers.keys():
+                    init_scores["decoder"] = torch.tensor([0.0])
+                    init_states["decoder"] = [None]
                 self.running_hyps = BatchHypothesis(
                     score=torch.tensor([0.0]),
-                    scores=init_scores, 
+                    scores=init_scores,
                     states=init_states,
                     length=torch.tensor([2]),
-                    yseq=torch.tensor([[self.sos, 250003]], device=x.device),  # hacky way to avoid 2 2 hypothesis clogging decoding
+                    yseq=torch.tensor(
+                        [[self.sos, 250003]], device=x.device
+                    ),  # hacky way to avoid 2 2 hypothesis clogging decoding
                     hs=[],
                 )
                 self.prev_incremental = self.running_hyps
 
-            # ret = self.process_one_chunk(h, block_is_final, maxlen - self.process_idx, maxlenratio) #v1
             if self.time_sync:
-                ret = self.process_one_block_time_sync(h, block_is_final, maxlen, maxlenratio)
+                ret = self.process_one_block_time_sync(
+                    h, block_is_final, maxlen, maxlenratio
+                )
             else:
-                ret = self.process_one_block(h, block_is_final, maxlen - self.process_idx, maxlenratio)
+                ret = self.process_one_block(
+                    h, block_is_final, maxlen - self.process_idx, maxlenratio
+                )
             logging.debug("Finished processing chunk: %d", self.processed_block)
             self.processed_block += 1
 
             # prune running_hyps, taking top as an incremental decoding
             if self.incremental_decode and not is_final:
-                if self.running_hyps.yseq.shape[0] == 0:   # running_hyps will be empty if maxlen is reached
-                    logging.info("search stopped by maxlen in a non final chunk. reverting to prev running hyp")
+                if (
+                    self.running_hyps.yseq.shape[0] == 0
+                ):  # running_hyps will be empty if maxlen is reached
+                    logging.info(
+                        "search stopped by maxlen in a non final chunk. \
+                        reverting to prev running hyp"
+                    )
                     self.running_hyps = self.prev_incremental
-                logging.info("Hyps before incremental pruning: %d", self.running_hyps.yseq.shape[0])
+                logging.info(
+                    "Hyps before incremental pruning: %d",
+                    self.running_hyps.yseq.shape[0],
+                )
                 if self.running_hyps.yseq.shape[0] > 0:
                     self.running_hyps = self._batch_select(self.running_hyps, [0])
-                    self.prev_incremental = self.running_hyps  
-                logging.info("Hyps after incremental pruning: %d", self.running_hyps.yseq.shape[0])
+                    self.prev_incremental = self.running_hyps
+                logging.info(
+                    "Hyps after incremental pruning: %d",
+                    self.running_hyps.yseq.shape[0],
+                )
 
                 if self.token_list is not None:
                     logging.info(
                         "best running hypo: "
                         + "".join(
-                            [
-                                self.token_list[x]
-                                for x in self.running_hyps.yseq[0, 1 : ]
-                            ]
+                            [self.token_list[x] for x in self.running_hyps.yseq[0, 1:]]
                         )
                     )
 
@@ -232,10 +246,10 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 if self.hold_n > 0 and self.running_hyps.length[0] > 2:
                     self.running_hyps = BatchHypothesis(
                         score=self.running_hyps.score,
-                        scores=self.running_hyps.scores, 
+                        scores=self.running_hyps.scores,
                         states=self.running_hyps.states,
-                        length=self.running_hyps.length-self.hold_n,
-                        yseq=self.running_hyps.yseq[:,:-self.hold_n],
+                        length=self.running_hyps.length - self.hold_n,
+                        yseq=self.running_hyps.yseq[:, : -self.hold_n],
                         hs=[],
                     )
                     if self.token_list is not None:
@@ -244,7 +258,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                             + "".join(
                                 [
                                     self.token_list[x]
-                                    for x in self.running_hyps.yseq[0, 1 : ]
+                                    for x in self.running_hyps.yseq[0, 1:]
                                 ]
                             )
                         )
@@ -257,7 +271,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                         return self.prev_output
                 else:
                     return ret
-            else: # dont return incremental hyps, check them by grabbing top running_hyp
+            else:
+                # dont return incremental hyps,
+                # check them by grabbing top running_hyp
                 if len(ret) > 0:
                     self.prev_output = ret
                 return []
@@ -267,7 +283,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             ret = None
             while True:
                 cur_end_frame = (
-                    self.block_size - self.look_ahead + self.hop_size * self.processed_block
+                    self.block_size
+                    - self.look_ahead
+                    + self.hop_size * self.processed_block
                 )
                 if cur_end_frame < x.shape[0]:
                     h = x.narrow(0, 0, cur_end_frame)
@@ -298,18 +316,26 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 if self.running_hyps is None:
                     self.running_hyps = self.init_hyp(h)
                 if self.time_sync:
-                    ret = self.process_one_block_time_sync(h, block_is_final, maxlen, maxlenratio)
+                    ret = self.process_one_block_time_sync(
+                        h, block_is_final, maxlen, maxlenratio
+                    )
                 else:
                     ret = self.process_one_block(h, block_is_final, maxlen, maxlenratio)
                 logging.debug("Finished processing block: %d", self.processed_block)
                 self.processed_block += 1
-                
+
                 # prune running_hyps, taking top as an incremental decoding
                 if self.incremental_decode:
-                    logging.debug("Hyps before incremental pruning: %d", self.running_hyps.yseq.shape[0])
+                    logging.debug(
+                        "Hyps before incremental pruning: %d",
+                        self.running_hyps.yseq.shape[0],
+                    )
                     if self.running_hyps.yseq.shape[0] > 0:
                         self.running_hyps = self._batch_select(self.running_hyps, [0])
-                    logging.debug("Hyps after incremental pruning: %d", self.running_hyps.yseq.shape[0])
+                    logging.debug(
+                        "Hyps after incremental pruning: %d",
+                        self.running_hyps.yseq.shape[0],
+                    )
 
                 if block_is_final:
                     return ret
@@ -324,7 +350,13 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 return ret
 
     def process_one_block_time_sync(self, h, is_final, maxlen, maxlenratio):
-        hyps = self.time_sync_search(h, start_idx=self.t, is_final=is_final, incremental_decode=self.incremental_decode)
+        """Recognize one block w/ time sync."""
+        hyps = self.time_sync_search(
+            h,
+            start_idx=self.t,
+            is_final=is_final,
+            incremental_decode=self.incremental_decode,
+        )
         logging.debug("time:" + str(self.t))
         logging.debug("best_hyp:" + "".join([self.token_list[x] for x in hyps[0].yseq]))
         if is_final:
@@ -333,89 +365,10 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             self.t = len(h)
         return hyps
 
-    # no rewinding
-    def process_one_chunk(self, h, is_final, maxlen, maxlenratio):
-        ended_hyps = []
-        for i in range(maxlen):
-            logging.debug("position " + str(i))
-            best = self.search(self.running_hyps, h)
-            # post process of one iteration
-            self.running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
-            # end detection
-            if maxlenratio == 0.0 and end_detect([h.asdict() for h in ended_hyps], i):
-                logging.info(f"end detected at {i}")
-                break
-            if len(self.running_hyps) == 0:
-                logging.info("no hypothesis. Finish decoding.")
-                break
-            else:
-                logging.debug(f"remained hypotheses: {len(self.running_hyps)}")
-
-        nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
-        
-
-        # report the best result
-        best = nbest_hyps[0]
-        for k, v in best.scores.items():
-            logging.info(
-                f"{v:6.2f} * {self.weights[k]:3} = {v * self.weights[k]:6.2f} for {k}"
-            )
-        logging.info(f"total log probability: {best.score:.2f}")
-        logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
-        logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
-        if self.token_list is not None:
-            logging.info(
-                "best hypo: "
-                + "".join([self.token_list[x] for x in best.yseq[1:-1]])
-                + "\n"
-            )
-        if best.yseq[1:-1].shape[0] == h.shape[0]:
-            logging.warning(
-                "best hypo length: {} == max output length: {}".format(
-                    best.yseq[1:-1].shape[0], maxlen
-                )
-            )
-            logging.warning(
-                "decoding may be stopped by the max output length limitation, "
-                + "please consider to increase the maxlenratio."
-            )
-
-        # always doing incremental pruning
-        if not is_final:
-            if len(best.yseq > 3):  #<s> <de> . </s>
-                rewind = 2
-            else:
-                rewind = 1
-            best_increment = Hypothesis(
-                score=best.score,
-                scores=best.scores,
-                states=best.states,
-                yseq=best.yseq[:-2],
-                hs=best.hs,
-            )
-
-            if self.token_list is not None:
-                logging.debug(
-                    "incremental output: "
-                    + "".join(
-                        [
-                            self.token_list[x]
-                            for x in best_increment.yseq[1:]
-                        ]
-                    )
-                )
-
-            self.running_hyps = self.batchfy([best_increment])
-            return None
-        else:
-            return nbest_hyps
-
     def process_one_block(self, h, is_final, maxlen, maxlenratio):
         """Recognize one block."""
         # extend states for ctc
         self.extend(h, self.running_hyps)
-        # import pdb;pdb.set_trace()
-        start_idx = self.process_idx
         while self.process_idx < maxlen:
             logging.debug("position " + str(self.process_idx))
             best = self.search(self.running_hyps, h)
@@ -446,10 +399,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     not self.disable_repetition_detection
                     and not prev_repeat
                     and best.yseq[i, -1] in best.yseq[i, :-1]
-                    # and best.yseq[i, -1] in best.yseq[i, start_idx:-1]   #only check for repeat in tokens generated this chunk
                     and not is_final
                 ):
-                    # import pdb;pdb.set_trace()
                     prev_repeat = True
             if prev_repeat:
                 logging.info("Detected repetition.")
@@ -467,7 +418,9 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
             if len(local_ended_hyps) > 0 and not is_final:
                 logging.info("Detected hyp(s) reaching EOS in this block.")
-                break   # breaking here means that prev hyps is 2 behind the ended hyps, not 1
+                break
+                # breaking here means that prev hyps
+                # is 2 behind the ended hyps, not 1
 
             self.prev_hyps = self.running_hyps
             self.running_hyps = self.post_process(
@@ -491,7 +444,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         else:
             try:
                 local_ended_hyps
-            except:
+            except Exception:
                 local_ended_hyps = []
 
             for hyp in self.ended_hyps:

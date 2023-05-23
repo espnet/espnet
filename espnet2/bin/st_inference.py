@@ -10,9 +10,6 @@ import torch
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
-from espnet2.asr.transducer.beam_search_transducer import (
-    ExtendedHypothesis as ExtTransHypothesis,
-)
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.enh_s2t import EnhS2TTask
@@ -31,17 +28,14 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
-# from espnet2.st.espnet_model_seqattn2 import ESPnetSTModelSA2
-# from espnet2.st.espnet_model_seqattn4 import ESPnetSTModelSA4
-# from espnet2.st.espnet_model_md2 import ESPnetSTModelMD2
 
 try:
     from transformers import AutoModelForSeq2SeqLM
-    from transformers.file_utils import ModelOutput
 
     is_transformers_available = True
 except ImportError:
     is_transformers_available = False
+
 
 class Speech2Text:
     """Speech2Text class
@@ -340,7 +334,7 @@ class Speech2Text:
             vocab_size=len(src_token_list),
             token_list=src_token_list,
             pre_beam_score_key="full",
-            return_hs=True
+            return_hs=True,
         )
         # TODO(karita): make all scorers batchfied
         if batch_size == 1:
@@ -362,7 +356,7 @@ class Speech2Text:
             if isinstance(scorer, torch.nn.Module):
                 scorer.to(device=device, dtype=getattr(torch, dtype)).eval()
         logging.info(f"ASR Beam_search: {asr_beam_search}")
-        logging.info(f"Decoding device={device}, dtype={dtype}")        
+        logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
         if token_type is None:
@@ -391,7 +385,9 @@ class Speech2Text:
             src_tokenizer = None
         elif src_token_type == "bpe":
             if src_bpemodel is not None:
-                src_tokenizer = build_tokenizer(token_type=src_token_type, bpemodel=src_bpemodel)
+                src_tokenizer = build_tokenizer(
+                    token_type=src_token_type, bpemodel=src_bpemodel
+                )
             else:
                 src_tokenizer = None
         else:
@@ -425,7 +421,9 @@ class Speech2Text:
     @torch.no_grad()
     def __call__(
         self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]]:
+    ) -> List[
+        Tuple[Optional[str], List[str], List[int], Union[Hypothesis, TransHypothesis]]
+    ]:
         """Inference
 
         Args:
@@ -457,9 +455,11 @@ class Speech2Text:
         # Multi-decoder ASR beam search
         if self.st_model.use_multidecoder:
             asr_nbest_hyps = self.asr_beam_search(
-                x=asr_enc[0], maxlenratio=self.asr_maxlenratio, minlenratio=self.asr_minlenratio
+                x=asr_enc[0],
+                maxlenratio=self.asr_maxlenratio,
+                minlenratio=self.asr_minlenratio,
             )
-            
+
             asr_results = []
             for hyp in asr_nbest_hyps:
                 assert isinstance(hyp, Hypothesis), type(hyp)
@@ -471,8 +471,12 @@ class Speech2Text:
                     asr_hs = hyp.hs
 
                 src_token_int = hyp.yseq.tolist()
-                src_token_int = list(filter(lambda x: x != self.st_model.src_sos, src_token_int))
-                src_token_int = list(filter(lambda x: x != self.st_model.src_eos, src_token_int))
+                src_token_int = list(
+                    filter(lambda x: x != self.st_model.src_sos, src_token_int)
+                )
+                src_token_int = list(
+                    filter(lambda x: x != self.st_model.src_eos, src_token_int)
+                )
 
                 # remove blank symbol id, which is assumed to be 0
                 src_token_int = list(filter(lambda x: x != 0, src_token_int))
@@ -484,40 +488,43 @@ class Speech2Text:
                     src_hyp_text = self.src_tokenizer.tokens2text(src_token)
                 else:
                     src_hyp_text = None
-                asr_results.append((src_hyp_text, src_token, src_token_int, hyp, asr_hs))
+                asr_results.append(
+                    (src_hyp_text, src_token, src_token_int, hyp, asr_hs)
+                )
 
             # Encode 1 best ASR result
-            asr_src_text = asr_results[0][0]
             asr_hs = asr_results[0][-1].unsqueeze(0)
             asr_hs = to_device(asr_hs, device=self.device)
-            asr_hs_lengths = asr_hs.new_full([1], dtype=torch.long, fill_value=asr_hs.size(1))
+            asr_hs_lengths = asr_hs.new_full(
+                [1], dtype=torch.long, fill_value=asr_hs.size(1)
+            )
             md_enc, _, _ = self.st_model.md_encoder(asr_hs, asr_hs_lengths)
             x = md_enc[0]
             pre_x = enc[0]
-        
+
         # c. Passed the encoder result and the beam search
         if self.ctc_greedy:
             from itertools import groupby
+
             lpz = self.st_model.st_ctc.argmax(enc)
             collapsed_indices = [x[0] for x in groupby(lpz[0])]
             hyp = [x for x in filter(lambda x: x != 0, collapsed_indices)]
-            nbest_hyps = [{"score": 0.0, "yseq": [self.st_model.sos] + hyp + [self.st_model.eos]}]
-            nbest_hyps = [Hypothesis(
-                            score=hyp["score"],
-                            yseq=torch.tensor(hyp["yseq"]),
-                        ) for hyp in nbest_hyps]
+            nbest_hyps = [
+                {"score": 0.0, "yseq": [self.st_model.sos] + hyp + [self.st_model.eos]}
+            ]
+            nbest_hyps = [
+                Hypothesis(
+                    score=hyp["score"],
+                    yseq=torch.tensor(hyp["yseq"]),
+                )
+                for hyp in nbest_hyps
+            ]
         elif self.st_model.use_multidecoder and self.st_model.use_speech_attn:
-            # if isinstance(self.st_model, ESPnetSTModelSA2):
-            #     nbest_hyps = self.beam_search(
-            #         x=pre_x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, pre_x=x, sa2=True
-            #     )
-            # elif isinstance(self.st_model, ESPnetSTModelSA4):
-            #     nbest_hyps = self.beam_search(
-            #         x=pre_x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, pre_x=asr_enc[0], sa2=True, pre_x2=x
-            #     )
-            # else:
             nbest_hyps = self.beam_search(
-                x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio, pre_x=pre_x
+                x=x,
+                maxlenratio=self.maxlenratio,
+                minlenratio=self.minlenratio,
+                pre_x=pre_x,
             )
         elif self.beam_search_transducer:
             logging.info("encoder output length: " + str(x.shape[0]))
@@ -531,33 +538,12 @@ class Speech2Text:
             logging.info(
                 "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
             )
-        # elif self.hugging_face_model:
-        #     # import pdb;pdb.set_trace()
-        #     decoder_start_token_id = (
-        #         self.hugging_face_model.config.decoder_start_token_id
-        #     )
-        #     yseq = self.hugging_face_model.generate(
-        #         encoder_outputs=ModelOutput(
-        #             last_hidden_state=self.hugging_face_linear_in(enc).unsqueeze(0)
-        #         ),
-        #         use_cache=True,
-        #         decoder_start_token_id=decoder_start_token_id,
-        #         num_beams=self.hugging_face_beam_size,
-        #         max_length=self.hugging_face_decoder_max_length,
-        #     )
-        #     nbest_hyps = [Hypothesis(yseq=yseq[0])]
-        #     logging.info(
-        #         "best hypo: "
-        #         + "".join(self.converter.ids2tokens(nbest_hyps[0].yseq[1:]))
-        #         + "\n"
-        #     )
-
         else:
             nbest_hyps = self.beam_search(
                 x=x, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
             )
         nbest_hyps = nbest_hyps[: self.nbest]
-        
+
         results = []
         for hyp in nbest_hyps:
             assert isinstance(hyp, (Hypothesis, TransHypothesis)), type(hyp)
@@ -580,7 +566,7 @@ class Speech2Text:
             else:
                 text = None
             results.append((text, token, token_int, hyp))
-        
+
         if self.st_model.use_multidecoder:
             return (results, asr_results)
         assert check_return_type(results)
@@ -780,9 +766,11 @@ def inference(
 
                 if text is not None:
                     ibest_writer["text"][key] = text
-            
+
             if asr_results is not None:
-                for n, (text, token, token_int, hyp, _) in zip(range(1, asr_nbest + 1), asr_results):
+                for n, (text, token, token_int, hyp, _) in zip(
+                    range(1, asr_nbest + 1), asr_results
+                ):
                     # Create a directory: outdir/{n}best_recog
                     ibest_writer = writer[f"{n}asr_best_recog"]
 
@@ -793,6 +781,7 @@ def inference(
 
                     if text is not None:
                         ibest_writer["asr_text"][key] = text
+
 
 def get_parser():
     parser = config_argparse.ArgumentParser(
@@ -923,11 +912,15 @@ def get_parser():
         help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
-    group.add_argument("--asr_nbest", type=int, default=1, help="Output N-best hypotheses")
+    group.add_argument(
+        "--asr_nbest", type=int, default=1, help="Output N-best hypotheses"
+    )
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
     group.add_argument("--asr_beam_size", type=int, default=20, help="Beam size")
     group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
-    group.add_argument("--asr_penalty", type=float, default=0.0, help="Insertion penalty")
+    group.add_argument(
+        "--asr_penalty", type=float, default=0.0, help="Insertion penalty"
+    )
     group.add_argument(
         "--maxlenratio",
         type=float,
@@ -965,9 +958,13 @@ def get_parser():
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--asr_lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
-    group.add_argument("--asr_ngram_weight", type=float, default=0.9, help="ngram weight")
+    group.add_argument(
+        "--asr_ngram_weight", type=float, default=0.9, help="ngram weight"
+    )
     group.add_argument("--ctc_weight", type=float, default=0.0, help="ST CTC weight")
-    group.add_argument("--asr_ctc_weight", type=float, default=0.3, help="ASR CTC weight")
+    group.add_argument(
+        "--asr_ctc_weight", type=float, default=0.3, help="ASR CTC weight"
+    )
 
     group.add_argument(
         "--transducer_conf",

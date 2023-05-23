@@ -6,9 +6,10 @@
 
 """Common functions for ST and MT."""
 
+from itertools import groupby
+
 import nltk
 import numpy as np
-from itertools import groupby
 
 
 class ErrorCalculator(object):

@@ -229,7 +229,6 @@ class HubertPretrainModel(AbsESPnetModel):
         self,
         encoder_out: Dict[str, torch.Tensor],
     ):
-
         # 1. Compute attention loss
         loss_att, logp_m_list, logp_u_list = self.criterion_att(
             self.encoder.encoder, encoder_out

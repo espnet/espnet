@@ -4,19 +4,20 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 
+import logging
 import random
-from simuleval.utils import entrypoint
+from typing import Any, List, Optional, Sequence, Tuple, Union
+
+import torch
+from mosestokenizer import MosesDetokenizer
 from simuleval.agents import SpeechToTextAgent
 from simuleval.agents.actions import ReadAction, WriteAction
+from simuleval.utils import entrypoint
 
 from espnet2.bin.st_inference import Speech2Text
 from espnet2.bin.st_inference_streaming import Speech2TextStreaming
-from espnet2.utils.types import str2bool, str2triple_str, str_or_none
-from typing import Any, List, Optional, Sequence, Tuple, Union
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-import torch
-import logging
-from mosestokenizer import MosesDetokenizer
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 
 
 @entrypoint
@@ -29,101 +30,105 @@ class DummyAgent(SpeechToTextAgent):
     def __init__(self, args):
         super().__init__(args)
         kwargs = vars(args)
-    
+
         logging.basicConfig(
-            level=kwargs['log_level'],
+            level=kwargs["log_level"],
             format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
         )
 
-        if kwargs['ngpu'] >= 1:
+        if kwargs["ngpu"] >= 1:
             device = "cuda"
         else:
             device = "cpu"
 
         # 1. Set random-seed
-        set_all_random_seed(kwargs['seed'])
+        set_all_random_seed(kwargs["seed"])
 
         # 2. Build speech2text
-        if kwargs['backend'] == 'offline':
+        if kwargs["backend"] == "offline":
             speech2text_kwargs = dict(
-                st_train_config=kwargs['st_train_config'],
-                st_model_file=kwargs['st_model_file'],
-                transducer_conf=kwargs['transducer_conf'],
-                lm_train_config=kwargs['lm_train_config'],
-                lm_file=kwargs['lm_file'],
-                ngram_file=kwargs['ngram_file'],
-                src_lm_train_config=kwargs['src_lm_train_config'],
-                src_lm_file=kwargs['src_lm_file'],
-                src_ngram_file=kwargs['src_ngram_file'],
-                token_type=kwargs['token_type'],
-                bpemodel=kwargs['bpemodel'],
-                src_token_type=kwargs['src_token_type'],
-                src_bpemodel=kwargs['src_bpemodel'],
+                st_train_config=kwargs["st_train_config"],
+                st_model_file=kwargs["st_model_file"],
+                transducer_conf=kwargs["transducer_conf"],
+                lm_train_config=kwargs["lm_train_config"],
+                lm_file=kwargs["lm_file"],
+                ngram_file=kwargs["ngram_file"],
+                src_lm_train_config=kwargs["src_lm_train_config"],
+                src_lm_file=kwargs["src_lm_file"],
+                src_ngram_file=kwargs["src_ngram_file"],
+                token_type=kwargs["token_type"],
+                bpemodel=kwargs["bpemodel"],
+                src_token_type=kwargs["src_token_type"],
+                src_bpemodel=kwargs["src_bpemodel"],
                 device=device,
-                maxlenratio=kwargs['maxlenratio'],
-                minlenratio=kwargs['minlenratio'],
-                asr_maxlenratio=kwargs['asr_maxlenratio'],
-                asr_minlenratio=kwargs['asr_minlenratio'],
-                dtype=kwargs['dtype'],
-                beam_size=kwargs['beam_size'],
-                ctc_weight=kwargs['ctc_weight'],
-                lm_weight=kwargs['lm_weight'],
-                ngram_weight=kwargs['ngram_weight'],
-                penalty=kwargs['penalty'],
-                nbest=kwargs['nbest'],
-                asr_beam_size=kwargs['asr_beam_size'],
-                asr_ctc_weight=kwargs['asr_ctc_weight'],
-                asr_lm_weight=kwargs['asr_lm_weight'],
-                asr_ngram_weight=kwargs['asr_ngram_weight'],
-                asr_penalty=kwargs['asr_penalty'],
-                asr_nbest=kwargs['asr_nbest'],
-                enh_s2t_task=kwargs['enh_s2t_task'],
-                ctc_greedy=kwargs['ctc_greedy']
+                maxlenratio=kwargs["maxlenratio"],
+                minlenratio=kwargs["minlenratio"],
+                asr_maxlenratio=kwargs["asr_maxlenratio"],
+                asr_minlenratio=kwargs["asr_minlenratio"],
+                dtype=kwargs["dtype"],
+                beam_size=kwargs["beam_size"],
+                ctc_weight=kwargs["ctc_weight"],
+                lm_weight=kwargs["lm_weight"],
+                ngram_weight=kwargs["ngram_weight"],
+                penalty=kwargs["penalty"],
+                nbest=kwargs["nbest"],
+                asr_beam_size=kwargs["asr_beam_size"],
+                asr_ctc_weight=kwargs["asr_ctc_weight"],
+                asr_lm_weight=kwargs["asr_lm_weight"],
+                asr_ngram_weight=kwargs["asr_ngram_weight"],
+                asr_penalty=kwargs["asr_penalty"],
+                asr_nbest=kwargs["asr_nbest"],
+                enh_s2t_task=kwargs["enh_s2t_task"],
+                ctc_greedy=kwargs["ctc_greedy"],
             )
             self.speech2text = Speech2Text.from_pretrained(
-                model_tag=kwargs['model_tag'],
+                model_tag=kwargs["model_tag"],
                 **speech2text_kwargs,
             )
         else:
-            if kwargs['rnnt']:
-                transducer_conf = {"search_type":"tsd2", "score_norm":True, "max_sym_exp":8}
+            if kwargs["rnnt"]:
+                transducer_conf = {
+                    "search_type": "tsd2",
+                    "score_norm": True,
+                    "max_sym_exp": 8,
+                }
             else:
                 transducer_conf = None
 
             speech2text_kwargs = dict(
-                st_train_config=kwargs['st_train_config'],
-                st_model_file=kwargs['st_model_file'],
-                lm_train_config=kwargs['lm_train_config'],
-                lm_file=kwargs['lm_file'],
-                token_type=kwargs['token_type'],
-                bpemodel=kwargs['bpemodel'],
+                st_train_config=kwargs["st_train_config"],
+                st_model_file=kwargs["st_model_file"],
+                lm_train_config=kwargs["lm_train_config"],
+                lm_file=kwargs["lm_file"],
+                token_type=kwargs["token_type"],
+                bpemodel=kwargs["bpemodel"],
                 device=device,
-                maxlenratio=kwargs['maxlenratio'],
-                minlenratio=kwargs['minlenratio'],
-                dtype=kwargs['dtype'],
-                beam_size=kwargs['beam_size'],
-                ctc_weight=kwargs['ctc_weight'],
-                lm_weight=kwargs['lm_weight'],
-                penalty=kwargs['penalty'],
-                nbest=kwargs['nbest'],
-                disable_repetition_detection=kwargs['disable_repetition_detection'],
-                decoder_text_length_limit=kwargs['decoder_text_length_limit'],
-                encoded_feat_length_limit=kwargs['encoded_feat_length_limit'],
-                time_sync=kwargs['time_sync'],
-                incremental_decode=kwargs['incremental_decode'],
-                blank_penalty=kwargs['blank_penalty'],
-                hold_n=kwargs['hold_n'],
+                maxlenratio=kwargs["maxlenratio"],
+                minlenratio=kwargs["minlenratio"],
+                dtype=kwargs["dtype"],
+                beam_size=kwargs["beam_size"],
+                ctc_weight=kwargs["ctc_weight"],
+                lm_weight=kwargs["lm_weight"],
+                penalty=kwargs["penalty"],
+                nbest=kwargs["nbest"],
+                disable_repetition_detection=kwargs["disable_repetition_detection"],
+                decoder_text_length_limit=kwargs["decoder_text_length_limit"],
+                encoded_feat_length_limit=kwargs["encoded_feat_length_limit"],
+                time_sync=kwargs["time_sync"],
+                incremental_decode=kwargs["incremental_decode"],
+                blank_penalty=kwargs["blank_penalty"],
+                hold_n=kwargs["hold_n"],
                 transducer_conf=transducer_conf,
-                hugging_face_decoder=kwargs['hugging_face_decoder'],
+                hugging_face_decoder=kwargs["hugging_face_decoder"],
             )
             self.speech2text = Speech2TextStreaming(**speech2text_kwargs)
-        
-        self.sim_chunk_length = kwargs['sim_chunk_length']
-        self.backend = kwargs['backend']
-        self.token_delay = kwargs['token_delay']
-        self.lang = kwargs['lang']
-        self.recompute = kwargs['recompute']
-        self.chunk_decay = kwargs['chunk_decay']
+
+        self.sim_chunk_length = kwargs["sim_chunk_length"]
+        self.backend = kwargs["backend"]
+        self.token_delay = kwargs["token_delay"]
+        self.lang = kwargs["lang"]
+        self.recompute = kwargs["recompute"]
+        self.chunk_decay = kwargs["chunk_decay"]
         self.n_chunks = 0
         self.clean()
 
@@ -240,12 +245,20 @@ class DummyAgent(SpeechToTextAgent):
             default=1,
             help="The batch size for inference",
         )
-        group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
-        group.add_argument("--asr_nbest", type=int, default=1, help="Output N-best hypotheses")
+        group.add_argument(
+            "--nbest", type=int, default=1, help="Output N-best hypotheses"
+        )
+        group.add_argument(
+            "--asr_nbest", type=int, default=1, help="Output N-best hypotheses"
+        )
         group.add_argument("--beam_size", type=int, default=20, help="Beam size")
         group.add_argument("--asr_beam_size", type=int, default=20, help="Beam size")
-        group.add_argument("--penalty", type=float, default=0.0, help="Insertion penalty")
-        group.add_argument("--asr_penalty", type=float, default=0.0, help="Insertion penalty")
+        group.add_argument(
+            "--penalty", type=float, default=0.0, help="Insertion penalty"
+        )
+        group.add_argument(
+            "--asr_penalty", type=float, default=0.0, help="Insertion penalty"
+        )
         group.add_argument(
             "--maxlenratio",
             type=float,
@@ -281,11 +294,21 @@ class DummyAgent(SpeechToTextAgent):
             help="Input length ratio to obtain min output length",
         )
         group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
-        group.add_argument("--asr_lm_weight", type=float, default=1.0, help="RNNLM weight")
-        group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
-        group.add_argument("--asr_ngram_weight", type=float, default=0.9, help="ngram weight")
-        group.add_argument("--ctc_weight", type=float, default=0.0, help="ST CTC weight")
-        group.add_argument("--asr_ctc_weight", type=float, default=0.3, help="ASR CTC weight")
+        group.add_argument(
+            "--asr_lm_weight", type=float, default=1.0, help="RNNLM weight"
+        )
+        group.add_argument(
+            "--ngram_weight", type=float, default=0.9, help="ngram weight"
+        )
+        group.add_argument(
+            "--asr_ngram_weight", type=float, default=0.9, help="ngram weight"
+        )
+        group.add_argument(
+            "--ctc_weight", type=float, default=0.0, help="ST CTC weight"
+        )
+        group.add_argument(
+            "--asr_ctc_weight", type=float, default=0.3, help="ASR CTC weight"
+        )
 
         group.add_argument(
             "--transducer_conf",
@@ -337,7 +360,9 @@ class DummyAgent(SpeechToTextAgent):
             help="The length of one chunk, to which speech will be "
             "divided for evalution of streaming processing.",
         )
-        group.add_argument("--disable_repetition_detection", type=str2bool, default=False)
+        group.add_argument(
+            "--disable_repetition_detection", type=str2bool, default=False
+        )
         group.add_argument(
             "--encoded_feat_length_limit",
             type=int,
@@ -413,29 +438,28 @@ class DummyAgent(SpeechToTextAgent):
         self.n_chunks = 0
 
     def policy(self):
-
         # dummy offline policy
-        if self.backend == 'offline':
+        if self.backend == "offline":
             if self.states.source_finished:
                 results = self.speech2text(torch.tensor(self.states.source))
                 if self.speech2text.st_model.use_multidecoder:
-                    prediction = results[0][0][0] # multidecoder result is in this format
+                    prediction = results[0][0][
+                        0
+                    ]  # multidecoder result is in this format
                 else:
                     prediction = results[0][0]
                 return WriteAction(prediction, finished=True)
             else:
                 return ReadAction()
-        
-        # hacked streaming policy. takes running beam search hyp as an incremental output 
+
+        # streaming policy. takes running beam search hyp as an incremental output
         else:
             unread_length = len(self.states.source) - self.processed_index - 1
             if self.n_chunks > 0:
                 chunk_length = self.sim_chunk_length // self.chunk_decay
             else:
                 chunk_length = self.sim_chunk_length
-            
 
-            # if unread_length >= self.sim_chunk_length or self.states.source_finished:
             if unread_length >= chunk_length or self.states.source_finished:
                 print("chunk_length:", str(chunk_length))
                 self.n_chunks += 1
@@ -443,18 +467,30 @@ class DummyAgent(SpeechToTextAgent):
                 if self.recompute:
                     speech = torch.tensor(self.states.source)
                 else:
-                    speech = torch.tensor(self.states.source[self.processed_index+1:])
-                results = self.speech2text(speech=speech, is_final=self.states.source_finished)
+                    speech = torch.tensor(
+                        self.states.source[self.processed_index + 1 :]
+                    )
+                results = self.speech2text(
+                    speech=speech, is_final=self.states.source_finished
+                )
                 self.processed_index = len(self.states.source) - 1
                 if not self.states.source_finished:
                     if len(results) > 0:
-                        prediction = results[0][0]                  
+                        prediction = results[0][0]
 
-                    elif self.speech2text.beam_search.running_hyps and len(self.speech2text.beam_search.running_hyps.yseq[0]) > self.maxlen:
-                        prediction = self.speech2text.beam_search.running_hyps.yseq[0][1:]
+                    elif (
+                        self.speech2text.beam_search.running_hyps
+                        and len(self.speech2text.beam_search.running_hyps.yseq[0])
+                        > self.maxlen
+                    ):
+                        prediction = self.speech2text.beam_search.running_hyps.yseq[0][
+                            1:
+                        ]
                         prediction = self.speech2text.converter.ids2tokens(prediction)
                         prediction = self.speech2text.tokenizer.tokens2text(prediction)
-                        self.maxlen = len(self.speech2text.beam_search.running_hyps.yseq[0])
+                        self.maxlen = len(
+                            self.speech2text.beam_search.running_hyps.yseq[0]
+                        )
                     else:
                         return ReadAction()
                 else:
@@ -466,15 +502,17 @@ class DummyAgent(SpeechToTextAgent):
                 if prediction != self.prev_prediction or self.states.source_finished:
                     self.prev_prediction = prediction
                     prediction = MosesDetokenizer(self.lang)(prediction.split(" "))
-                    
+
                     if self.token_delay and not self.states.source_finished:
-                        prediction = prediction.rsplit(" ",1)
+                        prediction = prediction.rsplit(" ", 1)
                         if len(prediction) == 1:
                             prediction = ""
                         else:
                             prediction = prediction[0]
 
-                    unwritten_length = len(prediction) - len("".join(self.states.target))
+                    unwritten_length = len(prediction) - len(
+                        "".join(self.states.target)
+                    )
                 else:
                     unwritten_length = 0
 

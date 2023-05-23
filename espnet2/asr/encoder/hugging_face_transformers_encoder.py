@@ -13,7 +13,6 @@ from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 
 try:
     from transformers import AutoModel
@@ -50,12 +49,9 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
         else:
             self.transformer = model
 
-
         self.pretrained_params = copy.deepcopy(self.transformer.state_dict())
 
-
         self.lang_token_id = lang_token_id
-
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
@@ -65,10 +61,18 @@ class HuggingFaceTransformersEncoder(AbsEncoder):
         args = {"return_dict": True}
 
         if self.lang_token_id != -1:
-            input = torch.cat((torch.tensor([self.lang_token_id]*input.shape[0], device=input.device).unsqueeze(1), input), dim=-1)
+            input = torch.cat(
+                (
+                    torch.tensor(
+                        [self.lang_token_id] * input.shape[0], device=input.device
+                    ).unsqueeze(1),
+                    input,
+                ),
+                dim=-1,
+            )
             input_lengths = input_lengths + 1
 
-        args['input_ids'] = input
+        args["input_ids"] = input
 
         mask = (~make_pad_mask(input_lengths)).to(input.device).float()
         args["attention_mask"] = mask

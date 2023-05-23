@@ -27,7 +27,7 @@ if [ ! -d "${data}" ]; then
     exit 1;
 fi
 
-langs="de_es_fr_it_nl_pt_ro_ru"
+langs="de_es_fr_it_nl_pt_ro_ru_zh"
 if [ ! "$(echo ${langs} | grep ${lang})" ]; then
     echo "$0: no such lang ${lang}"
     exit 1;
@@ -57,6 +57,8 @@ if [ ${version} = "v1" ]; then
 elif [ ${version} = "v2" ]; then
     if [ ${lang} = "de" ]; then
         url=https://drive.google.com/u/0/uc?id=1UBPNwFEVhIZCOEpu4hTqPji57XRg85UO
+    elif [ ${lang} = "zh" ]; then
+        url=https://drive.google.com/u/0/uc?id=1iz2Yl1avlzF79_77iKK7kPlcmbZhk3o6
     else
         echo "${lang} is not supported now."
         exit 1;

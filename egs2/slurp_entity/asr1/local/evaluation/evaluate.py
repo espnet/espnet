@@ -14,7 +14,6 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser(description="SLURP evaluation script")
     parser.add_argument(
         "-g",

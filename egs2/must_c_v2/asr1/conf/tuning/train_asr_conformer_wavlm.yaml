@@ -1,6 +1,6 @@
 batch_type: numel
-batch_bins: 25000000
-accum_grad: 2
+batch_bins: 50000000
+accum_grad: 1
 max_epoch: 80
 patience: none
 init: none

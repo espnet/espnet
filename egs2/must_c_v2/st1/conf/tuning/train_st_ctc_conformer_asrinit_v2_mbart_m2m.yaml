@@ -1,6 +1,6 @@
 batch_type: numel
-batch_bins: 25000000
-accum_grad: 2
+batch_bins: 50000000
+accum_grad: 1
 max_epoch: 40
 patience: none
 init: none
@@ -33,7 +33,8 @@ encoder_conf:
 
 hier_encoder: conformer
 hier_encoder_conf:
-    input_layer: null
+    input_layer: linear
+    output_size: 1024
     num_blocks: 6
     linear_units: 2048
     dropout_rate: 0.1
@@ -49,16 +50,14 @@ hier_encoder_conf:
     cnn_module_kernel: 31
 
 
-postencoder: hugging_face_transformers
+postencoder: length_adaptor
 postencoder_conf:
-    model_name_or_path: /exp/swatanabe/forBrian/mbart-large-50-many-to-many-mmt
     length_adaptor_n_layers: 1
-    lang_token_id: 250004
 
 
 decoder: hugging_face_transformers
 decoder_conf:
-    model_name_or_path: /exp/swatanabe/forBrian/mbart-large-50-many-to-many-mmt
+    model_name_or_path: /scratch/bbjs/yan2/espnet-ml/egs2/must_c_v2/st1/mbart-large-50-many-to-many-mmt
 
 
 extra_asr_decoder: transformer
@@ -78,7 +77,7 @@ model_conf:
     lsm_weight: 0.1
     length_normalized_loss: false
     extract_feats_in_collect_stats: false
-    ignore_id: 1
+    tgt_ignore_id: 1
     tgt_sym_blank: "<pad>"
     tgt_sym_sos: "<s>"
     tgt_sym_eos: "</s>"
@@ -114,6 +113,6 @@ specaug_conf:
 
 ignore_init_mismatch: true
 init_param:
-    - "/exp/byan/working/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:encoder:encoder"
-    - "/exp/byan/working/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:decoder:extra_asr_decoder"
-    - "/exp/byan/working/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:ctc:ctc"
+    - "/scratch/bbjs/yan2/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:encoder:encoder"
+    - "/scratch/bbjs/yan2/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:decoder:extra_asr_decoder"
+    - "/scratch/bbjs/yan2/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:ctc:ctc"

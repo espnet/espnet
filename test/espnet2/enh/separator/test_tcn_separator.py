@@ -115,7 +115,6 @@ def test_tcn_separator_invalid_type():
 
 
 def test_tcn_separator_output():
-
     x = torch.rand(2, 10, 10)
     x_lens = torch.tensor([10, 8], dtype=torch.long)
 

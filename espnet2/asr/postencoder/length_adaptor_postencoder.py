@@ -2,25 +2,15 @@
 #  2021, University of Stuttgart;  Pavel Denisov
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Hugging Face Transformers PostEncoder."""
+"""Length adaptor PostEncoder."""
 
-import copy
-import logging
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
-
-try:
-    from transformers import AutoModel
-
-    is_transformers_available = True
-except ImportError:
-    is_transformers_available = False
 
 
 class LengthAdaptorPostEncoder(AbsPostEncoder):
@@ -62,11 +52,9 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
         else:
             length_adaptor_layers = [torch.nn.Identity()]
 
-        
         self.length_adaptor = torch.nn.Sequential(*length_adaptor_layers)
         self.length_adaptor_ratio = 2**length_adaptor_n_layers
         self.return_int_enc = return_int_enc
-        
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor

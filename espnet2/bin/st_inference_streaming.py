@@ -16,6 +16,7 @@ from espnet2.asr.encoder.contextual_block_conformer_encoder import (  # noqa: H3
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (  # noqa: H301
     ContextualBlockTransformerEncoder,
 )
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.st import STTask
@@ -27,21 +28,19 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search_online import BatchBeamSearchOnline
 from espnet.nets.beam_search import Hypothesis
-# from espnet.nets.beam_search_timesync import BeamSearchTimeSync
-from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
-from espnet2.asr.frontend.s3prl import S3prlFrontend
 try:
     from transformers import AutoModelForSeq2SeqLM
-    from transformers.file_utils import ModelOutput
 
     is_transformers_available = True
 except ImportError:
     is_transformers_available = False
+
 
 class Speech2TextStreaming:
     """Speech2TextStreaming class
@@ -96,20 +95,27 @@ class Speech2TextStreaming:
         )
         st_model.to(dtype=getattr(torch, dtype)).eval()
 
-        # assert isinstance(
-        #     st_model.encoder, ContextualBlockTransformerEncoder
-        # ) or isinstance(st_model.encoder, ContextualBlockConformerEncoder)
+        if isinstance(
+            st_model.encoder, ContextualBlockTransformerEncoder
+        ) or isinstance(st_model.encoder, ContextualBlockConformerEncoder):
+            if isinstance(st_model.frontend, S3prlFrontend):
+                raise NotImplementedError(
+                    "S3prlFrontend not supported with blockwise encoder"
+                )
+            if st_model.hier_encoder is not None:
+                raise NotImplementedError(
+                    "hierarchical encoder not supported with blockwise encoder"
+                )
+            block_size = st_train_args.encoder_conf["block_size"]
+        else:
+            block_size = 0  # recompute encoder with every new chunk
 
         decoder = st_model.decoder
         if hasattr(st_model, "st_ctc"):
             ctc = CTCPrefixScorer(ctc=st_model.st_ctc, eos=st_model.eos)
         else:
             ctc = None
-        # if hasattr(st_model, "st_joint_network"):
-        #     joint = st_model.st_joint_network
-        # else:
-        #     joint = None
-            
+
         token_list = st_model.token_list
         scorers.update(
             decoder=decoder,
@@ -195,13 +201,11 @@ class Speech2TextStreaming:
                 encoded_feat_length_limit=encoded_feat_length_limit,
                 incremental_decode=incremental_decode,
                 time_sync=time_sync,
-                block_size=0,   # recompute
+                block_size=block_size,
                 ctc=st_model.st_ctc if hasattr(st_model, "st_ctc") else None,
                 hold_n=hold_n,
             )
-
         else:
-            # TODO: batchbeamsearch should get ctx block encoder information on init? 
             beam_search = BatchBeamSearchOnline(
                 beam_size=beam_size,
                 weights=weights,
@@ -217,9 +221,11 @@ class Speech2TextStreaming:
                 incremental_decode=incremental_decode,
                 time_sync=time_sync,
                 ctc=st_model.st_ctc if hasattr(st_model, "st_ctc") else None,
-                hold_n = hold_n,
+                hold_n=hold_n,
                 transducer_conf=transducer_conf,
-                joint_network=st_model.st_joint_network if hasattr(st_model, "st_joint_network") else None,
+                joint_network=st_model.st_joint_network
+                if hasattr(st_model, "st_joint_network")
+                else None,
             )
 
         if transducer_conf is None:
@@ -392,15 +398,9 @@ class Speech2TextStreaming:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-
-        if isinstance(self.st_model.frontend, S3prlFrontend):
-            speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-            lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
-            batch = {"speech": speech, "speech_lengths": lengths}
-            batch = to_device(batch, device=self.device)
-            enc, enc_lengths = self.st_model.encode(**batch)
-
-        else:
+        if isinstance(
+            self.st_model.encoder, ContextualBlockTransformerEncoder
+        ) or isinstance(self.st_model.encoder, ContextualBlockConformerEncoder):
             feats, feats_lengths, self.frontend_states = self.apply_frontend(
                 speech, self.frontend_states, is_final=is_final
             )
@@ -416,23 +416,12 @@ class Speech2TextStreaming:
             )
 
             logging.debug("enc length:" + str(enc_lengths.item()))
-
-            # if enc_lengths.item() != 0:
-            #     import pdb;pdb.set_trace()
-
-            if hasattr(self.st_model, "hier_encoder") and self.st_model.hier_encoder is not None:
-                enc, enc_lengths, self.hier_encoder_states = self.st_model.hier_encoder(
-                    enc,
-                    enc_lengths,
-                    self.hier_encoder_states,
-                    is_final=is_final,
-                    infer_mode=True,
-                )
-
-                logging.debug("enc2 length:" + str(enc_lengths.item()))
-
-            # if enc_lengths.item() != 0:
-            #     import pdb;pdb.set_trace()
+        else:
+            speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
+            lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+            batch = {"speech": speech, "speech_lengths": lengths}
+            batch = to_device(batch, device=self.device)
+            enc, enc_lengths = self.st_model.encode(**batch)
 
         nbest_hyps = self.beam_search(
             x=enc[0],
@@ -594,11 +583,11 @@ def inference(
                         if isinstance(speech2text.st_model.frontend, S3prlFrontend):
                             for i in range(len(speech) // sim_chunk_length):
                                 speech2text(
-                                    speech=speech[:(i + 1) * sim_chunk_length],
+                                    speech=speech[: (i + 1) * sim_chunk_length],
                                     is_final=False,
                                 )
                             results = speech2text(
-                                speech[:len(speech)],
+                                speech[: len(speech)],
                                 is_final=True,
                             )
                         # non recompute
@@ -606,7 +595,9 @@ def inference(
                             for i in range(len(speech) // sim_chunk_length):
                                 speech2text(
                                     speech=speech[
-                                        i * sim_chunk_length : (i + 1) * sim_chunk_length
+                                        i
+                                        * sim_chunk_length : (i + 1)
+                                        * sim_chunk_length
                                     ],
                                     is_final=False,
                                 )

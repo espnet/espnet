@@ -1,5 +1,6 @@
 """
 Time Synchronous One-Pass Beam Search.
+
 Implements joint CTC/attention decoding where
 hypotheses are expanded along the time (input) axis,
 as described in https://arxiv.org/abs/2210.05200.
@@ -44,6 +45,7 @@ class BeamSearchTimeSync(torch.nn.Module):
         hold_n: int = 0,
     ):
         """Initialize beam search.
+
         Args:
             beam_size: num hyps
             sos: sos index
@@ -64,8 +66,11 @@ class BeamSearchTimeSync(torch.nn.Module):
         self.lm_weight = weights["lm"]
         self.decoder_weight = weights["decoder"]
         self.penalty = weights["length_bonus"]
-        self.blank_penalty = np.log(weights["blank_penalty"]) if "blank_penalty" in weights else 0.0
-        self.sos = sos
+        self.blank_penalty = (
+            np.log(weights["blank_penalty"]) if "blank_penalty" in weights else 0.0
+        )
+        # self.sos = sos
+        self.sos = 0  # hacked
         self.sos_th = torch.tensor([self.sos])
         self.blank = blank
         self.attn_cache = dict()  # cache for p_attn(Y|X)
@@ -91,6 +96,18 @@ class BeamSearchTimeSync(torch.nn.Module):
                 scores=decoder_scores,
                 log_sum=0.0,
             )
+
+            # hacked
+            decoder_scores, decoder_state = self.decoder.score(
+                torch.tensor([self.sos, 250003], device=enc_output.device),
+                init_decoder_state,
+                enc_output,
+            )
+            self.attn_cache[(self.sos, 250003)] = CacheItem(
+                state=decoder_state,
+                scores=decoder_scores,
+                log_sum=0.0,
+            )
         if self.lm is not None:
             init_lm_state = self.lm.init_state(enc_output)
             lm_scores, lm_state = self.lm.score(self.sos_th, init_lm_state, enc_output)
@@ -100,14 +117,20 @@ class BeamSearchTimeSync(torch.nn.Module):
                 log_sum=0.0,
             )
 
-    def cached_score(self, h: Tuple[int], cache: dict, scorer: ScorerInterface, recompute_cache: bool = False) -> Any:
+    def cached_score(
+        self,
+        h: Tuple[int],
+        cache: dict,
+        scorer: ScorerInterface,
+        recompute_cache: bool = False,
+    ) -> Any:
         """Retrieve decoder/LM scores which may be cached."""
         root = h[:-1]  # prefix
 
         # if (root in cache and not recompute_cache) or len(root) == 1:
-        #     if root not in self.block_set: 
+        #     if root not in self.block_set:
         #         import pdb;pdb.set_trace()
-        if (root in cache and root in self.block_set) or len(root) == 1:
+        if (root in cache and root in self.block_set) or len(root) <= 1:  # hacked 1-->2
             logging.debug("not recomputing")
             root_scores = cache[root].scores
             root_state = cache[root].state
@@ -128,7 +151,7 @@ class BeamSearchTimeSync(torch.nn.Module):
             )
         cand_score = float(root_scores[h[-1]])
         score = root_log_sum + cand_score
-        
+
         logging.debug("cand score: " + str(cand_score))
         logging.debug("decoder score: " + str(score))
 
@@ -136,7 +159,9 @@ class BeamSearchTimeSync(torch.nn.Module):
 
         return score
 
-    def joint_score(self, hyps: Any, ctc_score_dp: Any, recompute_cache: bool = False) -> Any:
+    def joint_score(
+        self, hyps: Any, ctc_score_dp: Any, recompute_cache: bool = False
+    ) -> Any:
         """Calculate joint score for hyps."""
         scores = dict()
         for h in hyps:
@@ -157,7 +182,9 @@ class BeamSearchTimeSync(torch.nn.Module):
             logging.debug("total score: " + str(score))
         return scores
 
-    def time_step(self, p_ctc: Any, ctc_score_dp: Any, hyps: Any, recompute_cache: bool = False) -> Any:
+    def time_step(
+        self, p_ctc: Any, ctc_score_dp: Any, hyps: Any, recompute_cache: bool = False
+    ) -> Any:
         """Execute a single time step."""
         pre_beam_threshold = np.sort(p_ctc)[-self.pre_beam_size]
         cands = set(np.where(p_ctc >= pre_beam_threshold)[0])
@@ -167,26 +194,29 @@ class BeamSearchTimeSync(torch.nn.Module):
         ctc_score_dp_next = defaultdict(
             lambda: (float("-inf"), float("-inf"))
         )  # (p_nb, p_b)
+
         for hyp_l in hyps:
             p_prev_l = np.logaddexp(*ctc_score_dp[hyp_l])
             for c in cands:
                 if c == self.blank:
-                    # logging.debug("blank cand, hypothesis is " + str(hyp_l))
+                    logging.debug("blank cand, hypothesis is " + str(hyp_l))
                     p_nb, p_b = ctc_score_dp_next[hyp_l]
                     p_b = np.logaddexp(p_b, p_ctc[c] + p_prev_l + self.blank_penalty)
                     ctc_score_dp_next[hyp_l] = (p_nb, p_b)
                     new_hyps.add(hyp_l)
                 else:
                     l_plus = hyp_l + (int(c),)
-                    # logging.debug("hypothesis before expanding is " + str(hyp_l))
-                    # logging.debug("non-blank cand, hypothesis is " + str(l_plus))
+                    logging.debug("hypothesis before expanding is " + str(hyp_l))
+                    logging.debug("non-blank cand, hypothesis is " + str(l_plus))
                     p_nb, p_b = ctc_score_dp_next[l_plus]
                     if c == hyp_l[-1]:
-                        # logging.debug("repeat cand, hypothesis is " + str(hyp_l))
+                        logging.debug("repeat cand, hypothesis is " + str(hyp_l))
                         p_nb_prev, p_b_prev = ctc_score_dp[hyp_l]
                         p_nb = np.logaddexp(p_nb, p_ctc[c] + p_b_prev)
                         p_nb_l, p_b_l = ctc_score_dp_next[hyp_l]
-                        p_nb_l = np.logaddexp(p_nb_l, p_ctc[c] + p_nb_prev + self.blank_penalty)
+                        p_nb_l = np.logaddexp(
+                            p_nb_l, p_ctc[c] + p_nb_prev + self.blank_penalty
+                        )
                         ctc_score_dp_next[hyp_l] = (p_nb_l, p_b_l)
                     else:
                         p_nb = np.logaddexp(p_nb, p_ctc[c] + p_prev_l)
@@ -197,21 +227,26 @@ class BeamSearchTimeSync(torch.nn.Module):
                         p_nb = np.logaddexp(p_nb, p_ctc[c] + ctc_score_dp[l_plus][0])
                     ctc_score_dp_next[l_plus] = (p_nb, p_b)
                     new_hyps.add(l_plus)
-        
+
         scores = self.joint_score(new_hyps, ctc_score_dp_next, recompute_cache)
 
         hyps = sorted(new_hyps, key=lambda l: scores[l], reverse=True)[: self.beam_size]
         logging.debug("max len before prune" + str(max([len(x) for x in new_hyps])))
         logging.debug("max len after prune" + str(max([len(x) for x in hyps])))
-        # if max([len(x) for x in new_hyps]) > max([len(x) for x in hyps]):
-        #     import pdb;pdb.set_trace()
         ctc_score_dp = ctc_score_dp_next.copy()
         return ctc_score_dp, hyps, scores
 
     def forward(
-        self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0, start_idx: int = 0, is_final: bool = False, incremental_decode: bool = False,
+        self,
+        x: torch.Tensor,
+        maxlenratio: float = 0.0,
+        minlenratio: float = 0.0,
+        start_idx: int = 0,
+        is_final: bool = False,
+        incremental_decode: bool = False,
     ) -> List[Hypothesis]:
         """Perform beam search.
+
         Args:
             enc_output (torch.Tensor)
         Return:
@@ -223,36 +258,41 @@ class BeamSearchTimeSync(torch.nn.Module):
         lpz = lpz.cpu().detach().numpy()
         if start_idx == 0:
             self.reset(x)
-            hyps = [(self.sos,)]
+            hyps = [(self.sos, 250003)]
             ctc_score_dp = defaultdict(
                 lambda: (float("-inf"), float("-inf"))
             )  # (p_nb, p_b) - dp object tracking p_ctc
-            ctc_score_dp[(self.sos,)] = (float("-inf"), 0.0)
+            ctc_score_dp[(self.sos, 250003)] = (float("-inf"), 0.0)
         else:
             self.enc_output = x
             hyps = self.hyps
             ctc_score_dp = self.ctc_score_dp
-        
+
         self.block_set = set()
-        self.block_set.add((self.sos,))
+        self.block_set.add((self.sos, 250003))
 
         for t in range(start_idx, lpz.shape[0]):
             logging.debug("position " + str(t))
-            # if t >=40:
-            #     import pdb;pdb.set_trace()
-            ctc_score_dp, hyps, scores = self.time_step(lpz[t, :], ctc_score_dp, hyps, recompute_cache = (t>0 and t==start_idx))
+            ctc_score_dp, hyps, scores = self.time_step(
+                lpz[t, :],
+                ctc_score_dp,
+                hyps,
+                recompute_cache=(t > 0 and t == start_idx),
+            )
             logging.debug("best hyp " + "".join([self.token_list[x] for x in hyps[0]]))
-            # import pdb;pdb.set_trace()
 
         logging.info(f"block set len: {len(self.block_set)}")
 
         if incremental_decode:
-            # import pdb;pdb.set_trace()
             # prune hyps not containing top hyp as a prefix
             if len(hyps[0]) > self.hold_n and not is_final:
-                inc = hyps[0][:len(hyps[0]) - self.hold_n]
-                logging.info("top hyp: " + "".join([self.token_list[x] for x in hyps[0]]))
-                logging.info("top hyp hold_n: " + "".join([self.token_list[x] for x in inc]))
+                inc = hyps[0][: len(hyps[0]) - self.hold_n]
+                logging.info(
+                    "top hyp: " + "".join([self.token_list[x] for x in hyps[0]])
+                )
+                logging.info(
+                    "top hyp hold_n: " + "".join([self.token_list[x] for x in inc])
+                )
             else:
                 inc = hyps[0]
             self.hyps = [hyps[0]]
@@ -269,9 +309,13 @@ class BeamSearchTimeSync(torch.nn.Module):
             logging.info(f"hyps after inc pruning: {len(self.hyps)}")
 
             self.ctc_score_dp = ctc_score_dp
-            
-            ret = [Hypothesis(yseq=torch.tensor(list(inc) + [self.sos]), score=scores[hyps[0]])]
-            
+
+            ret = [
+                Hypothesis(
+                    yseq=torch.tensor(list(inc) + [self.sos]), score=scores[hyps[0]]
+                )
+            ]
+
         else:
             self.hyps = hyps
             self.ctc_score_dp = ctc_score_dp

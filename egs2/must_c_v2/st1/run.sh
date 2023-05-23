@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-set -e
-set -u
-set -o pipefail
+# set -e
+# set -u
+# set -o pipefail
 
 src_lang=en
 tgt_lang=de
@@ -47,4 +47,5 @@ tgt_case=tc
     --test_sets "${test_set}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@"
+    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@" \
+    --st_stats_dir exp/st_stats_wavlm_hf

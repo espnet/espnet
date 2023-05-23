@@ -10,13 +10,13 @@ import torch
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.lm.transformer_lm import TransformerLM
+from espnet.nets.beam_search import Hypothesis as Hypothesis2
 from espnet.nets.pytorch_backend.transducer.utils import (
     is_prefix,
     recombine_hyps,
     select_k_expansions,
     subtract,
 )
-from espnet.nets.beam_search import Hypothesis as Hypothesis2
 
 
 @dataclass
@@ -170,7 +170,11 @@ class BeamSearchTransducer:
         self.reset()
 
     def __call__(
-        self, enc_out: torch.Tensor, start_idx: int = 0, is_final: bool = False, incremental_decode: bool = False,
+        self,
+        enc_out: torch.Tensor,
+        start_idx: int = 0,
+        is_final: bool = False,
+        incremental_decode: bool = False,
     ) -> Union[List[Hypothesis], List[ExtendedHypothesis]]:
         """Perform beam search.
 
@@ -184,14 +188,18 @@ class BeamSearchTransducer:
         self.decoder.set_device(enc_out.device)
 
         nbest_hyps = self.search_algorithm(enc_out[start_idx:])
-        
-        
+
         if incremental_decode:
             # prune hyps not containing top hyp as a prefix
             if len(nbest_hyps[0].yseq) > self.hold_n and not is_final:
-                inc = nbest_hyps[0].yseq[:len(nbest_hyps[0].yseq) - self.hold_n]
-                logging.debug("top hyp: " + "".join([self.token_list[x] for x in nbest_hyps[0].yseq]))
-                logging.debug("top hyp hold_n: " + "".join([self.token_list[x] for x in inc]))
+                inc = nbest_hyps[0].yseq[: len(nbest_hyps[0].yseq) - self.hold_n]
+                logging.debug(
+                    "top hyp: "
+                    + "".join([self.token_list[x] for x in nbest_hyps[0].yseq])
+                )
+                logging.debug(
+                    "top hyp hold_n: " + "".join([self.token_list[x] for x in inc])
+                )
             else:
                 inc = nbest_hyps[0].yseq
             new_B = [nbest_hyps[0]]
@@ -209,7 +217,11 @@ class BeamSearchTransducer:
 
             self.B = new_B
 
-            ret = [Hypothesis2(yseq=torch.tensor(list(inc) + [self.sos]), score=nbest_hyps[0].score)]
+            ret = [
+                Hypothesis2(
+                    yseq=torch.tensor(list(inc) + [self.sos]), score=nbest_hyps[0].score
+                )
+            ]
         else:
             ret = [
                 Hypothesis2(yseq=torch.tensor(h.yseq + [self.sos]), score=h.score)
@@ -634,16 +646,6 @@ class BeamSearchTransducer:
         """
         beam = min(self.beam_size, self.vocab_size)
 
-        # beam_state = self.decoder.init_state(beam)
-
-        # B = [
-        #     Hypothesis(
-        #         yseq=[self.blank_id],
-        #         score=0.0,
-        #         dec_state=self.decoder.select_state(beam_state, 0),
-        #     )
-        # ]
-        # cache = {}
         beam_state = self.beam_state
         B = self.B
         cache = self.cache
@@ -651,7 +653,6 @@ class BeamSearchTransducer:
         if self.use_lm:
             B[0].lm_state = self.lm.zero_state()
 
-        # import pdb;pdb.set_trace()
         for enc_out_t in enc_out:
             A = []
             C = B
@@ -716,13 +717,11 @@ class BeamSearchTransducer:
 
                 C = sorted(D, key=lambda x: x.score / len(x.yseq), reverse=True)[:beam]
 
-            B = sorted(A, key=lambda x: x.score  / len(x.yseq), reverse=True)[:beam]
+            B = sorted(A, key=lambda x: x.score / len(x.yseq), reverse=True)[:beam]
 
-        # return self.sort_nbest(B)
         self.beam_state = beam_state
         self.B = B
         self.cache = cache
-        # import pdb;pdb.set_trace()
         return B
 
     def align_length_sync_decoding(self, enc_out: torch.Tensor) -> List[Hypothesis]:
@@ -815,21 +814,16 @@ class BeamSearchTransducer:
                             dec_state=self.decoder.select_state(beam_state, i),
                             lm_state=hyp.lm_state,
                         )
-                        # print(new_hyp.score)
-                        # import pdb;pdb.set_trace()
-                        # new_hyp.score += self.penalty * (len(new_hyp.yseq) - 1)
 
                         if self.use_lm:
                             new_hyp.score += self.lm_weight * beam_lm_scores[i, k]
                             new_hyp.lm_state = beam_lm_states[i]
 
                         A.append(new_hyp)
-                
+
                 B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
-                # B = sorted(A, key=lambda x: x.score / len(x.yseq), reverse=True)[:beam]
                 B = recombine_hyps(B)
 
-        # import pdb;pdb.set_trace()
         if final:
             return self.sort_nbest(final)
         else:
@@ -925,21 +919,16 @@ class BeamSearchTransducer:
                             dec_state=self.decoder.select_state(beam_state, i),
                             lm_state=hyp.lm_state,
                         )
-                        # print(new_hyp.score)
-                        # import pdb;pdb.set_trace()
-                        # new_hyp.score += self.penalty * (len(new_hyp.yseq) - 1)
 
                         if self.use_lm:
                             new_hyp.score += self.lm_weight * beam_lm_scores[i, k]
                             new_hyp.lm_state = beam_lm_states[i]
 
                         A.append(new_hyp)
-                
-                # B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
+
                 B = sorted(A, key=lambda x: x.score / len(x.yseq), reverse=True)[:beam]
                 B = recombine_hyps(B)
 
-        # import pdb;pdb.set_trace()
         if final:
             return self.sort_nbest(final)
         else:

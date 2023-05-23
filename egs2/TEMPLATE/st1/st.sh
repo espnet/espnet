@@ -1178,9 +1178,9 @@ if ! "${skip_train}"; then
             _opts+="--src_bpemodel ${src_bpemodel} "
             _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text,text "
             _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text,text "
-            _opts+="--src_bpemodel2 ${src_bpemodel2} "
-            _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text2,text "
-            _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text2,text "
+            # _opts+="--src_bpemodel2 ${src_bpemodel2} "
+            # _opts+="--train_data_path_and_name_and_type ${_st_train_dir}/text.${src_case}.${src_lang},src_text2,text "
+            # _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text2,text "
         fi
         # TODO(jiatong): fix different bpe model
         # shellcheck disable=SC2086
@@ -1193,7 +1193,6 @@ if ! "${skip_train}"; then
                 --src_token_type "${src_token_type}" \
                 --token_list "${tgt_token_list}" \
                 --src_token_list "${src_token_list}" \
-                --src_token_list2 "${src_token_list2}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -1205,6 +1204,7 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
                 ${_opts} ${st_args} || { cat "${_logdir}"/stats.1.log; exit 1; }
+                # --src_token_list2 "${src_token_list2}" \
 
         # 4. Aggregate shape files
         _opts=
@@ -1364,8 +1364,6 @@ if ! "${skip_train}"; then
                 --token_list "${tgt_token_list}" \
                 --src_token_type "${src_token_type}" \
                 --src_token_list "${src_token_list}" \
-                --src_token_type2 "${src_token_type2}" \
-                --src_token_list2 "${src_token_list2}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -1378,6 +1376,8 @@ if ! "${skip_train}"; then
                 --fold_length "${st_text_fold_length}" \
                 --output_dir "${st_exp}" \
                 ${_opts} ${st_args}
+                # --src_token_type2 "${src_token_type2}" \
+                # --src_token_list2 "${src_token_list2}" \
 
     fi
 else
