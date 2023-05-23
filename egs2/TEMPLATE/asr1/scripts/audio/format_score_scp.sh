@@ -82,7 +82,7 @@ if [ -n "${segments}" ]; then
     nj=$((nj<nutt?nj:nutt))
 
     ${cmd} "JOB=1:${nj}" "${logdir}/format_score_scp.JOB.log" \
-        pyscripts/audio/format_score_scp.py \
+        pyscripts/utils/format_score_scp.py \
             ${opts} \
             "--segment=${logdir}/segments.JOB" \
             "${scp}" "${outdir}/format_score.JOB"

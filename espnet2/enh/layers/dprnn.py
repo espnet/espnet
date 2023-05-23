@@ -58,16 +58,16 @@ class SingleRNN(nn.Module):
         # linear projection layer
         self.proj = nn.Linear(hidden_size * self.num_direction, input_size)
 
-    def forward(self, input):
+    def forward(self, input, state=None):
         # input shape: batch, seq, dim
         # input = input.to(device)
         output = input
-        rnn_output, _ = self.rnn(output)
+        rnn_output, state = self.rnn(output, state)
         rnn_output = self.dropout(rnn_output)
         rnn_output = self.proj(
             rnn_output.contiguous().view(-1, rnn_output.shape[2])
         ).view(output.shape)
-        return rnn_output
+        return rnn_output, state
 
 
 # dual-path RNN
@@ -142,7 +142,7 @@ class DPRNN(nn.Module):
                 .contiguous()
                 .view(batch_size * dim2, dim1, -1)
             )  # B*dim2, dim1, N
-            row_output = self.row_rnn[i](row_input)  # B*dim2, dim1, H
+            row_output, _ = self.row_rnn[i](row_input)  # B*dim2, dim1, H
             row_output = (
                 row_output.view(batch_size, dim2, dim1, -1)
                 .permute(0, 3, 2, 1)
@@ -156,7 +156,7 @@ class DPRNN(nn.Module):
                 .contiguous()
                 .view(batch_size * dim1, dim2, -1)
             )  # B*dim1, dim2, N
-            col_output = self.col_rnn[i](col_input)  # B*dim1, dim2, H
+            col_output, _ = self.col_rnn[i](col_input)  # B*dim1, dim2, H
             col_output = (
                 col_output.view(batch_size, dim1, dim2, -1)
                 .permute(0, 3, 1, 2)
@@ -264,7 +264,7 @@ class DPRNN_TAC(nn.Module):
                 .contiguous()
                 .view(batch_size * ch * dim2, dim1, -1)
             )  # B*ch*dim2, dim1, N
-            row_output = self.row_rnn[i](row_input)  # B*ch*dim2, dim1, N
+            row_output, _ = self.row_rnn[i](row_input)  # B*ch*dim2, dim1, N
             row_output = (
                 row_output.view(batch_size * ch, dim2, dim1, -1)
                 .permute(0, 3, 2, 1)
@@ -279,7 +279,7 @@ class DPRNN_TAC(nn.Module):
                 .contiguous()
                 .view(batch_size * ch * dim1, dim2, -1)
             )  # B*ch*dim1, dim2, N
-            col_output = self.col_rnn[i](col_input)  # B*dim1, dim2, N
+            col_output, _ = self.col_rnn[i](col_input)  # B*dim1, dim2, N
             col_output = (
                 col_output.view(batch_size * ch, dim1, dim2, -1)
                 .permute(0, 3, 1, 2)

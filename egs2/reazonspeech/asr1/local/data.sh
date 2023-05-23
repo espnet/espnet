@@ -22,9 +22,14 @@ if [ -z "${REAZONSPEECH}" ]; then
     exit 1
 fi
 
+if [ -z "${MUSAN}" ]; then
+    log "Fill the value of 'MUSAN' of db.sh"
+    exit 1
+fi
+
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage1: Download data to ${REAZONSPEECH}"
-    python3 local/data.py ${REAZONSPEECH}
+    python3 local/data.py ${MUSAN} ${REAZONSPEECH}
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

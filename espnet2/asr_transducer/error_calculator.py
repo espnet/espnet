@@ -54,13 +54,17 @@ class ErrorCalculator:
         self.report_wer = report_wer
 
     def __call__(
-        self, encoder_out: torch.Tensor, target: torch.Tensor
+        self,
+        encoder_out: torch.Tensor,
+        target: torch.Tensor,
+        encoder_out_lens: torch.Tensor,
     ) -> Tuple[Optional[float], Optional[float]]:
         """Calculate sentence-level WER or/and CER score for Transducer model.
 
         Args:
             encoder_out: Encoder output sequences. (B, T, D_enc)
             target: Target label ID sequences. (B, L)
+            encoder_out_lens: Encoder output sequences length. (B,)
 
         Returns:
             : Sentence-level CER score.
@@ -73,7 +77,10 @@ class ErrorCalculator:
 
         encoder_out = encoder_out.to(next(self.decoder.parameters()).device)
 
-        batch_nbest = [self.beam_search(encoder_out[b]) for b in range(batchsize)]
+        batch_nbest = [
+            self.beam_search(encoder_out[b][: encoder_out_lens[b]])
+            for b in range(batchsize)
+        ]
         pred = [nbest_hyp[0].yseq[1:] for nbest_hyp in batch_nbest]
 
         char_pred, char_target = self.convert_to_char(pred, target)

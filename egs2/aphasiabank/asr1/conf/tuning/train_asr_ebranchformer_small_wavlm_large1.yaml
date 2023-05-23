@@ -1,3 +1,5 @@
+# Uses 2 V100 (32GB)
+
 # https://github.com/espnet/espnet/blob/master/egs2/librispeech/asr1/conf/tuning/train_asr_conformer7_wavlm_large.yaml
 unused_parameters: true
 freeze_param: [
@@ -61,12 +63,12 @@ decoder_conf:
 seed: 2022
 log_interval: 200
 num_att_plot: 0
-num_workers: 4
+num_workers: 2
 sort_in_batch: descending
 sort_batch: descending
 batch_type: numel
-batch_bins: 3000000
-accum_grad: 16
+batch_bins: 6000000
+accum_grad: 8
 grad_clip: 5
 max_epoch: 30
 patience: none

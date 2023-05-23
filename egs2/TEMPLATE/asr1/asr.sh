@@ -547,14 +547,13 @@ fi
 if "${skip_eval}"; then
     skip_stages+="12 13 "
 fi
-if [ -n "${download_model}" ]; then
-    skip_stages+="14 "
-fi
-if "${skip_upload}"; then
-    skip_stages+="14 15 "
-fi
-if "${skip_upload_hf}"; then
-    skip_stages+="14 16 "
+
+if "${skip_upload}" && "${skip_upload_hf}"; then
+    skip_stages+="14 15 16 "
+elif "${skip_upload}"; then
+    skip_stages+="15 "
+elif "${skip_upload_hf}"; then
+    skip_stages+="16 "
 fi
 skip_stages=$(echo "${skip_stages}" | tr ' ' '\n' | sort -nu | tr '\n' ' ')
 log "Skipped stages: ${skip_stages}"
