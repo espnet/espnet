@@ -41,8 +41,8 @@ svs_conf:
         text_encoder_conformer_kernel_size: -1
         decoder_kernel_size: 7
         decoder_channels: 256
-        decoder_upsample_scales: [8, 8, 4, 2]
-        decoder_upsample_kernel_sizes: [16, 16, 8, 4]
+        decoder_upsample_scales: [8, 8, 2, 2]
+        decoder_upsample_kernel_sizes: [16, 16, 4, 4]
         # visinger2 vocoder
         n_harmonic: 64
         decoder_resblock_kernel_sizes: [3, 7, 11]
@@ -120,24 +120,24 @@ svs_conf:
         average_by_layers: false         # whether to average loss value by #layers of each discriminator
         include_final_outputs: true      # whether to include final outputs for loss calculation
     mel_loss_params:
-        fs: 44100          # must be the same as the training data
-        n_fft: 2048        # fft points
-        hop_length: 512    # hop size
-        win_length: 2048   # window length
+        fs: 22050          # must be the same as the training data
+        n_fft: 1024        # fft points
+        hop_length: 256    # hop size
+        win_length: 1024   # window length
         window: hann       # window type
         n_mels: 80         # number of Mel basis
         fmin: 0            # minimum frequency for Mel basis
-        fmax: 22050        # maximum frequency for Mel basis
+        fmax: null         # maximum frequency for Mel basis
         log_base: null     # null represent natural log
     lambda_adv: 1.0        # loss scaling coefficient for adversarial loss
     lambda_mel: 45.0       # loss scaling coefficient for Mel loss
     lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
     lambda_dur: 0.1        # loss scaling coefficient for duration loss
-    lambda_pitch: 10.0     # loss scaling coefficient for pitch loss
+    lambda_pitch: 10.0      # loss scaling coefficient for pitch loss
     lambda_phoneme: 1.0    # loss scaling coefficient for ctc loss
     lambda_kl: 1.0         # loss scaling coefficient for KL divergence loss
     # others
-    sampling_rate: 44100          # needed in the inference for saving wav
+    sampling_rate: 22050          # needed in the inference for saving wav
     cache_generator_outputs: true # whether to cache generator outputs in the training
 
 # extra module for additional inputs
