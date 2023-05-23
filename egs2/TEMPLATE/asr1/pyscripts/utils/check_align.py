@@ -45,7 +45,7 @@ def compare(key, score, label):
             phns = customed_dic[syb]
         score[i].append("_".join(phns))
         for p in phns:
-            if index >= len(labels):
+            if index >= len(label):
                 raise ValueError("Syllables are longer than phones in {}".format(key))
             elif label[index][2] == p:
                 index += 1
