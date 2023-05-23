@@ -131,6 +131,7 @@ class DummyAgent(SpeechToTextAgent):
         self.chunk_decay = kwargs["chunk_decay"]
         self.n_chunks = 0
         self.clean()
+        self.word_list = pickle.load(open('german_dict.obj', 'rb')) if kwargs['use_word_list'] else None
 
     @staticmethod
     def add_args(parser):
@@ -428,6 +429,11 @@ class DummyAgent(SpeechToTextAgent):
             type=float,
             default=1.0,
         )
+        group.add_argument(
+            "--use_word_list",
+            type=str2bool,
+            default=False,
+        )
 
         return parser
 
@@ -467,12 +473,22 @@ class DummyAgent(SpeechToTextAgent):
                 if self.recompute:
                     speech = torch.tensor(self.states.source)
                 else:
+<<<<<<< HEAD
                     speech = torch.tensor(
                         self.states.source[self.processed_index + 1 :]
                     )
                 results = self.speech2text(
                     speech=speech, is_final=self.states.source_finished
                 )
+=======
+                    speech = torch.tensor(self.states.source[self.processed_index+1:])
+                try:
+                    results = self.speech2text(speech=speech, is_final=self.states.source_finished)
+                except TooShortUttError:
+                    print("skipping inference for too short input")
+                    results = [[""]]
+
+>>>>>>> f8bca70d886c85e2ed76136de8ef1b006de00283
                 self.processed_index = len(self.states.source) - 1
                 if not self.states.source_finished:
                     if len(results) > 0:
@@ -508,7 +524,12 @@ class DummyAgent(SpeechToTextAgent):
                         if len(prediction) == 1:
                             prediction = ""
                         else:
-                            prediction = prediction[0]
+                            # token delay
+                            print("token delay occurred:", prediction_split[-1])
+                            if len(prediction) == 1:
+                                prediction = ""
+                            else:
+                                prediction = prediction_split[0]
 
                     unwritten_length = len(prediction) - len(
                         "".join(self.states.target)
