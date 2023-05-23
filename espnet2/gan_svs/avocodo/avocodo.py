@@ -639,7 +639,7 @@ class AvocodoDiscriminator(torch.nn.Module):
                 "sbd": [16, 256, 0.03, 10.0],
                 "fsbd": [64, 256, 0.1, 9.0],
             },
-            "segment_size": "${svs_conf.generator_params.segment_size}",
+            "segment_size": 8192,
         },
         pqmf_config: Dict[str, Any] = {
             "lv1": [2, 256, 0.25, 10.0],
@@ -763,7 +763,7 @@ class AvocodoDiscriminatorPlus(torch.nn.Module):
                 "sbd": [16, 256, 0.03, 10.0],
                 "fsbd": [64, 256, 0.1, 9.0],
             },
-            "segment_size": "${svs_conf.generator_params.segment_size}",
+            "segment_size": 8192,
         },
         pqmf_config: Dict[str, Any] = {
             "lv1": [2, 256, 0.25, 10.0],
@@ -794,6 +794,22 @@ class AvocodoDiscriminatorPlus(torch.nn.Module):
             sbd,
             use_spectral_norm=sbd["use_spectral_norm"],
         )
+        # Multi-frequency discriminator related
+        if "hop_lengths" not in multi_freq_disc_params:
+            # Transfer hop lengths factors to hop lengths
+            multi_freq_disc_params["hop_lengths"] = []
+
+            for i in range(len(multi_freq_disc_params["hop_length_factors"])):
+                multi_freq_disc_params["hop_lengths"].append(
+                    int(
+                        sample_rate
+                        * multi_freq_disc_params["hop_length_factors"][i]
+                        / 1000
+                    )
+                )
+
+            del multi_freq_disc_params["hop_length_factors"]
+
         self.mfd = MultiFrequencyDiscriminator(
             **multi_freq_disc_params,
         )

@@ -240,10 +240,6 @@ class VITS(AbsGANSVS):
                         "sbd": [16, 256, 0.03, 10.0],
                         "fsbd": [64, 256, 0.1, 9.0],
                     },
-                    "segment_size": 8192,  # 32 * hop_size
-                    # TODO(Yifeng): Is it better that segment_size should be
-                    #  the same as the one in the generator, which is 32,
-                    #  and we should multiply it by hop_size?
                 },
                 "pqmf_config": {
                     "lv1": [2, 256, 0.25, 10.0],
@@ -297,6 +293,7 @@ class VITS(AbsGANSVS):
             sampling_rate (int): Sampling rate, not used for the training but it will
                 be referred in saving waveform during the inference.
             generator_type (str): Generator type.
+            vocoder_generator_type (str): Type of vocoder generator to use in the model.
             generator_params (Dict[str, Any]): Parameter dict for generator.
             discriminator_type (str): Discriminator type.
             discriminator_params (Dict[str, Any]): Parameter dict for discriminator.
@@ -311,7 +308,11 @@ class VITS(AbsGANSVS):
             lambda_feat_match (float): Loss scaling coefficient for feat match loss.
             lambda_dur (float): Loss scaling coefficient for duration loss.
             lambda_kl (float): Loss scaling coefficient for KL divergence loss.
+            lambda_pitch (float): Loss scaling coefficient for pitch loss.
+            lambda_phoneme (float): Loss scaling coefficient for phoneme loss.
+            lambda_c_yin (float): Loss scaling coefficient for yin loss.
             cache_generator_outputs (bool): Whether to cache generator outputs.
+            use_phoneme_predictor (bool): Whether to use phoneme predictor in the model.
 
         """
         assert check_argument_types()
@@ -352,6 +353,10 @@ class VITS(AbsGANSVS):
         if use_avocodo:
             discriminator_params.update(
                 projection_filters=generator_params["projection_filters"]
+            )
+            discriminator_params["sbd"].update(
+                segment_size=generator_params["segment_size"]
+                * mel_loss_params["hop_length"]
             )
         if "visinger2" in discriminator_type:
             discriminator_params["multi_freq_disc_params"].update(

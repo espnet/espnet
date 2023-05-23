@@ -40,7 +40,7 @@ svs_conf:
         use_conformer_conv_in_text_encoder: false
         text_encoder_conformer_kernel_size: -1
         decoder_kernel_size: 7
-        decoder_channels: 256
+        decoder_channels: 512
         decoder_upsample_scales: [8, 8, 4, 2]
         decoder_upsample_kernel_sizes: [16, 16, 8, 4]
         decoder_resblock_kernel_sizes: [3, 7, 11]

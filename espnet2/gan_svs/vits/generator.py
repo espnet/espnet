@@ -85,7 +85,6 @@ class VISingerGenerator(torch.nn.Module):
         projection_kernels: List[int] = [0, 5, 7, 11],
         # visinger 2
         n_harmonic: int = 64,
-        n_bands: int = 65,
         use_weight_norm_in_decoder: bool = True,
         posterior_encoder_kernel_size: int = 5,
         posterior_encoder_layers: int = 16,
@@ -155,13 +154,21 @@ class VISingerGenerator(torch.nn.Module):
                 conformer block of text encoder.
             decoder_kernel_size (int): Decoder kernel size.
             decoder_channels (int): Number of decoder initial channels.
+            decoder_downsample_scales (List[int]): List of downsampling scales in
+                decoder.
+            decoder_downsample_kernel_sizes (List[int]): List of kernel sizes for
+                downsampling layers in decoder.
             decoder_upsample_scales (List[int]): List of upsampling scales in decoder.
-            decoder_upsample_kernel_sizes (List[int]): List of kernel size for
+            decoder_upsample_kernel_sizes (List[int]): List of kernel sizes for
                 upsampling layers in decoder.
-            decoder_resblock_kernel_sizes (List[int]): List of kernel size for resblocks
-                in decoder.
+            decoder_resblock_kernel_sizes (List[int]): List of kernel sizes for
+                resblocks in decoder.
             decoder_resblock_dilations (List[List[int]]): List of list of dilations for
                 resblocks in decoder.
+            use_avocodo (bool): Whether to use Avocodo model in the generator.
+            projection_filters (List[int]): List of projection filter sizes.
+            projection_kernels (List[int]): List of projection kernel sizes.
+            n_harmonic (int): Number of harmonic components.
             use_weight_norm_in_decoder (bool): Whether to apply weight normalization in
                 decoder.
             posterior_encoder_kernel_size (int): Posterior encoder kernel size.
@@ -179,6 +186,16 @@ class VISingerGenerator(torch.nn.Module):
             use_weight_norm_in_flow (bool): Whether to apply weight normalization in
                 flow.
             use_only_mean_in_flow (bool): Whether to use only mean in flow.
+            generator_type (str): Type of generator to use for the model.
+            vocoder_generator_type (str): Type of vocoder generator to use for the
+                model.
+            fs (int): Sample rate of the audio.
+            hop_length (int): Number of samples between successive frames in STFT.
+            win_length (int): Window size of the STFT.
+            n_fft (int): Length of the FFT window to be used.
+            use_phoneme_predictor (bool): Whether to use phoneme predictor in the model.
+            expand_f0_method (str): The method used to expand F0. Use "repeat" or
+                "interpolation".
         """
         super().__init__()
         self.aux_channels = aux_channels
@@ -542,8 +559,6 @@ class VISingerGenerator(torch.nn.Module):
         LF0 = LF0 / 500
         LF0 = LF0.transpose(1, 2)
 
-        # x_mask = torch.unsqueeze(sequence_mask(mel_len, x.size(2)), 1)
-
         predict_lf0, predict_bn_mask = self.f0_decoder(
             decoder_input + decoder_input_pitch, feats_lengths, g=g
         )
@@ -570,7 +585,6 @@ class VISingerGenerator(torch.nn.Module):
         decoder_output, predict_bn_mask = self.prior_decoder(
             decoder_input, feats_lengths, g=g
         )
-        # x_mask = x_mask.to(x.device)
 
         prior_info = decoder_output
         prior_mean = prior_info[:, : self.hidden_channels, :]
