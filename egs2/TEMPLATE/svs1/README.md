@@ -280,7 +280,7 @@ $  --pretrained_model /exp/xiaoice-2-24-250k/500epoch.pth:svs:svs.fftsinger \
 ```
 
 
-### VISinger training
+### VISinger (1+2) training
 The VISinger config is hard coded for 44.1 khz and use different feature extraction method. (Note that you can use any feature extraction method but the default method is `fbank`.) If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
 
 First, check "fs" (Sampling Rate) and complete the data preparation:
@@ -579,5 +579,6 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [Naive-RNN](https://arxiv.org/abs/2010.12024)
 - [XiaoiceSing](https://arxiv.org/abs/2006.06261)
 - [VISinger](https://arxiv.org/abs/2110.08813)
+- [VISinger 2](https://arxiv.org/abs/2211.02903)
 
 You can find example configs of the above models in [`egs/ofuton_p_utagoe_db/svs1/conf/tuning`](../../ofuton_p_utagoe_db/svs1/conf/tuning).
