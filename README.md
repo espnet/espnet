@@ -219,6 +219,7 @@ Demonstration
   - Tacotron-singing (in progress)
   - DiffSinger (in progress)
   - VISinger
+  - VISinger 2
 - Support multi-speaker & multilingual singing synthesis
   - Speaker ID embedding
   - Language ID embedding
