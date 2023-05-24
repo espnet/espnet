@@ -49,4 +49,4 @@ tgt_case=tc
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
     --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}"  "$@" \
     --expdir exp8 \
-    --st_stats_dir exp8/st_stats_wavlm_hf 
+    --st_stats_dir exp8/st_stats_wavlm_hf
