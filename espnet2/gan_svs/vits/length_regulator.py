@@ -85,21 +85,6 @@ class LengthRegulator(torch.nn.Module):
 
         return out
 
-<<<<<<< HEAD
-    def expand(self, batch, predicted):
-        out = list()
-        predicted = predicted.squeeze()
-        for i, vec in enumerate(batch):
-            duration = predicted[i].item()
-            if self.sr * duration - self.winlen > 0:
-                expand_size = max((self.sr * duration - self.winlen) / self.hoplen, 1)
-            elif duration == 0:
-                expand_size = 0
-            else:
-                expand_size = 1
-            vec_expand = vec.expand(max(int(expand_size), 0), -1)
-            out.append(vec_expand)
-=======
     def forward(self, x, duration, use_state_info=False):
         """Forward pass through the length regulator module.
 
@@ -107,7 +92,6 @@ class LengthRegulator(torch.nn.Module):
             x (Tensor): Input tensor (B, dim, T).
             duration (Tensor): Duration tensor (B, T).
             use_state_info (bool, optional): Whether to use position information or not.
->>>>>>> upstream/master
 
         Returns:
             Tensor: Output tensor (B, dim, D_frame).

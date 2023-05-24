@@ -372,13 +372,10 @@ class SkiM(nn.Module):
 
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-=======
     torch.manual_seed(111)
 
     seq_len = 100
 
->>>>>>> upstream/master
     model = SkiM(
         16,
         11,

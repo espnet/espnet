@@ -375,9 +375,6 @@ class BeamSearch(torch.nn.Module):
         maxlenratio: float = 0.0,
         minlenratio: float = 0.0,
         pre_x: torch.Tensor = None,
-        sa2: bool = False,
-        pre_x2: torch.Tensor = None,
-        md2: bool = False,
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -389,62 +386,34 @@ class BeamSearch(torch.nn.Module):
                 If maxlenratio<0.0, its absolute value is interpreted
                 as a constant max output length.
             minlenratio (float): Input length ratio to obtain min output length.
-<<<<<<< HEAD
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
-=======
-                If minlenratio<0.0, its absolute value is interpreted
-                as a constant min output length.
->>>>>>> upstream/master
 
         Returns:
             list[Hypothesis]: N-best decoding results
 
         """
         # set length bounds
-        if md2:
-            inp = x
+        if pre_x is not None:
+            inp = pre_x
         else:
-            if pre_x is not None:
-                inp = pre_x
-                if sa2:
-                    inp = x
-            else:
-                inp = x
+            inp = x
         if maxlenratio == 0:
             maxlen = inp.shape[0]
         elif maxlenratio < 0:
             maxlen = -1 * int(maxlenratio)
         else:
-<<<<<<< HEAD
             maxlen = max(1, int(maxlenratio * inp.size(0)))
         minlen = int(minlenratio * inp.size(0))
         logging.info("decoder input length: " + str(inp.shape[0]))
-=======
-            maxlen = max(1, int(maxlenratio * x.size(0)))
-        if minlenratio < 0:
-            minlen = -1 * int(minlenratio)
-        else:
-            minlen = int(minlenratio * x.size(0))
-        logging.info("decoder input length: " + str(x.shape[0]))
->>>>>>> upstream/master
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
 
         # main loop of prefix search
-        if md2:
-            running_hyps = self.init_hyp(x)
-        else:
-            if sa2:
-                running_hyps = self.init_hyp(x)
-            else:
-                running_hyps = self.init_hyp(x if pre_x is None else pre_x)
+        running_hyps = self.init_hyp(x if pre_x is None else pre_x)
         ended_hyps = []
         for i in range(maxlen):
             logging.debug("position " + str(i))
-            if pre_x2 is not None:
-                best = self.search(running_hyps, x, pre_x=pre_x, pre_x2=pre_x2, md2=md2)
-            else:
-                best = self.search(running_hyps, x, pre_x=pre_x)
+            best = self.search(running_hyps, x, pre_x=pre_x)
             # post process of one iteration
             running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
             # end detection
