@@ -1353,7 +1353,7 @@ if ! "${skip_train}"; then
             _opts+="--fold_length ${st_text_fold_length} "
             if [ $use_hf_encoder = true ]; then
                 _opts+="--src_bpemodel2 ${src_bpemodel2} "
-                _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text2,text " 
+                _opts+="--valid_data_path_and_name_and_type ${_st_valid_dir}/text.${src_case}.${src_lang},src_text2,text "
                 _opts+="--valid_shape_file ${st_stats_dir}/valid/src_text_shape2.${tgt_token_type} "    #hacked
             fi
         fi
@@ -1655,7 +1655,7 @@ if ! "${skip_eval}"; then
             if [ -f "${_dir}/asr_text" ]; then
                 _scoredir="${_dir}/score_wer"
                 mkdir -p "${_scoredir}"
-                
+
                 # Tokenize text to word level
                 paste \
                     <(<"${_data}/text" \
