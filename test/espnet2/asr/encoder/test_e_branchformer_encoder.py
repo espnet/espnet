@@ -1,11 +1,13 @@
 import pytest
 import torch
 
+from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 
 
 @pytest.mark.parametrize(
-    "input_layer", ["linear", "conv2d", "conv2d2", "conv2d6", "conv2d8", "embed"]
+    "input_layer",
+    ["linear", "conv2d", "conv2d1", "conv2d2", "conv2d6", "conv2d8", "embed"],
 )
 @pytest.mark.parametrize("use_linear_after_conv", [True, False])
 @pytest.mark.parametrize(
@@ -24,6 +26,14 @@ from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 @pytest.mark.parametrize("linear_units", [1024, 2048])
 @pytest.mark.parametrize("merge_conv_kernel", [3, 31])
 @pytest.mark.parametrize("layer_drop_rate", [0.0, 0.1])
+@pytest.mark.parametrize(
+    "interctc_layer_idx, interctc_use_conditioning",
+    [
+        ([], False),
+        ([1], False),
+        ([1], True),
+    ],
+)
 def test_encoder_forward_backward(
     input_layer,
     use_linear_after_conv,
@@ -36,6 +46,8 @@ def test_encoder_forward_backward(
     linear_units,
     merge_conv_kernel,
     layer_drop_rate,
+    interctc_layer_idx,
+    interctc_use_conditioning,
 ):
     encoder = EBranchformerEncoder(
         20,
@@ -56,13 +68,22 @@ def test_encoder_forward_backward(
         linear_units=linear_units,
         merge_conv_kernel=merge_conv_kernel,
         layer_drop_rate=layer_drop_rate,
+        interctc_layer_idx=interctc_layer_idx,
+        interctc_use_conditioning=interctc_use_conditioning,
     )
     if input_layer == "embed":
         x = torch.randint(0, 10, [2, 32])
     else:
         x = torch.randn(2, 32, 20, requires_grad=True)
     x_lens = torch.LongTensor([32, 28])
-    y, _, _ = encoder(x, x_lens)
+
+    if len(interctc_layer_idx) > 0:  # intermediate CTC
+        encoder.conditioning_layer = torch.nn.Linear(2, 2)
+        y, _, _ = encoder(x, x_lens, ctc=CTC(odim=2, encoder_output_size=2))
+        y, intermediate_outs = y
+    else:
+        y, _, _ = encoder(x, x_lens)
+
     y.sum().backward()
 
 

@@ -43,6 +43,7 @@ class BeamSearch(torch.nn.Module):
         pre_beam_ratio: float = 1.5,
         pre_beam_score_key: str = None,
         return_hs: bool = False,
+        hyp_primer: List[int] = None,
     ):
         """Initialize beam search.
 
@@ -89,6 +90,10 @@ class BeamSearch(torch.nn.Module):
         # set configurations
         self.sos = sos
         self.eos = eos
+
+        # added for OpenAI Whisper decoding
+        self.hyp_primer = hyp_primer
+
         self.token_list = token_list
         self.pre_beam_size = int(pre_beam_ratio * beam_size)
         self.beam_size = beam_size
@@ -107,6 +112,13 @@ class BeamSearch(torch.nn.Module):
         )
         self.return_hs = return_hs
 
+    def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
+        """Set the primer sequence for decoding.
+
+        Used for OpenAI Whisper models.
+        """
+        self.hyp_primer = hyp_primer
+
     def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
 
@@ -122,13 +134,17 @@ class BeamSearch(torch.nn.Module):
         for k, d in self.scorers.items():
             init_states[k] = d.init_state(x)
             init_scores[k] = 0.0
+
+        # NOTE (Shih-Lun): added for OpenAI Whisper ASR
+        primer = [self.sos] if self.hyp_primer is None else self.hyp_primer
+
         return [
             Hypothesis(
                 score=0.0,
                 scores=init_scores,
                 states=init_states,
-                yseq=torch.tensor([self.sos], device=x.device),
                 hs=[],
+                yseq=torch.tensor(primer, device=x.device),
             )
         ]
 
@@ -373,7 +389,12 @@ class BeamSearch(torch.nn.Module):
                 If maxlenratio<0.0, its absolute value is interpreted
                 as a constant max output length.
             minlenratio (float): Input length ratio to obtain min output length.
+<<<<<<< HEAD
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+=======
+                If minlenratio<0.0, its absolute value is interpreted
+                as a constant min output length.
+>>>>>>> upstream/master
 
         Returns:
             list[Hypothesis]: N-best decoding results
@@ -394,9 +415,18 @@ class BeamSearch(torch.nn.Module):
         elif maxlenratio < 0:
             maxlen = -1 * int(maxlenratio)
         else:
+<<<<<<< HEAD
             maxlen = max(1, int(maxlenratio * inp.size(0)))
         minlen = int(minlenratio * inp.size(0))
         logging.info("decoder input length: " + str(inp.shape[0]))
+=======
+            maxlen = max(1, int(maxlenratio * x.size(0)))
+        if minlenratio < 0:
+            minlen = -1 * int(minlenratio)
+        else:
+            minlen = int(minlenratio * x.size(0))
+        logging.info("decoder input length: " + str(x.shape[0]))
+>>>>>>> upstream/master
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
 
@@ -461,7 +491,7 @@ class BeamSearch(torch.nn.Module):
                 + "".join([self.token_list[x] for x in best.yseq[1:-1]])
                 + "\n"
             )
-        if best.yseq[1:-1].shape[0] == x.shape[0]:
+        if best.yseq[1:-1].shape[0] == maxlen:
             logging.warning(
                 "best hypo length: {} == max output length: {}".format(
                     best.yseq[1:-1].shape[0], maxlen

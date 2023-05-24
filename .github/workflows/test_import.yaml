@@ -15,8 +15,8 @@ jobs:
       max-parallel: 20
       matrix:
         os: [ubuntu-latest]
-        python-version: [3.9]
-        pytorch-version: [1.12.1]
+        python-version: ["3.10"]
+        pytorch-version: [1.13.1]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
@@ -31,6 +31,7 @@ jobs:
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
       run: |
+        python3 -m pip install -U numba
         ./tools/installers/install_torch.sh false ${TH_VERSION} CPU
         ./tools/installers/install_chainer.sh CPU
         python3 setup.py bdist_wheel

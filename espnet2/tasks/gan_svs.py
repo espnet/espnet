@@ -6,13 +6,15 @@
 
 import argparse
 import logging
-from typing import List
+from typing import Callable, Collection, Dict, List, Optional, Tuple
 
+import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
 from espnet2.gan_svs.espnet_model import ESPnetGANSVSModel
+from espnet2.gan_svs.joint import JointScore2Wav
 from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -21,17 +23,19 @@ from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
     SyllableScoreFeats,
 )
-from espnet2.tasks.abs_task import optim_classes
-from espnet2.tasks.svs import SVSTask
+from espnet2.tasks.abs_task import AbsTask, optim_classes
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.train.class_choices import ClassChoices
+from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.gan_trainer import GANTrainer
+from espnet2.train.preprocessor import SVSPreprocessor
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
+from espnet2.tts.feats_extract.ying import Ying
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
@@ -59,6 +63,13 @@ score_feats_extractor_choices = ClassChoices(
 pitch_extractor_choices = ClassChoices(
     "pitch_extract",
     classes=dict(dio=Dio),
+    type_check=AbsFeatsExtract,
+    default=None,
+    optional=True,
+)
+ying_extractor_choices = ClassChoices(
+    "ying_extract",
+    classes=dict(ying=Ying),
     type_check=AbsFeatsExtract,
     default=None,
     optional=True,
@@ -104,13 +115,14 @@ svs_choices = ClassChoices(
     "svs",
     classes=dict(
         vits=VITS,
+        joint_score2wav=JointScore2Wav,
     ),
     type_check=AbsGANSVS,
     default="vits",
 )
 
 
-class GANSVSTask(SVSTask):
+class GANSVSTask(AbsTask):
     """GAN-based Singing-voice-synthesis task."""
 
     # GAN requires two optimizers
@@ -130,6 +142,8 @@ class GANSVSTask(SVSTask):
         pitch_extractor_choices,
         # --pitch_normalize and --pitch_normalize_conf
         pitch_normalize_choices,
+        # --ying_extract and --ying_extract_conf
+        ying_extractor_choices,
         # --energy_extract and --energy_extract_conf
         energy_extractor_choices,
         # --energy_normalize and --energy_normalize_conf
@@ -222,6 +236,75 @@ class GANSVSTask(SVSTask):
             class_choices.add_arguments(group)
 
     @classmethod
+    def build_collate_fn(
+        cls, args: argparse.Namespace, train: bool
+    ) -> Callable[
+        [Collection[Tuple[str, Dict[str, np.ndarray]]]],
+        Tuple[List[str], Dict[str, torch.Tensor]],
+    ]:
+        assert check_argument_types()
+        return CommonCollateFn(
+            float_pad_value=0.0,
+            int_pad_value=0,
+            not_sequence=["spembs", "sids", "lids"],
+        )
+
+    @classmethod
+    def build_preprocess_fn(
+        cls, args: argparse.Namespace, train: bool
+    ) -> Optional[Callable[[str, Dict[str, np.array], float], Dict[str, np.ndarray]]]:
+        assert check_argument_types()
+        if args.use_preprocessor:
+            retval = SVSPreprocessor(
+                train=train,
+                token_type=args.token_type,
+                token_list=args.token_list,
+                bpemodel=args.bpemodel,
+                non_linguistic_symbols=args.non_linguistic_symbols,
+                text_cleaner=args.cleaner,
+                g2p_type=args.g2p,
+                fs=args.fs,
+                hop_length=args.feats_extract_conf["hop_length"],
+            )
+        else:
+            retval = None
+        # FIXME (jiatong): sometimes checking is not working here
+        # assert check_return_type(retval)
+        return retval
+
+    # TODO(Yuning): check new names
+    @classmethod
+    def required_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
+        if not inference:
+            retval = ("text", "singing", "score", "label")
+        else:
+            # Inference mode
+            retval = ("text", "score", "label")
+        return retval
+
+    @classmethod
+    def optional_data_names(
+        cls, train: bool = True, inference: bool = False
+    ) -> Tuple[str, ...]:
+        if not inference:
+            retval = (
+                "spembs",
+                "durations",
+                "pitch",
+                "energy",
+                "sids",
+                "lids",
+                "feats",
+                "ying",
+            )
+        else:
+            # Inference mode
+            retval = ("spembs", "singing", "pitch", "durations", "sids", "lids")
+        return retval
+
+    @classmethod
     def build_model(cls, args: argparse.Namespace) -> ESPnetGANSVSModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
@@ -266,6 +349,7 @@ class GANSVSTask(SVSTask):
         # 4. Extra components
         score_feats_extract = None
         pitch_extract = None
+        ying_extract = None
         energy_extract = None
         pitch_normalize = None
         energy_normalize = None
@@ -284,6 +368,14 @@ class GANSVSTask(SVSTask):
 
             pitch_extract = pitch_extract_class(
                 **args.pitch_extract_conf,
+            )
+        if getattr(args, "ying_extract", None) is not None:
+            ying_extract_class = ying_extractor_choices.get_class(
+                args.ying_extract,
+            )
+
+            ying_extract = ying_extract_class(
+                **args.ying_extract_conf,
             )
         if getattr(args, "energy_extract", None) is not None:
             energy_extract_class = energy_extractor_choices.get_class(
@@ -314,8 +406,8 @@ class GANSVSTask(SVSTask):
             score_feats_extract=score_feats_extract,
             label_extract=score_feats_extract,
             pitch_extract=pitch_extract,
-            tempo_extract=score_feats_extract,
-            beat_extract=score_feats_extract,
+            ying_extract=ying_extract,
+            duration_extract=score_feats_extract,
             energy_extract=energy_extract,
             normalize=normalize,
             pitch_normalize=pitch_normalize,

@@ -6,7 +6,7 @@ from typing import Union
 import numpy as np
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import read_2columns_text
 
 try:
     import music21 as m21  # for CI import
@@ -49,7 +49,7 @@ class XMLReader(collections.abc.Mapping):
         )
         self.fname = fname
         self.dtype = dtype
-        self.data = read_2column_text(fname)  # get key-value dict
+        self.data = read_2columns_text(fname)  # get key-value dict
 
     def __getitem__(self, key):
         score = m21.converter.parse(self.data[key])
@@ -80,7 +80,7 @@ class XMLReader(collections.abc.Mapping):
                         notes_list.append(NOTE("P", 0, st, st + dur))
                     prepitch = 0
                 else:  # normal note for one syllable
-                    notes_list.append(NOTE(note.lyric, note.pitch.midi, st, st + dur))
+                    notes_list.append(NOTE(lr, note.pitch.midi, st, st + dur))
                 prepitch = note.pitch.midi
                 for arti in note.articulations:  # <br> is tagged as a notation
                     if arti.name in ["breath mark"]:  # up-bow?
@@ -209,7 +209,7 @@ class SingingScoreReader(collections.abc.Mapping):
         assert check_argument_types()
         self.fname = fname
         self.dtype = dtype
-        self.data = read_2column_text(fname)
+        self.data = read_2columns_text(fname)
 
     def __getitem__(self, key):
         with open(self.data[key], "r") as f:

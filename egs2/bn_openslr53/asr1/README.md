@@ -26,4 +26,3 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_batch_size1_lm_lm_train_lm_bpe1000_valid.loss.ave_asr_model_valid.acc.best/sbn_test|2018|15595|77.6|12.7|9.7|1.6|24.0|48.7|
-

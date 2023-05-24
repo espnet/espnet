@@ -98,7 +98,7 @@ for lang in ${langs}; do
                 # use underscore-separated names in data directories.
                 local/commonvoice/data_prep.pl "${COMMONVOICE}/cv-corpus-9.0-2022-04-27/${lang}" ${part} data/"$(echo "${part}_${lang}_commonvoice" | tr - _)" "${lang}_commonvoice"
             done
-    
+
             # remove test&dev data from validated sentences
             utils/copy_data_dir.sh --validate_opts "--non-print" \
                 data/"$(echo "validated_${lang}_commonvoice" | tr - _)" data/${train_subset}
@@ -167,33 +167,33 @@ for lang in ${langs}; do
                 download_id=portuguese ;;
             "pl")
                 download_id=polish ;;
-        esac 
+        esac
         data_url=https://dl.fbaipublicfiles.com/mls/mls_${download_id}.tar.gz
         lm_data_url=https://dl.fbaipublicfiles.com/mls/mls_lm_${download_id}.tar.gz
 
         if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             log "sub-stage 0: Download Data to ${MLS}"
-        
+
             local/mls/download_and_untar.sh ${MLS} ${data_url} mls_${download_id}.tar.gz
             local/mls/download_and_untar.sh ${MLS} ${lm_data_url} mls_lm_${download_id}.tar.gz
             # Optional: mls corpus is large. You might want to remove them after processing
             # rm -f ${MLS}/mls_${download_id}.tar.gz
             # rm -f ${MLS}/mls_lm_${download_id}.tar.gz
         fi
-        
-        
+
+
         if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             log "sub-stage 1: Preparing Data for MLS"
             python local/mls/data_prep.py --source ${MLS}/mls_${download_id} --lang ${lang} --prefix "mls_" --suffix "\-${lang}_mls"
             utils/fix_data_dir.sh data/train_${lang}_mls
             utils/fix_data_dir.sh data/dev_${lang}_mls
             utils/fix_data_dir.sh data/test_${lang}_mls
-        
+
             # add placeholder to align format with other corpora
             sed -r '/^\s*$/d' ${MLS}/mls_lm_${download_id}/data.txt | \
                  awk '{printf("%.8d %s\n"), NR-1, $0}'  >> data/lm_train.txt
         fi
-        
+
         test_set="${test_set} test_${lang}_mls"
     fi
 
@@ -290,7 +290,7 @@ for lang in ${langs}; do
                 gender=$(echo ${dialect_lang} | cut -f3 -d-)
                 data_folder=${GOOGLEI18N}/openslr${openslr_id}_${lang_id}/${lang_id}_${gender}
             done
-             
+
         fi
 
         if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -354,7 +354,7 @@ for lang in ${langs}; do
                     > data/train_${lang}_openslr${openslr_id}/wav.scp
 
                 utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}
-                test_set="${test_set} test_${lang}_openslr${openslr_id}"                
+                test_set="${test_set} test_${lang}_openslr${openslr_id}"
             done
 
             for dialect_lang in ${v1_processing_list}; do
@@ -410,7 +410,7 @@ for lang in ${langs}; do
 
                 utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}_${gender}
                 test_set="${test_set} test_${lang}_openslr${openslr_id}_${gender}"
-            done 
+            done
         fi
 
     fi
@@ -436,14 +436,14 @@ for lang in ${langs}; do
         if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
             log "sub-stage 0: Download Data to ${GOOGLEI18N}"
 
-            echo "skip download for openslr${openslr_id}_${lang_id}" 
+            echo "skip download for openslr${openslr_id}_${lang_id}"
             # idxs=("0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "a" "b" "c" "d" "e" "f")
             # for i in "${idxs[@]}"; do
                 # wget -O ${GOOGLEi18N}/openslr${openslr_id}_${lang_id} \
                 #     https://www.openslr.org/resources/${openslr_id}/asr_${lang_id}_${i}.zip
                 # unzip -o asr_javanese_${i}.zip
             # done
-            
+
         fi
 
         if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -469,7 +469,7 @@ for lang in ${langs}; do
             sort ${target_dir}/wav.scp -o ${target_dir}/wav.scp
             utils/utt2spk_to_spk2utt.pl ${target_dir}/utt2spk > ${target_dir}/spk2utt
             utils/validate_data_dir.sh --non-print --no-feats ${target_dir}
- 
+
             utils/subset_data_dir.sh \
                 data/openslr${openslr_id}_${lang_id} \
                 4000 \
@@ -499,7 +499,7 @@ for lang in ${langs}; do
                 > data/train_${lang}_openslr${openslr_id}/wav.scp
 
             utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}
-            test_set="${test_set} test_${lang}_openslr${openslr_id}"  
+            test_set="${test_set} test_${lang}_openslr${openslr_id}"
 
         fi
     fi
@@ -577,7 +577,7 @@ for lang in ${langs}; do
                     > data/train_${lang}_openslr${openslr_id}/wav.scp
 
                 utils/fix_data_dir.sh data/train_${lang}_openslr${openslr_id}
-                test_set="${test_set} test_${lang}_openslr${openslr_id}"      
+                test_set="${test_set} test_${lang}_openslr${openslr_id}"
             done
         fi
     fi
@@ -733,15 +733,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/combine_data.sh --skip_fix true data/dev_temp data/dev_!(*temp|*li110_*)
 
     # Perform text preprocessing (upper case, remove punctuation)
-    # Original text: 
-    #     But, most important, he was able every day to live out his dream. 
+    # Original text:
+    #     But, most important, he was able every day to live out his dream.
     #     "Ask me why; I know why."
     # --->
     # Upper text:
     #     BUT, MOST IMPORTANT, HE WAS ABLE EVERY DAY TO LIVE OUT HIS DREAM.
     #     "ASK ME WHY; I KNOW WHY."
     # ---->
-    # Punctuation remove: 
+    # Punctuation remove:
     #     BUT MOST IMPORTANT HE WAS ABLE EVERY DAY TO LIVE OUT HIS DREAM
     #     ASK ME WHY I KNOW WHY
 
@@ -784,11 +784,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     if [ "$lid" = true ]
     then
 
-        # Original text: 
+        # Original text:
         #     BUT MOST IMPORTANT HE WAS ABLE EVERY DAY TO LIVE OUT HIS DREAM
         #     ASK ME WHY I KNOW WHY
         # --->
-        # Add language ID: 
+        # Add language ID:
         #     [en] BUT MOST IMPORTANT HE WAS ABLE EVERY DAY TO LIVE OUT HIS DREAM
         #     [en] ASK ME WHY I KNOW WHY
 

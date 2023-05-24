@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright (C) 2020 Kanari AI 
+# Copyright (C) 2020 Kanari AI
 # (Amir Hussein)
 
 if [ $# -ne 4 ]; then
@@ -27,10 +27,10 @@ done
 
 find $db_dir/train/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
-  $train_dir/wav_list                                 
+  $train_dir/wav_list
 
 # generate wav.scp file for training data
-for x in $(cat $train_dir/wav_list); do 
+for x in $(cat $train_dir/wav_list); do
   echo $x $db_dir/train/wav/$x.wav >> $train_dir/wav.scp
 done
 
@@ -55,7 +55,7 @@ elif [ $process_xml == 'xml' ]; then
     echo "using xml"
     cat $train_dir/wav_list | while read basename; do
       [ ! -e $xmldir/$basename.xml ] && echo "Missing $xmldir/$basename.xml" && exit 1
-      xml sel -t -m '//segments[@annotation_id="transcript_align"]' -m "segment" -n -v  "concat(@who,' ',@starttime,' ',@endtime,' ',@WMER,' ')" -m "element" -v "concat(text(),' ')" $xmldir/$basename.xml | local/add_to_datadir.py $basename $train_dir 
+      xml sel -t -m '//segments[@annotation_id="transcript_align"]' -m "segment" -n -v  "concat(@who,' ',@starttime,' ',@endtime,' ',@WMER,' ')" -m "element" -v "concat(text(),' ')" $xmldir/$basename.xml | local/add_to_datadir.py $basename $train_dir
       echo $basename $wavDir/$basename.wav >> $train_dir/wav.scp
     done
   else
@@ -68,7 +68,7 @@ else
   exit 1;
 fi
 
-# Generating necessary files for Dev 
+# Generating necessary files for Dev
 for x in text segments; do
   cp $db_dir/dev/${x}.all $dev_dir/${x}
 done
@@ -77,7 +77,7 @@ find $db_dir/dev/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
   $dev_dir/wav_list
 
-for x in $(cat $dev_dir/wav_list); do 
+for x in $(cat $dev_dir/wav_list); do
   echo $x $db_dir/dev/wav/$x.wav >> $dev_dir/wav.scp
 done
 
@@ -115,7 +115,7 @@ find $db_dir/test/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
   $test_dir/wav_list
 
-for x in $(cat $test_dir/wav_list); do 
+for x in $(cat $test_dir/wav_list); do
   echo $x $db_dir/test/wav/$x.wav >> $test_dir/wav.scp
 done
 
@@ -148,7 +148,7 @@ find $db_dir/train/wav -type f -name "*.wav" | \
   awk -F/ '{print $NF}' | perl -pe 's/\.wav//g' > \
   $train_dir/wav_list
 
-for x in $(cat $train_dir/wav_list); do 
+for x in $(cat $train_dir/wav_list); do
   echo $x $db_dir/train/wav/$x.wav >> $train_dir/wav.scp
 done
 
@@ -167,7 +167,7 @@ done
 for t in $train_dir $dev_dir ${dev_dir}_overlap ${dev_dir}_non_overlap; do
 
   sed -i 's/@@LAT@@//g' $t/text
-  
+
 done
 # Subset of training data
 train_subset=data/train_subset

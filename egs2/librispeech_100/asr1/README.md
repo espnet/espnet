@@ -83,6 +83,91 @@
 |decode_ctc_bs1_asr_model_valid.cer_ctc.ave/test_other|2939|66650|77.2|15.2|7.6|2.8|25.7|88.6|
 
 
+# E-Branchformer: Transducer
+## Environments
+- date: `Sun Feb 19 01:32:24 CST 2023`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202301`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `8fa6361886c246afbd90c6e2ef98596628bdeaa8`
+  - Commit date: `Fri Feb 17 16:47:46 2023 -0600`
+
+## beam size: 10
+- ASR config: [conf/tuning/train_asr_transducer_e_branchformer_e12_mlp1024_linear1024.yaml](conf/tuning/train_asr_transducer_e_branchformer_e12_mlp1024_linear1024.yaml)
+- Params: 30.01M
+- Model link: [https://huggingface.co/pyf98/librispeech_100_transducer_e_branchformer](https://huggingface.co/pyf98/librispeech_100_transducer_e_branchformer)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transducer_asr_model_valid.loss.ave/dev_clean|2703|54402|94.0|5.3|0.6|0.7|6.6|58.6|
+|decode_transducer_asr_model_valid.loss.ave/dev_other|2864|50948|84.2|13.9|1.9|1.8|17.6|81.1|
+|decode_transducer_asr_model_valid.loss.ave/test_clean|2620|52576|93.9|5.4|0.7|0.7|6.8|58.5|
+|decode_transducer_asr_model_valid.loss.ave/test_other|2939|52343|83.8|14.1|2.1|1.8|18.0|81.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transducer_asr_model_valid.loss.ave/dev_clean|2703|288456|97.8|1.1|1.1|0.7|2.8|58.6|
+|decode_transducer_asr_model_valid.loss.ave/dev_other|2864|265951|92.7|4.1|3.2|2.0|9.3|81.1|
+|decode_transducer_asr_model_valid.loss.ave/test_clean|2620|281530|97.8|1.1|1.1|0.7|2.9|58.5|
+|decode_transducer_asr_model_valid.loss.ave/test_other|2939|272758|92.8|4.0|3.2|2.0|9.2|81.5|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transducer_asr_model_valid.loss.ave/dev_clean|2703|69558|91.6|5.2|3.2|0.7|9.1|58.6|
+|decode_transducer_asr_model_valid.loss.ave/dev_other|2864|64524|80.9|13.4|5.7|2.7|21.8|81.1|
+|decode_transducer_asr_model_valid.loss.ave/test_clean|2620|66983|91.6|5.2|3.2|0.8|9.2|58.5|
+|decode_transducer_asr_model_valid.loss.ave/test_other|2939|66650|80.5|13.7|5.8|2.6|22.1|81.5|
+
+
+
+# Conformer: Transducer
+## Environments
+- date: `Sun Feb 19 04:43:54 CST 2023`
+- python version: `3.9.15 (main, Nov 24 2022, 14:31:59)  [GCC 11.2.0]`
+- espnet version: `espnet 202301`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `8fa6361886c246afbd90c6e2ef98596628bdeaa8`
+  - Commit date: `Fri Feb 17 16:47:46 2023 -0600`
+
+## beam_size: 10
+- ASR config: [conf/tuning/train_asr_transducer_conformer_e15_linear1024.yaml](conf/tuning/train_asr_transducer_conformer_e15_linear1024.yaml)
+- Params: 30.53M
+- Model link: [https://huggingface.co/pyf98/librispeech_100_transducer_conformer](https://huggingface.co/pyf98/librispeech_100_transducer_conformer)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transducer_asr_model_valid.loss.ave/dev_clean|2703|54402|94.1|5.3|0.6|0.6|6.6|58.5|
+|decode_transducer_asr_model_valid.loss.ave/dev_other|2864|50948|83.9|14.0|2.1|1.8|17.9|81.4|
+|decode_transducer_asr_model_valid.loss.ave/test_clean|2620|52576|93.8|5.5|0.7|0.7|6.9|59.9|
+|decode_transducer_asr_model_valid.loss.ave/test_other|2939|52343|83.7|14.1|2.2|1.7|18.1|81.8|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transducer_asr_model_valid.loss.ave/dev_clean|2703|288456|97.8|1.1|1.1|0.7|2.8|58.5|
+|decode_transducer_asr_model_valid.loss.ave/dev_other|2864|265951|92.5|4.2|3.3|2.0|9.4|81.4|
+|decode_transducer_asr_model_valid.loss.ave/test_clean|2620|281530|97.7|1.1|1.2|0.6|2.9|59.9|
+|decode_transducer_asr_model_valid.loss.ave/test_other|2939|272758|92.6|4.0|3.4|1.9|9.3|81.8|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transducer_asr_model_valid.loss.ave/dev_clean|2703|69558|91.7|5.2|3.1|0.7|9.1|58.5|
+|decode_transducer_asr_model_valid.loss.ave/dev_other|2864|64524|80.4|13.7|5.8|2.6|22.1|81.4|
+|decode_transducer_asr_model_valid.loss.ave/test_clean|2620|66983|91.5|5.2|3.3|0.7|9.2|59.9|
+|decode_transducer_asr_model_valid.loss.ave/test_other|2939|66650|80.4|13.4|6.1|2.4|22.0|81.8|
+
+
 
 # Conformer
 ## Environments
@@ -197,3 +282,35 @@ Model: https://huggingface.co/pyf98/librispeech_100h_transformer
 |beam20_ctc0.3/dev_other|2864|64524|78.5|15.3|6.2|2.8|24.3|83.8|
 |beam20_ctc0.3/test_clean|2620|66983|90.0|6.2|3.9|0.8|10.9|63.3|
 |beam20_ctc0.3/test_other|2939|66650|77.9|15.2|6.9|2.5|24.6|84.8|
+
+
+# RESULTS
+## Environments
+- date: `Mon Jan  9 23:06:34 CST 2023`
+- python version: `3.9.13 (main, Aug 25 2022, 23:26:10)  [GCC 11.2.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.12.1`
+- Git hash: `d89be931dcc8f61437ac49cbe39a773f2054c50c`
+  - Commit date: `Mon Jan 9 11:06:45 2023 -0600`
+
+## asr_whisper_medium_finetune_lr1e-5_adamw_wd1e-2_3epochs
+
+- Huggingface model URL: https://huggingface.co/espnet/shihlun_asr_whisper_medium_finetuned_librispeech100
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dev_clean|2703|54798|97.7|1.9|0.3|0.3|2.6|30.1|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dev_other|2864|51528|95.3|4.3|0.4|0.6|5.3|45.4|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_clean|2620|53027|97.6|2.1|0.3|0.4|2.7|30.9|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_other|2939|52882|95.1|4.4|0.5|0.7|5.6|47.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dev_clean|2703|287287|99.3|0.3|0.4|0.3|1.0|30.1|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dev_other|2864|265648|98.3|1.0|0.7|0.6|2.3|45.4|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_clean|2620|280691|99.3|0.3|0.3|0.3|1.0|30.9|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_other|2939|271738|98.3|1.0|0.7|0.7|2.4|47.5|

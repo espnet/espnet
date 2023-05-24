@@ -1,7 +1,7 @@
 #!/bin/bash
 #==============================================================================
 # Title: install_openface.sh
-# Description: Install everything necessary for OpenFace to compile. 
+# Description: Install everything necessary for OpenFace to compile.
 # Will install all required dependencies, only use if you do not have the dependencies
 # already installed or if you don't mind specific versions of gcc,g++,cmake,opencv etc. installed
 # Author: Fabian Hörst
@@ -14,7 +14,7 @@
 #==============================================================================
 
 # Exit script if any command fails
-set -e 
+set -e
 set -o pipefail
 
 # Get current directory
@@ -47,5 +47,3 @@ cp lib/local/LandmarkDetector/model/patch_experts/cen_* build/bin/model/patch_ex
 
 cd ../..
 echo "OpenFace successfully installed."
-
-

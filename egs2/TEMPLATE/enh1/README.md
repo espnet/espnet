@@ -67,7 +67,7 @@ espnet2/
 The`EnhancementTask` defined in `espnet2/tasks/enh.py` is called in `espnet2/bin/enh_train.py`. In the `collect_stats` mode. the behavior of `EnhancementTask` is the same as the `ABSTask`.
 
 #### Stage 6: Enhancement task Training
-We have created `EnhancementTask` in `espnet2/tasks/enh.py`, which is used to train the `ESPnetEnhancementModel(AbsESPnetModel)` defined in `espnet2/enh/espnet_model.py`. 
+We have created `EnhancementTask` in `espnet2/tasks/enh.py`, which is used to train the `ESPnetEnhancementModel(AbsESPnetModel)` defined in `espnet2/enh/espnet_model.py`.
 In `EnhancementTask`, the speech enhancement or separation models follow the `encoder-separator-decoder` style, and several encoders, decoders and separators are implemented. Although it is currently defined as an independent task, the models from `EnhancementTask` can be easily called by other tasks or even jointly trained with other tasks (see `egs2/TEMPLATE/enh_asr1/`, `egs2/TEMPLATE/enh_st1/`).
 
 > Now we support adding noise, reverberation, interference speech on the fly by specifying `preprocessor` in the configuration. For example, to use `EnhPreprocessor`, one can specify `preprocessor: "enh"` in the configuration and specify `--extra_wav_list` in `run.sh`. Check [PR #4321](https://github.com/espnet/espnet/pull/4321#issue-1216290237) for more details.

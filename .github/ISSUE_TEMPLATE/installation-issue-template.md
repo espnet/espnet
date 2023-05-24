@@ -24,7 +24,7 @@ cd <espnet-root>/tools
  - Git hash [e.g. b88e89fc7246fed4c2842b55baba884fe1b4ecc2]
    - Commit date [e.g. Tue Sep 1 09:32:54 2020 -0400]
  - pytorch version [e.g. pytorch 1.4.0]
- 
+
 You can obtain them by the following command
 ```
 cd <espnet-root>/tools

@@ -91,7 +91,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data simulation"
     (
     cd ./data/LibriMix
-    librimix_outdir=./libri_mix_single
+    librimix_outdir=./libri_mix
 
 
     python scripts/augment_train_noise.py --wham_dir ${cdir}/data/wham_noise
@@ -133,6 +133,20 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             awk -F ',' '{print $1, $6}' "data/${dset}/tmp" > "data/${dset}/noise1.scp"
         fi
         rm "data/${dset}/tmp"
+    done
+fi
+
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "stage 3: Prepare data files for train-100 and train-360"
+    mkdir -p data/{train-100,train-360}
+
+    for subset in "train-100" "train-360"; do
+        grep -e "${subset}" "data/train/wav.scp" > "data/${subset}/wav.scp"
+        for f in data/train/*.scp; do
+            [ "$f" = "data/train/wav.scp" ] || utils/filter_scp.pl "data/${subset}/wav.scp" "$f" > "data/${subset}/$(basename $f)"
+        done
+        utils/filter_scp.pl "data/${subset}/wav.scp" data/train/utt2spk > data/${subset}/utt2spk
     done
 fi
 

@@ -135,3 +135,37 @@ def test_tcn_separator_output():
         for n in range(num_spk):
             assert "mask_spk{}".format(n + 1) in others
             assert specs[n].shape == others["mask_spk{}".format(n + 1)].shape
+
+
+def test_tcn_streaming():
+    SEQ_LEN = 100
+    num_spk = 2
+    BS = 2
+    separator = TCNSeparator(
+        input_dim=128,
+        num_spk=2,
+        layer=2,
+        stack=3,
+        bottleneck_dim=32,
+        hidden_dim=64,
+        kernel=3,
+        causal=True,
+        norm_type="cLN",
+    )
+    separator.eval()
+    input_feature = torch.randn((BS, SEQ_LEN, 128))
+    ilens = torch.LongTensor([SEQ_LEN] * BS)
+    with torch.no_grad():
+        seq_output, _, _ = separator.forward(input_feature, ilens=ilens)
+
+        state = None
+        stream_outputs = []
+        for i in range(SEQ_LEN):
+            frame = input_feature[:, i : i + 1, :]
+            frame_out, state, _ = separator.forward_streaming(frame, state)
+            stream_outputs.append(frame_out)
+        for i in range(SEQ_LEN):
+            for s in range(num_spk):
+                torch.testing.assert_allclose(
+                    stream_outputs[i][s], seq_output[s][:, i : i + 1, :]
+                )

@@ -7,7 +7,7 @@
 
 
 # general configuration
-ifpretrain=true			# if use LRS2 pretrain set 
+ifpretrain=true			# if use LRS2 pretrain set
 iflrs3pretrain=true		# if use LRS3 pretrain set
 ifsegment=true  		# if do segmentation for pretrain set
 ifcuda=true  			# if use cuda
@@ -32,13 +32,13 @@ train_lm=false			# true: Train own language model, false: use pretrained librisp
 DATA_DIR=					# The LRS2 dataset directory e.g. "/home/foo/LRS2"
 DATALRS3_DIR=				# The LRS3 dataset directory e.g. "/home/foo/LRS3"
 PRETRAINEDMODEL=pretrainedvideomodel/Video_only_model.pt 				        # Path to pretrained video model e.g. "pretrainedvideomodel/Video_only_model.pt"
-MUSAN_DIR="musan"   					              	#  The noise dataset directory e.g. "musan" 
+MUSAN_DIR="musan"   					              	#  The noise dataset directory e.g. "musan"
 
 # feature configuration
 do_delta=false
 
 preprocess_config=conf/specaug.yaml
-train_config=conf/train.yaml 
+train_config=conf/train.yaml
 lm_config=conf/lm.yaml
 decode_config=conf/decode.yaml
 
@@ -55,7 +55,7 @@ tag="" # tag for managing experiments.
 
 . utils/parse_options.sh || exit 1;
 
-## Function for pretrained Librispeech language model:  
+## Function for pretrained Librispeech language model:
 function gdrive_download () {
     CONFIRM=$(wget --quiet --save-cookies /tmp/cookies.txt --keep-session-cookies --no-check-certificate \
         "https://docs.google.com/uc?export=download&id=$1" -O- | sed -rn 's/.*confirm=([0-9A-Za-z_]+).*/\1\n/p')
@@ -81,7 +81,7 @@ recog_set="Val Test"
 
 
 
-# Stage -1: download local folder 
+# Stage -1: download local folder
 if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     # download required files for data processing
     local/download.sh
@@ -121,7 +121,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 	echo "Please download the dataset by yourself and save the dataset directory in path.sh file"
 	echo "Thanks!"
     fi
-	
+
     if [ "$iflrs3pretrain" = true ] ; then
     	if [ -d "$DATALRS3_DIR" ]; then
     	    echo "Dataset already exists."
@@ -144,7 +144,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 	tar -xf musan.tar.gz
  	rm -rf musan.tar.gz
 	echo "Unzipping finished"
-    fi   
+    fi
     # Create RIRS_NOISES Dataset
     if [ -d "RIRS_NOISES" ]; then
 	echo "RIRS_NOISES dataset is in RIRS_NOISES..."
@@ -159,7 +159,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 	echo "Unzipping finished"
     fi
 
-    for part in Test Val Train; do 
+    for part in Test Val Train; do
         # use underscore-separated names in data directories. #Problem: Filelist_Val is readonly
         local/data_prepare/lrs2_audio_data_prep.sh ${DATA_DIR} $part $ifsegment $ifmulticore $ifdebug $num $nj || exit 1;
     done
@@ -191,7 +191,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
     ### But you can utilize Kaldi recipes in most cases
     echo "stage 2: Audio augmentation"
-    for part in Test Val Train; do 
+    for part in Test Val Train; do
         # use underscore-separated names in data directories.
         local/extract_reliability/audio_augmentation.sh $MUSAN_DIR $part LRS2 || exit 1;
     done
@@ -232,7 +232,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
     mv data/audio/augment/LRS2_Test_aug data/audio/augment/Test_aug
     mv data/audio/augment/LRS2_Val_aug data/audio/augment/Val_aug
-    mv data/audio/augment/LRS2_Train_aug data/audio/augment/Train_aug	
+    mv data/audio/augment/LRS2_Train_aug data/audio/augment/Train_aug
 
     echo "stage 2: Audio augmentation finished"
 
@@ -247,14 +247,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mkdir -p $mp3files
     if [ "$ifpretrain" = false ] && [ "$iflrs3pretrain" = false ] ; then
         for part in Test Val Train; do
-	    echo "Run audioaugwav frames for ${part} set!" 
+	    echo "Run audioaugwav frames for ${part} set!"
  	    mkdir -p ${mp3files}/$part
             local/extract_reliability/audioaugwav.sh data/audio/augment/${part}_aug $mp3files/$part || exit 1;
         done
 
     else
-	for part in Test Val Train pretrain; do #Train pretrain 
-	    echo "Run audioaugwav frames for ${part} set!" 
+	for part in Test Val Train pretrain; do #Train pretrain
+	    echo "Run audioaugwav frames for ${part} set!"
 	    mkdir -p $mp3files/$part
     	    local/extract_reliability/audioaugwav.sh data/audio/augment/${part}_aug $mp3files/$part || exit 1;
         done
@@ -336,7 +336,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 			${fbankdir}  || exit 1;
 	    utils/fix_data_dir.sh data/audio/augment/${x}fbank_aug  || exit 1;
 	done
-    fi 
+    fi
 
     ## make fband and mfcc features for test decode dataset
     x=Test
@@ -427,7 +427,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 	    --output_format=piece < data/lang_char/input.txt | tr ' ' '\n' | sort | uniq | awk '{print $0 " " NR+1}' >> ${dict}  || exit 1;
     	wc -l ${dict}
     else
-    	# if using external librispeech lm        
+    	# if using external librispeech lm
 	gdrive_download '1vwsJlUYgRUSDGDEa9RXail0mp4tR5QAx' 'model.v2.tar.gz'  || exit 1;
         tar -xf model.v2.tar.gz  || exit 1;
 	mv model.v2/avsrlrs2_3/exp/train_rnnlm_pytorch_lm_unigram500 exp/train_rnnlm_pytorch_lm_unigram500
@@ -460,7 +460,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 	sed -r 's/([^ \t]+\s)(.*)/\1\L\2/' data/audio/augment/${rtask}fbank_aug/text > data/audio/augment/${rtask}fbank_aug/text1  || exit 1;
     	rm -rf data/audio/augment/${rtask}fbank_aug/text  || exit 1;
     	mv data/audio/augment/${rtask}fbank_aug/text1 data/audio/augment/${rtask}fbank_aug/text  || exit 1;
-        
+
 	feat_recog_dir=${dumpdir}/audio_org/${rtask}/delta${do_delta}
         data2json.sh --feat ${feat_recog_dir}/feats.scp --bpecode ${bpemodel}.model \
             data/audio/augment/${rtask}fbank_aug ${dict} > ${feat_recog_dir}/data_${bpemode}${nbpe}.json  || exit 1;
@@ -527,7 +527,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
   	    echo "vidaug already exist..."
 	else
   	    ln -s $VIDAUG_DIR vidaug
-	    ln -rsf local/extract_reliability/videoaug.py  vidaug/videoaug.py  
+	    ln -rsf local/extract_reliability/videoaug.py  vidaug/videoaug.py
 	fi
 	python3 vidaug/videoaug.py data/METADATA/Filelist_Test $DATA_DIR $videoaug blur	# video augmentation with Gaussian blur
 	python3 vidaug/videoaug.py data/METADATA/Filelist_Test $DATA_DIR $videoaug saltandpepper # video augmentation with salt and pepper noise
@@ -539,28 +539,28 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
     	echo "stage 5.2: OpenFace face recognition"
 	mkdir -p $facerecog
     	for part in Test Val Train; do  #
-	    echo "Starting OpenFace background processes for ${part} set!"  
+	    echo "Starting OpenFace background processes for ${part} set!"
  	    mkdir -p $facerecog/LRS2${part}
             local/extract_reliability/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
 				LRS2 $nj $ifdebug || exit 1;
     	done
     	if [ "$ifpretrain" = true ] ; then
     	    part=pretrain
-    	    echo "Starting OpenFace background processes for ${part} set!"  
+    	    echo "Starting OpenFace background processes for ${part} set!"
 	    mkdir -p $facerecog/LRS2${part}
     	    local/extract_reliability/Openface.sh $DATA_DIR $facerecog/LRS2${part} $part $OPENFACE_DIR \
 				LRS2 $nj $ifdebug || exit 1;
    	fi
     	if [ "$iflrs3pretrain" = true ] ; then
     	    part=pretrain
-    	    echo "Starting OpenFace background processes for LRS3 ${part} set!"  
+    	    echo "Starting OpenFace background processes for LRS3 ${part} set!"
 	    mkdir -p $facerecog/LRS3${part}
     	    local/extract_reliability/Openface.sh $DATALRS3_DIR $facerecog/LRS3${part} $part $OPENFACE_DIR \
 				LRS3 $nj $ifdebug || exit 1;
    	fi
 	part=Test
-    	for noisetype in blur saltandpepper; do 
-	    echo "Starting OpenFace background processes for ${part} set!"  
+    	for noisetype in blur saltandpepper; do
+	    echo "Starting OpenFace background processes for ${part} set!"
  	    mkdir -p $facerecog/LRS2${part}_$noisetype
             local/extract_reliability/Openface_vidaug.sh $videoaug $facerecog/LRS2${part}_$noisetype \
 				$part $OPENFACE_DIR LRS2 $noisetype $nj $ifdebug || exit 1;
@@ -569,14 +569,14 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	echo "All OpenFace background processes for all sets are done!"
     fi
 
-    if [ ${dataprocessingstage} -le 3 ] && [ ${stop_dataprocessingstage} -ge 3 ]; then	
+    if [ ${dataprocessingstage} -le 3 ] && [ ${stop_dataprocessingstage} -ge 3 ]; then
 	# Stage 5.3: Extract Video frames from the MP4 File by using OpenFace results
 	echo "stage 5.3: Extract Frames"
 	mkdir -p $videoframe
 
     	if [ "$ifpretrain" = true ] ; then
     	    part=pretrain
-	    echo "Extracting frames for ${part} set!" 
+	    echo "Extracting frames for ${part} set!"
 	    mkdir -p $videoframe/LRS2${part}
     	    local/extract_reliability/extractframs.sh $DATA_DIR \
 			$videoframe \
@@ -590,7 +590,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 
     	if [ "$iflrs3pretrain" = true ] ; then
     	    part=pretrain
-	    echo "Extracting frames for ${part} set!" 
+	    echo "Extracting frames for ${part} set!"
 	    mkdir -p $videoframe/LRS3${part}
     	    local/extract_reliability/extractframs.sh $DATALRS3_DIR \
 			$videoframe \
@@ -602,8 +602,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 			$ifmulticore || exit 1;
    	fi
 
-	for part in Test Val Train; do  # Test 
-    	    echo "Extracting frames for ${part} set!"  	
+	for part in Test Val Train; do  # Test
+    	    echo "Extracting frames for ${part} set!"
  	    mkdir -p $videoframe/LRS2${part}
             local/extract_reliability/extractframs.sh $DATA_DIR \
 			$videoframe \
@@ -615,8 +615,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 			$ifmulticore || exit 1;
     	done
 	part=Test
-    	for noisetype in blur saltandpepper; do 
-	    echo "Extracting frames for augumented ${part} set!" 
+    	for noisetype in blur saltandpepper; do
+	    echo "Extracting frames for augumented ${part} set!"
 	    mkdir -p $videoframe/LRS2${part}_$noisetype
     	    local/extract_reliability/extractframs.sh $videoaug \
 			$videoframe \
@@ -628,7 +628,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 			$ifmulticore \
 			$noisetype || exit 1;
 	done
-	echo "Extract Frames finished"	
+	echo "Extract Frames finished"
     fi
 
     if [ ${dataprocessingstage} -le 4 ] && [ ${stop_dataprocessingstage} -ge 4 ]; then
@@ -649,9 +649,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
                 mkdir -p $SNRptdir/$part
         	local/extract_reliability/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
     	    done
-    	else	
-	    for part in Train pretrain Test Val; do  
-		echo "Extract SNR for ${part} set!" 
+    	else
+	    for part in Train pretrain Test Val; do
+		echo "Extract SNR for ${part} set!"
 		mkdir -p $SNRdir/$part
                 mkdir -p $SNRptdir/$part
     		local/extract_reliability/extractsnr.sh $SNRdir $SNRptdir $mp3files $part $ifmulticore || exit 1;
@@ -711,7 +711,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 				$ifdebug || exit 1;
    	fi
 	part=Test
-    	for noisetype in blur saltandpepper; do 
+    	for noisetype in blur saltandpepper; do
 	    echo "Extract video features for augmented ${part} set!"
 	    mkdir -p $videofeature/LRS2${part}_$noisetype
     	    local/extract_reliability/extractfeatures.sh $videoframe/LRS2${part}_$noisetype/Pics \
@@ -723,8 +723,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	done
     fi
 
-    if [ ${dataprocessingstage} -le 6 ] && [ ${stop_dataprocessingstage} -ge 6 ]; then	
-	# Make video ark files 
+    if [ ${dataprocessingstage} -le 6 ] && [ ${stop_dataprocessingstage} -ge 6 ]; then
+	# Make video ark files
 	echo "stage 5.6: Make video ark files"
 
 	rm -rf data/video
@@ -782,7 +782,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	fi
 
 	part=Test
-    	for noisetype in blur saltandpepper; do 
+    	for noisetype in blur saltandpepper; do
 	    echo "Make video dump files for augmented ${part} set!"
 	    cat data/video/LRS2${part}_${noisetype}/feats_*.scp > data/video/LRS2${part}_${noisetype}/feats.scp || exit 1;
  	    sort data/video/LRS2${part}_${noisetype}/feats.scp -o data/video/LRS2${part}_${noisetype}/feats.scp
@@ -802,19 +802,19 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	# Remake dump files
 	echo "stage 5.7: Remake audio and video dump files"
 
-	for dset in pretrain_Train Val Test Test_decode_music Test_decode_noise; do 
+	for dset in pretrain_Train Val Test Test_decode_music Test_decode_noise; do
             rm -rf dump/audio/$dset
 	    python3 local/dump/audiodump.py dump/audio dump/audio_org $dset $ifmulticore || exit 1;
         done
 
-	for dset in pretrain Val Test; do 
+	for dset in pretrain Val Test; do
  	    rm -rf dump/avpretrain/$dset
 	    python3 local/dump/avpretraindump.py dump/avpretrain dump/audio_org dump/video \
 						$SNRptdir $videoframe dump/mfcc \
 						$dset $ifmulticore || exit 1;
         done
 
-	for dset in Train Val Test; do 
+	for dset in Train Val Test; do
             rm -rf dump/avtrain/$dset
 	    python3 local/dump/avtraindump.py dump/avtrain dump/audio_org $videofeature \
 						$SNRptdir $videoframe dump/mfcc \
@@ -822,12 +822,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         done
 
 	# Creat video dump file
-	for dset in pretrain Val Test; do 
+	for dset in pretrain Val Test; do
 	    rm -rf dump/videopretrain/$dset
 	    python3 local/dump/videodump.py dump/avpretrain dump/videopretrain $dset || exit 1;
         done
 
-	for dset in Train Val Test; do 
+	for dset in Train Val Test; do
 	    rm -rf dump/videotrain/$dset
 	    python3 local/dump/videodump.py dump/avtrain dump/videotrain $dset || exit 1;
         done
@@ -835,7 +835,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	dset=Test
 	rm -rf dump/avpretraindecode
 	rm -rf dump/avtraindecode
-	for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do 
+	for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do
 	    python3 local/dump/avpretraindecodedump.py dump/avpretraindecode dump/audio_org dump/video \
 				$SNRptdir $videoframe dump/mfcc \
 				$dset $noisecombination $ifmulticore || exit 1;
@@ -851,12 +851,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
 	for audionoise in noise music; do
 	    python3 local/extract_reliability/extractsnr.py data/audio/augment/LRS2_decode $audionoise $ifmulticore || exit 1;
         done
-	for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do 
+	for noisecombination in 'noise_None' 'music_None' 'noise_blur' 'noise_saltandpepper'; do
 	    python3 local/extract_reliability/splitsnr.py dump/avpretraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
 	    python3 local/extract_reliability/splitsnr.py dump/avtraindecode $noisecombination data/audio/augment/LRS2_decode || exit 1;
 	done
     fi
-	
+
     echo "stage 5: Reliability measures generation finished"
 fi
 
@@ -889,7 +889,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P data/local/lm_train/
 	    echo "Download finished"
         fi
-		
+
         if [ ! -e ${lmdatadir} ]; then
 	    echo "Prepare LM data"
             mkdir -p ${lmdatadir}
@@ -931,8 +931,8 @@ if [ -z ${tag} ]; then
     if ${do_delta}; then
         expname=${expname}_delta
     fi
-    if [ -n "${preprocess_config}" ]; then 
-	expname=${expname}_$(basename ${preprocess_config%.*}) 
+    if [ -n "${preprocess_config}" ]; then
+	expname=${expname}_$(basename ${preprocess_config%.*})
     fi
 else
     expname=${train_set}_${backend}_${tag}
@@ -1045,6 +1045,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
 				$expdiravfine dump/avtrain dump/avtraindecode $PRETRAINEDMODEL $lmexpdir \
  				$noisetype $dict $bpemodel $expdiravpretrain|| exit 1;
 
-fi 
+fi
 
 exit 0

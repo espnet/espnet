@@ -78,7 +78,7 @@
 |-|NSC|11.4|26.0|84.2|0.107|
 |-|mAES|11.5|26.3|84.5|0.053|
 
-¹ Reported on the test set only.  
+¹ Reported on the test set only.
 ² RTF was computed using `line-profiler` tool applied to [recognize method](https://github.com/espnet/espnet/blob/master/espnet/nets/pytorch_backend/e2e_asr_transducer.py#L470). The reported value is averaged on 5 runs with `nj=1`. All experiments were performed using a single AMD EPYC 7502P.
 
 ## RNN-Transducer (Enc: VGG + 4x BLSTM, Dec: 1x LSTM)
@@ -144,7 +144,7 @@
   - GPU: Nvidia A100 40Gb
   - Training time: ~ 21 minutes
   - Peak memory consumption during training: ~ 18.2 GiB
-  - Decoding time (8 jobs, `search-type: default`): ~ 43 seconds 
+  - Decoding time (8 jobs, `search-type: default`): ~ 43 seconds
 
 - Environments
   - date: `Sun Aug 15 10:39:18 CEST 2021`

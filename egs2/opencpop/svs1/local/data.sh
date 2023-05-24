@@ -55,7 +55,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Held out validation set"
-    
+
     utils/copy_data_dir.sh data/train data/${train_set}
     utils/copy_data_dir.sh data/train data/${train_dev}
     for dset in ${train_set} ${train_dev}; do
@@ -68,5 +68,5 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/tr_no_dev
     utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/dev
-    
+
 fi

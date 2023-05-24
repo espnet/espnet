@@ -62,7 +62,7 @@ separator_conf:
     rtf_iterations: 5
 
 
-criterions: 
+criterions:
   # The first criterion
   - name: ci_sdr
     conf:

@@ -1,10 +1,10 @@
 ## RNN with old config
 - Model files (archived to model.tar.gz by `$ pack_model.sh`)
     - model link: https://drive.google.com/open?id=1vshBCZ1NRt1DSNbsOp0JUXG68G9BrMGk
-    - training config file: `conf/train.yaml`    
-    - decoding config file: `conf/decode.yaml`  
-    - e2e file: `exp/ihm_train_pytorch_train/results/model.loss.best`    
-    - e2e JSON file: `exp/ihm_train_pytorch_train/results/model.json`    
+    - training config file: `conf/train.yaml`
+    - decoding config file: `conf/decode.yaml`
+    - e2e file: `exp/ihm_train_pytorch_train/results/model.loss.best`
+    - e2e JSON file: `exp/ihm_train_pytorch_train/results/model.json`
     - lm file: `exp/train_rnnlm_pytorch_lm_word20000/rnnlm.model.best`
     - lm JSON file: `exp/train_rnnlm_pytorch_lm_word20000/model.json`
   - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)
@@ -73,12 +73,12 @@ exp/ihm_train_pytorch_train_transformer_200/decode_ihm_eval_decode_transformer_l
 |  Sum/Avg                       | 12612    89635  |  75.4     18.4      6.2      3.1     27.7     60.6  |
 ```
 ## Transformer with large encoder with speed perturbation based data augmentation.(epoch 100)
-  - Model files (archived to model.tar.gz by `$ pack_model.sh`)  
+  - Model files (archived to model.tar.gz by `$ pack_model.sh`)
     - model link: https://drive.google.com/open?id=1-lhpCIpnH-vNxtxfH2YkQXZE-RqIS1YV
-    - training config file: `conf/train_transformer.yaml`    
-    - decoding config file: `conf/decode_transformer.yaml`    
-    - e2e file: `exp/ihm_train_pytorch_train/results/model.acc.best`    
-    - e2e JSON file: `exp/ihm_train_pytorch_train/results/model.json`    
+    - training config file: `conf/train_transformer.yaml`
+    - decoding config file: `conf/decode_transformer.yaml`
+    - e2e file: `exp/ihm_train_pytorch_train/results/model.acc.best`
+    - e2e JSON file: `exp/ihm_train_pytorch_train/results/model.json`
     - lm file: `exp/train_rnnlm_pytorch_lm_word20000/rnnlm.model.best`
     - lm JSON file: `exp/train_rnnlm_pytorch_lm_word20000/model.json`
   - Results (paste them by yourself or obtained by `$ pack_model.sh --results <results>`)

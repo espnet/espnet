@@ -68,4 +68,3 @@ Model link: https://zenodo.org/record/4513751/files/enh_train_enh_beamformer_no_
 |---|---|---|---|---|---|---|
 |enhanced_cv_spatialized_reverb_multich_min_8k|2.89|0.87|11.91|9.50|16.72|6.45|
 |enhanced_tt_spatialized_reverb_multich_min_8k|2.88|0.87|11.85|9.39|16.55|6.38|
-

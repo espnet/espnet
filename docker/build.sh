@@ -11,11 +11,11 @@ log() {
 SCRIPTPATH="$( cd "$(dirname "$0")" ; pwd -P )"
 
 # Default values
-ubuntu_ver=20.04
-cuda_ver=11.1
+ubuntu_ver=22.04
+cuda_ver=11.7
 build_ver=cpu
 build_cores=24
-th_ver=1.10.1
+th_ver=1.13.1
 
 
 cmd_usage() {
@@ -25,7 +25,7 @@ cmd_usage() {
         A script for automatic builds of docker images for ESPnet and
         pushing them to Dockerhub.
         Also able to build containers based on local build configuration.
-    
+
     USAGE
         ${PROGRAM} <args> <mode>
         ${PROGRAM} build_and_push
@@ -43,15 +43,15 @@ cmd_usage() {
                             using the base image from Docker Hub (espnet/espnet:runtime)
                             optional: cpu or CUDA version (default: cpu)
             fully_local     like local, but also builds the base image
-        
+
         Arguments
-            build-ver       cpu/gpu
+            build-ver       cpu/gpu (default: ${build_ver})
             ubuntu-ver      any ubuntu version available at docker hub (e.g. 18.04/20.04/...)
-                            (default: 18.04)
+                            (default: ${ubuntu_ver})
             cuda-ver        any cuda version available at nvidia (e.g. 9.0/9.1/...)
-                            (default: 10.1)
-            build-cores     cores employed for building the container
-            th-ver          Pytorch version for fully local build
+                            (default: ${cuda_ver})
+            build-cores     cores employed for building the container (default: ${build_cores})
+            th-ver          Pytorch version for fully local build (default: ${th_ver})
 
     CAVEATS
         For local builds, the image pulled from Docker Hub is based on Ubuntu 16,
@@ -105,7 +105,7 @@ build(){
     fi
 
     # build gpu based
-    build_args="--build-arg FROM_TAG=cuda-latest 
+    build_args="--build-arg FROM_TAG=cuda-latest
                 --build-arg CUDA_VER=${default_cuda_ver}"
     this_tag=espnet/espnet:gpu-latest
     docker_image=$( docker images -q ${this_tag}  )
@@ -187,7 +187,7 @@ run_recipe2(){
                     --ngpu ${2} \
                     --stage ${3} \
                     --asr-tag train_nodev_${4} \
-                    --lm-tag train_nodev_${4}  | tee -a ${PWD}/testing2_pytorch_${4}.log > /dev/null 
+                    --lm-tag train_nodev_${4}  | tee -a ${PWD}/testing2_pytorch_${4}.log > /dev/null
 }
 
 testing(){
@@ -195,7 +195,7 @@ testing(){
     # Test Docker Containers with cpu setup
     run_stage=-1
     for backend in chainer pytorch; do
-        if [ -f ../egs/mini_an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
+        if [ -f ../egs/mini_an4/asr1/dump/train_nodev/deltafalse/data.json ]; then
             run_stage=3
         fi
         if [ ! -f .test_cpu_${backend}.done ]; then
@@ -205,7 +205,7 @@ testing(){
     done
 
     for backend in chainer pytorch; do
-        if [ -f ../egs/mini_an4/asr1/dump/train_nodev/deltafalse/data.json ]; then 
+        if [ -f ../egs/mini_an4/asr1/dump/train_nodev/deltafalse/data.json ]; then
             run_stage=3
         fi
         if [ ! -f .test_gpu_${backend}.done ]; then
@@ -218,7 +218,7 @@ testing(){
     read enter
     # Test for espnet2
     run_stage=-1
-    # 
+    #
     if [ ! -f .test2_cpu_${backend}.done ]; then
         run_recipe2 -1 0 ${run_stage} "cpu"
         touch .test2_cpu_${backend}.done
@@ -256,11 +256,11 @@ do
                         frombreak=false
                         shift
                         break 2
-                    fi 
-                done 
+                    fi
+                done
             done
             if ${frombreak} ; then
-                echo "bad option $1" 
+                echo "bad option $1"
                 exit 1
             fi
             ;;
@@ -272,8 +272,8 @@ done
 
 
 mode=$1
-default_ubuntu_ver=20.04
-default_cuda_ver=11.1
+default_ubuntu_ver=22.04
+default_cuda_ver=11.7
 
 check=true
 [ "${default_ubuntu_ver}" != "${ubuntu_ver}" ] || [ "${default_cuda_ver}" != "${cuda_ver}" ] && check=false

@@ -13,6 +13,16 @@ class AbsSeparator(torch.nn.Module, ABC):
         ilens: torch.Tensor,
         additional: Optional[Dict] = None,
     ) -> Tuple[Tuple[torch.Tensor], torch.Tensor, OrderedDict]:
+<<<<<<< HEAD
+=======
+        raise NotImplementedError
+
+    def forward_streaming(
+        self,
+        input_frame: torch.Tensor,
+        buffer=None,
+    ):
+>>>>>>> upstream/master
         raise NotImplementedError
 
     @property
