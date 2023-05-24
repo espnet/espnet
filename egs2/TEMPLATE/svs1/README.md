@@ -280,36 +280,37 @@ $  --pretrained_model /exp/xiaoice-2-24-250k/500epoch.pth:svs:svs.fftsinger \
 ```
 
 
-### VISinger training
-The VITS config is hard coded for 22.05 khz or 44.1 khz and use different feature extraction method. (Note that you can use any feature extraction method but the default method is linear_spectrogram.) If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
+### VISinger (1+2) training
+The VISinger / VISinger 2 configs are hard coded for 22.05 khz or 44.1 khz and use different feature extraction method. (Note that you can use any feature extraction method but the default method is `fbank`.) If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
 
 First, check "fs" (Sampling Rate) and complete the data preparation:
 ```sh
 $ ./run.sh \
     --stage 1 \
     --stop_stage 4 \
-    --fs 22050 \
+    --fs 44100 \
 ```
 
-Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllabel level* in VISinger), "svs_task" (*gan_svs* in VISinger) and modify "vocoder_file" with your own vocoder path.
+Second, check "train_config" (default `conf/train.yaml`, you can also use `--train_config ./conf/tuning/train_visinger2.yaml` to train VISinger 2), "score_feats_extract" (*syllabel level* in VISinger), "svs_task" (*gan_svs* in VISinger).
 
 ```sh
 
-# Single speaker 22.05 khz case
+# Single speaker 44100 khz case
 ./run.sh \
     --stage 5 \
-    --fs 22050 \
-    --n_fft 1024 \
-    --n_shift 256 \
-    --win_length null \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --win_length 2048 \
     --svs_task gan_svs \
     --pitch_extract dio \
+    --feats_extract fbank \
+    --feats_normalize none \
     --score_feats_extract syllable_score_feats \
-    --train_config conf/tuning/train_vits.yaml \
+    --train_config ./conf/tuning/train_visinger.yaml \
     --inference_config conf/tuning/decode_vits.yaml \
     --inference_model latest.pth \
-    --write_collected_feats true \
-    --vocoder_file ${your vocoder path} \
+    --write_collected_feats true
 
 ```
 
@@ -578,5 +579,6 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [Naive-RNN](https://arxiv.org/abs/2010.12024)
 - [XiaoiceSing](https://arxiv.org/abs/2006.06261)
 - [VISinger](https://arxiv.org/abs/2110.08813)
+- [VISinger 2](https://arxiv.org/abs/2211.02903)
 
 You can find example configs of the above models in [`egs/ofuton_p_utagoe_db/svs1/conf/tuning`](../../ofuton_p_utagoe_db/svs1/conf/tuning).
