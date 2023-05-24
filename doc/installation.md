@@ -35,7 +35,7 @@ to prepare the appropriate environments.
 
 - ubuntu18
 - centos7
-- debian9
+- debian11
 - Windows10 (installation only)
   - We can conduct complete experiments based on WSL-2 (Ubuntu 20.04). See the [link](https://github.com/espnet/espnet/files/10780845/Instructions.txt) and [#4909](https://github.com/espnet/espnet/discussions/4909) for details (Thanks, [@Bereket-Desbele](https://github.com/Bereket-Desbele)!)
 - MacOS12 (installation only)

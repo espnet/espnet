@@ -80,7 +80,7 @@ class XMLReader(collections.abc.Mapping):
                         notes_list.append(NOTE("P", 0, st, st + dur))
                     prepitch = 0
                 else:  # normal note for one syllable
-                    notes_list.append(NOTE(note.lyric, note.pitch.midi, st, st + dur))
+                    notes_list.append(NOTE(lr, note.pitch.midi, st, st + dur))
                 prepitch = note.pitch.midi
                 for arti in note.articulations:  # <br> is tagged as a notation
                     if arti.name in ["breath mark"]:  # up-bow?
