@@ -82,7 +82,7 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
     for i in range(len(notes)):
         note = notes[i]
         # fix errors in dataset
-        # remove rest note 
+        # remove rest note
         if "itako04" in file_id and i in [
             191,
             193,
@@ -109,7 +109,7 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
             note.lyric = "すぃ"
         # Divide songs by 'P' (pause) or 'B' (breath)
         if note.lyric in sil:
-            # remove rest note  
+            # remove rest note
             if i < len(notes) - 1 and (
                 (
                     "itako21" in file_id

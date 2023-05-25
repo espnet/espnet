@@ -15,7 +15,7 @@ except ImportError or ModuleNotFoundError:
 try:
     import miditoolkit  # for CI import
 except ImportError or ModuleNotFoundError:
-    miditoolkit = None   
+    miditoolkit = None
 
 
 class NOTE(object):
@@ -207,7 +207,7 @@ class MIDReader(collections.abc.Mapping):
     def __init__(
         self,
         fname,
-        add_rest = True,
+        add_rest=True,
         dtype=np.int16,
     ):
         assert check_argument_types()
@@ -218,7 +218,7 @@ class MIDReader(collections.abc.Mapping):
         )
         self.fname = fname
         self.dtype = dtype
-        self.add_rest = add_rest # add rest into note sequencee
+        self.add_rest = add_rest  # add rest into note sequencee
         self.data = read_2columns_text(fname)  # get key-value dict
 
     def __getitem__(self, key):

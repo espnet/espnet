@@ -2,7 +2,6 @@ import argparse
 import os
 import shutil
 
-
 UTT_PREFIX = "natsume"
 DEV_LIST = ["9", "22", "38", "43", "44"]
 TEST_LIST = ["2", "13", "24", "25", "27"]
@@ -40,9 +39,7 @@ def process_pho_info(phone):
     for line in info.readlines():
         line = line.strip().split()
         label_info.append(
-            "{} {} {}".format(
-                float(line[0]), float(line[1]), line[2].strip()
-            )
+            "{} {} {}".format(float(line[0]), float(line[1]), line[2].strip())
         )
         pho_info.append(line[2].strip())
     return " ".join(label_info), " ".join(pho_info)
@@ -58,7 +55,7 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
     midscp = open(os.path.join(subset, "mid.scp"), "w", encoding="utf-8")
 
     for item in subfolder:
-        name = item[: -4]
+        name = item[:-4]
         if not check_func(name):
             continue
         utt_id = "{}{}".format(UTT_PREFIX, pack_zero(name))
@@ -85,7 +82,11 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
                 utt_id, os.path.join(src_data, "xml", "{}.xml".format(name))
             )
         )
-        midscp.write("{} {}\n".format(utt_id, os.path.join(src_data, "midi", "{}.mid".format(name))))
+        midscp.write(
+            "{} {}\n".format(
+                utt_id, os.path.join(src_data, "midi", "{}.mid".format(name))
+            )
+        )
 
 
 if __name__ == "__main__":

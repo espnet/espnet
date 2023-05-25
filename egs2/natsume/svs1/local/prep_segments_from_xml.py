@@ -6,7 +6,7 @@ import sys
 
 import music21 as m21
 
-from espnet2.fileio.score_scp import SingingScoreWriter, XMLReader, MIDReader
+from espnet2.fileio.score_scp import MIDReader, SingingScoreWriter, XMLReader
 
 """Generate segments according to structured musicXML."""
 """Transfer music score (from musicXML and MIDI) into 'score.json' format."""
@@ -85,7 +85,13 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         if "01" in file_id and note.lyric == "え" and notes[i - 1].lyric == "の":
             note.lyric = "め"
         # add pauses
-        if ("03" in file_id and ((note.lyric == "か" and notes[i - 1].lyric == "の") or (note.lyric == "と" and notes[i + 1].lyric == "な"))) or ("23" in file_id and note.lyric == "む" and notes[i - 1].lyric == "い"):
+        if (
+            "03" in file_id
+            and (
+                (note.lyric == "か" and notes[i - 1].lyric == "の")
+                or (note.lyric == "と" and notes[i + 1].lyric == "な")
+            )
+        ) or ("23" in file_id and note.lyric == "む" and notes[i - 1].lyric == "い"):
             segments.extend(segment.split(threshold=threshold))
             segment = SegInfo()
 
@@ -114,9 +120,9 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
 
 
 def align_lyric_note(recording_id, mid_info, xml_info, sil):
-# NOTE(Yuning): Some XMLs cannot be used directly, we only extract lyric information
-# from xmls and assign them to the notes from MIDIs
-    
+    # NOTE(Yuning): Some XMLs cannot be used directly, we only extract lyric information
+    # from xmls and assign them to the notes from MIDIs
+
     # load scores from mid and xml
     mid_tempo, note_lis = mid_info
     xml_tempo, lyric_lis = xml_info
@@ -129,22 +135,28 @@ def align_lyric_note(recording_id, mid_info, xml_info, sil):
     note_seq = []
     # check tempo
     if mid_tempo != xml_tempo:
-        raise ValueError("Different tempo from XML and MIDI in {}.".format(recording_id))
+        raise ValueError(
+            "Different tempo from XML and MIDI in {}.".format(recording_id)
+        )
     k = 0
     for i in range(len(note_lis)):
         note = note_lis[i]
-        # skip rest notes in xml 
+        # skip rest notes in xml
         while k < len(lyric_lis) and lyric_lis[k].lyric in sil:
             k += 1
         if k >= len(lyric_lis):
-            raise ValueError("lyrics from XML is longer than MIDI in {}.".format(recording_id))
+            raise ValueError(
+                "lyrics from XML is longer than MIDI in {}.".format(recording_id)
+            )
         # assign current lyric to note
         if note.lyric == "*":
-            # NOTE(Yuning): In natsume, for lyric with 'っ', the note shouldn't be separate two 
+            # NOTE(Yuning): In natsume, for lyric with 'っ', the note shouldn't be separate two
             # notes in MIDI. Special check for midi might be added in other datasets like,
             # 'note_lis[i + 1].midi == lyric_lis[k].midi'
             if note.midi == lyric_lis[k].midi:
-                if 'っ' in lyric_lis[k].lyric:# and note_lis[i + 1].midi == lyric_lis[k].midi:
+                if (
+                    "っ" in lyric_lis[k].lyric
+                ):  # and note_lis[i + 1].midi == lyric_lis[k].midi:
                     note_dur = int((note_lis[i + 1].et - note.st) * 80 + 0.5)
                     xml_dur = int((lyric_lis[k].et - lyric_lis[k].st) * 80 + 0.5)
                     # conbine the two notes
@@ -156,7 +168,11 @@ def align_lyric_note(recording_id, mid_info, xml_info, sil):
                 note_seq.append(note)
                 k += 1
             else:
-                raise ValueError("Mismatch in XML {}-th: {} and MIDI {}-th of {}.".format(k, lyric_lis[k].lyric, i, recording_id))
+                raise ValueError(
+                    "Mismatch in XML {}-th: {} and MIDI {}-th of {}.".format(
+                        k, lyric_lis[k].lyric, i, recording_id
+                    )
+                )
         else:
             # add pauses from mid.
             note_seq.append(note)
@@ -175,23 +191,46 @@ if __name__ == "__main__":
     update_text = open(os.path.join(args.scp, "text.tmp"), "w", encoding="utf-8")
     xml_reader = XMLReader(os.path.join(args.scp, "score.scp"))
     mid_reader = MIDReader(os.path.join(args.scp, "mid.scp"), add_rest=True)
-    # load score 
+    # load score
     for xml_line in scorescp:
         xmlline = xml_line.strip().split(" ")
         recording_id = xmlline[0]
         path = xmlline[1]
-        if recording_id[-2: ] in ["32", "45", "41", "03", "25", "27", "13", "30", '35', '21', '39', '23', '51', '18', '50', '29', '16', '38', '48', '46']:
+        if recording_id[-2:] in [
+            "32",
+            "45",
+            "41",
+            "03",
+            "25",
+            "27",
+            "13",
+            "30",
+            "35",
+            "21",
+            "39",
+            "23",
+            "51",
+            "18",
+            "50",
+            "29",
+            "16",
+            "38",
+            "48",
+            "46",
+        ]:
             # load score (note sequence) from mid
             mid_info = mid_reader[recording_id]
             # load score (lyric) from xml
             xml_info = xml_reader[recording_id]
-            tempo, temp_info = align_lyric_note(recording_id, mid_info, xml_info, args.silence)
+            tempo, temp_info = align_lyric_note(
+                recording_id, mid_info, xml_info, args.silence
+            )
         else:
             tempo, temp_info = xml_reader[recording_id]
         segments.append(
             make_segment(recording_id, tempo, temp_info, args.threshold, args.silence)
         )
-    
+
     writer = SingingScoreWriter(
         args.score_dump, os.path.join(args.scp, "score.scp.tmp")
     )
