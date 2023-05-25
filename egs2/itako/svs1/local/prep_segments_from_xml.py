@@ -128,7 +128,7 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
-        # add pause
+        # add pause (split)
         if "itako43" in file_id and note.lyric == "せ" and notes[i + 1].lyric == "い":
             segments.extend(segment.split(threshold=threshold))
             segment = SegInfo()
