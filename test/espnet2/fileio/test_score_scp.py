@@ -61,19 +61,6 @@ def test_XMLReader(tmp_path: Path):
         assert val[1][i].lyric == notes_list[i].lyric
         assert val[1][i].midi == notes_list[i].midi
 
-def _find_nearest_np(array, value):
-    return (np.abs(array - value)).argmin()
-
-
-def _get_tick_index_by_seconds(sec, tick_to_time):
-    if not isinstance(sec, float):
-        raise ValueError('Seconds should be float')
-
-    if isinstance(sec, list) or isinstance(sec, tuple):
-        return [_find_nearest_np(tick_to_time, s) for s in sec]
-    else:
-        return _find_nearest_np(tick_to_time, sec)
-
 
 def test_MIDReader(tmp_path: Path):
     mido_obj = miditoolkit.midi.parser.MidiFile()
