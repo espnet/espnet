@@ -496,7 +496,6 @@ def inference(
     hold_n: int,
     transducer_conf: Optional[dict],
     hugging_face_decoder: bool,
-    hugging_face_decoder_max_length: int,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -545,7 +544,6 @@ def inference(
         hold_n=hold_n,
         transducer_conf=transducer_conf,
         hugging_face_decoder=hugging_face_decoder,
-        hugging_face_decoder_max_length=hugging_face_decoder_max_length,
     )
 
     # 3. Build data-iterator
