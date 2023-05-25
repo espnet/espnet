@@ -7,7 +7,9 @@ stage=1
 stop_stage=100
 n_proc=8
 
-data_dir_prefix= # root dir to save datasets.
+data_dir_prefix=/home/jeeweonj/corpora/voxcelebs # root dir to save datasets.
+
+trg_dir=data
 
 . utils/parse_options.sh
 . db.sh
@@ -37,15 +39,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         echo "Download Vox1-O cleaned eval protocol."
         wget -P ${data_dir_prefix} https://www.robots.ox.ac.uk/~vgg/data/voxceleb/meta/veri_test2.txt
     else
-        echo "Skip downloading Vox1-O cleaned eval protocol."
+       echo "Skip downloading Vox1-O cleaned eval protocol."
     fi
 
-    # download VoxCeleb1 devset txt data
-    if [ ! -f ${data_dir_prefix}/vox1_dev_txt.zip ]; then
-        wget -P ${data_dir_prefix} https://mm.kaist.ac.kr/datasets/voxceleb/data/vox1_dev_txt.zip
-    else
-        echo "Voxceleb1 devset txt data exists. Skip download."
-    fi
+    ## download VoxCeleb1 devset txt data
+    #if [ ! -f ${data_dir_prefix}/vox1_dev_txt.zip ]; then
+    #    wget -P ${data_dir_prefix} https://mm.kaist.ac.kr/datasets/voxceleb/data/vox1_dev_txt.zip
+    #else
+    #    echo "Voxceleb1 devset txt data exists. Skip download."
+    #fi
 
     # download VoxCeleb1 testset txt data
     if [ ! -f ${data_dir_prefix}/vox1_test_txt.zip ]; then
@@ -65,60 +67,44 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
 
     if [ -d ${data_dir_prefix}/txt ]; then
-        curdir=$(pwd)
-        cd ${data_dir_prefix}/txt
-        count=$(ls | wc -l)
-        cd ${curdir}
-
-        if [ ${count} != 1251 ]; then
-            echo "Extracting VoxCeleb1 text data."
-            unzip -q ${data_dir_prefix}/vox1_dev_txt.zip -d ${data_dir_prefix}
-            unzip -q ${data_dir_prefix}/vox1_test_txt.zip -d ${data_dir_prefix}
-            mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb1
-        else
-            echo "Skip extracting VoxCeleb1"
-        fi
-    else
-        if [ -d ${data_dir_prefix}/voxceleb1 ]; then
-            echo "Skip extracting VoxCeleb1"
-        else
-            echo "Extracting VoxCeleb1 text data."
-            unzip -q ${data_dir_prefix}/vox1_dev_txt.zip -d ${data_dir_prefix}
-            unzip -q ${data_dir_prefix}/vox1_test_txt.zip -d ${data_dir_prefix}
-            mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb1
-        fi
+        rm -rf ${data_dir_prefix}/txt
     fi
 
-
-    if [ -d ${data_dir_prefix}/txt ]; then
-        curdir=$(pwd)
-        cd ${data_dir_prefix}/txt
-        count=$(ls | wc -l)
-        cd ${curdir}
-
-        if [ ${count} != 5994 ]; then
-            echo "Extracting VoxCeleb2 text data."
-            unzip -q ${data_dir_prefix}/vox2_dev_txt.zip -d ${data_dir_prefix}
-            mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb2
-        else
-            echo "Skip extracting VoxCeleb2"
-        fi
-    else
-        if [ -d ${data_dir_prefix}/voxceleb2 ]; then
-            echo "Skip extracting VoxCeleb2"
-        else
-            echo "Extracting VoxCeleb2 text data."
-            unzip -q ${data_dir_prefix}/vox2_dev_txt.zip -d ${data_dir_prefix}
-            mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb2
-        fi
+    echo "Extracting VoxCeleb1 text data."
+    unzip -q ${data_dir_prefix}/vox1_test_txt.zip -d ${data_dir_prefix}
+    if [ ! -d ${data_dir_prefix}/voxceleb1/test ]; then
+        mkdir -r ${data_dir_prefix/voxceelb1/test}
     fi
-    echo "=========="
+    mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb1/test
+
+    echo "Extracting VoxCeleb2 text data."
+    unzip -q ${data_dir_prefix}/vox2_dev_txt.zip -d ${data_dir_prefix}
+    if [ ! -d ${data_dir_prefix}/voxceleb2/dev]; then
+        mkdir -r ${data_dir_prefix/voxceelb2/dev}
+    fi
+    mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb2/dev
+
+    echo "Stage 1, DONE."
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "Stage 2: Convert text data to audio by crawling YouTube."
-    python local/crawl_voxcelebs_mp.py --root_dir ${data_dir_prefix}/voxceleb1 --n_proc ${n_proc}
-    python local/crawl_voxcelebs_mp.py --root_dir ${data_dir_prefix}/voxceleb2 --n_proc ${n_proc}
+    if [ ! -d ${data_dir_prefix}/voxceleb1 ]; then
+        python local/crawl_voxcelebs_mp.py --root_dir ${data_dir_prefix}/voxceleb1 --n_proc ${n_proc}
+        mkdir -p ${data_dir_prefix}/voxceleb1/test
+        mv ${data_dir_prefix}/voxceleb1/id* ${data_dir_prefix}/voxceleb1/test
+    else
+        echo "Skipping VoxCeleb1 crawling because 'voxceleb1' folder exists. If you want to crawl voxceleb1 (e.g., stopped during crawling), remove 'voxceleb1' folder"
+    fi
+
+    if [ ! -d ${data_dir_prefix}/voxceleb2 ]; then
+        python local/crawl_voxcelebs_mp.py --root_dir ${data_dir_prefix}/voxceleb2 --n_proc ${n_proc}
+        mkdir -p ${data_dir_prefix}/voxceleb2/dev
+        mv ${data_dir_prefix}/voxceleb2/id* ${data_dir_prefix}/voxceleb2/dev
+    else
+        echo "Skipping VoxCeleb2 crawling because 'voxceleb2' folder exists. If you want to crawl voxceleb2 (e.g., stopped during crawling), remove 'voxceleb2' folder"
+    fi
+    echo "Stage 2, DONE."
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -149,4 +135,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         echo "Extracting Musan noise augmentation data."
         tar -zxvf ${data_dir_prefix}/musan.tar.gz -C ${data_dir_prefix}
     fi
+    echo "Stage 3, DONE."
+fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "Change into kaldi-style feature."
+    mkdir -p ${trg_dir}/voxceleb1_test
+    mkdir -p ${trg_dir}/voxceleb2_dev
+    python local/data_prep.py --src "${data_dir_prefix}/voxceleb1/test" --dst "${trg_dir}/voxceleb1_test"
+    python local/data_prep.py --src "${data_dir_prefix}/voxceleb2/dev" --dst "${trg_dir}/voxceleb2_dev"
+    echo "Stage 4, DONE."
 fi
