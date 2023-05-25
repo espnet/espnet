@@ -162,5 +162,3 @@ def test_SingingScoreWriter(tmp_path: Path):
     val = reader["abc"]
 
     assert val == dic
-
-test_MIDReader(Path('../'))
