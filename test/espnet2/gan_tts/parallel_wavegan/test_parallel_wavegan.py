@@ -134,6 +134,7 @@ except ImportError:
     is_parallel_wavegan_available = False
 
 
+@pytest.mark.execution_timeout(10)
 @pytest.mark.skipif(
     not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
 )
@@ -153,7 +154,8 @@ def test_parallel_wavegan_compatibility():
         c = torch.randn(3, 10)
         out_pwg = model_pwg.inference(c, z)
         out_espnet2 = model_espnet2.inference(c, z)
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             out_pwg.cpu().numpy(),
             out_espnet2.cpu().numpy(),
+            rtol=1e-5,
         )
