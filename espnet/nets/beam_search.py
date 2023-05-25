@@ -428,11 +428,6 @@ class BeamSearch(torch.nn.Module):
 
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
 
-        # filter minlen
-        nbest_hyps = [
-            hyp for hyp in nbest_hyps if len(hyp.yseq) >= 3
-        ]  # hardcoded to avoid empty
-
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
             logging.warning(
