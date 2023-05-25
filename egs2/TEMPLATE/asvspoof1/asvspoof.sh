@@ -174,7 +174,7 @@ if ! "${skip_data_prep}"; then
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}"  \
                 "data/${dset}/wav.scp" "${data_feats}/${dset}"
-            
+
             # Note(jiatong): default use raw as feats_type, see more types in other TEMPLATE recipes
             echo "raw" > "${data_feats}/${dset}/feats_type"
 

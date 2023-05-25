@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 from espnet2.tasks.asvspoof import ASVSpoofTask
 

@@ -1,12 +1,13 @@
-
-import os
 import argparse
+import os
+import warnings
+
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.optimize import brentq
 from sklearn.metrics import roc_curve
-import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning) 
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 def cal_eer_from_textfiles(gt_file, pred_file):
@@ -20,12 +21,15 @@ def cal_eer_from_textfiles(gt_file, pred_file):
     cm_eer = brentq(lambda x: 1.0 - x - interp1d(fpr, tpr)(x), 0.0, 1.0)
     return cm_eer
 
+
 def get_args():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("-g", "--gt_file", type=str, help="ground truth file",
-                        required=True)
-    parser.add_argument("-p", "--pred_file", type=str, help="prediction file",
-                        required=True)
+    parser.add_argument(
+        "-g", "--gt_file", type=str, help="ground truth file", required=True
+    )
+    parser.add_argument(
+        "-p", "--pred_file", type=str, help="prediction file", required=True
+    )
     args = parser.parse_args()
     return args
 

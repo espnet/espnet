@@ -1,7 +1,7 @@
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.asvspoof.loss.abs_loss import AbsASVSpoofLoss
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class ASVSpoofBinaryLoss(AbsASVSpoofLoss):
@@ -24,6 +24,6 @@ class ASVSpoofBinaryLoss(AbsASVSpoofLoss):
         """
         loss = self.loss(self.sigmoid(pred.view(-1)), label.view(-1).float())
         return loss
-    
+
     def score(self, pred: torch.Tensor):
         return pred

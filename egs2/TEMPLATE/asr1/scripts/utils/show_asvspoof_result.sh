@@ -44,7 +44,7 @@ cat << EOF
 EOF
 
 while IFS= read -r expdir; do
-    
+
     if ls "${expdir}"/*/scoring/eer &> /dev/null; then
         echo "## $(basename ${expdir})"
                 	cat << EOF

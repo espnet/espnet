@@ -1,7 +1,4 @@
-
-from abc import ABC
-from abc import abstractmethod
-
+from abc import ABC, abstractmethod
 
 import torch
 
@@ -24,7 +21,7 @@ class AbsASVSpoofLoss(torch.nn.Module, ABC):
     ) -> torch.Tensor:
         # the return tensor should be shape of (batch)
         raise NotImplementedError
-    
+
     @abstractmethod
     def score(
         self,

@@ -1,5 +1,4 @@
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import Tuple
 
 import torch
@@ -13,4 +12,3 @@ class AbsDecoder(torch.nn.Module, ABC):
         ilens: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
-

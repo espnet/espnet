@@ -1,7 +1,7 @@
 import torch
 
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.asvspoof.loss.abs_loss import AbsASVSpoofLoss
+from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
@@ -13,7 +13,7 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
         enc_dim: int = 128,
         m_real: float = 0.5,
         m_fake: float = 0.2,
-        alpha: float =20.0,
+        alpha: float = 20.0,
     ):
         super(ASVSpoofOCSoftmaxLoss).__init__()
         self.weight = weight
@@ -43,7 +43,7 @@ class ASVSpoofOCSoftmaxLoss(AbsASVSpoofLoss):
 
         # TODO4 (exercise 2): returnthe final loss
         return None
-    
+
     def score(self, emb: torch.Tensor):
         """Prediction.
         Args:

@@ -1,6 +1,7 @@
+from typing import Optional
+
 import torch
 
-from typing import Optional
 from espnet2.asvspoof.decoder.abs_decoder import AbsDecoder
 
 
@@ -21,7 +22,7 @@ class LinearDecoder(AbsDecoder):
             ilens (torch.Tensor): input lengths [Batch]
         """
         # TODO2 (checkpoint3): compute mean over time-domain (dimension 1)
-        
+
         # TODO3 (checkpoint3): apply the projection layer
 
         # TODO4 (checkpoint3): change the return value

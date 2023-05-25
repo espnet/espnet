@@ -1,20 +1,20 @@
 # Copyright 2022 Jiatong Shi (Carnegie Mellon University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
+import logging
 from contextlib import contextmanager
 from itertools import permutations
 from typing import Dict, Optional, Tuple
 
 import numpy as np
-import logging
 import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asvspoof.decoder.abs_decoder import AbsDecoder
 from espnet2.asvspoof.loss.abs_loss import AbsASVSpoofLoss
@@ -83,17 +83,20 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
 
         if "oc_softmax_loss" in self.losses:
             loss = (
-                self.losses["oc_softmax_loss"](label, encoder_out) * self.losses["oc_softmax_loss"].weight
+                self.losses["oc_softmax_loss"](label, encoder_out)
+                * self.losses["oc_softmax_loss"].weight
             )
             pred = self.losses["am_softmax_loss"].score(encoder_out)
         elif "am_softmax_loss" in self.losses:
             loss = (
-                self.losses["am_softmax_loss"](label, encoder_out) * self.losses["am_softmax_loss"].weight
+                self.losses["am_softmax_loss"](label, encoder_out)
+                * self.losses["am_softmax_loss"].weight
             )
             pred = self.losses["am_softmax_loss"].score(encoder_out)
         else:
             loss = (
-                self.losses["binary_loss"](pred, label) * self.losses["binary_loss"].weight
+                self.losses["binary_loss"](pred, label)
+                * self.losses["binary_loss"].weight
             )
         acc = torch.sum(((pred.view(-1) > 0.5) == (label.view(-1) > 0.5))) / batch_size
 
@@ -151,7 +154,7 @@ class ESPnetASVSpoofModel(AbsESPnetModel):
             speech.size(0),
         )
         assert encoder_out.size(1) <= encoder_out_lens.max(), (
-            encoder_out.size(), 
+            encoder_out.size(),
             encoder_out_lens.max(),
         )
 

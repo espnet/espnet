@@ -3,7 +3,6 @@ import os
 
 from espnet2.utils.types import str2bool
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--src_folder", type=str)
@@ -14,9 +13,13 @@ if __name__ == "__main__":
 
     src_wav_path = os.path.join(args.src_folder, "espnet_{}".format(args.subset))
     if args.subset == "train":
-        src_label_path = os.path.join(args.src_folder, "ASVspoof2019.LA.cm.espnet_{}.trn.txt".format(args.subset))
+        src_label_path = os.path.join(
+            args.src_folder, "ASVspoof2019.LA.cm.espnet_{}.trn.txt".format(args.subset)
+        )
     else:
-        src_label_path = os.path.join(args.src_folder, "ASVspoof2019.LA.cm.espnet_{}.trl.txt".format(args.subset))
+        src_label_path = os.path.join(
+            args.src_folder, "ASVspoof2019.LA.cm.espnet_{}.trl.txt".format(args.subset)
+        )
     src_label = open(src_label_path, "r", encoding="utf-8")
     if not os.path.exists(args.tgt):
         os.makedirs(args.tgt)
@@ -28,12 +31,12 @@ if __name__ == "__main__":
         line = line.strip().split(" ")
         if len(line) != 5:
             continue
-        
+
         spk_id, utt_id, system, _, label = line
         wavscp.write("{}_{} {}/{}.flac\n".format(spk_id, utt_id, src_wav_path, utt_id))
         text.write("{}_{} {}\n".format(spk_id, utt_id, 1 if label == "spoof" else 0))
         utt2spk.write("{}_{} {}\n".format(spk_id, utt_id, spk_id))
-    
+
     wavscp.close()
     text.close()
     utt2spk.close()

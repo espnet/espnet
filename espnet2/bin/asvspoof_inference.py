@@ -52,9 +52,7 @@ class SpeechAntiSpoof:
         self.dtype = dtype
 
     @torch.no_grad()
-    def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
-    ) -> float:
+    def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> float:
         """Inference
         Args:
             data: Input speech data
@@ -80,9 +78,9 @@ class SpeechAntiSpoof:
         # TODO1 (checkpoint 4): Forward feature extraction and encoder etc.
 
         if "oc_softmax_loss" in self.asvspoof_model.losses:
-            pass # TODO1 (exercise2): use loss score function to estimate score
+            pass  # TODO1 (exercise2): use loss score function to estimate score
         else:
-            pass # TODO2 (checkpoint 4): Pass the encoder result to decoder
+            pass  # TODO2 (checkpoint 4): Pass the encoder result to decoder
 
         # TODO3 (checkpoint 4): return the prediction score
         return None
@@ -139,8 +137,12 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=ASVSpoofTask.build_preprocess_fn(speech_anti_spoof.asvspoof_train_args, False),
-        collate_fn=ASVSpoofTask.build_collate_fn(speech_anti_spoof.asvspoof_train_args, False),
+        preprocess_fn=ASVSpoofTask.build_preprocess_fn(
+            speech_anti_spoof.asvspoof_train_args, False
+        ),
+        collate_fn=ASVSpoofTask.build_collate_fn(
+            speech_anti_spoof.asvspoof_train_args, False
+        ),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
