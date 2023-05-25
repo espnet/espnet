@@ -11,9 +11,9 @@ This is a template of SVS recipe for ESPnet2.
     * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
     * [3\. Filtering](#3-filtering)
     * [4\. Token list generation](#4-token-list-generation)
-    * [5\. Statistics collection](#5-statistics-collection)
-    * [6\. Model training](#6-model-training)
-    * [7\. Model inference](#7-model-inference)
+    * [5\. SVS statistics collection](#5-svs-statistics-collection)
+    * [6\. SVS training](#6-svs-training)
+    * [7\. SVS inference](#7-svs-inference)
     * [8\. Objective evaluation](#8-objective-evaluation)
     * [9\. Model packing](#9-model-packing)
   * [How to run](#how-to-run)
@@ -26,6 +26,7 @@ This is a template of SVS recipe for ESPnet2.
     * [Vocoder training](#vocoder-training)
     * [Evaluation](#evaluation)
   * [About data directory](#about-data-directory)
+  * [Score preparation](#score-preparation)
   * [Supported text frontend](#supported-text-frontend)
   * [Supported text cleaner](#supported-text-cleaner)
   * [Supported Models](#supported-models)
@@ -43,6 +44,7 @@ It calls `local/data.sh` to creates Kaldi-style data directories but with additi
 
 See also:
 - [About data directory](#about-data-directory)
+- [Score preparation](#score-preparation)
 
 ### 2. Wav dump / Embedding preparation
 
@@ -53,7 +55,7 @@ Else, if you specify `--feats_type fbank` option or `--feats_type stft` option, 
 Additionally, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
 Note that this processing assume that `utt2spk` or `utt2lang` are correctly created in stage 1, please be careful.
 
-### 3. Filtering (Removal of long / short data)
+### 3. Filtering
 
 Filtering stage.
 
@@ -76,7 +78,7 @@ See also:
 
 Data preparation will end in stage 4. You can skip data preparation (stage 1 ~ stage 4) via `--skip_data_prep` option.
 
-### 5. SVS Statistics collection
+### 5. SVS statistics collection
 
 Statistics calculation stage.
 It collects the shape information of the input and output and calculates statistics for feature normalization (mean and variance over training and validation sets).
@@ -550,6 +552,21 @@ utils/validate_data_dir.sh --no-feats data/tr_no_dev
 utils/validate_data_dir.sh --no-feats data/dev
 utils/validate_data_dir.sh --no-feats data/test
 ```
+
+## Score preparation
+
+To prepara a new recipe, flows to transfer raw data into `score.json` in stage 1 can be categorized into two cases:
+
+### Case 1: phoneme annotation and standardized score
+
+Example: Ofuton
+
+
+
+### Case 2: phoneme annotation only
+
+ To be updated.
+
 
 ## Supported text cleaner
 
