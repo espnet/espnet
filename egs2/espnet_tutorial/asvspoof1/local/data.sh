@@ -31,9 +31,9 @@ set -e
 set -u
 set -o pipefail
 
-train_set=train
-train_dev=dev
-test_set=eval
+train_set="train"
+train_dev="dev"
+test_set="eval"
 
 log "data preparation started"
 
