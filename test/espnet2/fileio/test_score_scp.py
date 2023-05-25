@@ -57,8 +57,8 @@ def test_XMLReader(tmp_path: Path):
     notes_list = [
         NOTE("P", 0, 0, 0.5),
         NOTE("a", 20, 0.5, 1.5),
-        NOTE("-", 21, 1.5, 2.5),
-        NOTE("-", 22, 2.5, 3.5),
+        NOTE("—", 21, 1.5, 2.5),
+        NOTE("—", 22, 2.5, 3.5),
     ]
     for i in range(len(val[1])):
         assert val[1][i].st == notes_list[i].st
