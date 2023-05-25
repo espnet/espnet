@@ -1360,8 +1360,6 @@ if ! "${skip_train}"; then
                 --fold_length "${st_text_fold_length}" \
                 --output_dir "${st_exp}" \
                 ${_opts} ${st_args}
-                # --src_token_type2 "${src_token_type2}" \
-                # --src_token_list2 "${src_token_list2}" \
 
     fi
 else
