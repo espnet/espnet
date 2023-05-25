@@ -83,6 +83,7 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         # Divide songs by 'P' (pause) or 'B' (breath) or GlottalStop
         note = notes[i]
         # fix errors in dataset
+        # remove rest note
         if (
             (
                 "i_vow_to_thee_my_country" in file_id
@@ -107,6 +108,7 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
+        # add pause (split)
         elif (
             (note.lyric is not None and note.lyric[0] in ["・", "’"])
             or ("hana" in file_id and note.lyric == "あ" and notes[i - 1].lyric == "や")
@@ -142,6 +144,7 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
+            # remove spcial mark
             if note.lyric[0] in ["・", "’"]:
                 segment.add(note.st, note.et, note.lyric[1:], note.midi)
             else:
