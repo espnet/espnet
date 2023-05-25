@@ -555,18 +555,45 @@ utils/validate_data_dir.sh --no-feats data/test
 
 ## Score preparation
 
-To prepara a new recipe, flows to transfer raw data into `score.json` in stage 1 can be categorized into two cases:
+To prepara a new recipe, we first split songs into segments via `--silence` option if no official segmentation provided.
 
-### Case 1: phoneme annotation and standardized score
+Then, we transfer the raw data into `score.json`, where situations can be categorized into two cases:
 
-Example: Ofuton
+#### Case 1: phoneme annotation and standardized score
+
+- If the phonemes and notes are aligned in time domain, convert the raw data directly. (eg. `Opencpop`)
+
+- If the phoneme annotation are misaligned with notes in time domain, align phonemes (from `label`) and note-lyric pairs (from `musicXML`) through g2p. (eg. `Ofuton`)
+
+Specially, the note-lyric pairs can be rebuilt through other melody files, like `MIDI`, if there's something wrong with the note duration. (eg. `Natsume`)
 
 
-
-### Case 2: phoneme annotation only
+#### Case 2: phoneme annotation only
 
  To be updated.
 
+### Problems you might meet
+
+In stage 1, there might be some problems raised by `ValueError`. You should check the raw data carefully and fighre out which problem it refers to.
+
+Examples can be found in functioin `make_segment` from `egs2/{natsume, ameboshi, pjs}/svs1/local/{prep_segments.py, prep_segments_from_xml.py}/`.
+
+#### 1. Wrong segmentation point
+* Add pauses or directly split between adjacent lyrics.
+* Remove pauses and assign the duration to correct phoneme.
+
+#### 2. Wrong lyric / midi annotation
+* Replace with correct one.
+* Add missing one and reassign adjacent duration.
+* Remove redundant one and reassign adjacent duration.
+
+#### 3. Different lyric-phoneme pairs against the given g2p
+* Use a `customed_dic` of syllable-phoneme pairs as following:
+    ```
+    ヴぁ v_a
+    ヴぃ v_i
+    ```
+* Specify `--g2p none` and store the lyric-phoneme pairs into `score.json`, especially for polyphone problem in Mandarin.
 
 ## Supported text cleaner
 
