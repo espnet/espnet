@@ -103,6 +103,7 @@ requirements = {
         "black",
         "isort",
         "music21",
+        "miditoolkit",
     ],
     "doc": [
         "Jinja2<3.1",
