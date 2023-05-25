@@ -94,7 +94,7 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
                 segment.add(label.start, inter, "j")
                 segment.add(inter, label.end, "a")
                 continue
-            # remove redundant rest
+            # remove rest
             if i < len(labels) - 1 and (
                 ("itako09" in file_id and labels[i + 4].label_id == "r")
                 or ("itako48" in file_id and labels[i + 4].label_id == "k")
@@ -105,7 +105,7 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
-        # Add new pause
+        # add pause
         if "itako21" in file_id and (
             (label.label_id == "a" and labels[i - 1].label_id == "u")
             or (
