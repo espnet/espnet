@@ -84,7 +84,6 @@ class Speech2TextStreaming:
         hold_n: int = 0,
         transducer_conf: dict = None,
         hugging_face_decoder: bool = False,
-        hugging_face_decoder_max_length: int = 256,
     ):
         assert check_argument_types()
 
@@ -205,6 +204,9 @@ class Speech2TextStreaming:
                 ctc=st_model.st_ctc if hasattr(st_model, "st_ctc") else None,
                 hold_n=hold_n,
             )
+            self.hugging_face_model = hugging_face_model
+            self.hugging_face_linear_in = hugging_face_linear_in
+
         else:
             beam_search = BatchBeamSearchOnline(
                 beam_size=beam_size,
@@ -227,6 +229,8 @@ class Speech2TextStreaming:
                 if hasattr(st_model, "st_joint_network")
                 else None,
             )
+            self.hugging_face_model = None
+            self.hugging_face_linear_in = None
 
         if transducer_conf is None:
             non_batch = [
@@ -269,10 +273,6 @@ class Speech2TextStreaming:
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
-        self.hugging_face_model = hugging_face_model
-        self.hugging_face_linear_in = hugging_face_linear_in
-        self.hugging_face_beam_size = beam_size
-        self.hugging_face_decoder_max_length = hugging_face_decoder_max_length
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
         self.device = device
@@ -778,7 +778,6 @@ def get_parser():
         help="The keyword arguments for transducer beam search.",
     )
     group.add_argument("--hugging_face_decoder", type=str2bool, default=False)
-    group.add_argument("--hugging_face_decoder_max_length", type=int, default=256)
 
     return parser
 
