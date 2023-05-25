@@ -114,8 +114,9 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
 
 
 def align_lyric_note(recording_id, mid_info, xml_info, sil):
-""" Some XMLs cannot be used directly, we only extract lyric information"""
-""" from xmls and assign them to the notes from MIDIs"""
+# NOTE(Yuning): Some XMLs cannot be used directly, we only extract lyric information
+# from xmls and assign them to the notes from MIDIs
+    
     # load scores from mid and xml
     mid_tempo, note_lis = mid_info
     xml_tempo, lyric_lis = xml_info
