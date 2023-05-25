@@ -1,17 +1,17 @@
 import json
 from pathlib import Path
 
-import music21 as m21
 import miditoolkit
 import miditoolkit.midi.containers as ct
+import music21 as m21
 import numpy as np
 
 from espnet2.fileio.score_scp import (
     NOTE,
+    MIDReader,
     SingingScoreReader,
     SingingScoreWriter,
     XMLReader,
-    MIDReader,
 )
 
 
@@ -54,7 +54,12 @@ def test_XMLReader(tmp_path: Path):
 
     assert len(val) == 2
     assert val[0] == 120
-    notes_list = [NOTE("P", 0, 0, 0.5), NOTE("a", 20, 0.5, 1.5), NOTE("-", 21, 1.5, 2.5), NOTE("-", 22, 2.5, 3.5)]
+    notes_list = [
+        NOTE("P", 0, 0, 0.5),
+        NOTE("a", 20, 0.5, 1.5),
+        NOTE("-", 21, 1.5, 2.5),
+        NOTE("-", 22, 2.5, 3.5),
+    ]
     for i in range(len(val[1])):
         assert val[1][i].st == notes_list[i].st
         assert val[1][i].et == notes_list[i].et
@@ -65,21 +70,27 @@ def test_XMLReader(tmp_path: Path):
 def test_MIDReader(tmp_path: Path):
     mido_obj = miditoolkit.midi.parser.MidiFile()
     mido_obj.tempo_changes.append(ct.TempoChange(60, 0))
-    track = ct.Instrument(program=0, is_drum=False, name='example track')
+    track = ct.Instrument(program=0, is_drum=False, name="example track")
     mido_obj.instruments = [track]
     beat_resol = mido_obj.ticks_per_beat
 
     st = beat_resol * 1
     et = beat_resol * 2
-    mido_obj.instruments[0].notes.append(ct.Note(start = st, end = et, pitch = 20, velocity = 100))
-    
+    mido_obj.instruments[0].notes.append(
+        ct.Note(start=st, end=et, pitch=20, velocity=100)
+    )
+
     st = beat_resol * 3
     et = beat_resol * 4
-    mido_obj.instruments[0].notes.append(ct.Note(start = st, end = et, pitch = 21, velocity = 100))
-    
+    mido_obj.instruments[0].notes.append(
+        ct.Note(start=st, end=et, pitch=21, velocity=100)
+    )
+
     st = beat_resol * 4
     et = beat_resol * 5
-    mido_obj.instruments[0].notes.append(ct.Note(start = st, end = st, pitch = 22, velocity = 100))
+    mido_obj.instruments[0].notes.append(
+        ct.Note(start=st, end=st, pitch=22, velocity=100)
+    )
 
     mid_path = tmp_path / "abc.mid"
     mido_obj.dump(mid_path)
@@ -88,19 +99,25 @@ def test_MIDReader(tmp_path: Path):
     with p.open("w") as f:
         f.write(f"abc {mid_path}\n")
 
-    reader = MIDReader(p, add_rest = True)
+    reader = MIDReader(p, add_rest=True)
     val = reader["abc"]
 
     assert len(val) == 2
     assert val[0] == 60
-    notes_list = [NOTE("P", 0, 0, 1), NOTE("*", 20, 1, 2), NOTE("P", 0, 2, 3), NOTE("*", 21, 3, 4), NOTE("*", 22, 4, 5)]
+    notes_list = [
+        NOTE("P", 0, 0, 1),
+        NOTE("*", 20, 1, 2),
+        NOTE("P", 0, 2, 3),
+        NOTE("*", 21, 3, 4),
+        NOTE("*", 22, 4, 5),
+    ]
     for i in range(len(val[1])):
         assert val[1][i].st == notes_list[i].st
         assert val[1][i].et == notes_list[i].et
         assert val[1][i].lyric == notes_list[i].lyric
         assert val[1][i].midi == notes_list[i].midi
 
-    reader = MIDReader(p, add_rest = False)
+    reader = MIDReader(p, add_rest=False)
     val = reader["abc"]
 
     assert len(val) == 2
