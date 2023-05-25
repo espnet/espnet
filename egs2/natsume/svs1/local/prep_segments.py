@@ -98,7 +98,7 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
             labels[i + 1].label_id = "a"
             labels[i + 1].start = label.start
             continue
-        # add phoneme
+        # add missing phoneme
         if "10" in file_id and label.label_id == "a" and labels[i + 1].label_id == "a" and labels[i + 2].label_id == "o":
             segment.add(label.start, 81.00, "a")
             label.start = 81.00
