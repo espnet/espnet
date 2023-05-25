@@ -120,8 +120,8 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
 
 
 def align_lyric_note(recording_id, mid_info, xml_info, sil):
-    # NOTE(Yuning): Some XMLs cannot be used directly, we only extract lyric information
-    # from xmls and assign them to the notes from MIDIs
+    # NOTE(Yuning): Some XMLs cannot be used directly, we only extract 
+    # lyric information from xmls and assign them to the notes from MIDIs
 
     # load scores from mid and xml
     mid_tempo, note_lis = mid_info
@@ -150,9 +150,9 @@ def align_lyric_note(recording_id, mid_info, xml_info, sil):
             )
         # assign current lyric to note
         if note.lyric == "*":
-            # NOTE(Yuning): In natsume, for lyric with 'っ', the note shouldn't be separate two
-            # notes in MIDI. Special check for midi might be added in other datasets like,
-            # 'note_lis[i + 1].midi == lyric_lis[k].midi'
+            # NOTE(Yuning): In natsume, for lyric with 'っ', the note shouldn't be 
+            # separate two notes in MIDI. Special check for midi might be added in 
+            # other datasets like, 'note_lis[i + 1].midi == lyric_lis[k].midi'
             if note.midi == lyric_lis[k].midi:
                 if (
                     "っ" in lyric_lis[k].lyric
