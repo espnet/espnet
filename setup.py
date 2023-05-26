@@ -102,8 +102,6 @@ requirements = {
         "flake8-docstrings>=1.3.1",
         "black",
         "isort",
-        "music21",
-        "miditoolkit",
     ],
     "doc": [
         "Jinja2<3.1",
