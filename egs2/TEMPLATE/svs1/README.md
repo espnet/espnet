@@ -574,7 +574,7 @@ Specially, the note-lyric pairs can be rebuilt through other melody files, like 
 
 ### Problems you might meet
 
-In stage 1, there might be some problems raised by `ValueError`. You should check the raw data carefully and fighre out which problem it refers to.
+During stage 1, which involves data preparation, you may encounter `ValueError` problems that typically indicate errors in the annotation. To address these issues, it is necessary to manually review the raw data in the corresponding sections and make the necessary corrections. While other toolkits and open-source codebases may not impose such requirements or checks, we have found that investing time to resolve these errors significantly enhances the quality of the singing voice synthesizer. Below are some common errors to watch out for:
 
 Examples can be found in functioin `make_segment` from `egs2/{natsume, ameboshi, pjs}/svs1/local/{prep_segments.py, prep_segments_from_xml.py}/`.
 
