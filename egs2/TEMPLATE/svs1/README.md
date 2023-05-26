@@ -563,7 +563,7 @@ Then, we transfer the raw data into `score.json`, where situations can be catego
 
 - If the phonemes and notes are aligned in time domain, convert the raw data directly. (eg. [Opencpop](https://github.com/espnet/espnet/tree/master/egs2/opencpop/svs1))
 
-- If the phoneme annotation are misaligned with notes in time domain, align phonemes (from `label`) and note-lyric pairs (from `musicXML`) through g2p. (eg. `Ofuton`)
+- If the phoneme annotation are misaligned with notes in time domain, align phonemes (from `label`) and note-lyric pairs (from `musicXML`) through g2p. (eg. [Ofuton](https://github.com/espnet/espnet/tree/master/egs2/ofuton_p_utagoe_db/svs1))
 
 Specially, the note-lyric pairs can be rebuilt through other melody files, like `MIDI`, if there's something wrong with the note duration. (eg. [Natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1))
 
