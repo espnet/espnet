@@ -574,7 +574,7 @@ Specially, the note-lyric pairs can be rebuilt through other melody files, like 
 
 ### Problems you might meet
 
-During stage 1, which involves data preparation, you may encounter `ValueError` problems that typically indicate errors in the annotation. To address these issues, it is necessary to manually review the raw data in the corresponding sections and make the necessary corrections. While other toolkits and open-source codebases may not impose such requirements or checks, we have found that investing time to resolve these errors significantly enhances the quality of the singing voice synthesizer. 
+During stage 1, which involves data preparation, you may encounter `ValueError` problems that typically indicate errors in the annotation. To address these issues, it is necessary to manually review the raw data in the corresponding sections and make the necessary corrections. While other toolkits and open-source codebases may not impose such requirements or checks, we have found that investing time to resolve these errors significantly enhances the quality of the singing voice synthesizer.
 
 Note that modifications can be made to the raw data locally or through the processing data flow at stage 1. For the convenience of open source, we recommend using the latter.
 - To make changes to the raw data, you can use toolkits like [music21](https://github.com/cuthbertLab/music21), [miditoolkit](https://github.com/YatingMusic/miditoolkit), or [MuseScore](https://github.com/musescore/MuseScore).
