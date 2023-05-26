@@ -557,7 +557,7 @@ utils/validate_data_dir.sh --no-feats data/test
 
 To prepara a new recipe, we first split songs into segments via `--silence` option if no official segmentation provided.
 
-Then, we transfer the raw data into `score.json`, where situations can be categorized into two cases:
+Then, we transfer the raw data into `score.json`, where situations can be categorized into two cases depending on the annotation:
 
 #### Case 1: phoneme annotation and standardized score
 
