@@ -574,9 +574,13 @@ Specially, the note-lyric pairs can be rebuilt through other melody files, like 
 
 ### Problems you might meet
 
-During stage 1, which involves data preparation, you may encounter `ValueError` problems that typically indicate errors in the annotation. To address these issues, it is necessary to manually review the raw data in the corresponding sections and make the necessary corrections. While other toolkits and open-source codebases may not impose such requirements or checks, we have found that investing time to resolve these errors significantly enhances the quality of the singing voice synthesizer. Below are some common errors to watch out for:
+During stage 1, which involves data preparation, you may encounter `ValueError` problems that typically indicate errors in the annotation. To address these issues, it is necessary to manually review the raw data in the corresponding sections and make the necessary corrections. While other toolkits and open-source codebases may not impose such requirements or checks, we have found that investing time to resolve these errors significantly enhances the quality of the singing voice synthesizer. 
 
-Examples can be found in functioin `make_segment` from `egs2/{natsume, ameboshi, pjs}/svs1/local/{prep_segments.py, prep_segments_from_xml.py}/`.
+Note that modifications can be made to the raw data locally or through the processing data flow at stage 1. For the convenience of open source, we recommend using the latter.
+- To make changes to the raw data, you can use toolkits like [music21](https://github.com/cuthbertLab/music21), [miditoolkit](https://github.com/YatingMusic/miditoolkit), or [MuseScore](https://github.com/musescore/MuseScore).
+- To process in the data flow, you can use score [readers and writers](https://github.com/espnet/espnet/tree/master/espnet2/fileio/score_scp.py) provided. Examples can be found in functioin `make_segment` from `egs2/{natsume, ameboshi, pjs}/svs1/local/{prep_segments.py, prep_segments_from_xml.py}/`.
+
+Below are some common errors to watch out for:
 
 #### 1. Wrong segmentation point
 * Add pauses or directly split between adjacent lyrics.
@@ -590,10 +594,20 @@ Examples can be found in functioin `make_segment` from `egs2/{natsume, ameboshi,
 #### 3. Different lyric-phoneme pairs against the given g2p
 * Use a `customed_dic` of syllable-phoneme pairs as following:
     ```
+    # e.g.
+    # In Japanese dataset ofuton, the output of "ヴぁ" from pyopenjtalk is different from raw data "v a"
+    > pyopenjtalk.g2p("ヴぁ")
+    v u a
+    # Add the following lyric-phoneme pair to customed_dic
     ヴぁ v_a
-    ヴぃ v_i
     ```
 * Specify `--g2p none` and store the lyric-phoneme pairs into `score.json`, especially for polyphone problem in Mandarin.
+    ```
+    # e.g.
+    # In Mandarin dataset Opencpop, the pronounce the second "重" should be "chong".
+    > pypinyin.pinyin("情意深重爱恨两重", style=Style.NORMAL)
+    [['qing'], ['shen'], ['yi'], ['zhong'], ['ai'], ['hen'], ['liang'], ['zhong']]
+    ```
 
 ## Supported text cleaner
 
