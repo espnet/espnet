@@ -136,6 +136,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.bin package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-svs-train-1">espnet2.bin.svs_train</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asvspoof-train-1">espnet2.bin.asvspoof_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-gan-svs-train-1">espnet2.bin.gan_svs_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-transducer-train-1">espnet2.bin.asr_transducer_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-launch-1">espnet2.bin.launch</a></li>
@@ -171,6 +172,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-transducer-inference-1">espnet2.bin.asr_transducer_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-tse-train-1">espnet2.bin.enh_tse_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-st-inference-streaming-1">espnet2.bin.st_inference_streaming</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asvspoof-inference-1">espnet2.bin.asvspoof_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-align-1">espnet2.bin.asr_align</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-tse-inference-1">espnet2.bin.enh_tse_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference-1">espnet2.bin.asr_inference</a></li>
@@ -186,6 +188,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.tasks.html">espnet2.tasks package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.svs.html">espnet2.svs package</a></li>
@@ -242,6 +245,26 @@
 <p class="rubric">Example</p>
 <p>% python svs_train.py svs –print_config –optim adadelta
 % python svs_train.py –config conf/train_svs.yaml</p>
+</dd></dl>
+
+</section>
+<section id="espnet2-bin-asvspoof-train-1">
+<span id="espnet2-bin-asvspoof-train"></span><h2>espnet2.bin.asvspoof_train<a class="headerlink" href="#espnet2-bin-asvspoof-train-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.asvspoof_train"></span><dl class="function">
+<dt id="espnet2.bin.asvspoof_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.asvspoof_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asvspoof_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asvspoof_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asvspoof_train.main">
+<code class="sig-prename descclassname">espnet2.bin.asvspoof_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asvspoof_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asvspoof_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>ASVSpoof training.
+.. rubric:: Example</p>
+<dl class="simple">
+<dt>% python asvspoof_train.py asr –print_config –optim adadelta </dt><dd><p>&gt; conf/train_asvspoof.yaml</p>
+</dd>
+</dl>
+<p>% python asvspoof_train.py –config conf/train_asvspoof.yaml</p>
 </dd></dl>
 
 </section>
@@ -1789,6 +1812,39 @@ feats_lengths: Features sequence length. (1, T_in, F)</p>
 <dl class="function">
 <dt id="espnet2.bin.st_inference_streaming.main">
 <code class="sig-prename descclassname">espnet2.bin.st_inference_streaming.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/st_inference_streaming.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.st_inference_streaming.main" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="espnet2-bin-asvspoof-inference-1">
+<span id="espnet2-bin-asvspoof-inference"></span><h2>espnet2.bin.asvspoof_inference<a class="headerlink" href="#espnet2-bin-asvspoof-inference-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.asvspoof_inference"></span><dl class="class">
+<dt id="espnet2.bin.asvspoof_inference.SpeechAntiSpoof">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.asvspoof_inference.</code><code class="sig-name descname">SpeechAntiSpoof</code><span class="sig-paren">(</span><em class="sig-param">asvspoof_train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">asvspoof_model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">batch_size: int = 1</em>, <em class="sig-param">dtype: str = 'float32'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asvspoof_inference.html#SpeechAntiSpoof"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asvspoof_inference.SpeechAntiSpoof" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>SpeechAntiSpoof class
+.. rubric:: Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech_anti_spoof</span> <span class="o">=</span> <span class="n">SpeechAntiSpoof</span><span class="p">(</span><span class="s2">&quot;asvspoof_config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;asvspoof.pth&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">audio</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;speech.wav&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech_anti_spoof</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
+<span class="go">prediction_result (int)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asvspoof_inference.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.asvspoof_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asvspoof_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asvspoof_inference.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asvspoof_inference.inference">
+<code class="sig-prename descclassname">espnet2.bin.asvspoof_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], asvspoof_train_config: Optional[str], asvspoof_model_file: Optional[str], allow_variable_data_keys: bool</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asvspoof_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asvspoof_inference.inference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.asvspoof_inference.main">
+<code class="sig-prename descclassname">espnet2.bin.asvspoof_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asvspoof_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asvspoof_inference.main" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>

@@ -153,6 +153,7 @@
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.svs.html">espnet2.svs package</a></li>
@@ -226,6 +227,8 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.abs_loss.AbsASVSpoofLoss">AbsASVSpoofLoss (class in espnet2.asvspoof.loss.abs_loss)</a>
+</li>
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.attractor.abs_attractor.AbsAttractor">AbsAttractor (class in espnet2.diar.attractor.abs_attractor)</a>
 </li>
       <li><a href="_gen/espnet2.schedulers.html#espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler">AbsBatchStepScheduler (class in espnet2.schedulers.abs_scheduler)</a>
@@ -236,6 +239,8 @@
 
       <ul>
         <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.abs_decoder.AbsDecoder">(class in espnet2.asr_transducer.decoder.abs_decoder)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.decoder.abs_decoder.AbsDecoder">(class in espnet2.asvspoof.decoder.abs_decoder)</a>
 </li>
         <li><a href="_gen/espnet2.diar.html#espnet2.diar.decoder.abs_decoder.AbsDecoder">(class in espnet2.diar.decoder.abs_decoder)</a>
 </li>
@@ -507,6 +512,8 @@
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.add_task_arguments">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
 </li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask.add_task_arguments">(espnet2.tasks.asvspoof.ASVSpoofTask class method)</a>
+</li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.add_task_arguments">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.enh.EnhancementTask.add_task_arguments">(espnet2.tasks.enh.EnhancementTask class method)</a>
@@ -685,6 +692,14 @@
       <li><a href="_gen/espnet.utils.html#espnet.utils.cli_utils.assert_scipy_wav_style">assert_scipy_wav_style() (in module espnet.utils.cli_utils)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.asteroid_models.AsteroidModel_Converter">AsteroidModel_Converter (class in espnet2.enh.separator.asteroid_models)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.am_softmax_loss.ASVSpoofAMSoftmaxLoss">ASVSpoofAMSoftmaxLoss (class in espnet2.asvspoof.loss.am_softmax_loss)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.binary_loss.ASVSpoofBinaryLoss">ASVSpoofBinaryLoss (class in espnet2.asvspoof.loss.binary_loss)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.oc_softmax_loss.ASVSpoofOCSoftmaxLoss">ASVSpoofOCSoftmaxLoss (class in espnet2.asvspoof.loss.oc_softmax_loss)</a>
+</li>
+      <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask">ASVSpoofTask (class in espnet2.tasks.asvspoof)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.rnn.attentions.att_for">att_for() (in module espnet.nets.chainer_backend.rnn.attentions)</a>
 
@@ -992,8 +1007,6 @@
 </li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_branchformer_block">build_branchformer_block() (in module espnet2.asr_transducer.encoder.building)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_chunk_iter_factory">build_chunk_iter_factory() (espnet2.tasks.abs_task.AbsTask class method)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_collate_fn">build_collate_fn() (espnet2.tasks.abs_task.AbsTask class method)</a>
@@ -1002,6 +1015,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.build_collate_fn">(espnet2.tasks.asr.ASRTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.build_collate_fn">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask.build_collate_fn">(espnet2.tasks.asvspoof.ASVSpoofTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.build_collate_fn">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -1030,6 +1045,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.uasr.UASRTask.build_collate_fn">(espnet2.tasks.uasr.UASRTask class method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.blocks.build_conformer_block">build_conformer_block() (in module espnet.nets.pytorch_backend.transducer.blocks)</a>
 
       <ul>
@@ -1074,6 +1091,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.build_model">(espnet2.tasks.asr.ASRTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.build_model">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask.build_model">(espnet2.tasks.asvspoof.ASVSpoofTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.build_model">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -1140,6 +1159,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.build_preprocess_fn">(espnet2.tasks.asr.ASRTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.build_preprocess_fn">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask.build_preprocess_fn">(espnet2.tasks.asvspoof.ASVSpoofTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.build_preprocess_fn">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -1401,6 +1422,8 @@
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.class_choices_list">(espnet2.tasks.asr_transducer.ASRTransducerTask attribute)</a>
 </li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask.class_choices_list">(espnet2.tasks.asvspoof.ASVSpoofTask attribute)</a>
+</li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.class_choices_list">(espnet2.tasks.diar.DiarizationTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.enh.EnhancementTask.class_choices_list">(espnet2.tasks.enh.EnhancementTask attribute)</a>
@@ -1464,6 +1487,8 @@
 
       <ul>
         <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel.collect_feats">(espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel.collect_feats">(espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel method)</a>
 </li>
         <li><a href="_gen/espnet2.diar.html#espnet2.diar.espnet_model.ESPnetDiarizationModel.collect_feats">(espnet2.diar.espnet_model.ESPnetDiarizationModel method)</a>
 </li>
@@ -1538,10 +1563,10 @@
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.complexnn.ComplexConvTranspose2d">ComplexConvTranspose2d (class in espnet2.enh.layers.complexnn)</a>
 </li>
-      <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_alphas">compute_alphas() (espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_alphas">compute_alphas() (espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT method)</a>
+</li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_alphas_kernel">compute_alphas_kernel (in module espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel)</a>
 </li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.compute_attention_score">compute_attention_score() (espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention method)</a>
@@ -2312,6 +2337,8 @@
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.espnet_model.ESPnetASRModel.encode">(espnet2.asr.espnet_model.ESPnetASRModel method)</a>
 </li>
         <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel.encode">(espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel.encode">(espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel method)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.DiarizeSpeech.encode">(espnet2.bin.diar_inference.DiarizeSpeech method)</a>
 </li>
@@ -3120,6 +3147,26 @@
 </li>
       <li><a href="_gen/espnet2.asr_transducer.html#module-espnet2.asr_transducer.utils">espnet2.asr_transducer.utils (module)</a>
 </li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.__init__">espnet2.asvspoof.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.decoder.__init__">espnet2.asvspoof.decoder.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.decoder.abs_decoder">espnet2.asvspoof.decoder.abs_decoder (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.decoder.linear_decoder">espnet2.asvspoof.decoder.linear_decoder (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.espnet_model">espnet2.asvspoof.espnet_model (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.loss.__init__">espnet2.asvspoof.loss.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.loss.abs_loss">espnet2.asvspoof.loss.abs_loss (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.loss.am_softmax_loss">espnet2.asvspoof.loss.am_softmax_loss (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.loss.binary_loss">espnet2.asvspoof.loss.binary_loss (module)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#module-espnet2.asvspoof.loss.oc_softmax_loss">espnet2.asvspoof.loss.oc_softmax_loss (module)</a>
+</li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.__init__">espnet2.bin.__init__ (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.aggregate_stats_dirs">espnet2.bin.aggregate_stats_dirs (module)</a>
@@ -3138,12 +3185,18 @@
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_transducer_train">espnet2.bin.asr_transducer_train (module)</a>
 </li>
+      <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asvspoof_inference">espnet2.bin.asvspoof_inference (module)</a>
+</li>
+      <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asvspoof_train">espnet2.bin.asvspoof_train (module)</a>
+</li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.diar_inference">espnet2.bin.diar_inference (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.diar_train">espnet2.bin.diar_train (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.enh_inference">espnet2.bin.enh_inference (module)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.enh_inference_streaming">espnet2.bin.enh_inference_streaming (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.enh_s2t_train">espnet2.bin.enh_s2t_train (module)</a>
@@ -3156,8 +3209,6 @@
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.enh_tse_train">espnet2.bin.enh_tse_train (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.gan_svs_train">espnet2.bin.gan_svs_train (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.gan_tts_train">espnet2.bin.gan_tts_train (module)</a>
@@ -3688,6 +3739,8 @@
 </li>
       <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.asr_transducer">espnet2.tasks.asr_transducer (module)</a>
 </li>
+      <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.asvspoof">espnet2.tasks.asvspoof (module)</a>
+</li>
       <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.diar">espnet2.tasks.diar (module)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.enh">espnet2.tasks.enh (module)</a>
@@ -3925,6 +3978,8 @@
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel">ESPnetASRTransducerModel (class in espnet2.asr_transducer.espnet_transducer_model)</a>
+</li>
+      <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel">ESPnetASVSpoofModel (class in espnet2.asvspoof.espnet_model)</a>
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.dataset.ESPnetDataset">ESPnetDataset (class in espnet2.train.dataset)</a>
 </li>
@@ -4700,6 +4755,20 @@
         <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel.forward">(espnet2.asr_transducer.espnet_transducer_model.ESPnetASRTransducerModel method)</a>
 </li>
         <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.joint_network.JointNetwork.forward">(espnet2.asr_transducer.joint_network.JointNetwork method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.decoder.abs_decoder.AbsDecoder.forward">(espnet2.asvspoof.decoder.abs_decoder.AbsDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.decoder.linear_decoder.LinearDecoder.forward">(espnet2.asvspoof.decoder.linear_decoder.LinearDecoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel.forward">(espnet2.asvspoof.espnet_model.ESPnetASVSpoofModel method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.abs_loss.AbsASVSpoofLoss.forward">(espnet2.asvspoof.loss.abs_loss.AbsASVSpoofLoss method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.am_softmax_loss.ASVSpoofAMSoftmaxLoss.forward">(espnet2.asvspoof.loss.am_softmax_loss.ASVSpoofAMSoftmaxLoss method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.binary_loss.ASVSpoofBinaryLoss.forward">(espnet2.asvspoof.loss.binary_loss.ASVSpoofBinaryLoss method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.oc_softmax_loss.ASVSpoofOCSoftmaxLoss.forward">(espnet2.asvspoof.loss.oc_softmax_loss.ASVSpoofOCSoftmaxLoss method)</a>
 </li>
         <li><a href="_gen/espnet2.diar.html#espnet2.diar.abs_diar.AbsDiarization.forward">(espnet2.diar.abs_diar.AbsDiarization method)</a>
 </li>
@@ -5803,6 +5872,10 @@
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_train.get_parser">(in module espnet2.bin.asr_transducer_train)</a>
 </li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asvspoof_inference.get_parser">(in module espnet2.bin.asvspoof_inference)</a>
+</li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asvspoof_train.get_parser">(in module espnet2.bin.asvspoof_train)</a>
+</li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.get_parser">(in module espnet2.bin.diar_inference)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_train.get_parser">(in module espnet2.bin.diar_train)</a>
@@ -6305,6 +6378,8 @@
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.inference">(in module espnet2.bin.asr_transducer_inference)</a>
 </li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asvspoof_inference.inference">(in module espnet2.bin.asvspoof_inference)</a>
+</li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.inference">(in module espnet2.bin.diar_inference)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.enh_inference.inference">(in module espnet2.bin.enh_inference)</a>
@@ -6332,10 +6407,10 @@
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.uasr_inference_k2.inference">(in module espnet2.bin.uasr_inference_k2)</a>
 </li>
       </ul></li>
-      <li><a href="_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.inherite_attributes">inherite_attributes() (espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel method)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.inherite_attributes">inherite_attributes() (espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel method)</a>
+</li>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.sinc_conv.SincConv.init_filters">init_filters() (espnet2.layers.sinc_conv.SincConv method)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchBeamSearch.init_hyp">init_hyp() (espnet.nets.batch_beam_search.BatchBeamSearch method)</a>
@@ -6648,8 +6723,12 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.LinearActivation">LinearActivation() (in module espnet2.asr.state_spaces.components)</a>
 </li>
-      <li><a href="_gen/espnet2.diar.html#espnet2.diar.decoder.linear_decoder.LinearDecoder">LinearDecoder (class in espnet2.diar.decoder.linear_decoder)</a>
+      <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.decoder.linear_decoder.LinearDecoder">LinearDecoder (class in espnet2.asvspoof.decoder.linear_decoder)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.diar.html#espnet2.diar.decoder.linear_decoder.LinearDecoder">(class in espnet2.diar.decoder.linear_decoder)</a>
 </li>
+      </ul></li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.preencoder.linear.LinearProjection">LinearProjection (class in espnet2.asr.preencoder.linear)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.subsampling.LinearSampling">LinearSampling (class in espnet.nets.chainer_backend.transformer.subsampling)</a>
@@ -6884,6 +6963,10 @@
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_inference.main">(in module espnet2.bin.asr_transducer_inference)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_transducer_train.main">(in module espnet2.bin.asr_transducer_train)</a>
+</li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asvspoof_inference.main">(in module espnet2.bin.asvspoof_inference)</a>
+</li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.asvspoof_train.main">(in module espnet2.bin.asvspoof_train)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.diar_inference.main">(in module espnet2.bin.diar_inference)</a>
 </li>
@@ -7182,9 +7265,11 @@
 </li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_align.CTCSegmentationTask.name">name (espnet2.bin.asr_align.CTCSegmentationTask attribute)</a>
 </li>
-      <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss.name">name() (espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss property)</a>
+      <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.abs_loss.AbsASVSpoofLoss.name">name() (espnet2.asvspoof.loss.abs_loss.AbsASVSpoofLoss property)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss.name">(espnet2.enh.loss.criterions.abs_loss.AbsEnhLoss property)</a>
+</li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss.name">(espnet2.enh.loss.criterions.tf_domain.FrequencyDomainLoss property)</a>
 </li>
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.MultiResL1SpecLoss.name">(espnet2.enh.loss.criterions.time_domain.MultiResL1SpecLoss property)</a>
@@ -7292,6 +7377,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.num_optimizers">(espnet2.tasks.asr.ASRTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.num_optimizers">(espnet2.tasks.asr_transducer.ASRTransducerTask attribute)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask.num_optimizers">(espnet2.tasks.asvspoof.ASVSpoofTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.num_optimizers">(espnet2.tasks.diar.DiarizationTask attribute)</a>
 </li>
@@ -7410,6 +7497,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.optional_data_names">(espnet2.tasks.asr.ASRTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.optional_data_names">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask.optional_data_names">(espnet2.tasks.asvspoof.ASVSpoofTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.optional_data_names">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
@@ -8069,6 +8158,8 @@
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.required_data_names">(espnet2.tasks.asr_transducer.ASRTransducerTask class method)</a>
 </li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask.required_data_names">(espnet2.tasks.asvspoof.ASVSpoofTask class method)</a>
+</li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.required_data_names">(espnet2.tasks.diar.DiarizationTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.enh.EnhancementTask.required_data_names">(espnet2.tasks.enh.EnhancementTask class method)</a>
@@ -8421,6 +8512,14 @@
 </li>
         <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder.score">(espnet2.asr_transducer.decoder.stateless_decoder.StatelessDecoder method)</a>
 </li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.abs_loss.AbsASVSpoofLoss.score">(espnet2.asvspoof.loss.abs_loss.AbsASVSpoofLoss method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.am_softmax_loss.ASVSpoofAMSoftmaxLoss.score">(espnet2.asvspoof.loss.am_softmax_loss.ASVSpoofAMSoftmaxLoss method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.binary_loss.ASVSpoofBinaryLoss.score">(espnet2.asvspoof.loss.binary_loss.ASVSpoofBinaryLoss method)</a>
+</li>
+        <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.oc_softmax_loss.ASVSpoofOCSoftmaxLoss.score">(espnet2.asvspoof.loss.oc_softmax_loss.ASVSpoofOCSoftmaxLoss method)</a>
+</li>
         <li><a href="_gen/espnet2.lm.html#espnet2.lm.seq_rnn_lm.SequentialRNNLM.score">(espnet2.lm.seq_rnn_lm.SequentialRNNLM method)</a>
 </li>
         <li><a href="_gen/espnet2.lm.html#espnet2.lm.transformer_lm.TransformerLM.score">(espnet2.lm.transformer_lm.TransformerLM method)</a>
@@ -8668,12 +8767,12 @@
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.SkiM">SkiM (class in espnet2.enh.layers.skim)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.separator.skim_separator.SkiMSeparator">SkiMSeparator (class in espnet2.enh.separator.skim_separator)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.frontend.windowing.SlidingWindow">SlidingWindow (class in espnet2.asr.frontend.windowing)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.train.html#espnet2.train.preprocessor.SLUPreprocessor">SLUPreprocessor (class in espnet2.train.preprocessor)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask">SLUTask (class in espnet2.tasks.slu)</a>
@@ -8771,6 +8870,8 @@
 </li>
       </ul></li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.slu_inference.Speech2Understand">Speech2Understand (class in espnet2.bin.slu_inference)</a>
+</li>
+      <li><a href="_gen/espnet2.bin.html#espnet2.bin.asvspoof_inference.SpeechAntiSpoof">SpeechAntiSpoof (class in espnet2.bin.asvspoof_inference)</a>
 </li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.perturb.SpeedPerturbation">SpeedPerturbation (class in espnet.transform.perturb)</a>
 </li>
@@ -9272,6 +9373,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr.ASRTask.trainer">(espnet2.tasks.asr.ASRTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asr_transducer.ASRTransducerTask.trainer">(espnet2.tasks.asr_transducer.ASRTransducerTask attribute)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.asvspoof.ASVSpoofTask.trainer">(espnet2.tasks.asvspoof.ASVSpoofTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.diar.DiarizationTask.trainer">(espnet2.tasks.diar.DiarizationTask attribute)</a>
 </li>

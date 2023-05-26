@@ -200,6 +200,7 @@
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.svs.html">espnet2.svs package</a></li>
@@ -584,7 +585,7 @@ encoder_conf:
 </section>
 <section id="real-time-factor-and-latency">
 <h2>Real-Time-Factor and Latency<a class="headerlink" href="#real-time-factor-and-latency" title="Permalink to this headline">¶</a></h2>
-<p>In order to calculate real-time-factor and (non-streaming) latency the script <code class="docutils literal notranslate"><span class="pre">utils/calculate_rtf.py</span></code> has been reworked and can now be used for both ESPnet1 and ESPnet2. The script calculates inference times based on time markers in the decoding log files and reports the average real-time-factor (RTF) and average latency over all decoded utterances. For ESPnet2, the script will automatically be run (see <a class="reference external" href="#limitations">Limitations</a> section below) after the decoding stage has finished but can also be run as a stand-alone script:</p>
+<p>In order to calculate real-time-factor and (non-streaming) latency the script <code class="docutils literal notranslate"><span class="pre">utils/calculate_rtf.py</span></code> has been reworked and can now be used for both ESPnet1 and ESPnet2. The script calculates inference times based on time markers in the decoding log files and reports the average real-time-factor (RTF) and average latency over all decoded utterances. For ESPnet2, the script will automatically be run (see <a class="reference internal" href="#limitations"><span class="std std-ref">Limitations</span></a> section below) after the decoding stage has finished but can also be run as a stand-alone script:</p>
 <section id="usage-1">
 <h3>Usage<a class="headerlink" href="#usage-1" title="Permalink to this headline">¶</a></h3>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">usage</span><span class="p">:</span> <span class="n">calculate_rtf</span><span class="o">.</span><span class="n">py</span> <span class="p">[</span><span class="o">-</span><span class="n">h</span><span class="p">]</span> <span class="p">[</span><span class="o">--</span><span class="n">log</span><span class="o">-</span><span class="nb">dir</span> <span class="n">LOG_DIR</span><span class="p">]</span>
