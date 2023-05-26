@@ -404,18 +404,13 @@ class Speech2TextStreaming:
             feats, feats_lengths, self.frontend_states = self.apply_frontend(
                 speech, self.frontend_states, is_final=is_final
             )
-
-            logging.debug("feats length:" + str(feats_lengths.item()))
-
-            enc, enc_lengths, self.encoder_states = self.st_model.encoder(
+            enc, _, self.encoder_states = self.st_model.encoder(
                 feats,
                 feats_lengths,
                 self.encoder_states,
                 is_final=is_final,
                 infer_mode=True,
             )
-
-            logging.debug("enc length:" + str(enc_lengths.item()))
         else:
             speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
             lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
