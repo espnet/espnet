@@ -208,6 +208,10 @@
     <span class="kn">import</span> <span class="nn">music21</span> <span class="k">as</span> <span class="nn">m21</span>  <span class="c1"># for CI import</span>
 <span class="k">except</span> <span class="ne">ImportError</span> <span class="ow">or</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
     <span class="n">m21</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">miditoolkit</span>  <span class="c1"># for CI import</span>
+<span class="k">except</span> <span class="ne">ImportError</span> <span class="ow">or</span> <span class="ne">ModuleNotFoundError</span><span class="p">:</span>
+    <span class="n">miditoolkit</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <div class="viewcode-block" id="NOTE"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.score_scp.NOTE">[docs]</a><span class="k">class</span> <span class="nc">NOTE</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -229,7 +233,7 @@
 <span class="sd">        ...</span>
 
 <span class="sd">        &gt;&gt;&gt; reader = XMLScpReader(&#39;xml.scp&#39;)</span>
-<span class="sd">        &gt;&gt;&gt; lyrics_array, notes_array, segs_array = reader[&#39;key1&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; tempo, note_list = reader[&#39;key1&#39;]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
@@ -380,6 +384,77 @@
 
 <div class="viewcode-block" id="XMLWriter.close"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.score_scp.XMLWriter.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">fscp</span><span class="o">.</span><span class="n">close</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="MIDReader"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.score_scp.MIDReader">[docs]</a><span class="k">class</span> <span class="nc">MIDReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reader class for &#39;mid.scp&#39;.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        key1 /some/path/a.mid</span>
+<span class="sd">        key2 /some/path/b.mid</span>
+<span class="sd">        key3 /some/path/c.mid</span>
+<span class="sd">        key4 /some/path/d.mid</span>
+<span class="sd">        ...</span>
+
+<span class="sd">        &gt;&gt;&gt; reader = XMLScpReader(&#39;mid.scp&#39;)</span>
+<span class="sd">        &gt;&gt;&gt; tempo, note_list = reader[&#39;key1&#39;]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">fname</span><span class="p">,</span>
+        <span class="n">add_rest</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">miditoolkit</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
+            <span class="s2">&quot;Cannot load miditoolkit package. &quot;</span><span class="p">,</span>
+            <span class="s2">&quot;Please install Muskit modules via &quot;</span><span class="p">,</span>
+            <span class="s2">&quot;(cd tools &amp;&amp; make muskit.done)&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fname</span> <span class="o">=</span> <span class="n">fname</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">add_rest</span> <span class="o">=</span> <span class="n">add_rest</span>  <span class="c1"># add rest into note sequencee</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">read_2columns_text</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>  <span class="c1"># get key-value dict</span>
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="n">midi_obj</span> <span class="o">=</span> <span class="n">miditoolkit</span><span class="o">.</span><span class="n">midi</span><span class="o">.</span><span class="n">parser</span><span class="o">.</span><span class="n">MidiFile</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="c1"># load tempo</span>
+        <span class="n">tempos</span> <span class="o">=</span> <span class="n">midi_obj</span><span class="o">.</span><span class="n">tempo_changes</span>
+        <span class="n">tempos</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">time</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">tempo</span><span class="p">))</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">tempos</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="n">tempo</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">tempos</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tempo</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>
+        <span class="c1"># load pitch time sequence</span>
+        <span class="n">tick_to_time</span> <span class="o">=</span> <span class="n">midi_obj</span><span class="o">.</span><span class="n">get_tick_to_time_mapping</span><span class="p">()</span>
+        <span class="n">notes</span> <span class="o">=</span> <span class="n">midi_obj</span><span class="o">.</span><span class="n">instruments</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">notes</span>
+        <span class="n">notes</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">start</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">pitch</span><span class="p">))</span>
+        <span class="n">notes_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">pre_et</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">note</span> <span class="ow">in</span> <span class="n">notes</span><span class="p">:</span>
+            <span class="n">st</span> <span class="o">=</span> <span class="n">tick_to_time</span><span class="p">[</span><span class="n">note</span><span class="o">.</span><span class="n">start</span><span class="p">]</span>
+            <span class="n">et</span> <span class="o">=</span> <span class="n">tick_to_time</span><span class="p">[</span><span class="n">note</span><span class="o">.</span><span class="n">end</span><span class="p">]</span>
+            <span class="c1"># NOTE(Yuning): MIDIs don&#39;t have explicit rest notes.</span>
+            <span class="c1"># Explicit rest notes might be needed for stage 1 in svs.</span>
+            <span class="k">if</span> <span class="n">st</span> <span class="o">!=</span> <span class="n">pre_et</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_rest</span><span class="p">:</span>
+                <span class="n">notes_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">NOTE</span><span class="p">(</span><span class="s2">&quot;P&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">pre_et</span><span class="p">,</span> <span class="n">st</span><span class="p">))</span>
+            <span class="n">notes_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">NOTE</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">,</span> <span class="n">note</span><span class="o">.</span><span class="n">pitch</span><span class="p">,</span> <span class="n">st</span><span class="p">,</span> <span class="n">et</span><span class="p">))</span>
+            <span class="n">pre_et</span> <span class="o">=</span> <span class="n">et</span>
+        <span class="k">return</span> <span class="n">tempo</span><span class="p">,</span> <span class="n">notes_list</span>
+
+<div class="viewcode-block" id="MIDReader.get_path"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.score_scp.MIDReader.get_path">[docs]</a>    <span class="k">def</span> <span class="nf">get_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+    <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">item</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MIDReader.keys"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.score_scp.MIDReader.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="SingingScoreReader"><a class="viewcode-back" href="../../../_gen/espnet2.fileio.html#espnet2.fileio.score_scp.SingingScoreReader">[docs]</a><span class="k">class</span> <span class="nc">SingingScoreReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>

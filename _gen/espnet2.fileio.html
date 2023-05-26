@@ -419,6 +419,33 @@ bb ./data/bb.wav</p>
 <section id="espnet2-fileio-score-scp-1">
 <span id="espnet2-fileio-score-scp"></span><h2>espnet2.fileio.score_scp<a class="headerlink" href="#espnet2-fileio-score-scp-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.fileio.score_scp"></span><dl class="class">
+<dt id="espnet2.fileio.score_scp.MIDReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.score_scp.</code><code class="sig-name descname">MIDReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">add_rest=True</em>, <em class="sig-param">dtype=&lt;class 'numpy.int16'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#MIDReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.MIDReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
+<p>Reader class for ‘mid.scp’.</p>
+<p class="rubric">Examples</p>
+<p>key1 /some/path/a.mid
+key2 /some/path/b.mid
+key3 /some/path/c.mid
+key4 /some/path/d.mid
+…</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">XMLScpReader</span><span class="p">(</span><span class="s1">&#39;mid.scp&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tempo</span><span class="p">,</span> <span class="n">note_list</span> <span class="o">=</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;key1&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.fileio.score_scp.MIDReader.get_path">
+<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#MIDReader.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.MIDReader.get_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.fileio.score_scp.MIDReader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#MIDReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.MIDReader.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet2.fileio.score_scp.NOTE">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.score_scp.</code><code class="sig-name descname">NOTE</code><span class="sig-paren">(</span><em class="sig-param">lyric</em>, <em class="sig-param">midi</em>, <em class="sig-param">st</em>, <em class="sig-param">et</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/score_scp.html#NOTE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.score_scp.NOTE" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
@@ -491,7 +518,7 @@ key3 /some/path/c.xml
 key4 /some/path/d.xml
 …</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">XMLScpReader</span><span class="p">(</span><span class="s1">&#39;xml.scp&#39;</span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">lyrics_array</span><span class="p">,</span> <span class="n">notes_array</span><span class="p">,</span> <span class="n">segs_array</span> <span class="o">=</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;key1&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tempo</span><span class="p">,</span> <span class="n">note_list</span> <span class="o">=</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;key1&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
 <dl class="method">
