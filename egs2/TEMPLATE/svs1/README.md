@@ -561,7 +561,7 @@ Then, we transfer the raw data into `score.json`, where situations can be catego
 
 #### Case 1: phoneme annotation and standardized score
 
-- If the phonemes and notes are aligned in time domain, convert the raw data directly. (eg. `Opencpop`)
+- If the phonemes and notes are aligned in time domain, convert the raw data directly. (eg. [Opencpop](https://github.com/espnet/espnet/tree/master/egs2/opencpop/svs1))
 
 - If the phoneme annotation are misaligned with notes in time domain, align phonemes (from `label`) and note-lyric pairs (from `musicXML`) through g2p. (eg. `Ofuton`)
 
