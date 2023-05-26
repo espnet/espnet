@@ -565,7 +565,7 @@ Then, we transfer the raw data into `score.json`, where situations can be catego
 
 - If the phoneme annotation are misaligned with notes in time domain, align phonemes (from `label`) and note-lyric pairs (from `musicXML`) through g2p. (eg. `Ofuton`)
 
-Specially, the note-lyric pairs can be rebuilt through other melody files, like `MIDI`, if there's something wrong with the note duration. (eg. `Natsume`)
+Specially, the note-lyric pairs can be rebuilt through other melody files, like `MIDI`, if there's something wrong with the note duration. (eg. [Natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1))
 
 
 #### Case 2: phoneme annotation only
