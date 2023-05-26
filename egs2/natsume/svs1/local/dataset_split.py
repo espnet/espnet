@@ -2,9 +2,9 @@ import argparse
 import os
 import shutil
 
-UTT_PREFIX = "itako"
-DEV_LIST = [f"itako{d}" for d in ["13", "14", "26", "28", "39"]]
-TEST_LIST = [f"itako{d}" for d in ["01", "16", "17", "27", "44"]]
+UTT_PREFIX = "natsume"
+DEV_LIST = ["9", "22", "38", "43", "44"]
+TEST_LIST = ["2", "13", "24", "25", "27"]
 
 
 def train_check(song):
@@ -19,7 +19,7 @@ def test_check(song):
     return song in TEST_LIST
 
 
-def pack_zero(string, size=20):
+def pack_zero(string, size=2):
     if len(string) < size:
         string = "0" * (size - len(string)) + string
     return string
@@ -39,27 +39,26 @@ def process_pho_info(phone):
     for line in info.readlines():
         line = line.strip().split()
         label_info.append(
-            "{} {} {}".format(
-                float(line[0]) / 1e7, float(line[1]) / 1e7, line[2].strip()
-            )
+            "{} {} {}".format(float(line[0]), float(line[1]), line[2].strip())
         )
         pho_info.append(line[2].strip())
     return " ".join(label_info), " ".join(pho_info)
 
 
 def process_subset(src_data, subset, check_func, fs, wav_dump):
-    subfolder = os.listdir(src_data + "/musicxml")
+    subfolder = os.listdir(src_data + "/xml")
     makedir(subset)
     wavscp = open(os.path.join(subset, "wav.scp"), "w", encoding="utf-8")
     utt2spk = open(os.path.join(subset, "utt2spk"), "w", encoding="utf-8")
     label_scp = open(os.path.join(subset, "label"), "w", encoding="utf-8")
     musicxmlscp = open(os.path.join(subset, "score.scp"), "w", encoding="utf-8")
+    midscp = open(os.path.join(subset, "mid.scp"), "w", encoding="utf-8")
 
     for item in subfolder:
-        name = item[0:7]
+        name = item[:-4]
         if not check_func(name):
             continue
-        utt_id = name
+        utt_id = "{}{}".format(UTT_PREFIX, pack_zero(name))
 
         cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
             os.path.join(src_data, "wav", name),
@@ -80,7 +79,12 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
         label_scp.write("{} {}\n".format(utt_id, label_info))
         musicxmlscp.write(
             "{} {}\n".format(
-                utt_id, os.path.join(src_data, "musicxml", "{}.musicxml".format(name))
+                utt_id, os.path.join(src_data, "xml", "{}.xml".format(name))
+            )
+        )
+        midscp.write(
+            "{} {}\n".format(
+                utt_id, os.path.join(src_data, "midi", "{}.mid".format(name))
             )
         )
 

@@ -79,33 +79,74 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
     segment = SegInfo()
     for i in range(len(labels)):
         label = labels[i]
+        # replace wrong phoneme with correct one
+        if "01" in file_id and label.label_id == "cl" and labels[i + 1].label_id == "s":
+            label.label_id = "a"
+        if (
+            "03" in file_id
+            and label.label_id == "s"
+            and labels[i - 1].label_id == "o"
+            and labels[i - 2].label_id == "o"
+        ):
+            label.label_id = "z"
+        # remove wrong phoneme
+        if "50" in file_id and label.label_id == "o" and labels[i + 1].label_id == "a":
+            labels[i + 1].start = label.start
+            continue
+        if "08" in file_id and label.label_id == "w" and labels[i - 1].label_id == "e":
+            labels[i + 1].start = label.start
+            continue
+        if "01" in file_id and label.label_id == "e" and labels[i + 1].label_id == "e":
+            labels[i + 1].start = label.start
+            continue
+        if "41" in file_id and label.label_id == "a" and labels[i + 1].label_id == "o":
+            labels[i + 1].label_id = "a"
+            labels[i + 1].start = label.start
+            continue
+        # add missing phoneme
+        if (
+            "10" in file_id
+            and label.label_id == "a"
+            and labels[i + 1].label_id == "a"
+            and labels[i + 2].label_id == "o"
+        ):
+            segment.add(label.start, 81.00, "a")
+            label.start = 81.00
+        # add pause
+        if "03" in file_id and (
+            (label.label_id == "m" and labels[i + 1].label_id == "e")
+            or (label.label_id == "t" and labels[i + 2].label_id == "d")
+        ):
+            segments.extend(segment.split(threshold=threshold))
+            segment = SegInfo()
         if label.label_id in sil:
+            # remove rest
+            if i < len(labels) - 1 and (
+                (
+                    "12" in file_id
+                    and labels[i + 1].label_id == "m"
+                    and labels[i + 2].label_id == "o"
+                )
+                or ("31" in file_id and labels[i + 1].label_id == "s")
+                or ("26" in file_id and labels[i + 1].label_id == "o")
+                or (
+                    "10" in file_id
+                    and labels[i + 1].label_id == "k"
+                    and labels[i + 2].label_id == "i"
+                )
+                or ("24" in file_id and i == 389)
+                or (
+                    "07" in file_id
+                    and labels[i + 1].label_id == "m"
+                    and labels[i - 1].label_id == "o"
+                )
+            ):
+                labels[i + 1].start = label.start
+                continue
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
-        # add pause (split)
-        if (
-            (
-                "turkey_in_the_straw" in file_id
-                and label.label_id == "s"
-                and labels[i + 1].label_id == "e"
-                and labels[i + 2].label_id == "N"
-            )
-            or (
-                "yuki" in file_id
-                and label.label_id == "w"
-                and labels[i + 1].label_id == "a"
-                and labels[i + 2].label_id == "t"
-            )
-            or (
-                "alps_ichimanjaku" in file_id
-                and label.label_id == "a"
-                and labels[i - 1].label_id == "e"
-            )
-        ):
-            segments.extend(segment.split(threshold=threshold))
-            segment = SegInfo()
         segment.add(label.start, label.end, label.label_id)
 
     if len(segment.segs) > 0:
@@ -148,6 +189,8 @@ if __name__ == "__main__":
         for i in range(len(phn_info) // 3):
             if phn_info[i * 3 + 2] == "U":
                 phn_info[i * 3 + 2] = "u"
+            if phn_info[i * 3 + 2] == "I":
+                phn_info[i * 3 + 2] = "i"
             temp_info.append(
                 LabelInfo(phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2])
             )
