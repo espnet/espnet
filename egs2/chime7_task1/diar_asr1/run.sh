@@ -38,7 +38,8 @@ diar_inf_dset="dev"
 pyan_merge_closer=0.5
 pyan_max_length_merged=20
 pyan_inf_max_batch=32
-pyan_use_pretrained= #popcornell/pyannote-segmentation-chime6-mixer6
+pyan_use_pretrained=popcornell/pyannote-segmentation-chime6-mixer6
+download_baseline_diarization=
 # fine-tune
 pyan_finetune_dir=exp/pyannote_finetuned
 pyan_batch_size=32
@@ -62,6 +63,15 @@ gss_asr_stop_stage=10
 
 if [ -z "$gss_asr_stage" ]; then
   gss_asr_stage=2
+fi
+
+
+if [ -n "${download_baseline_diarization}" ]; then
+  # TODO
+  log "Using organizer-provided JSON manifests from the baseline diarization system."
+  #git clone
+  #mv
+  stage=4
 fi
 
 
@@ -166,5 +176,6 @@ if [ ${stage} -le 4 ] && [ $stop_stage -ge 4 ]; then
         --use-pretrained $use_pretrained \
         --decode_only $decode_only --gss-max-batch-dur $gss_max_batch_dur \
         --gss-iterations 5 \
-        --diar-score 1
+        --diar-score 1 \
+        --inf_dset $diar_inf_dset
 fi

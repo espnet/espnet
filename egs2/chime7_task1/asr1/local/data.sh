@@ -26,7 +26,7 @@ background_snrs="20:10:15:5:0"
 gss_dsets=$(echo $gss_dsets | tr "," " ") # split by commas
 
 
-if [ $decode_only == 1 ]; then
+if [ -n "$decode_only" ]; then
   # stop after gss
   skip_stages=("1" "2")
 fi
