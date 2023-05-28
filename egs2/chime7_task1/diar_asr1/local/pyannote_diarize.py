@@ -229,7 +229,7 @@ def diarize_session(
         min_duration_on=pipeline.segmentation.min_duration_on,
         min_duration_off=pipeline.segmentation.min_duration_off,
         pad_onset=pipeline.segmentation.pad_onset,
-        pad_offset=pipeline.segmentation.pad_offset
+        pad_offset=pipeline.segmentation.pad_offset,
     )
     result = to_annotation(discrete_diarization)
     offset = uem_boundaries[0] / fs
