@@ -153,6 +153,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
 
     log "Running Guided Source Separation for ${dset_name}/${dset_part}, results will be in ${gss_dump_root}/${dset_name}/${dset_part}"
+    if [ -n $((${ngpu} %2)) -eq 0 ]; then
+      log "Number of GPUs must be even for GSS, exiting." #FIXME double check
+      exit
+    fi
     local/run_gss.sh --manifests-dir $manifests_root --dset-name $dset_name \
           --dset-part $dset_part \
           --exp-dir $gss_dump_root \
