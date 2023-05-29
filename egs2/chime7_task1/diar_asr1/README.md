@@ -132,12 +132,12 @@ ln -s ../asr1/chime7_task1 .
 
 #### Main Track with Pyannote-based Diarization System
 To reproduce our results which use our pre-trained ASR model [https://huggingface.co/popcornell/chime7_task1_asr1_baseline](https://huggingface.co/popcornell/chime7_task1_asr1_baseline) and pre-trained
-[pyannote segmentation model](https://huggingface.co/popcornell/pyannote-segmentation-chime6-mixer6)
+[pyannote segmentation model](https://huggingface.co/popcornell/pyannote-segmentation-chime6-mixer6), on the dev set,
 you can run:
 ```bash
 ./run.sh --chime7-root YOUR_PATH_TO_CHiME7_ROOT --stage 2 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
---decode-only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM \
+--decode-only dev --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM \
 --pyan-use-pretrained popcornell/pyannote-segmentation-chime6-mixer6
 ```
 You can also play with diarization hyperparameters such as:
@@ -147,6 +147,9 @@ You can also play with diarization hyperparameters such as:
 
 as said merge-closer can have quite an impact on the final WER.
 
+**NOTE** 
+We found the diarization baseline to be highly sensitive to the 
+
 ---
 If you want to run this recipe from scratch, **including dataset generation** and pyannote segmentation
 model fine-tuning you can run it from stage 0:
@@ -154,7 +157,7 @@ model fine-tuning you can run it from stage 0:
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
---decode-only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM \
+--decode-only dev --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM \
 --pyan-use-pretrained popcornell/pyannote-segmentation-chime6-mixer6
 ```
 ---

@@ -66,6 +66,11 @@ if [ -z "$gss_asr_stage" ]; then
 fi
 
 
+if [ "${decode_only}" == "eval" ]; then
+  diar_inf_dset="eval"
+fi
+
+
 if [ -n "${download_baseline_diarization}" ]; then
   # TODO
   log "Using organizer-provided JSON manifests from the baseline diarization system."

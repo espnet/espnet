@@ -184,8 +184,8 @@ def compute_diar_errors(name, hyp_segs, ref_segs, uem_boundaries=None, collar=0.
             out[Segment(start, end)] = speaker
         return out
 
-    hyp_annotation = to_annotation(hyp_segs)
-    ref_annotation = to_annotation(ref_segs)
+    hyp_annotation = to_annotation(hyp_segs, name)
+    ref_annotation = to_annotation(ref_segs, name)
 
     der_computer = DERComputer(collar=collar, skip_overlap=False)
     reference, hypothesis, uem = der_computer.get_uemified(
