@@ -326,6 +326,7 @@
             <span class="s2">&quot;use_weight_norm_in_flow&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
             <span class="s2">&quot;use_only_mean_in_flow&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
             <span class="s2">&quot;expand_f0_method&quot;</span><span class="p">:</span> <span class="s2">&quot;repeat&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;use_phoneme_predictor&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
         <span class="p">},</span>
         <span class="c1"># discriminator related</span>
         <span class="n">discriminator_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;hifigan_multi_scale_multi_period_discriminator&quot;</span><span class="p">,</span>
@@ -477,7 +478,6 @@
         <span class="n">lambda_phoneme</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="n">lambda_c_yin</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">45.0</span><span class="p">,</span>
         <span class="n">cache_generator_outputs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">use_phoneme_predictor</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize VITS module.</span>
 
@@ -508,7 +508,6 @@
 <span class="sd">            lambda_phoneme (float): Loss scaling coefficient for phoneme loss.</span>
 <span class="sd">            lambda_c_yin (float): Loss scaling coefficient for yin loss.</span>
 <span class="sd">            cache_generator_outputs (bool): Whether to cache generator outputs.</span>
-<span class="sd">            use_phoneme_predictor (bool): Whether to use phoneme predictor in the model.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -524,7 +523,7 @@
             <span class="n">generator_params</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">vocabs</span><span class="o">=</span><span class="n">idim</span><span class="p">,</span> <span class="n">aux_channels</span><span class="o">=</span><span class="n">odim</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">generator_type</span> <span class="o">=</span> <span class="n">generator_type</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">use_flow</span> <span class="o">=</span> <span class="kc">True</span> <span class="k">if</span> <span class="n">generator_params</span><span class="p">[</span><span class="s2">&quot;flow_flows&quot;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="kc">False</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">use_phoneme_predictor</span> <span class="o">=</span> <span class="n">use_phoneme_predictor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_phoneme_predictor</span> <span class="o">=</span> <span class="n">generator_params</span><span class="p">[</span><span class="s2">&quot;use_phoneme_predictor&quot;</span><span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">discriminator_type</span> <span class="o">=</span> <span class="n">discriminator_type</span>
         <span class="k">if</span> <span class="s2">&quot;avocodo&quot;</span> <span class="ow">in</span> <span class="n">discriminator_type</span><span class="p">:</span>
             <span class="n">use_avocodo</span> <span class="o">=</span> <span class="kc">True</span>
