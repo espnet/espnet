@@ -147,8 +147,8 @@ You can also play with diarization hyperparameters such as:
 
 as said merge-closer can have quite an impact on the final WER.
 
-**NOTE** 
-We found the diarization baseline to be highly sensitive to the 
+**NOTE**
+We found the diarization baseline to be highly sensitive to the
 
 ---
 If you want to run this recipe from scratch, **including dataset generation** and pyannote segmentation
