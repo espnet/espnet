@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -eu  # Exit on error
 
 storage_dir=$1
