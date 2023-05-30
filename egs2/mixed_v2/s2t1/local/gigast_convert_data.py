@@ -2,9 +2,9 @@
 https://github.com/bytedance/neurst/tree/master/datasets/GigaST
 """
 
-import json
-import copy
 import argparse
+import copy
+import json
 
 
 def preprocess_gigaspeech_text(text: str) -> str:
@@ -38,7 +38,7 @@ def preprocess_gigast_text(text: str) -> str:
     for t in invalid:
         text = text.replace(t, "")
 
-    text = text.strip("<>")     # remove < or > from beginning and end
+    text = text.strip("<>")  # remove < or > from beginning and end
     text = " ".join(text.split())
 
     assert "<" not in text and ">" not in text, text
@@ -46,14 +46,16 @@ def preprocess_gigast_text(text: str) -> str:
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
-    parser.add_argument("--gigaspeech_file", type=str, required=True,
-                        help="The GigaSpeech.json file.")
-    parser.add_argument("--gigast_file", type=str, required=True,
-                        help="The GigaST data file.")
-    parser.add_argument("--output_file", type=str, required=True,
-                        help="The output file.")
+    parser.add_argument(
+        "--gigaspeech_file", type=str, required=True, help="The GigaSpeech.json file."
+    )
+    parser.add_argument(
+        "--gigast_file", type=str, required=True, help="The GigaST data file."
+    )
+    parser.add_argument(
+        "--output_file", type=str, required=True, help="The output file."
+    )
     args = parser.parse_args()
 
     aid_sid_seg = {}

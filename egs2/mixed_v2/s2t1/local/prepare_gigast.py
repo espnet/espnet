@@ -75,11 +75,7 @@ def parse_args():
         help="Data splits to prepare.",
     )
     parser.add_argument(
-        "--langs",
-        type=str,
-        nargs="+",
-        default=["de", "zh"],
-        help="Target languages."
+        "--langs", type=str, nargs="+", default=["de", "zh"], help="Target languages."
     )
 
     args = parser.parse_args()

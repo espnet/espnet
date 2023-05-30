@@ -202,7 +202,7 @@ def generate_long_utterances(
     utts: List[Utterance],  # list of short utterances in the same long talk/speech
 ) -> List[LongUtterance]:
     """Generate a list of long utterances from a list of short utterances."""
-    
+
     utts.sort(key=lambda x: x.start_time)
 
     long_utts = [None]

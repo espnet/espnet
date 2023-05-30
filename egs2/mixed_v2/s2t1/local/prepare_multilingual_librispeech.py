@@ -3,14 +3,15 @@ import json
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
-import requests
 from typing import Dict, List, Optional, Tuple, Union
 
+import requests
+
 from utils import (
+    LANGUAGES,
     SYMBOL_NA,
     SYMBOL_NOSPEECH,
     SYMBOLS_TIME,
-    LANGUAGES,
     LongUtterance,
     Utterance,
     generate_long_utterances,
@@ -35,17 +36,17 @@ def collect_data(
 ) -> List[List[Utterance]]:
     """Collect utterances in each long talk."""
     data_dir = Path(data_dir) / f"mls_{LANGUAGES[lang]}" / split
-    download_dir = data_dir / 'audio_long'  # download long audios
+    download_dir = data_dir / "audio_long"  # download long audios
     download_dir.mkdir(parents=True, exist_ok=True)
-    
+
     uttid2trans = {}
-    with open(data_dir / 'transcripts.txt', 'r') as fp:
+    with open(data_dir / "transcripts.txt", "r") as fp:
         for line in fp:
             uttid, trans = line.strip().split(maxsplit=1)
             uttid2trans[uttid] = " ".join(trans.split())
 
     url2utts = defaultdict(list)
-    with open(data_dir / "segments.txt", 'r') as fp:
+    with open(data_dir / "segments.txt", "r") as fp:
         for line in fp:
             uttid, url, start_time, end_time = line.strip().split()
             url2utts[url].append(
@@ -54,7 +55,7 @@ def collect_data(
 
     ret = []
     for url, utts in url2utts.items():
-        mp3_file = download_dir / url.split('/')[-1]
+        mp3_file = download_dir / url.split("/")[-1]
         if mp3_file.is_file():
             print(f"Skip downloading {mp3_file}")
         else:
@@ -62,7 +63,7 @@ def collect_data(
             if response is None:
                 print(f"Failed to download {mp3_file}. Skip it.")
                 continue
-            with open(mp3_file, 'wb') as fp:
+            with open(mp3_file, "wb") as fp:
                 fp.write(response.content)
 
         short_utts = []
@@ -107,7 +108,7 @@ def parse_args():
         type=str,
         nargs="+",
         default=["nl", "en", "fr", "de", "it", "pl", "pt", "es"],
-        help="ASR languages."
+        help="ASR languages.",
     )
 
     args = parser.parse_args()
