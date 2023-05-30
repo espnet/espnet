@@ -555,6 +555,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
+        tokenizer_encode_conf: List[Dict] = [dict(), dict()],
     ):
         # TODO(jiatong): sync with Kamo and Jing on interface for preprocessor
         super().__init__(
@@ -599,6 +600,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                         space_symbol=space_symbol,
                         non_linguistic_symbols=non_linguistic_symbols,
                         g2p_type=g2p_type,
+                        encode_kwargs=tokenizer_encode_conf[i],
                     )
                 )
                 self.token_id_converter.append(

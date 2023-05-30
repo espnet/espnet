@@ -4,6 +4,8 @@
 
 """Embedding Frontend for text based inputs."""
 
+import joblib
+import numpy as np
 from typing import Tuple
 
 import torch
