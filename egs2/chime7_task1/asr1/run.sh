@@ -274,7 +274,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # the content of this output folder is what you should send for evaluation to the
     # organizers.
   done
-  split=dev
+  split=dev # participants cannot evaluate eval
   LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
   python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
      -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d $diar_score 2>&1 | tee $LOG_OUT
