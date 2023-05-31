@@ -824,7 +824,6 @@ class EnhPreprocessor(CommonPreprocessor):
         # If True, randomly reorder the channels of the multi-channel signals
         self.channel_reordering = channel_reordering
 
-        # This should be used together with `--use_utt2category True` in enh.sh
         # Map each category into a unique integer
         self.categories = {}
         if categories:
@@ -1273,7 +1272,7 @@ class TSEPreprocessor(EnhPreprocessor):
         sample_rate: int = 8000,
         force_single_channel: bool = False,
         channel_reordering: bool = False,
-        utt2category_file: str = "",
+        categories: Optional[List] = None,
     ):
         super().__init__(
             train,
@@ -1294,7 +1293,7 @@ class TSEPreprocessor(EnhPreprocessor):
             sample_rate=sample_rate,
             force_single_channel=force_single_channel,
             channel_reordering=channel_reordering,
-            utt2category_file=utt2category_file,
+            categories=categories,
         )
         # If specified, the enrollment will be chomped to the specified length
         self.enroll_segment = enroll_segment

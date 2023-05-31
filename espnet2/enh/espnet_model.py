@@ -78,7 +78,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
         # Map each unique integer (category) into the corresponding string
         self.categories = {}
-        # This should be used together with `--use_utt2category True` in enh.sh
         if categories:
             # This should correspond to that defined in the preprocessor
             # while the key and value are swapped.

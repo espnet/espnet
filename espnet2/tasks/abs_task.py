@@ -443,12 +443,6 @@ class AbsTask(ABC):
             default=False,
             help='Write the output features from the model when "collect stats" mode',
         )
-        group.add_argument(
-            "--skip_stats_npz",
-            type=str2bool,
-            default=False,
-            help='Whether to skip saving *_stats.npz files in "collect stats" mode',
-        )
 
         group = parser.add_argument_group("Trainer related")
         group.add_argument(
@@ -1245,6 +1239,10 @@ class AbsTask(ABC):
             else:
                 valid_key_file = None
 
+            if model and not getattr(model, "extract_feats_in_collect_stats", True):
+                model = None
+                logging.info("Skipping collect_feats in collect_stats stage.")
+
             collect_stats(
                 model=model,
                 train_iter=cls.build_streaming_iterator(
@@ -1273,7 +1271,6 @@ class AbsTask(ABC):
                 ngpu=args.ngpu,
                 log_interval=args.log_interval,
                 write_collected_feats=args.write_collected_feats,
-                skip_stats_npz=args.skip_stats_npz,
             )
         else:
             # 6. Loads pre-trained model
