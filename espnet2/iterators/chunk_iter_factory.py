@@ -1,5 +1,6 @@
 import logging
 import re
+from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -39,7 +40,7 @@ class ChunkIterFactory(AbsIterFactory):
         chunk_length: Union[int, str],
         chunk_shift_ratio: float = 0.5,
         num_cache_chunks: int = 1024,
-        num_samples_per_epoch: int = None,
+        num_samples_per_epoch: Optional[int] = None,
         seed: int = 0,
         shuffle: bool = False,
         num_workers: int = 0,
@@ -107,7 +108,7 @@ class ChunkIterFactory(AbsIterFactory):
     def build_iter(
         self,
         epoch: int,
-        shuffle: bool = None,
+        shuffle: Optional[bool] = None,
     ) -> Iterator[Tuple[List[str], Dict[str, torch.Tensor]]]:
         per_sample_loader = self.per_sample_iter_factory.build_iter(epoch, shuffle)
 
@@ -118,8 +119,8 @@ class ChunkIterFactory(AbsIterFactory):
         # NOTE(kamo):
         #   This iterator supports multiple chunk lengths and
         #   keep chunks for each lengths here until collecting specified numbers
-        cache_chunks_dict = {}
-        cache_id_list_dict = {}
+        cache_chunks_dict = defaultdict(dict)
+        cache_id_list_dict = defaultdict(dict)
         for ids, batch in per_sample_loader:
             # Must be per-sample-loader
             assert len(ids) == 1, f"Must be per-sample-loader: {len(ids)}"
@@ -156,9 +157,14 @@ class ChunkIterFactory(AbsIterFactory):
                 )
                 continue
 
+            # Convert numpy array to number
+            category = batch.get("utt2category", torch.LongTensor([0])).type(
+                torch.int64
+            ).item()
+
             W = int(state.choice(chunk_lengths, 1))
-            cache_id_list = cache_id_list_dict.setdefault(W, [])
-            cache_chunks = cache_chunks_dict.setdefault(W, {})
+            cache_id_list = cache_id_list_dict[category].setdefault(W, [])
+            cache_chunks = cache_chunks_dict[category].setdefault(W, {})
 
             # Shift width to the next chunk
             S = int(W * self.chunk_shift_ratio)
@@ -198,20 +204,21 @@ class ChunkIterFactory(AbsIterFactory):
                     state,
                 )
 
-            cache_id_list_dict[W] = cache_id_list
-            cache_chunks_dict[W] = cache_chunks
+            cache_id_list_dict[category][W] = cache_id_list
+            cache_chunks_dict[category][W] = cache_chunks
 
         else:
-            for W in cache_id_list_dict:
-                cache_id_list = cache_id_list_dict.setdefault(W, [])
-                cache_chunks = cache_chunks_dict.setdefault(W, {})
+            for category in cache_id_list_dict.keys():
+                for W in cache_id_list_dict[category]:
+                    cache_id_list = cache_id_list_dict[category].setdefault(W, [])
+                    cache_chunks = cache_chunks_dict[category].setdefault(W, {})
 
-                yield from self._generate_mini_batches(
-                    cache_id_list,
-                    cache_chunks,
-                    shuffle,
-                    state,
-                )
+                    yield from self._generate_mini_batches(
+                        cache_id_list,
+                        cache_chunks,
+                        shuffle,
+                        state,
+                    )
 
     def _generate_mini_batches(
         self,

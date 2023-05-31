@@ -1,6 +1,8 @@
 """Enhancement model module."""
+import contextlib
 from typing import Dict, List, Optional, OrderedDict, Tuple
 
+import numpy as np
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
@@ -34,6 +36,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
+        categories: list = [],
     ):
         assert check_argument_types()
 
@@ -67,6 +70,14 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.ref_channel = getattr(self.separator, "ref_channel", None)
         if self.ref_channel is None:
             self.ref_channel = 0
+
+        self.categories = {}
+        if categories:
+            count = 0
+            for c in categories:
+                if c not in self.categories:
+                    self.categories[count] = c
+                    count += 1
 
     def forward(
         self,
@@ -174,6 +185,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             speech_ref,
             noise_ref,
             dereverb_speech_ref,
+            kwargs.get("utt2category", None),
         )
         return loss, stats, weight
 
@@ -230,6 +242,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref: torch.Tensor,
         noise_ref: torch.Tensor = None,
         dereverb_speech_ref: torch.Tensor = None,
+        category: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         # for calculating loss on estimated noise signals
         if getattr(self.separator, "predict_noise", False):
@@ -283,13 +296,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 signal_ref = speech_ref
                 signal_pre = speech_pre
 
+            zero_weight = loss_wrapper.weight == 0.0
             if isinstance(criterion, TimeDomainLoss):
                 assert signal_pre is not None
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=True
                 )
                 # for the time domain criterions
-                l, s, o = loss_wrapper(sref, spre, {**others, **o})
+                with torch.no_grad() if zero_weight else contextlib.ExitStack():
+                    l, s, o = loss_wrapper(sref, spre, {**others, **o})
             elif isinstance(criterion, FrequencyDomainLoss):
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=False
@@ -341,11 +356,27 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     else:
                         tf_pre = [self.encoder(sp, speech_lengths)[0] for sp in spre]
 
-                l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
+                with torch.no_grad() if zero_weight else contextlib.ExitStack():
+                    l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
             else:
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 
             loss += l * loss_wrapper.weight
+
+            if (
+                self.categories
+                and category is not None
+                and category[0].item() not in self.categories
+            ):
+                raise ValueError(
+                    f"Category '{category}' is not listed in self.categories"
+                )
+            if category is not None:
+                for idx, c in self.categories.items():
+                    if idx == category[0].item():
+                        s[criterion.name + "_" + c] = s.pop(criterion.name)
+                    else:
+                        s[criterion.name + "_" + c] = torch.full_like(loss, np.nan)
             stats.update(s)
 
             if perm is None and "perm" in o:

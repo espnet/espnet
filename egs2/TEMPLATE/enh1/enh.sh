@@ -71,6 +71,7 @@ is_tse_task=false   # Whether perform the target speaker extraction task or norm
 use_dereverb_ref=false
 use_noise_ref=false
 extra_wav_list= # Extra list of scp files for wav formatting
+use_utt2category=false
 
 # Pretrained model related
 # The number of --init_param must be same.
@@ -160,6 +161,7 @@ Options:
     --use_noise_ref    # Whether or not to use noise signal as an additional reference
                          for training a denoising model (default="${use_noise_ref}")
     --extra_wav_list   # Extra list of scp files for wav formatting (default="${extra_wav_list}")
+    --use_utt2category # Whether or not to load the utt2category file for training (default="${use_utt2category}")
 
     # Pretrained model related
     --init_param    # pretrained model path and module name (default="${init_param}")
@@ -578,6 +580,7 @@ if ! "${skip_train}"; then
                 --collect_stats true \
                 ${_train_data_param} \
                 ${_valid_data_param} \
+                --skip_stats_npz true \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -667,6 +670,21 @@ if ! "${skip_train}"; then
                 _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/noise_ref${n}_shape "
                 _fold_length_param+="--fold_length ${_fold_length} "
             done
+        fi
+
+        # Add the category information at the end of the data path list
+        if ${use_utt2category}; then
+            for d in "${_enh_train_dir}" "${_enh_valid_dir}"; do
+                if [ ! -e "${d}/utt2category" ]; then
+                    log "Error: '${d}/utt2category' must be present when setting `--use_utt2category True`"
+                    exit 2
+                fi
+            done
+            log "[INFO] Adding the category information for training"
+            log "[WARNING] Please make sure the category information is explicitly processed in the preprocessor so that it is converted to an integer"
+
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/utt2category,category,text "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/utt2category,category,text "
         fi
 
         log "Generate '${enh_exp}/run.sh'. You can resume the process from stage 6 using this script"

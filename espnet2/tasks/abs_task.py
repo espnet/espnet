@@ -32,6 +32,7 @@ from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sample
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
+from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
@@ -144,8 +145,9 @@ scheduler_classes = dict(
     exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
     CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
     noamlr=NoamLR,
-    warmupsteplr=WarmupStepLR,
     warmuplr=WarmupLR,
+    warmupsteplr=WarmupStepLR,
+    warmupReducelronplateau=WarmupReduceLROnPlateau,
     cycliclr=torch.optim.lr_scheduler.CyclicLR,
     onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
     CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
@@ -440,6 +442,12 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help='Write the output features from the model when "collect stats" mode',
+        )
+        group.add_argument(
+            "--skip_stats_npz",
+            type=str2bool,
+            default=False,
+            help='Whether to skip saving *_stats.npz files in "collect stats" mode',
         )
 
         group = parser.add_argument_group("Trainer related")
@@ -1265,6 +1273,7 @@ class AbsTask(ABC):
                 ngpu=args.ngpu,
                 log_interval=args.log_interval,
                 write_collected_feats=args.write_collected_feats,
+                skip_stats_npz=args.skip_stats_npz,
             )
         else:
             # 6. Loads pre-trained model
