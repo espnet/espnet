@@ -84,6 +84,7 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
+        # add pause (split)
         if (
             (
                 "turkey_in_the_straw" in file_id
@@ -143,6 +144,7 @@ if __name__ == "__main__":
         path = " ".join(wavline[1:])
         phn_info = label_line.strip().split()[1:]
         temp_info = []
+        # correct capitalization
         for i in range(len(phn_info) // 3):
             if phn_info[i * 3 + 2] == "U":
                 phn_info[i * 3 + 2] = "u"
