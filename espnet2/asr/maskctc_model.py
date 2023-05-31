@@ -302,7 +302,7 @@ class MaskCTCInference(torch.nn.Module):
                 if probs_hat[i] < ctc_probs[0][cnt]:
                     probs_hat[i] = ctc_probs[0][cnt].item()
                 cnt += 1
-        probs_hat = torch.from_numpy(numpy.array(probs_hat))
+        probs_hat = torch.from_numpy(numpy.array(probs_hat)).to(enc_out.device)
 
         # mask ctc outputs based on ctc probabilities
         p_thres = self.threshold_probability
