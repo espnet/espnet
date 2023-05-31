@@ -2,6 +2,7 @@
    :maxdepth: 1
    :caption: Notebook:
 
+   ./notebook/DataPreparation_CMU_11492_692_Spring2023(Assignment0).ipynb
    ./notebook/asr_cli.ipynb
    ./notebook/asr_library.ipynb
    ./notebook/espnet2_2pass_slu_demo.ipynb

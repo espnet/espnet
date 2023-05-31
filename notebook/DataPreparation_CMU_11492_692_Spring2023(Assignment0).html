@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMU 11492/11692 Spring 2023: Data preparation &mdash; ESPnet 202304 documentation</title><link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Speech Recognition (Recipe)" href="asr_cli.html" />
+    <link rel="prev" title="Distributed training" href="../espnet2_distributed.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202304
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../parallelization.html">Using job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CMU 11492/11692 Spring 2023: Data preparation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Objectives">Objectives</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Useful-links">Useful links</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Download-ESPnet">Download ESPnet</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Setup-Python-environment-based-on-anaconda">Setup Python environment based on anaconda</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#Data-preparation-in-ESPnet">Data preparation in ESPnet</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Data-preparation-for-AN4">Data preparation for AN4</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#How-to-read-file-in-pipe">How to read file in pipe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Data-preparation-for-TOTONAC">Data preparation for TOTONAC</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">CMU 11492/11692 Spring 2023: Data preparation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebook/DataPreparation_CMU_11492_692_Spring2023(Assignment0).ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="CMU-11492/11692-Spring-2023:-Data-preparation">
+<h1>CMU 11492/11692 Spring 2023: Data preparation<a class="headerlink" href="#CMU-11492/11692-Spring-2023:-Data-preparation" title="Permalink to this headline">¶</a></h1>
+<p>In this demonstration, we will show you the procedure to prepare the data for speech processing (ASR as an example).</p>
+<p>Main references: - <a class="reference external" href="https://github.com/espnet/espnet">ESPnet repository</a> - <a class="reference external" href="https://espnet.github.io/espnet/">ESPnet documentation</a> - <a class="reference external" href="https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_tutorial_2021_CMU_11751_18781.ipynb">ESPnet tutorial in Speech Recognition and Understanding (Fall 2021)</a> - <a class="reference external" href="https://colab.research.google.com/drive/1tY6PxF_M5Nx5n488x0DrpujJOyqW-ATi?usp=sharing">Recitation in Multilingual NLP (Spring 2022)</a> - <a class="reference external" href="https://colab.research.google.com/github/espnet/notebook/blob/master/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.ipynb">ESPnet tutorail in Speech
+Recognition and Understanding (Fall 2022)</a></p>
+<p>Author: - Jiatong Shi (<a class="reference external" href="mailto:jiatongs&#37;&#52;&#48;andrew&#46;cmu&#46;edu">jiatongs<span>&#64;</span>andrew<span>&#46;</span>cmu<span>&#46;</span>edu</a>)</p>
+<section id="Objectives">
+<h2>Objectives<a class="headerlink" href="#Objectives" title="Permalink to this headline">¶</a></h2>
+<p>After this demonstration, you are expected to know: - Understand the Kaldi(ESPnet) data format</p>
+</section>
+<section id="Useful-links">
+<h2>Useful links<a class="headerlink" href="#Useful-links" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Installation <a class="reference external" href="https://espnet.github.io/espnet/installation.html">https://espnet.github.io/espnet/installation.html</a></p></li>
+<li><p>Kaldi Data format <a class="reference external" href="https://kaldi-asr.org/doc/data_prep.html">https://kaldi-asr.org/doc/data_prep.html</a></p></li>
+<li><p>ESPnet data format <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory">https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory</a></p></li>
+</ul>
+</section>
+<section id="Download-ESPnet">
+<h2>Download ESPnet<a class="headerlink" href="#Download-ESPnet" title="Permalink to this headline">¶</a></h2>
+<p>We use <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">clone</span></code> to download the source code of ESPnet and then go to a specific commit.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes a few seconds
+!git clone --depth 5 https://github.com/espnet/espnet
+
+# We use a specific commit just for reproducibility.
+%cd /content/espnet
+!git checkout 3970558fbbe38d7b7e9922b08a9aa249390d4fb7
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Setup-Python-environment-based-on-anaconda">
+<h2>Setup Python environment based on anaconda<a class="headerlink" href="#Setup-Python-environment-based-on-anaconda" title="Permalink to this headline">¶</a></h2>
+<p>There are several other installation methods, but <strong>we highly recommend the anaconda-based one</strong>. In this demonstration, we will only need to have the python environment (no need to install the full espnet). But installation of ESPnet main codebase will be necessary for for training/inference/scoring.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># It takes 30 seconds
+%cd /content/espnet/tools
+!./setup_anaconda.sh anaconda espnet 3.9
+
+!./installers/install_sph2pipe.sh
+</pre></div>
+</div>
+</div>
+<p>We will also install some essential python libraries (these will be auto-matically downloaded during espnet installation. However, today, we won’t go through that part, so we need to mannually install the packages.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!pip install kaldiio soundfile tqdm librosa matplotlib IPython
+</pre></div>
+</div>
+</div>
+<p>We will also need Kaldi for some essential scripts.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!git clone https://github.com/kaldi-asr/kaldi.git
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="Data-preparation-in-ESPnet">
+<h1>Data preparation in ESPnet<a class="headerlink" href="#Data-preparation-in-ESPnet" title="Permalink to this headline">¶</a></h1>
+<p>ESPnet has a number of recipes (146 recipes on Jan. 23, 2023). One of the most important steps for those recipes is the preparation of the data. Constructing in different scenarios, spoken corpora need to be converted into a unified format. In ESPnet, we follow and adapt the Kaldi data format for various tasks.</p>
+<p>In this demonstration, we will focus on a specific recipe <code class="docutils literal notranslate"><span class="pre">an4</span></code> as an example.</p>
+<p>Other materials: - Kaldi format documentation can be found in <a class="reference external" href="https://kaldi-asr.org/doc/data_prep.html">https://kaldi-asr.org/doc/data_prep.html</a> - ESPnet data format is in <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory">https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory</a> - Please refer to <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/README.md">https://github.com/espnet/espnet/blob/master/egs2/README.md</a> for a complete list of recipes. - Please also check the general usage of the recipe in <a class="reference external" href="https://espnet.github.io/espnet/espnet2_tutorial.html#recipes-using-espnet2">https://espnet.github.io/espnet/espnet2_tutorial.html#recipes-using-espnet2</a></p>
+<section id="Data-preparation-for-AN4">
+<h2>Data preparation for AN4<a class="headerlink" href="#Data-preparation-for-AN4" title="Permalink to this headline">¶</a></h2>
+<p>All the data preparation in ESPnet2 happens in <code class="docutils literal notranslate"><span class="pre">egs2/recipe_name/task/local/data.sh</span></code> where the task can be either <code class="docutils literal notranslate"><span class="pre">asr1</span></code>, <code class="docutils literal notranslate"><span class="pre">enh1</span></code>, <code class="docutils literal notranslate"><span class="pre">tts1</span></code>, etc.</p>
+<p><strong>CMU AN4 recipe</strong></p>
+<p>In this demonstration, we will use the CMU <code class="docutils literal notranslate"><span class="pre">an4</span></code> recipe. This is a small-scale speech recognition task mainly used for testing.</p>
+<p>First, let’s go to the recipe directory.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>%cd /content/espnet/egs2/an4/asr1
+!ls
+</pre></div>
+</div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>egs2/an4/asr1/
+ - conf/      # Configuration files for training, inference, etc.
+ - scripts/   # Bash utilities of espnet2
+ - pyscripts/ # Python utilities of espnet2
+ - steps/     # From Kaldi utilities
+ - utils/     # From Kaldi utilities
+ - local/     # Some local scripts for specific recipes (Data Preparation usually in `local/data.sh`)
+ - db.sh      # The directory path of each corpora
+ - path.sh    # Setup script for environment variables
+ - cmd.sh     # Configuration for your backend of job scheduler
+ - run.sh     # Entry point
+ - asr.sh     # Invoked by run.sh
+</pre></div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span># a few seconds
+!./local/data.sh
+</pre></div>
+</div>
+</div>
+<p>The orginal data usually in various format. AN4 has a quite straightforward format. You may dig into the folder <code class="docutils literal notranslate"><span class="pre">an4</span></code> to see the raw format. After this preparation is finished, all the information will be in the <code class="docutils literal notranslate"><span class="pre">data</span></code> directory:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!ls data
+</pre></div>
+</div>
+</div>
+<p>In this recipe, we use <code class="docutils literal notranslate"><span class="pre">train_nodev</span></code> as a training set, <code class="docutils literal notranslate"><span class="pre">train_dev</span></code> as a validation set (monitor the training progress by checking the validation score). We also use <code class="docutils literal notranslate"><span class="pre">test</span></code> and <code class="docutils literal notranslate"><span class="pre">train_dev</span></code> sets for the final speech recognition evaluation.</p>
+<p>Let’s check one of the training data directories:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!ls -1 data/train_nodev/
+</pre></div>
+</div>
+</div>
+<p>In short, the four files are:</p>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>spk2utt # Speaker information
+text    # Transcription file
+utt2spk # Speaker information
+wav.scp # Audio file
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> is the most important file that holds the speech data. For each line of the <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code>, there are generally two components <code class="docutils literal notranslate"><span class="pre">WAV_ID</span></code> and <code class="docutils literal notranslate"><span class="pre">SPEECH_AUDIO</span></code> for each line of the file. The <code class="docutils literal notranslate"><span class="pre">WAV_ID</span></code> is an identifier for the utterance, while the <code class="docutils literal notranslate"><span class="pre">SPEECH_AUDIO</span></code> holds the speech audio data.</p>
+<p>The audio data can be in various audio formats, such as <code class="docutils literal notranslate"><span class="pre">wav</span></code>, <code class="docutils literal notranslate"><span class="pre">flac</span></code>, <code class="docutils literal notranslate"><span class="pre">sph</span></code>, etc. We can also use pipe to normalize audio files with (e.g., <code class="docutils literal notranslate"><span class="pre">sox</span></code>, <code class="docutils literal notranslate"><span class="pre">ffmpeg</span></code>, <code class="docutils literal notranslate"><span class="pre">sph2pipe</span></code>). The following from an4 is an example using <code class="docutils literal notranslate"><span class="pre">sph2pipe</span></code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!head -n 10 data/train_nodev/wav.scp
+</pre></div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">text</span></code> is to hold the transription of the speech. Similar to <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code>, for each line of <code class="docutils literal notranslate"><span class="pre">text</span></code>, there are <code class="docutils literal notranslate"><span class="pre">UTT_ID</span></code> and <code class="docutils literal notranslate"><span class="pre">TRANSCRIPTION</span></code>. Note that the <code class="docutils literal notranslate"><span class="pre">UTT_ID</span></code> in <code class="docutils literal notranslate"><span class="pre">text</span></code> and <code class="docutils literal notranslate"><span class="pre">WAV_ID</span></code> in <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> are not necessary the same. But for the simple case (e.g., the <code class="docutils literal notranslate"><span class="pre">AN4</span></code>), we regard them as the same. The example in <code class="docutils literal notranslate"><span class="pre">AN4</span></code> is as:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!head -n 10 data/train_nodev/text
+</pre></div>
+</div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">spk2utt</span></code> and <code class="docutils literal notranslate"><span class="pre">utt2spk</span></code> are mapping between utterances and speakers. The information is widely used in conventional hidden Markov model (HMM)-based ASR systems, but not that popular in end-to-end ASR systems nowadays. However, they are still very important for tasks such as speaker diarization and multi-speaker text-to-speech. The examples of AN4 is as follows:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!head -n 10 data/train_nodev/spk2utt
+!echo &quot;--------------------------&quot;
+!head -n 10 data/train_nodev/utt2spk
+</pre></div>
+</div>
+</div>
+</section>
+<section id="How-to-read-file-in-pipe">
+<h2>How to read file in pipe<a class="headerlink" href="#How-to-read-file-in-pipe" title="Permalink to this headline">¶</a></h2>
+<p>We can use <code class="docutils literal notranslate"><span class="pre">kaldiio</span></code> package to read audio files from <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code>. The example is as follows:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="kn">import</span> <span class="nn">kaldiio</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">io</span> <span class="kn">import</span> <span class="n">BytesIO</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span> <span class="nn">librosa.display</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">IPython.display</span> <span class="k">as</span> <span class="nn">ipd</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PATH&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PATH&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;:/content/espnet/tools/sph2pipe&quot;</span>
+
+<span class="n">wavscp</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;data/test/wav.scp&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+
+<span class="n">num_wav</span> <span class="o">=</span> <span class="mi">5</span>
+<span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">wavscp</span><span class="p">):</span>
+  <span class="n">utt_id</span><span class="p">,</span> <span class="n">wavpath</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="k">with</span> <span class="n">kaldiio</span><span class="o">.</span><span class="n">open_like_kaldi</span><span class="p">(</span><span class="n">wavpath</span><span class="p">,</span> <span class="s2">&quot;rb&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">BytesIO</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">())</span> <span class="k">as</span> <span class="n">g</span><span class="p">:</span>
+      <span class="n">wave</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;audio: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">utt_id</span><span class="p">))</span>
+      <span class="n">librosa</span><span class="o">.</span><span class="n">display</span><span class="o">.</span><span class="n">waveshow</span><span class="p">(</span><span class="n">wave</span><span class="p">,</span> <span class="n">rate</span><span class="p">)</span>
+      <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+      <span class="n">ipd</span><span class="o">.</span><span class="n">display</span><span class="p">(</span><span class="n">ipd</span><span class="o">.</span><span class="n">Audio</span><span class="p">(</span><span class="n">wave</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">rate</span><span class="p">))</span> <span class="c1"># load a NumPy array</span>
+      <span class="k">if</span> <span class="n">count</span> <span class="o">==</span> <span class="n">num_wav</span><span class="p">:</span>
+        <span class="k">break</span>
+      <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Data-preparation-for-TOTONAC">
+<h2>Data preparation for TOTONAC<a class="headerlink" href="#Data-preparation-for-TOTONAC" title="Permalink to this headline">¶</a></h2>
+<p><strong>CMU TOTONAC recipe</strong></p>
+<p>In the second part of the demonstration, we will use the CMU <code class="docutils literal notranslate"><span class="pre">totonac</span></code> recipe. This is a small-scale ASR recipe, which is an endangered language in central Mexico. We will follow mostly the similar procedure as the showcase of AN4. For the start, the recipe directory of <code class="docutils literal notranslate"><span class="pre">totonac</span></code> is almost the same as <code class="docutils literal notranslate"><span class="pre">an4</span></code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>%cd /content/espnet/egs2/totonac/asr1
+!ls
+</pre></div>
+</div>
+</div>
+<p>Then we execute <code class="docutils literal notranslate"><span class="pre">./local/data.sh</span></code> for the data preparation, which is the same as <code class="docutils literal notranslate"><span class="pre">an4</span></code>. The downloading takes a longer time (around 2-3 mins) for <code class="docutils literal notranslate"><span class="pre">totonac</span></code> as the speech is in higher-sampling rate and recorded in a conversational manner which include longer session rather than single utterances.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!. ../../../tools/activate_python.sh &amp;&amp; pip install soundfile # we need soundfile for necessary processing
+
+!./local/data.sh
+</pre></div>
+</div>
+</div>
+<p>Let’s first check the original data format of the <code class="docutils literal notranslate"><span class="pre">totonac</span></code>. To facilate the linguists working on the language, we use the ELAN format, which is special XML format. For preparation, we need to parse the format into the same Kaldi format as mentioned ahead. For more details, please check <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/totonac/asr1/local/data_prep.py">https://github.com/espnet/espnet/blob/master/egs2/totonac/asr1/local/data_prep.py</a></p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!ls -l downloads/Conversaciones/Botany/Transcripciones/ELAN-para-traducir | head -n 5
+!echo &quot;-----------------------------------------------&quot;
+!cat downloads/Conversaciones/Botany/Transcripciones/ELAN-para-traducir/Zongo_Botan_ESP400-SLC388_Convolvulaceae-Cuscuta-sp_2019-09-25-c_ed-2020-12-30.eaf
+</pre></div>
+</div>
+</div>
+<p>Similar to <code class="docutils literal notranslate"><span class="pre">AN4</span></code>, we will have three sets for the experiments for <code class="docutils literal notranslate"><span class="pre">totonac</span></code>, including train, test and dev. However, within the set, we also have a <code class="docutils literal notranslate"><span class="pre">segments</span></code> file apart from the files mentioned above.</p>
+<p>For each line of <code class="docutils literal notranslate"><span class="pre">segments</span></code>, we will have four fields for each line, including <code class="docutils literal notranslate"><span class="pre">UTT_ID</span></code>, <code class="docutils literal notranslate"><span class="pre">WAV_ID</span></code>, “start time” and “end time”. Note that when <code class="docutils literal notranslate"><span class="pre">segments</span></code> files are presented, the <code class="docutils literal notranslate"><span class="pre">WAV_ID</span></code> in <code class="docutils literal notranslate"><span class="pre">wav.scp</span></code> and <code class="docutils literal notranslate"><span class="pre">UTT_ID</span></code> in <code class="docutils literal notranslate"><span class="pre">text</span></code>, <code class="docutils literal notranslate"><span class="pre">utt2spk</span></code> and <code class="docutils literal notranslate"><span class="pre">spk2utt</span></code> are not the same anymore. And the <code class="docutils literal notranslate"><span class="pre">segments</span></code> is the file that keeps the relationship between <code class="docutils literal notranslate"><span class="pre">WAV_ID</span></code> and <code class="docutils literal notranslate"><span class="pre">UTT_ID</span></code>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+</pre></div>
+</div>
+<div class="input_area highlight-python notranslate"><div class="highlight"><pre><span></span>!ls -l data
+!echo  &quot;--------------------------&quot;
+!ls -l data/train
+!echo  &quot;------------- wav.scp file -------------&quot;
+!head -n 10 data/train/wav.scp
+!echo  &quot;------------- Segment file -------------&quot;
+!head -n 10 data/train/segments
+<br/><br/></pre></div>
+</div>
+</div>
+<p>#Questions:</p>
+<p><strong>Q1: The format itself is very general. But it cannot fit to all the tasks in speech processing. Could you list three tasks where the current format cannot be sufficient?</strong></p>
+<p><em>Your Answers here</em></p>
+<p><strong>Q2: For the three tasks you listed above, can you think of some modification or addition to the format to make it also working for the tasks?</strong></p>
+<p><em>Your Answers here</em></p>
+<p><strong>Q3: Briefly discuss the difference within the ``wav.scp`` between ``an4`` and ``totonac``</strong></p>
+<p><em>Your Answers here</em></p>
+<p>(Note that for this assignment, you do not need to submit anything.)</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../espnet2_distributed.html" class="btn btn-neutral float-left" title="Distributed training" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="asr_cli.html" class="btn btn-neutral float-right" title="Speech Recognition (Recipe)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
