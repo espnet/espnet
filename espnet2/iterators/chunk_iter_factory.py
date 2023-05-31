@@ -158,9 +158,11 @@ class ChunkIterFactory(AbsIterFactory):
                 continue
 
             # Convert numpy array to number
-            category = batch.get("utt2category", torch.LongTensor([0])).type(
-                torch.int64
-            ).item()
+            category = (
+                batch.get("utt2category", torch.LongTensor([0]))
+                .type(torch.int64)
+                .item()
+            )
 
             W = int(state.choice(chunk_lengths, 1))
             cache_id_list = cache_id_list_dict[category].setdefault(W, [])

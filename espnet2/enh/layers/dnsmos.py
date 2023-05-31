@@ -1,8 +1,8 @@
 import json
+
 import librosa
 import numpy as np
 import requests
-
 
 SAMPLING_RATE = 16000
 INPUT_LENGTH = 9.01

@@ -56,8 +56,8 @@ class WarmupReduceLROnPlateau(AbsBatchStepScheduler, AbsValEpochStepScheduler):
         self.lr_scale = warmup_steps**-1
         # Initialize base learning rates
         for group in optimizer.param_groups:
-            if 'initial_lr' not in group:
-                group.setdefault('initial_lr', group['lr'])
+            if "initial_lr" not in group:
+                group.setdefault("initial_lr", group["lr"])
         self.base_lrs = [group["initial_lr"] for group in optimizer.param_groups]
 
         if factor >= 1.0:
