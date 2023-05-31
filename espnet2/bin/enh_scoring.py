@@ -73,14 +73,14 @@ def scoring(
 
             if not Path(dnsmos_args["primary_model"]).exists():
                 raise ValueError(
-                    f"The primary model '{dnsmos_args['primary_model']}' does not exist. "
-                    "You can download the model from https://github.com/microsoft/"
+                    f"The primary model '{dnsmos_args['primary_model']}' doesn't exist."
+                    " You can download the model from https://github.com/microsoft/"
                     "DNS-Challenge/tree/master/DNSMOS/DNSMOS/sig_bak_ovr.onnx"
                 )
             if not Path(dnsmos_args["p808_model"]).exists():
                 raise ValueError(
-                    f"The P808 model '{dnsmos_args['p808_model']}' does not exist."
-                    "You can download the model from https://github.com/microsoft/"
+                    f"The P808 model '{dnsmos_args['p808_model']}' doesn't exist."
+                    " You can download the model from https://github.com/microsoft/"
                     "DNS-Challenge/tree/master/DNSMOS/DNSMOS/model_v8.onnx"
                 )
             dnsmos = DNSMOS_local(
