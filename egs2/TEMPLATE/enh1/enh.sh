@@ -83,6 +83,7 @@ download_model=
 
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR SI_SNR"
+scoring_opts=""
 ref_channel=0
 inference_tag=  # Prefix to the result dir for ENH inference.
 inference_enh_config= # Config for enhancement.
@@ -171,6 +172,7 @@ Options:
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
+    --scoring_opts        # Additional arguments for scoring (default="${scoring_opts}")
     --ref_channel         # Reference channel of the reference speech will be used if the model
                             output is single-channel and reference speech is multi-channel
                             (default="${ref_channel}")
@@ -869,7 +871,8 @@ if ! "${skip_eval}"; then
                         ${_ref_scp} \
                         ${_inf_scp} \
                         --ref_channel ${ref_channel} \
-                        --flexible_numspk ${flexible_numspk}
+                        --flexible_numspk ${flexible_numspk} \
+                        ${scoring_opts}
 
                 for spk in $(seq "${ref_num}"); do
                     for protocol in ${scoring_protocol} wav; do

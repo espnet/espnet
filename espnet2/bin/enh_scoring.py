@@ -56,8 +56,9 @@ def scoring(
     inf_scp: List[str],
     ref_channel: int,
     flexible_numspk: bool,
-    dnsmos: bool,
+    use_dnsmos: bool,
     dnsmos_args: Dict,
+    use_pesq: bool,
 ):
     assert check_argument_types()
 
@@ -66,7 +67,7 @@ def scoring(
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
-    if dnsmos:
+    if use_dnsmos:
         if dnsmos_args["mode"] == "local":
             from espnet2.enh.layers.dnsmos import DNSMOS_local
 
@@ -100,6 +101,16 @@ def scoring(
             logging.warning("Using the DNSMOS Web-API for evaluation")
     else:
         dnsmos = None
+
+    if use_pesq:
+        try:
+            from pesq import pesq, PesqError
+
+            logging.warning("Using the PESQ package for evaluation")
+        except ImportError:
+            raise ImportError("Please install pesq and retry: pip install pesq")
+    else:
+        pesq = None
 
     if not flexible_numspk:
         assert len(ref_scp) == len(inf_scp), ref_scp
@@ -200,6 +211,30 @@ def scoring(
                     writer[f"SIG_spk{i + 1}"][key] = str(dnsmos_score["SIG"])
                     writer[f"BAK_spk{i + 1}"][key] = str(dnsmos_score["BAK"])
                     writer[f"P808_MOS_spk{i + 1}"][key] = str(dnsmos_score["P808_MOS"])
+                if pesq:
+                    if sample_rate == 8000:
+                        mode = "nb"
+                    elif sample_rate == 16000:
+                        mode = "wb"
+                    else:
+                        raise ValueError(
+                            "sample rate must be 8000 or 16000 for PESQ evaluation, "
+                            f"but got {sample_rate}"
+                        )
+                    pesq_score = pesq(
+                        sample_rate,
+                        ref[i],
+                        inf[int(perm[i])],
+                        mode=mode,
+                        on_error=PesqError.RETURN_VALUES,
+                    )
+                    if pesq_score == PesqError.NO_UTTERANCES_DETECTED:
+                        logging.warning(
+                            f"[PESQ] Error: No utterances detected for {key}. "
+                            "Skipping this utterance."
+                        )
+                    else:
+                        writer[f"PESQ_{mode.upper()}_spk{i + 1}"][key] = str(pesq_score)
                 writer[f"STOI_spk{i + 1}"][key] = str(stoi_score * 100)  # in percentage
                 writer[f"ESTOI_spk{i + 1}"][key] = str(estoi_score * 100)
                 writer[f"SI_SNR_spk{i + 1}"][key] = str(si_snr_score)
@@ -263,7 +298,7 @@ def get_parser():
     group.add_argument("--flexible_numspk", type=str2bool, default=False)
 
     group = parser.add_argument_group("DNSMOS related")
-    group.add_argument("--dnsmos", type=str2bool, default=False)
+    group.add_argument("--use_dnsmos", type=str2bool, default=False)
     group.add_argument(
         "--dnsmos_mode",
         type=str,
@@ -287,6 +322,15 @@ def get_parser():
         help="Path to the p808 model. Required if dnsmsos_mode='local'",
     )
 
+    group = parser.add_argument_group("PESQ related")
+    group.add_argument(
+        "--use_pesq",
+        type=str2bool,
+        default=False,
+        help="Bebore setting this to True, please make sure that you or "
+        "your institution have the license "
+        "(check https://www.itu.int/rec/T-REC-P.862-200511-I!Amd2/en) to report PESQ",
+    )
     return parser
 
 
