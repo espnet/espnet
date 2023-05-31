@@ -386,6 +386,8 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}/org/${train_set}/spk2sid" \
                     "${data_feats}${_suf}/${dset}/utt2spk" \
                     > "${data_feats}${_suf}/${dset}/utt2sid"
+
+		utt_extra_files="${utt_extra_files} utt2sid"
             done
         fi
     fi
@@ -413,6 +415,8 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}/org/${train_set}/lang2lid" \
                     "${data_feats}${_suf}/${dset}/utt2lang" \
                     > "${data_feats}${_suf}/${dset}/utt2lid"
+
+		utt_extra_files="${utt_extra_files} utt2lid"
             done
         fi
     fi
