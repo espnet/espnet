@@ -418,7 +418,9 @@ class EnhancementTask(AbsTask):
                     noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
                     noise_db_range=getattr(args, "noise_db_range", "13_15"),
                     short_noise_thres=getattr(args, "short_noise_thres", 0.5),
-                    speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
+                    speech_volume_normalize=getattr(
+                        args, "speech_volume_normalize", None
+                    ),
                     use_reverberant_ref=getattr(args, "use_reverberant_ref", None),
                     num_spk=getattr(args, "num_spk", 1),
                     num_noise_type=getattr(args, "num_noise_type", 1),
