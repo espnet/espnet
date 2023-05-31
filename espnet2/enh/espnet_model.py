@@ -36,7 +36,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
-        categories: list = [],
+        categories: List[str] = [],
     ):
         assert check_argument_types()
 
@@ -71,8 +71,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if self.ref_channel is None:
             self.ref_channel = 0
 
+        # Map each unique integer (category) into the corresponding string
         self.categories = {}
+        # This should be used together with `--use_utt2category True` in enh.sh
         if categories:
+            # This should correspond to that defined in the preprocessor
+            # while the key and value are swapped.
             count = 0
             for c in categories:
                 if c not in self.categories:
