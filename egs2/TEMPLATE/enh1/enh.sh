@@ -580,7 +580,6 @@ if ! "${skip_train}"; then
                 --collect_stats true \
                 ${_train_data_param} \
                 ${_valid_data_param} \
-                --skip_stats_npz true \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \

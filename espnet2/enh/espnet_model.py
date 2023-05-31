@@ -36,6 +36,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
+        extract_feats_in_collect_stats: bool = False,
         categories: List[str] = [],
     ):
         assert check_argument_types()
@@ -70,6 +71,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.ref_channel = getattr(self.separator, "ref_channel", None)
         if self.ref_channel is None:
             self.ref_channel = 0
+
+        # Used in espnet2/tasks/abs_task.py for determining whether or not to do
+        # collect_feats during collect stats (stage 5).
+        self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
         # Map each unique integer (category) into the corresponding string
         self.categories = {}

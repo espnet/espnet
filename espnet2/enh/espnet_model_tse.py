@@ -28,6 +28,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
         loss_wrappers: List[AbsLossWrapper],
         num_spk: int = 1,
         share_encoder: bool = True,
+        extract_feats_in_collect_stats: bool = False,
     ):
         assert check_argument_types()
 
@@ -52,6 +53,10 @@ class ESPnetExtractionModel(AbsESPnetModel):
 
         # for multi-channel signal
         self.ref_channel = getattr(self.extractor, "ref_channel", -1)
+
+        # Used in espnet2/tasks/abs_task.py for determining whether or not to do
+        # collect_feats during collect stats (stage 5).
+        self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
     def forward(
         self,
