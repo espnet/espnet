@@ -104,7 +104,7 @@ def scoring(
 
     if use_pesq:
         try:
-            from pesq import pesq, PesqError
+            from pesq import PesqError, pesq
 
             logging.warning("Using the PESQ package for evaluation")
         except ImportError:
