@@ -79,7 +79,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     echo "Extracting VoxCeleb2 text data."
     unzip -q ${data_dir_prefix}/vox2_dev_txt.zip -d ${data_dir_prefix}
-    if [ ! -d ${data_dir_prefix}/voxceleb2/dev]; then
+    if [ ! -d ${data_dir_prefix}/voxceleb2/dev ]; then
         mkdir -r ${data_dir_prefix/voxceelb2/dev}
     fi
     mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb2/dev
