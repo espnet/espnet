@@ -6,7 +6,9 @@
 """
 
 from __future__ import print_function
+
 import re
+
 from libs.nnet3.xconfig.basic_layers import XconfigLayerBase
 
 

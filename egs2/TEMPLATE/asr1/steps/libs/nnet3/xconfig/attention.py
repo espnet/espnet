@@ -5,11 +5,12 @@
 """ This module has the implementation of attention layers.
 """
 
-from __future__ import print_function
-from __future__ import division
+from __future__ import division, print_function
+
 import math
 import re
 import sys
+
 from libs.nnet3.xconfig.basic_layers import XconfigLayerBase
 
 # This class is for parsing lines like

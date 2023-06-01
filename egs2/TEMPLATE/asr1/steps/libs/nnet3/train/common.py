@@ -12,8 +12,8 @@ from __future__ import division
 import argparse
 import glob
 import logging
-import os
 import math
+import os
 import re
 import shutil
 
@@ -996,6 +996,7 @@ class CommonParser(object):
 
 
 import unittest
+
 
 class SelfTest(unittest.TestCase):
 

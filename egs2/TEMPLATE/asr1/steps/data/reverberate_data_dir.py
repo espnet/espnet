@@ -5,7 +5,17 @@
 # Apache 2.0
 # script to generate reverberated data
 
-import argparse, shlex, glob, math, os, random, sys, warnings, copy, imp, ast
+import argparse
+import ast
+import copy
+import glob
+import imp
+import math
+import os
+import random
+import shlex
+import sys
+import warnings
 
 data_lib = imp.load_source('dml', 'steps/data/data_dir_manipulation_lib.py')
 

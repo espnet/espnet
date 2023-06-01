@@ -8,10 +8,13 @@
 """ This module has the implementations of different GRU layers.
 """
 from __future__ import print_function
+
 import math
 import re
 import sys
+
 from libs.nnet3.xconfig.basic_layers import XconfigLayerBase
+
 
 # This class is for lines like
 #   'gru-layer name=gru1 input=[-1] delay=-3'

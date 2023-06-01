@@ -72,10 +72,8 @@ fi
 
 
 if [ -n "${download_baseline_diarization}" ]; then
-  # TODO
   log "Using organizer-provided JSON manifests from the baseline diarization system."
-  #git clone
-  #mv
+  git clone https://github.com/popcornell/CHiME7DASRDiarizationBaselineJSONs:diarization $diarization_dir
   stage=4
 fi
 

@@ -4,12 +4,12 @@
 #                   Vimal Manohar
 # Apache 2.0.
 
-from __future__ import division
-from __future__ import print_function
-import traceback
+from __future__ import division, print_function
+
 import datetime
 import logging
 import re
+import traceback
 
 import libs.common as common_lib
 

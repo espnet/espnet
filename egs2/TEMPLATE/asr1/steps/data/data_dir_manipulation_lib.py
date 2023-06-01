@@ -1,5 +1,6 @@
 import subprocess
 
+
 def RunKaldiCommand(command, wait = True):
     """ Runs commands frequently seen in Kaldi scripts. These are usually a
         sequence of commands connected by pipes, so we use shell=True """

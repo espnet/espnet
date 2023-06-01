@@ -5,9 +5,11 @@
     term for things like TDNN-F that contain several affine or linear comopnents.
 """
 from __future__ import print_function
+
 import math
 import re
 import sys
+
 from libs.nnet3.xconfig.basic_layers import XconfigLayerBase
 
 # This class is intended to implement an extension of the factorized TDNN

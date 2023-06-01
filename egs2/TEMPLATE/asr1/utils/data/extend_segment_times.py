@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-import sys
-import argparse
-from collections import defaultdict
 
+import argparse
+import sys
+from collections import defaultdict
 
 parser = argparse.ArgumentParser(description="""
  Usage: extend_segment_times.py [options] <input-segments >output-segments

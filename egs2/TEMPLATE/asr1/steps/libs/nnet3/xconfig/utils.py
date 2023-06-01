@@ -5,8 +5,8 @@
 # of xconfig -> config conversion.  It contains "generic" lower-level code
 # while xconfig_layers.py contains the code specific to layer types.
 
-from __future__ import print_function
-from __future__ import division
+from __future__ import division, print_function
+
 import re
 import sys
 

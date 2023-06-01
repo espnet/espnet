@@ -8,13 +8,14 @@
 and some basic layer definitions.
 """
 
-from __future__ import print_function
-from __future__ import division
+from __future__ import division, print_function
+
 import math
 import re
 import sys
-import libs.nnet3.xconfig.utils as xutils
+
 import libs.common as common_lib
+import libs.nnet3.xconfig.utils as xutils
 
 
 class XconfigLayerBase(object):

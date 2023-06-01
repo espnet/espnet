@@ -9,11 +9,10 @@ from __future__ import print_function
 
 import logging
 import sys
-import libs.nnet3.xconfig.layers as xlayers
-import libs.nnet3.xconfig.utils as xutils
 
 import libs.common as common_lib
-
+import libs.nnet3.xconfig.layers as xlayers
+import libs.nnet3.xconfig.utils as xutils
 
 # We have to modify this dictionary when adding new layers
 config_to_layer = {

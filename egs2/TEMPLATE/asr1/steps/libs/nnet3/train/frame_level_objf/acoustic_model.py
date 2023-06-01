@@ -13,7 +13,6 @@ import logging
 import libs.common as common_lib
 import libs.nnet3.train.common as common_train_lib
 
-
 logger = logging.getLogger(__name__)
 logger.addHandler(logging.NullHandler())
 
