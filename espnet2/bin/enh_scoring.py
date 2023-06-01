@@ -140,7 +140,7 @@ def scoring(
 
     with DatadirWriter(output_dir) as writer:
         for n, key in enumerate(keys):
-            logging.info(f"[{n}] Scoring {keys}")
+            logging.info(f"[{n}] Scoring {key}")
             if not flexible_numspk:
                 ref_audios = [
                     read_audio(ref_reader, key, audio_format=ref_audio_format)

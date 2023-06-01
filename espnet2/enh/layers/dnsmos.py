@@ -43,11 +43,12 @@ class DNSMOS_web:
 class DNSMOS_local:
     # ported from
     # https://github.com/microsoft/DNS-Challenge/blob/master/DNSMOS/dnsmos_local.py
-    def __init__(self, primary_model_path, p808_model_path):
+    def __init__(self, primary_model_path, p808_model_path, use_gpu=False):
         import onnxruntime as ort
 
-        self.onnx_sess = ort.InferenceSession(primary_model_path)
-        self.p808_onnx_sess = ort.InferenceSession(p808_model_path)
+        prvd = "CUDAExecutionProvider" if use_gpu else "CPUExecutionProvider"
+        self.onnx_sess = ort.InferenceSession(primary_model_path, providers=[prvd])
+        self.p808_onnx_sess = ort.InferenceSession(p808_model_path, providers=[prvd])
 
     def audio_melspec(
         self, audio, n_mels=120, frame_size=320, hop_length=160, sr=16000, to_db=True
