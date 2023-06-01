@@ -74,7 +74,7 @@ fi
 if [ -n "${download_baseline_diarization}" ]; then
   log "Using organizer-provided JSON manifests from the baseline diarization system."
   git clone https://github.com/popcornell/CHiME7DASRDiarizationBaselineJSONs:diarization $diarization_dir
-  stage=4
+  stage=3
 fi
 
 
@@ -168,7 +168,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 
-if [ ${stage} -le 4 ] && [ $stop_stage -ge 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   log "Performing GSS+Channel Selection+ASR inference on diarized output"
   # now that we have diarized the dataset, we can run the sub-track 1 baseline
   # and use the diarization output in place of oracle diarization.
