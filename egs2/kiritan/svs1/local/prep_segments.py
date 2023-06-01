@@ -3,9 +3,9 @@ import argparse
 import math
 import os
 import sys
+
 from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
 from espnet2.text.build_tokenizer import build_tokenizer
-
 
 """Generate segments according to label."""
 
@@ -92,7 +92,7 @@ def make_segment(xml_writer, file_id, labels, threshold=30, sil=["pau", "br", "s
     segments = []
     segment = SegInfo()
     for i in range(len(labels)):
-        # remove unlabeled part 
+        # remove unlabeled part
         if "08" in file_id and i < 135:
             continue
         label = labels[i]
@@ -151,7 +151,14 @@ def compare(key, score, label):
         if syb == "—":
             if index > len(label):
                 raise ValueError("Lyrics are longer than phones in {}".format(key))
-            if index == len(label) or label[index][2] != pre_phn or (label[index][2] == pre_phn and pre_phn == tokenizer.g2p(score[i + 1][2])[0]):
+            if (
+                index == len(label)
+                or label[index][2] != pre_phn
+                or (
+                    label[index][2] == pre_phn
+                    and pre_phn == tokenizer.g2p(score[i + 1][2])[0]
+                )
+            ):
                 dur = (val[-1][1] - val[-1][0]) / 2
                 val.append((val[-1][0] + dur, val[-1][1]))
                 val[-1] = (val[-1][0], val[-1][0] + dur, pre_phn)
@@ -178,7 +185,7 @@ def compare(key, score, label):
                 )
     val_rest = []
     if index != len(label):
-        val_rest = label[index: ]
+        val_rest = label[index:]
     return val, val_rest, score
 
 
@@ -194,7 +201,9 @@ if __name__ == "__main__":
         os.path.join(args.scp, "segments.tmp"), "w", encoding="utf-8"
     )
     update_label = open(os.path.join(args.scp, "label.tmp"), "w", encoding="utf-8")
-    xml_writer = SingingScoreWriter(args.score_dump, os.path.join(args.scp, "score.scp.tmp"))
+    xml_writer = SingingScoreWriter(
+        args.score_dump, os.path.join(args.scp, "score.scp.tmp")
+    )
 
     for wav_line in wavscp:
         label_line = label.readline()
@@ -211,7 +220,9 @@ if __name__ == "__main__":
                 LabelInfo(phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2])
             )
         segments.append(
-            make_segment(xml_writer, recording_id, temp_info, args.threshold, args.silence)
+            make_segment(
+                xml_writer, recording_id, temp_info, args.threshold, args.silence
+            )
         )
 
     for file in segments:

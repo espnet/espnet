@@ -2,7 +2,6 @@ import argparse
 import os
 import shutil
 
-
 UTT_PREFIX = "kiritan"
 DEV_LIST = ["13", "14", "26", "28", "39"]
 TEST_LIST = ["01", "16", "17", "27", "44"]

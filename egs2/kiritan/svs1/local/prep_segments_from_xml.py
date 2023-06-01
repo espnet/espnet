@@ -7,9 +7,9 @@ import sys
 import music21 as m21
 import numpy as np
 from typeguard import check_argument_types
-from espnet2.fileio.read_text import read_2columns_text
 
-from espnet2.fileio.score_scp import SingingScoreWriter, NOTE
+from espnet2.fileio.read_text import read_2columns_text
+from espnet2.fileio.score_scp import NOTE, SingingScoreWriter
 
 """Generate segments according to structured musicXML."""
 """Transfer music score (from musicXML and MIDI) into 'score.json' format."""
@@ -22,13 +22,24 @@ def split_lyric(lr):
     while i < len(lr):
         lrs.append(lr[i])
         i += 1
-        while i < len(lr) and lr[i] in ["っ", "ゃ", "ょ", "ゅ", "ぁ", "ぃ", "ぅ", "ぇ", "ぉ", "゛"]:
+        while i < len(lr) and lr[i] in [
+            "っ",
+            "ゃ",
+            "ょ",
+            "ゅ",
+            "ぁ",
+            "ぃ",
+            "ぅ",
+            "ぇ",
+            "ぉ",
+            "゛",
+        ]:
             lrs[-1] += lr[i]
             i += 1
     return lrs
 
 
-class XMLReader():
+class XMLReader:
     """Reader class for 'xml.scp'.
 
     Examples:
@@ -70,7 +81,7 @@ class XMLReader():
                     else:  # different pitch
                         notes_list.append(NOTE("—", note.pitch.midi, st, st + dur))
                 else:  # normal note for one syllable
-                    lrs = split_lyric(lr) # split lyrics into single syllable
+                    lrs = split_lyric(lr)  # split lyrics into single syllable
                     for syb in lrs:
                         notes_list.append(NOTE(syb, note.pitch.midi, st, st + dur))
                 prepitch = note.pitch.midi
@@ -188,12 +199,15 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
         ):
             segments.extend(segment.split(threshold=threshold))
             segment = SegInfo()
-        
+
         # Divide songs by 'P' (pause) or 'B' (breath)
         if note.lyric in sil:
             # remove rest note
-            if (("42" in file_id and i > 0 and notes[i - 1].lyric == "ぐっ")
-            or ("21" in file_id and notes[i + 1].lyric == "し" and notes[i + 1].lyric == "た")):
+            if ("42" in file_id and i > 0 and notes[i - 1].lyric == "ぐっ") or (
+                "21" in file_id
+                and notes[i + 1].lyric == "し"
+                and notes[i + 1].lyric == "た"
+            ):
                 notes[i + 1].st = note.st
                 continue
             if len(segment.segs) > 0:

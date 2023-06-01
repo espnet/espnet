@@ -93,7 +93,7 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
             if i == 142:
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
-                segment.add(45.0, 45.372 , "た", 67)
+                segment.add(45.0, 45.372, "た", 67)
                 segment.add(45.372, 45.46, "ち", 67)
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()

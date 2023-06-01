@@ -44,10 +44,14 @@ def compare(key, score, label):
                     index += 1
                     continue
                 else:
-                    raise ValueError("Mismatch of multi note in [{}]->{} and {}-th phones '{}' in {}.".format(syb, pre_phn, index, label[index][2], key))
+                    raise ValueError(
+                        "Mismatch of multi note in [{}]->{} and {}-th phones '{}' in {}.".format(
+                            syb, pre_phn, index, label[index][2], key
+                        )
+                    )
             else:
                 raise ValueError("Syllables are longer than phones in {}".format(key))
-        
+
         # Translate syllable into phones through g2p
         phns = tokenizer.g2p(syb)
         # In some case, translation can be different
