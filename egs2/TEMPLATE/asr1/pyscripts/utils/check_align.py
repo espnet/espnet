@@ -34,19 +34,34 @@ def compare(key, score, label):
         g2p_type=args.g2p,
     )
     index = 0
-    score_error = -1
-    phoneme_error = -1
     for i in range(len(score)):
         syb = score[i][2]
+        # multi note in one syllable
+        if syb == "—":
+            if index < len(label):
+                if label[index][2] == pre_phn:
+                    score[i].append(pre_phn)
+                    index += 1
+                    continue
+                else:
+                    raise ValueError(
+                        "Mismatch of slur in [{}]->{} and {}-th '{}' in {}.".format(
+                            syb, pre_phn, index, label[index][2], key
+                        )
+                    )
+            else:
+                raise ValueError("Syllables are longer than phones in {}".format(key))
+
         # Translate syllable into phones through g2p
         phns = tokenizer.g2p(syb)
         # In some case, translation can be different
         if syb in customed_dic:
             phns = customed_dic[syb]
         score[i].append("_".join(phns))
+        pre_phn = phns[-1]
         for p in phns:
             if index >= len(label):
-                raise ValueError("Syllables are longer than phones in {}".format(key))
+                raise ValueError("Lyrics are longer than phones in {}".format(key))
             elif label[index][2] == p:
                 index += 1
             else:
@@ -56,7 +71,7 @@ def compare(key, score, label):
                     )
                 )
     if index != len(label):
-        raise ValueError("Syllables are shorter than phones in {}: ".format(key))
+        raise ValueError("Phones are longer than lyrics in {}.".format(key))
     return score
 
 

@@ -1,9 +1,9 @@
 import argparse
 import json
 import os
+import random
 import shutil
 
-import random
 import librosa
 import miditoolkit
 import numpy as np

@@ -180,6 +180,7 @@ PJS=
 AMEBOSHI=
 ITAKO=
 NATSUME=
+KIRITAN=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
