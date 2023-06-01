@@ -163,7 +163,7 @@ will skip your "local" diarization baseline and instead download directly our pr
 
 ---
 If you want to run this recipe from scratch, **including dataset generation** and pyannote segmentation
-model fine-tuning you can run it from stage 0:
+model fine-tuning you can run it from stage 0 (use `--decode-only eval` for evaluation set):
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \

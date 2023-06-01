@@ -129,7 +129,7 @@ and `asr_batch_size` because you may want to adjust these based on your hardware
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs
 ```
 **We also provide a pre-trained model**, you can run only inference on development set
-using:
+using (or evaluation set by using `--decode-only eval`):
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \
