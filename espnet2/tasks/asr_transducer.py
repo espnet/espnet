@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import os
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -16,6 +17,7 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
 from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.rwkv_decoder import RWKVDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr_transducer.encoder.encoder import Encoder
 from espnet2.asr_transducer.espnet_transducer_model import ESPnetASRTransducerModel
@@ -64,9 +66,10 @@ normalize_choices = ClassChoices(
 decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
-        rnn=RNNDecoder,
-        stateless=StatelessDecoder,
         mega=MEGADecoder,
+        rnn=RNNDecoder,
+        rwkv=RWKVDecoder,
+        stateless=StatelessDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
@@ -389,6 +392,7 @@ class ASRTransducerTask(AbsTask):
 
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
+
         decoder = decoder_class(
             vocab_size,
             **args.decoder_conf,

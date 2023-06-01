@@ -148,11 +148,11 @@ class MultiHeadDampedEMA(torch.nn.Module):
         """Perform exponential moving average for a single step.
 
         Args:
-            x: MultiHeadDampedEMA input sequences. (B, D, L)
+            x: MultiHeadDampedEMA input sequences. (B, D, 1)
             state: MultiHeadDampedEMA state. (B, D, num_heads)
 
         Returns:
-            out:
+            out: MultiHeadDamped output sequences. (B, 1, D)
             new_state: MultiHeadDampedEMA state. (B, D, num_heads)
 
         """

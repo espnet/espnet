@@ -27,15 +27,16 @@ class AbsDecoder(torch.nn.Module, ABC):
         self,
         label_sequence: List[int],
         states: Union[
-            List[Dict[str, Optional[torch.Tensor]]],
+            List[Dict[str, torch.Tensor]],
+            List[torch.Tensor],
             Tuple[torch.Tensor, Optional[torch.Tensor]],
         ],
     ) -> Tuple[
         torch.Tensor,
         Union[
-            List[Dict[str, Optional[torch.Tensor]]],
+            List[Dict[str, torch.Tensor]],
+            List[torch.Tensor],
             Tuple[torch.Tensor, Optional[torch.Tensor]],
-            None,
         ],
     ]:
         """One-step forward hypothesis.
@@ -58,9 +59,9 @@ class AbsDecoder(torch.nn.Module, ABC):
     ) -> Tuple[
         torch.Tensor,
         Union[
-            List[Optional[torch.Tensor]],
+            List[Dict[str, torch.Tensor]],
+            List[torch.Tensor],
             Tuple[torch.Tensor, Optional[torch.Tensor]],
-            None,
         ],
     ]:
         """One-step forward hypotheses.
@@ -89,7 +90,9 @@ class AbsDecoder(torch.nn.Module, ABC):
     def init_state(
         self, batch_size: int
     ) -> Union[
-        List[Dict[str, None]], Tuple[torch.Tensor, Optional[torch.tensor]], None
+        List[Dict[str, torch.Tensor]],
+        List[torch.Tensor],
+        Tuple[torch.Tensor, Optional[torch.tensor]],
     ]:
         """Initialize decoder states.
 
@@ -107,11 +110,14 @@ class AbsDecoder(torch.nn.Module, ABC):
         self,
         states: Union[
             List[Dict[str, torch.Tensor]],
-            Tuple[torch.Tensor, Optional[torch.Tensor], None],
+            List[torch.Tensor],
+            Tuple[torch.Tensor, Optional[torch.Tensor]],
         ],
         idx: int = 0,
     ) -> Union[
-        List[Dict[str, torch.Tensor]], Tuple[torch.Tensor, Optional[torch.Tensor]], None
+        List[Dict[str, torch.Tensor]],
+        List[torch.Tensor],
+        Tuple[torch.Tensor, Optional[torch.Tensor]],
     ]:
         """Get specified ID state from batch of states, if provided.
 
@@ -131,14 +137,14 @@ class AbsDecoder(torch.nn.Module, ABC):
         new_states: List[
             Union[
                 List[Dict[str, Optional[torch.Tensor]]],
+                List[List[torch.Tensor]],
                 Tuple[torch.Tensor, Optional[torch.Tensor]],
-                None,
             ],
         ],
     ) -> Union[
-        List[Dict[str, Optional[torch.Tensor]]],
+        List[Dict[str, torch.Tensor]],
+        List[torch.Tensor],
         Tuple[torch.Tensor, Optional[torch.Tensor]],
-        None,
     ]:
         """Create batch of decoder hidden states given a list of new states.
 

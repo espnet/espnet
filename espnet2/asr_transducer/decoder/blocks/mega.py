@@ -10,10 +10,10 @@ from typing import Dict, Optional, Tuple
 
 import torch
 
-from espnet2.asr_transducer.decoder.modules.multi_head_damped_ema import (
+from espnet2.asr_transducer.decoder.modules.mega.multi_head_damped_ema import (
     MultiHeadDampedEMA,
 )
-from espnet2.asr_transducer.decoder.modules.positional_bias import (
+from espnet2.asr_transducer.decoder.modules.mega.positional_bias import (
     RelativePositionBias,
     RotaryRelativePositionBias,
 )
@@ -182,7 +182,7 @@ class MEGA(torch.nn.Module):
 
         Returns:
             x: MEGA output sequences. (B, L, size)
-            x: Decoder hidden states.
+            state: Decoder hidden states.
 
         """
         length, batch, size = x.size()

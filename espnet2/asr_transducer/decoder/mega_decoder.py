@@ -9,10 +9,10 @@ from typeguard import check_argument_types
 from espnet2.asr_transducer.activation import get_activation
 from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
-from espnet2.asr_transducer.decoder.modules.feed_forward import (
+from espnet2.asr_transducer.decoder.modules.mega.feed_forward import (
     NormalizedPositionwiseFeedForward,
 )
-from espnet2.asr_transducer.decoder.modules.mega import MEGA
+from espnet2.asr_transducer.decoder.blocks.mega import MEGA
 from espnet2.asr_transducer.normalization import get_normalization
 
 
@@ -184,8 +184,8 @@ class MEGADecoder(AbsDecoder):
     def inference(
         self,
         labels: torch.Tensor,
-        states: List[Dict[str, Optional[torch.Tensor]]],
-    ) -> Tuple[torch.Tensor, List[Dict[str, Optional[torch.Tensor]]]]:
+        states: List[Dict[str, torch.Tensor]],
+    ) -> Tuple[torch.Tensor, List[Dict[str, torch.Tensor]]]:
         """Encode source label sequences.
 
         Args:
@@ -223,7 +223,7 @@ class MEGADecoder(AbsDecoder):
     def score(
         self,
         label_sequence: List[int],
-        states: List[Dict[str, Optional[torch.Tensor]]],
+        states: List[Dict[str, torch.Tensor]],
     ) -> Tuple[torch.Tensor, List[Dict[str, torch.Tensor]]]:
         """One-step forward hypothesis.
 
@@ -251,7 +251,9 @@ class MEGADecoder(AbsDecoder):
 
         return out[0], states
 
-    def batch_score(self, hyps: List[Hypothesis]):
+    def batch_score(
+        self, hyps: List[Hypothesis]
+    ) -> Tuple[torch.Tensor, List[Dict[str, torch.Tensor]]]:
         """One-step forward hypotheses.
 
         Args:
@@ -271,7 +273,7 @@ class MEGADecoder(AbsDecoder):
 
     def init_state(
         self, batch_size: int = 0
-    ) -> List[Dict[str, Optional[torch.Tensor]]]:
+    ) -> List[Dict[str, torch.Tensor]]:
         """Initialize MEGADecoder states.
 
         Args:
@@ -319,7 +321,9 @@ class MEGADecoder(AbsDecoder):
             for n_b in range(self.num_blocks)
         ]
 
-    def stack_qk_states(self, state_list: List[torch.Tensor], dim):
+    def stack_qk_states(
+        self, state_list: List[torch.Tensor], dim: int
+    ) -> List[torch.Tensor]:
         """Stack query or key states with different lengths.
 
         Args:
@@ -340,8 +344,8 @@ class MEGADecoder(AbsDecoder):
 
     def create_batch_states(
         self,
-        new_states: List[List[Dict[str, Optional[torch.Tensor]]]],
-    ) -> List[Dict[str, Optional[torch.Tensor]]]:
+        new_states: List[List[Dict[str, torch.Tensor]]],
+    ) -> List[Dict[str, torch.Tensor]]:
         """Create batch of decoder hidden states given a list of new states.
 
         Args:
