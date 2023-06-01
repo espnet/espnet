@@ -2,31 +2,9 @@ import argparse
 import os
 import shutil
 
-UTT_PREFIX = "pjs"
-DEV_LIST = [
-    "pjs002",
-    "pjs012",
-    "pjs022",
-    "pjs032",
-    "pjs042",
-    "pjs052",
-    "pjs062",
-    "pjs072",
-    "pjs082",
-    "pjs092",
-]
-TEST_LIST = [
-    "pjs007",
-    "pjs017",
-    "pjs027",
-    "pjs037",
-    "pjs047",
-    "pjs057",
-    "pjs067",
-    "pjs077",
-    "pjs087",
-    "pjs097",
-]
+UTT_PREFIX = "kiritan"
+DEV_LIST = ["13", "14", "26", "28", "39"]
+TEST_LIST = ["01", "16", "17", "27", "44"]
 
 
 def train_check(song):
@@ -39,6 +17,12 @@ def dev_check(song):
 
 def test_check(song):
     return song in TEST_LIST
+
+
+def pack_zero(string, size=2):
+    if len(string) < size:
+        string = "0" * (size - len(string)) + string
+    return string
 
 
 def makedir(data_url):
@@ -55,51 +39,46 @@ def process_pho_info(phone):
     for line in info.readlines():
         line = line.strip().split()
         label_info.append(
-            "{} {} {}".format(
-                float(line[0]) / 1e7, float(line[1]) / 1e7, line[2].strip()
-            )
+            "{} {} {}".format(float(line[0]), float(line[1]), line[2].strip())
         )
         pho_info.append(line[2].strip())
     return " ".join(label_info), " ".join(pho_info)
 
 
 def process_subset(src_data, subset, check_func, fs, wav_dump):
-    subfolder = os.listdir(src_data)
+    subfolder = os.listdir(src_data + "/musicxml")
     makedir(subset)
     wavscp = open(os.path.join(subset, "wav.scp"), "w", encoding="utf-8")
     utt2spk = open(os.path.join(subset, "utt2spk"), "w", encoding="utf-8")
     label_scp = open(os.path.join(subset, "label"), "w", encoding="utf-8")
     musicxmlscp = open(os.path.join(subset, "score.scp"), "w", encoding="utf-8")
 
-    for folder in subfolder:
-        if not os.path.isdir(os.path.join(src_data, folder)):
+    for item in subfolder:
+        name = item[:-4]
+        if not check_func(name):
             continue
-        if not check_func(folder):
-            continue
-        if folder == "background_noise":
-            continue
-        utt_id = folder
+        utt_id = "{}{}".format(UTT_PREFIX, pack_zero(name))
 
-        cmd = "sox {}_song.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
-            os.path.join(src_data, folder, folder),
+        cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
+            os.path.join(src_data, "wav", name),
             fs,
-            os.path.join(wav_dump, folder),
+            os.path.join(wav_dump, name),
         )
         os.system(cmd)
 
         wavscp.write(
             "{} {}\n".format(
-                utt_id, os.path.join(wav_dump, "{}_bits16.wav".format(folder))
+                utt_id, os.path.join(wav_dump, "{}_bits16.wav".format(name))
             )
         )
         utt2spk.write("{} {}\n".format(utt_id, UTT_PREFIX))
         label_info, pho_info = process_pho_info(
-            os.path.join(src_data, folder, "{}.lab".format(folder))
+            os.path.join(src_data, "mono_label", "{}.lab".format(name))
         )
         label_scp.write("{} {}\n".format(utt_id, label_info))
         musicxmlscp.write(
             "{} {}\n".format(
-                utt_id, os.path.join(src_data, folder, "{}.musicxml".format(folder))
+                utt_id, os.path.join(src_data, "musicxml", "{}.xml".format(name))
             )
         )
 
