@@ -4,17 +4,6 @@ espnet2.utils package
 
 
 
-.. _espnet2.utils.build_dataclass:
-
-espnet2.utils.build_dataclass
------------------------------
-
-.. automodule:: espnet2.utils.build_dataclass
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.utils.kwargs2args:
 
 espnet2.utils.kwargs2args
@@ -37,6 +26,17 @@ espnet2.utils.__init__
     :show-inheritance:
 
 
+.. _espnet2.utils.build_dataclass:
+
+espnet2.utils.build_dataclass
+-----------------------------
+
+.. automodule:: espnet2.utils.build_dataclass
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.utils.types:
 
 espnet2.utils.types
@@ -48,12 +48,12 @@ espnet2.utils.types
     :show-inheritance:
 
 
-.. _espnet2.utils.config_argparse:
+.. _espnet2.utils.yaml_no_alias_safe_dump:
 
-espnet2.utils.config_argparse
------------------------------
+espnet2.utils.yaml_no_alias_safe_dump
+-------------------------------------
 
-.. automodule:: espnet2.utils.config_argparse
+.. automodule:: espnet2.utils.yaml_no_alias_safe_dump
     :members:
     :undoc-members:
     :show-inheritance:
@@ -70,12 +70,12 @@ espnet2.utils.nested_dict_action
     :show-inheritance:
 
 
-.. _espnet2.utils.yaml_no_alias_safe_dump:
+.. _espnet2.utils.griffin_lim:
 
-espnet2.utils.yaml_no_alias_safe_dump
--------------------------------------
+espnet2.utils.griffin_lim
+-------------------------
 
-.. automodule:: espnet2.utils.yaml_no_alias_safe_dump
+.. automodule:: espnet2.utils.griffin_lim
     :members:
     :undoc-members:
     :show-inheritance:
@@ -103,12 +103,12 @@ espnet2.utils.sized_dict
     :show-inheritance:
 
 
-.. _espnet2.utils.griffin_lim:
+.. _espnet2.utils.config_argparse:
 
-espnet2.utils.griffin_lim
--------------------------
+espnet2.utils.config_argparse
+-----------------------------
 
-.. automodule:: espnet2.utils.griffin_lim
+.. automodule:: espnet2.utils.config_argparse
     :members:
     :undoc-members:
     :show-inheritance:
