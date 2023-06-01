@@ -189,9 +189,18 @@ class Postnet(torch.nn.Module):
             is_last_layer = n_layer == n_layers - 1
             ichans = odim if n_layer == 0 else n_chans
             ochans = odim if is_last_layer else n_chans
-            
+
             layer = []
-            layer.append(torch.nn.Conv1d(ichans, ochans, n_filts, stride=1, padding=(n_filts - 1) // 2, bias=False))
+            layer.append(
+                torch.nn.Conv1d(
+                    ichans,
+                    ochans,
+                    n_filts,
+                    stride=1,
+                    padding=(n_filts - 1) // 2,
+                    bias=False,
+                )
+            )
             if use_batch_norm:
                 layer.append(torch.nn.BatchNorm1d(ochans))
             if not is_last_layer:
