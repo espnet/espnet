@@ -57,7 +57,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         mv ${src_data}/text.tmp ${src_data}/text
         mv ${src_data}/segments_from_xml.tmp ${src_data}/segments_from_xml
         mv ${src_data}/score.scp.tmp ${src_data}/score.scp
-        local/prep_segments.py --silence pau --silence sil --silence br ${src_data}
+        local/prep_segments.py --g2p ${g2p} \
+            --silence pau --silence sil --silence br ${src_data}
         mv ${src_data}/segments.tmp ${src_data}/segments
         mv ${src_data}/label.tmp ${src_data}/label
         mv ${src_data}/score.scp.tmp ${src_data}/score.scp
