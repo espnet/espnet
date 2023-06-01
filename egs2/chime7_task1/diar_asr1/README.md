@@ -148,18 +148,18 @@ You can also play with diarization hyperparameters such as:
 as said merge-closer can have quite an impact on the final WER.
 
 **NOTE**
-We found the diarization baseline to be highly sensitive to the `diar-merge-closer` parameter and 
+We found the diarization baseline to be highly sensitive to the `diar-merge-closer` parameter and
 to the CUDA/CUDNN version used. <br>
 For example, the best results on our side were obtained with `conda install pytorch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 pytorch-cuda=11.6 -c pytorch -c nvidia`.
-This however was by using Ampere devices (A100) on our side, and the results might 
-change for you if your machine is different. <br>  
-See [this Pyannote issue](https://github.com/pyannote/pyannote-audio/issues/1370) related to replicability of the diarization baseline, where we have 
+This however was by using Ampere devices (A100) on our side, and the results might
+change for you if your machine is different. <br>
+See [this Pyannote issue](https://github.com/pyannote/pyannote-audio/issues/1370) related to replicability of the diarization baseline, where we have
 reported the full specs of our system and the conda environment used. <br>
 
-To enhance replicability, we provide in this [repository](https://github.com/popcornell/CHiME7DASRDiarizationBaselineJSONs) our pre-computed outputs 
-for the diarization baseline. 
-You can use them in this recipe by passing `--download-baseline-diarization 1 ` this 
-will skip your "local" diarization baseline and instead download directly our predictions. 
+To enhance replicability, we provide in this [repository](https://github.com/popcornell/CHiME7DASRDiarizationBaselineJSONs) our pre-computed outputs
+for the diarization baseline.
+You can use them in this recipe by passing `--download-baseline-diarization 1 ` this
+will skip your "local" diarization baseline and instead download directly our predictions.
 
 ---
 If you want to run this recipe from scratch, **including dataset generation** and pyannote segmentation
