@@ -1,4 +1,4 @@
-/* 
+/*
    Based on https://github.com/BlinkDL/RWKV-LM/blob/main/RWKV-v4/cuda/wkv_op.cpp
    Function signatures were modified based on https://github.com/huggingface/transformers/blob/main/src/transformers/kernels/rwkv/wkv_op.cpp
 
@@ -22,7 +22,7 @@ void backward(torch::Tensor &w, torch::Tensor &u, torch::Tensor &k, torch::Tenso
   const int B = k.size(0);
   const int T = k.size(1);
   const int C = k.size(2);
-  
+
   cuda_backward(B, T, C, w.data_ptr<float>(), u.data_ptr<float>(), k.data_ptr<float>(), v.data_ptr<float>(), y.data_ptr<float>(), gy.data_ptr<float>(), gw.data_ptr<float>(), gu.data_ptr<float>(), gk.data_ptr<float>(), gv.data_ptr<float>());
 }
 

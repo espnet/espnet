@@ -9,10 +9,10 @@ from typeguard import check_argument_types
 from espnet2.asr_transducer.activation import get_activation
 from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
+from espnet2.asr_transducer.decoder.blocks.mega import MEGA
 from espnet2.asr_transducer.decoder.modules.mega.feed_forward import (
     NormalizedPositionwiseFeedForward,
 )
-from espnet2.asr_transducer.decoder.blocks.mega import MEGA
 from espnet2.asr_transducer.normalization import get_normalization
 
 
@@ -271,9 +271,7 @@ class MEGADecoder(AbsDecoder):
 
         return out.squeeze(1), states
 
-    def init_state(
-        self, batch_size: int = 0
-    ) -> List[Dict[str, torch.Tensor]]:
+    def init_state(self, batch_size: int = 0) -> List[Dict[str, torch.Tensor]]:
         """Initialize MEGADecoder states.
 
         Args:

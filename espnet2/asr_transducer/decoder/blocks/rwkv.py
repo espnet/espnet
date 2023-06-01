@@ -8,8 +8,8 @@ from typing import Dict, Optional, Tuple
 
 import torch
 
-from espnet2.asr_transducer.decoder.modules.rwkv.feed_forward import FeedForward
 from espnet2.asr_transducer.decoder.modules.rwkv.attention import SelfAttention
+from espnet2.asr_transducer.decoder.modules.rwkv.feed_forward import FeedForward
 
 
 class RWKV(torch.nn.Module):
@@ -57,7 +57,9 @@ class RWKV(torch.nn.Module):
         self.dropout_ffn = torch.nn.Dropout(p=ffn_dropout_rate)
 
     def forward(
-        self, x: torch.Tensor, state: Optional[torch.Tensor] = None,
+        self,
+        x: torch.Tensor,
+        state: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """Compute receptance weighted key value.
 

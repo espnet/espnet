@@ -207,9 +207,7 @@ class RWKVDecoder(AbsDecoder):
 
         return out.squeeze(1), states
 
-    def init_state(
-        self, batch_size: int = 1
-    ) -> List[torch.Tensor]:
+    def init_state(self, batch_size: int = 1) -> List[torch.Tensor]:
         """Initialize RWKVDecoder states.
 
         Args:
