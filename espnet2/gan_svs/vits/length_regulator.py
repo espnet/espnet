@@ -25,100 +25,86 @@ class LengthRegulator(torch.nn.Module):
         """
         super().__init__()
         self.pad_value = pad_value
-        self.winlen = 1024
-        self.hoplen = 256
-        self.sr = 24000
 
-    def LR(self, xs, notepitch, ds):
+    def LR(self, x, duration, use_state_info=False):
+        """Length regulates input mel-spectrograms to match duration.
+
+        Args:
+            x (Tensor): Input tensor (B, dim, T).
+            duration (Tensor): Duration tensor (B, T).
+            use_state_info (bool, optional): Whether to use position information or not.
+
+        Returns:
+            Tensor: Output tensor (B, dim, D_frame).
+            Tensor: Output length (B,).
+        """
+        x = torch.transpose(x, 1, 2)
         output = list()
-        frame_pitch = list()
-        xs = torch.transpose(xs, 1, -1)
-        frame_lengths = list()
-
-        for batch, expand_target in zip(xs, ds):
-            expanded = self.expand(batch, expand_target)
+        mel_len = list()
+        for batch, expand_target in zip(x, duration):
+            expanded = self.expand(batch, expand_target, use_state_info=use_state_info)
             output.append(expanded)
-            frame_lengths.append(expanded.shape[0])
+            mel_len.append(expanded.shape[0])
 
-        for batch, expand_target in zip(notepitch, ds):
-            expanded_pitch = self.expand_pitch(batch, expand_target)
-            frame_pitch.append(expanded_pitch)
+        output = pad_list(output, self.pad_value)  # (B, D_frame, dim)
+        output = torch.transpose(output, 1, 2)
+        return output, torch.LongTensor(mel_len)
 
-        max_len = max(frame_lengths)
-        output_padded = torch.FloatTensor(xs.size(0), max_len, xs.size(2))
-        output_padded.zero_()
-        frame_pitch_padded = torch.FloatTensor(notepitch.size(0), max_len)
-        frame_pitch_padded.zero_()
-        for i in range(output_padded.size(0)):
-            output_padded[i, : frame_lengths[i], :] = output[i]
-        for i in range(frame_pitch_padded.size(0)):
-            length = len(frame_pitch[i])
-            frame_pitch[i].extend([0] * (max_len - length))
-            frame_pitch_tensor = torch.LongTensor(frame_pitch[i])
-            frame_pitch_padded[i] = frame_pitch_tensor
-        output_padded = torch.transpose(output_padded, 1, -1)
+    def expand(self, batch, predicted, use_state_info=False):
+        """Expand input mel-spectrogram based on the predicted duration.
 
-        return output_padded, frame_pitch_padded, torch.LongTensor(frame_lengths)
+        Args:
+            batch (Tensor): Input tensor (T, dim).
+            predicted (Tensor): Predicted duration tensor (T,).
+            use_state_info (bool, optional): Whether to use position information or not.
 
-    def expand_pitch(self, batch, predicted):
+        Returns:
+            Tensor: Output tensor (D_frame, dim).
+        """
+        predicted = torch.squeeze(predicted)
         out = list()
-        predicted = predicted.squeeze()
+
         for i, vec in enumerate(batch):
-            duration = predicted[i].item()
-            if self.sr * duration - self.winlen > 0:
-                expand_size = max((self.sr * duration - self.winlen) / self.hoplen, 1)
-            elif duration == 0:
-                expand_size = 0
-            else:
-                expand_size = 1
-            vec_expand = (
-                vec.expand(max(int(expand_size), 0), 1).squeeze(1).cpu().numpy()
-            )
-            out.extend(vec_expand)
+            expand_size = predicted[i].item()
+            if use_state_info:
+                state_info_index = torch.unsqueeze(
+                    torch.arange(0, expand_size), 1
+                ).float()
+                state_info_length = torch.unsqueeze(
+                    torch.Tensor([expand_size] * expand_size), 1
+                ).float()
+                state_info = torch.cat([state_info_index, state_info_length], 1).to(
+                    vec.device
+                )
+            new_vec = vec.expand(max(int(expand_size), 0), -1)
+            if use_state_info:
+                new_vec = torch.cat([new_vec, state_info], 1)
 
-        torch.LongTensor(out).to(vec.device)
-        return out
-
-    def expand(self, batch, predicted):
-        out = list()
-        predicted = predicted.squeeze()
-        for i, vec in enumerate(batch):
-            duration = predicted[i].item()
-            if self.sr * duration - self.winlen > 0:
-                expand_size = max((self.sr * duration - self.winlen) / self.hoplen, 1)
-            elif duration == 0:
-                expand_size = 0
-            else:
-                expand_size = 1
-            vec_expand = vec.expand(max(int(expand_size), 0), -1)
-            out.append(vec_expand)
-
+            out.append(new_vec)
         out = torch.cat(out, 0)
+
         return out
 
-    def forward(self, xs, notepitch, ds, x_lengths):
-        if ds.sum() == 0:
+    def forward(self, x, duration, use_state_info=False):
+        """Forward pass through the length regulator module.
+
+        Args:
+            x (Tensor): Input tensor (B, dim, T).
+            duration (Tensor): Duration tensor (B, T).
+            use_state_info (bool, optional): Whether to use position information or not.
+
+        Returns:
+            Tensor: Output tensor (B, dim, D_frame).
+            Tensor: Output length (B,).
+        """
+
+        if duration.sum() == 0:
             logging.warning(
                 "predicted durations includes all 0 sequences. "
                 "fill the first element with 1."
             )
-            ds[ds.sum(dim=1).eq(0)] = 1
+            duration[duration.sum(dim=1).eq(0)] = 1
 
-        # expand xs
-        xs = torch.transpose(xs, 1, 2)
-        # print("ds", ds)
-        phn_repeat = [torch.repeat_interleave(x, d, dim=0) for x, d in zip(xs, ds)]
-        output = pad_list(phn_repeat, self.pad_value)  # (B, D_frame, dim)
-        output = torch.transpose(output, 1, 2)
+        output, mel_len = self.LR(x, duration, use_state_info=use_state_info)
 
-        # expand pitch
-        notepitch = torch.detach(notepitch)
-        pitch_repeat = [
-            torch.repeat_interleave(n, d, dim=0) for n, d in zip(notepitch, ds)
-        ]
-        frame_pitch = pad_list(pitch_repeat, self.pad_value)  # (B, D_frame)
-
-        x_lengths = torch.LongTensor([len(i) for i in pitch_repeat]).to(
-            frame_pitch.device
-        )
-        return output, frame_pitch, x_lengths
+        return output, mel_len
