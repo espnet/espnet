@@ -10,6 +10,7 @@ AISHELL4=downloads
 ALFFA=downloads
 AMERICASNLP22=downloads
 AN4=downloads
+ASVTutorial=espnet_tutorial_asvspoof
 APHASIABANK=
 AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
@@ -178,6 +179,8 @@ ONIKU=
 PJS=
 AMEBOSHI=
 ITAKO=
+NATSUME=
+KIRITAN=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
