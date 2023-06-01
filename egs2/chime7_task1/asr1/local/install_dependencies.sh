@@ -9,7 +9,7 @@ if ! command conda  &>/dev/null; then
 fi
 
 # install lhotse from master, we need the most up-to-date one
-python3 -m pip install git+https://github.com/lhotse-speech/lhotse
+python3 -m pip install git+https://github.com/lhotse-speech/lhotse@1b31bf2e341e7143ad0a67ba1d7484b8353ba45b
 # pyannote
 python3 -m pip install pyannote-metrics
 # jiwer

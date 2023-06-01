@@ -1,0 +1,115 @@
+# Uses 2 V100 (32GB)
+
+# https://github.com/espnet/espnet/blob/master/egs2/librispeech/asr1/conf/tuning/train_asr_conformer7_wavlm_large.yaml
+unused_parameters: true
+freeze_param: [
+  "frontend.upstream"
+]
+frontend: s3prl
+frontend_conf:
+  frontend_conf:
+    upstream: wavlm_large  # Note: If the upstream is changed, please change the input_size in the preencoder.
+  download_dir: ./hub
+  multilayer_feature: True
+
+preencoder: linear
+preencoder_conf:
+  input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+  output_size: 80
+
+model_conf:
+  ctc_weight: 0.3
+  lsm_weight: 0.1
+  length_normalized_loss: false
+  extract_feats_in_collect_stats: false # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+
+  # interctc aux task
+  interctc_weight: 0.3
+  aux_ctc:
+    '6': utt2aph
+aux_ctc_tasks: ["utt2aph"]
+
+# Based on https://github.com/espnet/espnet/blob/master/egs2/librispeech/asr1/conf/tuning/train_asr_e_branchformer.yaml
+# The encoder is smaller as we keep the size roughly the same as the conformer and transformer experiments
+encoder: e_branchformer
+encoder_conf:
+  output_size: 256
+  attention_heads: 4
+  linear_units: 1024
+  num_blocks: 12
+  dropout_rate: 0.1
+  positional_dropout_rate: 0.1
+  attention_dropout_rate: 0.1
+  layer_drop_rate: 0.1
+  input_layer: conv2d1 # subsampling rate = 2 (WavLM) * 1 (conv2d1)
+  macaron_ffn: true
+  pos_enc_layer_type: rel_pos
+  attention_layer_type: rel_selfattn
+  rel_pos_type: latest
+  cgmlp_linear_units: 3072
+  cgmlp_conv_kernel: 31
+  use_linear_after_conv: false
+  gate_activation: identity
+  positionwise_layer_type: linear
+  use_ffn: true
+  merge_conv_kernel: 31
+  interctc_layer_idx: [6]
+  interctc_use_conditioning: true
+
+decoder: transformer
+decoder_conf:
+  attention_heads: 4
+  linear_units: 2048
+  num_blocks: 6
+  dropout_rate: 0.1
+  positional_dropout_rate: 0.1
+  self_attention_dropout_rate: 0.1
+  src_attention_dropout_rate: 0.1
+  layer_drop_rate: 0.2
+
+seed: 2022
+log_interval: 200
+num_att_plot: 0
+num_workers: 4
+sort_in_batch: descending
+sort_batch: descending
+batch_type: numel
+batch_bins: 4000000
+accum_grad: 12
+grad_clip: 5
+max_epoch: 30
+patience: none
+init: none
+best_model_criterion:
+  - - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+use_amp: true
+cudnn_deterministic: false
+cudnn_benchmark: false
+
+optim: adam
+optim_conf:
+  lr: 0.001
+  weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+  warmup_steps: 2500
+
+specaug: specaug
+specaug_conf:
+  apply_time_warp: true
+  time_warp_window: 5
+  time_warp_mode: bicubic
+  apply_freq_mask: true
+  freq_mask_width_range:
+    - 0
+    - 27
+  num_freq_mask: 2
+  apply_time_mask: true
+  time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+  num_time_mask: 5

@@ -1,3 +1,5 @@
+# Trained with NVIDIA V100 GPU (32GB) x 4
+
 lm: transformer
 lm_conf:
     pos_enc: null

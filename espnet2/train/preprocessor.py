@@ -332,6 +332,12 @@ class CommonPreprocessor(AbsPreprocessor):
             text = self.text_cleaner(text)
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
+            if len(text_ints) > 100:
+                logging.warning(
+                    "The length of the text output exceeds 100, "
+                    "which may cause OOM on the GPU."
+                    "Please ensure that the data processing is correct and verify it."
+                )
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
         if self.aux_task_names is not None and self.tokenizer is not None:
             for name in self.aux_task_names:
@@ -1133,13 +1139,13 @@ class SVSPreprocessor(AbsPreprocessor):
             data.pop(self.midi_name)
 
             phn_cnt = np.array(phn_cnt)
-            label.astype(np.int64)
-            midi.astype(np.int64)
-            duration_phn.astype(np.int64)
-            duration_syb.astype(np.int64)
-            duration_ruled_phn.astype(np.int64)
-            phn_cnt.astype(np.int64)
-            slur.astype(np.int64)
+            label = label.astype(np.int64)
+            midi = midi.astype(np.int64)
+            duration_phn = duration_phn.astype(np.int64)
+            duration_syb = duration_syb.astype(np.int64)
+            duration_ruled_phn = duration_ruled_phn.astype(np.int64)
+            phn_cnt = phn_cnt.astype(np.int64)
+            slur = slur.astype(np.int64)
 
             data["label"] = label
             data["midi"] = midi
