@@ -45,7 +45,7 @@ def compare(key, score, label):
                     continue
                 else:
                     raise ValueError(
-                        "Mismatch of multi note in [{}]->{} and {}-th phones '{}' in {}.".format(
+                        "Mismatch of slur in [{}]->{} and {}-th '{}' in {}.".format(
                             syb, pre_phn, index, label[index][2], key
                         )
                     )
