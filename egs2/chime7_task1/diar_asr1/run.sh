@@ -52,7 +52,7 @@ gss_max_batch_dur=90
 
 # ASR config
 use_pretrained=
-decode_only=
+decode_only=""
 
 gss_asr_stage=
 gss_asr_stop_stage=10
@@ -181,5 +181,5 @@ if [ ${stage} -le 4 ] && [ $stop_stage -ge 4 ]; then
         --use-pretrained $use_pretrained \
         --decode_only $decode_only --gss-max-batch-dur $gss_max_batch_dur \
         --gss-iterations 5 \
-        --diar-score 1 \
+        --diar-score 1
 fi
