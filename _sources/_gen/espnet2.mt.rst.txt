@@ -4,17 +4,6 @@ espnet2.mt package
 
 
 
-.. _espnet2.mt.__init__:
-
-espnet2.mt.__init__
--------------------
-
-.. automodule:: espnet2.mt.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.mt.espnet_model:
 
 espnet2.mt.espnet_model
@@ -26,12 +15,12 @@ espnet2.mt.espnet_model
     :show-inheritance:
 
 
-.. _espnet2.mt.frontend.__init__:
+.. _espnet2.mt.__init__:
 
-espnet2.mt.frontend.__init__
-----------------------------
+espnet2.mt.__init__
+-------------------
 
-.. automodule:: espnet2.mt.frontend.__init__
+.. automodule:: espnet2.mt.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -43,6 +32,17 @@ espnet2.mt.frontend.embedding
 -----------------------------
 
 .. automodule:: espnet2.mt.frontend.embedding
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.mt.frontend.__init__:
+
+espnet2.mt.frontend.__init__
+----------------------------
+
+.. automodule:: espnet2.mt.frontend.__init__
     :members:
     :undoc-members:
     :show-inheritance:

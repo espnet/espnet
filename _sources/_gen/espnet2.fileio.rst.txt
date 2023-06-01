@@ -4,12 +4,12 @@ espnet2.fileio package
 
 
 
-.. _espnet2.fileio.vad_scp:
+.. _espnet2.fileio.rand_gen_dataset:
 
-espnet2.fileio.vad_scp
-----------------------
+espnet2.fileio.rand_gen_dataset
+-------------------------------
 
-.. automodule:: espnet2.fileio.vad_scp
+.. automodule:: espnet2.fileio.rand_gen_dataset
     :members:
     :undoc-members:
     :show-inheritance:
@@ -26,17 +26,6 @@ espnet2.fileio.npy_scp
     :show-inheritance:
 
 
-.. _espnet2.fileio.__init__:
-
-espnet2.fileio.__init__
------------------------
-
-.. automodule:: espnet2.fileio.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.fileio.datadir_writer:
 
 espnet2.fileio.datadir_writer
@@ -48,12 +37,12 @@ espnet2.fileio.datadir_writer
     :show-inheritance:
 
 
-.. _espnet2.fileio.rand_gen_dataset:
+.. _espnet2.fileio.__init__:
 
-espnet2.fileio.rand_gen_dataset
--------------------------------
+espnet2.fileio.__init__
+-----------------------
 
-.. automodule:: espnet2.fileio.rand_gen_dataset
+.. automodule:: espnet2.fileio.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -87,6 +76,17 @@ espnet2.fileio.read_text
 ------------------------
 
 .. automodule:: espnet2.fileio.read_text
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.fileio.vad_scp:
+
+espnet2.fileio.vad_scp
+----------------------
+
+.. automodule:: espnet2.fileio.vad_scp
     :members:
     :undoc-members:
     :show-inheritance:
