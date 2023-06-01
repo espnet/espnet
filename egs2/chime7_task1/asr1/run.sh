@@ -67,7 +67,7 @@ nbpe=500
 asr_max_epochs=8
 # put popcornell/chime7_task1_asr1_baseline if you want to test with pretrained model
 use_pretrained=
-decode_only=
+decode_only=""
 diar_score=0
 
 . ./path.sh
@@ -233,6 +233,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --test_sets "${asr_tt_set}" \
     --bpe_train_text "data/${asr_train_set}/text" \
     --lm_train_text "data/${asr_train_set}/text" ${pretrained_affix}
+fi
+
+if [ ${decode_only} == "eval" ]; then
+  log "Scoring not available for eval set till the end of the challenge."
+  exit
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
