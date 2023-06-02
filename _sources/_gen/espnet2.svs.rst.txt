@@ -4,17 +4,6 @@ espnet2.svs package
 
 
 
-.. _espnet2.svs.espnet_model:
-
-espnet2.svs.espnet_model
-------------------------
-
-.. automodule:: espnet2.svs.espnet_model
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.svs.__init__:
 
 espnet2.svs.__init__
@@ -26,23 +15,23 @@ espnet2.svs.__init__
     :show-inheritance:
 
 
+.. _espnet2.svs.espnet_model:
+
+espnet2.svs.espnet_model
+------------------------
+
+.. automodule:: espnet2.svs.espnet_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.svs.abs_svs:
 
 espnet2.svs.abs_svs
 -------------------
 
 .. automodule:: espnet2.svs.abs_svs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.xiaoice.loss:
-
-espnet2.svs.xiaoice.loss
-------------------------
-
-.. automodule:: espnet2.svs.xiaoice.loss
     :members:
     :undoc-members:
     :show-inheritance:
@@ -65,6 +54,39 @@ espnet2.svs.xiaoice.XiaoiceSing
 -------------------------------
 
 .. automodule:: espnet2.svs.xiaoice.XiaoiceSing
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.xiaoice.loss:
+
+espnet2.svs.xiaoice.loss
+------------------------
+
+.. automodule:: espnet2.svs.xiaoice.loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.feats_extract.score_feats_extract:
+
+espnet2.svs.feats_extract.score_feats_extract
+---------------------------------------------
+
+.. automodule:: espnet2.svs.feats_extract.score_feats_extract
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.feats_extract.__init__:
+
+espnet2.svs.feats_extract.__init__
+----------------------------------
+
+.. automodule:: espnet2.svs.feats_extract.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -98,28 +120,6 @@ espnet2.svs.naive_rnn.naive_rnn_dp
 ----------------------------------
 
 .. automodule:: espnet2.svs.naive_rnn.naive_rnn_dp
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.feats_extract.__init__:
-
-espnet2.svs.feats_extract.__init__
-----------------------------------
-
-.. automodule:: espnet2.svs.feats_extract.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.feats_extract.score_feats_extract:
-
-espnet2.svs.feats_extract.score_feats_extract
----------------------------------------------
-
-.. automodule:: espnet2.svs.feats_extract.score_feats_extract
     :members:
     :undoc-members:
     :show-inheritance:
