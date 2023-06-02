@@ -207,7 +207,7 @@ class Postnet(torch.nn.Module):
                 layer.append(torch.nn.Tanh())
             layer.append(torch.nn.Dropout(dropout_rate))
 
-            self.postnet += torch.nn.Sequential(*layer)
+            self.postnet.append(torch.nn.Sequential(*layer))
 
     def forward(self, xs):
         """Calculate forward propagation.
