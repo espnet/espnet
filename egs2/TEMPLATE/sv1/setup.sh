@@ -40,15 +40,15 @@ for f in cmd.sh conf local; do
 done
 
 
-# Symlinks to TEMPLATE/diar1
-for f in diar.sh path.sh scripts pyscripts; do
+# Symlinks to TEMPLATE/sv1
+for f in sv.sh path.sh scripts pyscripts; do
     target=../../TEMPLATE/sv1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
 
 
-# Symlinks to TEMPLATE/diar1
+# Symlinks to TEMPLATE/sv1
 for f in db.sh utils steps; do
     target=../../TEMPLATE/sv1/"${f}"
     ln -sf "${target}" "${dir}"
