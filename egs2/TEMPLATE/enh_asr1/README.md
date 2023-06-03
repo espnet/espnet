@@ -105,27 +105,16 @@ Related python files:
 ```
 espnet2/
 ├── bin/
-│   ├── enh_train.py
-│   ├── enh_inference.py
-│   ├── enh_scoring.py
+│   ├── asr_inference.py
+│   ├── diar_inference.py
+│   ├── enh_s2t_train.py
+│   ├── st_inference.py
 │   └── ...
 ├── enh/
-│   ├── decoder/
-│   ├── encoder/
-│   ├── layers/
-│   ├── loss/
-│   │	├── criterions
-│   │	└── wrappers
-│   ├── separator/
-│   ├── espnet_model.py
+│   ├── espnet_enh_s2t_model.py
 │   └── ...
 ├── tasks/
-│   ├── abs_task.py
-│   ├── enh.py
-│   └── ...
-├── train/
-│   ├── abs_espnet_model.py
-│   ├── trainer.py
+│   ├── enh_s2t.py
 │   └── ...
 └── ...
 ```
