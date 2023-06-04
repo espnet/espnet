@@ -78,7 +78,7 @@ def collect_stats(
 
                     # 3. Calculate sum and square sum
                     for key, v in data.items():
-                        for i, (uid, seq) in enumerate(zip(keys, v.cpu().numpy())):
+                        for i, (uttid, seq) in enumerate(zip(keys, v.cpu().numpy())):
                             # Truncate zero-padding region
                             if f"{key}_lengths" in data:
                                 length = data[f"{key}_lengths"][i]
@@ -101,7 +101,7 @@ def collect_stats(
                                         p / f"data_{key}", p / f"{key}.scp"
                                     )
                                 # Save array as npy file
-                                npy_scp_writers[(key, mode)][uid] = seq
+                                npy_scp_writers[(key, mode)][uttid] = seq
 
                 if iiter % log_interval == 0:
                     logging.info(f"Niter: {iiter}")
