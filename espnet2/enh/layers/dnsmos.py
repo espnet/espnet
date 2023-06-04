@@ -19,7 +19,7 @@ class DNSMOS_web:
 
     def __call__(self, aud, input_fs, fname="", method="p808"):
         if input_fs != SAMPLING_RATE:
-            audio = librosa.resample(aud, input_fs, SAMPLING_RATE)
+            audio = librosa.resample(aud, orig_sr=input_fs, target_sr=SAMPLING_RATE)
         else:
             audio = aud
 
@@ -78,7 +78,7 @@ class DNSMOS_local:
 
     def __call__(self, aud, input_fs, is_personalized_MOS=False):
         if input_fs != SAMPLING_RATE:
-            audio = librosa.resample(aud, input_fs, SAMPLING_RATE)
+            audio = librosa.resample(aud, orig_sr=input_fs, target_sr=SAMPLING_RATE)
         else:
             audio = aud
         len_samples = int(INPUT_LENGTH * SAMPLING_RATE)
