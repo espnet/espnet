@@ -819,6 +819,9 @@ class EnhPreprocessor(CommonPreprocessor):
         self.num_spk = num_spk
         self.num_noise_type = num_noise_type
         self.sample_rate = sample_rate
+        self.rir_scp = rir_scp
+        self.noise_scp = noise_scp
+        self.noise_db_range = noise_db_range
         # Whether to always convert the signals to single-channel
         self.force_single_channel = force_single_channel
         # If True, randomly reorder the channels of the multi-channel signals
