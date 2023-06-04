@@ -1,7 +1,7 @@
-import pytest
 import re
 
 import numpy as np
+import pytest
 
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.train.collate_fn import CommonCollateFn
