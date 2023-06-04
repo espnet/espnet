@@ -94,10 +94,12 @@ class ChunkIterFactory(AbsIterFactory):
         # consistency check:
         #  - exactly match one of the prefixes in `excluded_key_prefixes`
         #  - have one of the prefixes in `excluded_key_prefixes` and end with numbers
+        if excluded_key_prefixes is None:
+            excluded_key_prefixes = ["utt2category"]
+        elif "utt2category" not in excluded_key_prefixes:
+            excluded_key_prefixes = excluded_key_prefixes + ["utt2category"]
         self.excluded_key_pattern = (
             "(" + "[0-9]*)|(".join(excluded_key_prefixes) + "[0-9]*)"
-            if excluded_key_prefixes
-            else None
         )
         if self.excluded_key_pattern:
             logging.info(
