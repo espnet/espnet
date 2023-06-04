@@ -6,7 +6,7 @@ import sys
 
 import music21 as m21
 
-from espnet2.fileio.score_scp import SingingScoreWriter, XMLReader, MIDReader
+from espnet2.fileio.score_scp import MIDReader, SingingScoreWriter, XMLReader
 
 
 class LabelInfo(object):
