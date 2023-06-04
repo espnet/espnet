@@ -155,101 +155,214 @@ def make_segment_xml(dataset, file_id, tempo, notes, threshold, sil=["P", "B"]):
     return segments_w_id
 
 
+def replace_lyrics(start, lyric, labels, segment, segments):
+    """
+    replace wrong lyrics with correct one
+    """
+    labels[start].lyric = lyric
+    return labels, segment, segments, False
+
+
+def replace_labels(start, label_id, labels, segment, segments):
+    """
+    replace wrong phoneme with correct one
+    """
+    labels[start].label_id = label_id
+    return labels, segment, segments, False
+
+
+def skip_labels(start, labels, segment, segments):
+    """
+    remove wrong phoneme
+    """
+    labels[start + 1].start = labels[start].start
+    return labels, segment, segments, True
+
+
+def add_missing_phoneme(start, label_id, time, labels, segment, segments, skip=False):
+    segment.add(labels[start].start, time, label_id)
+    labels[start].start = time
+    return labels, segment, segments, skip
+
+
+def add_pause(labels, segment, segments, threshold):
+    segments.extend(segment.split(threshold=threshold))
+    segment = SegInfo()
+    return labels, segment, segments, False
+
+
 def fix_dataset(
     dataset, input_type, file_id, i, labels, segment, segments, threshold=30
 ):
     skip = False
     label = labels[i]
+    error_correction = {}
+    lyric_correction = {}
     if dataset == "natsume" and input_type == "hts":
-        # replace wrong phoneme with correct one
-        if "01" in file_id and label.label_id == "cl" and labels[i + 1].label_id == "s":
-            label.label_id = "a"
-        if (
-            "03" in file_id
-            and label.label_id == "s"
-            and labels[i - 1].label_id == "o"
-            and labels[i - 2].label_id == "o"
-        ):
-            label.label_id = "z"
-        # remove wrong phoneme
-        if "50" in file_id and label.label_id == "o" and labels[i + 1].label_id == "a":
-            labels[i + 1].start = label.start
-            skip = True
-        if "08" in file_id and label.label_id == "w" and labels[i - 1].label_id == "e":
-            labels[i + 1].start = label.start
-            skip = True
-        if "01" in file_id and label.label_id == "e" and labels[i + 1].label_id == "e":
-            labels[i + 1].start = label.start
-            skip = True
-        if "41" in file_id and label.label_id == "a" and labels[i + 1].label_id == "o":
-            labels[i + 1].label_id = "a"
-            labels[i + 1].start = label.start
-            skip = True
-        # add missing phoneme
-        if (
-            "10" in file_id
-            and label.label_id == "a"
-            and labels[i + 1].label_id == "a"
-            and labels[i + 2].label_id == "o"
-        ):
-            segment.add(label.start, 81.00, "a")
-            label.start = 81.00
-        # add pause
-        if "03" in file_id and (
-            (label.label_id == "m" and labels[i + 1].label_id == "e")
-            or (label.label_id == "t" and labels[i + 2].label_id == "d")
-        ):
-            segments.extend(segment.split(threshold=threshold))
-            segment = SegInfo()
+        # dictionary mapping file_id to function calls
+        error_correction = {
+            "01": [
+                lambda i, labels, segment, segments, threshold: replace_labels(
+                    i, "a", labels, segment, segments
+                )
+                if labels[i].label_id == "cl" and labels[i + 1].label_id == "s"
+                else (labels, segment, segments, False),
+                lambda i, labels, segment, segments, threshold: skip_labels(
+                    i, labels, segment, segments
+                )
+                if labels[i].label_id == "e" and labels[i + 1].label_id == "e"
+                else (labels, segment, segments, False),
+            ],
+            "03": [
+                lambda i, labels, segment, segments, threshold: replace_labels(
+                    i, "z", labels, segment, segments
+                )
+                if labels[i].label_id == "s"
+                and labels[i - 1].label_id == "o"
+                and labels[i - 2].label_id == "o"
+                else (labels, segment, segments, False),
+                lambda i, labels, segment, segments, threshold: add_pause(
+                    labels, segment, segments, threshold
+                )
+                if (labels[i].label_id == "m" and labels[i + 1].label_id == "e")
+                or (labels[i].label_id == "t" and labels[i + 2].label_id == "d")
+                else (labels, segment, segments, False),
+            ],
+            "50": [
+                lambda i, labels, segment, segments, threshold: skip_labels(
+                    i, labels, segment, segments
+                )
+                if labels[i].label_id == "o" and labels[i + 1].label_id == "a"
+                else (labels, segment, segments, False),
+            ],
+            "08": [
+                lambda i, labels, segment, segments, threshold: skip_labels(
+                    i, labels, segment, segments
+                )
+                if labels[i].label_id == "w" and labels[i - 1].label_id == "e"
+                else (labels, segment, segments, False),
+            ],
+            "41": [
+                lambda i, labels, segment, segments, threshold: replace_labels(
+                    i + 1, "a", labels, segment, segments
+                )
+                if labels[i].label_id == "a" and labels[i + 1].label_id == "o"
+                else (labels, segment, segments, False),
+                # Note that we already changed labels[i + 1] to "a".
+                # So the if condition is different from the previous one.
+                lambda i, labels, segment, segments, threshold: skip_labels(
+                    i, labels, segment, segments
+                )
+                if labels[i].label_id == "a" and labels[i + 1].label_id == "a"
+                else (labels, segment, segments, False),
+            ],
+            "10": [
+                lambda i, labels, segment, segments, threshold: add_missing_phoneme(
+                    i, "a", 81.00, labels, segment, segments
+                )
+                if labels[i].label_id == "a"
+                and labels[i + 1].label_id == "a"
+                and labels[i + 2].label_id == "o"
+                else (labels, segment, segments, False),
+            ],
+        }
+
+    if error_correction:
+        for file_id_ in error_correction:
+            if file_id_ in file_id:
+                for func in error_correction[file_id_]:
+                    labels, segment, segments, skip = func(
+                        i, labels, segment, segments, threshold
+                    )
+
     if dataset == "natsume" and input_type == "xml":
-        # replace wrong note lyric with correct one
-        if "01" in file_id and label.lyric == "え" and labels[i - 1].lyric == "の":
-            label.lyric = "め"
-        # add pauses
-        if (
-            "03" in file_id
-            and (
-                (label.lyric == "か" and labels[i - 1].lyric == "の")
-                or (label.lyric == "と" and labels[i + 1].lyric == "な")
-            )
-        ) or ("23" in file_id and label.lyric == "む" and labels[i - 1].lyric == "い"):
-            segments.extend(segment.split(threshold=threshold))
-            segment = SegInfo()
+        # dictionary mapping file_id to function calls
+        lyric_correction = {
+            "01": [
+                lambda i, labels, segment, segments, threshold: replace_lyrics(
+                    i, "め", labels, segment, segments
+                )
+                if labels[i].lyric == "え" and labels[i - 1].lyric == "の"
+                else (labels, segment, segments, False),
+            ],
+            "03": [
+                lambda i, labels, segment, segments, threshold: add_pause(
+                    labels, segment, segments, threshold
+                )
+                if (labels[i].lyric == "か" and labels[i - 1].lyric == "の")
+                or (labels[i].lyric == "と" and labels[i + 1].lyric == "な")
+                else (labels, segment, segments, False),
+            ],
+            "23": [
+                lambda i, labels, segment, segments, threshold: add_pause(
+                    labels, segment, segments, threshold
+                )
+                if labels[i].lyric == "む" and labels[i - 1].lyric == "い"
+                else (labels, segment, segments, False),
+            ],
+        }
+
+    if lyric_correction:
+        for file_id_ in lyric_correction:
+            if file_id_ in file_id:
+                for func in lyric_correction[file_id_]:
+                    labels, segment, segments, skip = func(
+                        i, labels, segment, segments, threshold
+                    )
+
     return label, segment, segments, skip
 
 
 def fix_dataset2(dataset, input_type, file_id, i, labels):
     skip = False
     label = labels[i]
+    error_correction = {}
     if dataset == "natsume" and input_type == "hts":
-        # remove rest
-        if i < len(labels) - 1 and (
-            (
-                "12" in file_id
-                and labels[i + 1].label_id == "m"
-                and labels[i + 2].label_id == "o"
-            )
-            or ("31" in file_id and labels[i + 1].label_id == "s")
-            or ("26" in file_id and labels[i + 1].label_id == "o")
-            or (
-                "10" in file_id
-                and labels[i + 1].label_id == "k"
-                and labels[i + 2].label_id == "i"
-            )
-            or ("24" in file_id and i == 389)
-            or (
-                "07" in file_id
-                and labels[i + 1].label_id == "m"
-                and labels[i - 1].label_id == "o"
-            )
-        ):
-            labels[i + 1].start = label.start
-            skip = True
+        error_correction = {
+            "12": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "m" and labels[i + 2].label_id == "o"
+                else (labels, None, None, False),
+            ],
+            "31": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "s"
+                else (labels, None, None, False),
+            ],
+            "26": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "o"
+                else (labels, None, None, False),
+            ],
+            "10": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "k" and labels[i + 2].label_id == "i"
+                else (labels, None, None, False),
+            ],
+            "24": [
+                lambda: skip_labels(i, labels, None, None)
+                if i == 389
+                else (labels, None, None, False),
+            ],
+            "07": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "m" and labels[i - 1].label_id == "o"
+                else (labels, None, None, False),
+            ],
+        }
+
+    if error_correction and i < len(labels) - 1:
+        for file_id_ in error_correction:
+            if file_id_ in file_id:
+                for func in error_correction[file_id_]:
+                    labels, _, _, skip = func()
+
     if dataset == "natsume" and input_type == "xml":
         # remove rest note
         if "03" in file_id and labels[i + 1].lyric == "せ":
             labels[i + 1].st = label.st
             skip = True
+
     return label, skip
 
 

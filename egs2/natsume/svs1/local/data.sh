@@ -53,10 +53,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Prepare segments"
     for x in ${train_set} ${train_dev} ${recog_set}; do
         src_data=data/${x}
-        local/prep_segments.py --silence pau --silence sil --silence br ${src_data}
+        pyscripts/utils/prep_segments.py --dataset natsume --input_type hts --silence pau --silence sil --silence br ${src_data}
         mv ${src_data}/segments.tmp ${src_data}/segments
         mv ${src_data}/label.tmp ${src_data}/label
-        local/prep_segments_from_xml.py --silence P --silence B ${src_data}
+        pyscripts/utils/prep_segments.py --dataset natsume --input_type xml --silence P --silence B ${src_data}
         mv ${src_data}/text.tmp ${src_data}/text
         mv ${src_data}/segments_from_xml.tmp ${src_data}/segments_from_xml
         mv ${src_data}/score.scp.tmp ${src_data}/score.scp
