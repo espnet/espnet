@@ -63,7 +63,8 @@ def pack_zero(file_id, number, length=4):
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description="Prepare segments from either HTS-style alignment files or MUSICXML files",
+        description="Prepare segments from either HTS-style \n"
+        "alignment files or MUSICXML files",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("scp", type=str, help="scp folder")
@@ -72,7 +73,8 @@ def get_parser():
         "--input_type",
         type=str,
         choices=["hts", "xml"],
-        help="type of input files (hts for HTS-style alignment files, xml for MUSICXML files)",
+        help="type of input files\n"
+        "(hts for HTS-style alignment files, xml for MUSICXML files)",
     )
     parser.add_argument(
         "--threshold",
@@ -510,15 +512,19 @@ if __name__ == "__main__":
     elif args.input_type == "xml":
         file_scp = open(os.path.join(args.scp, "score.scp"), "r", encoding="utf-8")
         xml_reader = XMLReader(os.path.join(args.scp, "score.scp"))
-        mid_reader = MIDReader(os.path.join(args.scp, "mid.scp"), add_rest=True)
+        if dataset == "natsume":
+            mid_reader = MIDReader(os.path.join(args.scp, "mid.scp"), add_rest=True)
         for xml_line in file_scp:
             xmlline = xml_line.strip().split(" ")
             recording_id = xmlline[0]
             path = xmlline[1]
-            tempo, temp_info = fix_dataset4(
-                dataset, recording_id, mid_reader, xml_reader
-            )
-            # tempo, temp_info = xml_reader[recording_id]
+            if dataset == "natsume":
+                tempo, temp_info = fix_dataset4(
+                    dataset, recording_id, mid_reader, xml_reader
+                )
+            else:
+                tempo, temp_info = xml_reader[recording_id]
+
             segments.append(
                 make_segment_xml(
                     dataset,
