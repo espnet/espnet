@@ -80,37 +80,33 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [@Li:2021] with
 
 # ESPnet-SE++ Recipes and Software Structure
 ## ESPNet-SE++ Recipes for SSE and Joint-Task
-![](https://i.imgur.com/zKu612c.png)
 
-For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts which are carefully designed to work out-of-the-box with a wide variety of corpora. Under the `TEMPLATE` folder, the common scripts `enh1/enh.sh` and `enh_asr1/enh_asr.sh` are shared for all the SSE and joint-task recipes.
+For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts which are carefully designed to work out-of-the-box with a wide variety of corpora. The recipes for different corpora are under the `egs2/` folder. Under the `egs2/TEMPLATE` folder, the common scripts `enh1/enh.sh` and `enh_asr1/enh_asr.sh` are shared for all the SSE and joint-task recipes. The directory structure can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md).
 
 ### Common Scripts
 `enh.sh` contains 13 stages, and the details for the scripts can be found in [TEMPLATE/enh1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md).
 
 ![](https://i.imgur.com/0rGcwmw.png)
 
-`enh_asr.sh` contains 17 stages and `enh_diar.sh` and `enh_st.sh` are similar to it:
+
+`enh_asr.sh` contains 17 stages, and the details for the scripts can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md). The `enh_diar.sh` and `enh_st.sh` are similar to it. 
 
 ![](https://i.imgur.com/WfB0yVM.png)
 
 ### Training Configuration
 #### SSE Task Training Configuration
-An example of an enhancement task for the CHiME-4 `enh1`  recipe is configured as [`conf/tuning/train_enh_dprnn_tasnet.yaml`](https://github.com/espnet/espnet/blob/master/egs2/chime4/enh1/conf/tuning/train_enh_dprnn_tasnet.yaml). Part of this configuration is:
+An example of an enhancement task for the CHiME-4 `enh1`  recipe is configured as [`conf/tuning/train_enh_dprnn_tasnet.yaml`](https://github.com/espnet/espnet/blob/master/egs2/chime4/enh1/conf/tuning/train_enh_dprnn_tasnet.yaml). This file includes the specific types of `encoder`, `decoder`, `separator`, and their respective settings. Furthermore, the file also defines the training setup and `criterions`.
 
- ![](https://i.imgur.com/dsEy0gJ.png)
 
 #### Joint-Task Training Configuration
-An example of joint-task training configuration is the CHiME-4 `enh_asr1` recipe, configured as [`conf/tuning/train_enh_asr_convtasnet.yaml`](https://github.com/espnet/espnet/blob/master/egs2/chime4/enh_asr1/conf/tuning/train_enh_asr_convtasnet_si_snr_fbank_transformer_lr2e-3_accum2_warmup20k_specaug.yaml). This joint-task includes a front-end enhancmenet model and a back-end ASR model:
-
-![](https://i.imgur.com/kTapPT5.png)
-![](https://i.imgur.com/uVWW7ft.png)
+An example of joint-task training configuration is the CHiME-4 `enh_asr1` recipe, configured as [`conf/tuning/train_enh_asr_convtasnet.yaml`](https://github.com/espnet/espnet/blob/master/egs2/chime4/enh_asr1/conf/tuning/train_enh_asr_convtasnet_si_snr_fbank_transformer_lr2e-3_accum2_warmup20k_specaug.yaml). This joint-task comprises of a front-end SSE model and a back-end ASR model. The configuration file includes specifications for the  `encoder`, `decoder`, `separator`, and `criterions` of both the SSE and ASR models,using prefixes such as `enh_` and `asr_`.
 
 
 ## ESPNet-SE++ Software Structure for SSE Task
-![](https://i.imgur.com/W50IuzE.png)
+
+The directory structure for the SSE python files can be found in [TEMPLATE/enh1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md). Additionally, the UML diagram for the enhancement-only task in ESPNet-SE++ is provided below.
 
 
-###  Unified Modeling Language Diagram for ESPNet-SE++ Enhancement-Only Task
 ![](https://i.imgur.com/YPUERjy.png)
 
 
@@ -156,9 +152,8 @@ The `forward` function of `ESPnetEnhancementModel`  follows the general design i
 For more flexible combinations, the `forward_enhance` function returns the enhanced speech, and the `forward_loss` function returns the loss. The joint-training methods take the enhanced speech as the input for the downstream task and the SSE loss as a part of the joint-training loss.
 
 ## ESPNet-SE++ Software Structure for Joint-Task
-![](https://i.imgur.com/BPgf1b5.png)
+The directory structure for the SSE python files can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md). Furthermore, the UML diagram for the joint-task in ESPNet-SE++ is displayed below.
 
-### Unified Modeling Language Diagram for ESPNet-SE++ Joint-Task
 ![](https://i.imgur.com/qXxjwR5.png)
 
 
@@ -225,11 +220,14 @@ Calling `SeparateSpeech` and `Speech2Text` with unprocessed audios returns the s
 
 #### SSE
 
-![](https://i.imgur.com/cBHjCSV.png)
+![](https://github.com/neillu23/espnet/assets/62701324/455cc899-d5e4-456a-b6f5-6d20f8691e84)
+<!-- <img width="682" alt="upload_19278815d52fec20328e92a2cd21c1f4" src="https://github.com/neillu23/espnet/assets/62701324/455cc899-d5e4-456a-b6f5-6d20f8691e84"> -->
 
 #### Joint-Task
 
-![](https://i.imgur.com/6P3jZpJ.png)
+![](https://github.com/neillu23/espnet/assets/62701324/adb181b0-4af5-4ede-bda0-a4a0963365ad)
+<!-- <img width="681" alt="upload_77b0fdfa9ae6a7fd5d359cdfeb2359e6" src="https://github.com/neillu23/espnet/assets/62701324/adb181b0-4af5-4ede-bda0-a4a0963365ad"> -->
+
 
 The details for downloading models and inference are described in the [link](https://github.com/espnet/espnet_model_zoo).
 
