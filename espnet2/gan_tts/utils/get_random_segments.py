@@ -3,7 +3,7 @@
 
 """Function to get random segments."""
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 
@@ -31,6 +31,7 @@ def get_random_segments(
         dtype=torch.long,
     )
     segments = get_segments(x, start_idxs, segment_size)
+
     return segments, start_idxs
 
 

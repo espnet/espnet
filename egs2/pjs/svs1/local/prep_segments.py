@@ -77,7 +77,22 @@ def get_parser():
 def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
     segments = []
     segment = SegInfo()
-    for label in labels:
+    for i in range(len(labels)):
+        label = labels[i]
+        # replace wrong phoneme with correct one
+        if "46" in file_id and label.label_id == "o" and labels[i - 1].label_id == "o":
+            label.label_id = "i"
+        # add missing phonemes
+        if "64" in file_id and i == 34:
+            segment.add(label.start, 8.237, "o")
+            segment.add(8.237, 8.411, "t")
+            segment.add(8.411, 8.505, "o")
+            labels[i + 1].start = 8.505
+            continue
+        if "60" in file_id and label.label_id == "xx":
+            segment.add(label.start, 5.452, "n")
+            segment.add(5.452, label.end, "o")
+            continue
         if label.label_id in sil:
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
