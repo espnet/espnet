@@ -7,6 +7,7 @@ import torch
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.rwkv_decoder import RWKVDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr_transducer.encoder.encoder import Encoder
 from espnet2.asr_transducer.espnet_transducer_model import ESPnetASRTransducerModel
@@ -50,7 +51,11 @@ def prepare(model, input_size, vocab_size, batch_size):
 
 
 def get_decoder(vocab_size, params):
-    if "rnn_type" in params:
+    if "is_rwkv" in params:
+        del params["is_rwkv"]
+
+        decoder = RWKVDecoder(vocab_size, **params)
+    elif "rnn_type" in params:
         decoder = RNNDecoder(vocab_size, **params)
     elif "block_size" in params:
         decoder = MEGADecoder(vocab_size, **params)
@@ -261,6 +266,39 @@ def get_specaug():
             ],
             {},
             {"block_size": 4, "rel_pos_bias_type": "rotary"},
+            {"joint_space_size": 4},
+            {"report_cer": True, "report_wer": True},
+        ),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                },
+                {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
+            ],
+            {
+                "dynamic_chunk_training": True,
+                "short_chunk_size": 1,
+                "num_left_chunks": 1,
+            },
+            {"block_size": 4, "linear_size": 4, "is_rwkv": True},
+            {"joint_space_size": 4},
+            {"transducer_weight": 1.0},
+        ),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
+            {},
+            {"block_size": 4, "linear_size": 4, "is_rwkv": True},
             {"joint_space_size": 4},
             {"report_cer": True, "report_wer": True},
         ),

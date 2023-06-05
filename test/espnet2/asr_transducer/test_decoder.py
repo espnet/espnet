@@ -3,6 +3,7 @@ import torch
 
 from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.rwkv_decoder import RWKVDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 
 
@@ -31,6 +32,22 @@ def test_rnn_decoder(params):
     vocab_size, labels = prepare()
 
     decoder = RNNDecoder(vocab_size, **params)
+    _ = decoder(labels)
+
+
+# (b-flo): Timeout limit is high because of the kernel loading
+@pytest.mark.parametrize(
+    "params",
+    [
+        {"block_size": 4, "num_blocks": 2},
+        {"block_size": 4, "num_blocks": 2, "attention_size": 8, "linear_size": 8},
+    ],
+)
+@pytest.mark.execution_timeout(20)
+def test_rwkv_decoder(params):
+    vocab_size, labels = prepare()
+
+    decoder = RWKVDecoder(vocab_size, **params)
     _ = decoder(labels)
 
 
