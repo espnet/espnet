@@ -228,7 +228,7 @@ Calling `SeparateSpeech` and `Speech2Text` with unprocessed audios returns the s
 
 ![](graphics/inference_joint.png)
 
-The details for downloading models and inference are described in the [link](https://github.com/espnet/espnet_model_zoo).
+The details for downloading models and inference are described in [espnet_model_zoo](https://github.com/espnet/espnet_model_zoo).
 
 
 # Demonstrations
@@ -239,7 +239,7 @@ The demonstrations of ESPnet-SE can be found in the following google colab links
 
 
 # Development plan
-The development plan of the ESPnet-SE++ can be found in https://github.com/espnet/espnet/issues/2200. In addition, we will explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion.
+The development plan of the ESPnet-SE++ can be found in [Development plan for ESPnet2 speech enhancement](https://github.com/espnet/espnet/issues/2200). In addition, we will explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion.
 
 # Conclusions
 In this paper, we introduce the software structure and the user interface of ESPnet-SE++, including the SSE task and joint-task models. ESPnet-SE++ provides general recipes for training models on different corpus and a simple way for adding new recipes. The joint-task implementation further shows that the modularized design improves the flexibility of ESPnet.
