@@ -67,7 +67,7 @@ bibliography: paper.bib
 
 ---
 
-![](https://i.imgur.com/mV3ukCX.png)
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/espnet-SE%2B%2B.png)
 
 # Summary
 This paper presents the software design and user interface of ESPnet-SE++, a new speech separation and enhancement (SSE) module of the ESPnet toolkit.
@@ -86,12 +86,12 @@ For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts
 ### Common Scripts
 `enh.sh` contains 13 stages, and the details for the scripts can be found in [TEMPLATE/enh1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md).
 
-![](https://i.imgur.com/0rGcwmw.png)
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/enh_script.png)
 
 
 `enh_asr.sh` contains 17 stages, and the details for the scripts can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md). The `enh_diar.sh` and `enh_st.sh` are similar to it. 
 
-![](https://i.imgur.com/WfB0yVM.png)
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/enh_asr_script.png)
 
 ### Training Configuration
 #### SSE Task Training Configuration
@@ -107,7 +107,7 @@ An example of joint-task training configuration is the CHiME-4 `enh_asr1` recipe
 The directory structure for the SSE python files can be found in [TEMPLATE/enh1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md). Additionally, the UML diagram for the enhancement-only task in ESPNet-SE++ is provided below.
 
 
-![](https://i.imgur.com/YPUERjy.png)
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/UML_SSE.png)
 
 
 ### SSE Executable Code `bin/*`
@@ -154,7 +154,7 @@ For more flexible combinations, the `forward_enhance` function returns the enhan
 ## ESPNet-SE++ Software Structure for Joint-Task
 The directory structure for the SSE python files can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md). Furthermore, the UML diagram for the joint-task in ESPNet-SE++ is displayed below.
 
-![](https://i.imgur.com/qXxjwR5.png)
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/UML_Joint.png)
 
 
 ### Joint-Task Executable Code `bin/*`
@@ -188,7 +188,7 @@ object with the data-iterator for testing and validation.  During their initiali
 
 The `ESPnetEnhS2TModel` takes a front-end `enh_model`, and a back-end `s2t_model` (such as ASR, SLU, ST, and SD models) as inputs to build a joint-model.
 
-![](https://i.imgur.com/1QaZ68u.png)
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/joint_init.png)
 
 The `forward` function of the class follows the general design in ESPnet2:
 
@@ -202,7 +202,8 @@ which processes speech and only returns losses for [Trainer](https://github.com/
 ## Building a New Recipe from Scratch
 Since ESPnet2 provides common scripts such as `enh.sh` and `enh_asr.sh` for each task, users only need to create `local/data.sh`  for the data preparation of a new corpus.  The generated data follows the Kaldi-style structure:
 
-![](https://i.imgur.com/aSW6a2M.png)
+
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/data_structure.png)
 
 The detailed instructions for data preparation and building new recipes in espnet2 are described in the [link](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE).
 
@@ -214,20 +215,18 @@ Pretrained models from ESPnet are provided on HuggingFace and Zenodo. Users can 
 ### Inference API
 The inference functions are from the `enh_inference` and `enh_asr_inference` in the executable code `bin/`
 
-![](https://i.imgur.com/hAjO6Pj.png)
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/inference.png)
 
 Calling `SeparateSpeech` and `Speech2Text` with unprocessed audios returns the separated speech and their recognition results.
 
 #### SSE
 
-![](https://github.com/neillu23/espnet/assets/62701324/455cc899-d5e4-456a-b6f5-6d20f8691e84)
-<!-- <img width="682" alt="upload_19278815d52fec20328e92a2cd21c1f4" src="https://github.com/neillu23/espnet/assets/62701324/455cc899-d5e4-456a-b6f5-6d20f8691e84"> -->
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/inference_SSE.png)
 
 #### Joint-Task
 
-![](https://github.com/neillu23/espnet/assets/62701324/adb181b0-4af5-4ede-bda0-a4a0963365ad)
-<!-- <img width="681" alt="upload_77b0fdfa9ae6a7fd5d359cdfeb2359e6" src="https://github.com/neillu23/espnet/assets/62701324/adb181b0-4af5-4ede-bda0-a4a0963365ad"> -->
 
+![](https://github.com/neillu23/espnet/blob/joss_paper/doc/paper/espnet-se%2B%2B/graphics/inference_joint.png)
 
 The details for downloading models and inference are described in the [link](https://github.com/espnet/espnet_model_zoo).
 
