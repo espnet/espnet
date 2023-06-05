@@ -674,7 +674,7 @@ if ! "${skip_train}"; then
         # Add the category information at the end of the data path list
         if [ -e "${_enh_train_dir}/utt2category" ] && [ -e "${_enh_valid_dir}/utt2category" ]; then
             log "[INFO] Adding the category information for training"
-            log "[WARNING] Please make sure the category information is explicitly processed in the preprocessor so that it is converted to an integer"
+            log "[WARNING] Please make sure the category information is explicitly processed by the preprocessor defined in '${enh_config}' so that it is converted to an integer"
 
             _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/utt2category,category,text "
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/utt2category,category,text "

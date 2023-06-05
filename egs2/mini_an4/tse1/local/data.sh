@@ -45,6 +45,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ ! -d data/train ] || [ ! -d data/test ]; then
         local/asr_data.sh --stage 2 --stop-stage 2 --an4-root "${an4_root}"
     fi
+
+    rm data/**/utt2category 2>/dev/null || true
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
