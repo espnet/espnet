@@ -4,6 +4,9 @@ import math
 import os
 import sys
 
+from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
+from espnet2.text.build_tokenizer import build_tokenizer
+
 """Generate segments according to label."""
 
 
@@ -71,28 +74,28 @@ def get_parser():
     parser.add_argument(
         "--silence", action="append", help="silence_phone", default=["pau"]
     )
+    parser.add_argument("--g2p", type=str, help="g2p", default="pyopenjtalk")
+    parser.add_argument(
+        "--score_dump", type=str, default="score_dump", help="score dump directory"
+    )
+    parser.add_argument(
+        "--customed_dic",
+        type=str,
+        help="customed g2p for alignment at phoneme level",
+        default="local/customed_dic.scp",
+    )
     return parser
 
 
-def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
+def make_segment(xml_writer, file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
+    xml_reader = SingingScoreReader(os.path.join(args.scp, "score.scp"))
     segments = []
     segment = SegInfo()
     for i in range(len(labels)):
+        # remove unlabeled part
+        if "08" in file_id and i < 135:
+            continue
         label = labels[i]
-        # replace wrong phoneme with correct one
-        if "46" in file_id and label.label_id == "o" and labels[i - 1].label_id == "o":
-            label.label_id = "i"
-        # add missing phonemes
-        if "64" in file_id and i == 34:
-            segment.add(label.start, 8.237, "o")
-            segment.add(8.237, 8.411, "t")
-            segment.add(8.411, 8.505, "o")
-            labels[i + 1].start = 8.505
-            continue
-        if "60" in file_id and label.label_id == "xx":
-            segment.add(label.start, 5.452, "n")
-            segment.add(5.452, label.end, "o")
-            continue
         if label.label_id in sil:
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
@@ -106,11 +109,84 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
     segments_w_id = {}
     id = 0
     for seg in segments:
-        if len(seg) == 0:
-            continue
-        segments_w_id[pack_zero(file_id, id)] = seg
-        id += 1
+        while len(seg) > 0:
+            key = pack_zero(file_id, id)
+            score = xml_reader[key]
+            val, seg, notes = compare(key, score["note"], seg)
+            segments_w_id[key] = val
+            score["note"] = notes
+            score["item_list"].append("phn")
+            xml_writer[key] = score
+            id += 1
     return segments_w_id
+
+
+def load_customed_dic(file):
+    """If syllable-to-phone tranlation differs from g2p,"""
+    """ customed tranlation can be added to customed_dic."""
+    customed_dic = {}
+    with open(file, "r", encoding="utf-8") as f:
+        content = f.read().strip().split("\n")
+        for key in content:
+            key = key.split(" ")
+            customed_dic[key[0]] = key[1].split("_")
+    return customed_dic
+
+
+def compare(key, score, label):
+    # follow pause in xml
+    customed_dic = load_customed_dic(args.customed_dic)
+    tokenizer = build_tokenizer(
+        token_type="phn",
+        bpemodel=None,
+        delimiter=None,
+        space_symbol="<space>",
+        non_linguistic_symbols=None,
+        g2p_type=args.g2p,
+    )
+    index = 0
+    val = []
+    for i in range(len(score)):
+        syb = score[i][2]
+        if syb == "—":
+            if index > len(label):
+                raise ValueError("Lyrics are longer than phones in {}".format(key))
+            if (
+                index == len(label)
+                or label[index][2] != pre_phn
+                or (
+                    label[index][2] == pre_phn
+                    and pre_phn == tokenizer.g2p(score[i + 1][2])[0]
+                )
+            ):
+                dur = (val[-1][1] - val[-1][0]) / 2
+                val.append((val[-1][0] + dur, val[-1][1]))
+                val[-1] = (val[-1][0], val[-1][0] + dur, pre_phn)
+                score[i].append(pre_phn)
+                continue
+        # Translate syllable into phones through g2p
+        phns = tokenizer.g2p(syb)
+        # In some case, translation can be different
+        if syb in customed_dic:
+            phns = customed_dic[syb]
+        score[i].append("_".join(phns))
+        pre_phn = phns[-1]
+        for p in phns:
+            if index >= len(label):
+                raise ValueError("Lyrics are longer than phones in {}".format(key))
+            elif label[index][2] == p:
+                val.append(label[index])
+                index += 1
+            else:
+                raise ValueError(
+                    "Mismatch in syllable [{}]->{} and {}-th phones '{}' in {}.".format(
+                        syb, phns, index, label[index][2], key
+                    )
+                )
+    val_rest = []
+    if index != len(label):
+        val_rest = label[index:]
+    return val, val_rest, score
 
 
 if __name__ == "__main__":
@@ -125,6 +201,9 @@ if __name__ == "__main__":
         os.path.join(args.scp, "segments.tmp"), "w", encoding="utf-8"
     )
     update_label = open(os.path.join(args.scp, "label.tmp"), "w", encoding="utf-8")
+    xml_writer = SingingScoreWriter(
+        args.score_dump, os.path.join(args.scp, "score.scp.tmp")
+    )
 
     for wav_line in wavscp:
         label_line = label.readline()
@@ -141,7 +220,9 @@ if __name__ == "__main__":
                 LabelInfo(phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2])
             )
         segments.append(
-            make_segment(recording_id, temp_info, args.threshold, args.silence)
+            make_segment(
+                xml_writer, recording_id, temp_info, args.threshold, args.silence
+            )
         )
 
     for file in segments:

@@ -60,7 +60,7 @@ MAGICDATA=downloads
 MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
-MSUPERB=/ocean/projects/cis210027p/shared/corpora/MultilingualSUPERB
+MLSUPERB=
 L3DAS22=
 LIBRIMIX=downloads
 LIBRITTS=
@@ -180,6 +180,7 @@ PJS=
 AMEBOSHI=
 ITAKO=
 NATSUME=
+KIRITAN=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
