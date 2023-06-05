@@ -640,6 +640,7 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         speech_ref_name_prefix: str = "speech_ref",
         mixture_source_name: str = None,
         utt2spk: str = None,
+        categories: Optional[List] = None,
     ):
         super().__init__(train)
         self.source_scp = source_scp
@@ -679,6 +680,15 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
                 assert key in self.utt2spk
 
         self.source_keys = list(self.sources.keys())
+
+        # Map each category into a unique integer
+        self.categories = {}
+        if categories:
+            count = 0
+            for c in categories:
+                if c not in self.categories:
+                    self.categories[c] = count
+                    count += 1
 
     def _pick_source_utterances_(self, uid):
         # return (ref_num - 1) uid of reference sources.
@@ -759,6 +769,12 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         assert (
             len(data[self.mixture_source_name].shape) == 1
         ), "Multi-channel input has not been tested"
+
+        # Remove the category information (an integer) to `data`
+        if self.categories and "category" in data:
+            category = data.pop("category")
+            assert category in self.categories, category
+            data["utt2category"] = np.array([self.categories[category]])
 
         if self.train:
             data = self._mix_speech_(uid, data)

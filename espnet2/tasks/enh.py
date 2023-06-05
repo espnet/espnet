@@ -385,26 +385,22 @@ class EnhancementTask(AbsTask):
                             args.preprocessor_conf.get("source_scp_name", "spk1.scp"),
                         ),
                         ref_num=args.preprocessor_conf.get(
-                            "ref_num",
-                            args.separator_conf["num_spk"],
+                            "ref_num", args.separator_conf["num_spk"]
                         ),
                         dynamic_mixing_gain_db=args.preprocessor_conf.get(
-                            "dynamic_mixing_gain_db",
-                            0.0,
+                            "dynamic_mixing_gain_db", 0.0
                         ),
                         speech_name=args.preprocessor_conf.get(
-                            "speech_name",
-                            "speech_mix",
+                            "speech_name", "speech_mix"
                         ),
                         speech_ref_name_prefix=args.preprocessor_conf.get(
-                            "speech_ref_name_prefix",
-                            "speech_ref",
+                            "speech_ref_name_prefix", "speech_ref"
                         ),
                         mixture_source_name=args.preprocessor_conf.get(
-                            "mixture_source_name",
-                            None,
+                            "mixture_source_name", None
                         ),
                         utt2spk=getattr(args, "utt2spk", None),
+                        categories=args.preprocessor_conf.get("categories", None),
                     )
                 else:
                     retval = None
