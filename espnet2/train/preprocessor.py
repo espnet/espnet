@@ -771,6 +771,11 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
         ), "Multi-channel input has not been tested"
 
         # Add the category information (an integer) to `data`
+        if not self.categories and "category" in data:
+            raise ValueError(
+                "categories must be set in the config file when utt2category files "
+                "exist in the data directory (e.g., dump/raw/*/utt2category)"
+            )
         if self.categories and "category" in data:
             category = data.pop("category")
             assert category in self.categories, category
@@ -957,6 +962,11 @@ class EnhPreprocessor(CommonPreprocessor):
                     data[k] = data[k][..., chs]
 
         # Add the category information (an integer) to `data`
+        if not self.categories and "category" in data:
+            raise ValueError(
+                "categories must be set in the config file when utt2category files "
+                "exist in the data directory (e.g., dump/raw/*/utt2category)"
+            )
         if self.categories and "category" in data:
             category = data.pop("category")
             assert category in self.categories, category

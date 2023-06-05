@@ -1183,7 +1183,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 ./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
 <li><strong>Results</strong><pre><code>$(cat "${enh_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>ASR config</strong><pre><code>$(cat "${enh_exp}"/config.yaml)</code></pre></li>
+<li><strong>Enh config</strong><pre><code>$(cat "${enh_exp}"/config.yaml)</code></pre></li>
 </ul>
 EOF
 
@@ -1242,6 +1242,9 @@ if ! "${skip_upload_hf}"; then
         # shellcheck disable=SC2034
         task_exp=${enh_exp}
         eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+        if ${is_tse_task}; then
+            sed -i -e "s#./run.sh --skip_data_prep false --skip_train true --download_model#./run.sh --skip_data_prep false --skip_train true --is_tse_task true --download_model#g" "${dir_repo}"/README.md
+        fi
 
         this_folder=${PWD}
         cd ${dir_repo}

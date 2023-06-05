@@ -375,35 +375,32 @@ class EnhancementTask(AbsTask):
         if use_preprocessor:
             # TODO(simpleoier): To make this as simple as model parts, e.g. encoder
             if args.preprocessor == "dynamic_mixing":
-                if train:
-                    retval = preprocessor_choices.get_class(args.preprocessor)(
-                        train=train,
-                        source_scp=os.path.join(
-                            os.path.dirname(
-                                args.train_data_path_and_name_and_type[0][0]
-                            ),
-                            args.preprocessor_conf.get("source_scp_name", "spk1.scp"),
+                retval = preprocessor_choices.get_class(args.preprocessor)(
+                    train=train,
+                    source_scp=os.path.join(
+                        os.path.dirname(
+                            args.train_data_path_and_name_and_type[0][0]
                         ),
-                        ref_num=args.preprocessor_conf.get(
-                            "ref_num", args.separator_conf["num_spk"]
-                        ),
-                        dynamic_mixing_gain_db=args.preprocessor_conf.get(
-                            "dynamic_mixing_gain_db", 0.0
-                        ),
-                        speech_name=args.preprocessor_conf.get(
-                            "speech_name", "speech_mix"
-                        ),
-                        speech_ref_name_prefix=args.preprocessor_conf.get(
-                            "speech_ref_name_prefix", "speech_ref"
-                        ),
-                        mixture_source_name=args.preprocessor_conf.get(
-                            "mixture_source_name", None
-                        ),
-                        utt2spk=getattr(args, "utt2spk", None),
-                        categories=args.preprocessor_conf.get("categories", None),
-                    )
-                else:
-                    retval = None
+                        args.preprocessor_conf.get("source_scp_name", "spk1.scp"),
+                    ),
+                    ref_num=args.preprocessor_conf.get(
+                        "ref_num", args.separator_conf["num_spk"]
+                    ),
+                    dynamic_mixing_gain_db=args.preprocessor_conf.get(
+                        "dynamic_mixing_gain_db", 0.0
+                    ),
+                    speech_name=args.preprocessor_conf.get(
+                        "speech_name", "speech_mix"
+                    ),
+                    speech_ref_name_prefix=args.preprocessor_conf.get(
+                        "speech_ref_name_prefix", "speech_ref"
+                    ),
+                    mixture_source_name=args.preprocessor_conf.get(
+                        "mixture_source_name", None
+                    ),
+                    utt2spk=getattr(args, "utt2spk", None),
+                    categories=args.preprocessor_conf.get("categories", None),
+                )
             elif args.preprocessor == "enh":
                 retval = preprocessor_choices.get_class(args.preprocessor)(
                     train=train,
