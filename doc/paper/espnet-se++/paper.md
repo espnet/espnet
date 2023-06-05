@@ -89,7 +89,7 @@ For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts
 ![](graphics/enh_script.png)
 
 
-`enh_asr.sh` contains 17 stages, and the details for the scripts can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md). The `enh_diar.sh` and `enh_st.sh` are similar to it. 
+`enh_asr.sh` contains 17 stages, and the details for the scripts can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md). The `enh_diar.sh` and `enh_st.sh` are similar to it.
 
 ![](graphics/enh_asr_script.png)
 
