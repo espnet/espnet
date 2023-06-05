@@ -3,6 +3,7 @@ import argparse
 import math
 import os
 import sys
+import re
 
 from espnet2.fileio.read_text import read_label
 from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
@@ -61,6 +62,16 @@ def compare(key, score, label):
         pre_phn = phns[-1]
         for p in phns:
             if index >= len(label):
+                pattern = r"_[0]*"
+                key_name = re.split(pattern, key[:-5], 1)[-1]
+                print(
+                    "In {}, XML, use add_pause.\n"
+                    '"{}": [\n'
+                    "   lambda i, labels, segment, segments, threshold: add_pause(labels, segment, segments, threshold)\n"
+                    '   if (labels[i].lyric == "{}" and labels[i - 1].lyric == "{}")\n'
+                    "   else (labels, segment, segments, False),\n"
+                    "],".format(key, key_name, score[i][2], score[i - 1][2])
+                )
                 raise ValueError("Lyrics are longer than phones in {}".format(key))
             elif label[index][2] == p:
                 index += 1
@@ -71,6 +82,16 @@ def compare(key, score, label):
                     )
                 )
     if index != len(label):
+        pattern = r"_[0]*"
+        key_name = re.split(pattern, key[:-5], 1)[-1]
+        print(
+            "In {}, lab, use add_pause.\n"
+            '"{}": [\n'
+            "   lambda i, labels, segment, segments, threshold: add_pause(labels, segment, segments, threshold)\n"
+            '   if (labels[i].label_id == "{}" and labels[i - 1].label_id == "{}")\n'
+            "   else (labels, segment, segments, False),\n"
+            "],".format(key, key_name, label[index][2], label[index - 1][2])
+        )
         raise ValueError("Phones are longer than lyrics in {}.".format(key))
     return score
 
