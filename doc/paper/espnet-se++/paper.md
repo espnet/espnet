@@ -81,7 +81,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [@Li:2021] with
 # ESPnet-SE++ Recipes and Software Structure
 ## ESPNet-SE++ Recipes for SSE and Joint-Task
 
-For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts which are carefully designed to work out-of-the-box with a wide variety of corpora. The recipes for different corpora are under the `egs2/` folder. Under the `egs2/TEMPLATE` folder, the common scripts `enh1/enh.sh` and `enh_asr1/enh_asr.sh` are shared for all the SSE and joint-task recipes. The directory structure can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md).
+For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts which are carefully designed to work out-of-the-box with a wide variety of corpora. The recipes for different corpora are under the `egs2/` folder. Under the `egs2/TEMPLATE` folder, the common scripts `enh1/enh.sh` and `enh_asr1/enh_asr.sh` are shared for all the SSE and joint-task recipes. The directory structure can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md).
 
 ### Common Scripts
 `enh.sh` contains 13 stages, and the details for the scripts can be found in [TEMPLATE/enh1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md).
@@ -89,7 +89,7 @@ For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts
 ![](graphics/enh_script.png)
 
 
-`enh_asr.sh` contains 17 stages, and the details for the scripts can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md). The `enh_diar.sh` and `enh_st.sh` are similar to it. 
+`enh_asr.sh` contains 17 stages, and the details for the scripts can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md). The `enh_diar.sh` and `enh_st.sh` are similar to it. 
 
 ![](graphics/enh_asr_script.png)
 
