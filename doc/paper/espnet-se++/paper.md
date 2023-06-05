@@ -154,7 +154,7 @@ For more flexible combinations, the `forward_enhance` function returns the enhan
 ## ESPNet-SE++ Software Structure for Joint-Task
 The directory structure for the SSE python files can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md). Furthermore, the UML diagram for the joint-task in ESPNet-SE++ is displayed below.
 
-![UM Diagram for Joint-Task in ESPnet-SE++](graphics/UML_Joint.png)
+![UML Diagram for Joint-Task in ESPnet-SE++](graphics/UML_Joint.png)
 
 
 ### Joint-Task Executable Code `bin/*`
