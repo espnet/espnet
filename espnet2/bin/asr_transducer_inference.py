@@ -113,7 +113,9 @@ class Speech2Text:
         else:
             asr_model.to(dtype=getattr(torch, dtype)).eval()
 
-        if asr_model.decoder.rescale_every > 0:
+        if hasattr(asr_model.decoder, "rescale_every") and (
+            asr_model.decoder.rescale_every > 0
+        ):
             rescale_every = asr_model.decoder.rescale_every
 
             with torch.no_grad():

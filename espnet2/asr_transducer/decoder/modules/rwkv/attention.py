@@ -146,6 +146,12 @@ def load_wkv_kernel(context_size: int) -> None:
             "for training. Please, 'pip install ninja' in your environment."
         )
 
+    if not torch.cuda.is_available():
+        raise ImportError(
+            "CUDA is currently a requirement for WKV kernel loading. "
+            "Please set your devices properly and launch again."
+        )
+
     kernel_folder = Path(__file__).resolve().parent / "cuda"
     kernel_files = [kernel_folder / f for f in ["wkv_op.cpp", "wkv_cuda.cu"]]
 
