@@ -770,7 +770,7 @@ class DynamicMixingPreprocessor(AbsPreprocessor):
             len(data[self.mixture_source_name].shape) == 1
         ), "Multi-channel input has not been tested"
 
-        # Remove the category information (an integer) to `data`
+        # Add the category information (an integer) to `data`
         if self.categories and "category" in data:
             category = data.pop("category")
             assert category in self.categories, category
