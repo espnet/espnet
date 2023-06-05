@@ -113,6 +113,20 @@ class Speech2Text:
         else:
             asr_model.to(dtype=getattr(torch, dtype)).eval()
 
+        if asr_model.decoder.rescale_every > 0:
+            rescale_every = asr_model.decoder.rescale_every
+
+            with torch.no_grad():
+                for block_id, block in enumerate(asr_model.decoder.rwkv_blocks):
+                    block.att.proj_output.weight.div_(
+                        2 ** int(block_id // rescale_every)
+                    )
+                    block.ffn.proj_value.weight.div_(
+                        2 ** int(block_id // rescale_every)
+                    )
+
+            asr_model.decoder.rescaled_layers = True
+
         if lm_train_config is not None:
             lm, lm_train_args = LMTask.build_model_from_file(
                 lm_train_config, lm_file, device

@@ -27,6 +27,7 @@ class RWKVDecoder(AbsDecoder):
         normalization_type: Normalization layer type.
         normalization_args: Normalization layer arguments.
         num_blocks: Number of RWKV blocks.
+        rescale_every: Whether to rescale input every N blocks (inference only).
         embed_dropout_rate: Dropout rate for embedding layer.
         att_dropout_rate: Dropout rate for the attention module.
         ffn_dropout_rate: Dropout rate for the feed-forward module.
@@ -44,6 +45,7 @@ class RWKVDecoder(AbsDecoder):
         normalization_type: str = "layer_norm",
         normalization_args: Dict = {},
         num_blocks: int = 4,
+        rescale_every: int = 0,
         embed_dropout_rate: float = 0.0,
         att_dropout_rate: float = 0.0,
         ffn_dropout_rate: float = 0.0,
@@ -90,6 +92,9 @@ class RWKVDecoder(AbsDecoder):
         self.output_size = block_size
         self.vocab_size = vocab_size
         self.context_size = context_size
+
+        self.rescale_every = rescale_every
+        self.rescaled_layers = False
 
         self.pad_idx = embed_pad
         self.num_blocks = num_blocks
@@ -147,6 +152,9 @@ class RWKVDecoder(AbsDecoder):
 
         for idx, block in enumerate(self.rwkv_blocks):
             x, states = block(x, state=states)
+
+            if self.rescaled_layers and (idx + 1) % self.rescale_every == 0:
+                x = x / 2
 
         x = self.final_norm(x)
 
