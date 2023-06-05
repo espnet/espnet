@@ -2,8 +2,8 @@
 import argparse
 import math
 import os
-import sys
 import re
+import sys
 
 from espnet2.fileio.read_text import read_label
 from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter

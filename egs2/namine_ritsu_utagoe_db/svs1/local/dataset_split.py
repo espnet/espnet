@@ -2,7 +2,6 @@ import argparse
 import os
 import shutil
 
-
 UTT_PREFIX = "namine"
 DEV_LIST = [
     "subetenovocaloidnisensenfukoku",
