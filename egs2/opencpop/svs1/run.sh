@@ -6,12 +6,12 @@ set -u
 set -o pipefail
 
 # spectrogram-related arguments
-fs=24000
-fmin=80
-fmax=7600
+fs=44100
+fmin=0
+fmax=22050
 n_fft=2048
-n_shift=300
-win_length=1200
+n_shift=512
+win_length=2048
 
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
@@ -30,12 +30,14 @@ g2p=None
 cleaner=none
 
 pitch_extract=dio
+ying_extract=None
 
 ./svs.sh \
     --lang zh \
     --local_data_opts "--stage 0" \
     --feats_type raw \
     --pitch_extract "${pitch_extract}" \
+    --ying_extract "${ying_extract}" \
     --fs "${fs}" \
     --fmax "${fmax}" \
     --fmin "${fmin}" \
