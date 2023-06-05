@@ -378,9 +378,7 @@ class EnhancementTask(AbsTask):
                 retval = preprocessor_choices.get_class(args.preprocessor)(
                     train=train,
                     source_scp=os.path.join(
-                        os.path.dirname(
-                            args.train_data_path_and_name_and_type[0][0]
-                        ),
+                        os.path.dirname(args.train_data_path_and_name_and_type[0][0]),
                         args.preprocessor_conf.get("source_scp_name", "spk1.scp"),
                     ),
                     ref_num=args.preprocessor_conf.get(
@@ -389,9 +387,7 @@ class EnhancementTask(AbsTask):
                     dynamic_mixing_gain_db=args.preprocessor_conf.get(
                         "dynamic_mixing_gain_db", 0.0
                     ),
-                    speech_name=args.preprocessor_conf.get(
-                        "speech_name", "speech_mix"
-                    ),
+                    speech_name=args.preprocessor_conf.get("speech_name", "speech_mix"),
                     speech_ref_name_prefix=args.preprocessor_conf.get(
                         "speech_ref_name_prefix", "speech_ref"
                     ),
