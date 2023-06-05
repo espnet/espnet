@@ -13,19 +13,13 @@ n_fft=2048
 n_shift=300
 win_length=1200
 
-score_feats_extract=frame_score_feats
+score_feats_extract=frame_score_feats   # frame_score_feats | syllable_score_feats
 
-opts=
-if [ "${fs}" -eq 48000 ]; then
-    # To suppress recreation, specify wav format
-    opts="--audio_format wav "
-else
-    opts="--audio_format flac "
-fi
+opts="--audio_format wav "
 
 train_set=tr_no_dev
 valid_set=dev
-test_sets="eval"
+test_sets="dev eval"
 
 # training and inference configuration
 train_config=conf/train.yaml
@@ -35,13 +29,16 @@ inference_config=conf/decode.yaml
 g2p=pyopenjtalk
 cleaner=none
 
+pitch_extract=dio
+
 ./svs.sh \
     --lang jp \
     --local_data_opts "--stage 0" \
     --feats_type raw \
-    --pitch_extract None \
+    --pitch_extract "${pitch_extract}" \
     --fs "${fs}" \
     --fmax "${fmax}" \
+    --fmin "${fmin}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
@@ -55,5 +52,4 @@ cleaner=none
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
-    --ngpu 1 \
     ${opts} "$@"
