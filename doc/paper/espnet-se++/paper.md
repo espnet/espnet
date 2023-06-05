@@ -67,7 +67,7 @@ bibliography: paper.bib
 
 ---
 
-![](graphics/espnet-SE%2B%2B.png)
+![The Joint-task Systems of SSE with ASR, ST, and SLU in ESPnet-SE++.](graphics/espnet-SE%2B%2B.png)
 
 # Summary
 This paper presents the software design and user interface of ESPnet-SE++, a new speech separation and enhancement (SSE) module of the ESPnet toolkit.
@@ -107,7 +107,7 @@ An example of joint-task training configuration is the CHiME-4 `enh_asr1` recipe
 The directory structure for the SSE python files can be found in [TEMPLATE/enh1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md). Additionally, the UML diagram for the enhancement-only task in ESPNet-SE++ is provided below.
 
 
-![](graphics/UML_SSE.png)
+![UML Diagram for Speech Separation and Enhancement in ESPnet-SE++](graphics/UML_SSE.png)
 
 
 ### SSE Executable Code `bin/*`
@@ -154,7 +154,7 @@ For more flexible combinations, the `forward_enhance` function returns the enhan
 ## ESPNet-SE++ Software Structure for Joint-Task
 The directory structure for the SSE python files can be found in [TEMPLATE/enh_asr1/README.md](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md). Furthermore, the UML diagram for the joint-task in ESPNet-SE++ is displayed below.
 
-![](graphics/UML_Joint.png)
+![UM Diagram for Joint-Task in ESPnet-SE++](graphics/UML_Joint.png)
 
 
 ### Joint-Task Executable Code `bin/*`
