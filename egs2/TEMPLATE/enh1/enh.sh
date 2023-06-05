@@ -1242,9 +1242,6 @@ if ! "${skip_upload_hf}"; then
         # shellcheck disable=SC2034
         task_exp=${enh_exp}
         eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
-        if ${is_tse_task}; then
-            sed -i -e "s#./run.sh --skip_data_prep false --skip_train true --download_model#./run.sh --skip_data_prep false --skip_train true --is_tse_task true --download_model#g" "${dir_repo}"/README.md
-        fi
 
         this_folder=${PWD}
         cd ${dir_repo}
