@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import random
 import shutil
 
 import librosa
@@ -12,28 +13,6 @@ from espnet2.fileio.score_scp import SingingScoreWriter
 """Generate segments according to structured annotation."""
 """Transfer music score into 'score' format."""
 
-SELECTED_SINGER = [
-    "Alto-1",
-    "Alto-2",
-    "Alto-3",
-    "Alto-4",
-    "Alto-5",
-    "Alto-6",
-    "Bass-1",
-    "Bass-2",
-    "Bass-3",
-    "Soprano-1",
-    "Soprano-2",
-    "Soprano-3",
-    "Soprano-4",
-    "Tenor-1",
-    "Tenor-2",
-    "Tenor-3",
-    "Tenor-4",
-    "Tenor-5",
-    "Tenor-6",
-]
-
 
 def makedir(data_url):
     if os.path.exists(data_url):
@@ -44,7 +23,9 @@ def makedir(data_url):
 def load_midi(args, uid, song_name):
     # Note(Yuning): note duration from '.midi' for M4Singer cannot be used here.
     # We only extract tempo from '.midi'.
-    midi_path = os.path.join(args.src_data, "midi", song_name, "{}.mid".format(uid))
+    midi_path = os.path.join(
+        args.src_data, song_name, "{}.mid".format(uid.split("#")[-1])
+    )
     midi_obj = miditoolkit.midi.parser.MidiFile(midi_path)
     tempos = midi_obj.tempo_changes
     tempos.sort(key=lambda x: (x.time, x.tempo))
@@ -110,11 +91,11 @@ def process_utterance(
     name = segment["item_name"]
     lyrics = segment["txt"]
     phns = segment["phs"]
-    midis = segment["notes_pitch"]
+    midis = segment["notes"]
     syb_dur = segment["notes_dur"]
     phn_dur = segment["ph_dur"]
     keep = segment["is_slur"]
-    spk = segment["singer"]
+    spk = name.split("#")[0]
 
     # load tempo from midi
     uid = name.encode("unicode_escape").decode().replace("\\u", "#U")
@@ -126,7 +107,11 @@ def process_utterance(
 
     # apply bit convert, there is a known issue in direct convert in format wavscp
     cmd = "sox {}.wav -c 1 -t wavpcm -b 16 -r {} {}/m4singer_{}.wav".format(
-        os.path.join(audio_dir, song_name.replace(" ", "\\ "), uid.replace("+", "\\ ")),
+        os.path.join(
+            audio_dir,
+            song_name.replace(" ", "\\ "),
+            uid.replace("+", "\\ ").split("#")[-1],
+        ),
         tgt_sr,
         wav_dumpdir,
         uid,
@@ -177,7 +162,7 @@ def process_subset(args, set_name, data):
             text,
             utt2spk,
             label,
-            os.path.join(args.src_data, "wav"),
+            os.path.join(args.src_data),
             args.wav_dumpdir,
             segment,
             tgt_sr=args.sr,
@@ -185,15 +170,37 @@ def process_subset(args, set_name, data):
 
 
 def split_subset(args, meta):
-    data = {"tr_no_dev": [], "dev": [], "eval": []}
+    overall_data = {}
+    item_names = []
     for i in range(len(meta)):
-        if meta[i]["singer"] in SELECTED_SINGER:
-            if i % 100 == 0:
-                data["dev"].append(meta[i])
-            elif (i + 50) % 100 == 0:
-                data["eval"].append(meta[i])
-            else:
-                data["tr_no_dev"].append(meta[i])
+        item_name = meta[i]["item_name"]
+        overall_data[item_name] = meta[i]
+        item_names.append(item_name)
+
+    item_names = sorted(item_names)
+
+    # Refer to https://github.com/M4Singer/M4Singer
+    random.seed(1234)
+    random.shuffle(item_names)
+    valid_num, test_num = 100, 100
+
+    test_names = item_names[:test_num]
+    # NOTE(jiatong): the valid set is different from M4Singer
+    # As they include test set in the validation set
+    # but we do not.
+    valid_names = item_names[test_num : valid_num + test_num]
+    train_names = item_names[valid_num + test_num :]
+
+    data = {"tr_no_dev": [], "dev": [], "eval": []}
+    print(test_names)
+
+    for key in overall_data.keys():
+        if key in test_names:
+            data["eval"].append(overall_data[key])
+        elif key in valid_names:
+            data["dev"].append(overall_data[key])
+        else:
+            data["tr_no_dev"].append(overall_data[key])
     return data
 
 
