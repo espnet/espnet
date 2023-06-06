@@ -1,4 +1,4 @@
-"""Step (with Warm up) learning rate scheduler module."""
+"""ReduceLROnPlateau (with Warm up) learning rate scheduler module."""
 from typing import Union
 
 import torch

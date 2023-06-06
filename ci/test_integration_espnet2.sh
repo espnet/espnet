@@ -161,8 +161,9 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         echo "==== feats_type=${t} with preprocessor ==="
         ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}" --extra_wav_list "rirs.scp noises.scp" --enh_config ./conf/train_with_preprocessor.yaml
         ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}" --enh_config conf/train_with_dynamic_mixing.yaml --ref-num 2
-        rm data/**/utt2category dump/${t}/**/utt2category
     done
+    rm data/**/utt2category 2>/dev/null || true
+    rm -r dump
     for t in ${feats_types}; do
         echo "==== feats_type=${t} without preprocessor ==="
         ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}"
