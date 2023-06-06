@@ -37,7 +37,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
         extract_feats_in_collect_stats: bool = False,
-        categories: List[str] = [],
     ):
         assert check_argument_types()
 
@@ -75,17 +74,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # Used in espnet2/tasks/abs_task.py for determining whether or not to do
         # collect_feats during collect stats (stage 5).
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
-
-        # Map each unique integer (category) into the corresponding string
-        self.categories = {}
-        if categories:
-            # This should correspond to that defined in the preprocessor
-            # while the key and value are swapped.
-            count = 0
-            for c in categories:
-                if c not in self.categories:
-                    self.categories[count] = c
-                    count += 1
 
     def forward(
         self,
@@ -193,7 +181,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             speech_ref,
             noise_ref,
             dereverb_speech_ref,
-            kwargs.get("utt2category", None),
         )
         return loss, stats, weight
 
@@ -250,7 +237,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref: torch.Tensor,
         noise_ref: torch.Tensor = None,
         dereverb_speech_ref: torch.Tensor = None,
-        category: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         # for calculating loss on estimated noise signals
         if getattr(self.separator, "predict_noise", False):
@@ -370,21 +356,6 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 
             loss += l * loss_wrapper.weight
-
-            if (
-                self.categories
-                and category is not None
-                and category[0].item() not in self.categories
-            ):
-                raise ValueError(
-                    f"Category '{category}' is not listed in self.categories"
-                )
-            if category is not None:
-                for idx, c in self.categories.items():
-                    if idx == category[0].item():
-                        s[criterion.name + "_" + c] = s.pop(criterion.name)
-                    else:
-                        s[criterion.name + "_" + c] = torch.full_like(loss, np.nan)
             stats.update(s)
 
             if perm is None and "perm" in o:
