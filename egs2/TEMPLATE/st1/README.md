@@ -59,4 +59,3 @@ TODO
 |Label-Sync Blockwise CTC/Attn|24.4|3.23|link|link|link|
 |Time-Sync Blockwise CTC/Attn|24.6|2.34|link|link|link|
 |Blockwise Transducer|22.9|2.37|link|link|link|
-
