@@ -152,7 +152,7 @@ def main():
     logging.info(get_commandline_args())
 
     parser = argparse.ArgumentParser(
-        description='Create waves list from "midi.scp"',
+        description='Create waves list from "wav.scp"',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("scp")
