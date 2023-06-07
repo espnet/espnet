@@ -313,6 +313,9 @@ def test_model_training(
     token_list = ["<blank>", "a", "b", "c", "<space>"]
     vocab_size = len(token_list)
 
+    if dec_params.get("is_rwkv") is not None and not torch.cuda.is_available():
+        pytest.skip("A GPU is required for WKV kernel computation")
+
     encoder = Encoder(input_size, enc_params, main_conf=enc_gen_params)
     decoder = get_decoder(vocab_size, dec_params)
 

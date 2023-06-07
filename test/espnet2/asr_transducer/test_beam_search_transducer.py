@@ -91,6 +91,9 @@ def test_transducer_beam_search(decoder_class, decoder_opts, search_opts):
     encoder_size = 4
 
     if decoder_class in (MEGADecoder, RWKVDecoder):
+        if decoder_class == RWKVDecoder and not torch.cuda.is_available():
+            pytest.skip("A GPU is required for WKV kernel computation")
+
         decoder = decoder_class(vocab_size, block_size=4, **decoder_opts)
     else:
         decoder = decoder_class(vocab_size, embed_size=4, **decoder_opts)

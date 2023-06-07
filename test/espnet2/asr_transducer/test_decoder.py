@@ -35,7 +35,10 @@ def test_rnn_decoder(params):
     _ = decoder(labels)
 
 
-# (b-flo): Timeout limit is high because of the kernel loading
+@pytest.mark.skipif(
+    not torch.cuda.is_available(),
+    reason="A GPU is required for WKV kernel computation.",
+)
 @pytest.mark.parametrize(
     "params",
     [
