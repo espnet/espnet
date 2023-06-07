@@ -15,7 +15,8 @@ from tqdm import tqdm
 from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import read_2columns_text
-from espnet2.fileio.sound_scp import SoundScpWriter, soundfile_read
+from espnet2.fileio.sound_scp import soundfile_read
+from espnet2.fileio.midi_scp import MIDIScpWriter, MIDIScpReader
 from espnet2.fileio.vad_scp import VADScpReader
 from espnet2.utils.types import str2bool
 from espnet.utils.cli_utils import get_commandline_args
