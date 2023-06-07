@@ -8,7 +8,6 @@ from typing import Optional, Tuple
 import humanfriendly
 import kaldiio
 import numpy as np
-import os
 import resampy
 import soundfile
 from tqdm import tqdm
@@ -165,10 +164,11 @@ def main():
     parser.add_argument("--segments", default=None)
     parser.add_argument(
         "--fs",
-        type=np.int32,
+        type=humanfriendly_or_none,
         default=None,
         help="If the sampling rate specified, Change the sampling rate.",
     )
+    parser.add_argument("--audio-format", default="wav")
     parser.add_argument("--vad_based_trim", type=str, default=None)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--ref-channels", default=None, type=str2int_tuple)
