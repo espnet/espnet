@@ -68,6 +68,7 @@ LJSPEECH=downloads
 MUSAN=
 MUST_C=downloads
 NSC=
+NIT_SONG070=downloads
 JMD=downloads
 JSSS=downloads
 JSUT=downloads
