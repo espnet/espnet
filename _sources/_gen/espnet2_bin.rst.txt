@@ -307,7 +307,7 @@ asr_train.py
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--token_list TOKEN_LIST]
                         [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -693,7 +693,7 @@ asr_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -975,7 +975,7 @@ asr_transducer_train.py
                                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                                    [--optim_conf OPTIM_CONF]
-                                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                                    [--scheduler_conf SCHEDULER_CONF]
                                    [--token_list TOKEN_LIST]
                                    [--input_size INPUT_SIZE] [--init INIT]
@@ -1350,7 +1350,7 @@ asr_transducer_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -1575,7 +1575,7 @@ diar_train.py
                          [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                          [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                          [--optim_conf OPTIM_CONF]
-                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                         [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                          [--scheduler_conf SCHEDULER_CONF] [--num_spk NUM_SPK]
                          [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                          [--input_size INPUT_SIZE] [--model_conf MODEL_CONF]
@@ -1940,7 +1940,7 @@ diar_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -2229,7 +2229,7 @@ enh_s2t_train.py
                             [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                             [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim_conf OPTIM_CONF]
-                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler_conf SCHEDULER_CONF]
                             [--token_list TOKEN_LIST]
                             [--src_token_list SRC_TOKEN_LIST]
@@ -2649,7 +2649,7 @@ enh_s2t_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -2672,11 +2672,11 @@ enh_s2t_train.py
       --diar_input_size DIAR_INPUT_SIZE
                             The number of input dimension of the feature (default: None)
       --enh_model_conf ENH_MODEL_CONF
-                            The keyword arguments for enh submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
+                            The keyword arguments for enh submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'extract_feats_in_collect_stats': False})
       --asr_model_conf ASR_MODEL_CONF
                             The keyword arguments for asr submodel class. (default: {'aux_ctc': None, 'ctc_weight': 0.5, 'interctc_weight': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'transducer_multi_blank_durations': [], 'transducer_multi_blank_sigma': 0.05, 'sym_sos': '<sos/eos>', 'sym_eos': '<sos/eos>', 'extract_feats_in_collect_stats': True, 'lang_token_id': -1})
       --st_model_conf ST_MODEL_CONF
-                            The keyword arguments for st submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
+                            The keyword arguments for st submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'extract_feats_in_collect_stats': False})
       --diar_model_conf DIAR_MODEL_CONF
                             The keyword arguments for diar submodel class. (default: {'diar_weight': 1.0, 'attractor_weight': 1.0})
       --subtask_series {enh,asr,st,diar} [{enh,asr,st,diar} ...]
@@ -2815,6 +2815,11 @@ enh_scoring.py
                           --inf_scp INF_SCP [--key_file KEY_FILE]
                           [--ref_channel REF_CHANNEL]
                           [--flexible_numspk FLEXIBLE_NUMSPK]
+                          [--use_dnsmos USE_DNSMOS] [--dnsmos_mode {local,web}]
+                          [--dnsmos_auth_key DNSMOS_AUTH_KEY]
+                          [--dnsmos_primary_model DNSMOS_PRIMARY_MODEL]
+                          [--dnsmos_p808_model DNSMOS_P808_MODEL]
+                          [--use_pesq USE_PESQ]
     
     Frontend inference
     
@@ -2832,6 +2837,27 @@ enh_scoring.py
       --key_file KEY_FILE
       --ref_channel REF_CHANNEL
       --flexible_numspk FLEXIBLE_NUMSPK
+    
+    DNSMOS related:
+      --use_dnsmos USE_DNSMOS
+      --dnsmos_mode {local,web}
+                            Use local DNSMOS model or web API for DNSMOS
+                            calculation (default: local)
+      --dnsmos_auth_key DNSMOS_AUTH_KEY
+                            Required if dnsmsos_mode='web' (default: )
+      --dnsmos_primary_model DNSMOS_PRIMARY_MODEL
+                            Path to the primary DNSMOS model. Required if
+                            dnsmsos_mode='local' (default: ./DNSMOS/model_v8.onnx)
+      --dnsmos_p808_model DNSMOS_P808_MODEL
+                            Path to the p808 model. Required if
+                            dnsmsos_mode='local' (default:
+                            ./DNSMOS/sig_bak_ovr.onnx)
+    
+    PESQ related:
+      --use_pesq USE_PESQ   Bebore setting this to True, please make sure that you
+                            or your institution have the license (check
+                            https://www.itu.int/rec/T-REC-P.862-200511-I!Amd2/en)
+                            to report PESQ (default: False)
 .. _enh_train.py:
 
 enh_train.py
@@ -2910,7 +2936,7 @@ enh_train.py
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                         [--model_conf MODEL_CONF] [--criterions CRITERIONS]
@@ -2924,6 +2950,8 @@ enh_train.py
                         [--num_spk NUM_SPK] [--num_noise_type NUM_NOISE_TYPE]
                         [--sample_rate SAMPLE_RATE]
                         [--force_single_channel FORCE_SINGLE_CHANNEL]
+                        [--channel_reordering CHANNEL_REORDERING]
+                        [--categories CATEGORIES [CATEGORIES ...]]
                         [--dynamic_mixing DYNAMIC_MIXING] [--utt2spk UTT2SPK]
                         [--dynamic_mixing_gain_db DYNAMIC_MIXING_GAIN_DB]
                         [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
@@ -3282,7 +3310,7 @@ enh_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -3292,7 +3320,7 @@ enh_train.py
       --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                             The initialization method (default: None)
       --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None})
+                            The keyword arguments for model class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'extract_feats_in_collect_stats': False})
       --criterions CRITERIONS
                             The criterions binded with the loss wrappers. (default: [{'name': 'si_snr', 'conf': {}, 'wrapper': 'fixed_order', 'wrapper_conf': {}}])
     
@@ -3321,6 +3349,10 @@ enh_train.py
                             Sampling rate of the data (in Hz). (default: 8000)
       --force_single_channel FORCE_SINGLE_CHANNEL
                             Whether to force all data to be single-channel. (default: False)
+      --channel_reordering CHANNEL_REORDERING
+                            Whether to randomly reorder the channels of the multi-channel signals. (default: False)
+      --categories CATEGORIES [CATEGORIES ...]
+                            The set of all possible categories in the dataset. Used to add the category information to each sample (default: [])
       --dynamic_mixing DYNAMIC_MIXING
                             Apply dynamic mixing (default: False)
       --utt2spk UTT2SPK     The file path of utt2spk file. Only used in dynamic_mixing mode. (default: None)
@@ -3516,7 +3548,7 @@ enh_tse_train.py
                             [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                             [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim_conf OPTIM_CONF]
-                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler_conf SCHEDULER_CONF]
                             [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                             [--model_conf MODEL_CONF] [--criterions CRITERIONS]
@@ -3534,6 +3566,8 @@ enh_tse_train.py
                             [--num_spk NUM_SPK] [--num_noise_type NUM_NOISE_TYPE]
                             [--sample_rate SAMPLE_RATE]
                             [--force_single_channel FORCE_SINGLE_CHANNEL]
+                            [--channel_reordering CHANNEL_REORDERING]
+                            [--categories CATEGORIES [CATEGORIES ...]]
                             [--encoder {stft,conv,same}]
                             [--encoder_conf ENCODER_CONF]
                             [--extractor {td_speakerbeam}]
@@ -3889,7 +3923,7 @@ enh_tse_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -3899,7 +3933,7 @@ enh_tse_train.py
       --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                             The initialization method (default: None)
       --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'num_spk': 1, 'share_encoder': True})
+                            The keyword arguments for model class. (default: {'num_spk': 1, 'share_encoder': True, 'extract_feats_in_collect_stats': False})
       --criterions CRITERIONS
                             The criterions binded with the loss wrappers. (default: [{'name': 'si_snr', 'conf': {}, 'wrapper': 'fixed_order', 'wrapper_conf': {}}])
     
@@ -3937,6 +3971,10 @@ enh_tse_train.py
                             Sampling rate of the data (in Hz). (default: 8000)
       --force_single_channel FORCE_SINGLE_CHANNEL
                             Whether to force all data to be single-channel. (default: False)
+      --channel_reordering CHANNEL_REORDERING
+                            Whether to randomly reorder the channels of the multi-channel signals. (default: False)
+      --categories CATEGORIES [CATEGORIES ...]
+                            The set of all possible categories in the dataset. Used to add the category information to each sample (default: [])
       --encoder {stft,conv,same}
                             The encoder type (default: stft)
       --encoder_conf ENCODER_CONF
@@ -4035,11 +4073,11 @@ gan_svs_train.py
                             [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                             [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim_conf OPTIM_CONF]
-                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler_conf SCHEDULER_CONF]
                             [--optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim2_conf OPTIM2_CONF]
-                            [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                            [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler2_conf SCHEDULER2_CONF]
                             [--generator_first GENERATOR_FIRST]
                             [--token_list TOKEN_LIST] [--odim ODIM]
@@ -4425,7 +4463,7 @@ gan_svs_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -4433,7 +4471,7 @@ gan_svs_train.py
                             The optimizer type (default: adadelta)
       --optim2_conf OPTIM2_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler2_conf SCHEDULER2_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -4571,11 +4609,11 @@ gan_tts_train.py
                             [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                             [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim_conf OPTIM_CONF]
-                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                            [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler_conf SCHEDULER_CONF]
                             [--optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                             [--optim2_conf OPTIM2_CONF]
-                            [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                            [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                             [--scheduler2_conf SCHEDULER2_CONF]
                             [--generator_first GENERATOR_FIRST]
                             [--token_list TOKEN_LIST] [--odim ODIM]
@@ -4955,7 +4993,7 @@ gan_tts_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -4963,7 +5001,7 @@ gan_tts_train.py
                             The optimizer type (default: adadelta)
       --optim2_conf OPTIM2_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler2_conf SCHEDULER2_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -5092,7 +5130,7 @@ hubert_train.py
                            [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                            [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                            [--optim_conf OPTIM_CONF]
-                           [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                           [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                            [--scheduler_conf SCHEDULER_CONF]
                            [--token_list TOKEN_LIST]
                            [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -5478,7 +5516,7 @@ hubert_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -5749,7 +5787,7 @@ lm_train.py
                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
-                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                        [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                        [--model_conf MODEL_CONF]
@@ -6113,7 +6151,7 @@ lm_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -6310,7 +6348,7 @@ mt_train.py
                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
-                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                        [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                        [--src_token_list SRC_TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -6685,7 +6723,7 @@ mt_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -6949,7 +6987,7 @@ st_train.py
                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
-                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                        [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                        [--src_token_list SRC_TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -7333,7 +7371,7 @@ st_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})
@@ -7601,7 +7639,7 @@ tts_train.py
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--token_list TOKEN_LIST] [--odim ODIM]
                         [--model_conf MODEL_CONF]
@@ -7977,7 +8015,7 @@ tts_train.py
                             The optimizer type (default: adadelta)
       --optim_conf OPTIM_CONF
                             The keyword arguments for optimizer (default: {})
-      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+      --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                             The lr scheduler type (default: None)
       --scheduler_conf SCHEDULER_CONF
                             The keyword arguments for lr scheduler (default: {})

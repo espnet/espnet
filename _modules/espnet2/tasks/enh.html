@@ -519,6 +519,21 @@
             <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to force all data to be single-channel.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--channel_reordering&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to randomly reorder the channels of the &quot;</span>
+            <span class="s2">&quot;multi-channel signals.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--categories&quot;</span><span class="p">,</span>
+            <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="p">[],</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The set of all possible categories in the dataset. Used to add the &quot;</span>
+            <span class="s2">&quot;category information to each sample&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--dynamic_mixing&quot;</span><span class="p">,</span>
@@ -526,14 +541,12 @@
             <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply dynamic mixing&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--utt2spk&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The file path of utt2spk file. Only used in dynamic_mixing mode.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
-
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--dynamic_mixing_gain_db&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
@@ -568,73 +581,48 @@
         <span class="k">if</span> <span class="n">use_preprocessor</span><span class="p">:</span>
             <span class="c1"># TODO(simpleoier): To make this as simple as model parts, e.g. encoder</span>
             <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">preprocessor</span> <span class="o">==</span> <span class="s2">&quot;dynamic_mixing&quot;</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">train</span><span class="p">:</span>
-                    <span class="n">retval</span> <span class="o">=</span> <span class="n">preprocessor_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor</span><span class="p">)(</span>
-                        <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
-                        <span class="n">source_scp</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-                            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span>
-                                <span class="n">args</span><span class="o">.</span><span class="n">train_data_path_and_name_and_type</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
-                            <span class="p">),</span>
-                            <span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source_scp_name&quot;</span><span class="p">,</span> <span class="s2">&quot;spk1.scp&quot;</span><span class="p">),</span>
-                        <span class="p">),</span>
-                        <span class="n">ref_num</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                            <span class="s2">&quot;ref_num&quot;</span><span class="p">,</span>
-                            <span class="n">args</span><span class="o">.</span><span class="n">separator_conf</span><span class="p">[</span><span class="s2">&quot;num_spk&quot;</span><span class="p">],</span>
-                        <span class="p">),</span>
-                        <span class="n">dynamic_mixing_gain_db</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                            <span class="s2">&quot;dynamic_mixing_gain_db&quot;</span><span class="p">,</span>
-                            <span class="mf">0.0</span><span class="p">,</span>
-                        <span class="p">),</span>
-                        <span class="n">speech_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                            <span class="s2">&quot;speech_name&quot;</span><span class="p">,</span>
-                            <span class="s2">&quot;speech_mix&quot;</span><span class="p">,</span>
-                        <span class="p">),</span>
-                        <span class="n">speech_ref_name_prefix</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                            <span class="s2">&quot;speech_ref_name_prefix&quot;</span><span class="p">,</span>
-                            <span class="s2">&quot;speech_ref&quot;</span><span class="p">,</span>
-                        <span class="p">),</span>
-                        <span class="n">mixture_source_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
-                            <span class="s2">&quot;mixture_source_name&quot;</span><span class="p">,</span>
-                            <span class="kc">None</span><span class="p">,</span>
-                        <span class="p">),</span>
-                        <span class="n">utt2spk</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;utt2spk&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
-                    <span class="p">)</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="n">retval</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">retval</span> <span class="o">=</span> <span class="n">preprocessor_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor</span><span class="p">)(</span>
+                    <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+                    <span class="n">source_scp</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">train_data_path_and_name_and_type</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]),</span>
+                        <span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;source_scp_name&quot;</span><span class="p">,</span> <span class="s2">&quot;spk1.scp&quot;</span><span class="p">),</span>
+                    <span class="p">),</span>
+                    <span class="n">ref_num</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s2">&quot;ref_num&quot;</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">separator_conf</span><span class="p">[</span><span class="s2">&quot;num_spk&quot;</span><span class="p">]</span>
+                    <span class="p">),</span>
+                    <span class="n">dynamic_mixing_gain_db</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s2">&quot;dynamic_mixing_gain_db&quot;</span><span class="p">,</span> <span class="mf">0.0</span>
+                    <span class="p">),</span>
+                    <span class="n">speech_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;speech_name&quot;</span><span class="p">,</span> <span class="s2">&quot;speech_mix&quot;</span><span class="p">),</span>
+                    <span class="n">speech_ref_name_prefix</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s2">&quot;speech_ref_name_prefix&quot;</span><span class="p">,</span> <span class="s2">&quot;speech_ref&quot;</span>
+                    <span class="p">),</span>
+                    <span class="n">mixture_source_name</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                        <span class="s2">&quot;mixture_source_name&quot;</span><span class="p">,</span> <span class="kc">None</span>
+                    <span class="p">),</span>
+                    <span class="n">utt2spk</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;utt2spk&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">categories</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;categories&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                <span class="p">)</span>
             <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">preprocessor</span> <span class="o">==</span> <span class="s2">&quot;enh&quot;</span><span class="p">:</span>
                 <span class="n">retval</span> <span class="o">=</span> <span class="n">preprocessor_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor</span><span class="p">)(</span>
                     <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
                     <span class="c1"># NOTE(kamo): Check attribute existence for backward compatibility</span>
-                    <span class="n">rir_scp</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rir_scp</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_scp&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                    <span class="n">rir_apply_prob</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">rir_apply_prob</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_apply_prob&quot;</span><span class="p">)</span>
-                    <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
-                    <span class="n">noise_scp</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">noise_scp</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_scp&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                    <span class="n">noise_apply_prob</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">noise_apply_prob</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_apply_prob&quot;</span><span class="p">)</span>
-                    <span class="k">else</span> <span class="mf">1.0</span><span class="p">,</span>
-                    <span class="n">noise_db_range</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">noise_db_range</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_db_range&quot;</span><span class="p">)</span>
-                    <span class="k">else</span> <span class="s2">&quot;13_15&quot;</span><span class="p">,</span>
-                    <span class="n">short_noise_thres</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">short_noise_thres</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;short_noise_thres&quot;</span><span class="p">)</span>
-                    <span class="k">else</span> <span class="mf">0.5</span><span class="p">,</span>
-                    <span class="n">speech_volume_normalize</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">speech_volume_normalize</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;speech_volume_normalize&quot;</span><span class="p">)</span>
-                    <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                    <span class="n">use_reverberant_ref</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">use_reverberant_ref</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_reverberant_ref&quot;</span><span class="p">)</span>
-                    <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                    <span class="n">num_spk</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_spk</span> <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;num_spk&quot;</span><span class="p">)</span> <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
-                    <span class="n">num_noise_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_noise_type</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;num_noise_type&quot;</span><span class="p">)</span>
-                    <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
-                    <span class="n">sample_rate</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">sample_rate</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;sample_rate&quot;</span><span class="p">)</span>
-                    <span class="k">else</span> <span class="mi">8000</span><span class="p">,</span>
-                    <span class="n">force_single_channel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">force_single_channel</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;force_single_channel&quot;</span><span class="p">)</span>
-                    <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
+                    <span class="n">rir_scp</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_scp&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">rir_apply_prob</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_apply_prob&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+                    <span class="n">noise_scp</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_scp&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">noise_apply_prob</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_apply_prob&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+                    <span class="n">noise_db_range</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;noise_db_range&quot;</span><span class="p">,</span> <span class="s2">&quot;13_15&quot;</span><span class="p">),</span>
+                    <span class="n">short_noise_thres</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;short_noise_thres&quot;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span>
+                    <span class="n">speech_volume_normalize</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span>
+                        <span class="n">args</span><span class="p">,</span> <span class="s2">&quot;speech_volume_normalize&quot;</span><span class="p">,</span> <span class="kc">None</span>
+                    <span class="p">),</span>
+                    <span class="n">use_reverberant_ref</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_reverberant_ref&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+                    <span class="n">num_spk</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;num_spk&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">num_noise_type</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;num_noise_type&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">sample_rate</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;sample_rate&quot;</span><span class="p">,</span> <span class="mi">8000</span><span class="p">),</span>
+                    <span class="n">force_single_channel</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;force_single_channel&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                    <span class="n">channel_reordering</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;channel_reordering&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+                    <span class="n">categories</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;categories&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -664,6 +652,7 @@
         <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;dereverb_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;speech_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
         <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;noise_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">MAX_REFERENCE_NUM</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+        <span class="n">retval</span> <span class="o">+=</span> <span class="p">[</span><span class="s2">&quot;category&quot;</span><span class="p">]</span>
         <span class="n">retval</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>

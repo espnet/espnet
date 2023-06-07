@@ -157,6 +157,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-skim-1">espnet2.enh.layers.skim</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-beamformer-th-1">espnet2.enh.layers.beamformer_th</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-dnn-wpe-1">espnet2.enh.layers.dnn_wpe</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-dnsmos-1">espnet2.enh.layers.dnsmos</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-layers-wpe-1">espnet2.enh.layers.wpe</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-encoder-init-1">espnet2.enh.encoder.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-enh-encoder-null-encoder-1">espnet2.enh.encoder.null_encoder</a></li>
@@ -400,7 +401,7 @@ loss: torch.Tensor: (batch)</p>
 <span class="target" id="module-espnet2.enh.espnet_model_tse"></span><p>Enhancement model module.</p>
 <dl class="class">
 <dt id="espnet2.enh.espnet_model_tse.ESPnetExtractionModel">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.espnet_model_tse.</code><code class="sig-name descname">ESPnetExtractionModel</code><span class="sig-paren">(</span><em class="sig-param">encoder: espnet2.enh.encoder.abs_encoder.AbsEncoder, extractor: espnet2.enh.extractor.abs_extractor.AbsExtractor, decoder: espnet2.enh.decoder.abs_decoder.AbsDecoder, loss_wrappers: List[espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper], num_spk: int = 1, share_encoder: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model_tse.html#ESPnetExtractionModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model_tse.ESPnetExtractionModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.espnet_model_tse.</code><code class="sig-name descname">ESPnetExtractionModel</code><span class="sig-paren">(</span><em class="sig-param">encoder: espnet2.enh.encoder.abs_encoder.AbsEncoder, extractor: espnet2.enh.extractor.abs_extractor.AbsExtractor, decoder: espnet2.enh.decoder.abs_decoder.AbsDecoder, loss_wrappers: List[espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper], num_spk: int = 1, share_encoder: bool = True, extract_feats_in_collect_stats: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model_tse.html#ESPnetExtractionModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model_tse.ESPnetExtractionModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
 <p>Target Speaker Extraction Frontend model</p>
 <dl class="method">
@@ -486,7 +487,7 @@ registered hooks while the latter silently ignores them.</p>
 <span class="target" id="module-espnet2.enh.espnet_model"></span><p>Enhancement model module.</p>
 <dl class="class">
 <dt id="espnet2.enh.espnet_model.ESPnetEnhancementModel">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.espnet_model.</code><code class="sig-name descname">ESPnetEnhancementModel</code><span class="sig-paren">(</span><em class="sig-param">encoder: espnet2.enh.encoder.abs_encoder.AbsEncoder, separator: espnet2.enh.separator.abs_separator.AbsSeparator, decoder: espnet2.enh.decoder.abs_decoder.AbsDecoder, mask_module: Optional[espnet2.diar.layers.abs_mask.AbsMask], loss_wrappers: List[espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper], stft_consistency: bool = False, loss_type: str = 'mask_mse', mask_type: Optional[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.espnet_model.</code><code class="sig-name descname">ESPnetEnhancementModel</code><span class="sig-paren">(</span><em class="sig-param">encoder: espnet2.enh.encoder.abs_encoder.AbsEncoder, separator: espnet2.enh.separator.abs_separator.AbsSeparator, decoder: espnet2.enh.decoder.abs_decoder.AbsDecoder, mask_module: Optional[espnet2.diar.layers.abs_mask.AbsMask], loss_wrappers: List[espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper], stft_consistency: bool = False, loss_type: str = 'mask_mse', mask_type: Optional[str] = None, extract_feats_in_collect_stats: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/espnet_model.html#ESPnetEnhancementModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.espnet_model.ESPnetEnhancementModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.train.html#espnet2.train.abs_espnet_model.AbsESPnetModel" title="espnet2.train.abs_espnet_model.AbsESPnetModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.abs_espnet_model.AbsESPnetModel</span></code></a></p>
 <p>Speech enhancement or separation Frontend model</p>
 <dl class="method">
@@ -3794,6 +3795,31 @@ ilens (torch.Tensor): (B,)</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+</section>
+<section id="espnet2-enh-layers-dnsmos-1">
+<span id="espnet2-enh-layers-dnsmos"></span><h2>espnet2.enh.layers.dnsmos<a class="headerlink" href="#espnet2-enh-layers-dnsmos-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.enh.layers.dnsmos"></span><dl class="class">
+<dt id="espnet2.enh.layers.dnsmos.DNSMOS_local">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dnsmos.</code><code class="sig-name descname">DNSMOS_local</code><span class="sig-paren">(</span><em class="sig-param">primary_model_path</em>, <em class="sig-param">p808_model_path</em>, <em class="sig-param">use_gpu=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnsmos.html#DNSMOS_local"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnsmos.DNSMOS_local" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="espnet2.enh.layers.dnsmos.DNSMOS_local.audio_melspec">
+<code class="sig-name descname">audio_melspec</code><span class="sig-paren">(</span><em class="sig-param">audio</em>, <em class="sig-param">n_mels=120</em>, <em class="sig-param">frame_size=320</em>, <em class="sig-param">hop_length=160</em>, <em class="sig-param">sr=16000</em>, <em class="sig-param">to_db=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnsmos.html#DNSMOS_local.audio_melspec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnsmos.DNSMOS_local.audio_melspec" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.enh.layers.dnsmos.DNSMOS_local.get_polyfit_val">
+<code class="sig-name descname">get_polyfit_val</code><span class="sig-paren">(</span><em class="sig-param">sig</em>, <em class="sig-param">bak</em>, <em class="sig-param">ovr</em>, <em class="sig-param">is_personalized_MOS</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnsmos.html#DNSMOS_local.get_polyfit_val"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnsmos.DNSMOS_local.get_polyfit_val" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.enh.layers.dnsmos.DNSMOS_web">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.enh.layers.dnsmos.</code><code class="sig-name descname">DNSMOS_web</code><span class="sig-paren">(</span><em class="sig-param">auth_key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/enh/layers/dnsmos.html#DNSMOS_web"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.enh.layers.dnsmos.DNSMOS_web" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 </dd></dl>
 
 </section>

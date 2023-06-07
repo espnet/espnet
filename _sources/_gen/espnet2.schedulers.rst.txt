@@ -37,6 +37,17 @@ espnet2.schedulers.abs_scheduler
     :show-inheritance:
 
 
+.. _espnet2.schedulers.warmup_reducelronplateau:
+
+espnet2.schedulers.warmup_reducelronplateau
+-------------------------------------------
+
+.. automodule:: espnet2.schedulers.warmup_reducelronplateau
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.schedulers.warmup_step_lr:
 
 espnet2.schedulers.warmup_step_lr

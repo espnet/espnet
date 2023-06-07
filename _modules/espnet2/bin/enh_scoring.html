@@ -210,7 +210,7 @@
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -262,6 +262,9 @@
     <span class="n">inf_scp</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">ref_channel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">flexible_numspk</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">use_dnsmos</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">dnsmos_args</span><span class="p">:</span> <span class="n">Dict</span><span class="p">,</span>
+    <span class="n">use_pesq</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
@@ -269,6 +272,51 @@
         <span class="n">level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
         <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> (</span><span class="si">%(module)s</span><span class="s2">:</span><span class="si">%(lineno)d</span><span class="s2">) </span><span class="si">%(levelname)s</span><span class="s2">: </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
     <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">use_dnsmos</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dnsmos_args</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;local&quot;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">espnet2.enh.layers.dnsmos</span> <span class="kn">import</span> <span class="n">DNSMOS_local</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">dnsmos_args</span><span class="p">[</span><span class="s2">&quot;primary_model&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;The primary model &#39;</span><span class="si">{</span><span class="n">dnsmos_args</span><span class="p">[</span><span class="s1">&#39;primary_model&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; doesn&#39;t exist.&quot;</span>
+                    <span class="s2">&quot; You can download the model from https://github.com/microsoft/&quot;</span>
+                    <span class="s2">&quot;DNS-Challenge/tree/master/DNSMOS/DNSMOS/sig_bak_ovr.onnx&quot;</span>
+                <span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">Path</span><span class="p">(</span><span class="n">dnsmos_args</span><span class="p">[</span><span class="s2">&quot;p808_model&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;The P808 model &#39;</span><span class="si">{</span><span class="n">dnsmos_args</span><span class="p">[</span><span class="s1">&#39;p808_model&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&#39; doesn&#39;t exist.&quot;</span>
+                    <span class="s2">&quot; You can download the model from https://github.com/microsoft/&quot;</span>
+                    <span class="s2">&quot;DNS-Challenge/tree/master/DNSMOS/DNSMOS/model_v8.onnx&quot;</span>
+                <span class="p">)</span>
+            <span class="n">dnsmos</span> <span class="o">=</span> <span class="n">DNSMOS_local</span><span class="p">(</span>
+                <span class="n">dnsmos_args</span><span class="p">[</span><span class="s2">&quot;primary_model&quot;</span><span class="p">],</span> <span class="n">dnsmos_args</span><span class="p">[</span><span class="s2">&quot;p808_model&quot;</span><span class="p">]</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Using local DNSMOS models for evaluation&quot;</span><span class="p">)</span>
+
+        <span class="k">elif</span> <span class="n">dnsmos_args</span><span class="p">[</span><span class="s2">&quot;mode&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;web&quot;</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">espnet2.enh.layers.dnsmos</span> <span class="kn">import</span> <span class="n">DNSMOS_web</span>
+
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">dnsmos_args</span><span class="p">[</span><span class="s2">&quot;auth_key&quot;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Please specify the authentication key for access to the Web-API. &quot;</span>
+                    <span class="s2">&quot;You can apply for the AUTH_KEY at https://github.com/microsoft/&quot;</span>
+                    <span class="s2">&quot;DNS-Challenge/blob/master/DNSMOS/README.md#to-use-the-web-api&quot;</span>
+                <span class="p">)</span>
+            <span class="n">dnsmos</span> <span class="o">=</span> <span class="n">DNSMOS_web</span><span class="p">(</span><span class="n">dnsmos_args</span><span class="p">[</span><span class="s2">&quot;auth_key&quot;</span><span class="p">])</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Using the DNSMOS Web-API for evaluation&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">dnsmos</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="n">use_pesq</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">pesq</span> <span class="kn">import</span> <span class="n">PesqError</span><span class="p">,</span> <span class="n">pesq</span>
+
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Using the PESQ package for evaluation&quot;</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;Please install pesq and retry: pip install pesq&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pesq</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">flexible_numspk</span><span class="p">:</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_scp</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">inf_scp</span><span class="p">),</span> <span class="n">ref_scp</span>
@@ -298,7 +346,7 @@
 
     <span class="k">with</span> <span class="n">DatadirWriter</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">keys</span><span class="p">):</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">] Scoring </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">] Scoring </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="n">flexible_numspk</span><span class="p">:</span>
                 <span class="n">ref_audios</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="n">read_audio</span><span class="p">(</span><span class="n">ref_reader</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">audio_format</span><span class="o">=</span><span class="n">ref_audio_format</span><span class="p">)</span>
@@ -363,6 +411,36 @@
                         <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">inf</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">])][</span><span class="kc">None</span><span class="p">,</span> <span class="o">...</span><span class="p">]),</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
+                <span class="k">if</span> <span class="n">dnsmos</span><span class="p">:</span>
+                    <span class="n">dnsmos_score</span> <span class="o">=</span> <span class="n">dnsmos</span><span class="p">(</span><span class="n">inf</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">])],</span> <span class="n">sample_rate</span><span class="p">)</span>
+                    <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;OVRL_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">dnsmos_score</span><span class="p">[</span><span class="s2">&quot;OVRL&quot;</span><span class="p">])</span>
+                    <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;SIG_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">dnsmos_score</span><span class="p">[</span><span class="s2">&quot;SIG&quot;</span><span class="p">])</span>
+                    <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;BAK_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">dnsmos_score</span><span class="p">[</span><span class="s2">&quot;BAK&quot;</span><span class="p">])</span>
+                    <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;P808_MOS_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">dnsmos_score</span><span class="p">[</span><span class="s2">&quot;P808_MOS&quot;</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">pesq</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">sample_rate</span> <span class="o">==</span> <span class="mi">8000</span><span class="p">:</span>
+                        <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;nb&quot;</span>
+                    <span class="k">elif</span> <span class="n">sample_rate</span> <span class="o">==</span> <span class="mi">16000</span><span class="p">:</span>
+                        <span class="n">mode</span> <span class="o">=</span> <span class="s2">&quot;wb&quot;</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="s2">&quot;sample rate must be 8000 or 16000 for PESQ evaluation, &quot;</span>
+                            <span class="sa">f</span><span class="s2">&quot;but got </span><span class="si">{</span><span class="n">sample_rate</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="p">)</span>
+                    <span class="n">pesq_score</span> <span class="o">=</span> <span class="n">pesq</span><span class="p">(</span>
+                        <span class="n">sample_rate</span><span class="p">,</span>
+                        <span class="n">ref</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                        <span class="n">inf</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">perm</span><span class="p">[</span><span class="n">i</span><span class="p">])],</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
+                        <span class="n">on_error</span><span class="o">=</span><span class="n">PesqError</span><span class="o">.</span><span class="n">RETURN_VALUES</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">pesq_score</span> <span class="o">==</span> <span class="n">PesqError</span><span class="o">.</span><span class="n">NO_UTTERANCES_DETECTED</span><span class="p">:</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;[PESQ] Error: No utterances detected for </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s2">. &quot;</span>
+                            <span class="s2">&quot;Skipping this utterance.&quot;</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;PESQ_</span><span class="si">{</span><span class="n">mode</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">pesq_score</span><span class="p">)</span>
                 <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;STOI_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">stoi_score</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>  <span class="c1"># in percentage</span>
                 <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;ESTOI_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">estoi_score</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
                 <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;SI_SNR_spk</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">si_snr_score</span><span class="p">)</span>
@@ -425,6 +503,40 @@
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--ref_channel&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--flexible_numspk&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
+    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;DNSMOS related&quot;</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--use_dnsmos&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--dnsmos_mode&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;local&quot;</span><span class="p">,</span> <span class="s2">&quot;web&quot;</span><span class="p">),</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;local&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use local DNSMOS model or web API for DNSMOS calculation&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--dnsmos_auth_key&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Required if dnsmsos_mode=&#39;web&#39;&quot;</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--dnsmos_primary_model&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;./DNSMOS/model_v8.onnx&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to the primary DNSMOS model. Required if dnsmsos_mode=&#39;local&#39;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--dnsmos_p808_model&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;./DNSMOS/sig_bak_ovr.onnx&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Path to the p808 model. Required if dnsmsos_mode=&#39;local&#39;&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;PESQ related&quot;</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--use_pesq&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Bebore setting this to True, please make sure that you or &quot;</span>
+        <span class="s2">&quot;your institution have the license &quot;</span>
+        <span class="s2">&quot;(check https://www.itu.int/rec/T-REC-P.862-200511-I!Amd2/en) to report PESQ&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="n">parser</span></div>
 
 
@@ -434,6 +546,14 @@
     <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
     <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
     <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="n">dnsmos_args</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;mode&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dnsmos_mode&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;auth_key&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dnsmos_auth_key&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;primary_model&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dnsmos_primary_model&quot;</span><span class="p">),</span>
+        <span class="s2">&quot;p808_model&quot;</span><span class="p">:</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;dnsmos_p808_model&quot;</span><span class="p">),</span>
+    <span class="p">}</span>
+    <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;dnsmos_args&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dnsmos_args</span>
     <span class="n">scoring</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 

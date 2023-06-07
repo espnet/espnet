@@ -356,6 +356,17 @@ espnet2.enh.layers.dnn_wpe
     :show-inheritance:
 
 
+.. _espnet2.enh.layers.dnsmos:
+
+espnet2.enh.layers.dnsmos
+-------------------------
+
+.. automodule:: espnet2.enh.layers.dnsmos
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.layers.wpe:
 
 espnet2.enh.layers.wpe

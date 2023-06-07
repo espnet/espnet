@@ -481,7 +481,7 @@ Text converter related:
                     [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
-                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                     [--scheduler_conf SCHEDULER_CONF]
                     [--token_list TOKEN_LIST]
                     [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -867,7 +867,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -1145,7 +1145,7 @@ Text converter related:
                                [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                                [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                                [--optim_conf OPTIM_CONF]
-                               [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                               [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                                [--scheduler_conf SCHEDULER_CONF]
                                [--token_list TOKEN_LIST]
                                [--input_size INPUT_SIZE] [--init INIT]
@@ -1520,7 +1520,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -1741,7 +1741,7 @@ Enh + Diar related:
                      [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                      [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                      [--optim_conf OPTIM_CONF]
-                     [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                     [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                      [--scheduler_conf SCHEDULER_CONF] [--num_spk NUM_SPK]
                      [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                      [--input_size INPUT_SIZE] [--model_conf MODEL_CONF]
@@ -2106,7 +2106,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -2389,7 +2389,7 @@ SeparateSpeech related:
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--token_list TOKEN_LIST]
                         [--src_token_list SRC_TOKEN_LIST]
@@ -2809,7 +2809,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -2832,11 +2832,11 @@ Optimizer related:
   --diar_input_size DIAR_INPUT_SIZE
                         The number of input dimension of the feature (default: None)
   --enh_model_conf ENH_MODEL_CONF
-                        The keyword arguments for enh submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
+                        The keyword arguments for enh submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None, &#39;extract_feats_in_collect_stats&#39;: False})
   --asr_model_conf ASR_MODEL_CONF
                         The keyword arguments for asr submodel class. (default: {&#39;aux_ctc&#39;: None, &#39;ctc_weight&#39;: 0.5, &#39;interctc_weight&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;transducer_multi_blank_durations&#39;: [], &#39;transducer_multi_blank_sigma&#39;: 0.05, &#39;sym_sos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;sym_eos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True, &#39;lang_token_id&#39;: -1})
   --st_model_conf ST_MODEL_CONF
-                        The keyword arguments for st submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
+                        The keyword arguments for st submodel class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None, &#39;extract_feats_in_collect_stats&#39;: False})
   --diar_model_conf DIAR_MODEL_CONF
                         The keyword arguments for diar submodel class. (default: {&#39;diar_weight&#39;: 1.0, &#39;attractor_weight&#39;: 1.0})
   --subtask_series {enh,asr,st,diar} [{enh,asr,st,diar} ...]
@@ -2973,6 +2973,11 @@ Optimizer related:
                       --inf_scp INF_SCP [--key_file KEY_FILE]
                       [--ref_channel REF_CHANNEL]
                       [--flexible_numspk FLEXIBLE_NUMSPK]
+                      [--use_dnsmos USE_DNSMOS] [--dnsmos_mode {local,web}]
+                      [--dnsmos_auth_key DNSMOS_AUTH_KEY]
+                      [--dnsmos_primary_model DNSMOS_PRIMARY_MODEL]
+                      [--dnsmos_p808_model DNSMOS_P808_MODEL]
+                      [--use_pesq USE_PESQ]
 
 Frontend inference
 
@@ -2990,6 +2995,27 @@ Input data related:
   --key_file KEY_FILE
   --ref_channel REF_CHANNEL
   --flexible_numspk FLEXIBLE_NUMSPK
+
+DNSMOS related:
+  --use_dnsmos USE_DNSMOS
+  --dnsmos_mode {local,web}
+                        Use local DNSMOS model or web API for DNSMOS
+                        calculation (default: local)
+  --dnsmos_auth_key DNSMOS_AUTH_KEY
+                        Required if dnsmsos_mode=&#39;web&#39; (default: )
+  --dnsmos_primary_model DNSMOS_PRIMARY_MODEL
+                        Path to the primary DNSMOS model. Required if
+                        dnsmsos_mode=&#39;local&#39; (default: ./DNSMOS/model_v8.onnx)
+  --dnsmos_p808_model DNSMOS_P808_MODEL
+                        Path to the p808 model. Required if
+                        dnsmsos_mode=&#39;local&#39; (default:
+                        ./DNSMOS/sig_bak_ovr.onnx)
+
+PESQ related:
+  --use_pesq USE_PESQ   Bebore setting this to True, please make sure that you
+                        or your institution have the license (check
+                        https://www.itu.int/rec/T-REC-P.862-200511-I!Amd2/en)
+                        to report PESQ (default: False)
 </pre></div>
 </div>
 </section>
@@ -3066,7 +3092,7 @@ Input data related:
                     [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
-                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                     [--scheduler_conf SCHEDULER_CONF]
                     [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                     [--model_conf MODEL_CONF] [--criterions CRITERIONS]
@@ -3080,6 +3106,8 @@ Input data related:
                     [--num_spk NUM_SPK] [--num_noise_type NUM_NOISE_TYPE]
                     [--sample_rate SAMPLE_RATE]
                     [--force_single_channel FORCE_SINGLE_CHANNEL]
+                    [--channel_reordering CHANNEL_REORDERING]
+                    [--categories CATEGORIES [CATEGORIES ...]]
                     [--dynamic_mixing DYNAMIC_MIXING] [--utt2spk UTT2SPK]
                     [--dynamic_mixing_gain_db DYNAMIC_MIXING_GAIN_DB]
                     [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
@@ -3438,7 +3466,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -3448,7 +3476,7 @@ Optimizer related:
   --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                         The initialization method (default: None)
   --model_conf MODEL_CONF
-                        The keyword arguments for model class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None})
+                        The keyword arguments for model class. (default: {&#39;stft_consistency&#39;: False, &#39;loss_type&#39;: &#39;mask_mse&#39;, &#39;mask_type&#39;: None, &#39;extract_feats_in_collect_stats&#39;: False})
   --criterions CRITERIONS
                         The criterions binded with the loss wrappers. (default: [{&#39;name&#39;: &#39;si_snr&#39;, &#39;conf&#39;: {}, &#39;wrapper&#39;: &#39;fixed_order&#39;, &#39;wrapper_conf&#39;: {}}])
 
@@ -3477,6 +3505,10 @@ Optimizer related:
                         Sampling rate of the data (in Hz). (default: 8000)
   --force_single_channel FORCE_SINGLE_CHANNEL
                         Whether to force all data to be single-channel. (default: False)
+  --channel_reordering CHANNEL_REORDERING
+                        Whether to randomly reorder the channels of the multi-channel signals. (default: False)
+  --categories CATEGORIES [CATEGORIES ...]
+                        The set of all possible categories in the dataset. Used to add the category information to each sample (default: [])
   --dynamic_mixing DYNAMIC_MIXING
                         Apply dynamic mixing (default: False)
   --utt2spk UTT2SPK     The file path of utt2spk file. Only used in dynamic_mixing mode. (default: None)
@@ -3668,7 +3700,7 @@ SeparateSpeech related:
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                         [--model_conf MODEL_CONF] [--criterions CRITERIONS]
@@ -3686,6 +3718,8 @@ SeparateSpeech related:
                         [--num_spk NUM_SPK] [--num_noise_type NUM_NOISE_TYPE]
                         [--sample_rate SAMPLE_RATE]
                         [--force_single_channel FORCE_SINGLE_CHANNEL]
+                        [--channel_reordering CHANNEL_REORDERING]
+                        [--categories CATEGORIES [CATEGORIES ...]]
                         [--encoder {stft,conv,same}]
                         [--encoder_conf ENCODER_CONF]
                         [--extractor {td_speakerbeam}]
@@ -4041,7 +4075,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -4051,7 +4085,7 @@ Optimizer related:
   --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                         The initialization method (default: None)
   --model_conf MODEL_CONF
-                        The keyword arguments for model class. (default: {&#39;num_spk&#39;: 1, &#39;share_encoder&#39;: True})
+                        The keyword arguments for model class. (default: {&#39;num_spk&#39;: 1, &#39;share_encoder&#39;: True, &#39;extract_feats_in_collect_stats&#39;: False})
   --criterions CRITERIONS
                         The criterions binded with the loss wrappers. (default: [{&#39;name&#39;: &#39;si_snr&#39;, &#39;conf&#39;: {}, &#39;wrapper&#39;: &#39;fixed_order&#39;, &#39;wrapper_conf&#39;: {}}])
 
@@ -4089,6 +4123,10 @@ Optimizer related:
                         Sampling rate of the data (in Hz). (default: 8000)
   --force_single_channel FORCE_SINGLE_CHANNEL
                         Whether to force all data to be single-channel. (default: False)
+  --channel_reordering CHANNEL_REORDERING
+                        Whether to randomly reorder the channels of the multi-channel signals. (default: False)
+  --categories CATEGORIES [CATEGORIES ...]
+                        The set of all possible categories in the dataset. Used to add the category information to each sample (default: [])
   --encoder {stft,conv,same}
                         The encoder type (default: stft)
   --encoder_conf ENCODER_CONF
@@ -4185,11 +4223,11 @@ Optimizer related:
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim2_conf OPTIM2_CONF]
-                        [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler2_conf SCHEDULER2_CONF]
                         [--generator_first GENERATOR_FIRST]
                         [--token_list TOKEN_LIST] [--odim ODIM]
@@ -4575,7 +4613,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -4583,7 +4621,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim2_conf OPTIM2_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler2_conf SCHEDULER2_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -4719,11 +4757,11 @@ Optimizer related:
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim2_conf OPTIM2_CONF]
-                        [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                         [--scheduler2_conf SCHEDULER2_CONF]
                         [--generator_first GENERATOR_FIRST]
                         [--token_list TOKEN_LIST] [--odim ODIM]
@@ -5103,7 +5141,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -5111,7 +5149,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim2_conf OPTIM2_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler2_conf SCHEDULER2_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -5238,7 +5276,7 @@ Optimizer related:
                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
-                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                        [--scheduler_conf SCHEDULER_CONF]
                        [--token_list TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -5624,7 +5662,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -5887,7 +5925,7 @@ The model configuration related:
                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                    [--optim_conf OPTIM_CONF]
-                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                    [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                    [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                    [--model_conf MODEL_CONF]
@@ -6251,7 +6289,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -6444,7 +6482,7 @@ Text converter related:
                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                    [--optim_conf OPTIM_CONF]
-                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                    [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                    [--src_token_list SRC_TOKEN_LIST]
                    [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -6819,7 +6857,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -7075,7 +7113,7 @@ Text converter related:
                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                    [--optim_conf OPTIM_CONF]
-                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                    [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                    [--src_token_list SRC_TOKEN_LIST]
                    [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -7459,7 +7497,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -7723,7 +7761,7 @@ Vocoder related:
                     [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
-                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
                     [--scheduler_conf SCHEDULER_CONF]
                     [--token_list TOKEN_LIST] [--odim ODIM]
                     [--model_conf MODEL_CONF]
@@ -8099,7 +8137,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmupsteplr,warmuplr,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})

@@ -238,6 +238,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.samplers.unsorted_batch_sampler</span> <span class="kn">import</span> <span class="n">UnsortedBatchSampler</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.noam_lr</span> <span class="kn">import</span> <span class="n">NoamLR</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_lr</span> <span class="kn">import</span> <span class="n">WarmupLR</span>
+<span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_reducelronplateau</span> <span class="kn">import</span> <span class="n">WarmupReduceLROnPlateau</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_step_lr</span> <span class="kn">import</span> <span class="n">WarmupStepLR</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.load_pretrained_model</span> <span class="kn">import</span> <span class="n">load_pretrained_model</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.model_summary</span> <span class="kn">import</span> <span class="n">model_summary</span>
@@ -350,8 +351,9 @@
     <span class="n">exponentiallr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">ExponentialLR</span><span class="p">,</span>
     <span class="n">CosineAnnealingLR</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CosineAnnealingLR</span><span class="p">,</span>
     <span class="n">noamlr</span><span class="o">=</span><span class="n">NoamLR</span><span class="p">,</span>
-    <span class="n">warmupsteplr</span><span class="o">=</span><span class="n">WarmupStepLR</span><span class="p">,</span>
     <span class="n">warmuplr</span><span class="o">=</span><span class="n">WarmupLR</span><span class="p">,</span>
+    <span class="n">warmupsteplr</span><span class="o">=</span><span class="n">WarmupStepLR</span><span class="p">,</span>
+    <span class="n">warmupReducelronplateau</span><span class="o">=</span><span class="n">WarmupReduceLROnPlateau</span><span class="p">,</span>
     <span class="n">cycliclr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CyclicLR</span><span class="p">,</span>
     <span class="n">onecyclelr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">OneCycleLR</span><span class="p">,</span>
     <span class="n">CosineAnnealingWarmRestarts</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CosineAnnealingWarmRestarts</span><span class="p">,</span>
@@ -1442,6 +1444,10 @@
                 <span class="n">valid_key_file</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">valid_shape_file</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">valid_key_file</span> <span class="o">=</span> <span class="kc">None</span>
+
+            <span class="k">if</span> <span class="n">model</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;extract_feats_in_collect_stats&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">):</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Skipping collect_feats in collect_stats stage.&quot;</span><span class="p">)</span>
 
             <span class="n">collect_stats</span><span class="p">(</span>
                 <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">,</span>

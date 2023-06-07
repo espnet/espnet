@@ -428,7 +428,7 @@
 
         <span class="c1"># a. To device</span>
         <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">lengths</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">lengths</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">enroll_ref</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">enroll_ref</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">enh_model</span><span class="o">.</span><span class="n">share_encoder</span><span class="p">:</span>
             <span class="n">feats_aux</span><span class="p">,</span> <span class="n">flens_aux</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
                 <span class="o">*</span><span class="p">[</span>

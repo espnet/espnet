@@ -154,6 +154,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-lr-1">espnet2.schedulers.warmup_lr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-init-1">espnet2.schedulers.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-abs-scheduler-1">espnet2.schedulers.abs_scheduler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-reducelronplateau-1">espnet2.schedulers.warmup_reducelronplateau</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-step-lr-1">espnet2.schedulers.warmup_step_lr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-noam-lr-1">espnet2.schedulers.noam_lr</a></li>
 </ul>
@@ -313,6 +314,71 @@
 <dl class="method">
 <dt id="espnet2.schedulers.abs_scheduler.AbsValEpochStepScheduler.step">
 <em class="property">abstract </em><code class="sig-name descname">step</code><span class="sig-paren">(</span><em class="sig-param">val</em>, <em class="sig-param">epoch: int = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/abs_scheduler.html#AbsValEpochStepScheduler.step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.abs_scheduler.AbsValEpochStepScheduler.step" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-schedulers-warmup-reducelronplateau-1">
+<span id="espnet2-schedulers-warmup-reducelronplateau"></span><h2>espnet2.schedulers.warmup_reducelronplateau<a class="headerlink" href="#espnet2-schedulers-warmup-reducelronplateau-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.schedulers.warmup_reducelronplateau"></span><p>ReduceLROnPlateau (with Warm up) learning rate scheduler module.</p>
+<dl class="class">
+<dt id="espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.schedulers.warmup_reducelronplateau.</code><code class="sig-name descname">WarmupReduceLROnPlateau</code><span class="sig-paren">(</span><em class="sig-param">optimizer: torch.optim.optimizer.Optimizer</em>, <em class="sig-param">warmup_steps: Union[int</em>, <em class="sig-param">float] = 25000</em>, <em class="sig-param">mode='min'</em>, <em class="sig-param">factor=0.1</em>, <em class="sig-param">patience=10</em>, <em class="sig-param">threshold=0.0001</em>, <em class="sig-param">threshold_mode='rel'</em>, <em class="sig-param">cooldown=0</em>, <em class="sig-param">min_lr=0</em>, <em class="sig-param">eps=1e-08</em>, <em class="sig-param">verbose=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/warmup_reducelronplateau.html#WarmupReduceLROnPlateau"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler" title="espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler</span></code></a>, <a class="reference internal" href="#espnet2.schedulers.abs_scheduler.AbsValEpochStepScheduler" title="espnet2.schedulers.abs_scheduler.AbsValEpochStepScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.schedulers.abs_scheduler.AbsValEpochStepScheduler</span></code></a></p>
+<p>The WarmupReduceLROnPlateau scheduler.</p>
+<p>This scheduler is the combination of WarmupLR and ReduceLROnPlateau:</p>
+<dl>
+<dt>WarmupLR:</dt><dd><dl class="simple">
+<dt>lr = optimizer.lr * warmup_step ** 0.5</dt><dd><ul class="simple">
+<li><p>min(step ** -0.5, step * warmup_step ** -1.5)</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>WarmupReduceLROnPlateau:</dt><dd><dl>
+<dt>if step &lt;= warmup_step:</dt><dd><dl class="simple">
+<dt>lr = optimizer.lr * warmup_step ** 0.5</dt><dd><ul class="simple">
+<li><p>min(step ** -0.5, step * warmup_step ** -1.5)</p></li>
+</ul>
+</dd>
+</dl>
+</dd>
+<dt>else:</dt><dd><dl class="simple">
+<dt>lr = (</dt><dd><p>optimizer.lr * factor
+if no improvement for a ‘patience’ number of epochs
+else optimizer.lr</p>
+</dd>
+</dl>
+<p>)</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p>Note that the maximum lr equals to optimizer.lr in this scheduler.</p>
+<dl class="method">
+<dt id="espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.in_cooldown">
+<em class="property">property </em><code class="sig-name descname">in_cooldown</code><a class="headerlink" href="#espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.in_cooldown" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.is_better">
+<code class="sig-name descname">is_better</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">best</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/warmup_reducelronplateau.html#WarmupReduceLROnPlateau.is_better"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.is_better" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.load_state_dict">
+<code class="sig-name descname">load_state_dict</code><span class="sig-paren">(</span><em class="sig-param">state_dict</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/warmup_reducelronplateau.html#WarmupReduceLROnPlateau.load_state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.load_state_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.state_dict">
+<code class="sig-name descname">state_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/warmup_reducelronplateau.html#WarmupReduceLROnPlateau.state_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.state_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.step">
+<code class="sig-name descname">step</code><span class="sig-paren">(</span><em class="sig-param">metrics=None</em>, <em class="sig-param">epoch=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/warmup_reducelronplateau.html#WarmupReduceLROnPlateau.step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.warmup_reducelronplateau.WarmupReduceLROnPlateau.step" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
