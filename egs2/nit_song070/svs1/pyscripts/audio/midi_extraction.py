@@ -18,7 +18,7 @@ from tqdm import tqdm
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import read_2columns_text
 from espnet2.fileio.midi_scp import MIDIScpWriter, MIDIScpReader
 
 
@@ -147,7 +147,7 @@ def main():
             return args.ref_channels
 
     elif args.utt2ref_channels is not None:
-        utt2ref_channels_dict = read_2column_text(args.utt2ref_channels)
+        utt2ref_channels_dict = read_2columns_text(args.utt2ref_channels)
 
         def utt2ref_channels(x, d=utt2ref_channels_dict) -> Tuple[int, ...]:
             chs_str = d[x]

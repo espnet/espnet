@@ -9,7 +9,7 @@ import soundfile
 from typeguard import check_argument_types
 import miditoolkit
 
-from espnet2.fileio.read_text import read_2column_text
+from espnet2.fileio.read_text import read_2columns_text
 from espnet2.fileio.utils import midi_to_seq, seq_to_midi
 
 
@@ -41,7 +41,7 @@ class MIDIScpReader(collections.abc.Mapping):
         self.rate = rate
         self.mode = mode
         self.time_shift = time_shift
-        self.data = read_2column_text(fname)  # get key-value dict
+        self.data = read_2columns_text(fname)  # get key-value dict
 
     def __getitem__(self, key):
         key, pitch_aug_factor, time_aug_factor = key
