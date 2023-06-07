@@ -8,6 +8,7 @@ from typing import Optional, Tuple
 import humanfriendly
 import kaldiio
 import numpy as np
+import os
 import resampy
 import soundfile
 from tqdm import tqdm
@@ -151,7 +152,7 @@ def main():
     logging.info(get_commandline_args())
 
     parser = argparse.ArgumentParser(
-        description='Create waves list from "wav.scp"',
+        description='Create waves list from "midi.scp"',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument("scp")
@@ -164,11 +165,10 @@ def main():
     parser.add_argument("--segments", default=None)
     parser.add_argument(
         "--fs",
-        type=humanfriendly_or_none,
+        type=np.int32,
         default=None,
         help="If the sampling rate specified, Change the sampling rate.",
     )
-    parser.add_argument("--audio-format", default="wav")
     parser.add_argument("--vad_based_trim", type=str, default=None)
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--ref-channels", default=None, type=str2int_tuple)
