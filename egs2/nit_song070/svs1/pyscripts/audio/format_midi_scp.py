@@ -167,6 +167,7 @@ def main():
         default=None,
         help="If the sampling rate specified, Change the sampling rate.",
     )
+    parser.add_argument("--audio-format", default="midi")
     parser.add_argument("--vad_based_trim", type=str, default=None)
     group = parser.add_mutually_exclusive_group()
     # TODO: in midi, the reference channels should be related to track, it is not implemented now

@@ -351,6 +351,9 @@ if ! "${skip_data_prep}"; then
                 scripts/audio/format_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
                     "data/${dset}" "${data_feats}${_suf}/${dset}"
+                # scripts/audio/format_score_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                #     ${_opts} \
+                #     "data/${dset}/score.scp" "${data_feats}${_suf}/${dset}"
                 echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
             done
         fi
