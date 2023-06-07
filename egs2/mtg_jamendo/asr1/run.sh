@@ -13,8 +13,8 @@ asr_config=conf/train_asr_transformer.yaml
 inference_config=conf/decode_asr.yaml
 
 ./asr.sh \
-    --stage 12 \
-    --stop_stage 13 \
+    --stage 1 \
+    --stop_stage 11 \
     --lang en \
     --ngpu 1 \
     --nj 2 \

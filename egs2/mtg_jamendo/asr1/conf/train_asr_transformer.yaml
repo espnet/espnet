@@ -6,7 +6,7 @@ chunk_excluded_key_prefixes:
 - "text"
 num_cache_chunks: 2
 accum_grad: 1
-max_epoch: 100
+max_epoch: 50
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform

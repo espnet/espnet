@@ -18,11 +18,11 @@ class FeatureDataset():
         self.low_quality_source = low_quality_source
         self.metadata = open(self.metadata_dir, 'r').readlines()[1:]
 
-        self.all_paths = [line.split('\t')[3] for line in self.metadata]
-        self.all_tags = [line.split('\t')[5:] for line in self.metadata]
-        self.all_speaker = [line.split('\t')[1] for line in self.metadata]
-        self.all_track = [line.split('\t')[0] for line in self.metadata]
-        self.all_album = [line.split('\t')[2] for line in self.metadata]
+        self.all_paths = [line.split()[3] for line in self.metadata]
+        self.all_tags = [line.split()[5:] for line in self.metadata]
+        self.all_speaker = [line.split()[1] for line in self.metadata]
+        self.all_track = [line.split()[0] for line in self.metadata]
+        self.all_album = [line.split()[2] for line in self.metadata]
 
         assert len(self.all_paths) == len(self.all_tags) == len(self.metadata)
         # read class2id
@@ -38,7 +38,7 @@ class FeatureDataset():
         for split in ['train', 'validation', 'test']:
             data = open(os.path.join(metadata_dir, f'autotagging_genre-{split}.tsv'), "r").readlines()
             for example in data[1:]:
-                tags = example.split('\t')[5:]
+                tags = example.split()[5:]
                 for tag in tags:
                     tag = tag.strip()
                     if tag not in class2id:
@@ -74,6 +74,9 @@ if __name__ == "__main__":
         for tag in music:
             all_tags.add(tag)
 
+    print(len(all_tags))
+    print(all_tags)
+
     with open(
         os.path.join('data', 'train', 'text'), 'w+'
     ) as fw_train_text, open(
@@ -108,7 +111,7 @@ if __name__ == "__main__":
                 num_tags = 0
                 for tag in all_tags:
                     if tag in tag_set:
-                        result.append("true")
+                        result.append(tag)
                         num_tags += 1
                     else:
                         result.append("false")
@@ -133,15 +136,15 @@ if __name__ == "__main__":
                 num_tags = 0
                 for tag in all_tags:
                     if tag in tag_set:
-                        result.append("true")
+                        result.append(tag)
                         num_tags += 1
                     else:
                         result.append("false")
                 assert num_tags > 0
                 text = " ".join(result)
-                fw_test_text.write(f"{uttid} {text}\n")
-                fw_test_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
-                fw_test_utt2spk.write(f"{uttid} {speaker}\n")
+                fw_train_text.write(f"{uttid} {text}\n")
+                fw_train_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
+                fw_train_utt2spk.write(f"{uttid} {speaker}\n")
 
         for i in range(len(valid.all_paths)):
             path = os.path.join(root, valid.all_paths[i])
@@ -159,12 +162,12 @@ if __name__ == "__main__":
                 num_tags = 0
                 for tag in all_tags:
                     if tag in tag_set:
-                        result.append("true")
+                        result.append(tag)
                         num_tags += 1
                     else:
                         result.append("false")
                 assert num_tags > 0
                 text = " ".join(result)
-                fw_valid_text.write(f"{uttid} {text}\n")
-                fw_valid_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
-                fw_valid_utt2spk.write(f"{uttid} {speaker}\n")
+                fw_test_text.write(f"{uttid} {text}\n")
+                fw_test_wavscp.write(f"{uttid} ffmpeg -i {low_quality_audio_file} -f wav -ar 16000 -ab 16 -ac 1 - |\n")
+                fw_test_utt2spk.write(f"{uttid} {speaker}\n")

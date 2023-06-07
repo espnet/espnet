@@ -173,6 +173,7 @@ ELRA_E0024=
 ELRA_S0272=
 ELRA_S0371=
 MTG_JAMENDO=download
+#MTG_JAMENDO=/media/baima/6F3541EB61FE9139/MTG_Dataset
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

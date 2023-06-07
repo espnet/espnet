@@ -402,6 +402,7 @@ class Speech2Text:
         batch = to_device(batch, device=self.device)
         speech = to_device(speech, device=self.device)
         lengths = to_device(lengths, device=self.device)
+        encs = []
 
         if self.segmenting_asr and lengths[0] > self.segment_size * fs:
             # Segment-wise speaker diarization
@@ -410,7 +411,6 @@ class Speech2Text:
             num_segments = int(np.ceil(speech.size(1) / (self.segment_size * fs)))
             t = T = int(self.segment_size * fs)
             pad_shape = speech[:, :T].shape
-            encs = []
             range_ = trange if self.show_progressbar else range
             for i in range_(num_segments):
                 st = int(i * self.segment_size * fs)
@@ -434,57 +434,56 @@ class Speech2Text:
                     lengths_seg,
                 )
                 encs.append(enc_element)
-            # Determine maximum estimated number of speakers among the segments
-            max_len = max([x.size(2) for x in encs])
-            # pad tensors in diarized_wavs with "float('-inf')" to have same size
-            encs = [
-                torch.nn.functional.pad(
-                    x, (0, max_len - x.size(2)), "constant", float("-inf")
-                )
-                for x in encs
-            ]
-            logging.info("max enc length: " + str(max_len))
-            enc = torch.cat(encs, dim=1)
-            logging.info("enc length: " + str(enc.size(1)))
-            mean_pooling = torch.nn.AdaptiveAvgPool1d(max_len)
-            enc = mean_pooling(enc)
-            logging.info("new enc length: " + str(enc.size(1)))
         else:
             # b. Forward Encoder
             enc, _ = self.asr_model.encode(**batch)
-        if self.multi_asr:
-            enc = enc.unbind(dim=1)  # (batch, num_inf, ...) -> num_inf x [batch, ...]
-        if self.enh_s2t_task or self.multi_asr:
-            # Enh+ASR joint task or Multispkr ASR task
-            # NOTE (Wangyou): the return type in this case is List[default_return_type]
+            encs.append(enc)
+        
+        result_set = []
+        for enc in encs:
             if self.multi_asr:
-                num_spk = getattr(self.asr_model, "num_inf", 1)
+                enc = enc.unbind(dim=1)  # (batch, num_inf, ...) -> num_inf x [batch, ...]
+            if self.enh_s2t_task or self.multi_asr:
+                # Enh+ASR joint task or Multispkr ASR task
+                # NOTE (Wangyou): the return type in this case is List[default_return_type]
+                if self.multi_asr:
+                    num_spk = getattr(self.asr_model, "num_inf", 1)
+                else:
+                    num_spk = getattr(self.asr_model.enh_model, "num_spk", 1)
+                assert len(enc) == num_spk, (len(enc), num_spk)
+                results = []
+                for spk, enc_spk in enumerate(enc, 1):
+                    logging.info(f"=== [{str(self.asr_model.__class__)}] Speaker {spk} ===")
+                    if isinstance(enc_spk, tuple):
+                        enc_spk = enc_spk[0]
+                    assert len(enc_spk) == 1, len(enc_spk)
+
+                    # c. Passed the encoder result and the beam search
+                    ret = self._decode_single_sample(enc_spk[0])
+                    assert check_return_type(ret)
+                    results.append(ret)
+
             else:
-                num_spk = getattr(self.asr_model.enh_model, "num_spk", 1)
-            assert len(enc) == num_spk, (len(enc), num_spk)
-            results = []
-            for spk, enc_spk in enumerate(enc, 1):
-                logging.info(f"=== [{str(self.asr_model.__class__)}] Speaker {spk} ===")
-                if isinstance(enc_spk, tuple):
-                    enc_spk = enc_spk[0]
-                assert len(enc_spk) == 1, len(enc_spk)
+                # Normal ASR
+                if isinstance(enc, tuple):
+                    enc = enc[0]
+                assert len(enc) == 1, len(enc)
 
                 # c. Passed the encoder result and the beam search
-                ret = self._decode_single_sample(enc_spk[0])
-                assert check_return_type(ret)
-                results.append(ret)
-
-        else:
-            # Normal ASR
-            if isinstance(enc, tuple):
-                enc = enc[0]
-            assert len(enc) == 1, len(enc)
-
-            # c. Passed the encoder result and the beam search
-            results = self._decode_single_sample(enc[0])
-            assert check_return_type(results)
-
-        return results
+                results = self._decode_single_sample(enc[0])
+                assert check_return_type(results)
+            result_set.append(results)
+        if len(result_set) == 1:
+            return result_set[0]
+        # Count tag pooling
+        result = []
+        size = 0
+        for res in result_set:
+            for item in res:
+                result.append(item)
+                size += len(item[1])
+        logging.info(size)
+        return result
 
     def _decode_single_sample(self, enc: torch.Tensor):
         if self.beam_search_transducer:
