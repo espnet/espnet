@@ -572,7 +572,7 @@ encoder_conf:
 
 #### Decoder
 
-For the decoder, three types of blocks are available: stateless ('stateless'), RNN ('rnn') or MEGA ('mega'). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define define only one block here.
+For the decoder, four types of blocks are available: stateless ('stateless'), RNN ('rnn'), MEGA ('mega') or RWKV ('rwkv'). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define define only one block here.
 The type of the stack of blocks is defined by passing the corresponding type string to the parameter `decoder`. The internal parts are defined by the config `decoder_conf` containing the following -optional- parameters:
 
     decoder_conf:
@@ -580,23 +580,61 @@ The type of the stack of blocks is defined by passing the corresponding type str
       num_blocks: Number of decoder blocks/layers (int, default = 4 for MEGA or 1 for RNN).
       rnn_type (RNN only): Type of RNN cells (int, default = "lstm").
       hidden_size (RNN only): Size of the hidden layers (int, default = 256).
-      block_size (MEGA only): Size of the block's input/output (int, default = 512).
-      linear_size (MEGA only): NormalizedPositionwiseFeedForward hidden size (int, default = 1024)
+      block_size (MEGA/RWKV only): Size of the block's input/output (int, default = 512).
+      linear_size (MEGA/RWKV only): Feed-Forward module hidden size (int, default = 1024).
+      attention_size (RWKV only): Hidden-size of the attention module. (int, default = None).
+      context_size (RWKV only): Context size for the WKV kernel module (int, default = 1024).
       qk_size (MEGA only): Shared query and key size for attention module (int, default = 128).
       v_size (MEGA only): Value size for attention module (int, default = 1024).
+      chunk_size (MEGA only): Chunk size for attention computation (int, default = -1, i.e. full context).
       num_heads (MEGA only): Number of EMA heads (int, default = 4).
       rel_pos_bias (MEGA only): Type of relative position bias in attention module (str, default = "simple").
       max_positions (MEGA only): Maximum number of position for RelativePositionBias (int, default = 2048).
       truncation_length (MEGA only): Maximum length for truncation in EMA module (int, default = None).
-      normalization_type (MEGA only): Normalization layer type (str, default = "layer_norm").
-      normalization_args (MEGA only): Normalization layer arguments (dict, default = {}).
+      normalization_type (MEGA/RWKV only): Normalization layer type (str, default = "layer_norm").
+      normalization_args (MEGA/RKWV only): Normalization layer arguments (dict, default = {}).
       activation_type (MEGA only): Activation function type (str, default = "swish").
       activation_args (MEGA only): Activation function arguments (dict, default = {}).
-      dropout_rate: Dropout rate for main block modules (float, default = 0.0).
+      rescale_every (RWKV only): Whether to rescale input every N blocks during inference (int, default = 0)
+      dropout_rate (excl. RWKV): Dropout rate for main block modules (float, default = 0.0).
       embed_dropout_rate: Dropout rate for embedding layer (float, default = 0.0).
-      att_dropout_rate (MEGA only): Dropout rate for the attention module.
+      att_dropout_rate (MEGA/RWKV only): Dropout rate for the attention module.
       ema_dropout_rate (MEGA only): Dropout rate for the EMA module.
-      ffn_dropout_rate (MEGA only): Dropout rate for the feed-forward module.
+      ffn_dropout_rate (MEGA/RWKV only): Dropout rate for the feed-forward module.
+
+
+**Example 1: RNN decoder.**
+
+```yaml
+decoder: rnn
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 2
+    embed_size: 256
+    hidden_size: 256
+    dropout_rate: 0.1
+    embed_dropout_rate: 0.1
+```
+
+**Example 2: MEGA decoder.**
+
+```yaml
+decoder: mega
+decoder_conf:
+    block_size: 256
+    linear_size: 2048
+    qk_size: 128
+    v_size: 1024
+    max_positions: 1024
+    num_heads: 4
+    rel_pos_bias_type: "rotary"
+    chunk_size: 256
+    num_blocks: 6
+    dropout_rate: 0.1
+    ffn_dropout_rate: 0.1
+    att_dropout_rate: 0.1
+    embed_dropout_rate: 0.1
+```
 
 #### Joint network
 
