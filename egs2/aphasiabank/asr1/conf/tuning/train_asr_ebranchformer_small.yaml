@@ -51,8 +51,8 @@ num_workers: 4
 sort_in_batch: descending
 sort_batch: descending
 batch_type: numel
-batch_bins: 5000000
-accum_grad: 9
+batch_bins: 4000000
+accum_grad: 12
 grad_clip: 5
 max_epoch: 40
 patience: none

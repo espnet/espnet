@@ -18,5 +18,10 @@ Paper: [EEND-SS: Joint End-to-End Neural Speaker Diarization and Speech Separati
 - median filtering: 11 frames
 
 ### Libri2Mix (2 Speakers)
+Model link: https://huggingface.co/soumi-maiti/libri2mix_eend_ss
+
 ### Libri3Mix (3 Speakers)
+Model link: https://huggingface.co/soumi-maiti/libri3mix_eend_ss
+
 ### Libri2&3Mix (2 & 3 Speakers)
+Model link: https://huggingface.co/soumi-maiti/libri23mix_eend_ss
