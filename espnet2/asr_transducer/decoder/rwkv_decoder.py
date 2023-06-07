@@ -6,7 +6,6 @@ from typing import Dict, List, Optional, Tuple
 import torch
 from typeguard import check_argument_types
 
-from espnet2.asr_transducer.activation import get_activation
 from espnet2.asr_transducer.beam_search_transducer import Hypothesis
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
 from espnet2.asr_transducer.decoder.blocks.rwkv import RWKV
