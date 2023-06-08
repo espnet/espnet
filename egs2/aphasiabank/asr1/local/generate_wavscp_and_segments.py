@@ -1,6 +1,8 @@
 import os
 from argparse import ArgumentParser
 
+from data import utt2spk, utt2time
+
 
 def get_args():
     parser = ArgumentParser()
@@ -37,12 +39,11 @@ def main():
     with open(args.reco_list) as f:
         for line in f:
             seg = line.rstrip("\n")
-            # utt = f'{reco}-{start_time}_{end_time}'
-            reco, timestamps = seg.split("-")
-            start, end = timestamps.split("_")
-
+            reco = utt2spk(seg)
+            start, end = utt2time(seg)
             start = float(start) / 1000
             end = float(end) / 1000  # ms to seconds
+
             if end - start < args.min_duration:
                 # print(f"WARNING: {seg} too short (<{args.min_duration}s)")
                 n_too_short += 1

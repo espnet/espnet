@@ -10,6 +10,10 @@ num_spk: 1
 num_noise_type: 1
 sample_rate: 16000
 force_single_channel: true
+channel_reordering: true
+categories:
+- 1ch_16k
+- 2ch_16k
 
 encoder: stft
 encoder_conf:

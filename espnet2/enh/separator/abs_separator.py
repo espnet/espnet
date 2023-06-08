@@ -15,6 +15,13 @@ class AbsSeparator(torch.nn.Module, ABC):
     ) -> Tuple[Tuple[torch.Tensor], torch.Tensor, OrderedDict]:
         raise NotImplementedError
 
+    def forward_streaming(
+        self,
+        input_frame: torch.Tensor,
+        buffer=None,
+    ):
+        raise NotImplementedError
+
     @property
     @abstractmethod
     def num_spk(self):

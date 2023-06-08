@@ -1653,7 +1653,7 @@ if ! "${skip_eval}"; then
                     done
                 done
 
-                scripts/utils/eval_perm_free_error.py --num-spkrs ${spk_num} \
+                pyscripts/utils/eval_perm_free_error.py --num-spkrs ${spk_num} \
                     --results-dir ${_scoredir}
 
                 sclite \
