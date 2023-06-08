@@ -181,6 +181,13 @@ AMEBOSHI=
 ITAKO=
 NATSUME=
 
+if [[ `hostname` == venus_tyx_2236 ]]; then
+    POPCS=/data1/wyn/Mus_data/popcs/
+    OPENCPOP=/data1/wyn/Mus_data/Opencpop/
+    ONIKU=/data1/wyn/Mus_data/ONIKU_KURUMI_UTAGOE_DB/
+    OFUTON=/data1/wyn/Mus_data/OFUTON_P_UTAGOE_DB/
+fi
+
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
     BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/

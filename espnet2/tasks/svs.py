@@ -14,6 +14,7 @@ from espnet2.gan_svs.joint import JointScore2Wav
 from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
+from espnet2.svs.diffsinger.get_feats_minmax import GetFeatsMinMax
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
@@ -250,6 +251,12 @@ class SVSTask(AbsTask):
             default=24000,  # BUG: another fs in feats_extract_conf
             help="sample rate",
         )
+        parser.add_argument(
+            "--feats_minmax_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="Statistics min and max of feats if not empty",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -374,6 +381,7 @@ class SVSTask(AbsTask):
         energy_extract = None
         pitch_normalize = None
         energy_normalize = None
+        feats_minmax = None
         logging.info(f"args:{args}")
         if getattr(args, "score_feats_extract", None) is not None:
             score_feats_extract_class = score_feats_extractor_choices.get_class(
@@ -425,6 +433,9 @@ class SVSTask(AbsTask):
             )
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
 
+        if args.feats_minmax_conf:
+            feats_minmax = GetFeatsMinMax(**args.feats_minmax_conf)
+            
         # 5. Build model
         model = ESPnetSVSModel(
             text_extract=score_feats_extract,
@@ -438,6 +449,7 @@ class SVSTask(AbsTask):
             normalize=normalize,
             pitch_normalize=pitch_normalize,
             energy_normalize=energy_normalize,
+            feats_minmax=feats_minmax,
             svs=svs,
             **args.model_conf,
         )
