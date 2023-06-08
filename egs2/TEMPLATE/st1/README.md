@@ -3,9 +3,10 @@
 TODO
 
 ## Table of Contents
-* Recipe Flow
+* Results
+   * Offline ST
+   * Simultaneous ST
 * Offline ST Models
-   * Results
    * Core Architectures
       * Attentional Encoder-Decoder
       * CTC/Attention
@@ -18,7 +19,6 @@ TODO
       * Hierarchical Encoding
       * Minimum Bayes-Risk Decoding
 * Streaming ST Models
-   * Results
    * Core Architectures
       * Blockwise CTC/Attention
       * Label-Synchronous Blockwise CTC/Attention
@@ -26,18 +26,20 @@ TODO
       * Blockwise Transducer
    * Auxiliary Techniques
       * Using an offline model for streaming inference
-* FAQ
+* Recipe Flow
+   * Data preparation
+   * Building models from scratch
+   * Downloading our example models
+   * Running models
 * How to cite
 
-## Recipe Flow
+## Results
 
-TODO
+The tables below provide a performance snapshot of different core architectures for offline and simultaneous ST. Links for downloading our example models or for building your own models from scratch are also provided.
 
-## Offline ST Models
+Here we're reporting MuST-C-v1 English-to-German results. These example models were trained using only the MuST-C-v1 ST corpus. No additional MT data was used.
 
-TODO
-
-### Results
+### Offline ST
 
 |Model|BLEU|Model Link|Training Config|Decoding Config|
 |---|---|---|---|---|
@@ -47,11 +49,7 @@ TODO
 |Multi-Decoder CTC/Attention|28.8|link|link|link|
 |Transducer|27.6|link|link|link|
 
-## Streaming ST Models
-
-TODO
-
-### Results
+### Simultaneous ST
 
 |Model|BLEU|AL|Model Link|Training Config|Decoding Config|
 |---|---|---|---|---|---|
@@ -60,3 +58,54 @@ TODO
 |Time-Sync Blockwise CTC/Attn|24.6|2.34|link|link|link|
 |Blockwise Transducer|22.9|2.37|link|link|link|
 
+## Offline ST Models
+
+### Core Architectures
+
+#### Attentional Encoder-Decoder
+
+**Why choose this model?**
+
+The attentional encoder-decoder is a commonly used model. Its relatively simple architecture makes it a solid base for experimenting with new auxiliary techniques and a reasonable choice for getting started with ST.
+
+**Words of caution**
+
+The most prominent weakness to be aware of is the end-detection problem: the auto-regressive decoder relies on a length penalty/bonus hyperparameter to stabilize output lengths. This hyperparameter reliance introduces risk of over-tuning.
+
+#### CTC/Attention
+
+**Why choose this model?**
+
+The CTC/attention incorporates non-autoregressive hard alignment (CTC) and autoregressive soft alignment (attention) into a single model. CTC counteracts several weaknesses of its attentional counterpart via joint training/decoding (more details). Notably, the CTC/attention alleviates the end-detection problem of the pure attention approach. Compared to the attentional encoder-decoder, CTC/attention produces superior translation quality.
+
+**Words of caution**
+
+Joint training/decoding incurs an additional computational cost. Anecdotally, CTC/attention is 10-20% slower than pure attention.
+
+#### Transducer
+
+**Why choose this model?**
+
+The transducer is an autoregressive hard alignment model. Unlike models with an attentional decoder, transducer models typically use shallow LSTM decoders. Notably, the transducer's decoder avoids the quadratic computational complexity of its attentional counterpart -- inference is appreciably faster.
+
+**Words of caution**
+
+The translation quality lags behind that of CTC/attention due to its low capacity decoder. Further the transducer's loss function must marginalize over all possible alignment paths -- this makes training relatively slow. We also found that transducers are more difficult to train to convergence, likely due to the monotonic property of this framework. We solve this using a hierarchical encoding scheme (described in Section 4.1 of this paper) to encourage the encoder to take on the burden of re-ordering. 
+
+#### Multi-Decoder
+
+**Why choose this model?**
+
+The multi-decoder is an end-to-end differentiable cascade, consisting of an ASR subnet and an MT subnet. This approach inherits several strengths from cascaded approaches, the most prominent of which is the ability to perform search/retrieval over intermediate ASR representations (more details). The translation quality of the multi-decoder is greater than that of the attentional encoder decoder. The multi-decoder approach can also be applied to CTC/attention models -- this combination results in the strongest performance amongst our example models.
+
+**Words of caution**
+
+Multi-decoder inference involves two consecutive beam searches, one for the ASR subnet and one for the MT subnet. The model size is also greater than the single encoder-decoder (although trainable paramters are similar if using ASR multi-tasking for both approaches).
+
+## Simultaneous ST Models
+
+## Recipe Flow
+
+TODO
+
+## How to cite
