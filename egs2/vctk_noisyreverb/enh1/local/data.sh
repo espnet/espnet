@@ -55,8 +55,8 @@ for dset in testset trainset_28spk trainset_56spk;
 do
 
   mkdir -p data/${dset}
-  awk '{print $1 " '${NOISY_REVERBERANT_SPEECH}/noisyreverb_${dset}_wav/'"$1".wav"}' ${NOISY_REVERBERANT_SPEECH}/logfiles/log_${dset}.txt | sort -n  > data/${dset}/spk1.scp
-  awk '{print $1 " '${NOISY_SPEECH}/clean_${dset}_wav/'"$1".wav"}' ${NOISY_REVERBERANT_SPEECH}/logfiles/log_${dset}.txt | sort -n  > data/${dset}/wav.scp
+  awk '{print $1 " '${NOISY_REVERBERANT_SPEECH}/noisyreverb_${dset}_wav/'"$1".wav"}' ${NOISY_REVERBERANT_SPEECH}/logfiles/log_${dset}.txt | sort -n  > data/${dset}/wav.scp
+  awk '{print $1 " '${NOISY_SPEECH}/clean_${dset}_wav/'"$1".wav"}' ${NOISY_REVERBERANT_SPEECH}/logfiles/log_${dset}.txt | sort -n  > data/${dset}/spk1.scp
   awk -F '_| ' '{print $1"_"$2, $1}' ${NOISY_REVERBERANT_SPEECH}/logfiles/log_${dset}.txt | sort -n  > data/${dset}/utt2spk
   ./utils/utt2spk_to_spk2utt.pl  data/${dset}/utt2spk >  data/${dset}/spk2utt
 done
