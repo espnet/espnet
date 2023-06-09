@@ -1,0 +1,2 @@
+beam_size: 10
+ctc_weight: 0.1

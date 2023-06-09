@@ -96,8 +96,8 @@ or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's
 
 - [ ] be careful about the name for the recipe. It is recommended to follow naming conventions of the other recipes
 - [ ] common/shared files are linked with **soft link** (see Section 1.3.3)
-- [ ] modified or new python scripts should be passed through **latest** black formating (by using python package black). The command to be executed could be `black espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/*/pyscripts tools/*.py ci/*.py`
-- [ ] modified or new python scripts should be passed through **latest** isort formating (by using python package isort). The command to be executed could be `isort espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/*/pyscripts tools/*.py ci/*.py`
+- [ ] modified or new python scripts should be passed through **latest** black formatting (by using python package black). The command to be executed could be `black espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/*/pyscripts tools/*.py ci/*.py`
+- [ ] modified or new python scripts should be passed through **latest** isort formatting (by using python package isort). The command to be executed could be `isort espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/*/pyscripts tools/*.py ci/*.py`
 - [ ] cluster settings should be set as **default** (e.g., cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf)
 - [ ] update `egs/README.md` or `egs2/README.md` with corresponding recipes
 - [ ] add corresponding entry in `egs2/TEMPLATE/db.sh` for a new corpus
