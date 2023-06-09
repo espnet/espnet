@@ -498,6 +498,11 @@ if ! "${skip_train}"; then
         _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${_scp},speech,${_type} "
         _opts+="--valid_data_path_and_name_and_type ${_vad_valid_dir}/${_scp},speech,${_type} "
 
+	for i in ${!ref_text_files[@]}; do
+            _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
+            _opts+="--valid_data_path_and_name_and_type ${_vad_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
+        done
+
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
             ${python} -m espnet2.bin.vad_train \
@@ -580,6 +585,13 @@ if ! "${skip_train}"; then
 
             _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
             _opts+="--train_shape_file ${_split_dir}/speech_shape "
+	    # shellcheck disable=SC2068
+            for i in ${!ref_text_names[@]}; do
+                _opts+="--fold_length ${vad_text_fold_length} "
+                _opts+="--train_data_path_and_name_and_type ${_split_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
+                _opts+="--train_shape_file ${_split_dir}/${ref_text_names[$i]}_shape "
+            done
+            _opts+="--multiple_iterator true "
         else
             _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${_scp},speech,${_type} "
             _opts+="--train_shape_file ${vad_stats_dir}/train/speech_shape "
@@ -591,7 +603,19 @@ if ! "${skip_train}"; then
                      _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${aux_dset},text,text "
                 done
             fi
+	    # shellcheck disable=SC2068
+            for i in ${!ref_text_names[@]}; do
+                _opts+="--fold_length ${vad_text_fold_length} "
+                _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
+                _opts+="--train_shape_file ${vad_stats_dir}/train/${ref_text_names[$i]}_shape "
+            done
         fi
+
+	# shellcheck disable=SC2068
+        for i in ${!ref_text_names[@]}; do
+            _opts+="--valid_data_path_and_name_and_type ${_vad_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
+            _opts+="--valid_shape_file ${vad_stats_dir}/valid/${ref_text_names[$i]}_shape "
+        done
 
         log "Generate '${vad_exp}/run.sh'. You can resume the process from stage 5 using this script"
         mkdir -p "${vad_exp}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${vad_exp}/run.sh"; chmod +x "${vad_exp}/run.sh"
