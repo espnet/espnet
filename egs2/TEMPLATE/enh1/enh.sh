@@ -83,6 +83,7 @@ download_model=
 
 # Evaluation related
 scoring_protocol="STOI SDR SAR SIR SI_SNR"
+scoring_opts=""
 ref_channel=0
 inference_tag=  # Prefix to the result dir for ENH inference.
 inference_enh_config= # Config for enhancement.
@@ -171,6 +172,7 @@ Options:
 
     # Evaluation related
     --scoring_protocol    # Metrics to be used for scoring (default="${scoring_protocol}")
+    --scoring_opts        # Additional arguments for scoring (default="${scoring_opts}")
     --ref_channel         # Reference channel of the reference speech will be used if the model
                             output is single-channel and reference speech is multi-channel
                             (default="${ref_channel}")
@@ -669,6 +671,15 @@ if ! "${skip_train}"; then
             done
         fi
 
+        # Add the category information at the end of the data path list
+        if [ -e "${_enh_train_dir}/utt2category" ] && [ -e "${_enh_valid_dir}/utt2category" ]; then
+            log "[INFO] Adding the category information for training"
+            log "[WARNING] Please make sure the category information is explicitly processed by the preprocessor defined in '${enh_config}' so that it is converted to an integer"
+
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/utt2category,category,text "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/utt2category,category,text "
+        fi
+
         log "Generate '${enh_exp}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${enh_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${enh_exp}/run.sh"; chmod +x "${enh_exp}/run.sh"
 
@@ -860,7 +871,8 @@ if ! "${skip_eval}"; then
                         ${_ref_scp} \
                         ${_inf_scp} \
                         --ref_channel ${ref_channel} \
-                        --flexible_numspk ${flexible_numspk}
+                        --flexible_numspk ${flexible_numspk} \
+                        ${scoring_opts}
 
                 for spk in $(seq "${ref_num}"); do
                     for protocol in ${scoring_protocol} wav; do
@@ -949,11 +961,18 @@ if "${score_with_asr}"; then
                     utils/fix_data_dir.sh "${_ddir}"
                     mv ${_ddir}/wav.scp ${_ddir}/wav_ori.scp
 
-                    scripts/audio/format_wav_scp.sh --nj "${inference_nj}" --cmd "${_cmd}" \
-                        --out-filename "wav.scp" \
-                        --audio-format "${audio_format}" --fs "${fs}" \
-                        "${_ddir}/wav_ori.scp" "${_ddir}" \
-                        "${_ddir}/formated/logs/" "${_ddir}/formated/"
+                    line=$(head -n 1 "${_ddir}/wav_ori.scp" | awk '{print $NF}')
+                    if [[ "$(basename "$line")" =~ ^.*\.ark(:[[:digit:]]+)?$ ]]; then
+                        # scripts/audio/format_wav_scp.sh will not work for *.ark
+                        log "Skip the formatting stage for the 'ark' format"
+                        ln -s wav_ori.scp ${_ddir}/wav.scp
+                    else
+                        scripts/audio/format_wav_scp.sh --nj "${inference_nj}" --cmd "${_cmd}" \
+                            --out-filename "wav.scp" \
+                            --audio-format "${audio_format}" --fs "${fs}" \
+                            "${_ddir}/wav_ori.scp" "${_ddir}" \
+                            "${_ddir}/formated/logs/" "${_ddir}/formated/"
+                    fi
 
                     if [[ "${audio_format}" == *ark* ]]; then
                         _type=kaldi_ark
@@ -1023,7 +1042,7 @@ if "${score_with_asr}"; then
                 if "${score_obs}"; then
                     _dir="${data_feats}/${inference_asr_tag}/${dset}"
                 else
-                    _dir="${enh_exp}/${inference_asr_tag}/${dset}/"
+                    _dir="${enh_exp}/${inference_asr_tag}/${dset}"
                 fi
 
                 for spk in $(seq "${ref_num}"); do
@@ -1164,7 +1183,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 ./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
 <li><strong>Results</strong><pre><code>$(cat "${enh_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>ASR config</strong><pre><code>$(cat "${enh_exp}"/config.yaml)</code></pre></li>
+<li><strong>Enh config</strong><pre><code>$(cat "${enh_exp}"/config.yaml)</code></pre></li>
 </ul>
 EOF
 

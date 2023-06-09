@@ -16,13 +16,13 @@ Dataset are extracted from various multilingual sources. All sources are with ei
 
 ### Data download/setup
 
-[Pending]
+[Download link](https://drive.google.com/file/d/1zslKQwadZaYWXAmfBCvlos9BVQ9k6PHT/view?usp=sharing)
 
 After download the dataset, please set the `MLSUPERB` to the data directory. The preparation will be automatically done in scripts for each tasks.
 
 ### Self-supervised model setup
 
-ML-SUPERB utilizes [S3PRL]() to support different self-supervised model, supporting both the current popular self-supervised models and customized models from users.
+ML-SUPERB utilizes [S3PRL](https://github.com/s3prl/s3prl) to support different self-supervised model, supporting both the current popular self-supervised models and customized models from users.
 
 #### Existng self-supervised model
 

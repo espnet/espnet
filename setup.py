@@ -24,13 +24,14 @@ requirements = {
         "torch>=1.3.0",
         "torch_complex",
         "nltk>=3.4.5",
-        "numpy",
+        # fix CI error due to the use of deprecated aliases
+        "numpy<1.24",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
         "protobuf<=3.20.1",
         "hydra-core",
         "opt-einsum",
         # ASR
-        "sentencepiece",
+        "sentencepiece==0.1.97",
         "ctc-segmentation>=1.6.6",
         # TTS
         "pyworld>=0.2.10",
@@ -101,7 +102,6 @@ requirements = {
         "flake8-docstrings>=1.3.1",
         "black",
         "isort",
-        "music21",
     ],
     "doc": [
         "Jinja2<3.1",
