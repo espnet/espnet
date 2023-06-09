@@ -34,19 +34,19 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && [ ! -d "${splits_dir}" ]; then
     log "stage 1: Official splits from IWSLT"
-    
+
     git clone https://github.com/kevinduh/iwslt22-dialect.git ${splits_dir}
     cd ${splits_dir} && ./setup_data.sh ${IWSLT22_DIALECT} && cd -
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    
+
     mkdir -p data/train
     mkdir -p data/dev
     mkdir -p data/test1
     local/preprocess.py --out data --data ${splits_dir}
-    
+
     for set in train dev test1
     do
         cp data/${set}/text.en data/${set}/text

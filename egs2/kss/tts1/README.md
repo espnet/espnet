@@ -2,7 +2,7 @@
 
 This is the recipe of Korean female single speaker TTS model with [KSS dataset](https://www.kaggle.com/bryanpark/korean-single-speaker-speech-dataset).
 
-Before running the recipe, please download from https://www.kaggle.com/bryanpark/korean-single-speaker-speech-dataset.  
+Before running the recipe, please download from https://www.kaggle.com/bryanpark/korean-single-speaker-speech-dataset.
 Then, edit 'KSS' in `db.sh` and locate unzipped dataset as follows:
 
 ```bash

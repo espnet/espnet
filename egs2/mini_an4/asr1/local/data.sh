@@ -75,6 +75,7 @@ EOF
     for x in test ${train_set} ${train_dev}; do
         cp data/${x}/wav.scp data/${x}/spk1.scp
         cp data/${x}/wav.scp data/${x}/spk2.scp
+        awk '{print $1 " 1ch_16k"}' data/${x}/wav.scp > data/${x}/utt2category
     done
 
     find downloads/noise/ -iname "*.wav" | awk '{print "noise" NR " " $1}' > data/${train_set}/noises.scp

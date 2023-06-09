@@ -31,6 +31,7 @@ class TemporalConvNet(nn.Module):
         out_channel=None,
         norm_type="gLN",
         causal=False,
+        pre_mask_nonlinear="linear",
         mask_nonlinear="relu",
     ):
         """Basic Module of tasnet.
@@ -48,6 +49,7 @@ class TemporalConvNet(nn.Module):
                 if it is None, `N` will be used instead.
             norm_type: BN, gLN, cLN
             causal: causal or non-causal
+            pre_mask_nonlinear: the non-linear function before masknet
             mask_nonlinear: use which non-linear function to generate mask
         """
         super().__init__()
@@ -65,10 +67,16 @@ class TemporalConvNet(nn.Module):
         bottleneck_conv1x1 = nn.Conv1d(N, B, 1, bias=False)
         # [M, B, K] -> [M, B, K]
         repeats = []
+
+        self.receptive_field = 0
         for r in range(R):
             blocks = []
             for x in range(X):
                 dilation = 2**x
+                if r == 0 and x == 0:
+                    self.receptive_field += P
+                else:
+                    self.receptive_field += (P - 1) * dilation
                 padding = (P - 1) * dilation if causal else (P - 1) * dilation // 2
                 blocks += [
                     TemporalBlock(
@@ -88,9 +96,20 @@ class TemporalConvNet(nn.Module):
         # [M, B, K] -> [M, C*N, K]
         mask_conv1x1 = nn.Conv1d(B, C * self.out_channel, 1, bias=False)
         # Put together (for compatibility with older versions)
-        self.network = nn.Sequential(
-            layer_norm, bottleneck_conv1x1, temporal_conv_net, mask_conv1x1
-        )
+        if pre_mask_nonlinear == "linear":
+            self.network = nn.Sequential(
+                layer_norm, bottleneck_conv1x1, temporal_conv_net, mask_conv1x1
+            )
+        else:
+            activ = {
+                "prelu": nn.PReLU(),
+                "relu": nn.ReLU(),
+                "tanh": nn.Tanh(),
+                "sigmoid": nn.Sigmoid(),
+            }[pre_mask_nonlinear]
+            self.network = nn.Sequential(
+                layer_norm, bottleneck_conv1x1, temporal_conv_net, activ, mask_conv1x1
+            )
 
     def forward(self, mixture_w):
         """Keep this API same with TasNet.
@@ -104,7 +123,7 @@ class TemporalConvNet(nn.Module):
         M, N, K = mixture_w.size()
         bottleneck = self.network[:2]
         tcns = self.network[2]
-        masknet = self.network[3]
+        masknet = self.network[3:]
         output = bottleneck(mixture_w)
         skip_conn = 0.0
         for block in tcns:
@@ -152,6 +171,7 @@ class TemporalConvNetInformed(TemporalConvNet):
         out_channel=None,
         norm_type="gLN",
         causal=False,
+        pre_mask_nonlinear="prelu",
         mask_nonlinear="relu",
         i_adapt_layer: int = 7,
         adapt_layer_type: str = "mul",
@@ -172,6 +192,7 @@ class TemporalConvNetInformed(TemporalConvNet):
                 if it is None, `N` will be used instead.
             norm_type: BN, gLN, cLN
             causal: causal or non-causal
+            pre_mask_nonlinear: the non-linear function before masknet
             mask_nonlinear: use which non-linear function to generate mask
             i_adapt_layer: int, index of the adaptation layer
             adapt_layer_type: str, type of adaptation layer
@@ -190,6 +211,7 @@ class TemporalConvNetInformed(TemporalConvNet):
             out_channel=out_channel,
             norm_type=norm_type,
             causal=causal,
+            pre_mask_nonlinear=pre_mask_nonlinear,
             mask_nonlinear=mask_nonlinear,
         )
         self.i_adapt_layer = i_adapt_layer
@@ -218,7 +240,7 @@ class TemporalConvNetInformed(TemporalConvNet):
 
         bottleneck = self.network[:2]
         tcns = self.network[2]
-        masknet = self.network[3]
+        masknet = self.network[3:]
         output = bottleneck(mixture_w)
         skip_conn = 0.0
         for i, block in enumerate(tcns):
