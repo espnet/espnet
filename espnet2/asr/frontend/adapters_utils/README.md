@@ -18,11 +18,13 @@ Adapters are small bottleneck layers that can be inserted into any layer of a ne
 
 __Step 1__: specify in your config yaml file (they are usually placed in `espnet/egs2/some_dataset/some_model/conf/`) that
 ```
+
 add_adapters: True
 adapter_down_dim: some_dim
 adapter_layer: [l0, l1 ... ln]
 ```
 where `some_dim` is the dimension of the adapter bottleneck layer, and `adapter_layer` is a list of layers to insert adapters. For example, if you want to insert adapters to the 1st, 3rd, and 5th layers of the frontend, you can set `adapter_layer: [1, 3, 5]` (*0-indexed*).
+
 
 __Step 2__: run __stage 11__ of your recipe, with `./asr.sh --stage 11 ...`
 
@@ -33,7 +35,9 @@ __Step 1__: specify in your config yaml file (they are usually placed in `espnet
     adapter_find: True
     adapter_num: some_num
 ```
+
 where `some_num` is the number of adapters to insert. Do not have `add_adapters: True` in your config file.
+
 
 __Step 2__: run __stage 11__ of your recipe, with `./asr.sh --stop-stage 11 ...`, specify how many epochs you would like FIndAdaptNet to train to find best insertion configuration. *Empirically, we find that 10 epochs is enough to find a converged configuration*.
 
@@ -41,5 +45,7 @@ __Step 2__: run __stage 11__ of your recipe, with `./asr.sh --stop-stage 11 ...`
 
 __Step 3__: Run __stage 11__ again with `./asr.sh --stage 11 ...`, make sure to specify the **generated config file** as the asr config file in this run.
 
+
 ### 3. Examples
 As shown in #1 and #2, using adapters is really easy. An example yaml config file could be found at `espnet/egs2/mini_an4/asr1/conf/adapter_example.yaml` and the shell file to run the config is at `espnet/egs2/mini_an4/asr1/run_adapter.sh`.
+
