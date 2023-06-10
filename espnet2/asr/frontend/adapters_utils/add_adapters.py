@@ -12,10 +12,12 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
     """
     add adapters to wav2vec2 model.
     * adapter_down_dim - down-projection dimension of adapter.
-    * adapt_layers - list of indices of layers to insert adapters. If `None`, adapters are inserted to every layer. (default=`None`).
+    * adapt_layers - list of indices of layers to insert adapters.
+    If `None`, adapters are inserted to every layer. (default=`None`).
     """
     if adapt_layers == []:
-        logging.info("adapt_layers is an empty list. No adapters will be inserted.")
+        logging.info("adapt_layers is an empty list. \
+                     No adapters will be inserted.")
         return
 
     # freeze all layers
@@ -68,7 +70,7 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=None):
 
     logging.info("updated model with adapters is as follows:")
     logging.info(
-        model_summary(wav2vec2_model, show_weights=False, show_parameters=False)
+        model_summary(wav2vec2_model,show_weights=False,show_parameters=False)
     )
 
     return wav2vec2_model

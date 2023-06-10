@@ -15,7 +15,8 @@ class Adapter(nn.Module):
         """
         * orig_dim - original dimension.
         * down_dim - dimension of Adapter's intermediate down-projection.
-        * layer_norm - location of LayerNorm layer ("first" or "last", default=None). If `None`, LayerNorm is not used.
+        * layer_norm - location of LayerNorm layer
+        * ("first" or "last", default=None). 
         * activation_fn - activation type (default="gelu").
         """
         super().__init__()
@@ -23,7 +24,7 @@ class Adapter(nn.Module):
         self.down_projection = nn.Linear(orig_dim, down_dim)
         self.up_projection = nn.Linear(down_dim, orig_dim)
 
-        # weight initialization. Empirically, xavier initialization works best
+        # Xavier initialization
         nn.init.xavier_uniform_(self.down_projection.weight)
         nn.init.zeros_(self.down_projection.bias)
         nn.init.xavier_uniform_(self.up_projection.weight)

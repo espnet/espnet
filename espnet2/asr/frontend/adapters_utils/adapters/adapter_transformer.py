@@ -8,7 +8,11 @@ from espnet2.asr.frontend.adapter_utils.adapters.adapter import Adapter
 class AdapterTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
     """
     Modified fairseq's TransformerSentenceEncoderLayer for wav2vec2 with adapters.
-    https://github.com/facebookresearch/fairseq/blob/06c65c8297396959c025bf61aaeaa6f4ace9940e/fairseq/models/wav2vec/wav2vec2.py#L1175
+    Link:
+    https://github.com/
+    facebookresearch/fairseq/blob/
+    06c65c8297396959c025bf61aaeaa6f4ace9940e/
+    fairseq/models/wav2vec/wav2vec2.py#L1175
     """
 
     def __init__(
