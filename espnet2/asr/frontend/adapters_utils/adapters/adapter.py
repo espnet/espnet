@@ -16,7 +16,7 @@ class Adapter(nn.Module):
         * orig_dim - original dimension.
         * down_dim - dimension of Adapter's intermediate down-projection.
         * layer_norm - location of LayerNorm layer
-        * ("first" or "last", default=None). 
+        * ("first" or "last", default=None).
         * activation_fn - activation type (default="gelu").
         """
         super().__init__()
