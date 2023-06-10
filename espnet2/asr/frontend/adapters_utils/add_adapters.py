@@ -70,10 +70,5 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=[]):
 
         # overwrite original layer with adapter-added layer
         wav2vec2_model.model.encoder.layers[layer_idx] = adapter_added_layer
-        module_name = "self.model.encoder.layersself.model.encoder.layers"
-        wav2vec2_model.model.add_hook(
-            f"{module_name}[{layer_idx}]",
-            lambda input, output: input[0].transpose(0, 1),
-        )
 
     return wav2vec2_model
