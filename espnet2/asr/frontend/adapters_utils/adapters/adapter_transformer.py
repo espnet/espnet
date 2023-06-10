@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 from fairseq.models.wav2vec.wav2vec2 import TransformerSentenceEncoderLayer
 
-from espnet2.asr.frontend.adapter_utils.adapters.adapter import Adapter
+
+from espnet2.asr.frontend.adapters_utils.adapters.adapter import Adapter
 
 
 class AdapterTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):

@@ -1,7 +1,11 @@
 """Trainer module."""
 import argparse
+import copy
 import dataclasses
 import logging
+
+## adapter-related
+import pathlib
 import time
 from contextlib import contextmanager
 from dataclasses import is_dataclass
@@ -13,6 +17,7 @@ import numpy as np
 import torch
 import torch.nn
 import torch.optim
+import yaml
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
@@ -34,6 +39,9 @@ from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.kwargs2args import kwargs2args
+
+##
+
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -458,6 +466,54 @@ class Trainer:
             logging.info(
                 f"The training was finished at {trainer_options.max_epoch} epochs "
             )
+            if getattr(model.frontend, "multilayer_feature", False) and (
+                getattr(model.frontend, "adapter_num", None) != None
+            ):
+                logging.info(
+                    f"generating best adapter configuration with adapter budget {model.frontend.adapter_num}..."
+                )
+                layer_weights = copy.deepcopy(model.frontend.featurizer.weights)
+                indices = torch.argsort(
+                    torch.abs(layer_weights), dim=0, descending=False
+                )
+                adapter_num = model.frontend.adapter_num
+
+                # determine important layers
+                if adapter_num > len(indices):
+                    logging.info(
+                        "adapter num greater than layer number! inserting adapters to all layers as fail safe..."
+                    )
+                    adapter_num = len(indices)
+                result_ind = indices[:adapter_num]
+                with open(f"{output_dir}/config.yaml", "r") as stream:
+                    try:
+                        config_addr = yaml.safe_load(stream)["config"]
+                        logging.info(config_addr)
+                    except yaml.YAMLError as exc:
+                        logging.info(exc)
+                cur_path = str(pathlib.Path.cwd())
+                config_path = cur_path + "/" + config_addr
+                with open(config_path, "r") as stream:
+                    try:
+                        cur_asrConfig = yaml.safe_load(stream)
+                    except yaml.YAMLError as exc:
+                        logging.info(exc)
+
+                cur_asrConfig["frontend_conf"]["frontend_conf"]["adapter_find"] = False
+                cur_asrConfig["frontend_conf"]["frontend_conf"]["add_adapters"] = True
+                cur_asrConfig["frontend_conf"]["frontend_conf"][
+                    "adapter_layers"
+                ] = result_ind.tolist()
+                logging.info(str(result_ind.tolist()))
+                new_config_path = config_path[:-5] + "_adapt.yaml"
+
+                # create new config file
+                with open(new_config_path, "w") as stream:
+                    try:
+                        new_config = yaml.dump(cur_asrConfig, stream)
+                        logging.info(new_config)
+                    except yaml.YAMLError as exc:
+                        logging.info(exc)
 
         # Generated n-best averaged model
         if not distributed_option.distributed or distributed_option.dist_rank == 0:

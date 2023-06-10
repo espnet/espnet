@@ -4,7 +4,9 @@ grad_clip: 5
 optim_conf:
   lr: 0.00027
 
-scheduler: warmuplr   # pytorch v1.1.0+ required #Tune warmup steps
+
+scheduler: warmuplr  
+
 scheduler_conf:
   warmup_steps: 40000
 max_epoch: 20
@@ -15,22 +17,26 @@ frontend_conf:
 
 frontend: s3prl
 frontend_conf:
-  frontend_conf:
-    upstream: wav2vec2_large_ll60k # Note: If the upstream is changed, please change the input_size in the preencoder.
-    adapter_config:
+
+    frontend_conf:
+      upstream: wav2vec2_large_ll60k #currently adaptes support wav2vec2.0 and hubert only
+      add_adapters: True
       adapter_down_dim: 192
-      adapt_layers: '[8, 9, 10]'
-  download_dir: ./hub
-  multilayer_feature: False
+      adapter_layers: [8, 9, 10, 11]
+    download_dir: ./hub
+    multilayer_feature: False
+
 
 
 model_conf:
   ctc_weight: 1.0
   lsm_weight: 0.3
   length_normalized_loss: false
-  extract_feats_in_collect_stats: false # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+
+  extract_feats_in_collect_stats: false 
 
 init: xavier_uniform
-
+    
 
 batch_size: 32
+
