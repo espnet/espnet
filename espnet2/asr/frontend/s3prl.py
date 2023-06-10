@@ -63,8 +63,8 @@ class S3prlFrontend(AbsFrontend):
         ):
             upstream.upstream = add_adapters_wav2vec2(
                 upstream.upstream,
-                adapter_down_dim=192,
-                adapt_layers=frontend_conf.get("adapter_layers", None),
+                adapter_down_dim=frontend_conf.get("adapter_down_dim",192),
+                adapt_layers=frontend_conf.get("adapter_layers", []),
             )
         elif (
             upstream.upstream.model.__class__.__name__ == "Wav2Vec2Model"
