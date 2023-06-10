@@ -222,7 +222,7 @@ class SeparateSpeech:
 
         # a. To device
         speech_mix = to_device(speech_mix, device=self.device)
-        lengths = to_device(lengths, device=self.device)
+        enroll_ref = to_device(enroll_ref, device=self.device)
         if self.enh_model.share_encoder:
             feats_aux, flens_aux = zip(
                 *[

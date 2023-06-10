@@ -54,7 +54,8 @@ fi
 python local/split_results.py \
     --dir ${asr_exp} \
     --lid ${lid} \
-    --only_lid ${only_lid}
+    --only_lid ${only_lid} \
+    --score_type ${score_type}
 
 if "${only_lid}" || "${lid}"; then
     if [ "${score_type}" = independent ]; then
