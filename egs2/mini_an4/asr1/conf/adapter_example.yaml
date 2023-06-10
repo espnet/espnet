@@ -5,7 +5,7 @@ optim_conf:
   lr: 0.00027
 
 
-scheduler: warmuplr  
+scheduler: warmuplr
 
 scheduler_conf:
   warmup_steps: 40000
@@ -33,10 +33,9 @@ model_conf:
   lsm_weight: 0.3
   length_normalized_loss: false
 
-  extract_feats_in_collect_stats: false 
+  extract_feats_in_collect_stats: false
 
 init: xavier_uniform
-    
+
 
 batch_size: 32
-

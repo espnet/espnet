@@ -48,4 +48,3 @@ __Step 3__: Run __stage 11__ again with `./asr.sh --stage 11 ...`, make sure to 
 
 ### 3. Examples
 As shown in #1 and #2, using adapters is really easy. An example yaml config file could be found at `espnet/egs2/mini_an4/asr1/conf/adapter_example.yaml` and the shell file to run the config is at `espnet/egs2/mini_an4/asr1/run_adapter.sh`.
-

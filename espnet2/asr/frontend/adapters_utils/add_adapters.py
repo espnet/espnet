@@ -2,17 +2,13 @@ import logging
 
 import numpy as np
 
-
 from espnet2.asr.frontend.adapters_utils.adapters.adapter_transformer import (
-
     AdapterTransformerSentenceEncoderLayer,
 )
 from espnet2.torch_utils.model_summary import model_summary
 
 
-
 def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=[]):
-
     """
     add adapters to wav2vec2 model.
     * adapter_down_dim - down-projection dimension of adapter.
@@ -20,9 +16,10 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=[]):
     If `None`, adapters are inserted to every layer. (default=`None`).
     """
     if adapt_layers == []:
-
-        logging.info("adapt_layers is an empty list. \
-                     No adapters will be inserted.")
+        logging.info(
+            "adapt_layers is an empty list. \
+                     No adapters will be inserted."
+        )
 
         return
 
@@ -34,7 +31,6 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=[]):
 
     for layer_idx, layer in enumerate(wav2vec2_model.model.encoder.layers):
         if not (layer_idx in adapt_layers):
-
             continue
         adapted_layers.append(layer_idx)
 
@@ -76,9 +72,8 @@ def add_adapters_wav2vec2(wav2vec2_model, adapter_down_dim, adapt_layers=[]):
         wav2vec2_model.model.encoder.layers[layer_idx] = adapter_added_layer
         module_name = "self.model.encoder.layersself.model.encoder.layers"
         wav2vec2_model.model.add_hook(
-                    f"{module_name}[{layer_idx}]",
-                    lambda input, output: input[0].transpose(0, 1),
-                )
-
+            f"{module_name}[{layer_idx}]",
+            lambda input, output: input[0].transpose(0, 1),
+        )
 
     return wav2vec2_model
