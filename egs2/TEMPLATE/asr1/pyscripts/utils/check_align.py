@@ -65,7 +65,8 @@ def compare(key, score, label):
                 pattern = r"_[0]*"
                 key_name = re.split(pattern, key[:-5], 1)[-1]
                 print(
-                    "In {}, XML, use add_pause.\n"
+                    "Error in {}, copy this code to `get_error_dict` in prep_segments.py"
+                    ' under `if input_type == "xml"`.\n'
                     '"{}": [\n'
                     "   lambda i, labels, segment, segments, threshold: "
                     "add_pause(labels, segment, segments, threshold)\n"
@@ -86,7 +87,8 @@ def compare(key, score, label):
         pattern = r"_[0]*"
         key_name = re.split(pattern, key[:-5], 1)[-1]
         print(
-            "In {}, lab, use add_pause.\n"
+            "Error in {}, copy this code to `get_error_dict` in prep_segments.py"
+            ' under `if input_type == "hts"`.\n'
             '"{}": [\n'
             "   lambda i, labels, segment, segments, threshold: "
             "add_pause(labels, segment, segments, threshold)\n"
