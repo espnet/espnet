@@ -470,7 +470,8 @@ class Trainer:
                 getattr(model.frontend, "adapter_num", None) != None
             ):
                 logging.info(
-                    f"generating best adapter configuration with adapter budget {model.frontend.adapter_num}..."
+                    f"generating best adapter \
+                    configuration with adapter budget {model.frontend.adapter_num}..."
                 )
                 layer_weights = copy.deepcopy(model.frontend.featurizer.weights)
                 indices = torch.argsort(
@@ -481,7 +482,8 @@ class Trainer:
                 # determine important layers
                 if adapter_num > len(indices):
                     logging.info(
-                        "adapter num greater than layer number! inserting adapters to all layers as fail safe..."
+                        "adapter num greater than layer number! \
+                        inserting adapters to all layers as fail safe..."
                     )
                     adapter_num = len(indices)
                 result_ind = indices[:adapter_num]
