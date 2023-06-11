@@ -67,7 +67,8 @@ def compare(key, score, label):
                 print(
                     "In {}, XML, use add_pause.\n"
                     '"{}": [\n'
-                    "   lambda i, labels, segment, segments, threshold: add_pause(labels, segment, segments, threshold)\n"
+                    "   lambda i, labels, segment, segments, threshold: "
+                    "add_pause(labels, segment, segments, threshold)\n"
                     '   if (labels[i].lyric == "{}" and labels[i - 1].lyric == "{}")\n'
                     "   else (labels, segment, segments, False),\n"
                     "],".format(key, key_name, score[i][2], score[i - 1][2])
@@ -87,7 +88,8 @@ def compare(key, score, label):
         print(
             "In {}, lab, use add_pause.\n"
             '"{}": [\n'
-            "   lambda i, labels, segment, segments, threshold: add_pause(labels, segment, segments, threshold)\n"
+            "   lambda i, labels, segment, segments, threshold: "
+            "add_pause(labels, segment, segments, threshold)\n"
             '   if (labels[i].label_id == "{}" and labels[i - 1].label_id == "{}")\n'
             "   else (labels, segment, segments, False),\n"
             "],".format(key, key_name, label[index][2], label[index - 1][2])

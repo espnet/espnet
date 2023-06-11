@@ -198,12 +198,184 @@ def fix_dataset(
 ):
     skip = False
     label = labels[i]
+    error_dict = get_error_dict(dataset, input_type)
+
+    if error_dict:
+        for file_id_ in error_dict:
+            if file_id_ in file_id:
+                for func in error_dict[file_id_]:
+                    labels, segment, segments, skip = func(
+                        i, labels, segment, segments, threshold
+                    )
+
+    return label, segment, segments, skip
+
+
+def fix_dataset2(dataset, input_type, file_id, i, labels):
+    skip = False
+    label = labels[i]
     error_correction = {}
-    lyric_correction = {}
+    if dataset == "natsume" and input_type == "hts":
+        error_correction = {
+            "12": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "m" and labels[i + 2].label_id == "o"
+                else (labels, None, None, False),
+            ],
+            "31": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "s"
+                else (labels, None, None, False),
+            ],
+            "26": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "o"
+                else (labels, None, None, False),
+            ],
+            "10": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "k" and labels[i + 2].label_id == "i"
+                else (labels, None, None, False),
+            ],
+            "24": [
+                lambda: skip_labels(i, labels, None, None)
+                if i == 389
+                else (labels, None, None, False),
+            ],
+            "07": [
+                lambda: skip_labels(i, labels, None, None)
+                if labels[i + 1].label_id == "m" and labels[i - 1].label_id == "o"
+                else (labels, None, None, False),
+            ],
+        }
+
+    if error_correction and i < len(labels) - 1:
+        for file_id_ in error_correction:
+            if file_id_ in file_id:
+                for func in error_correction[file_id_]:
+                    labels, _, _, skip = func()
+
+    if dataset == "natsume" and input_type == "xml":
+        # remove rest note
+        if "03" in file_id and labels[i + 1].lyric == "せ":
+            labels[i + 1].st = label.st
+            skip = True
+
+    return label, skip
+
+
+def fix_dataset3(dataset, input_type, phn_info, i):
+    if dataset == "natsume" and input_type == "hts":
+        if phn_info[i * 3 + 2] == "U":
+            phn_info[i * 3 + 2] = "u"
+        if phn_info[i * 3 + 2] == "I":
+            phn_info[i * 3 + 2] = "i"
+    return phn_info
+
+
+def fix_dataset4(dataset, recording_id, mid_reader, xml_reader):
+    if dataset == "natsume":
+        if recording_id[-2:] in [
+            "32",
+            "45",
+            "41",
+            "03",
+            "25",
+            "27",
+            "13",
+            "30",
+            "35",
+            "21",
+            "39",
+            "23",
+            "51",
+            "18",
+            "50",
+            "29",
+            "16",
+            "38",
+            "48",
+            "46",
+        ]:
+            # load score (note sequence) from mid
+            mid_info = mid_reader[recording_id]
+            # load score (lyric) from xml
+            xml_info = xml_reader[recording_id]
+            tempo, temp_info = align_lyric_note(
+                recording_id, mid_info, xml_info, args.silence
+            )
+        else:
+            tempo, temp_info = xml_reader[recording_id]
+    else:
+        raise ValueError("Dataset {} not supported.".format(dataset))
+    return tempo, temp_info
+
+
+def align_lyric_note(recording_id, mid_info, xml_info, sil):
+    # NOTE(Yuning): Some XMLs cannot be used directly, we only extract
+    # lyric information from xmls and assign them to the notes from MIDIs
+
+    # load scores from mid and xml
+    mid_tempo, note_lis = mid_info
+    xml_tempo, lyric_lis = xml_info
+    # fix errors dataset
+    # add pause into xml
+    if "41" in recording_id:
+        lyric_lis[49].lyric = "P"
+        lyric_lis[49].st = 22.612
+        lyric_lis[48].et = 22.612
+    note_seq = []
+    # check tempo
+    if mid_tempo != xml_tempo:
+        raise ValueError(
+            "Different tempo from XML and MIDI in {}.".format(recording_id)
+        )
+    k = 0
+    for i in range(len(note_lis)):
+        note = note_lis[i]
+        # skip rest notes in xml
+        while k < len(lyric_lis) and lyric_lis[k].lyric in sil:
+            k += 1
+        if k >= len(lyric_lis):
+            raise ValueError(
+                "lyrics from XML is longer than MIDI in {}.".format(recording_id)
+            )
+        # assign current lyric to note
+        if note.lyric == "*":
+            # NOTE(Yuning): In natsume, for lyric with 'っ', the note shouldn't be
+            # separate two notes in MIDI. Special check for midi might be added in
+            # other datasets like, 'note_lis[i + 1].midi == lyric_lis[k].midi'
+            if note.midi == lyric_lis[k].midi:
+                if (
+                    "っ" in lyric_lis[k].lyric
+                ):  # and note_lis[i + 1].midi == lyric_lis[k].midi:
+                    note_dur = int((note_lis[i + 1].et - note.st) * 80 + 0.5)
+                    xml_dur = int((lyric_lis[k].et - lyric_lis[k].st) * 80 + 0.5)
+                    # conbine the two notes
+                    if note_dur == xml_dur:
+                        note_lis[i + 1].st = note.st
+                        note_lis[i + 1].midi = note.midi
+                        continue
+                note.lyric = lyric_lis[k].lyric
+                note_seq.append(note)
+                k += 1
+            else:
+                raise ValueError(
+                    "Mismatch in XML {}-th: {} and MIDI {}-th of {}.".format(
+                        k, lyric_lis[k].lyric, i, recording_id
+                    )
+                )
+        else:
+            # add pauses from mid.
+            note_seq.append(note)
+    return xml_tempo, note_seq
+
+
+def get_error_dict(dataset, input_type):
+    error_dict = {}
     if dataset == "natsume":
         if input_type == "hts":
-            # dictionary mapping file_id to function calls
-            error_correction = {
+            error_dict = {
                 "01": [
                     lambda i, labels, segment, segments, threshold: replace_labels(
                         i, "a", labels, segment, segments
@@ -269,10 +441,8 @@ def fix_dataset(
                     else (labels, segment, segments, False),
                 ],
             }
-
         elif input_type == "xml":
-            # dictionary mapping file_id to function calls
-            lyric_correction = {
+            error_dict = {
                 "01": [
                     lambda i, labels, segment, segments, threshold: replace_lyrics(
                         i, "め", labels, segment, segments
@@ -298,7 +468,7 @@ def fix_dataset(
             }
     elif dataset == "namine":
         if input_type == "hts":
-            error_correction = {
+            error_dict = {
                 "FACE": [
                     lambda i, labels, segment, segments, threshold: add_pause(
                         labels, segment, segments, threshold
@@ -373,7 +543,7 @@ def fix_dataset(
                 ],
             }
         elif input_type == "xml":
-            lyric_correction = {
+            error_dict = {
                 "sugar_melly": [
                     lambda i, labels, segment, segments, threshold: add_pause(
                         labels, segment, segments, threshold
@@ -557,184 +727,7 @@ def fix_dataset(
                     else (labels, segment, segments, False),
                 ],
             }
-
-    if error_correction:
-        for file_id_ in error_correction:
-            if file_id_ in file_id:
-                for func in error_correction[file_id_]:
-                    labels, segment, segments, skip = func(
-                        i, labels, segment, segments, threshold
-                    )
-
-    if lyric_correction:
-        for file_id_ in lyric_correction:
-            if file_id_ in file_id:
-                for func in lyric_correction[file_id_]:
-                    labels, segment, segments, skip = func(
-                        i, labels, segment, segments, threshold
-                    )
-
-    return label, segment, segments, skip
-
-
-def fix_dataset2(dataset, input_type, file_id, i, labels):
-    skip = False
-    label = labels[i]
-    error_correction = {}
-    if dataset == "natsume" and input_type == "hts":
-        error_correction = {
-            "12": [
-                lambda: skip_labels(i, labels, None, None)
-                if labels[i + 1].label_id == "m" and labels[i + 2].label_id == "o"
-                else (labels, None, None, False),
-            ],
-            "31": [
-                lambda: skip_labels(i, labels, None, None)
-                if labels[i + 1].label_id == "s"
-                else (labels, None, None, False),
-            ],
-            "26": [
-                lambda: skip_labels(i, labels, None, None)
-                if labels[i + 1].label_id == "o"
-                else (labels, None, None, False),
-            ],
-            "10": [
-                lambda: skip_labels(i, labels, None, None)
-                if labels[i + 1].label_id == "k" and labels[i + 2].label_id == "i"
-                else (labels, None, None, False),
-            ],
-            "24": [
-                lambda: skip_labels(i, labels, None, None)
-                if i == 389
-                else (labels, None, None, False),
-            ],
-            "07": [
-                lambda: skip_labels(i, labels, None, None)
-                if labels[i + 1].label_id == "m" and labels[i - 1].label_id == "o"
-                else (labels, None, None, False),
-            ],
-        }
-
-    if error_correction and i < len(labels) - 1:
-        for file_id_ in error_correction:
-            if file_id_ in file_id:
-                for func in error_correction[file_id_]:
-                    labels, _, _, skip = func()
-
-    if dataset == "natsume" and input_type == "xml":
-        # remove rest note
-        if "03" in file_id and labels[i + 1].lyric == "せ":
-            labels[i + 1].st = label.st
-            skip = True
-
-    return label, skip
-
-
-def fix_dataset3(dataset, input_type, phn_info, i):
-    if dataset == "natsume" and input_type == "hts":
-        if phn_info[i * 3 + 2] == "U":
-            phn_info[i * 3 + 2] = "u"
-        if phn_info[i * 3 + 2] == "I":
-            phn_info[i * 3 + 2] = "i"
-    return phn_info
-
-
-def fix_dataset4(dataset, recording_id, mid_reader, xml_reader):
-    if dataset == "natsume":
-        if recording_id[-2:] in [
-            "32",
-            "45",
-            "41",
-            "03",
-            "25",
-            "27",
-            "13",
-            "30",
-            "35",
-            "21",
-            "39",
-            "23",
-            "51",
-            "18",
-            "50",
-            "29",
-            "16",
-            "38",
-            "48",
-            "46",
-        ]:
-            # load score (note sequence) from mid
-            mid_info = mid_reader[recording_id]
-            # load score (lyric) from xml
-            xml_info = xml_reader[recording_id]
-            tempo, temp_info = align_lyric_note(
-                recording_id, mid_info, xml_info, args.silence
-            )
-        else:
-            tempo, temp_info = xml_reader[recording_id]
-    else:
-        raise ValueError("Dataset {} not supported.".format(dataset))
-    return tempo, temp_info
-
-
-def align_lyric_note(recording_id, mid_info, xml_info, sil):
-    # NOTE(Yuning): Some XMLs cannot be used directly, we only extract
-    # lyric information from xmls and assign them to the notes from MIDIs
-
-    # load scores from mid and xml
-    mid_tempo, note_lis = mid_info
-    xml_tempo, lyric_lis = xml_info
-    # fix errors dataset
-    # add pause into xml
-    if "41" in recording_id:
-        lyric_lis[49].lyric = "P"
-        lyric_lis[49].st = 22.612
-        lyric_lis[48].et = 22.612
-    note_seq = []
-    # check tempo
-    if mid_tempo != xml_tempo:
-        raise ValueError(
-            "Different tempo from XML and MIDI in {}.".format(recording_id)
-        )
-    k = 0
-    for i in range(len(note_lis)):
-        note = note_lis[i]
-        # skip rest notes in xml
-        while k < len(lyric_lis) and lyric_lis[k].lyric in sil:
-            k += 1
-        if k >= len(lyric_lis):
-            raise ValueError(
-                "lyrics from XML is longer than MIDI in {}.".format(recording_id)
-            )
-        # assign current lyric to note
-        if note.lyric == "*":
-            # NOTE(Yuning): In natsume, for lyric with 'っ', the note shouldn't be
-            # separate two notes in MIDI. Special check for midi might be added in
-            # other datasets like, 'note_lis[i + 1].midi == lyric_lis[k].midi'
-            if note.midi == lyric_lis[k].midi:
-                if (
-                    "っ" in lyric_lis[k].lyric
-                ):  # and note_lis[i + 1].midi == lyric_lis[k].midi:
-                    note_dur = int((note_lis[i + 1].et - note.st) * 80 + 0.5)
-                    xml_dur = int((lyric_lis[k].et - lyric_lis[k].st) * 80 + 0.5)
-                    # conbine the two notes
-                    if note_dur == xml_dur:
-                        note_lis[i + 1].st = note.st
-                        note_lis[i + 1].midi = note.midi
-                        continue
-                note.lyric = lyric_lis[k].lyric
-                note_seq.append(note)
-                k += 1
-            else:
-                raise ValueError(
-                    "Mismatch in XML {}-th: {} and MIDI {}-th of {}.".format(
-                        k, lyric_lis[k].lyric, i, recording_id
-                    )
-                )
-        else:
-            # add pauses from mid.
-            note_seq.append(note)
-    return xml_tempo, note_seq
+    return error_dict
 
 
 if __name__ == "__main__":
