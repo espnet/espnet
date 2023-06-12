@@ -1,0 +1,63 @@
+{% set version = "2022.12.7" %}
+
+{% set pip_version = "20.2.3" %}
+{% set setuptools_version = "49.6.0" %}
+
+package:
+  name: certifi
+  version: {{ version }}
+
+source:
+  - url: https://pypi.io/packages/source/c/certifi/certifi-{{ version }}.tar.gz
+    sha256: 35824b4c3a97115964b408844d64aa14db1cc518f6562e8d7261699d1350a9e3
+    folder: certifi
+  # bootstrap pip and setuptools to avoid circular dependency
+  # but without losing metadata
+  # Please note when using conda-build locally, may get following error: certifi cannot depend on itself
+  # Try pushing and refer to Prefect logs
+  - url: https://pypi.io/packages/py2.py3/p/pip/pip-{{ pip_version }}-py2.py3-none-any.whl
+    sha256: 0f35d63b7245205f4060efe1982f5ea2196aa6e5b26c07669adcf800e2542026
+    folder: pip_wheel
+  - url: https://pypi.io/packages/py3/s/setuptools/setuptools-{{ setuptools_version }}-py3-none-any.whl
+    sha256: 4dd5bb0a0a0cff77b46ca5dd3a84857ee48c83e8223886b556613c724994073f
+    folder: setuptools_wheel
+
+build:
+  number: 0
+  skip: True  # [py<36]
+
+requirements:
+  host:
+    - python
+    - wheel
+  run:
+    - python
+
+test:
+  requires:
+    - pip
+  commands:
+    - pip check
+  imports:
+    - certifi
+
+about:
+  home: https://certifi.io/
+  license: MPL-2.0
+  license_file: certifi/LICENSE
+  license_family: Other
+  summary: Python package for providing Mozilla's CA Bundle.
+  description: |
+    Certifi is a curated collection of Root Certificates for validating the
+    trustworthiness of SSL certificates while verifying the identity of TLS
+    hosts.
+  doc_url: https://github.com/certifi/python-certifi/blob/master/README.rst
+  dev_url: https://github.com/certifi/python-certifi
+
+extra:
+  recipe-maintainers:
+    - jakirkham
+    - pelson
+    - sigmavirus24
+    - ocefpaf
+    - mingwandroid

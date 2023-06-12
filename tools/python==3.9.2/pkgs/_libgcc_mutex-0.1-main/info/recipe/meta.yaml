@@ -1,0 +1,15 @@
+# This file created by conda-build 3.18.5
+# meta.yaml template originally from:
+# /tmp/build/80754af9/rsync-recipes/_libgcc_mutex-0.1-libgcc_mutex_build_string_main-on-linux_canary, last modified Mon Jul  1 20:05:32 2019
+# ------------------------------------------------
+
+package:
+    name: _libgcc_mutex
+    version: '0.1'
+build:
+    string: main
+about:
+    summary: Mutex for libgcc and libgcc-ng
+extra:
+    copy_test_source_files: true
+    final: true

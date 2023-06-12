@@ -1,0 +1,107 @@
+From 9cacbfb49d32940ff3830d131c657e291e32b755 Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Fri, 2 Oct 2020 00:03:12 +0200
+Subject: [PATCH 16/25] cross compile darwin
+
+By Isuru Fernando.
+---
+ Lib/platform.py | 7 ++++++-
+ configure       | 5 ++++-
+ configure.ac    | 5 ++++-
+ setup.py        | 6 +++---
+ 4 files changed, 17 insertions(+), 6 deletions(-)
+
+diff --git a/Lib/platform.py b/Lib/platform.py
+index e32f9c11cd..5f7e46fb6c 100755
+--- a/Lib/platform.py
++++ b/Lib/platform.py
+@@ -411,7 +411,12 @@ def win32_ver(release='', version='', csd='', ptype=''):
+ def _mac_ver_xml():
+     fn = '/System/Library/CoreServices/SystemVersion.plist'
+     if not os.path.exists(fn):
+-        return None
++        if 'SDKROOT' in os.environ:
++            fn = os.environ['SDKROOT'] + fn
++            if not os.path.exists(fn):
++                return None
++        else:
++            return None
+ 
+     try:
+         import plistlib
+diff --git a/configure b/configure
+index 5075304e93..9399fe6cd8 100755
+--- a/configure
++++ b/configure
+@@ -3393,6 +3393,9 @@ if test "$cross_compiling" = yes; then
+ 			_host_cpu=$host_cpu
+ 		esac
+ 		;;
++	*-*-darwin*)
++		_host_cpu=$host_cpu
++		;;
+ 	*-*-cygwin*)
+ 		_host_cpu=
+ 		;;
+@@ -6250,7 +6253,7 @@ esac
+   fi
+ fi
+ 
+-if test "$cross_compiling" = yes; then
++if test "$cross_compiling" = yes -a "$ac_sys_system" != "Darwin"; then
+     case "$READELF" in
+ 	readelf|:)
+ 	as_fn_error $? "readelf for the host is required for cross builds" "$LINENO" 5
+diff --git a/configure.ac b/configure.ac
+index 4e026c2a0f..3b76442881 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -448,6 +448,9 @@ if test "$cross_compiling" = yes; then
+ 			_host_cpu=$host_cpu
+ 		esac
+ 		;;
++	*-*-darwin*)
++		_host_cpu=$host_cpu
++		;;
+ 	*-*-cygwin*)
+ 		_host_cpu=
+ 		;;
+@@ -1211,7 +1214,7 @@ then
+ fi
+ 
+ AC_CHECK_TOOLS([READELF], [readelf], [:])
+-if test "$cross_compiling" = yes; then
++if test "$cross_compiling" = yes -a "$ac_sys_system" != "Darwin"; then
+     case "$READELF" in
+ 	readelf|:)
+ 	AC_MSG_ERROR([readelf for the host is required for cross builds])
+diff --git a/setup.py b/setup.py
+index 9c3dd04989..0001e40a32 100644
+--- a/setup.py
++++ b/setup.py
+@@ -83,7 +83,7 @@ def get_platform():
+ HOST_PLATFORM = get_platform()
+ MS_WINDOWS = (HOST_PLATFORM == 'win32')
+ CYGWIN = (HOST_PLATFORM == 'cygwin')
+-MACOS = (HOST_PLATFORM == 'darwin')
++MACOS = (HOST_PLATFORM.startswith('darwin'))
+ AIX = (HOST_PLATFORM.startswith('aix'))
+ VXWORKS = ('vxworks' in HOST_PLATFORM)
+ CC = os.environ.get("CC")
+@@ -1099,11 +1099,11 @@ def detect_readline_curses(self):
+                 readline_lib = 'readline'
+             do_readline = self.compiler.find_library_file(self.lib_dirs,
+                 readline_lib)
+-            if CROSS_COMPILING:
++            if CROSS_COMPILING and not MACOS:
+                 ret = run_command("%s -d %s | grep '(NEEDED)' > %s"
+                                 % (sysconfig.get_config_var('READELF'),
+                                    do_readline, tmpfile))
+-            elif find_executable('ldd'):
++            elif find_executable('ldd') and not MACOS:
+                 ret = run_command("ldd %s > %s" % (do_readline, tmpfile))
+             else:
+                 ret = 1
+-- 
+2.32.1 (Apple Git-133)
+

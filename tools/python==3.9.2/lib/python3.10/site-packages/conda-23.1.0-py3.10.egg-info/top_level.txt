@@ -1,0 +1,2 @@
+conda
+conda_env

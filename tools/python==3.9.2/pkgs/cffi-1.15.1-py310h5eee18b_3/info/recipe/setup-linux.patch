@@ -1,0 +1,20 @@
+--- cffi-1.15.1.orig/setup.py	2022-06-30 13:38:43.000000000 -0300
++++ cffi-1.15.1/setup.py	2022-07-02 13:52:32.570495336 -0300
+@@ -9,14 +9,14 @@
+ 
+ sources = ['c/_cffi_backend.c']
+ libraries = ['ffi']
+-include_dirs = ['/usr/include/ffi',
+-                '/usr/include/libffi']    # may be changed by pkg-config
++include_dirs = [os.path.join(sys.prefix, 'include')]
+ define_macros = [('FFI_BUILDING', '1')]   # for linking with libffi static library
+-library_dirs = []
++library_dirs = [os.path.join(sys.prefix, 'lib')]
+ extra_compile_args = []
+ extra_link_args = []
+ 
+ 
++
+ def _ask_pkg_config(resultlist, option, result_prefix='', sysroot=False):
+     pkg_config = os.environ.get('PKG_CONFIG','pkg-config')
+     try:

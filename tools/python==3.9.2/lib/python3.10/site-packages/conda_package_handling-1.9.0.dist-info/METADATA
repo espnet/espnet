@@ -1,0 +1,14 @@
+Metadata-Version: 2.1
+Name: conda-package-handling
+Version: 1.9.0
+Summary: Create and extract conda packages of various formats
+Home-page: https://github.com/conda/conda-package-handling
+Author: Anaconda, Inc.
+Author-email: conda@anaconda.com
+Keywords: conda-package-handling
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+License-File: LICENSE
+License-File: AUTHORS.md
+

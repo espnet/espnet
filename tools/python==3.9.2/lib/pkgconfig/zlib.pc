@@ -1,0 +1,13 @@
+prefix=/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2
+exec_prefix=/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2
+libdir=/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/lib
+sharedlibdir=/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/lib
+includedir=/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/include
+
+Name: zlib
+Description: zlib compression library
+Version: 1.2.13
+
+Requires:
+Libs: -L${libdir} -L${sharedlibdir} -lz
+Cflags: -I${includedir}

@@ -1,0 +1,10 @@
+python:
+  - 3.10
+python_impl:
+  - cpython
+libffi:  # [win]
+  - 3.4  # [win] 
+numpy:
+  - 1.16
+MACOSX_SDK_VERSION:            # [osx and x86_64]
+  - 11.0                       # [osx and x86_64]

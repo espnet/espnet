@@ -1,0 +1,26 @@
+{
+  "build": "py310h06a4308_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/linux-64",
+  "constrains": [],
+  "depends": [
+    "cryptography",
+    "python >=3.10,<3.11.0a0",
+    "six"
+  ],
+  "features": "",
+  "fn": "conda-content-trust-0.1.3-py310h06a4308_0.conda",
+  "legacy_bz2_md5": "5d2c7dfa66a2ef5cbfc9d385f7be1af9",
+  "legacy_bz2_size": 73920,
+  "license": "BSD-3-Clause",
+  "license_family": "BSD",
+  "md5": "69f1c06e7c9ce52d4a9b5787c74cac20",
+  "name": "conda-content-trust",
+  "sha256": "e45ee6f7d682f6765123dfb608e8a966d97dbe3cf525d3a6f045c6138df02e9f",
+  "size": 72203,
+  "subdir": "linux-64",
+  "timestamp": 1658126442462,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/linux-64/conda-content-trust-0.1.3-py310h06a4308_0.conda",
+  "version": "0.1.3"
+}

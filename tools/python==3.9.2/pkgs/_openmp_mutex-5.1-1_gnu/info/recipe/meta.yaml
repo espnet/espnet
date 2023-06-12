@@ -1,0 +1,38 @@
+# This file created by conda-build 3.21.8
+# ------------------------------------------------
+
+package:
+  name: _openmp_mutex
+  version: 5.1
+source:
+  path: /feedstock/recipe
+build:
+  number: 0
+  run_exports:
+    strong:
+      - _openmp_mutex >=5.1
+  string: 1_gnu
+requirements:
+  build: []
+  run:
+    - _libgcc_mutex 0.1 main
+    - libgomp >=7.5.0
+  run_constrained:
+    - openmp_impl 9999
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libgomp.so.1
+    - test `readlink ${PREFIX}/lib/libgomp.so.1` == "libgomp.so.1.0.0"
+about:
+  home: https://github.com/AnacondaRecipes/gcc-compiler-feedstock
+  license: BSD-3-Clause
+  license_file: ../LICENSE
+  summary: OpenMP Implementation Mutex
+extra:
+  copy_test_source_files: true
+  final: true
+  flow_run_id: 2f66d621-ebda-4fb5-92c1-4e86fe27c916
+  recipe-maintainers:
+    - katietz
+  remote_url: git@github.com:AnacondaRecipes/gcc_toolchain-feedstock.git
+  sha: 4c0a4d997795b643346dd071598ce13578be7b1e

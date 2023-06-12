@@ -1,0 +1,61 @@
+{% set name = "pyopenssl" %}
+{% set version = "22.0.0" %}
+
+package:
+  name: {{ name|lower }}
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/pyOpenSSL-{{ version }}.tar.gz
+  sha256: 660b1b1425aac4a1bea1d94168a85d99f0b3144c869dd4390d27629d0087f1bf
+
+build:
+  noarch: python
+  number: 0
+  script: {{ PYTHON }} -m pip install . -vvv
+
+requirements:
+  host:
+    - python
+    - pip
+    - setuptools
+    - wheel
+  run:
+    - python >=3.6
+    - cryptography >=35.0
+
+test:
+  imports:
+    - OpenSSL
+    - OpenSSL.crypto
+    - OpenSSL.rand
+    - OpenSSL.SSL
+  requires:
+    - python <3.10
+    - pip
+  commands:
+    - pip check
+    - python -m OpenSSL.debug
+
+about:
+  home: https://github.com/pyca/pyopenssl
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: Python wrapper module around the OpenSSL library
+  description: |
+    pyOpenSSL is a high-level wrapper around a subset of the OpenSSL library.
+    It includes:
+    -SSL.Connection objects, wrapping the methods of Python's portable sockets
+    -Callbacks written in Python
+    -Extensive error-handling mechanism, mirroring OpenSSL's error codes
+    and much more.
+  doc_url: https://pyopenssl.readthedocs.org/en/stable/
+  doc_source_url: https://github.com/pyca/pyopenssl/blob/{{ version }}/doc/index.rst
+  dev_url: https://github.com/pyca/pyopenssl
+
+extra:
+  recipe-maintainers:
+    - goanpeca
+    - nehaljwani
+    - mingwandroid

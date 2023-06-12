@@ -1,0 +1,76 @@
+# This file created by conda-build 3.21.9
+# meta.yaml template originally from:
+# /tmp/abs_5952f1c8-355c-4855-ad2e-538535021ba5h26t22e5/clone/recipe, last modified Mon Jul 18 06:39:27 2022
+# ------------------------------------------------
+
+package:
+  name: conda-content-trust
+  version: 0.1.3
+source:
+  fn: conda-content-trust-0.1.3.tar.gz
+  sha256: 50a2732dcf3612bdff2b36171e3ebc72a74bbc258543a5aa2618218406b30a0d
+  url: https://github.com/conda/conda-content-trust/archive/0.1.3.tar.gz
+build:
+  entry_points:
+    - conda-content-trust = conda_content_trust.cli:cli
+  number: '0'
+  script: /tmp/abs_5952f1c8-355c-4855-ad2e-538535021ba5h26t22e5/croots/recipe/conda-content-trust_1658126371814/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placeh/bin/python
+    -m pip install --no-deps --ignore-installed -vv .
+  string: py310h06a4308_0
+requirements:
+  host:
+    - _libgcc_mutex 0.1 main
+    - _openmp_mutex 5.1 1_gnu
+    - bzip2 1.0.8 h7b6447c_0
+    - ca-certificates 2022.4.26 h06a4308_0
+    - certifi 2022.6.15 py310h06a4308_0
+    - ld_impl_linux-64 2.38 h1181459_1
+    - libffi 3.3 he6710b0_2
+    - libgcc-ng 11.2.0 h1234567_1
+    - libgomp 11.2.0 h1234567_1
+    - libstdcxx-ng 11.2.0 h1234567_1
+    - libuuid 1.0.3 h7f8727e_2
+    - ncurses 6.3 h5eee18b_3
+    - openssl 1.1.1q h7f8727e_0
+    - pip 22.1.2 py310h06a4308_0
+    - python 3.10.4 h12debd9_0
+    - readline 8.1.2 h7f8727e_1
+    - setuptools 61.2.0 py310h06a4308_0
+    - sqlite 3.38.5 hc218d9a_0
+    - tk 8.6.12 h1ccaba5_0
+    - tzdata 2022a hda174b7_0
+    - wheel 0.37.1 pyhd3eb1b0_0
+    - xz 5.2.5 h7f8727e_1
+    - zlib 1.2.12 h7f8727e_2
+  run:
+    - cryptography
+    - python >=3.10,<3.11.0a0
+    - six
+test:
+  commands:
+    - pip check
+    - pytest -v tests
+    - conda-content-trust --help
+  imports:
+    - conda_content_trust
+  requires:
+    - pip
+    - pytest
+    - pytest-cov
+    - ruamel_yaml
+  source_files:
+    - tests
+about:
+  dev_url: https://github.com/conda/conda-content-trust
+  doc_url: https://github.com/conda/conda-content-trust/blob/main/README.rst
+  home: https://github.com/conda/conda-content-trust
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE
+  summary: Signing and verification tools for conda
+extra:
+  copy_test_source_files: true
+  final: true
+  flow_run_id: 5952f1c8-355c-4855-ad2e-538535021ba5
+  remote_url: git@github.com:AnacondaRecipes/conda-content-trust-feedstock.git
+  sha: 4e69a87949a2597071655306e4ed8c062ddd8518

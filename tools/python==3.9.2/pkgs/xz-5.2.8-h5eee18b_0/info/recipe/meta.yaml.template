@@ -1,0 +1,69 @@
+{% set version = "5.2.8" %}
+
+package:
+  name: xz
+  version: {{ version }}
+
+source:
+  url: https://downloads.sourceforge.net/project/lzmautils/xz-{{ version }}.tar.bz2
+  sha256: 1f8a43d9fcf325d049a31fe4514dc8c44a6d00ce8860d48c4212d1e349d2a3ed
+
+build:
+  number: 0
+  run_exports:
+    # XZ's track record of backcompat is very good.  Keep default pins (next major version)
+    #    https://abi-laboratory.pro/tracker/timeline/xz/
+    - {{ pin_subpackage('xz') }}
+
+requirements:
+  build:
+    - {{ compiler('c') }}
+    # cmake-no-system to break circular dependency xz -> cmake -> xz
+    - cmake-no-system  # [win]
+    - ninja-base  # [win]
+    - make  # [not win]
+    - automake  # [not win]
+    - libtool   # [not win]
+    - patch     # [not win]
+    - m2-patch  # [win]
+  host:
+    - msinttypes  # [win and vc<14]
+
+test:
+  requires:
+    # To use 'conda inspect', install conda-build
+    - conda-build # [not win]
+  commands:
+    - xz --help  # [not win]
+    - unxz --help  # [not win]
+    - lzma --help  # [not win]
+    - xz.exe --help  # [win]
+    - unxz.exe --help  # [win]
+    - if not exist %PREFIX%\\Library\\bin\\liblzma.dll exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\liblzma.lib exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\lib\\liblzma_static.lib exit 1  # [win]
+    - if not exist %PREFIX%\\Library\\include\\lzma.h exit 1  # [win]
+    - conda inspect linkages -p $PREFIX $PKG_NAME  # [not win]
+    - conda inspect objects -p $PREFIX $PKG_NAME  # [osx]
+
+about:
+  home: https://tukaani.org/xz/
+  license: LGPL-2.1-or-later and GPL-2.0-or-later
+  license_file: COPYING
+  license_family: GPL2
+  summary: Data compression software with high compression ratio
+  description: |
+    XZ Utils is free general-purpose data compression software with a high
+    compression ratio. XZ Utils were written for POSIX-like systems, but also
+    work on some not-so-POSIX systems.
+  doc_url: https://tukaani.org/xz/
+  doc_source_url: https://github.com/xz-mirror/xz/blob/master/README
+  dev_url: https://git.tukaani.org/
+
+extra:
+  recipe-maintainers:
+    - msarahan
+    - ocefpaf
+    - mingwandroid
+    - nehaljwani
+    - scopatz

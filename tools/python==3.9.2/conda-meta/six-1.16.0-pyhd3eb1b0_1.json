@@ -1,0 +1,54 @@
+{
+  "build": "pyhd3eb1b0_1",
+  "build_number": 1,
+  "channel": "https://repo.anaconda.com/pkgs/main/noarch",
+  "constrains": [],
+  "depends": [
+    "python"
+  ],
+  "extracted_package_dir": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/six-1.16.0-pyhd3eb1b0_1",
+  "features": "",
+  "files": [
+    "lib/python3.10/site-packages/six-1.16.0.dist-info/INSTALLER",
+    "lib/python3.10/site-packages/six-1.16.0.dist-info/LICENSE",
+    "lib/python3.10/site-packages/six-1.16.0.dist-info/METADATA",
+    "lib/python3.10/site-packages/six-1.16.0.dist-info/RECORD",
+    "lib/python3.10/site-packages/six-1.16.0.dist-info/REQUESTED",
+    "lib/python3.10/site-packages/six-1.16.0.dist-info/WHEEL",
+    "lib/python3.10/site-packages/six-1.16.0.dist-info/direct_url.json",
+    "lib/python3.10/site-packages/six-1.16.0.dist-info/top_level.txt",
+    "lib/python3.10/site-packages/six.py",
+    "lib/python3.10/site-packages/__pycache__/six.cpython-310.pyc"
+  ],
+  "fn": "six-1.16.0-pyhd3eb1b0_1.conda",
+  "legacy_bz2_md5": "0a3ab834ba49016e183e715bff48a2b6",
+  "legacy_bz2_size": 19160,
+  "license": "MIT",
+  "license_family": "MIT",
+  "link": {
+    "source": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/six-1.16.0-pyhd3eb1b0_1",
+    "type": 1
+  },
+  "md5": "34586824d411d36af2fa40e799c172d0",
+  "name": "six",
+  "noarch": "python",
+  "package_tarball_full_path": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/six-1.16.0-pyhd3eb1b0_1.conda",
+  "package_type": "noarch_python",
+  "paths_data": {
+    "paths": [
+      {
+        "_path": "lib/python3.10/site-packages/__pycache__/six.cpython-310.pyc",
+        "path_type": "pyc_file"
+      }
+    ],
+    "paths_version": 1
+  },
+  "requested_spec": "defaults/noarch::six==1.16.0=pyhd3eb1b0_1[md5=34586824d411d36af2fa40e799c172d0]",
+  "sha256": "71c97b4ddc3d19ed41bfa1a2d40f620f96b4d46f097dc48ab115b36640f7df0a",
+  "size": 18894,
+  "subdir": "noarch",
+  "timestamp": 1644875974931,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/noarch/six-1.16.0-pyhd3eb1b0_1.conda",
+  "version": "1.16.0"
+}

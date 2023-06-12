@@ -1,0 +1,4 @@
+cffi>=1.0.0
+
+[:python_version == "2.7" or python_version == "3.3"]
+enum34<2,>=1.0.4

@@ -1,0 +1,76 @@
+# This file created by conda-build 3.22.0
+# meta.yaml template originally from:
+# /feedstock/recipe, last modified Thu Nov 10 12:17:44 2022
+# ------------------------------------------------
+
+package:
+  name: libuuid
+  version: 1.41.5
+source:
+  fn: libuuid-2.32.1.tar.gz
+  sha256: 3bbf9f3d4a33d6653cf0f7e4fc422091b6a38c3b1195c0ee716c67148a1a7122
+  url: https://mirrors.edge.kernel.org/pub/linux/utils/util-linux/v2.32/util-linux-2.32.1.tar.gz
+build:
+  missing_dso_whitelist:
+    - $RPATH/ld64.so.1
+  number: '0'
+  run_exports:
+    - libuuid >=1.41.5,<2.0a0
+  string: h5eee18b_0
+requirements:
+  build:
+    - _libgcc_mutex 0.1 main
+    - _openmp_mutex 5.1 1_gnu
+    - _sysroot_linux-64_curr_repodata_hack 3 haa98f57_10
+    - binutils_impl_linux-64 2.38 h2a08ee3_1
+    - binutils_linux-64 2.38.0 hc2dff05_0
+    - gcc_impl_linux-64 11.2.0 h1234567_1
+    - gcc_linux-64 11.2.0 h5c386dc_0
+    - gnuconfig 2021.05.24 hd3eb1b0_0
+    - kernel-headers_linux-64 3.10.0 h57e8cba_10
+    - ld_impl_linux-64 2.38 h1181459_1
+    - libgcc-devel_linux-64 11.2.0 h1234567_1
+    - libgcc-ng 11.2.0 h1234567_1
+    - libgomp 11.2.0 h1234567_1
+    - libstdcxx-ng 11.2.0 h1234567_1
+    - make 4.2.1 h1bed415_1
+    - sysroot_linux-64 2.17 h57e8cba_10
+  host:
+    - _libgcc_mutex 0.1 main
+    - _openmp_mutex 5.1 1_gnu
+    - libgcc-ng 11.2.0 h1234567_1
+    - libgomp 11.2.0 h1234567_1
+  run:
+    - libgcc-ng >=11.2.0
+test:
+  commands:
+    - test -f ${PREFIX}/lib/libuuid.a
+    - test -f ${PREFIX}/lib/libuuid.so
+    - echo "make linter happy"
+about:
+  description: 'The UUID library is used to generate unique identifiers for objects
+    that
+
+    may be accessible beyond the local system. This library generates UUIDs
+
+    compatible with those created by the Open Software Foundation (OSF)
+
+    Distributed Computing Environment (DCE) utility uuidgen.
+
+    '
+  dev_url: https://github.com/util-linux/util-linux/
+  doc_url: https://github.com/util-linux/util-linux/tree/master/libuuid/man
+  home: https://sourceforge.net/projects/libuuid/
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: Documentation/licenses/COPYING.BSD-3
+  summary: Portable uuid C library 2.32.1 as pk-version 1.41.5.
+extra:
+  copy_test_source_files: true
+  final: true
+  flow_run_id: 9a2b1529-513d-4377-b216-e03379e9a7fd
+  recipe-maintainers:
+    - katietz
+    - ocefpaf
+  remote_url: git@github.com:AnacondaRecipes/libuuid-feedstock.git
+  sha: b40dce90a858994232bde67322d17d3da8eb78b8

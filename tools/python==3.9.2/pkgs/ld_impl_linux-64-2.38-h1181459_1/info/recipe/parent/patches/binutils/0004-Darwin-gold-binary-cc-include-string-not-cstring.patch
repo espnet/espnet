@@ -1,0 +1,15 @@
+---
+ gold/binary.cc |    2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+--- a/gold/binary.cc
++++ b/gold/binary.cc
+@@ -23,7 +23,7 @@
+ #include "gold.h"
+ 
+ #include <cerrno>
+-#include <cstring>
++#include <string>
+ 
+ #include "elfcpp.h"
+ #include "stringpool.h"

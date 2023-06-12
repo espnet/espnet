@@ -1,0 +1,530 @@
+commit d530408cbc5b219de8c5119613b031d66d361028
+Author: Scott B <Scott@TheBaileyFamily.org>
+Date:   Mon Feb 14 14:51:06 2022 -0700
+
+    Changes: (#2)
+    
+    * Changes:
+    - Increment build number.
+    - Add `doc_src_url`.
+    - Add `wheel` and `setuptools` to `host` section.
+    
+    This changes is is for building additional architectures.
+
+commit 5d32e0dea257206c655c52106feb4d462a5b0cd1
+Author: Kai Tietz <ktietz@anaconda.com>
+Date:   Sun Aug 15 08:57:18 2021 +0200
+
+    update to version 1.16
+
+commit 7501ddfdb0707ee5b69ee50727d2e217b7a196e9
+Merge: 9eed828 58c1eca
+Author: Connor Martin <connormartin7@gmail.com>
+Date:   Mon Jun 14 19:40:51 2021 -0500
+
+    Merge pull request #1 from AnacondaRecipes/six-v1.16.0
+    
+    Version upgrade to six-v1.16.0
+
+commit 58c1eca2f778f86570642a95cd19bfdf11038b9d
+Author: Anju Thomas <anthomas@anaconda.com>
+Date:   Mon Jun 14 17:42:28 2021 -0500
+
+    Added dependencies
+
+commit 9eed8286bc77ce1303a9c1b84f58584b948294df
+Merge: 0cf549e 921ba92
+Author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+Date:   Thu May 21 17:11:32 2020 +0000
+
+    six v1.15.0
+    
+    automerged PR by conda-forge/automerge-action
+
+commit 0cf549eb8bf929beb3eeed4074a91dc366664d6d
+Merge: c65cc99 522d7d1
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Thu May 21 14:07:33 2020 -0300
+
+    Merge pull request #29 from conda-forge-linter/conda_forge_admin_28
+
+commit 522d7d104bdf9a2fe5b06f1607c920ec16f6e205
+Author: conda-forge-admin <pelson.pub+conda-forge@gmail.com>
+Date:   Thu May 21 17:07:01 2020 +0000
+
+    [ci skip] ***NO_CI*** added bot automerge
+
+commit 921ba921f9e496ae84d0d4c911bc7a277ff6e7a4
+Author: Filipe Fernandes <ocefpaf@gmail.com>
+Date:   Thu May 21 14:06:30 2020 -0300
+
+    update metadata
+
+commit a93d1b1ff93ad3c0b535653d6388a26cabab7abf
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Thu May 21 16:17:46 2020 +0000
+
+    MNT: Re-rendered with conda-build 3.19.2, conda-smithy 3.7.3, and conda-forge-pinning 2020.05.20.21.21.18
+
+commit 305f08635101cad7ea8fd2fa15c7d949b22032dd
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Thu May 21 16:17:14 2020 +0000
+
+    updated v1.15.0
+
+commit c65cc993895384f8e77916570246a8ec311119ab
+Author: conda-forge-admin <conda-forge-admin@email.com>
+Date:   Tue May 19 22:15:59 2020 +0000
+
+    [ci skip] [skip ci] [cf admin skip] ***NO_CI*** admin migration CFEP13TokensAndConfig
+
+commit c364b3fc865df9bc36cd33a7227596ea5ed8368c
+Author: conda-forge-admin <conda-forge-admin@email.com>
+Date:   Mon May 18 09:37:24 2020 +0000
+
+    [ci skip] [skip ci] [cf admin skip] ***NO_CI*** admin migration CondaForgeAutomerge
+
+commit f52c8d683d61f1ff4747940f43ee138e159fca0d
+Author: conda-forge-admin <conda-forge-admin@email.com>
+Date:   Wed May 13 01:03:52 2020 +0000
+
+    [ci skip] [skip ci] [cf admin skip] ***NO_CI*** admin migration CFEP13TurnOff
+
+commit 8ad48fc7e7a424b5ce9094896319cd5797759c9a
+Author: conda-forge-admin <conda-forge-admin@email.com>
+Date:   Tue May 12 07:25:58 2020 +0000
+
+    [ci skip] [skip ci] [cf admin skip] ***NO_CI*** admin migration CFEP13TokensAndConfig
+
+commit b675eb863a97203562a5212c67269a28c6ebfbcb
+Merge: 26a55ff b2ceb26
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Wed Mar 11 07:12:04 2020 -0300
+
+    Merge pull request #25 from conda-forge-linter/conda_forge_admin_24
+    
+    MNT: Add noarch: python
+
+commit 26a55ff3c5d3323907d6a97f1096502a1d84c1f1
+Author: conda-forge-admin <conda-forge-admin@email.com>
+Date:   Tue Mar 3 05:05:21 2020 +0000
+
+    [ci skip] [skip ci] [cf admin skip] ***NO_CI*** admin migration AutomergeAndRerender
+
+commit b2ceb2622318fd8896069f109999957fcf781612
+Author: Isuru Fernando <isuruf@gmail.com>
+Date:   Sat Feb 8 02:11:37 2020 -0600
+
+    Bump build number
+
+commit df2ed74d36275b0b28ebd51b59c7d68224ffab8d
+Author: conda-forge-admin <pelson.pub+conda-forge@gmail.com>
+Date:   Sat Feb 8 08:10:17 2020 +0000
+
+    MNT: Re-rendered with conda-build 3.18.11, conda-smithy 3.6.8, and conda-forge-pinning 2020.01.28
+
+commit 2d9579ec31d5b2e9cd5509fd12e489b83e503d0a
+Author: conda-forge-admin <pelson.pub+conda-forge@gmail.com>
+Date:   Sat Feb 8 08:09:23 2020 +0000
+
+    Add noarch:python option
+
+commit 56b09d7b9d8d984295be4bcfd1031597a8da4bcd
+Merge: 415f294 28357a0
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Wed Jan 15 15:39:48 2020 -0300
+
+    six v1.14.0 (#23)
+    
+    six v1.14.0
+
+commit 28357a0200eca7fe42f3057077c7afd2e6961e7a
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Wed Jan 15 18:15:44 2020 +0000
+
+    MNT: Re-rendered with conda-build 3.18.11, conda-smithy 3.6.5, and conda-forge-pinning 2020.01.10
+
+commit b088a24c59cb6f1aa184edb3208f23fe962ecf20
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Wed Jan 15 18:15:01 2020 +0000
+
+    updated v1.14.0
+
+commit 415f29430b52b947d51034b663faf2d990ebe8f3
+Merge: 20ef2e6 0e59383
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Wed Dec 4 09:15:08 2019 -0300
+
+    Merge pull request #22 from nsoranzo/patch-1
+    
+    Update doc_url
+
+commit 0e59383c54a20dd81f2d31e97409471ac879d8cb
+Author: Nicola Soranzo <nicola.soranzo@gmail.com>
+Date:   Wed Dec 4 11:31:55 2019 +0000
+
+    Update doc_url
+
+commit 20ef2e6e04de5bb031069e936c2ddbdc19fc272a
+Merge: 7c8296c 35890ff
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Tue Nov 5 13:54:39 2019 -0500
+
+    Merge pull request #21 from regro-cf-autotick-bot/1.13.0
+    
+    six v1.13.0
+
+commit 35890ff9d3ca6e46cce0ecf4b5204cc05f7e56d4
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Tue Nov 5 18:18:57 2019 +0000
+
+    updated v1.13.0
+
+commit 7c8296c60c3f7af2a68bbab89f9fa4ec082b347e
+Merge: 386d5f6 38c66d0
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Sat Nov 2 10:24:03 2019 -0400
+
+    this one need a bn bump (#20)
+    
+    this one need a bn bump
+
+commit 38c66d0e2e67f7f4ce60d31f09188deb872ef5fd
+Author: Filipe Fernandes <ocefpaf@gmail.com>
+Date:   Sat Nov 2 10:11:35 2019 -0400
+
+    this one need a bn bump
+
+commit 386d5f6ac29a8bda8abf83881dd71558bf532f8d
+Merge: 187cf82 08b7535
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Sat Nov 2 08:44:30 2019 -0300
+
+    Rebuild for python38 (#19)
+    
+    Rebuild for python38
+
+commit 08b7535efe0e18549f303c4644ef102cb24f6172
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Sat Nov 2 09:19:26 2019 +0000
+
+    MNT: Re-rendered with conda-build 3.18.11, conda-smithy 3.6.1, and conda-forge-pinning 2019.11.01
+
+commit cf678f5d801b8135095a8eb3c0990301557a440c
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Sat Nov 2 09:19:07 2019 +0000
+
+    bump build number
+
+commit 187cf82ac2c6ce970aba98352d2ad859d9926a32
+Author: conda-forge-admin <pelson.pub+conda-forge@gmail.com>
+Date:   Fri Sep 6 18:33:15 2019 -0500
+
+    [ci skip] ***NO_CI*** Move from appveyor to azure.
+    
+    See https://github.com/conda-forge/conda-forge.github.io/issues/857
+
+commit 5282db6a74045cabe8b06768734a58222bdbd47a
+Merge: 69a34d6 1af38a6
+Author: Jonathan J. Helmus <jjhelmusgithub@gmail.com>
+Date:   Fri Apr 26 22:34:16 2019 -0400
+
+    Merge pull request #18 from jjhelmus/add_38
+    
+    Add Python 3.8 prerelease builds
+
+commit 1af38a63b0d5cd4902fe26805ec361e8b18169c4
+Author: Jonathan Helmus <jjhelmus@gmail.com>
+Date:   Fri Apr 26 18:43:02 2019 -0500
+
+    Add Python 3.8 prerelease builds
+
+commit cd0fa6738dfb5db1a3a6dd596d0d7e4ad4b32390
+Author: Jonathan Helmus <jjhelmus@gmail.com>
+Date:   Fri Apr 26 18:42:28 2019 -0500
+
+    MNT: Re-rendered with conda-build 3.17.8, conda-smithy 3.3.4, and conda-forge-pinning 2019.04.25
+
+commit 69a34d68bcd631eaea9ccbb1977c7a80ed53c875
+Merge: 1569fb5 a685b21
+Author: Marius van Niekerk <marius.v.niekerk@gmail.com>
+Date:   Wed Feb 20 23:48:59 2019 -0500
+
+    Merge pull request #17 from regro-cf-autotick-bot/rebuildaarch64_and_ppc64le_addition_arch
+    
+    Arch Migrator
+
+commit a685b218b63ae5c8151ff01918239d3cef93fcbb
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Thu Feb 21 04:18:21 2019 +0000
+
+    MNT: Re-rendered with conda-build 3.15.1, conda-smithy 3.2.13, and conda-forge-pinning 2019.02.15
+
+commit 2e15a3a20e7fe41a8baf5684e1bd97b23891954a
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Thu Feb 21 04:18:10 2019 +0000
+
+    bump build number
+
+commit 1569fb5f1b46f394794639197722658c5bfa4709
+Merge: e39ab39 cf9e510
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Mon Dec 10 09:51:15 2018 -0200
+
+    Merge pull request #16 from regro-cf-autotick-bot/1.12.0
+    
+    six v1.12.0
+
+commit cf9e5106e37c1ea13705bcbefbeb1e8c2776d690
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Mon Dec 10 01:14:11 2018 +0000
+
+    updated v1.12.0
+
+commit e39ab394a697de556e8b4bc9245f065cae876e40
+Merge: 1959837 3c10366
+Author: Marius van Niekerk <marius.v.niekerk@gmail.com>
+Date:   Tue Oct 2 21:02:53 2018 -0400
+
+    Merge pull request #15 from regro-cf-autotick-bot/rebuild
+    
+    Rebuild for Python 3.7, GCC 7, R 3.5.1, openBLAS 0.3.2
+
+commit 3c10366212ba91dac5397f3ca41eadd1a9af86ec
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Tue Oct 2 17:18:27 2018 +0000
+
+    MNT: Re-rendered with conda-smithy 3.1.12 and pinning 2018.10.01
+
+commit 3a931b25aeb4c025ed6ed3dc2dbae36239ad33e4
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Tue Oct 2 17:17:58 2018 +0000
+
+    bump build number
+
+commit 195983706b7b57fb11676667a6198d00bb996d06
+Merge: 3c62bb3 c889fe8
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Sat Aug 4 20:03:19 2018 -0300
+
+    Merge pull request #12 from ocefpaf/add_py37
+    
+    Add py37
+
+commit c889fe8dc652c340cd4f47a852fe4e77a7544633
+Author: Filipe Fernandes <ocefpaf@gmail.com>
+Date:   Sat Aug 4 12:18:30 2018 -0300
+
+    MNT: Re-rendered with conda-smithy 3.1.10 and pinning 2018.07.24
+
+commit 54d32369a097b1d23810721d6531056727590a7b
+Author: Filipe Fernandes <ocefpaf@gmail.com>
+Date:   Sat Aug 4 12:16:28 2018 -0300
+
+    update-cb3
+
+commit 3c62bb3a92683fcc473ac64d1399ecccc1460204
+Author: Travis CI User <travis@example.org>
+Date:   Sat Aug 4 17:14:01 2018 +0000
+
+    [ci skip] [skip ci] Update anaconda token
+
+commit 57ddf5fe6c063dc1f3c89442ec9b53c2ec0bcb74
+Merge: 5fa2a2f a105ceb
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Thu Sep 21 11:02:08 2017 -0300
+
+    Merge pull request #10 from ocefpaf/nonoarch
+    
+    Nonoarch
+
+commit a105ceb3079dca182bed31459823a6bc419da009
+Author: Filipe Fernandes <ocefpaf@gmail.com>
+Date:   Thu Sep 21 09:40:25 2017 -0300
+
+    no noarch :-(
+
+commit 4b24ec690e3da0e991bd9145d07700118e3ec18e
+Author: Filipe Fernandes <ocefpaf@gmail.com>
+Date:   Thu Sep 21 09:40:18 2017 -0300
+
+    rerender
+
+commit 5fa2a2f45492690308063bfcea3d62c10a07d8d7
+Merge: 8410b9a 56a0d52
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Wed Sep 20 17:32:35 2017 -0300
+
+    Merge pull request #8 from ocefpaf/update_to_0.1.11.0
+    
+    Update to 1.11.0
+
+commit 56a0d52e79750c560d45057fbb8cfcf842248326
+Author: Filipe Fernandes <ocefpaf@gmail.com>
+Date:   Wed Sep 20 17:20:31 2017 -0300
+
+    noarch
+
+commit e59c548c16517aac1ace3095e7e26f5cf1f843d6
+Author: Filipe Fernandes <ocefpaf@gmail.com>
+Date:   Wed Sep 20 17:18:02 2017 -0300
+
+    Update to 1.11.0
+
+commit 8410b9a3bfb19bab6b1f40d7fe742cfaa23092bd
+Author: Travis-CI on github.com/conda-forge/staged-recipes <conda-forge@googlegroups.com>
+Date:   Sat Aug 26 19:37:55 2017 +0000
+
+    [ci skip] [skip ci] Update anaconda token
+
+commit 193aa09ebebe19b4c6cc450b4af383abdab23c89
+Merge: 058fff7 05864d3
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Wed Aug 9 08:35:50 2017 -0300
+
+    Merge pull request #7 from neok-m4700/patch-1
+    
+    version control change
+
+commit 05864d3aeeadd85470229027a3c876ff4992a041
+Author: neok-m4700 <neok-m4700@users.noreply.github.com>
+Date:   Wed Aug 9 11:18:42 2017 +0200
+
+    version control change
+
+commit 058fff7ed64439647693308b85d3db2110a3e9f1
+Merge: d4e3b96 79c308e
+Author: jakirkham <jakirkham@gmail.com>
+Date:   Fri Apr 7 01:41:27 2017 -0400
+
+    Merge pull request #6 from conda-forge-admin/feedstock_rerender_master
+    
+    MNT: Re-render the feedstock [ci skip]
+
+commit 79c308e16a2a1683dfa0cb0472e4430f6f5c881f
+Author: conda-forge-admin <pelson.pub+conda-forge@gmail.com>
+Date:   Fri Mar 31 01:39:55 2017 +0000
+
+    MNT: Updated the feedstock for conda-smithy version 2.2.2.
+
+commit d4e3b9680402c05f88eb73c271bcfda573c26e47
+Merge: b6d7529 d5f2d5f
+Author: jakirkham <jakirkham@gmail.com>
+Date:   Mon Mar 13 00:41:48 2017 -0400
+
+    Merge pull request #5 from goanpeca/regenerate
+    
+    MNT: Re-rendered with conda-smithy 2.0.0
+
+commit d5f2d5fbf260390fe40b5857c366cb2c2edade59
+Author: Gonzalo Pena-Castellanos <goanpeca@gmail.com>
+Date:   Wed Jan 18 18:25:57 2017 -0500
+
+    MNT: Re-rendered with conda-smithy 2.0.0
+
+commit b6d7529d946701d922b6c4e9fb3901102a2b757d
+Merge: 35f4ce7 b7c2a86
+Author: Filipe <ocefpaf@gmail.com>
+Date:   Thu Dec 29 17:10:54 2016 -0300
+
+    Merge pull request #4 from ocefpaf/py36
+    
+    rerender with auto
+
+commit b7c2a86ae98602b9b402af0024805d965fb22df1
+Author: ocefpaf <ocefpaf@gmail.com>
+Date:   Thu Dec 29 08:46:24 2016 -0300
+
+    re-render with auto, no conda-build 2
+
+commit 35f4ce79d70ee30177558bbc770e405cc1d6c0bb
+Merge: 3efa159 0482a20
+Author: jakirkham <jakirkham@gmail.com>
+Date:   Tue Oct 18 01:16:17 2016 -0400
+
+    Merge pull request #3 from jakirkham/cleanup
+    
+    Cleanup
+
+commit 0482a20fb0d2645454a879ebc0ae60e349e66cd2
+Author: John Kirkham <kirkhamj@janelia.hhmi.org>
+Date:   Sun Oct 16 20:03:18 2016 -0400
+
+    recipe: Bump to build number 1.
+
+commit e170522a75b57b92ed41606a002c397396a440dc
+Author: John Kirkham <kirkhamj@janelia.hhmi.org>
+Date:   Sun Oct 16 20:02:34 2016 -0400
+
+    recipe: Use Jinja for more things.
+
+commit 0a79649d02e804cb4519ec59740668097b027c32
+Author: John Kirkham <kirkhamj@janelia.hhmi.org>
+Date:   Sun Oct 16 20:00:43 2016 -0400
+
+    recipe: Switch to using the sha256 checksum.
+
+commit 300066b8aa8dfc08bfa8b76aec8a4a4e15465453
+Author: John Kirkham <kirkhamj@janelia.hhmi.org>
+Date:   Sun Oct 16 19:57:40 2016 -0400
+
+    recipe: Add @jakirkham as a maintainer.
+
+commit 223db2341ea1d1eace08e99b2dd2862088492821
+Author: John Kirkham <kirkhamj@janelia.hhmi.org>
+Date:   Sun Oct 16 19:56:57 2016 -0400
+
+    recipe: Add `setuptools` as a build requirement.
+
+commit a20a6c4a841abf876c6f65462432dc9ef9bdaf59
+Author: John Kirkham <kirkhamj@janelia.hhmi.org>
+Date:   Sun Oct 16 19:53:54 2016 -0400
+
+    recipe: Make some whitespace corrections.
+
+commit 096cc3015f43bf8c397df5ef962b275100271d24
+Author: John Kirkham <kirkhamj@janelia.hhmi.org>
+Date:   Sun Oct 16 19:53:38 2016 -0400
+
+    recipe: Add the `license_family`.
+
+commit e0b0a4ed2e1d3b437465b6127d88082a43d30887
+Author: conda-forge-admin <pelson.pub+conda-forge@gmail.com>
+Date:   Sat Oct 15 21:33:40 2016 +0000
+
+    MNT: Updated the feedstock for conda-smithy version 1.3.3.
+
+commit 3efa15989b15d7792d9333bbb23e00f4b997bf32
+Merge: 5f1a342 645f3c1
+Author: jakirkham <jakirkham@gmail.com>
+Date:   Sat Jun 4 15:58:56 2016 -0400
+
+    Merge pull request #1 from conda-forge-admin/feedstock_rerender_master
+    
+    MNT: Re-render the feedstock
+
+commit 645f3c139b7f8d982326493e179fa719a35710f0
+Author: conda-forge-admin <pelson.pub+conda-forge@gmail.com>
+Date:   Sun May 15 04:43:48 2016 +0000
+
+    MNT: Updated the feedstock for conda-smithy version 0.10.3.
+    
+    [ci skip]
+
+commit 5f1a342ba64870457d01386851ccbe3cc5f9958a
+Author: Travis-CI on github.com/conda-forge/staged-recipes <conda-forge@googlegroups.com>
+Date:   Tue May 10 07:23:48 2016 +0000
+
+    Re-render the feedstock after CI registration.
+
+commit b09f150814554b2780e00c6d3d4d6e759eac0ac2
+Author: Travis-CI on github.com/conda-forge/staged-recipes <conda-forge@googlegroups.com>
+Date:   Tue May 10 07:20:31 2016 +0000
+
+    Re-render the feedstock after CI registration.
+
+commit 7ce9837771bbbbbbe9d9f68f517260aa27c36f32
+Author: Travis-CI on github.com/conda-forge/staged-recipes <conda-forge@googlegroups.com>
+Date:   Tue May 10 07:19:42 2016 +0000
+
+    Initial commit of the six feedstock.

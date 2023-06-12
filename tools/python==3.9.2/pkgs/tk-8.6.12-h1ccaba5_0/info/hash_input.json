@@ -1,0 +1,7 @@
+{
+  "c_compiler": "gcc",
+  "channel_targets": "defaults",
+  "target_platform": "linux-64",
+  "zlib": "1.2",
+  "c_compiler_version": "7.5.0"
+}

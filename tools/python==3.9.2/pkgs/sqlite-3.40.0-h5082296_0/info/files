@@ -1,0 +1,8 @@
+bin/sqlite3
+include/sqlite3.h
+include/sqlite3ext.h
+lib/libsqlite3.so
+lib/libsqlite3.so.0
+lib/libsqlite3.so.0.8.6
+lib/pkgconfig/sqlite3.pc
+share/man/man1/sqlite3.1

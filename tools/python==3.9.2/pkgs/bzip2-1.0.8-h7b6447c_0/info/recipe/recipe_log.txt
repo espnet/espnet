@@ -1,0 +1,121 @@
+commit 9c75a99ececbc1e8c202322b6b23b8b7e8678c4e
+Author: Jonathan Helmus <jjhelmus@gmail.com>
+Date:   Mon Jul 15 14:36:52 2019 -0500
+
+    1.0.8
+
+commit f9593043b95e3b705d7257b058fb25f2be689064
+Author: distro-bot@anaconda.com <Distro Bot>
+Date:   Sun Jul 7 17:20:04 2019 -0500
+
+    1.0.7
+
+commit 1c68121d17e5233e6638802fdc1d01e60639ea86
+Author: Ray Donnelly <mingw.android@gmail.com>
+Date:   Sun Aug 26 18:40:58 2018 +0100
+
+    Resync
+
+commit 171703d1b42ed22080d19f17b732e796210f4b44
+Author: Travis CI User <travis@example.org>
+Date:   Sat Aug 4 17:53:06 2018 +0000
+
+    [ci skip] [skip ci] Update anaconda token
+
+commit 7f0ebf5e03baee5526f1d48e6782c611b7c20c02
+Merge: 6ba2ab5 b6a1916
+Author: Marius van Niekerk <marius.v.niekerk@gmail.com>
+Date:   Sat Jul 14 11:10:35 2018 -0500
+
+    Merge pull request #3 from regro-cf-autotick-bot/compiler_migration2
+    
+    Migrate to Jinja2 compiler syntax
+
+commit b6a19162bddc72ca645f17117f11edfd81330fe0
+Author: Isuru Fernando <isuruf@gmail.com>
+Date:   Sun Jul 8 20:07:28 2018 -0600
+
+    Update meta.yaml
+
+commit f3fb72210de072c127fa73b261125b84f241ea9e
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Sat Jul 7 03:26:48 2018 +0000
+
+    migrated to Jinja2 compiler syntax build
+
+commit fbcc729e55ad7cf66c2b96da18f923ea8aea957c
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Sun Jul 1 02:19:55 2018 +0000
+
+    MNT: Re-rendered with conda-smithy 3.1.6 and pinning 2018.06.29
+
+commit 015e11c16b8a94391c9a819d8d914072ef89ac14
+Author: regro-cf-autotick-bot <circleci@cf-graph.regro.github.com>
+Date:   Sun Jul 1 02:19:50 2018 +0000
+
+    migrated to Jinja2 compiler syntax build
+
+commit 6ba2ab5e6836e2e97ef3ba79b060319f377b4adf
+Author: Travis-CI on github.com/conda-forge/staged-recipes <conda-forge@googlegroups.com>
+Date:   Sat Aug 26 21:46:46 2017 +0000
+
+    [ci skip] [skip ci] Update anaconda token
+
+commit 8102208efed2810d24b9f1b8c183e5eafaf8a844
+Merge: 9cf8a29 c8fe581
+Author: jakirkham <jakirkham@gmail.com>
+Date:   Fri Mar 31 08:46:50 2017 -0400
+
+    Merge pull request #1 from marcelm/libbz2
+    
+    Build libbz2.so
+
+commit c8fe581fe864fbe95d977253cb01c54a3710cb09
+Author: Marcel Martin <marcel.martin@scilifelab.se>
+Date:   Mon Mar 27 14:28:51 2017 +0200
+
+    MNT: Re-rendered with conda-smithy 2.2.2
+
+commit 90976f44cb7a3e84d71ece3f70838af90baa26f3
+Author: Marcel Martin <marcel.martin@scilifelab.se>
+Date:   Mon Mar 20 13:42:11 2017 +0100
+
+    cp on macOS does not have -d option
+
+commit b38494f06669f39e537709b9c606535929074781
+Author: Marcel Martin <marcel.martin@scilifelab.se>
+Date:   Fri Mar 10 11:05:55 2017 +0100
+
+    Build libbz2.dylib on macOS
+
+commit 047a29b33905f05566398f3315d9402432a21041
+Author: Marcel Martin <marcel.martin@scilifelab.se>
+Date:   Wed Mar 8 23:33:08 2017 +0100
+
+    Build libbz2.so.1.0
+    
+    Based on conda-forge/staged-recipes#1977
+
+commit 9cf8a29c99dd81b38a19e52f5c151c49ca18841a
+Author: Travis-CI on github.com/conda-forge/staged-recipes <conda-forge@googlegroups.com>
+Date:   Thu Mar 2 07:30:00 2017 +0000
+
+    Re-render the feedstock after CI registration.
+
+commit ff775c475d94beb21466bf109705ce48c9ba82ca
+Author: Travis-CI on github.com/conda-forge/staged-recipes <conda-forge@googlegroups.com>
+Date:   Tue Feb 28 21:39:27 2017 +0000
+
+    Re-render the feedstock after CI registration.
+
+commit d63b8d8b728dfc91e38683252885c36b8e03c76a
+Author: Travis-CI on github.com/conda-forge/staged-recipes <conda-forge@googlegroups.com>
+Date:   Tue Feb 28 08:22:50 2017 +0000
+
+    Re-render the feedstock after CI registration.
+
+commit 3c076c0ba89f8406f8c4c0669b48dd81b563e402
+Author: Travis-CI on github.com/conda-forge/staged-recipes <conda-forge@googlegroups.com>
+Date:   Tue Feb 28 08:20:39 2017 +0000
+
+    Initial feedstock commit with conda-smithy 2.1.1.

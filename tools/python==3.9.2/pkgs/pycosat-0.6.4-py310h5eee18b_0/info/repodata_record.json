@@ -1,0 +1,25 @@
+{
+  "build": "py310h5eee18b_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/linux-64",
+  "constrains": [],
+  "depends": [
+    "libgcc-ng >=11.2.0",
+    "python >=3.10,<3.11.0a0"
+  ],
+  "features": "",
+  "fn": "pycosat-0.6.4-py310h5eee18b_0.conda",
+  "legacy_bz2_md5": "ef1aed8b8feea95b9232abbf20abec4b",
+  "legacy_bz2_size": 110053,
+  "license": "MIT",
+  "license_family": "MIT",
+  "md5": "4bb7de740c7700b576abbfed6444eefd",
+  "name": "pycosat",
+  "sha256": "f2090e325f6814535eb79596ae383bdf0b9f998d9a3d114a6d2385de2721a5af",
+  "size": 84278,
+  "subdir": "linux-64",
+  "timestamp": 1666805641437,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/linux-64/pycosat-0.6.4-py310h5eee18b_0.conda",
+  "version": "0.6.4"
+}

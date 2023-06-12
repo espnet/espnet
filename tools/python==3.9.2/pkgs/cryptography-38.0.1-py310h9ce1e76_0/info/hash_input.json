@@ -1,0 +1,6 @@
+{
+  "target_platform": "linux-64",
+  "channel_targets": "defaults",
+  "rust_compiler_version": "1.46.0",
+  "rust_compiler": "rust"
+}

@@ -1,0 +1,11 @@
+{
+  "arch": "x86_64",
+  "build": "main",
+  "build_number": 0,
+  "depends": [],
+  "name": "_libgcc_mutex",
+  "platform": "linux",
+  "subdir": "linux-64",
+  "timestamp": 1562011674792,
+  "version": "0.1"
+}

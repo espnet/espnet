@@ -1,0 +1,27 @@
+{
+  "build": "pyhd3eb1b0_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/noarch",
+  "constrains": [],
+  "depends": [
+    "cryptography >=35.0",
+    "python >=3.6"
+  ],
+  "features": "",
+  "fn": "pyopenssl-22.0.0-pyhd3eb1b0_0.conda",
+  "legacy_bz2_md5": "24300c22dced4609b77f3ace93b5beeb",
+  "legacy_bz2_size": 50062,
+  "license": "Apache-2.0",
+  "license_family": "Apache",
+  "md5": "1dbbf9422269cd62c7094960d9b43f36",
+  "name": "pyopenssl",
+  "noarch": "python",
+  "package_type": "noarch_python",
+  "sha256": "0a0629a3816bd639f1b1a94dd2fd521ad407e55bfd6532154dce22cddb875783",
+  "size": 51144,
+  "subdir": "noarch",
+  "timestamp": 1643788591664,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/noarch/pyopenssl-22.0.0-pyhd3eb1b0_0.conda",
+  "version": "22.0.0"
+}

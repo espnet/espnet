@@ -1,0 +1,61 @@
+{% set version = "65.5.0" %}
+
+# make sure to set CONDA_ADD_PIP_AS_PYTHON_DEPENDENCY=0 environ-variable before building it
+package:
+  name: setuptools
+  version: {{ version }}
+
+source:
+  url: https://pypi.io/packages/source/s/setuptools/setuptools-{{ version }}.tar.gz
+  sha256: 512e5536220e38146176efb833d4a62aa726b7bbff82cfbc8ba9eaa3996e0b17
+  patches:
+    # Modify setuptools to fail if used in conda build (encourage people to add all deps in meta.yaml).
+    - patches/0002-disable-downloads-inside-conda-build.patch
+    # distutils patches from python-feedstock
+    - patches/0021-Add-d1trimfile-SRC_DIR-to-make-pdbs-more-relocatable.patch
+
+build:
+  number: 0
+  skip: True               # [py<37]
+
+requirements:
+  build:
+    - patch                # [unix]
+    - m2-patch             # [win]
+  host:
+    - python
+    - certifi  >=2016.9.26
+    - wincertstore  >=0.2  # [win]
+  run:
+    - python
+    # strict dep on certifi/wincertstore was removed in 58 version
+    # as we provided those dependencies in the past in setuptools, keep it for now ...
+    - certifi  >=2016.9.26
+    - wincertstore  >=0.2  # [win]
+
+test:
+  imports:
+    - setuptools
+    - pkg_resources
+
+about:
+  home: https://github.com/pypa/setuptools
+  license: MIT
+  license_file: LICENSE
+  license_family: MIT
+  license_url: https://github.com/pypa/setuptools/blob/main/LICENSE
+  summary: Download, build, install, upgrade, and uninstall Python packages
+  description: |
+    Setuptools is a fully-featured, actively-maintained, and stable library
+    designed to facilitate packaging Python projects.
+  doc_url: https://setuptools.pypa.io/en/latest/
+  dev_url: https://github.com/pypa/setuptools
+  doc_source_url: https://github.com/pypa/setuptools/tree/master/docs
+
+extra:
+  recipe-maintainers:
+    - jakirkham
+    - msarahan
+    - ocefpaf
+    - nicoddemus
+    - isuruf

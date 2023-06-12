@@ -1,0 +1,53 @@
+{
+  "build": "py310h06a4308_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/linux-64",
+  "constrains": [],
+  "depends": [
+    "python >=3.10,<3.11.0a0"
+  ],
+  "extracted_package_dir": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/certifi-2022.12.7-py310h06a4308_0",
+  "features": "",
+  "files": [
+    "lib/python3.10/site-packages/certifi-2022.12.7.dist-info/INSTALLER",
+    "lib/python3.10/site-packages/certifi-2022.12.7.dist-info/LICENSE",
+    "lib/python3.10/site-packages/certifi-2022.12.7.dist-info/METADATA",
+    "lib/python3.10/site-packages/certifi-2022.12.7.dist-info/RECORD",
+    "lib/python3.10/site-packages/certifi-2022.12.7.dist-info/REQUESTED",
+    "lib/python3.10/site-packages/certifi-2022.12.7.dist-info/WHEEL",
+    "lib/python3.10/site-packages/certifi-2022.12.7.dist-info/direct_url.json",
+    "lib/python3.10/site-packages/certifi-2022.12.7.dist-info/top_level.txt",
+    "lib/python3.10/site-packages/certifi/__init__.py",
+    "lib/python3.10/site-packages/certifi/__main__.py",
+    "lib/python3.10/site-packages/certifi/__pycache__/__init__.cpython-310.pyc",
+    "lib/python3.10/site-packages/certifi/__pycache__/__main__.cpython-310.pyc",
+    "lib/python3.10/site-packages/certifi/__pycache__/core.cpython-310.pyc",
+    "lib/python3.10/site-packages/certifi/cacert.pem",
+    "lib/python3.10/site-packages/certifi/core.py",
+    "lib/python3.10/site-packages/certifi/py.typed"
+  ],
+  "fn": "certifi-2022.12.7-py310h06a4308_0.conda",
+  "legacy_bz2_md5": "d760ff6d9330e2b2097f018d40dce0a2",
+  "legacy_bz2_size": 155112,
+  "license": "MPL-2.0",
+  "license_family": "Other",
+  "link": {
+    "source": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/certifi-2022.12.7-py310h06a4308_0",
+    "type": 1
+  },
+  "md5": "1f28faeb97a361c9998090edc4e7d729",
+  "name": "certifi",
+  "package_tarball_full_path": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/certifi-2022.12.7-py310h06a4308_0.conda",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "defaults/linux-64::certifi==2022.12.7=py310h06a4308_0[md5=1f28faeb97a361c9998090edc4e7d729]",
+  "sha256": "db512b2e63178e6244e889a17553f2bd7fb60c7caed9fb7997e938bb2d9feef5",
+  "size": 153593,
+  "subdir": "linux-64",
+  "timestamp": 1671487846135,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/linux-64/certifi-2022.12.7-py310h06a4308_0.conda",
+  "version": "2022.12.7"
+}

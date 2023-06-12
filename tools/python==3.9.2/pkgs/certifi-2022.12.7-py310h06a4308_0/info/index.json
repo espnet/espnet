@@ -1,0 +1,15 @@
+{
+  "arch": "x86_64",
+  "build": "py310h06a4308_0",
+  "build_number": 0,
+  "depends": [
+    "python >=3.10,<3.11.0a0"
+  ],
+  "license": "MPL-2.0",
+  "license_family": "Other",
+  "name": "certifi",
+  "platform": "linux",
+  "subdir": "linux-64",
+  "timestamp": 1671487846135,
+  "version": "2022.12.7"
+}

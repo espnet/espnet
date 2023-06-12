@@ -1,0 +1,17 @@
+{
+  "arch": null,
+  "build": "pyhd3eb1b0_0",
+  "build_number": 0,
+  "depends": [
+    "cryptography >=35.0",
+    "python >=3.6"
+  ],
+  "license": "Apache-2.0",
+  "license_family": "Apache",
+  "name": "pyopenssl",
+  "noarch": "python",
+  "platform": null,
+  "subdir": "noarch",
+  "timestamp": 1643788591664,
+  "version": "22.0.0"
+}

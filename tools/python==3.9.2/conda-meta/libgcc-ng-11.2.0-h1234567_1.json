@@ -1,0 +1,69 @@
+{
+  "build": "h1234567_1",
+  "build_number": 1,
+  "channel": "https://repo.anaconda.com/pkgs/main/linux-64",
+  "constrains": [
+    "_libgcc_mutex 0.1 main",
+    "_openmp_mutex",
+    "libgomp 11.2.0 h1234567_1"
+  ],
+  "depends": [
+    "_libgcc_mutex 0.1 main",
+    "_openmp_mutex",
+    "_libgcc_mutex * main",
+    "__glibc >=2.17"
+  ],
+  "extracted_package_dir": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/libgcc-ng-11.2.0-h1234567_1",
+  "features": "",
+  "files": [
+    "lib/libasan.so",
+    "lib/libasan.so.6",
+    "lib/libasan.so.6.0.0",
+    "lib/libatomic.so",
+    "lib/libatomic.so.1",
+    "lib/libatomic.so.1.2.0",
+    "lib/libgcc_s.so",
+    "lib/libgcc_s.so.1",
+    "lib/libitm.so",
+    "lib/libitm.so.1",
+    "lib/libitm.so.1.0.0",
+    "lib/liblsan.so",
+    "lib/liblsan.so.0",
+    "lib/liblsan.so.0.0.0",
+    "lib/libquadmath.so",
+    "lib/libquadmath.so.0",
+    "lib/libquadmath.so.0.0.0",
+    "lib/libtsan.so",
+    "lib/libtsan.so.0",
+    "lib/libtsan.so.0.0.0",
+    "lib/libubsan.so",
+    "lib/libubsan.so.1",
+    "lib/libubsan.so.1.0.0",
+    "share/info/libgomp.info",
+    "share/info/libquadmath.info",
+    "share/licenses/gcc-libs/RUNTIME.LIBRARY.EXCEPTION"
+  ],
+  "fn": "libgcc-ng-11.2.0-h1234567_1.conda",
+  "legacy_bz2_md5": "641e72e5067bd6d5454405879e1cd2a7",
+  "legacy_bz2_size": 8895144,
+  "license": "GPL-3.0-only WITH GCC-exception-3.1",
+  "link": {
+    "source": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/libgcc-ng-11.2.0-h1234567_1",
+    "type": 1
+  },
+  "md5": "a87728dabf3151fb9cfa990bd2eb0464",
+  "name": "libgcc-ng",
+  "package_tarball_full_path": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/libgcc-ng-11.2.0-h1234567_1.conda",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "defaults/linux-64::libgcc-ng==11.2.0=h1234567_1[md5=a87728dabf3151fb9cfa990bd2eb0464]",
+  "sha256": "cdcce11f1c6ca57ba686ab92f3a5c122efe1e0630e00c6ad275624ce79008aa7",
+  "size": 5602184,
+  "subdir": "linux-64",
+  "timestamp": 1654090827491,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/linux-64/libgcc-ng-11.2.0-h1234567_1.conda",
+  "version": "11.2.0"
+}

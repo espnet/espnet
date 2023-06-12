@@ -1,0 +1,48 @@
+{
+  "build": "py310h5eee18b_1",
+  "build_number": 1,
+  "channel": "https://repo.anaconda.com/pkgs/main/linux-64",
+  "constrains": [],
+  "depends": [
+    "libgcc-ng >=11.2.0",
+    "python >=3.10,<3.11.0a0"
+  ],
+  "extracted_package_dir": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/ruamel.yaml.clib-0.2.6-py310h5eee18b_1",
+  "features": "",
+  "files": [
+    "lib/python3.10/site-packages/_ruamel_yaml.cpython-310-x86_64-linux-gnu.so",
+    "lib/python3.10/site-packages/ruamel.yaml.clib-0.2.6.dist-info/INSTALLER",
+    "lib/python3.10/site-packages/ruamel.yaml.clib-0.2.6.dist-info/LICENSE",
+    "lib/python3.10/site-packages/ruamel.yaml.clib-0.2.6.dist-info/METADATA",
+    "lib/python3.10/site-packages/ruamel.yaml.clib-0.2.6.dist-info/RECORD",
+    "lib/python3.10/site-packages/ruamel.yaml.clib-0.2.6.dist-info/REQUESTED",
+    "lib/python3.10/site-packages/ruamel.yaml.clib-0.2.6.dist-info/WHEEL",
+    "lib/python3.10/site-packages/ruamel.yaml.clib-0.2.6.dist-info/direct_url.json",
+    "lib/python3.10/site-packages/ruamel.yaml.clib-0.2.6.dist-info/namespace_packages.txt",
+    "lib/python3.10/site-packages/ruamel.yaml.clib-0.2.6.dist-info/top_level.txt"
+  ],
+  "fn": "ruamel.yaml.clib-0.2.6-py310h5eee18b_1.conda",
+  "legacy_bz2_md5": "7bbad8e955476d9ede9bb1ef46ff5bab",
+  "legacy_bz2_size": 152086,
+  "license": "MIT",
+  "license_family": "MIT",
+  "link": {
+    "source": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/ruamel.yaml.clib-0.2.6-py310h5eee18b_1",
+    "type": 1
+  },
+  "md5": "49a45b52b0edcddab287912fc9cf5304",
+  "name": "ruamel.yaml.clib",
+  "package_tarball_full_path": "/media/samco/Data1/CHiME7_espnet/espnet/tools/python==3.9.2/pkgs/ruamel.yaml.clib-0.2.6-py310h5eee18b_1.conda",
+  "paths_data": {
+    "paths": [],
+    "paths_version": 1
+  },
+  "requested_spec": "defaults/linux-64::ruamel.yaml.clib==0.2.6=py310h5eee18b_1[md5=49a45b52b0edcddab287912fc9cf5304]",
+  "sha256": "568f3fc62d9ea7eb1919be02d1bd5fc962c6209dc4f8eb395f7fd2481e63d5a8",
+  "size": 142672,
+  "subdir": "linux-64",
+  "timestamp": 1666302324054,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/linux-64/ruamel.yaml.clib-0.2.6-py310h5eee18b_1.conda",
+  "version": "0.2.6"
+}

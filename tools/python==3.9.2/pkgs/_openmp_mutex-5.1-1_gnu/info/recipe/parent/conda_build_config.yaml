@@ -1,0 +1,49 @@
+c_compiler_version:
+  - 7.5.0
+cxx_compiler_version:
+  - 7.5.0
+cpu_arch:
+  - x86_64       # [linux and x86_64]
+  - s390x        # [linux and s390x]
+  - powerpc64le  # [linux and ppc64le]
+  - aarch64      # [linux and aarch64]
+  - dummy        # [not linux]
+gcc_version:
+  - 11.2.0
+libgfortran_soname:
+  - 5
+gcc_version_build_number:
+  - 0
+_libgcc_mutex:
+  - 0.1 main
+duma_version:
+   - 2.5.15
+gnu:
+  - 2.17          # [not aarch64]
+  - 2.26          # [aarch64]
+conda_glibc_ver:
+  - 2.17          # [not aarch64]
+  - 2.26          # [aarch64]
+kernel_version:
+  - 3.10.0        # [not aarch64]
+  - 4.18.20       # [aarch64]
+gdb_version:
+   - 11.2
+gdb_server_version:
+   - 11.2
+strace_version:
+   - 5.16
+ltrace_version:
+   - 0.7.3         # [not aarch64]
+   - 0.7.91        # [aarch64]
+openmp_ver:
+  - 5.1
+libgomp_ver:
+  - 1.0.0
+
+zip_keys:
+  - - kernel_version
+    - conda_glibc_ver
+    - cpu_arch
+  - - gcc_version
+    - libgfortran_soname

@@ -1,0 +1,121 @@
+{% set name = "conda" %}
+{% set version = "22.11.1" %}
+{% set build_number = "4" %}
+{% set sha256 = "f9256a7e71a9f35063b683f6c7823acf05c1f75468fc609954f1f5efae7c03ac" %}
+# Running the upstream test suite requires the inclusion of test files, which
+# balloons the size of the package and occasionally triggers false-positive
+# security warnings; values can be "yes" or "no".
+{% set run_upstream_tests = "no" %}
+
+package:
+  name: {{ name }}
+  version: {{ version }}
+
+source:
+  url: https://github.com/conda/{{ name }}/archive/{{ version }}.tar.gz
+  sha256: {{ sha256 }}
+
+build:
+  skip: True  # [py<37]
+  number: {{ build_number }}
+  # These are present when the new environment is created
+  # so we have to exempt them from the list of initial files
+  # for conda-build to realize they should be included.
+  always_include_files:
+    - bin/conda                    # [unix]
+    - bin/activate                 # [unix]
+    - bin/deactivate               # [unix]
+    - Scripts/activate.bat         # [win]
+    - Scripts/activate             # [win]
+    - Scripts/deactivate           # [win]
+
+requirements:
+  build:
+    - m2-filesystem                # [win]
+    - m2-bash                      # [win]
+    - m2-base                      # [win]
+
+  host:
+    - python
+    - conda-package-handling >=1.3.0
+    - menuinst >=1.4.11,<2         # [win]
+    - pip
+    - ruamel.yaml >=0.11.14,<0.18
+    - setuptools >=31.0.1
+    - toolz >=0.8.1
+    - pluggy >=1.0.0
+    - tqdm >=4
+  run:
+    - python
+    - conda-package-handling >=1.3.0
+    - menuinst >=1.4.11,<2         # [win]
+    - pycosat >=0.6.3
+    - pyopenssl >=16.2.0
+    - requests >=2.20.1,<3
+    - ruamel.yaml >=0.11.14,<0.18
+    - setuptools >=31.0.1
+    - toolz >=0.8.1
+    - pluggy >=1.0.0
+    - tqdm >=4
+  run_constrained:
+    - conda-build >=3
+    - conda-content-trust >=0.1.1
+    - conda-env >=2.6
+    - cytoolz >=0.8.1
+    - conda-libmamba-solver >=22.12.0
+
+test:
+{% if run_upstream_tests == 'yes' %}
+  source_files:
+    - tests
+    - setup.cfg
+{% endif %}
+  requires:
+{% if run_upstream_tests == 'yes' %}
+    - mock
+    - pytest
+    - pexpect
+    - responses
+    # - conda-build  # needed to run the test suite, but we're not doing that right now.
+{% endif %}
+    - m2-filesystem  # [win]
+    - m2-bash        # [win]
+    - m2-base        # [win]
+  imports:
+    - conda
+    - conda_env
+  downstreams:
+    - conda-smithy  # [py3k]
+
+about:
+  home: https://docs.conda.io
+  license: BSD-3-Clause
+  license_family: BSD
+  license_file: LICENSE.txt
+  summary: OS-agnostic, system-level binary package and environment manager.
+  description: >
+    Conda is an open source package management system and environment
+    management system for installing multiple versions of software packages
+    and their dependencies and switching easily between them. It works on
+    Linux, OS X and Windows, and was created for Python programs but can
+    package and distribute any software.
+  doc_url: https://docs.conda.io/projects/conda/en/stable/
+  dev_url: https://github.com/conda/conda
+
+extra:
+  recipe-maintainers:
+    - jakirkham
+    - jjhelmus
+    - kalefranz
+    - mcg1969
+    - msarahan
+    - mwcraig
+    - ocefpaf
+    - patricksnape
+    - pelson
+    - scopatz
+    - mbargull
+    - chenghlee
+    - jezdez
+    - kenodegard
+    - travishathaway

@@ -1,0 +1,35 @@
+From 4c935f04b47027b4cc15b7bb899e03eab41d34bf Mon Sep 17 00:00:00 2001
+From: Ray Donnelly <mingw.android@gmail.com>
+Date: Wed, 16 Aug 2017 12:23:02 +0100
+Subject: [PATCH 06/30] Win32: Fixes for Windows GCC interop needed by RPy2 and
+ CVXOPT
+
+We must pass -DMS_WIN32 or -DMS_WIN64
+---
+
+index 2c6dbae..2b88a22 100644
+--- a/setuptools/_distutils/cygwinccompiler.py
++++ b/setuptools/_distutils/cygwinccompiler.py
+@@ -322,13 +322,15 @@ class Mingw32CCompiler(CygwinCCompiler):
+         if is_cygwincc(self.cc):
+             raise CCompilerError('Cygwin gcc cannot be used with --compiler=mingw32')
+
+-        self.set_executables(
+-            compiler='%s -O -Wall' % self.cc,
+-            compiler_so='%s -mdll -O -Wall' % self.cc,
+-            compiler_cxx='%s -O -Wall' % self.cxx,
+-            linker_exe='%s' % self.cc,
+-            linker_so='{} {}'.format(self.linker_dll, shared_option),
+-        )
++        if sys.maxsize == 2**31 - 1:
++            ms_win=' -DMS_WIN32'
++        else:
++            ms_win=' -DMS_WIN64'
++        self.set_executables(compiler='%s -O -Wall %s' % (self.cc, ms_win),
++                             compiler_so='%s -mdll -O -Wall %s' % (self.cc, ms_win),
++                             compiler_cxx='%s -O -Wall %s' % (self.cxx, ms_win),
++                             linker_exe='%s' % self.cc,
++                             linker_so='%s %s' % (self.linker_dll, shared_option))
+
+         # Maybe we should also append -mthreads, but then the finished
+         # dlls need another dll (mingwm10.dll see Mingw32 docs)

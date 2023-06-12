@@ -1,0 +1,24 @@
+---
+ ld/ldelf.c |    4 ++++
+ 1 file changed, 4 insertions(+)
+
+--- a/ld/ldelf.c
++++ b/ld/ldelf.c
+@@ -1277,6 +1277,8 @@
+ 		  && command_line.rpath == NULL)
+ 		{
+ 		  path = (const char *) getenv ("LD_RUN_PATH");
++		  if (path && *path == '\0')
++		    path = NULL;
+ 		  if (path
+ 		      && ldelf_search_needed (path, &n, force,
+ 					      is_linux, elfsize))
+@@ -1636,6 +1638,8 @@
+   rpath = command_line.rpath;
+   if (rpath == NULL)
+     rpath = (const char *) getenv ("LD_RUN_PATH");
++  if (rpath && *rpath == '\0')
++    rpath = NULL;
+ 
+   for (abfd = link_info.input_bfds; abfd; abfd = abfd->link.next)
+     if (bfd_get_flavour (abfd) == bfd_target_elf_flavour)

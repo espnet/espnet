@@ -1,0 +1,16 @@
+{
+  "arch": "x86_64",
+  "build": "py310h5eee18b_1",
+  "build_number": 1,
+  "depends": [
+    "libgcc-ng >=11.2.0",
+    "python >=3.10,<3.11.0a0"
+  ],
+  "license": "MIT",
+  "license_family": "MIT",
+  "name": "ruamel.yaml.clib",
+  "platform": "linux",
+  "subdir": "linux-64",
+  "timestamp": 1666302324054,
+  "version": "0.2.6"
+}

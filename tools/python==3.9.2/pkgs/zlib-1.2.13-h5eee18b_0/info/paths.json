@@ -1,0 +1,49 @@
+{
+  "paths": [
+    {
+      "_path": "include/zconf.h",
+      "path_type": "hardlink",
+      "sha256": "e5a9079e37fa799583634fcd6905b53f1c20fd1d98e6bae942674c3c419b9fab",
+      "size_in_bytes": 16671
+    },
+    {
+      "_path": "include/zlib.h",
+      "path_type": "hardlink",
+      "sha256": "a980a0d104198a53cc220c51ab5856e5be901bec8a2d02e0ee79a8754219dfed",
+      "size_in_bytes": 97323
+    },
+    {
+      "_path": "lib/libz.a",
+      "path_type": "hardlink",
+      "sha256": "adc88690bcc3b1bfde01a3375879a78677c72e5cc331566627f47343313881a9",
+      "size_in_bytes": 165662
+    },
+    {
+      "_path": "lib/libz.so",
+      "path_type": "softlink",
+      "sha256": "0b0e682a9dc7fd4895a6783288f851b793dc89633f28714027974fa4d66f3914",
+      "size_in_bytes": 124744
+    },
+    {
+      "_path": "lib/libz.so.1",
+      "path_type": "softlink",
+      "sha256": "0b0e682a9dc7fd4895a6783288f851b793dc89633f28714027974fa4d66f3914",
+      "size_in_bytes": 124744
+    },
+    {
+      "_path": "lib/libz.so.1.2.13",
+      "path_type": "hardlink",
+      "sha256": "0b0e682a9dc7fd4895a6783288f851b793dc89633f28714027974fa4d66f3914",
+      "size_in_bytes": 124744
+    },
+    {
+      "_path": "lib/pkgconfig/zlib.pc",
+      "file_mode": "text",
+      "path_type": "hardlink",
+      "prefix_placeholder": "/croot/zlib_1666594980945/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pl",
+      "sha256": "11202b5c550c2d9b391a82e4c02e1f4a5647684b657d35d0422a179a668f1cce",
+      "size_in_bytes": 1487
+    }
+  ],
+  "paths_version": 1
+}

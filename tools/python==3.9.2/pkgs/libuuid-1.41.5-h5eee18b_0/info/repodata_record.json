@@ -1,0 +1,24 @@
+{
+  "build": "h5eee18b_0",
+  "build_number": 0,
+  "channel": "https://repo.anaconda.com/pkgs/main/linux-64",
+  "constrains": [],
+  "depends": [
+    "libgcc-ng >=11.2.0"
+  ],
+  "features": "",
+  "fn": "libuuid-1.41.5-h5eee18b_0.conda",
+  "legacy_bz2_md5": "292768ec77416ae257cfdd44ea2071c8",
+  "legacy_bz2_size": 29197,
+  "license": "BSD-3-Clause",
+  "license_family": "BSD",
+  "md5": "4a6a2354414c9080327274aa514e5299",
+  "name": "libuuid",
+  "sha256": "2a401aafabac51b7736cfe12d2ab205d29052640ea8183253c9d0a8e7ed0d49a",
+  "size": 28110,
+  "subdir": "linux-64",
+  "timestamp": 1668082729834,
+  "track_features": "",
+  "url": "https://repo.anaconda.com/pkgs/main/linux-64/libuuid-1.41.5-h5eee18b_0.conda",
+  "version": "1.41.5"
+}

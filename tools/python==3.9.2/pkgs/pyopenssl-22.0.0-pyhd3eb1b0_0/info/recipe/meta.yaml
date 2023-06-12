@@ -1,0 +1,84 @@
+# This file created by conda-build 3.21.7
+# meta.yaml template originally from:
+# /feedstock/recipe, last modified Wed Feb  2 07:55:54 2022
+# ------------------------------------------------
+
+package:
+  name: pyopenssl
+  version: 22.0.0
+source:
+  sha256: 660b1b1425aac4a1bea1d94168a85d99f0b3144c869dd4390d27629d0087f1bf
+  url: https://pypi.io/packages/source/p/pyopenssl/pyOpenSSL-22.0.0.tar.gz
+build:
+  noarch: python
+  number: '0'
+  script: /opt/conda/conda-bld/pyopenssl_1643788558760/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_pla/bin/python
+    -m pip install . -vvv
+  string: pyhd3eb1b0_0
+requirements:
+  host:
+    - _libgcc_mutex 0.1 main
+    - _openmp_mutex 4.5 1_gnu
+    - ca-certificates 2021.10.26 h06a4308_2
+    - certifi 2021.10.8 py39h06a4308_2
+    - ld_impl_linux-64 2.35.1 h7274673_9
+    - libffi 3.3 he6710b0_2
+    - libgcc-ng 9.3.0 h5101ec6_17
+    - libgomp 9.3.0 h5101ec6_17
+    - libstdcxx-ng 9.3.0 hd4cf53a_17
+    - ncurses 6.3 h7f8727e_2
+    - openssl 1.1.1m h7f8727e_0
+    - pip 21.2.4 py39h06a4308_0
+    - python 3.9.7 h12debd9_1
+    - readline 8.1.2 h7f8727e_1
+    - setuptools 58.0.4 py39h06a4308_0
+    - sqlite 3.37.0 hc218d9a_0
+    - tk 8.6.11 h1ccaba5_0
+    - tzdata 2021e hda174b7_0
+    - wheel 0.37.1 pyhd3eb1b0_0
+    - xz 5.2.5 h7b6447c_0
+    - zlib 1.2.11 h7f8727e_4
+  run:
+    - cryptography >=35.0
+    - python >=3.6
+test:
+  commands:
+    - pip check
+    - python -m OpenSSL.debug
+  imports:
+    - OpenSSL
+    - OpenSSL.SSL
+    - OpenSSL.crypto
+    - OpenSSL.rand
+  requires:
+    - pip
+    - python <3.10
+about:
+  description: 'pyOpenSSL is a high-level wrapper around a subset of the OpenSSL library.
+
+    It includes:
+
+    -SSL.Connection objects, wrapping the methods of Python''s portable sockets
+
+    -Callbacks written in Python
+
+    -Extensive error-handling mechanism, mirroring OpenSSL''s error codes
+
+    and much more.
+
+    '
+  dev_url: https://github.com/pyca/pyopenssl
+  doc_source_url: https://github.com/pyca/pyopenssl/blob/22.0.0/doc/index.rst
+  doc_url: https://pyopenssl.readthedocs.org/en/stable/
+  home: https://github.com/pyca/pyopenssl
+  license: Apache-2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: Python wrapper module around the OpenSSL library
+extra:
+  copy_test_source_files: true
+  final: true
+  recipe-maintainers:
+    - goanpeca
+    - mingwandroid
+    - nehaljwani

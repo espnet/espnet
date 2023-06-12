@@ -1,0 +1,56 @@
+Index: binutils-2.38/bfd/elf.c
+===================================================================
+--- binutils-2.38.orig/bfd/elf.c
++++ binutils-2.38/bfd/elf.c
+@@ -5435,8 +5435,10 @@ assign_file_positions_for_load_sections
+   Elf_Internal_Phdr *p;
+   file_ptr off;  /* Octets.  */
+   bfd_size_type maxpagesize;
++  bfd_size_type commonpagesize;
+   bfd_size_type p_align;
+   bool p_align_p = false;
++  bool p_align_commonpagesize_p = false;
+   unsigned int alloc, actual;
+   unsigned int i, j;
+   struct elf_segment_map **sorted_seg_map;
+@@ -5523,12 +5525,19 @@ assign_file_positions_for_load_sections
+ 
+   p_align = bed->p_align;
+   maxpagesize = 1;
++  commonpagesize = 1;
+   if ((abfd->flags & D_PAGED) != 0)
+     {
+       if (link_info != NULL)
+-	maxpagesize = link_info->maxpagesize;
++        {
++	  maxpagesize = link_info->maxpagesize;
++          commonpagesize = link_info->commonpagesize;
++        }
+       else
+-	maxpagesize = bed->maxpagesize;
++        {
++	  maxpagesize = bed->maxpagesize;
++          commonpagesize = bed->commonpagesize;
++        }
+     }
+ 
+   /* Sections must map to file offsets past the ELF file header.  */
+@@ -5600,7 +5609,7 @@ assign_file_positions_for_load_sections
+ 	       largest section alignment.  The run-time loader can
+ 	       align segments to the default p_align value or the
+ 	       maximum page size, depending on system page size.  */
+-	    p_align_p = true;
++	    p_align_commonpagesize_p = p_align_p = true;
+ 
+ 	  p->p_align = maxpagesize;
+ 	}
+@@ -6035,6 +6044,9 @@ assign_file_positions_for_load_sections
+ 
+ 	  if (p_align_p)
+ 	    p->p_align = p_align;
++          if (p_align_commonpagesize_p)
++            p->p_align = commonpagesize;
++          
+ 	}
+     }
+ 
