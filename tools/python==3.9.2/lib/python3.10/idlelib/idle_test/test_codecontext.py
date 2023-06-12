@@ -3,11 +3,10 @@
 import re
 import unittest
 import unittest.mock
+from idlelib import codecontext, config
 from test.support import requires
 from tkinter import NSEW, Frame, TclError, Text, Tk
 from unittest import mock
-
-from idlelib import codecontext, config
 
 usercfg = codecontext.idleConf.userCfg
 testcfg = {

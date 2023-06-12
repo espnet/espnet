@@ -1,9 +1,8 @@
 "Test scrolledlist, coverage 38%."
 
 import unittest
-from test.support import requires
-
 from idlelib.scrolledlist import ScrolledList
+from test.support import requires
 
 requires("gui")
 from tkinter import Tk

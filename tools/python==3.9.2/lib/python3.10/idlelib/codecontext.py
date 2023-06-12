@@ -12,11 +12,10 @@ For EditorWindows, <<toggle-code-context>> is bound to CodeContext(self).
 toggle_code_context_event.
 """
 import re
+from idlelib.config import idleConf
 from sys import maxsize as INFINITY
 from tkinter import Frame, TclError, Text
 from tkinter.constants import NSEW, SUNKEN
-
-from idlelib.config import idleConf
 
 BLOCKOPENERS = {
     "class",

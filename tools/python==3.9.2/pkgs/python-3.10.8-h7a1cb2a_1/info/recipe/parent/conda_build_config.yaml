@@ -3,7 +3,7 @@ python:
 python_impl:
   - cpython
 libffi:  # [win]
-  - 3.4  # [win] 
+  - 3.4  # [win]
 numpy:
   - 1.16
 MACOSX_SDK_VERSION:            # [osx and x86_64]

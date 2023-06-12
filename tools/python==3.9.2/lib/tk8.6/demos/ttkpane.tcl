@@ -109,4 +109,3 @@ if {[tk windowingsystem] ne "aqua"} {
     pack $w.txt -fill both -expand 1 -in $w.outer.inRight.bot
     pack $w.outer -fill both -expand 1 -padx 10 -pady {6 10}
 }
-

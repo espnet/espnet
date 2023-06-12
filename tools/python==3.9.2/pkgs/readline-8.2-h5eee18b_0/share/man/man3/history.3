@@ -46,7 +46,7 @@ history \- GNU History Library
 Many programs read input from the user a line at a time.  The GNU
 History library is able to keep track of those lines, associate arbitrary
 data with each line, and utilize information from previous lines in
-composing new ones. 
+composing new ones.
 .PP
 .SH "HISTORY EXPANSION"
 The history library supports a history expansion feature that
@@ -71,7 +71,7 @@ and the portions of that line that are acted upon are \fIwords\fP.
 Various \fImodifiers\fP are available to manipulate the selected words.
 The line is broken into words in the same fashion as \fBbash\fP
 does when reading input,
-so that several words that would otherwise be separated 
+so that several words that would otherwise be separated
 are considered one word when surrounded by quotes (see the
 description of \fBhistory_tokenize()\fP below).
 History expansions are introduced by the appearance of the
@@ -482,8 +482,8 @@ offset.  The search is anchored: matching lines must begin with
 \fIstring\fP.  If \fIdirection\fP is less than 0, then the search is
 through previous entries, otherwise through subsequent entries.
 If \fIstring\fP is found, then the
-current history index is set to that entry, and the return value is 0. 
-Otherwise, nothing is changed, and a -1 is returned. 
+current history index is set to that entry, and the return value is 0.
+Otherwise, nothing is changed, and a -1 is returned.
 
 .Fn3 int history_search_pos "const char *string" "int direction" "int pos"
 Search for \fIstring\fP in the history list, starting at \fIpos\fP, an
@@ -641,7 +641,7 @@ It is intended for use by applications like \fBbash\fP that use the history
 expansion character for additional purposes.
 By default, this variable is set to \fBNULL\fP.
 .SH FILES
-.PD 0 
+.PD 0
 .TP
 .FN ~/.history
 Default filename for reading and writing saved history

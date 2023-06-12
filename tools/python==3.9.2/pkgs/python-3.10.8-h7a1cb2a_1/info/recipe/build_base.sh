@@ -455,7 +455,7 @@ pushd "${PREFIX}"/lib/python${VER}
   # Remove osx sysroot as it depends on the build machine
   sed -i.bak "s@-isysroot @@g" sysconfigfile
   # make sure $CONDA_BUILD_SYSROOT is not empty ...
-  if [[ ${HOST} =~ .*darwin.* ]] && [[ -n ${CONDA_BUILD_SYSROOT} ]]; then 
+  if [[ ${HOST} =~ .*darwin.* ]] && [[ -n ${CONDA_BUILD_SYSROOT} ]]; then
     sed -i.bak "s@$CONDA_BUILD_SYSROOT @@g" sysconfigfile
   fi
   # Remove unfilled config option

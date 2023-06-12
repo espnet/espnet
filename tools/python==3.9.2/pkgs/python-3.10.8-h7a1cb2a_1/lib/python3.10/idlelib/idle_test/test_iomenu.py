@@ -1,12 +1,11 @@
 "Test , coverage 17%."
 
 import unittest
-from test.support import requires
-from tkinter import Tk
-
 from idlelib import iomenu, util
 from idlelib.editor import EditorWindow
 from idlelib.idle_test.mock_idle import Func
+from test.support import requires
+from tkinter import Tk
 
 
 class IOBindingTest(unittest.TestCase):

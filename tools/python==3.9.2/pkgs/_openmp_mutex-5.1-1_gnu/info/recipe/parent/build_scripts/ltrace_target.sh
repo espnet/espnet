@@ -36,4 +36,3 @@ pushd "${WDIR}/build/ltrace-target"
     make DESTDIR="${WDIR}/gcc_built/${CFG_TARGET}/debug-root" install
 
 popd
-

@@ -162,15 +162,15 @@ nicht erlaubt.
 An den meisten Stellen, wo ein ganzzahliges Argument akzeptiert wird, kann
 ein optionales Suffix große Ganzzahlwerte einfacher darstellen. Zwischen
 Ganzzahl und dem Suffix dürfen sich keine Leerzeichen befinden.
-.TP 
+.TP
 \fBKiB\fP
 multipliziert die Ganzzahl mit 1.024 (2^10). \fBKi\fP, \fBk\fP, \fBkB\fP, \fBK\fP und
 \fBKB\fP werden als Synonyme für \fBKiB\fP akzeptiert.
-.TP 
+.TP
 \fBMiB\fP
 multipliziert die Ganzzahl mit 1.048.576 (2^20). \fBMi\fP, \fBm\fP, \fBM\fP und \fBMB\fP
 werden als Synonyme für \fBMiB\fP akzeptiert.
-.TP 
+.TP
 \fBGiB\fP
 multipliziert die Ganzzahl mit 1.073.741.824 (2^30). \fBGi\fP, \fBg\fP, \fBG\fP und
 \fBGB\fP werden als Synonyme für \fBGiB\fP akzeptiert.
@@ -181,21 +181,21 @@ jeweiligen Option akzeptierten maximalen Ganzzahlwert anzugeben.
 .SS Aktionsmodus
 Falls mehrere Aktionsmodi angegeben sind, wird der zuletzt angegebene
 verwendet.
-.TP 
+.TP
 \fB\-z\fP, \fB\-\-compress\fP
 Kompression. Dies ist der voreingestellte Aktionsmodus, sofern keiner
 angegeben ist und auch kein bestimmter Modus aus dem Befehlsnamen abgeleitet
 werden kann (der Befehl \fBunxz\fP impliziert zum Beispiel \fB\-\-decompress\fP).
-.TP 
+.TP
 \fB\-d\fP, \fB\-\-decompress\fP, \fB\-\-uncompress\fP
 dekomprimpiert.
-.TP 
+.TP
 \fB\-t\fP, \fB\-\-test\fP
 prüft die Integrität der komprimierten \fIDateien\fP. Diese Option ist
 gleichbedeutend mit \fB\-\-decompress \-\-stdout\fP, außer dass die dekomprimierten
 Daten verworfen werden, anstatt sie in die Standardausgabe zu leiten. Es
 werden keine Dateien erstellt oder entfernt.
-.TP 
+.TP
 \fB\-l\fP, \fB\-\-list\fP
 gibt Informationen zu den komprimierten \fIDateien\fP aus. Es werden keine
 unkomprimierten Dateien ausgegeben und keine Dateien angelegt oder
@@ -214,7 +214,7 @@ Spracheinstellungen unterschiedlich sein. Wenn eine maschinell auswertbare
 Ausgabe gewünscht ist, dann sollten Sie \fB\-\-robot \-\-list\fP verwenden.
 .
 .SS Aktionsattribute
-.TP 
+.TP
 \fB\-k\fP, \fB\-\-keep\fP
 verhindert das Löschen der Eingabedateien.
 .IP ""
@@ -223,7 +223,7 @@ if the input is a symbolic link to a regular file, has more than one hard
 link, or has the setuid, setgid, or sticky bit set.  The setuid, setgid, and
 sticky bits are not copied to the target file.  In earlier versions this was
 only done with \fB\-\-force\fP.
-.TP 
+.TP
 \fB\-f\fP, \fB\-\-force\fP
 Diese Option hat verschiedene Auswirkungen:
 .RS
@@ -245,11 +245,11 @@ wodurch \fBxz\fP mehr Dateitypen dekomprimieren kann, anstatt sie unverändert
 in die Standardausgabe zu kopieren. Mit der Option \fB\-\-format=\fP\fIFormat\fP
 können Sie \fBxz\fP anweisen, nur ein einzelnes Dateiformat zu dekomprimieren.
 .RE
-.TP 
+.TP
 \fB\-c\fP, \fB\-\-stdout\fP, \fB\-\-to\-stdout\fP
 schreibt die komprimierten oder dekomprimierten Daten in die Standardausgabe
 anstatt in eine Datei. Dies impliziert \fB\-\-keep\fP.
-.TP 
+.TP
 \fB\-\-single\-stream\fP
 dekomprimiert nur den ersten \fB.xz\fP\-Datenstrom und ignoriert stillschweigend
 weitere Eingabedaten, die möglicherweise dem Datenstrom
@@ -263,7 +263,7 @@ ignoriert.
 .IP ""
 Diese Option ist wirkungslos, wenn der Aktionsmodus nicht \fB\-\-decompress\fP
 oder \fB\-\-test\fP ist.
-.TP 
+.TP
 \fB\-\-no\-sparse\fP
 verhindert die Erzeugung von Sparse\-Dateien. In der Voreinstellung versucht
 \fBxz\fP, bei der Dekompression in eine reguläre Datei eine Sparse\-Datei zu
@@ -273,7 +273,7 @@ sofern diese in eine reguläre Datei weitergeleitet wird und bestimmte
 Zusatzbedingungen erfüllt sind, die die Aktion absichern. Die Erzeugung von
 Sparse\-Dateien kann Plattenplatz sparen und beschleunigt die Dekompression
 durch Verringerung der Ein\-/Ausgaben der Platte.
-.TP 
+.TP
 \fB\-S\fP \fI.suf\fP, \fB\-\-suffix=\fP\fI.suf\fP
 verwendet \fI.suf\fP bei der Dekompression anstelle von \fB.xz\fP oder \fB.lzma\fP
 als Suffix für die Zieldatei. Falls nicht in die Standardausgabe geschrieben
@@ -289,7 +289,7 @@ Beim Komprimieren oder Dekomprimieren von Rohdatenströmen mit
 \fB\-\-format=raw\fP muss das Suffix stets angegeben werden, außer wenn die
 Ausgabe in die Standardausgabe erfolgt. Der Grund dafür ist, dass es kein
 vorgegebenes Suffix für Rohdatenströme gibt.
-.TP 
+.TP
 \fB\-\-files\fP[\fB=\fP\fIDatei\fP]
 liest die zu verarbeitenden Dateinamen aus \fIDatei\fP. Falls keine \fIDatei\fP
 angegeben ist, werden die Dateinamen aus der Standardeingabe
@@ -298,32 +298,32 @@ Bindestrich (\fB\-\fP) wird als regulärer Dateiname angesehen und nicht als
 Standardeingabe interpretiert. Falls Dateinamen außerdem als
 Befehlszeilenargumente angegeben sind, werden diese vor den Dateinamen aus
 der \fIDatei\fP verarbeitet.
-.TP 
+.TP
 \fB\-\-files0\fP[\fB=\fP\fIDatei\fP]
 Dies ist gleichbedeutend mit \fB\-\-files\fP[\fB=\fP\fIDatei\fP], außer dass jeder
 Dateiname mit einem Null\-Zeichen abgeschlossen werden muss.
 .
 .SS "Grundlegende Dateiformat\- und Kompressionsoptionen"
-.TP 
+.TP
 \fB\-F\fP \fIFormat\fP, \fB\-\-format=\fP\fIFormat\fP
 gibt das \fIFormat\fP der zu komprimierenden oder dekomprimierenden Datei an:
 .RS
-.TP 
+.TP
 \fBauto\fP
 Dies ist die Voreinstellung. Bei der Kompression ist \fBauto\fP gleichbedeutend
 mit \fBxz\fP. Bei der Dekompression wird das Format der Eingabedatei
 automatisch erkannt. Beachten Sie, dass Rohdatenströme, wie sie mit
 \fB\-\-format=raw\fP erzeugt werden, nicht automatisch erkannt werden können.
-.TP 
+.TP
 \fBxz\fP
 Die Kompression erfolgt in das \fB.xz\fP\-Dateiformat oder akzeptiert nur
 \&\fB.xz\fP\-Dateien bei der Dekompression.
-.TP 
+.TP
 \fBlzma\fP, \fBalone\fP
 Die Kompression erfolgt in das veraltete \fB.lzma\fP\-Dateiformat oder
 akzeptiert nur \fB.lzma\fP\-Dateien bei der Dekompression. Der alternative Name
 \fBalone\fP dient der Abwärtskompatibilität zu den LZMA\-Dienstprogrammen.
-.TP 
+.TP
 \fBraw\fP
 Komprimiert oder dekomprimiert einen Rohdatenstrom (ohne Header). Diese
 Option ist nur für fortgeschrittene Benutzer bestimmt. Zum Dekodieren von
@@ -331,7 +331,7 @@ Rohdatenströmen müssen Sie die Option \fB\-\-format=raw\fP verwenden und die
 Filterkette ausdrücklich angeben, die normalerweise in den (hier fehlenden)
 Container\-Headern gespeichert worden wäre.
 .RE
-.TP 
+.TP
 \fB\-C\fP \fIPrüfung\fP, \fB\-\-check=\fP\fIPrüfung\fP
 gibt den Typ der Integritätsprüfung an. Die Prüfsumme wird aus den
 unkomprimierten Daten berechnet und in der \fB.xz\fP\-Datei gespeichert. Diese
@@ -342,20 +342,20 @@ dekomprimiert wird.
 .IP ""
 Folgende Typen von \fIPrüfungen\fP werden unterstützt:
 .RS
-.TP 
+.TP
 \fBnone\fP
 führt keine Integritätsprüfung aus. Dies ist eine eher schlechte
 Idee. Dennoch kann es nützlich sein, wenn die Integrität der Daten auf
 andere Weise sichergestellt werden kann.
-.TP 
+.TP
 \fBcrc32\fP
 berechnet die CRC32\-Prüfsumme anhand des Polynoms aus IEEE\-802.3 (Ethernet).
-.TP 
+.TP
 \fBcrc64\fP
 berechnet die CRC64\-Prüfsumme anhand des Polynoms aus ECMA\-182. Dies ist die
 Voreinstellung, da beschädigte Dateien etwas besser als mit CRC32 erkannt
 werden und die Geschwindigkeitsdifferenz unerheblich ist.
-.TP 
+.TP
 \fBsha256\fP
 berechnet die SHA\-256\-Prüfsumme. Dies ist etwas langsamer als CRC32 und
 CRC64.
@@ -363,7 +363,7 @@ CRC64.
 .IP ""
 Die Integrität der \fB.xz\fP\-Header wird immer mit CRC32 geprüft. Es ist nicht
 möglich, dies zu ändern oder zu deaktivieren.
-.TP 
+.TP
 \fB\-\-ignore\-check\fP
 verifiziert die Integritätsprüfsumme der komprimierten Daten bei der
 Dekompression nicht. Die CRC32\-Werte in den \fB.xz\fP\-Headern werden weiterhin
@@ -380,7 +380,7 @@ mit SHA\-256 bemerkbar, oder mit Dateien, die extrem stark komprimiert
 sind. Wir empfehlen, diese Option nicht für diesen Zweck zu verwenden, es
 sei denn, die Integrität der Datei wird extern auf andere Weise überprüft.
 .RE
-.TP 
+.TP
 \fB\-0\fP … \fB\-9\fP
 wählt eine der voreingestellten Kompressionsstufen, standardmäßig
 \fB\-6\fP. Wenn mehrere Voreinstellungsstufen angegeben sind, ist nur die
@@ -395,7 +395,7 @@ Systemen mit wenig Speicher bei einer zu hoch gewählten Voreinstellung
 schwer, eine Datei zu dekomprimieren. Insbesondere \fBist es keine gute Idee, blindlings \-9 für alles\fP zu verwenden, wie dies häufig mit \fBgzip\fP(1) und
 \fBbzip2\fP(1) gehandhabt wird.
 .RS
-.TP 
+.TP
 \fB\-0\fP … \fB\-3\fP
 Diese Voreinstellungen sind recht schnell. \fB\-0\fP ist manchmal schneller als
 \fBgzip \-9\fP, wobei aber die Kompression wesentlich besser ist. Die
@@ -403,14 +403,14 @@ schnelleren Voreinstellungen sind im Hinblick auf die Geschwindigkeit mit
 \fBbzip2\fP(1) vergleichbar , mit einem ähnlichen oder besseren
 Kompressionsverhältnis, wobei das Ergebnis aber stark vom Typ der zu
 komprimierenden Daten abhängig ist.
-.TP 
+.TP
 \fB\-4\fP … \fB\-6\fP
 Good to very good compression while keeping decompressor memory usage
 reasonable even for old systems.  \fB\-6\fP is the default, which is usually a
 good choice for distributing files that need to be decompressible even on
 systems with only 16\ MiB RAM.  (\fB\-5e\fP or \fB\-6e\fP may be worth considering
 too.  See \fB\-\-extreme\fP.)
-.TP 
+.TP
 \fB\-7 … \-9\fP
 Ähnlich wie \fB\-6\fP, aber mit einem höheren Speicherbedarf für die Kompression
 und Dekompression. Sie sind nur nützlich, wenn Dateien komprimiert werden
@@ -474,7 +474,7 @@ bestimmen. Der exakte Speicherbedarf bei der Dekompression ist geringfügig
 größer als die Größe des LZMA2\-Wörterbuchs, aber die Werte in der Tabelle
 wurden auf ganze MiB aufgerundet.
 .RE
-.TP 
+.TP
 \fB\-e\fP, \fB\-\-extreme\fP
 verwendet eine langsamere Variante der gewählten
 Kompressions\-Voreinstellungsstufe (\fB\-0\fP … \fB\-9\fP), um hoffentlich ein etwas
@@ -512,16 +512,16 @@ Voreinstellung;DictGröße;KompCPU;KompSpeicher;DekSpeicher
 Zum Beispiel gibt es insgesamt vier Voreinstellungen, die ein 8\ MiB großes
 Wörterbuch verwenden, deren Reihenfolge von der schnellsten zur langsamsten
 \fB\-5\fP, \fB\-6\fP, \fB\-5e\fP und \fB\-6e\fP ist.
-.TP 
+.TP
 \fB\-\-fast\fP
 .PD 0
-.TP 
+.TP
 \fB\-\-best\fP
 .PD
 sind etwas irreführende Aliase für \fB\-0\fP beziehungsweise \fB\-9\fP. Sie werden
 nur zwecks Abwärtskompatibilität zu den LZMA\-Dienstprogrammen
 bereitgestellt. Sie sollten diese Optionen besser nicht verwenden.
-.TP 
+.TP
 \fB\-\-block\-size=\fP\fIGröße\fP
 teilt beim Komprimieren in das \fB.xz\fP\-Format die Eingabedaten in Blöcke der
 angegebenen \fIGröße\fP in Byte. Die Blöcke werden unabhängig voneinander
@@ -546,7 +546,7 @@ Einzel\-Thread\-Modus erzeugte Dateien nicht zu den im Multi\-Thread\-Modus
 erzeugten Dateien identisch sein. Das Fehlen der Größeninformation bedingt
 auch, dass eine zukünftige Version von \fBxz\fP nicht in der Lage sein wird,
 die Dateien im Multi\-Thread\-Modus zu dekomprimieren.
-.TP 
+.TP
 \fB\-\-block\-list=\fP\fIGrößen\fP
 beginnt bei der Kompression in das \fB.xz\fP\-Format nach den angegebenen
 Intervallen unkomprimierter Daten einen neuen Block.
@@ -573,7 +573,7 @@ MiB groß ist, erhalten Sie 11 Blöcke: 5, 10, 8, 10, 2, 10, 10, 4, 10, 10 und
 Im Multi\-Thread\-Modus werden die Blockgrößen in den Block\-Headern
 gespeichert. Dies geschieht im Einzel\-Thread\-Modus nicht, daher wird die
 kodierte Ausgabe zu der im Multi\-Thread\-Modus nicht identisch sein.
-.TP 
+.TP
 \fB\-\-flush\-timeout=\fP\fIZeit\fP
 löscht bei der Kompression die ausstehenden Daten aus dem Encoder und macht
 sie im Ausgabedatenstrom verfügbar, wenn mehr als die angegebene \fIZeit\fP in
@@ -595,7 +595,7 @@ Dieses Funktionsmerkmal ist außerhalb von POSIX\-Systemen nicht verfügbar.
 \fBDieses Funktionsmerkmal ist noch experimentell.\fP Gegenwärtig ist \fBxz\fP
 aufgrund der Art und Weise, wie \fBxz\fP puffert, für Dekompression in Echtzeit
 ungeeignet.
-.TP 
+.TP
 \fB\-\-memlimit\-compress=\fP\fIGrenze\fP
 legt eine Grenze für die Speichernutzung bei der Kompression fest. Wenn
 diese Option mehrmals angegeben wird, ist die zuletzt angegebene wirksam.
@@ -637,18 +637,18 @@ a 32\-bit executable has access to 4\ GiB address space (2 GiB on MIPS32)
 while hopefully doing no harm in other situations.
 .IP ""
 Siehe auch den Abschnitt \fBSpeicherbedarf\fP.
-.TP 
+.TP
 \fB\-\-memlimit\-decompress=\fP\fIGrenze\fP
 legt eine Begrenzung des Speicherverbrauchs für die Dekompression fest. Dies
 beeinflusst auch den Modus \fB\-\-list\fP. Falls die Aktion nicht ausführbar ist,
 ohne die \fIGrenze\fP zu überschreiten, gibt \fBxz\fP eine Fehlermeldung aus und
 die Dekompression wird fehlschlagen. Siehe \fB\-\-memlimit\-compress=\fP\fIGrenze\fP
 zu möglichen Wegen, die \fIGrenze\fP anzugeben.
-.TP 
+.TP
 \fB\-M\fP \fIGrenze\fP, \fB\-\-memlimit=\fP\fIGrenze\fP, \fB\-\-memory=\fP\fIGrenze\fP
 This is equivalent to specifying \fB\-\-memlimit\-compress=\fP\fIlimit\fP
 \fB\-\-memlimit\-decompress=\fP\fIlimit\fP.
-.TP 
+.TP
 \fB\-\-no\-adjust\fP
 zeigt einen Fehler an und bricht die Ausführung ab, falls die
 Kompressionseinstellungen die Begrenzung der Speichernutzung
@@ -656,7 +656,7 @@ Kompressionseinstellungen die Begrenzung der Speichernutzung
 so dass diese Grenze nicht überschritten wird. Bei der Erzeugung von
 Rohdatenströmen (\fB\-\-format=raw\fP) ist die automatische Korrektur stets
 deaktiviert.
-.TP 
+.TP
 \fB\-T\fP \fIThreads\fP, \fB\-\-threads=\fP\fIThreads\fP
 gibt die Anzahl der zu verwendenden Arbeits\-Threads an. Wenn Sie \fIThreads\fP
 auf einen speziellen Wert \fB0\fP setzen, verwendet \fBxz\fP so viele Threads, wie
@@ -716,10 +716,10 @@ anzugeben, die Sie ändern wollen.
 Um die gesamte Filterkette und die \fIOptionen\fP anzuzeigen, rufen Sie \fBxz \-vv\fP auf (was gleichbedeutend mit der zweimaligen Angabe von \fB\-\-verbose\fP
 ist). Dies funktioniert auch zum Betrachten der von den Voreinstellungen
 verwendeten Filterkettenoptionen.
-.TP 
+.TP
 \fB\-\-lzma1\fP[\fB=\fP\fIOptionen\fP]
 .PD 0
-.TP 
+.TP
 \fB\-\-lzma2\fP[\fB=\fP\fIOptionen\fP]
 .PD
 fügt LZMA1\- oder LZMA2\-Filter zur Filterkette hinzu. Diese Filter können nur
@@ -734,7 +734,7 @@ LZMA2 praktisch gleich.
 .IP ""
 LZMA1 und LZMA2 haben die gleichen \fIOptionen\fP:
 .RS
-.TP 
+.TP
 \fBpreset=\fP\fIVoreinstellung\fP
 Reset all LZMA1 or LZMA2 \fIoptions\fP to \fIpreset\fP.  \fIPreset\fP consist of an
 integer, which may be followed by single\-letter preset modifiers.  The
@@ -742,7 +742,7 @@ integer can be from \fB0\fP to \fB9\fP, matching the command line options \fB\-0
 \&...\& \fB\-9\fP.  The only supported modifier is currently \fBe\fP, which matches
 \fB\-\-extreme\fP.  If no \fBpreset\fP is specified, the default values of LZMA1 or
 LZMA2 \fIoptions\fP are taken from the preset \fB6\fP.
-.TP 
+.TP
 \fBdict=\fP\fIGröße\fP
 Die \fIGröße\fP des Wörterbuchs (Chronikpuffers) gibt an, wie viel Byte der
 kürzlich verarbeiteten unkomprimierten Daten im Speicher behalten werden
@@ -770,7 +770,7 @@ Kompression verwendeten Wörterbuchs bestimmt. Die \fB.xz\fP\-Header speichern
 die \fIGröße\fP des Wörterbuchs entweder als 2^\fIn\fP oder 2^\fIn\fP + 2^(\fIn\fP\-1),
 so dass diese \fIGrößen\fP für die Kompression etwas bevorzugt werden. Andere
 \fIGrößen\fP werden beim Speichern in den \fB.xz\fP\-Headern aufgerundet.
-.TP 
+.TP
 \fBlc=\fP\fIlc\fP
 gibt die Anzahl der literalen Kontextbits an. Das Minimum ist 0 und das
 Maximum 4; der Standardwert ist 3. Außerdem darf die Summe von \fIlc\fP und
@@ -792,7 +792,7 @@ uncompressed data.
 The default value (3) is usually good.  If you want maximum compression,
 test \fBlc=4\fP.  Sometimes it helps a little, and sometimes it makes
 compression worse.  If it makes it worse, test \fBlc=2\fP too.
-.TP 
+.TP
 \fBlp=\fP\fIlp\fP
 gibt die Anzahl der literalen Positionsbits an. Das Minimum ist 0 und das
 Maximum 4; die Vorgabe ist 0.
@@ -800,7 +800,7 @@ Maximum 4; die Vorgabe ist 0.
 \fILp\fP beeinflusst, welche Art der Ausrichtung der unkomprimierten Daten beim
 Kodieren von Literalen angenommen wird. Siehe \fIpb\fP weiter unten für weitere
 Informationen zur Ausrichtung.
-.TP 
+.TP
 \fBpb=\fP\fIAnzahl\fP
 legt die Anzahl der Positions\-Bits fest. Das Minimum ist 0 und das Maximum
 4; Standard ist 2.
@@ -820,7 +820,7 @@ Obwohl die angenommene Ausrichtung mit \fIpb\fP und \fIlp\fP angepasst werden
 kann, bevorzugen LZMA1 und LZMA2 noch etwas die 16\-Byte\-Ausrichtung. Das
 sollten Sie vielleicht beim Design von Dateiformaten berücksichtigen, die
 wahrscheinlich oft mit LZMA1 oder LZMA2 komprimiert werden.
-.TP 
+.TP
 \fBmf=\fP\fIÜf\fP
 Match finder has a major effect on encoder speed, memory usage, and
 compression ratio.  Usually Hash Chain match finders are faster than Binary
@@ -831,7 +831,7 @@ Die folgenden Übereinstimmungsfinder werden unterstützt. Die Formeln zur
 Ermittlung des Speicherverbrauchs sind grobe Schätzungen, die der Realität
 am nächsten kommen, wenn \fIWörterbuch\fP eine Zweierpotenz ist.
 .RS
-.TP 
+.TP
 \fBhc3\fP
 Hash\-Kette mit 2\- und 3\-Byte\-Hashing
 .br
@@ -842,7 +842,7 @@ Speicherbedarf:
 \fIdict\fP * 7,5 (falls \fIdict\fP <= 16 MiB);
 .br
 \fIdict\fP * 5,5 + 64 MiB (falls \fIdict\fP > 16 MiB)
-.TP 
+.TP
 \fBhc4\fP
 Hash\-Kette mit 2\-, 3\- und 4\-Byte\-Hashing
 .br
@@ -853,14 +853,14 @@ Speicherbedarf:
 \fIdict\fP * 7,5 (falls \fIdict\fP <= 32 MiB ist);
 .br
 \fIdict\fP * 6,5 (falls \fIdict\fP > 32 MiB ist)
-.TP 
+.TP
 \fBbt2\fP
 Binärbaum mit 2\-Byte\-Hashing
 .br
 Minimaler Wert für \fInice\fP: 2
 .br
 Speicherverbrauch: \fIdict\fP * 9.5
-.TP 
+.TP
 \fBbt3\fP
 Binärbaum mit 2\- und 3\-Byte\-Hashing
 .br
@@ -871,7 +871,7 @@ Speicherbedarf:
 \fIdict\fP * 11,5 (falls \fIdict\fP <= 16 MiB ist);
 .br
 \fIdict\fP * 9,5 + 64 MiB (falls \fIdict\fP > 16 MiB ist)
-.TP 
+.TP
 \fBbt4\fP
 Binärbaum mit 2\-, 3\- und 4\-Byte\-Hashing
 .br
@@ -883,7 +883,7 @@ Speicherbedarf:
 .br
 \fIdict\fP * 10,5 (falls \fIdict\fP > 32 MiB ist)
 .RE
-.TP 
+.TP
 \fBmode=\fP\fIModus\fP
 Compression \fImode\fP specifies the method to analyze the data produced by the
 match finder.  Supported \fImodes\fP are \fBfast\fP and \fBnormal\fP.  The default is
@@ -892,7 +892,7 @@ match finder.  Supported \fImodes\fP are \fBfast\fP and \fBnormal\fP.  The defau
 Üblicherweise wird \fBfast\fP mit Hashketten\-basierten Übereinstimmungsfindern
 und \fBnormal\fP mit Binärbaum\-basierten Übereinstimmungsfindern verwendet. So
 machen es auch die \fIVoreinstellungsstufen\fP.
-.TP 
+.TP
 \fBnice=\fP\fInice\fP
 gibt an, was als annehmbarer Wert für eine Übereinstimmung angesehen werden
 kann. Wenn eine Übereinstimmung gefunden wird, die mindestens diesen
@@ -902,7 +902,7 @@ kann. Wenn eine Übereinstimmung gefunden wird, die mindestens diesen
 \fINice\fP can be 2\(en273 bytes.  Higher values tend to give better
 compression ratio at the expense of speed.  The default depends on the
 \fIpreset\fP.
-.TP 
+.TP
 \fBdepth=\fP\fITiefe\fP
 legt die maximale Suchtiefe im Übereinstimmungsfinder fest. Vorgegeben ist
 der spezielle Wert 0, der den Kompressor veranlasst, einen annehmbaren Wert
@@ -916,18 +916,18 @@ prepared to interrupt the compression in case it is taking far too long.
 .IP ""
 Beim Dekodieren von Rohdatenströmen (\fB\-\-format=raw\fP) benötigt LZMA2 nur die
 Wörterbuch\-\fIGröße\fP.  LZMA1 benötigt außerdem \fIlc\fP, \fIlp\fP und \fIpb\fP.
-.TP 
+.TP
 \fB\-\-x86\fP[\fB=\fP\fIOptionen\fP]
 .PD 0
-.TP 
+.TP
 \fB\-\-powerpc\fP[\fB=\fP\fIOptionen\fP]
-.TP 
+.TP
 \fB\-\-ia64\fP[\fB=\fP\fIOptionen\fP]
-.TP 
+.TP
 \fB\-\-arm\fP[\fB=\fP\fIOptionen\fP]
-.TP 
+.TP
 \fB\-\-armthumb\fP[\fB=\fP\fIOptionen\fP]
-.TP 
+.TP
 \fB\-\-sparc\fP[\fB=\fP\fIOptionen\fP]
 .PD
 fügt ein »Branch/Call/Jump«\-(BCJ\-)Filter zur Filterkette hinzu. Diese Filter
@@ -1003,7 +1003,7 @@ bleiben, wenn Sie x86\-Binärdateien komprimieren.
 .IP ""
 Alle BCJ\-Filter unterstützen die gleichen \fIOptionen\fP:
 .RS
-.TP 
+.TP
 \fBstart=\fP\fIVersatz\fP
 gibt den Start\-\fIVersatz\fP an, der bei der Umwandlung zwischen relativen und
 absoluten Adressen verwendet wird. Der \fIVersatz\fP muss ein Vielfaches der
@@ -1011,7 +1011,7 @@ Filterausrichtung sein (siehe die Tabelle oben). Der Standardwert ist 0. In
 der Praxis ist dieser Standardwert gut; die Angabe eines benutzerdefinierten
 \fIVersatzes\fP ist fast immer unnütz.
 .RE
-.TP 
+.TP
 \fB\-\-delta\fP[\fB=\fP\fIOptionen\fP]
 fügt den Delta\-Filter zur Filterkette hinzu. Der Delta\-Filter kann nicht als
 letzter Filter in der Filterkette verwendet werden.
@@ -1025,7 +1025,7 @@ with audio, which compresses faster and better, for example, with
 .IP ""
 Unterstützte \fIOptionen\fP:
 .RS
-.TP 
+.TP
 \fBdist=\fP\fIAbstand\fP
 Specify the \fIdistance\fP of the delta calculation in bytes.  \fIdistance\fP must
 be 1\(en256.  The default is 1.
@@ -1035,13 +1035,13 @@ B7 die Ausgabe A1 B1 01 02 01 02 01 02 sein.
 .RE
 .
 .SS "Andere Optionen"
-.TP 
+.TP
 \fB\-q\fP, \fB\-\-quiet\fP
 unterdrückt Warnungen und Hinweise. Geben Sie dies zweimal an, um auch
 Fehlermeldungen zu unterdrücken. Diese Option wirkt sich nicht auf den
 Exit\-Status aus. Das bedeutet, das selbst bei einer unterdrückten Warnung
 der Exit\-Status zur Anzeige einer Warnung dennoch verwendet wird.
-.TP 
+.TP
 \fB\-v\fP, \fB\-\-verbose\fP
 bewirkt ausführliche Ausgaben. Wenn die Standardfehlerausgabe mit einem
 Terminal verbunden ist, zeigt \fBxz\fP den Fortschritt an. Durch zweimalige
@@ -1085,14 +1085,14 @@ after compressing or decompressing the file.  The speed and elapsed time are
 included only when the operation took at least a few seconds.  If the
 operation didn't finish, for example, due to user interruption, also the
 completion percentage is printed if the size of the input file is known.
-.TP 
+.TP
 \fB\-Q\fP, \fB\-\-no\-warn\fP
 setzt den Exit\-Status nicht auf 2, selbst wenn eine Bedingung erfüllt ist,
 die eine Warnung gerechtfertigt hätte. Diese Option wirkt sich nicht auf die
 Ausführlichkeitsstufe aus, daher müssen sowohl \fB\-\-quiet\fP als auch
 \fB\-\-no\-warn\fP angegeben werden, um einerseits keine Warnungen anzuzeigen und
 andererseits auch den Exit\-Status nicht zu ändern.
-.TP 
+.TP
 \fB\-\-robot\fP
 gibt Meldungen in einem maschinenlesbaren Format aus. Dadurch soll das
 Schreiben von Frontends erleichtert werden, die \fBxz\fP anstelle von Liblzma
@@ -1100,20 +1100,20 @@ verwenden wollen, was in verschiedenen Skripten der Fall sein kann. Die
 Ausgabe mit dieser aktivierten Option sollte über mehrere
 \fBxz\fP\-Veröffentlichungen stabil sein. Details hierzu finden Sie im Abschnitt
 \fBROBOTER\-MODUS\fP.
-.TP 
+.TP
 \fB\-\-info\-memory\fP
 zeigt in einem menschenlesbaren Format an, wieviel physischen Speicher (RAM)
 das System nach Annahme von \fBxz\fP hat, sowie die Speicherbedarfsbegrenzung
 für Kompression und Dekompression, und beendet das Programm erfolgreich.
-.TP 
+.TP
 \fB\-h\fP, \fB\-\-help\fP
 zeigt eine Hilfemeldung mit den am häufigsten genutzten Optionen an und
 beendet das Programm erfolgreich.
-.TP 
+.TP
 \fB\-H\fP, \fB\-\-long\-help\fP
 zeigt eine Hilfemeldung an, die alle Funktionsmerkmale von \fBxz\fP beschreibt
 und beendet das Programm erfolgreich.
-.TP 
+.TP
 \fB\-V\fP, \fB\-\-version\fP
 zeigt die Versionsnummer von \fBxz\fP und Liblzma in einem menschenlesbaren
 Format an. Um eine maschinell auswertbare Ausgabe zu erhalten, geben Sie
@@ -1133,18 +1133,18 @@ folgenden Format aus:
 \fBXZ_VERSION=\fP\fIXYYYZZZS\fP
 .br
 \fBLIBLZMA_VERSION=\fP\fIXYYYZZZS\fP
-.TP 
+.TP
 \fIX\fP
 Hauptversion.
-.TP 
+.TP
 \fIYYY\fP
 Unterversion. Gerade Zahlen bezeichnen eine stabile Version. Ungerade Zahlen
 bezeichnen Alpha\- oder Betaversionen.
-.TP 
+.TP
 \fIZZZ\fP
 Patch\-Stufe für stabile Veröffentlichungen oder einfach nur ein Zähler für
 Entwicklungsversionen.
-.TP 
+.TP
 \fIS\fP
 Stabilität. 0 ist Alpha, 1 ist Beta und 2 ist stabil. \fIS\fP sollte immer 2
 sein, wenn \fIYYY\fP eine gerade Zahl ist.
@@ -1175,32 +1175,32 @@ Spalten enthalten, aber niemals mehr als eine einzelne Zeile.
 \fBxz \-\-robot \-\-list\fP verwendet eine durch Tabulatoren getrennte Ausgabe. In
 der ersten Spalte jeder Zeile bezeichnet eine Zeichenkette den Typ der
 Information, die in dieser Zeile enthalten ist:
-.TP 
+.TP
 \fBname\fP
 Dies ist stets die erste Zeile, wenn eine Datei aufgelistet wird. Die zweite
 Spalte in der Zeile enthält den Dateinamen.
-.TP 
+.TP
 \fBfile\fP
 Diese Zeile enthält allgemeine Informationen zur \fB.xz\fP\-Datei. Diese Zeile
 wird stets nach der \fBname\fP\-Zeile ausgegeben.
-.TP 
+.TP
 \fBstream\fP
 Dieser Zeilentyp wird nur verwendet, wenn \fB\-\-verbose\fP angegeben wurde. Es
 gibt genau so viele \fBstream\fP\-Zeilen, wie Datenströme in der \fB.xz\fP\-Datei
 enthalten sind.
-.TP 
+.TP
 \fBblock\fP
 Dieser Zeilentyp wird nur verwendet, wenn \fB\-\-verbose\fP angegeben wurde. Es
 gibt so viele \fBblock\fP\-Zeilen, wie Blöcke in der \fB.xz\fP\-Datei. Die
 \fBblock\fP\-Zeilen werden nach allen \fBstream\fP\-Zeilen angezeigt; verschiedene
 Zeilentypen werden nicht verschachtelt.
-.TP 
+.TP
 \fBsummary\fP
 Dieser Zeilentyp wird nur verwendet, wenn \fB\-\-verbose\fP zwei Mal angegeben
 wurde. Diese Zeile wird nach allen \fBblock\fP\-Zeilen ausgegeben. Wie die
 \fBfile\fP\-Zeile enthält die \fBsummary\fP\-Zeile allgemeine Informationen zur
 \&\fB.xz\fP\-Datei.
-.TP 
+.TP
 \fBtotals\fP
 Diese Zeile ist immer die letzte der Listenausgabe. Sie zeigt die
 Gesamtanzahlen und \-größen an.
@@ -1369,13 +1369,13 @@ auch in den vorhandenen Zeilentypen weitere Spalten hinzugefügt werden, aber
 die existierenden Spalten werden nicht geändert.
 .
 .SH EXIT\-STATUS
-.TP 
+.TP
 \fB0\fP
 Alles ist in Ordnung.
-.TP 
+.TP
 \fB1\fP
 Ein Fehler ist aufgetreten.
-.TP 
+.TP
 \fB2\fP
 Es ist etwas passiert, das eine Warnung rechtfertigt, aber es sind keine
 tatsächlichen Fehler aufgetreten.
@@ -1391,7 +1391,7 @@ dass beim Auswerten der Umgebungsvariablen nur Optionen berücksichtigt
 werden; alle Einträge, die keine Optionen sind, werden stillschweigend
 ignoriert. Die Auswertung erfolgt mit \fBgetopt_long\fP(3), welches auch für
 die Befehlszeilenargumente verwendet wird.
-.TP 
+.TP
 \fBXZ_DEFAULTS\fP
 Benutzerspezifische oder systemweite Standardoptionen. Typischerweise werden
 diese in einem Shell\-Initialisierungsskript gesetzt, um die
@@ -1399,7 +1399,7 @@ Speicherbedarfsbegrenzung von \fBxz\fP standardmäßig zu aktivieren. Außer bei
 Shell\-Initialisierungsskripten und in ähnlichen Spezialfällen darf die
 Variable \fBXZ_DEFAULTS\fP in Skripten niemals gesetzt oder außer Kraft gesetzt
 werden.
-.TP 
+.TP
 \fBXZ_OPT\fP
 This is for passing options to \fBxz\fP when it is not possible to set the
 options directly on the \fBxz\fP command line.  This is the case when \fBxz\fP is

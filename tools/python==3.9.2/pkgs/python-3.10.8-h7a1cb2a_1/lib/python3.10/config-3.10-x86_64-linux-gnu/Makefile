@@ -22,7 +22,7 @@
 # === Variables set by makesetup ===
 
 MODBUILT_NAMES=      posix  errno  pwd  _sre  _codecs  _weakref  _functools  _operator  _collections  _abc  itertools  atexit  _signal  _stat  time  _thread  _locale  _io  faulthandler  _tracemalloc  _symtable  xxsubtype
-MODDISABLED_NAMES= 
+MODDISABLED_NAMES=
 MODOBJS=             Modules/posixmodule.o  Modules/errnomodule.o  Modules/pwdmodule.o  Modules/_sre.o  Modules/_codecsmodule.o  Modules/_weakref.o  Modules/_functoolsmodule.o  Modules/_operator.o  Modules/_collectionsmodule.o  Modules/_abc.o  Modules/itertoolsmodule.o  Modules/atexitmodule.o  Modules/signalmodule.o  Modules/_stat.o  Modules/timemodule.o  Modules/_threadmodule.o  Modules/_localemodule.o  Modules/_iomodule.o Modules/iobase.o Modules/fileio.o Modules/bytesio.o Modules/bufferedio.o Modules/textio.o Modules/stringio.o  Modules/faulthandler.o  Modules/_tracemalloc.o  Modules/symtablemodule.o  Modules/xxsubtype.o
 MODLIBS=           $(LOCALMODLIBS) $(BASEMODLIBS)
 
@@ -42,19 +42,19 @@ AR=		x86_64-conda-linux-gnu-ar
 READELF=	x86_64-conda-linux-gnu-readelf
 SOABI=		cpython-310-x86_64-linux-gnu
 LDVERSION=	$(VERSION)$(ABIFLAGS)
-LIBPYTHON=	
-GITVERSION=	
-GITTAG=		
-GITBRANCH=	
+LIBPYTHON=
+GITVERSION=
+GITTAG=
+GITBRANCH=
 PGO_PROF_GEN_FLAG=-fprofile-generate
-PGO_PROF_USE_FLAG= 
+PGO_PROF_USE_FLAG=
 LLVM_PROF_MERGER=true
 LLVM_PROF_FILE=
 LLVM_PROF_ERR=no
-DTRACE=         
-DFLAGS=         
-DTRACE_HEADERS= 
-DTRACE_OBJS=    
+DTRACE=
+DFLAGS=
+DTRACE_HEADERS=
+DTRACE_OBJS=
 
 GNULD=		yes
 
@@ -81,7 +81,7 @@ MAKESETUP=      $(srcdir)/Modules/makesetup
 OPT=		-DNDEBUG -fwrapv -O2 -Wall
 BASECFLAGS=	 -Wno-unused-result -Wsign-compare
 BASECPPFLAGS=	-IObjects -IInclude -IPython
-CONFIGURE_CFLAGS=	-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /croot/python-split_1669298683653/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_plac/include -fdebug-prefix-map=/croot/python-split_1669298683653/work=/usr/local/src/conda/python-3.10.8 -fdebug-prefix-map=/croot/python-split_1669298683653/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_plac=/usr/local/src/conda-prefix    
+CONFIGURE_CFLAGS=	-march=nocona -mtune=haswell -ftree-vectorize -fPIC -fstack-protector-strong -fno-plt -O2 -ffunction-sections -pipe -isystem /croot/python-split_1669298683653/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_plac/include -fdebug-prefix-map=/croot/python-split_1669298683653/work=/usr/local/src/conda/python-3.10.8 -fdebug-prefix-map=/croot/python-split_1669298683653/_h_env_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_placehold_plac=/usr/local/src/conda-prefix
 # CFLAGS_NODIST is used for building the interpreter and stdlib C extensions.
 # Use it when a compiler flag should _not_ be part of the distutils CFLAGS
 # once Python is installed (Issue #21121).
@@ -145,9 +145,9 @@ INCLUDEDIR=	${prefix}/include
 CONFINCLUDEDIR=	$(exec_prefix)/include
 PLATLIBDIR=	lib
 SCRIPTDIR=	$(prefix)/$(PLATLIBDIR)
-ABIFLAGS=	
+ABIFLAGS=
 # Variable used by ensurepip
-WHEEL_PKG_DIR=	
+WHEEL_PKG_DIR=
 
 # Detailed destination directories
 BINLIBDEST=	${exec_prefix}/${PLATLIBDIR}/python$(VERSION)
@@ -164,19 +164,19 @@ LDCXXSHARED=	$(CXX) -shared
 DESTSHARED=	$(BINLIBDEST)/lib-dynload
 
 # List of exported symbols for AIX
-EXPORTSYMS=	
-EXPORTSFROM=	
+EXPORTSYMS=
+EXPORTSFROM=
 
 # Executable suffix (.exe on Windows and Mac OS X)
-EXE=		
-BUILDEXE=	
+EXE=
+BUILDEXE=
 
 # Short name and location for Mac OS X Python framework
 UNIVERSALSDK=
-PYTHONFRAMEWORK=	
+PYTHONFRAMEWORK=
 PYTHONFRAMEWORKDIR=	no-framework
-PYTHONFRAMEWORKPREFIX=	
-PYTHONFRAMEWORKINSTALLDIR= 
+PYTHONFRAMEWORKPREFIX=
+PYTHONFRAMEWORKINSTALLDIR=
 # Deployment target selected during configure, to be checked
 # by distutils. The export statement is needed to ensure that the
 # deployment target is active during build.
@@ -196,7 +196,7 @@ LIPO_INTEL64_FLAGS=
 OTHER_LIBTOOL_OPT=
 
 # Environment to run shared python without installed libraries
-RUNSHARED=       
+RUNSHARED=
 
 # ensurepip options
 ENSUREPIP=      no
@@ -236,9 +236,9 @@ DIST=		$(DISTFILES) $(DISTDIRS)
 LIBRARY=	libpython$(VERSION)$(ABIFLAGS).a
 LDLIBRARY=      libpython$(VERSION)$(ABIFLAGS).a
 BLDLIBRARY=     $(LDLIBRARY)
-PY3LIBRARY=     
-DLLLIBRARY=	
-LDLIBRARYDIR=   
+PY3LIBRARY=
+DLLLIBRARY=
+LDLIBRARYDIR=
 INSTSONAME=	$(LDLIBRARY)
 LIBRARY_DEPS=	$(LIBRARY) $(PY3LIBRARY) $(EXPORTSYMS)
 PY_ENABLE_SHARED=	0
@@ -247,15 +247,15 @@ STATIC_LIBPYTHON=	1
 
 LIBS=		-lcrypt -lpthread -ldl  -lutil -lm
 LIBM=		-lm
-LIBC=		
+LIBC=
 SYSLIBS=	$(LIBM) $(LIBC)
 SHLIBS=		$(LIBS)
 
 DLINCLDIR=	.
 DYNLOADFILE=	dynload_shlib.o
-MACHDEP_OBJS=	
+MACHDEP_OBJS=
 LIBOBJDIR=	Python/
-LIBOBJS=	
+LIBOBJS=
 
 PYTHON=		python$(EXE)
 BUILDPYTHON=	python$(BUILDEXE)
@@ -286,7 +286,7 @@ COVERAGE_REPORT_OPTIONS=--no-branch-coverage --title "CPython lcov report"
 
 # === Definitions added by makesetup ===
 
-LOCALMODLIBS=                      
+LOCALMODLIBS=
 BASEMODLIBS=
 PYTHONPATH=$(COREPYTHONPATH)
 COREPYTHONPATH=$(DESTPATH)$(SITEPATH)$(TESTPATH)
@@ -1277,7 +1277,7 @@ multisslcompile: build_all
 multissltest: build_all
 	$(RUNSHARED) ./$(BUILDPYTHON) $(srcdir)/Tools/ssl/multissltests.py
 
-install:  commoninstall bininstall maninstall 
+install:  commoninstall bininstall maninstall
 	if test "x$(ENSUREPIP)" != "xno"  ; then \
 		case $(ENSUREPIP) in \
 			upgrade) ensurepip="--upgrade" ;; \
@@ -1300,7 +1300,7 @@ altinstall: commoninstall
 commoninstall:  check-clean-src  \
 		altbininstall libinstall inclinstall libainstall \
 		sharedinstall oldsharedinstall altmaninstall \
-		
+
 
 # Install shared libraries enabled by Setup
 DESTDIRS=	$(exec_prefix) $(LIBDIR) $(BINLIBDEST) $(DESTSHARED)
@@ -1325,7 +1325,7 @@ $(DESTSHARED):
 
 # Install the interpreter with $(VERSION) affixed
 # This goes into $(exec_prefix)
-altbininstall: $(BUILDPYTHON) 
+altbininstall: $(BUILDPYTHON)
 	@for i in $(BINDIR) $(LIBDIR); \
 	do \
 		if test ! -d $(DESTDIR)$$i; then \

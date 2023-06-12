@@ -2,7 +2,6 @@ import builtins
 import keyword
 import re
 import time
-
 from idlelib.config import idleConf
 from idlelib.delegator import Delegator
 
@@ -381,10 +380,9 @@ class ColorDelegator(Delegator):
 
 
 def _color_delegator(parent):  # htest #
-    from tkinter import Text, Toplevel
-
     from idlelib.idle_test.test_colorizer import source
     from idlelib.percolator import Percolator
+    from tkinter import Text, Toplevel
 
     top = Toplevel(parent)
     top.title("Test ColorDelegator")

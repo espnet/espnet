@@ -119,4 +119,3 @@ done
 pushd "gcc_built/bin"
 ln -s ${CFG_TARGET}-gcc gcc
 popd
-

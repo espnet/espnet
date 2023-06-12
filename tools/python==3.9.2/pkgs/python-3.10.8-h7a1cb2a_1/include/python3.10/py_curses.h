@@ -96,4 +96,3 @@ static const char catchall_NULL[] = "curses function returned NULL";
 #endif
 
 #endif /* !defined(Py_CURSES_H) */
-

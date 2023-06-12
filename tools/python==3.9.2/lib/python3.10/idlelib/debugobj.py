@@ -6,11 +6,11 @@
 
 # object browser
 
+from idlelib.tree import ScrolledCanvas, TreeItem, TreeNode
+
 # XXX TO DO:
 # - for classes/modules, add "open source" to object browser
 from reprlib import Repr
-
-from idlelib.tree import ScrolledCanvas, TreeItem, TreeNode
 
 myrepr = Repr()
 myrepr.maxstring = 100

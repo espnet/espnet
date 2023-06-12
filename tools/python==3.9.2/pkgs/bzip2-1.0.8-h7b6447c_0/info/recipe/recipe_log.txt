@@ -28,7 +28,7 @@ Author: Marius van Niekerk <marius.v.niekerk@gmail.com>
 Date:   Sat Jul 14 11:10:35 2018 -0500
 
     Merge pull request #3 from regro-cf-autotick-bot/compiler_migration2
-    
+
     Migrate to Jinja2 compiler syntax
 
 commit b6a19162bddc72ca645f17117f11edfd81330fe0
@@ -67,7 +67,7 @@ Author: jakirkham <jakirkham@gmail.com>
 Date:   Fri Mar 31 08:46:50 2017 -0400
 
     Merge pull request #1 from marcelm/libbz2
-    
+
     Build libbz2.so
 
 commit c8fe581fe864fbe95d977253cb01c54a3710cb09
@@ -93,7 +93,7 @@ Author: Marcel Martin <marcel.martin@scilifelab.se>
 Date:   Wed Mar 8 23:33:08 2017 +0100
 
     Build libbz2.so.1.0
-    
+
     Based on conda-forge/staged-recipes#1977
 
 commit 9cf8a29c99dd81b38a19e52f5c151c49ca18841a

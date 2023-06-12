@@ -233,7 +233,7 @@ struct PhotoInstance {
 #define MIN(a, b)	((a) < (b)? (a): (b))
 #undef MAX
 #define MAX(a, b)	((a) > (b)? (a): (b))
-
+
 /*
  * Declarations of functions shared between the different parts of the
  * photo image implementation.
@@ -253,7 +253,7 @@ MODULE_SCOPE void	TkImgPhotoDisplay(ClientData clientData,
 MODULE_SCOPE void	TkImgPhotoFree(ClientData clientData,
 			    Display *display);
 MODULE_SCOPE void	TkImgResetDither(PhotoInstance *instancePtr);
-
+
 /*
  * Local Variables:
  * mode: c

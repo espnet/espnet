@@ -19,6 +19,6 @@
      rpath = (const char *) getenv ("LD_RUN_PATH");
 +  if (rpath && *rpath == '\0')
 +    rpath = NULL;
- 
+
    for (abfd = link_info.input_bfds; abfd; abfd = abfd->link.next)
      if (bfd_get_flavour (abfd) == bfd_target_elf_flavour)

@@ -1,10 +1,9 @@
 "Test , coverage %."
 
 import unittest
+from idlelib import zzdummy
 from test.support import requires
 from tkinter import Tk
-
-from idlelib import zzdummy
 
 
 class Test(unittest.TestCase):

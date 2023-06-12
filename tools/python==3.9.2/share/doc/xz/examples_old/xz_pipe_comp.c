@@ -124,4 +124,3 @@ int main ()
 	ret = xz_compress (stdin, stdout);
 	return ret;
 }
-

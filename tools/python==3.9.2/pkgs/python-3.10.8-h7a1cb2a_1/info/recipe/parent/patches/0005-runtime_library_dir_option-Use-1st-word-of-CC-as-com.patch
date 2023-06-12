@@ -25,6 +25,5 @@ index d00c48981e..54dd556fe5 100644
          if sys.platform[:6] == "darwin":
              # MacOSX's linker doesn't understand the -R flag at all
              return "-L" + dir
--- 
+--
 2.32.1 (Apple Git-133)
-

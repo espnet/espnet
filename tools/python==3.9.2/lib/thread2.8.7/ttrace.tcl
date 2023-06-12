@@ -41,7 +41,7 @@
 #      I left this deliberately. I didn't want to override the [namespace]
 #      command in order to avoid potential slowdown.
 #
-
+
 namespace eval ttrace {
 
     # Setup some compatibility wrappers
@@ -467,7 +467,7 @@ namespace eval ttrace {
         return $res
     }
 }
-
+
 #
 # The code below is ment to be run once during the application start.  It
 # provides implementation of tracing callbacks for some Tcl commands.  Users
@@ -930,7 +930,7 @@ eval {
         }
     }
 }
-
+
 # EOF
 return
 

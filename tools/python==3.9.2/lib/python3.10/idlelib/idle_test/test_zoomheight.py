@@ -2,11 +2,10 @@
 # Some code is system dependent.
 
 import unittest
-from test.support import requires
-from tkinter import Tk
-
 from idlelib import zoomheight
 from idlelib.editor import EditorWindow
+from test.support import requires
+from tkinter import Tk
 
 
 class Test(unittest.TestCase):

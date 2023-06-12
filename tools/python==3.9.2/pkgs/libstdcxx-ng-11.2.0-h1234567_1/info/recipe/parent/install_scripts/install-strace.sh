@@ -8,4 +8,3 @@ pushd ${SRC_DIR}/build/strace-target
 popd
 
 source ${RECIPE_DIR}/install_scripts/make_tool_links.sh
-

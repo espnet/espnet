@@ -11,6 +11,17 @@ Refer to comments in EditorWindow autoindent code for details.
 """
 import re
 import tkinter.font as tkfont
+from idlelib import macosx
+from idlelib.autocomplete import AutoComplete
+from idlelib.codecontext import CodeContext
+from idlelib.config import ConfigChanges, idleConf
+from idlelib.config_key import GetKeysWindow
+from idlelib.dynoption import DynOptionMenu
+from idlelib.format import FormatParagraph
+from idlelib.parenmatch import ParenMatch
+from idlelib.query import HelpSource, SectionName
+from idlelib.squeezer import Squeezer
+from idlelib.textview import ScrollableTextFrame, view_text
 from tkinter import (
     ACTIVE,
     ANCHOR,
@@ -60,18 +71,6 @@ from tkinter.ttk import (
     Spinbox,
     Style,
 )
-
-from idlelib import macosx
-from idlelib.autocomplete import AutoComplete
-from idlelib.codecontext import CodeContext
-from idlelib.config import ConfigChanges, idleConf
-from idlelib.config_key import GetKeysWindow
-from idlelib.dynoption import DynOptionMenu
-from idlelib.format import FormatParagraph
-from idlelib.parenmatch import ParenMatch
-from idlelib.query import HelpSource, SectionName
-from idlelib.squeezer import Squeezer
-from idlelib.textview import ScrollableTextFrame, view_text
 
 changes = ConfigChanges()
 # Reload changed options in the following classes.

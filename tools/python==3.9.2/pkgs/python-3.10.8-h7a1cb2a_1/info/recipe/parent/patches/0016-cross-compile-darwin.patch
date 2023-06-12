@@ -26,7 +26,7 @@ index e32f9c11cd..5f7e46fb6c 100755
 +                return None
 +        else:
 +            return None
- 
+
      try:
          import plistlib
 diff --git a/configure b/configure
@@ -46,7 +46,7 @@ index 5075304e93..9399fe6cd8 100755
 @@ -6250,7 +6253,7 @@ esac
    fi
  fi
- 
+
 -if test "$cross_compiling" = yes; then
 +if test "$cross_compiling" = yes -a "$ac_sys_system" != "Darwin"; then
      case "$READELF" in
@@ -68,7 +68,7 @@ index 4e026c2a0f..3b76442881 100644
  		;;
 @@ -1211,7 +1214,7 @@ then
  fi
- 
+
  AC_CHECK_TOOLS([READELF], [readelf], [:])
 -if test "$cross_compiling" = yes; then
 +if test "$cross_compiling" = yes -a "$ac_sys_system" != "Darwin"; then
@@ -102,6 +102,5 @@ index 9c3dd04989..0001e40a32 100644
                  ret = run_command("ldd %s > %s" % (do_readline, tmpfile))
              else:
                  ret = 1
--- 
+--
 2.32.1 (Apple Git-133)
-

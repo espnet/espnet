@@ -14,7 +14,7 @@ Index: binutils-2.38/bfd/elf.c
    unsigned int i, j;
    struct elf_segment_map **sorted_seg_map;
 @@ -5523,12 +5525,19 @@ assign_file_positions_for_load_sections
- 
+
    p_align = bed->p_align;
    maxpagesize = 1;
 +  commonpagesize = 1;
@@ -33,7 +33,7 @@ Index: binutils-2.38/bfd/elf.c
 +          commonpagesize = bed->commonpagesize;
 +        }
      }
- 
+
    /* Sections must map to file offsets past the ELF file header.  */
 @@ -5600,7 +5609,7 @@ assign_file_positions_for_load_sections
  	       largest section alignment.  The run-time loader can
@@ -41,16 +41,15 @@ Index: binutils-2.38/bfd/elf.c
  	       maximum page size, depending on system page size.  */
 -	    p_align_p = true;
 +	    p_align_commonpagesize_p = p_align_p = true;
- 
+
  	  p->p_align = maxpagesize;
  	}
 @@ -6035,6 +6044,9 @@ assign_file_positions_for_load_sections
- 
+
  	  if (p_align_p)
  	    p->p_align = p_align;
 +          if (p_align_commonpagesize_p)
 +            p->p_align = commonpagesize;
-+          
++
  	}
      }
- 

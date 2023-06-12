@@ -88,12 +88,11 @@
 import os
 import sys
 import turtle
-from tkinter import *
-from turtledemo import __doc__ as about_turtledemo
-
 from idlelib.colorizer import ColorDelegator, color_config
 from idlelib.percolator import Percolator
 from idlelib.textview import view_text
+from tkinter import *
+from turtledemo import __doc__ as about_turtledemo
 
 demo_dir = os.path.dirname(os.path.abspath(__file__))
 darwin = sys.platform == "darwin"

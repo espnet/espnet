@@ -11,7 +11,7 @@
 #
 
 package require Tk
-
+
 ::oo::class create ::tk::Megawidget {
     superclass ::oo::class
     method unknown {w args} {
@@ -288,7 +288,7 @@ package require Tk
 	my TraceOption -cursor UpdateCursorOption
     }
 }
-
+
 return
 
 # Local Variables:

@@ -79,7 +79,7 @@ extern "C" {
 
 #define TK_VERSION		"8.6"
 #define TK_PATCH_LEVEL		"8.6.12"
-
+
 /*
  * A special definition used to allow this header file to be included from
  * windows or mac resource files so that they can obtain version information.
@@ -120,7 +120,7 @@ extern "C" {
 #ifdef XNQueryInputStyle
 #define TK_USE_INPUT_METHODS
 #endif
-
+
 /*
  * Dummy types that are used by clients:
  */
@@ -147,7 +147,7 @@ typedef struct Tk_StyledElement_ *Tk_StyledElement;
  */
 
 typedef const char *Tk_Uid;
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -324,7 +324,7 @@ typedef struct Tk_SavedOptions {
 				 * old values in a single structure. NULL
 				 * means no more structures. */
 } Tk_SavedOptions;
-
+
 /*
  * Structure used to describe application-specific configuration options:
  * indicates procedures to call to parse an option and to return a text string
@@ -422,7 +422,7 @@ typedef enum {
 #define TK_CONFIG_OPTION_SPECIFIED      (1 << 4)
 #define TK_CONFIG_USER_BIT		0x100
 #endif /* __NO_OLD_CONFIG */
-
+
 /*
  * Structure used to specify how to handle argv options.
  */
@@ -466,7 +466,7 @@ typedef struct {
 #define TK_ARGV_NO_LEFTOVERS		0x2
 #define TK_ARGV_NO_ABBREV		0x4
 #define TK_ARGV_DONT_SKIP_FIRST_ARG	0x8
-
+
 /*
  * Enumerated type for describing actions to be taken in response to a
  * restrictProc established by Tk_RestrictEvents.
@@ -524,7 +524,7 @@ typedef enum {
     TK_ANCHOR_S, TK_ANCHOR_SW, TK_ANCHOR_W, TK_ANCHOR_NW,
     TK_ANCHOR_CENTER
 } Tk_Anchor;
-
+
 /*
  * Enumerated type for describing a style of justification:
  */
@@ -568,7 +568,7 @@ typedef struct Tk_FontMetrics {
 
 #define TK_IGNORE_TABS		8
 #define TK_IGNORE_NEWLINES	16
-
+
 /*
  * Widget class procedures used to implement platform specific widget
  * behavior.
@@ -611,7 +611,7 @@ typedef struct Tk_ClassProcs {
 #define Tk_GetClassProc(procs, which) \
     (((procs) == NULL) ? NULL : \
     (((procs)->size <= Tk_Offset(Tk_ClassProcs, which)) ? NULL:(procs)->which))
-
+
 /*
  * Each geometry manager (the packer, the placer, etc.) is represented by a
  * structure of the following form, which indicates procedures to invoke in
@@ -644,7 +644,7 @@ typedef struct Tk_GeomMgr {
 #define TK_SCROLL_PAGES		2
 #define TK_SCROLL_UNITS		3
 #define TK_SCROLL_ERROR		4
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -707,7 +707,7 @@ typedef struct {
 } XActivateDeactivateEvent;
 typedef XActivateDeactivateEvent XActivateEvent;
 typedef XActivateDeactivateEvent XDeactivateEvent;
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -916,7 +916,7 @@ typedef struct Tk_FakeWin {
 #define TK_PROP_PROPCHANGE	0x40000
 #define TK_WM_MANAGEABLE	0x80000
 #define TK_CAN_INPUT_TEXT       0x100000
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -1221,7 +1221,7 @@ typedef struct Tk_Outline {
     Pixmap disabledStipple;	/* Outline Stipple pattern if state is
 				 * disabled. */
 } Tk_Outline;
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -1398,7 +1398,7 @@ struct Tk_PhotoImageFormat {
 				 * currently known. Filled in by Tk, not by
 				 * image format handler. */
 };
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -1466,7 +1466,7 @@ typedef struct Tk_ElementSpec {
 #define TK_ELEMENT_STATE_DISABLED       1<<1
 #define TK_ELEMENT_STATE_FOCUS          1<<2
 #define TK_ELEMENT_STATE_PRESSED        1<<3
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -1530,7 +1530,7 @@ EXTERN const char *	Tk_PkgInitStubsCheck(Tcl_Interp *interp,
 #endif /* USE_TK_STUBS */
 
 #define Tk_InitImageArgs(interp, argc, argv) /**/
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -1560,7 +1560,7 @@ typedef int (Tk_SelectionProc) (ClientData clientData, int offset,
  */
 
 #include "tkDecls.h"
-
+
 #ifdef USE_OLD_IMAGE
 #undef Tk_CreateImageType
 #define Tk_CreateImageType		Tk_CreateOldImageType
@@ -1610,7 +1610,7 @@ typedef int (Tk_SelectionProc) (ClientData clientData, int offset,
 #   endif
 #   define Tk_PhotoSetSize		Tk_PhotoSetSize_Panic
 #endif /* USE_PANIC_ON_PHOTO_ALLOC_FAILURE */
-
+
 #undef TCL_STORAGE_CLASS
 #define TCL_STORAGE_CLASS DLLIMPORT
 
@@ -1625,7 +1625,7 @@ typedef int (Tk_SelectionProc) (ClientData clientData, int offset,
 #endif
 
 #endif /* _TK */
-
+
 /*
  * Local Variables:
  * mode: c

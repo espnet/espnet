@@ -63,7 +63,7 @@ MODULE_SCOPE int TK_LOCAL_MAIN_HOOK(int *argc, char ***argv);
 /* Make sure the stubbed variants of those are never used. */
 #undef Tcl_ObjSetVar2
 #undef Tcl_NewStringObj
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -93,7 +93,7 @@ main(
     Tk_Main(argc, argv, TK_LOCAL_APPINIT);
     return 0;			/* Needed only to prevent compiler warning. */
 }
-
+
 /*
  *----------------------------------------------------------------------
  *
@@ -167,7 +167,7 @@ Tcl_AppInit(
 	    Tcl_NewStringObj("~/.wishrc", -1), TCL_GLOBAL_ONLY);
     return TCL_OK;
 }
-
+
 /*
  * Local Variables:
  * mode: c

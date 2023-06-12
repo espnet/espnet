@@ -8,11 +8,6 @@ import sys
 import tokenize
 import traceback
 import webbrowser
-from tkinter import *
-from tkinter import messagebox, simpledialog
-from tkinter.font import Font
-from tkinter.ttk import Scrollbar
-
 from idlelib import (
     configdialog,
     grep,
@@ -29,6 +24,10 @@ from idlelib.config import idleConf
 from idlelib.multicall import MultiCallCreator
 from idlelib.tree import wheel_event
 from idlelib.util import py_extensions
+from tkinter import *
+from tkinter import messagebox, simpledialog
+from tkinter.font import Font
+from tkinter.ttk import Scrollbar
 
 # The default tab setting for a Text widget, in average-width characters.
 TK_TABWIDTH_DEFAULT = 8

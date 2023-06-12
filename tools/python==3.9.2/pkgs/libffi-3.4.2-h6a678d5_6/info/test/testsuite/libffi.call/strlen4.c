@@ -28,28 +28,28 @@ int main (void)
   values[2] = (void*) &v1;
   values[1] = (void*) &s;
   values[0] = (void*) &v2;
-  
+
   /* Initialize the cif */
   CHECK(ffi_prep_cif(&cif, ABI_NUM, 3,
 		       &ffi_type_sint, args) == FFI_OK);
-  
+
   s = "a";
   v1 = 1;
   v2 = 0.0;
   ffi_call(&cif, FFI_FN(my_f), &rint, values);
   CHECK(rint == 2);
-  
+
   s = "1234567";
   v2 = -1.0;
   v1 = -2;
   ffi_call(&cif, FFI_FN(my_f), &rint, values);
   CHECK(rint == 4);
-  
+
   s = "1234567890123456789012345";
   v2 = 1.0;
   v1 = 2;
   ffi_call(&cif, FFI_FN(my_f), &rint, values);
   CHECK(rint == 28);
-  
+
   exit(0);
 }

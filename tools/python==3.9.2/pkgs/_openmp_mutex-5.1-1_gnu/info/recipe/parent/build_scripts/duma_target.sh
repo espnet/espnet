@@ -30,4 +30,3 @@ pushd "${WDIR}/build/duma-target"
         install
 
 popd
-

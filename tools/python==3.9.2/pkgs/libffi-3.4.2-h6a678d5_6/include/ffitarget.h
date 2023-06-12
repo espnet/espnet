@@ -85,9 +85,9 @@ typedef enum ffi_abi {
   FFI_LAST_ABI,
 #ifdef __GNUC__
   FFI_DEFAULT_ABI = FFI_GNUW64
-#else  
+#else
   FFI_DEFAULT_ABI = FFI_WIN64
-#endif  
+#endif
 
 #elif defined(X86_64) || (defined (__x86_64__) && defined (X86_DARWIN))
   FFI_FIRST_ABI = 1,
@@ -159,4 +159,3 @@ typedef enum ffi_abi {
 #endif
 
 #endif
-

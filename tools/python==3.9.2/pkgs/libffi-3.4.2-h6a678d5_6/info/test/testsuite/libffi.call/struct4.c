@@ -27,7 +27,7 @@ int main (void)
   ffi_type *args[MAX_ARGS];
   void *values[MAX_ARGS];
   ffi_type ts4_type;
-  ffi_type *ts4_type_elements[4];  
+  ffi_type *ts4_type_elements[4];
 
   test_structure_4 ts4_arg;
 
@@ -46,19 +46,19 @@ int main (void)
 
   args[0] = &ts4_type;
   values[0] = &ts4_arg;
-  
+
   /* Initialize the cif */
   CHECK(ffi_prep_cif(&cif, ABI_NUM, 1, &ts4_type, args) == FFI_OK);
-  
+
   ts4_arg.ui1 = 2;
   ts4_arg.ui2 = 3;
   ts4_arg.ui3 = 4;
-  
+
   ffi_call (&cif, FFI_FN(struct4), ts4_result, values);
-  
+
   CHECK(ts4_result->ui3 == 2U * 3U * 4U);
- 
-  
+
+
   free (ts4_result);
   exit(0);
 }

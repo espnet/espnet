@@ -2,7 +2,6 @@
 
 import unittest
 from collections import namedtuple
-
 from idlelib import pyparse
 
 

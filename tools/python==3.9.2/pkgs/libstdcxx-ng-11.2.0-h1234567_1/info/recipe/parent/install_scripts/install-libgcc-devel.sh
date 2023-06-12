@@ -18,4 +18,3 @@ rm -rf ${PREFIX}/${CHOST}/lib
 rm -rf ${PREFIX}/lib/gcc/${CHOST}/${gcc_version}/include/unwind.h
 
 popd
-

@@ -16,7 +16,7 @@
  * of this file to be included in source files only. Thus we are not using the
  * prefix "Tk_" here for functions, because all the functions have private scope.
  */
-
+
 /*
  * -------------------------------------------------------------------------------
  * Use the array in the following way:
@@ -55,7 +55,7 @@
  * }
  * -------------------------------------------------------------------------------
  */
-
+
 /*************************************************************************/
 /*
  * Two array types will be provided:
@@ -157,7 +157,7 @@
  * argument. If not found then -1 will be returned.
  */
 /*************************************************************************/
-
+
 #ifndef TK_ARRAY_DEFINED
 #define TK_ARRAY_DEFINED
 
@@ -388,7 +388,7 @@ AT##_Contains(const AT *arr, const ElemType *elem)				\
     return AT##_Find(arr, elem) != -1;						\
 }										\
 /* ------------------------------------------------------------------------- */
-
+
 #define TK_PTR_ARRAY_DEFINE(AT, ElemType) /* AT = type of array */		\
 /* ------------------------------------------------------------------------- */	\
 typedef struct AT {								\
@@ -597,9 +597,9 @@ AT##_Contains(const AT *arr, const ElemType *elem)				\
     return AT##_Find(arr, elem) != -1;						\
 }										\
 /* ------------------------------------------------------------------------- */
-
+
 #endif /* TK_ARRAY_DEFINED */
-
+
 /*
  * Local Variables:
  * mode: c

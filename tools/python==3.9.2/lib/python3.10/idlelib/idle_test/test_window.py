@@ -1,10 +1,9 @@
 "Test window, coverage 47%."
 
 import unittest
+from idlelib import window
 from test.support import requires
 from tkinter import Tk
-
-from idlelib import window
 
 
 class WindowListTest(unittest.TestCase):

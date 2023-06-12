@@ -1,16 +1,16 @@
 "Test autocomplete, coverage 93%."
 
+import idlelib.autocomplete as ac
+import idlelib.autocomplete_w as acw
 import os
 import unittest
+from idlelib.idle_test.mock_idle import Func
+from idlelib.idle_test.mock_tk import Event
 from test.support import requires
 from tkinter import Text, Tk
 from unittest.mock import Mock, patch
 
 import __main__
-import idlelib.autocomplete as ac
-import idlelib.autocomplete_w as acw
-from idlelib.idle_test.mock_idle import Func
-from idlelib.idle_test.mock_tk import Event
 
 
 class DummyEditwin:

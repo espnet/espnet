@@ -78,7 +78,7 @@ index 0da6f67495..17eee400eb 100644
 @@ -60,64 +60,8 @@
    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
    <Import Project="pyproject.props" />
- 
+
 -  <PropertyGroup>
 -    <IntDir>$(opensslDir)\tmp$(Bitness)dll</IntDir>
 -    <OutDir>$(opensslOutDir)</OutDir>
@@ -92,7 +92,7 @@ index 0da6f67495..17eee400eb 100644
 -  </PropertyGroup>
 -
    <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
- 
+
 -  <Target Name="_PatchUplink" BeforeTargets="Build">
 -    <PropertyGroup>
 -      <Uplink>$(opensslDir)\ms\uplink.c</Uplink>
@@ -145,7 +145,7 @@ index c451429da2..6bb03008bf 100644
 --- a/PCbuild/python.props
 +++ b/PCbuild/python.props
 @@ -55,6 +55,7 @@
-     
+
      <!-- Directories of external projects. tcltk is handled in tcltk.props -->
      <ExternalsDir>$(EXTERNALS_DIR)</ExternalsDir>
 +    <condaDir>$(LIBRARY_PREFIX)\</condaDir>
@@ -180,6 +180,5 @@ index e7216dec3a..247ea10d5c 100644
    </ItemGroup>
    <ItemGroup>
      <ProjectReference Include="pythoncore.vcxproj">
--- 
+--
 2.32.1 (Apple Git-133)
-

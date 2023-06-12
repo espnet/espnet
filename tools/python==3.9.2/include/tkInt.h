@@ -1362,7 +1362,7 @@ MODULE_SCOPE int	TkplatformtestInit(Tcl_Interp *interp);
 #endif
 
 #endif /* _TKINT */
-
+
 /*
  * Local Variables:
  * mode: c

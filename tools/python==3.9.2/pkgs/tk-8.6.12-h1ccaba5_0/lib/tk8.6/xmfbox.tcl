@@ -986,4 +986,3 @@ proc ::tk_getFileType {} {
 
     return $Priv(selectFileType)
 }
-

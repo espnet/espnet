@@ -1,7 +1,6 @@
 "Test rpc, coverage 20%."
 
 import unittest
-
 from idlelib import rpc
 
 

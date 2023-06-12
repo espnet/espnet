@@ -120,4 +120,3 @@ int main ()
 	ret = xz_decompress (stdin, stdout);
 	return ret;
 }
-

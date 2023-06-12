@@ -2,10 +2,9 @@
 
 import unittest
 from collections import namedtuple
+from idlelib import editor
 from test.support import requires
 from tkinter import Tk
-
-from idlelib import editor
 
 Editor = editor.EditorWindow
 

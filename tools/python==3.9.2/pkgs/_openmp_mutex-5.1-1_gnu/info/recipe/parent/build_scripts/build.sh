@@ -69,13 +69,13 @@ chmod 700 "${WDIR}/buildtools/bin/makeinfo"
 echo "Checking that we can run gcc --version and being able to compile program ..."
 echo "  ${HOST}-gcc --version ..."
 "${HOST}-gcc" --version || (ls compilers/bin && exit 1)
-    
+
 printf "int main()\n{\n  return 0;\n}\n" >"${WDIR}/build/test.c"
 "${HOST}-gcc" -pipe ${HOST_CFLAG} ${HOST_LDFLAG} "${WDIR}/build/test.c" -o "${WDIR}/build/out"
 rm -f "${WDIR}/build/test.c" "${WDIR}/build/out"
 
 echo "Starting the build ..."
-bash ${RECIPE_DIR}/build_scripts/ncurses_build.sh 
+bash ${RECIPE_DIR}/build_scripts/ncurses_build.sh
  [ $? -eq 0 ]
 bash ${RECIPE_DIR}/build_scripts/zlib_host.sh
  [ $? -eq 0 ]

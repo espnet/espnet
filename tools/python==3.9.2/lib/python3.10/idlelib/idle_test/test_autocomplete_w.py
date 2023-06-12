@@ -1,10 +1,9 @@
 "Test autocomplete_w, coverage 11%."
 
+import idlelib.autocomplete_w as acw
 import unittest
 from test.support import requires
 from tkinter import Text, Tk
-
-import idlelib.autocomplete_w as acw
 
 
 class AutoCompleteWindowTest(unittest.TestCase):

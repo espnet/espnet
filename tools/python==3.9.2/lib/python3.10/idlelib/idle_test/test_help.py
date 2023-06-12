@@ -1,9 +1,8 @@
 "Test help, coverage 87%."
 
 import unittest
-from test.support import requires
-
 from idlelib import help
+from test.support import requires
 
 requires("gui")
 from os.path import abspath, dirname, join

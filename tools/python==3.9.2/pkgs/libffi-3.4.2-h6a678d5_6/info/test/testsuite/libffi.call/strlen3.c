@@ -25,25 +25,25 @@ int main (void)
   args[0] = &ffi_type_float;
   values[1] = (void*) &s;
   values[0] = (void*) &v2;
-  
+
   /* Initialize the cif */
   CHECK(ffi_prep_cif(&cif, ABI_NUM, 2,
 		       &ffi_type_sint, args) == FFI_OK);
-  
+
   s = "a";
   v2 = 0.0;
   ffi_call(&cif, FFI_FN(my_f), &rint, values);
   CHECK(rint == 1);
-  
+
   s = "1234567";
   v2 = -1.0;
   ffi_call(&cif, FFI_FN(my_f), &rint, values);
   CHECK(rint == 6);
-  
+
   s = "1234567890123456789012345";
   v2 = 1.0;
   ffi_call(&cif, FFI_FN(my_f), &rint, values);
   CHECK(rint == 26);
-  
+
   exit(0);
 }

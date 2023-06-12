@@ -20,4 +20,3 @@ done
 # Gold support is not present on s390x, or on osx
 rm -f "$PREFIX/bin/gold" || true
 ln -s "$PREFIX/bin/$CHOST-ld.gold" "$PREFIX/bin/gold" || true
-

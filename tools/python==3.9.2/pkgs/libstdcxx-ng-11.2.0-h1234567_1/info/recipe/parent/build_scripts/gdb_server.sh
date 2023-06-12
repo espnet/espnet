@@ -58,4 +58,3 @@ pushd "${WDIR}/build/gdb-server"
     unset ac_cv_func_strncmp_works
 
 popd
-

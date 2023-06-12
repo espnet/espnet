@@ -4,6 +4,7 @@
 import os
 import sys
 import webbrowser
+from idlelib import textview
 from platform import architecture, python_version
 from tkinter import (
     BOTH,
@@ -22,8 +23,6 @@ from tkinter import (
     W,
     X,
 )
-
-from idlelib import textview
 
 version = python_version()
 

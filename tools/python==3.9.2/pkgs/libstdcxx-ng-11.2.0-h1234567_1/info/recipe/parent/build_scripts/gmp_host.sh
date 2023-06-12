@@ -44,4 +44,3 @@ popd
 
 # clean up ...
 rm -rf "${WDIR}/build/gmp-host"
-

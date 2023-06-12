@@ -28,4 +28,3 @@ List of examples
     04_compress_easy_mt.c               Multi-threaded multi-call
                                         compression using a compression
                                         preset
-

@@ -1,5 +1,4 @@
 import string
-
 from idlelib.delegator import Delegator
 
 # tkinter import not needed because module does not create widgets,
@@ -336,9 +335,8 @@ class CommandSequence(Command):
 
 
 def _undo_delegator(parent):  # htest #
-    from tkinter import Button, Text, Toplevel
-
     from idlelib.percolator import Percolator
+    from tkinter import Button, Text, Toplevel
 
     undowin = Toplevel(parent)
     undowin.title("Test UndoDelegator")

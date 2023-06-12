@@ -1588,4 +1588,3 @@ Sat Oct 10 19:15:32 1998  Guido van Rossum  <guido@cnri.reston.va.us>
 	Initial checking of Tk-based Python IDE.
 	Features: text editor with syntax coloring and undo;
 	subclassed into interactive Python shell which adds history.
-

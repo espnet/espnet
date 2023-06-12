@@ -382,7 +382,7 @@ typedef struct {
     int isPublic;		/* Whether the method is public by default. */
     Tcl_MethodType definition;	/* How to call the method. */
 } DeclaredClassMethod;
-
+
 /*
  *----------------------------------------------------------------
  * Commands relating to OO support.
@@ -539,13 +539,13 @@ MODULE_SCOPE Tcl_Obj *	TclOORenderCallChain(Tcl_Interp *interp,
 MODULE_SCOPE void	TclOOStashContext(Tcl_Obj *objPtr,
 			    CallContext *contextPtr);
 MODULE_SCOPE void	TclOOSetupVariableResolver(Tcl_Namespace *nsPtr);
-
+
 /*
  * Include all the private API, generated from tclOO.decls.
  */
 
 #include "tclOOIntDecls.h"
-
+
 /*
  * Alternatives to Tcl_Preserve/Tcl_EventuallyFree/Tcl_Release.
  */
@@ -597,7 +597,7 @@ MODULE_SCOPE void	TclOOSetupVariableResolver(Tcl_Namespace *nsPtr);
     } while(0)
 
 #endif /* TCL_OO_INTERNAL_H */
-
+
 /*
  * Local Variables:
  * mode: c

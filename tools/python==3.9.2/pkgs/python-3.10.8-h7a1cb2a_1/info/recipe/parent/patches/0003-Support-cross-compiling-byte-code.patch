@@ -15,7 +15,7 @@ index ee85f35b10..3fb65371c9 100644
 --- a/Makefile.pre.in
 +++ b/Makefile.pre.in
 @@ -261,6 +261,7 @@ BUILDPYTHON=	python$(BUILDEXE)
- 
+
  PYTHON_FOR_REGEN?=@PYTHON_FOR_REGEN@
  UPDATE_FILE=$(PYTHON_FOR_REGEN) $(srcdir)/Tools/scripts/update_file.py
 +PY_BUILD_ENVIRON=@PY_BUILD_ENVIRON@
@@ -24,11 +24,11 @@ index ee85f35b10..3fb65371c9 100644
  BUILD_GNU_TYPE=	@build@
 @@ -589,7 +590,7 @@ $(BUILDPYTHON):	Programs/python.o $(LIBRARY_DEPS)
  	$(LINKCC) $(PY_CORE_LDFLAGS) $(LINKFORSHARED) -o $@ Programs/python.o $(BLDLIBRARY) $(LIBS) $(MODLIBS) $(SYSLIBS)
- 
+
  platform: $(BUILDPYTHON) pybuilddir.txt
 -	$(RUNSHARED) $(PYTHON_FOR_BUILD) -c 'import sys ; from sysconfig import get_platform ; print("%s-%d.%d" % (get_platform(), *sys.version_info[:2]))' >platform
 +	$(RUNSHARED) $(PY_BUILD_ENVIRON) $(PYTHON_FOR_BUILD) -c 'import sys ; from sysconfig import get_platform ; print("%s-%d.%d" % (get_platform(), *sys.version_info[:2]))' >platform
- 
+
  # Create build directory and generate the sysconfig build-time data there.
  # pybuilddir.txt contains the name of the build dir and is used for
 @@ -600,7 +601,7 @@ platform: $(BUILDPYTHON) pybuilddir.txt
@@ -46,8 +46,8 @@ index ee85f35b10..3fb65371c9 100644
  		_TCLTK_INCLUDES='$(TCLTK_INCLUDES)' _TCLTK_LIBS='$(TCLTK_LIBS)' \
 -		$(PYTHON_FOR_BUILD) $(srcdir)/setup.py $$quiet build
 +		$(PY_BUILD_ENVIRON) $(PYTHON_FOR_BUILD) $(srcdir)/setup.py $$quiet build
- 
- 
+
+
  # Build static library
 @@ -1270,7 +1271,7 @@ install: @FRAMEWORKINSTALLFIRST@ commoninstall bininstall maninstall @FRAMEWORKI
  			upgrade) ensurepip="--upgrade" ;; \
@@ -57,7 +57,7 @@ index ee85f35b10..3fb65371c9 100644
 +		$(RUNSHARED) $(PY_BUILD_ENVIRON) $(PYTHON_FOR_BUILD) -m ensurepip \
  			$$ensurepip --root=$(DESTDIR)/ ; \
  	fi
- 
+
 @@ -1280,7 +1281,7 @@ altinstall: commoninstall
  			upgrade) ensurepip="--altinstall --upgrade" ;; \
  			install|*) ensurepip="--altinstall" ;; \
@@ -66,7 +66,7 @@ index ee85f35b10..3fb65371c9 100644
 +		$(RUNSHARED) $(PY_BUILD_ENVIRON) $(PYTHON_FOR_BUILD) -m ensurepip \
  			$$ensurepip --root=$(DESTDIR)/ ; \
  	fi
- 
+
 @@ -1746,7 +1747,7 @@ libainstall:	@DEF_MAKE_RULE@ python-config
  # Install the dynamically loadable modules
  # This goes into $(exec_prefix)
@@ -117,8 +117,7 @@ index 763fc697be..4e026c2a0f 100644
  fi
 +AC_SUBST(PY_BUILD_ENVIRON)
  AC_SUBST(PYTHON_FOR_BUILD)
- 
- dnl Ensure that if prefix is specified, it does not end in a slash. If
--- 
-2.32.1 (Apple Git-133)
 
+ dnl Ensure that if prefix is specified, it does not end in a slash. If
+--
+2.32.1 (Apple Git-133)

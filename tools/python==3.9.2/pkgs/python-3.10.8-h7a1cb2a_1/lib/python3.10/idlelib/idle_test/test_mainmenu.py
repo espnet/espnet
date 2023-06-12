@@ -3,7 +3,6 @@
 
 import re
 import unittest
-
 from idlelib import mainmenu
 
 

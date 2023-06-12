@@ -1,11 +1,10 @@
 "Test runscript, coverage 16%."
 
 import unittest
-from test.support import requires
-from tkinter import Tk
-
 from idlelib import runscript
 from idlelib.editor import EditorWindow
+from test.support import requires
+from tkinter import Tk
 
 
 class ScriptBindingTest(unittest.TestCase):

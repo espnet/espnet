@@ -143,11 +143,11 @@ Once you have updated support/shobj-conf, re-run configure and type
 `make shared'.  The shared libraries will be created in the shlib
 subdirectory.
 
-If shared libraries are created, `make install' will install them. 
+If shared libraries are created, `make install' will install them.
 You may install only the shared libraries by running `make
 install-shared' from the top-level build directory.  Running `make
 install' in the shlib subdirectory will also work.  If you don't want
-to install any created shared libraries, run `make install-static'. 
+to install any created shared libraries, run `make install-static'.
 
 Documentation
 =============
@@ -157,7 +157,7 @@ the `doc' subdirectory.  There are three texinfo files and a
 Unix-style manual page describing the facilities available in the
 Readline library.  The texinfo files include both user and
 programmer's manuals.  HTML versions of the manuals appear in the
-`doc' subdirectory as well. 
+`doc' subdirectory as well.
 
 Usage
 =====
@@ -190,7 +190,7 @@ to bash-maintainers@gnu.org.
 
 Since Readline is developed along with bash, the bug-bash@gnu.org mailing
 list (mirrored to the Usenet newsgroup gnu.bash.bug) often contains
-Readline bug reports and fixes. 
+Readline bug reports and fixes.
 
 Chet Ramey
 chet.ramey@case.edu

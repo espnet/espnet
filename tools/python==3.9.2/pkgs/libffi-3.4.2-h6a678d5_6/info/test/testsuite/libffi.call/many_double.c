@@ -27,7 +27,7 @@ static double many(double f1,
 {
 #if 0
   printf("%f %f %f %f %f %f %f %f %f %f %f %f %f\n",
-	 (double) f1, (double) f2, (double) f3, (double) f4, (double) f5, 
+	 (double) f1, (double) f2, (double) f3, (double) f4, (double) f5,
 	 (double) f6, (double) f7, (double) f8, (double) f9, (double) f10,
 	 (double) f11, (double) f12, (double) f13);
 #endif
@@ -52,7 +52,7 @@ int main (void)
     }
 
     /* Initialize the cif */
-    CHECK(ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 13, 
+    CHECK(ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 13,
 		       &ffi_type_double, args) == FFI_OK);
 
     ffi_call(&cif, FFI_FN(many), &f, values);

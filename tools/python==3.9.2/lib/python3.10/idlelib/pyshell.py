@@ -53,9 +53,6 @@ import time
 import tokenize
 import warnings
 from code import InteractiveInterpreter
-from platform import python_version
-from textwrap import TextWrapper
-
 from idlelib import debugger, debugger_r, replace, rpc
 from idlelib.colorizer import ColorDelegator
 from idlelib.config import idleConf
@@ -65,6 +62,8 @@ from idlelib.filelist import FileList
 from idlelib.outwin import OutputWindow
 from idlelib.run import StdInputFile, StdOutputFile, idle_formatwarning
 from idlelib.undo import UndoDelegator
+from platform import python_version
+from textwrap import TextWrapper
 
 # Default for testing; defaults to True in main() for running.
 use_subprocess = False
@@ -1566,10 +1565,9 @@ echo "import sys; print(sys.argv)" | idle - "foobar"
 
 def main():
     import getopt
-    from platform import system
-
     from idlelib import testing  # bool value
     from idlelib import macosx
+    from platform import system
 
     global flist, root, use_subprocess
 

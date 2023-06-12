@@ -3,10 +3,9 @@
 import tkinter as tk
 import unittest
 import unittest.mock as mock
-from test.support import requires
-
 from idlelib import macosx
 from idlelib.filelist import FileList
+from test.support import requires
 
 mactypes = {"carbon", "cocoa", "xquartz"}
 nontypes = {"other"}

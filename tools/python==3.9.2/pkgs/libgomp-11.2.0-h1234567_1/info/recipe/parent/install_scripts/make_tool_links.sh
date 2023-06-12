@@ -10,4 +10,3 @@ if [ -d "${PREFIX}/bin" ]; then
     fi
 done
 fi
-

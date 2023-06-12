@@ -9,10 +9,10 @@ import re
 import sys
 import textwrap
 import types
-
-import __main__
 from idlelib import calltip_w
 from idlelib.hyperparser import HyperParser
+
+import __main__
 
 
 class Calltip:

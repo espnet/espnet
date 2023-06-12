@@ -16,7 +16,7 @@
 .\" .sp <n>    insert n+1 empty lines
 .\" for manpage-specific macros, see man(7)
 .SH NAME
-.B sqlite3 
+.B sqlite3
 \- A command line interface for SQLite version 3
 
 .SH SYNOPSIS
@@ -46,7 +46,7 @@ does exist, it will be opened.
 For example, to create a new database file named "mydata.db", create
 a table named "memos" and insert a couple of records into that table:
 .sp
-$ 
+$
 .B sqlite3 mydata.db
 .br
 SQLite version 3.8.8
@@ -84,7 +84,7 @@ semi-colons.
 
 For example:
 .sp
-$ 
+$
 .B sqlite3 -line mydata.db 'select * from memos where priority > 20;'
 .br
     text = lunch with Christine
@@ -265,7 +265,7 @@ continue prompt = "   ...> "
 .sp
 .fi
 
-o If the file 
+o If the file
 .B ~/.sqliterc
 exists, it is processed first.
 can be found in the user's home directory, it is

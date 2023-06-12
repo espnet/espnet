@@ -2,18 +2,16 @@
 
 Half the class creates dialog, half works with user customizations.
 """
-from test.support import requires
-
 from idlelib import configdialog
+from test.support import requires
 
 requires("gui")
 import unittest
-from tkinter import DISABLED, NORMAL, BooleanVar, IntVar, StringVar, Tk
-from unittest import mock
-
 from idlelib import config
 from idlelib.configdialog import changes, idleConf, tracers
 from idlelib.idle_test.mock_idle import Func
+from tkinter import DISABLED, NORMAL, BooleanVar, IntVar, StringVar, Tk
+from unittest import mock
 
 # Tests should not depend on fortuitous user configurations.
 # They must not affect actual user .cfg files.
