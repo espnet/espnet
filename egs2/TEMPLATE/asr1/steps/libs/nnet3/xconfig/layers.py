@@ -3,11 +3,11 @@
 #           2016    Yiming Wang
 # Apache 2.0.
 
-from .attention import *
 from .basic_layers import *
-from .composite_layers import *
 from .convolution import *
-from .gru import *
+from .attention import *
 from .lstm import *
+from .gru import *
 from .stats_layer import *
 from .trivial_layers import *
+from .composite_layers import *

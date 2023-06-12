@@ -41,6 +41,12 @@ def test_check(song):
     return song in TEST_LIST
 
 
+def pack_zero(string, size=20):
+    if len(string) < size:
+        string = "0" * (size - len(string)) + string
+    return string
+
+
 def makedir(data_url):
     if os.path.exists(data_url):
         shutil.rmtree(data_url)
@@ -78,7 +84,7 @@ def process_subset(src_data, subset, check_func, fs, wav_dump):
             continue
         if folder == "background_noise":
             continue
-        utt_id = folder
+        utt_id = "{}_{}".format(UTT_PREFIX, pack_zero(folder))
 
         cmd = "sox {}_song.wav -c 1 -t wavpcm -b 16 -r {} {}_bits16.wav".format(
             os.path.join(src_data, folder, folder),
