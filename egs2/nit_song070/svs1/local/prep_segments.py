@@ -4,6 +4,8 @@ import math
 import os
 import sys
 
+from espnet2.fileio.score_scp import SingingScoreReader, SingingScoreWriter
+
 
 class LabelInfo(object):
     def __init__(self, start, end, label_id):
@@ -69,7 +71,8 @@ def get_parser():
     return parser
 
 
-def make_segment(file_id, labels, threshold=13.5, sil=["pau", "br", "sil"]):
+def make_segment(file_id, labels, scorescp, update_scorescp, threshold=13.5, sil=["pau", "br", "sil"]):
+    reader = SingingScoreReader(scorescp)
     segments = []
     segment = SegInfo()
     for label in labels:
@@ -89,7 +92,11 @@ def make_segment(file_id, labels, threshold=13.5, sil=["pau", "br", "sil"]):
     for seg in segments:
         if len(seg) == 0:
             continue
-        segments_w_id[pack_zero(file_id, id)] = seg
+        # TODO(wwwbxy123): Refer kiritan to make score.scp segment
+        key = pack_zero(file_id, id)
+        segments_w_id[key] = seg
+        score = reader[key]
+        update_scorescp[key] = score
         id += 1
     return segments_w_id
 
@@ -101,13 +108,16 @@ if __name__ == "__main__":
 
     wavscp = open(os.path.join(args.scp, "wav.scp"), "r", encoding="utf-8")
     label = open(os.path.join(args.scp, "label"), "r", encoding="utf-8")
-    scorescp = open(os.path.join(args.scp, "score.scp"), "r", encoding="utf-8")
+    scorescp = os.path.join(args.scp, "score.scp")
 
     update_segments = open(
         os.path.join(args.scp, "segments.tmp"), "w", encoding="utf-8"
     )
     update_label = open(os.path.join(args.scp, "label.tmp"), "w", encoding="utf-8")
     update_text = open(os.path.join(args.scp, "text.tmp"), "w", encoding="utf-8")
+    update_scorescp = SingingScoreWriter(
+        args.score_dump, os.path.join(args.scp, "score.scp.tmp")
+    )
 
     for wav_line in wavscp:
         label_line = label.readline()
@@ -124,7 +134,7 @@ if __name__ == "__main__":
                 LabelInfo(phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2])
             )
         segments.append(
-            make_segment(recording_id, temp_info, args.threshold, args.silence)
+            make_segment(recording_id, temp_info, scorescp, update_scorescp, args.threshold, args.silence)
         )
         
 
