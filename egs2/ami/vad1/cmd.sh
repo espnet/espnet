@@ -1,1 +1,1 @@
-../asr1/cmd.sh
+../../TEMPLATE/asr1/cmd.sh

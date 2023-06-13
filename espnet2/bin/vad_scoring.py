@@ -7,6 +7,7 @@ from typeguard import check_argument_types
 
 from espnet2.utils import config_argparse
 from espnet.utils.cli_utils import get_commandline_args
+import numpy as np
 
 
 def scoring(
@@ -25,13 +26,13 @@ def scoring(
     for i in range(len(lines_ref)):
         time_stamp_ref = " ".join(lines_ref[i].split(" ")[1:])
         time_stamp_hyp = " ".join(lines_hyp[i].split(" ")[1:])
-        ref_array = [0 for _ in range(1000)]
-        hyp_array = [0 for _ in range(1000)]
+        ref_array = np.zeros(1000)
+        hyp_array = np.zeros(1000)
 
         ref_time_stamps = [int(float(item) * 100) for item in time_stamp_ref.split(" ")]
+        
         for j in range(0, len(ref_time_stamps), 2):
-            for k in range(ref_time_stamps[j], ref_time_stamps[j + 1]):
-                ref_array[k] = 1
+            ref_array[ref_time_stamps[j]:ref_time_stamps[j + 1]] = 1
 
         try:
             hyp_time_stamps = [
@@ -48,19 +49,13 @@ def scoring(
             continue
 
         for j in range(0, len(hyp_time_stamps), 2):
-            for k in range(hyp_time_stamps[j], hyp_time_stamps[j + 1]):
-                hyp_array[k] = 1
+            hyp_array[hyp_time_stamps[j]:hyp_time_stamps[j + 1]] = 1
 
-        # calculate the P and R
-        TP, FP, FN = 0, 0, 0
-        for j in range(1000):
-            if ref_array[j] == 1 and hyp_array[j] == 1:
-                TP += 1
-            elif ref_array[j] == 0 and hyp_array[j] == 1:
-                FP += 1
-            elif ref_array[j] == 1 and hyp_array[j] == 0:
-                FN += 1
-
+        # calculate TP, FP, FN
+        TP = np.sum((ref_array[:1000] == 1) & (hyp_array[:1000] == 1))
+        FP = np.sum((ref_array[:1000] == 0) & (hyp_array[:1000] == 1))
+        FN = np.sum((ref_array[:1000] == 1) & (hyp_array[:1000] == 0))
+        
         total_TP += TP
         total_FP += FP
         total_FN += FN

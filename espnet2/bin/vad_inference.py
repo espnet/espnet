@@ -37,8 +37,6 @@ class VoiceActivityDetect:
         vad_train_config: Union[Path, str] = None,
         vad_model_file: Union[Path, str] = None,
         device: str = "cpu",
-        maxlenratio: float = 0.0,
-        minlenratio: float = 0.0,
         batch_size: int = 1,
         dtype: str = "float32",
         quantize_vad_model: bool = False,
@@ -80,8 +78,6 @@ class VoiceActivityDetect:
 
         self.vad_model = vad_model
         self.vad_train_args = vad_train_args
-        self.maxlenratio = maxlenratio
-        self.minlenratio = minlenratio
         self.device = device
         self.dtype = dtype
         self.threshold = threshold
@@ -216,8 +212,6 @@ class VoiceActivityDetect:
 
 def inference(
     output_dir: str,
-    maxlenratio: float,
-    minlenratio: float,
     batch_size: int,
     dtype: str,
     ngpu: int,
@@ -261,8 +255,6 @@ def inference(
         vad_train_config=vad_train_config,
         vad_model_file=vad_model_file,
         device=device,
-        maxlenratio=maxlenratio,
-        minlenratio=minlenratio,
         dtype=dtype,
         quantize_vad_model=quantize_vad_model,
         quantize_modules=quantize_modules,
@@ -308,7 +300,6 @@ def inference(
 
             # Only supporting batch_size==1
             key = keys[0]
-            print(key)
 
             str_result = []
             for item in results:
@@ -416,23 +407,6 @@ def get_parser():
         type=int,
         default=1,
         help="The batch size for inference",
-    )
-    group.add_argument(
-        "--maxlenratio",
-        type=float,
-        default=0.0,
-        help="Input length ratio to obtain max output length. "
-        "If maxlenratio=0.0 (default), it uses a end-detect "
-        "function "
-        "to automatically find maximum hypothesis lengths."
-        "If maxlenratio<0.0, its absolute value is interpreted"
-        "as a constant max output length",
-    )
-    group.add_argument(
-        "--minlenratio",
-        type=float,
-        default=0.0,
-        help="Input length ratio to obtain min output length",
     )
     group.add_argument(
         "--threshold",

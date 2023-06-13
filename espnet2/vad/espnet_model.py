@@ -30,7 +30,7 @@ else:
 
 
 class ESPnetVADModel(ESPnetASRModel):
-    """RNN frame-level model"""
+    """ frame-level model"""
 
     def __init__(
         self,
@@ -40,7 +40,6 @@ class ESPnetVADModel(ESPnetASRModel):
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
-        length_normalized_loss: bool = False,
         extract_feats_in_collect_stats: bool = True,
     ):
         assert check_argument_types()
@@ -192,5 +191,6 @@ class ESPnetVADModel(ESPnetASRModel):
         encoder_out = torch.argmax(encoder_out, dim=1)
         numerator = torch.sum(encoder_out == ys_out)
         denominator = ys_out.numel()
+        #TODO: Add more metrics that provide a better indication of final performance
         acc = float(numerator) / float(denominator)
         return loss, 1 - acc
