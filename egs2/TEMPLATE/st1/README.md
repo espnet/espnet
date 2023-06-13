@@ -64,6 +64,8 @@ Here we're reporting MuST-C-v1 English-to-German results. These example models w
 
 #### Attentional Encoder-Decoder
 
+![Attentional Encoder-Decoder](./local/images/attn.png)
+
 *Why choose this model?*
 
 The attentional encoder-decoder is a commonly used model. Its relatively simple architecture makes it a solid base for experimenting with new auxiliary techniques and a reasonable choice for getting started with ST.
