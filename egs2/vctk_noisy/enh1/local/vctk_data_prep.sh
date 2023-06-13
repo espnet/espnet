@@ -66,6 +66,6 @@ for x in tr cv tt; do
   awk '{print($1, "dummy")}' ${data}/${ddir}/wav.scp | \
     sort -u> ${data}/${ddir}/text
 
-  sed -e "s#noisy_#clean_#g" ${data}/${ddir}/wav.scp \
+  sed -e "s#${NOISY_SPEECH}/noisy_#${NOISY_SPEECH}/clean_#g" ${data}/${ddir}/wav.scp \
     > ${data}/${ddir}/spk1.scp
 done

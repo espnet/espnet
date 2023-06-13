@@ -1,6 +1,8 @@
 """Enhancement model module."""
+import contextlib
 from typing import Dict, List, Optional, OrderedDict, Tuple
 
+import numpy as np
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
@@ -34,6 +36,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
+        extract_feats_in_collect_stats: bool = False,
     ):
         assert check_argument_types()
 
@@ -67,6 +70,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.ref_channel = getattr(self.separator, "ref_channel", None)
         if self.ref_channel is None:
             self.ref_channel = 0
+
+        # Used in espnet2/tasks/abs_task.py for determining whether or not to do
+        # collect_feats during collect stats (stage 5).
+        self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
     def forward(
         self,
@@ -283,13 +290,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 signal_ref = speech_ref
                 signal_pre = speech_pre
 
+            zero_weight = loss_wrapper.weight == 0.0
             if isinstance(criterion, TimeDomainLoss):
                 assert signal_pre is not None
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=True
                 )
                 # for the time domain criterions
-                l, s, o = loss_wrapper(sref, spre, {**others, **o})
+                with torch.no_grad() if zero_weight else contextlib.ExitStack():
+                    l, s, o = loss_wrapper(sref, spre, {**others, **o})
             elif isinstance(criterion, FrequencyDomainLoss):
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=False
@@ -341,7 +350,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     else:
                         tf_pre = [self.encoder(sp, speech_lengths)[0] for sp in spre]
 
-                l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
+                with torch.no_grad() if zero_weight else contextlib.ExitStack():
+                    l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
             else:
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 
