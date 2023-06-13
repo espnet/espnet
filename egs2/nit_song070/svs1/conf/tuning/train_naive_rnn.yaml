@@ -29,8 +29,6 @@ svs_conf:                        # keyword arguments for the selected model
     init_type: pytorch           # parameter initialization
     use_masking: true            # whether to apply masking for padded part in loss calculation
     loss_type: L1
-    use_mixup_training: False    # Default: False
-    loss_mixup_wight: 0.3          # Default: 0
 
 
 ##########################################################
@@ -53,13 +51,6 @@ accum_grad: 1               # gradient accumulation
 
 batch_type: sorted
 batch_size: 8
-
-pitch_aug_min: 0            # Default: 0, [-1,-2,-3]
-pitch_aug_max: 0            # Default: 0, [1,2,3]
-time_aug_min: 1             # Default: 1, [0.99]
-time_aug_max: 1             # Default: 1, [1.01]
-random_crop: False          # Default: False, crop length [0.9 * length, length]
-mask_aug: False             # Default: False, random mask length 1500 samples
 
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches

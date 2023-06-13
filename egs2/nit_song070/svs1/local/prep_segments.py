@@ -101,6 +101,7 @@ if __name__ == "__main__":
 
     wavscp = open(os.path.join(args.scp, "wav.scp"), "r", encoding="utf-8")
     label = open(os.path.join(args.scp, "label"), "r", encoding="utf-8")
+    scorescp = open(os.path.join(args.scp, "score.scp"), "r", encoding="utf-8")
 
     update_segments = open(
         os.path.join(args.scp, "segments.tmp"), "w", encoding="utf-8"

@@ -42,16 +42,16 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparaion "
 
-    mkdir -p midi_dump
+    mkdir -p score_dump
     mkdir -p wav_dump
     # we convert the music score to midi format
     python local/data_prep.py ${NIT_SONG070}/HTS-demo_NIT-SONG070-F001/data --midi_note_scp local/midi-note.scp \
-        --midi_dumpdir midi_dump \
+        --score_dump score_dump \
         --wav_dumpdir wav_dump \
         --sr ${fs}
     for src_data in ${train_set} ${train_dev} ${eval_set}; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
-        utils/fix_data_dir.sh --utt_extra_files "label midi.scp" data/${src_data}
+        utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
     done
 fi
 

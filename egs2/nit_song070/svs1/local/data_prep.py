@@ -4,7 +4,7 @@ import librosa
 import numpy as np
 import soundfile as sf
 
-from espnet2.fileio.midi_scp import MIDIScpWriter
+from espnet2.fileio.score_scp import SingingScoreWriter
 
 
 DEV_LIST = ["f001_003"]
@@ -61,9 +61,47 @@ def create_midi(notes, tempo, duration, sr):
     tempo_info = [tempo] * len(note_info)
     return note_info, tempo_info
 
+def create_score(label_id, phns, midis, syb_dur):
+    # Transfer into 'score' format
+    assert len(phns) == len(midis)
+    assert len(midis) == len(syb_dur)
+    lyrics_seq = []
+    midis_seq = []
+    segs_seq = []
+    phns_seq = []
+    st = 0
+    index_phn = 0
+    note_list = []
+    while index_phn < len(phns):
+        midi = midis[index_phn]
+        note_info = [st]
+        st += syb_dur[index_phn]
+        syb = [phns[index_phn]]
+        index_phn += 1
+        if (
+            index_phn < len(phns)
+            and syb_dur[index_phn] == syb_dur[index_phn - 1]
+            and midis[index_phn] == midis[index_phn - 1]
+        ):
+            syb.append(phns[index_phn])
+            index_phn += 1
+        syb = "_".join(syb)
+        note_info.extend([st, syb, midi, syb])
+        note_list.append(note_info)
+        # multi notes in one syllable
+        while (
+            index_phn < len(phns)
+            and phns[index_phn] == phns[index_phn - 1]
+        ):
+            note_info = [st]
+            st += syb_dur[index_phn]
+            note_info.extend([st, "—", midis[index_phn], phns[index_phn]])
+            note_list.append(note_info)
+            index_phn += 1
+    return note_list
 
 def process_utterance(
-    midi_scp_writer,
+    writer,
     wavscp,
     text,
     utt2spk,
@@ -118,9 +156,8 @@ def process_utterance(
     # duration type convert
     phn_dur = [float(dur/ 1e7) for dur in phn_dur]
 
-    midi_seq = create_midi(notes, tempo, phn_dur, tgt_sr)
+    note_list = create_score(label_id, phns, notes, phn_dur)
 
-    midi_scp_writer["nit_song070_{}".format(label_id)] = midi_seq
     text.write("nit_song070_{} {}\n".format(label_id, " ".join(phns)))
     utt2spk.write("nit_song070_{} {}\n".format(label_id, "onit_song070"))
 
@@ -140,14 +177,15 @@ def process_utterance(
         running_dur += phn_dur[i]
 
     label.write("nit_song070_{} {}\n".format(label_id, " ".join(label_entry)))
+    score = dict(
+        tempo=tempo, item_list=["st", "et", "lyric", "midi", "phns"], note=note_list
+    )
+    writer["nit_song070_{}".format(label_id)] = score
 
 
 def process_subset(args, set_name):
-    midi_writer = MIDIScpWriter(
-        args.midi_dumpdir,
-        os.path.join(args.tgt_dir, set_name, "midi.scp"),
-        format="midi",
-        rate=np.int32(args.sr),
+    writer = SingingScoreWriter(
+        args.score_dump, os.path.join(args.tgt_dir, set_name, "score.scp")
     )
     wavscp = open(
         os.path.join(args.tgt_dir, set_name, "wav.scp"), "w", encoding="utf-8"
@@ -170,7 +208,7 @@ def process_subset(args, set_name):
 
         label_id = label_file.split(".")[0]
         process_utterance(
-            midi_writer,
+            writer,
             wavscp,
             text,
             utt2spk,
@@ -196,7 +234,7 @@ if __name__ == "__main__":
         default="local/midi-note.scp",
     )
     parser.add_argument(
-        "--midi_dumpdir", type=str, help="midi obj dump directory", default="midi_dump"
+        "--score_dump", type=str, default="score_dump", help="score dump directory"
     )
     parser.add_argument(
         "--wav_dumpdir", type=str, help="wav dump directoyr (rebit)", default="wav_dump"
