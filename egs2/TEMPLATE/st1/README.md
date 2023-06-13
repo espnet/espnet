@@ -64,7 +64,7 @@ Here we're reporting MuST-C-v1 English-to-German results. These example models w
 
 #### Attentional Encoder-Decoder
 
-![Attentional Encoder-Decoder](./local/images/attn.png =x250)
+![Attentional Encoder-Decoder](./local/images/attn.png)
 
 *Why choose this model?*
 
