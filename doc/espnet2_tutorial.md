@@ -421,7 +421,7 @@ ESPnet2 supports models trained with the (RNN-)Tranducer loss, aka Transducer mo
 
 For the user, it means two things. First, some features or modules may not be supported depending on the version used. Second, the usage of some common ASR features or modules may differ between the models. In addition, some core modules (e.g.: `preencoder` or `postencoder`) may be missing in the standalone version until validation.
 
-***The following sections of this tutorial are dedicated to the introduction of the version under asr_transducer***. In that regards, the user should keep in mind that most features described here are not available in the first version.
+***The following sections of this tutorial are dedicated to the introduction of the version under asr_transducer***. Thus, the user should keep in mind that most features described here may not be available in the other version.
 
 ### General usage
 
@@ -433,9 +433,7 @@ asr.sh --asr_task asr_transducer [...]
 
 For Transducer loss computation during training, we rely on a fork of `warp-transducer`. The installation procedure is described [here](https://espnet.github.io/espnet/installation.html#step-3-optional-custom-tool-installation).
 
-**Note:** If you encounter any error related to this tool, please open an issue in ESPnet instead of the [original repository](https://github.com/HawkAaron/warp-transducer/issues).
-
-**Note 2:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit_lambda` need to be set in `model_conf`:
+**Note:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit_lambda` need to be set in `model_conf`:
 
     model_conf:
       fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
@@ -572,8 +570,8 @@ encoder_conf:
 
 #### Decoder
 
-For the decoder, four types of blocks are available: stateless ('stateless'), RNN ('rnn'), MEGA ('mega') or RWKV ('rwkv'). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define define only one block here.
-The type of the stack of blocks is defined by passing the corresponding type string to the parameter `decoder`. The internal parts are defined by the config `decoder_conf` containing the following -optional- parameters:
+For the decoder, four types of blocks are available: stateless ('stateless'), RNN ('rnn'), MEGA ('mega') or RWKV ('rwkv'). Contrary to the encoder, the parameters are shared across the blocks, meaning we only define one block in the configuration.
+The type of the stack of blocks is defined by passing the corresponding type string to the parameter `decoder`. The internal parts are defined through the field `decoder_conf` containing the following controlable parameters:
 
     decoder_conf:
       embed_size: Size of the embedding layer (int, default = 256).
