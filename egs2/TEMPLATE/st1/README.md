@@ -74,6 +74,8 @@ The most prominent weakness to be aware of is the end-detection problem: the aut
 
 #### CTC/Attention
 
+![CTC/Attention](./local/images/ctc-attn.png)
+
 *Why choose this model?*
 
 The CTC/attention incorporates non-autoregressive hard alignment (CTC) and autoregressive soft alignment (attention) into a single model. CTC counteracts several weaknesses of its attentional counterpart via joint training/decoding (more details). Notably, the CTC/attention alleviates the end-detection problem of the pure attention approach. Compared to the attentional encoder-decoder, CTC/attention produces superior translation quality.
@@ -94,7 +96,7 @@ The translation quality lags behind that of CTC/attention due to its low capacit
 
 #### Multi-Decoder
 
-![Multi-Decoder CTC/Attention](./local/images/example-a.png)
+![Multi-Decoder CTC/Attention](./local/images/md-ctc-attn.png)
 
 *Why choose this model?*
 
