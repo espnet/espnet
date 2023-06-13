@@ -94,6 +94,8 @@ The translation quality lags behind that of CTC/attention due to its low capacit
 
 #### Multi-Decoder
 
+![Multi-Decoder CTC/Attention](./local/images/example-a.png)
+
 *Why choose this model?*
 
 The multi-decoder is an end-to-end differentiable cascade, consisting of an ASR subnet and an MT subnet. This approach inherits several strengths from cascaded approaches, the most prominent of which is the ability to perform search/retrieval over intermediate ASR representations (more details). The translation quality of the multi-decoder is greater than that of the attentional encoder decoder. The multi-decoder approach can also be applied to CTC/attention models -- this combination results in the strongest performance amongst our example models.
