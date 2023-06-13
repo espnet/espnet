@@ -3,11 +3,11 @@ import argparse
 import sys
 from typing import List, Union
 
+import numpy as np
 from typeguard import check_argument_types
 
 from espnet2.utils import config_argparse
 from espnet.utils.cli_utils import get_commandline_args
-import numpy as np
 
 
 def scoring(
@@ -30,9 +30,9 @@ def scoring(
         hyp_array = np.zeros(1000)
 
         ref_time_stamps = [int(float(item) * 100) for item in time_stamp_ref.split(" ")]
-        
+
         for j in range(0, len(ref_time_stamps), 2):
-            ref_array[ref_time_stamps[j]:ref_time_stamps[j + 1]] = 1
+            ref_array[ref_time_stamps[j] : ref_time_stamps[j + 1]] = 1
 
         try:
             hyp_time_stamps = [
@@ -49,13 +49,13 @@ def scoring(
             continue
 
         for j in range(0, len(hyp_time_stamps), 2):
-            hyp_array[hyp_time_stamps[j]:hyp_time_stamps[j + 1]] = 1
+            hyp_array[hyp_time_stamps[j] : hyp_time_stamps[j + 1]] = 1
 
         # calculate TP, FP, FN
         TP = np.sum((ref_array[:1000] == 1) & (hyp_array[:1000] == 1))
         FP = np.sum((ref_array[:1000] == 0) & (hyp_array[:1000] == 1))
         FN = np.sum((ref_array[:1000] == 1) & (hyp_array[:1000] == 0))
-        
+
         total_TP += TP
         total_FP += FP
         total_FN += FN
