@@ -1,6 +1,6 @@
 # ESPnet-ST-v2: Speech-to-Text Translation
 
-TODO
+!!This page is under construction!!
 
 ## Table of Contents
 * Results
@@ -37,7 +37,7 @@ TODO
 
 The tables below provide a performance snapshot of different core architectures for offline and simultaneous ST. Links for downloading our example models or for building your own models from scratch are also provided.
 
-Here we're reporting MuST-C-v1 English-to-German results. These example models were trained using only the MuST-C-v1 ST corpus. No additional MT data was used.
+Here we're reporting MuST-C-v2 English-to-German results. These example models were trained using only the MuST-C-v2 ST corpus. No additional MT data was used.
 
 ### Offline ST
 
@@ -110,10 +110,20 @@ The multi-decoder is an end-to-end differentiable cascade, consisting of an ASR 
 
 Multi-decoder inference involves two consecutive beam searches, one for the ASR subnet and one for the MT subnet. The model size is also greater than the single encoder-decoder (although trainable paramters are similar if using ASR multi-tasking for both approaches).
 
+### Auxiliary Techniques
+
+#### Pre-training
+
+#### SSL Front-end/Encoder
+
+#### LLM Decoder
+
+#### Hierarchical Encoding
+      
+#### Minimum Bayes-Risk Decoding
+
 ## Simultaneous ST Models
 
 ## Recipe Flow
-
-TODO
 
 ## How to cite
