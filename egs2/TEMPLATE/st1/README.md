@@ -119,7 +119,7 @@ Multi-decoder inference involves two consecutive beam searches, one for the ASR 
 #### LLM Decoder
 
 #### Hierarchical Encoding
-      
+
 #### Minimum Bayes-Risk Decoding
 
 ## Simultaneous ST Models
