@@ -45,7 +45,7 @@ Here we're reporting MuST-C-v2 English-to-German results. These example models w
 
 |Model|BLEU|Model Link|Training Config|Decoding Config|
 |---|---|---|---|---|
-|Attentional Encoder-Decoder|25.7||||
+|Attentional Encoder-Decoder|25.7||[link](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/train_st_conformer_asrinit_v2.yaml)|[link](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/decode_st_conformer.yaml)|
 |Multi-Decoder Attn Enc-Dec|27.6||||
 |CTC/Attention|28.6||[link](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/train_st_ctc_conformer_asrinit_v2.yaml)|[link](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/decode_st_conformer_ctc0.3.yaml)|
 |Multi-Decoder CTC/Attention|28.8||||
