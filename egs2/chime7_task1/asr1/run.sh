@@ -80,13 +80,20 @@ asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
 asr_max_lr=$(calc_float $ngpu/10000.0)
 asr_warmup=$(calc_int 40000.0/$ngpu)
 
+if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n $decode_only ]];
+then
+  log "decode_only argument should be either dev, eval or empty"
+  exit
+fi
+
+
 if [ $decode_only == "dev" ]; then
   # apply gss only on dev
   gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
   asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 elif
   [ $decode_only == "eval" ]; then
-  # apply gss only on dev
+  # apply gss only on eval
   gss_dsets="chime6_eval,dipco_eval,mixer6_eval"
   asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/"
 fi

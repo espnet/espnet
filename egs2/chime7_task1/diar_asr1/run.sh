@@ -71,6 +71,13 @@ if [ "${decode_only}" == "eval" ]; then
 fi
 
 
+if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n $decode_only ]];
+then
+  log "decode_only argument should be either dev, eval or empty"
+  exit
+fi
+
+
 if [ $download_baseline_diarization == 1 ]; then
   log "Using organizer-provided JSON manifests from the baseline diarization system."
   if [ ! -d CHiME7DASRDiarizationBaselineJSONs ]; then
