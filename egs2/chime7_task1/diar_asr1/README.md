@@ -132,12 +132,12 @@ ln -s ../asr1/chime7_task1 .
 
 #### Main Track with Pyannote-based Diarization System
 To reproduce our results which use our pre-trained ASR model [https://huggingface.co/popcornell/chime7_task1_asr1_baseline](https://huggingface.co/popcornell/chime7_task1_asr1_baseline) and pre-trained
-[pyannote segmentation model](https://huggingface.co/popcornell/pyannote-segmentation-chime6-mixer6)
+[pyannote segmentation model](https://huggingface.co/popcornell/pyannote-segmentation-chime6-mixer6), on the dev set,
 you can run:
 ```bash
 ./run.sh --chime7-root YOUR_PATH_TO_CHiME7_ROOT --stage 2 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
---decode-only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM \
+--decode-only dev --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM \
 --pyan-use-pretrained popcornell/pyannote-segmentation-chime6-mixer6
 ```
 You can also play with diarization hyperparameters such as:
@@ -147,16 +147,31 @@ You can also play with diarization hyperparameters such as:
 
 as said merge-closer can have quite an impact on the final WER.
 
+**NOTE**
+We found the diarization baseline to be highly sensitive to the `diar-merge-closer` parameter and
+to the CUDA/CUDNN version used. <br>
+For example, the best results on our side were obtained with `conda install pytorch==1.13.1 torchvision==0.14.1 torchaudio==0.13.1 pytorch-cuda=11.6 -c pytorch -c nvidia`.
+This however was by using Ampere devices (A100) on our side, and the results might
+change for you if your machine is different. <br>
+See [this Pyannote issue](https://github.com/pyannote/pyannote-audio/issues/1370) related to replicability of the diarization baseline, where we have
+reported the full specs of our system and the conda environment used. <br>
+
+To enhance replicability, we provide in this [repository](https://github.com/popcornell/CHiME7DASRDiarizationBaselineJSONs) our pre-computed outputs
+for the diarization baseline.
+You can use them in this recipe by passing `--download-baseline-diarization 1 ` this
+will skip your "local" diarization baseline and instead download directly our predictions.
+
 ---
 If you want to run this recipe from scratch, **including dataset generation** and pyannote segmentation
-model fine-tuning you can run it from stage 0:
+model fine-tuning you can run it from stage 0 (use `--decode-only eval` for evaluation set):
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
---decode-only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM \
+--decode-only dev --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM \
 --pyan-use-pretrained popcornell/pyannote-segmentation-chime6-mixer6
 ```
+
 ---
 **If you want only to generate data you can run only stage 0.**
 ```bash
