@@ -23,7 +23,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
     % This software is distributed under the terms of the GNU Public License
     % version 3 (http://www.gnu.org/licenses/gpl.txt)
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+
     utils_folder = sprintf('%s/tools/utils', chime4_dir);
     enhancement_folder = sprintf('%s/tools/enhancement/', chime3_dir);
     addpath(utils_folder,'-end');
@@ -37,7 +37,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
     upath_ext = 'local/nn-gev/data/audio/16kHz/isolated_ext/';
     upath_simu = 'local/nn-gev/data/audio/16kHz/isolated/';
     nchan=6;
-    
+
     % Define hyper-parameters
     pow_thresh=-20; % threshold in dB below which a microphone is considered to fail
     wlen_sub=256; % STFT window length in samples
@@ -45,7 +45,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
     ntap_sub=12; % filter length in frames for speech subtraction (88 ms)
     wlen_add=1024; % STFT window length in samples for speaker localization
     del=-3; % minimum delay (0 for a causal filter)
-    
+
     %% Create simulated training dataset from original WSJ0 data %%
     if exist('equal_filter.mat','file'),
         load('equal_filter.mat');
@@ -67,7 +67,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             end
         end
         bth_spec=bth_spec/nfram;
-        
+
         % Compute average power spectrum of original WSJ0 data
         nfram=0;
         org_spec=zeros(wlen_sub/2+1,1);
@@ -80,7 +80,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             org_spec=org_spec+sum(abs(O).^2,2);
         end
         org_spec=org_spec/nfram;
-        
+
         % Derive equalization filter
         equal_filter=sqrt(bth_spec./org_spec);
         save('equal_filter.mat','equal_filter');
@@ -153,7 +153,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
         end
         mat2json(mat,[apath 'tr05_simu_new.json']);
     end
-    
+
     p = parpool('local', nj);
     % Loop over utterances
     parfor utt_ind=1:length(mat),
@@ -177,7 +177,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
         iend=round(mat{utt_ind}.ir_end*16000);
         nbeg=round(mat{utt_ind}.noise_start*16000)+1;
         nend=round(mat{utt_ind}.noise_end*16000);
-    
+
         % Load WAV files
         fprintf('%s\n',[upath 'tr05_org/' oname '.wav']);
         o=audioread([upath 'tr05_org/' oname '.wav']);
@@ -191,39 +191,39 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             n(:,c)=audioread([bpath nname '.CH' int2str(c) '.wav'],[nbeg nend]);
         fprintf('%s Place2\n',[bpath nname '.CH' int2str(c) '.wav']);
         end
-       
+
         % Compute the STFT (short window)
         O=stft_multi(o.',wlen_sub);
         R=stft_multi(r.',wlen_sub);
         X=stft_multi(x.',wlen_sub);
-    
+
         % Estimate 88 ms impulse responses on 250 ms time blocks
         A=estimate_ir(R,X,blen_sub,ntap_sub,del);
-    
+
         % Derive SNR
         Y=apply_ir(A,R,del);
         y=istft_multi(Y,iend-ibeg+1).';
         SNR=sum(sum(y.^2))/sum(sum((x-y).^2));
-        
+
         % Equalize microphone
         [~,nfram]=size(O);
         O=O.*repmat(equal_filter,[1 nfram]);
         o=istft_multi(O,nend-nbeg+1).';
-        
+
         % Compute the STFT (long window)
         O=stft_multi(o.',wlen_add);
         X=stft_multi(x.',wlen_add);
         [nbin,nfram] = size(O);
-    
+
         % Localize and track the speaker
         [~,TDOAx]=localize(X,[1:nchan]);
-        
+
         % Interpolate the spatial position over the duration of clean speech
         TDOA=zeros(nchan,nfram);
         for c=1:nchan,
             TDOA(c,:)=interp1(0:size(X,2)-1,TDOAx(c,:),(0:nfram-1)/(nfram-1)*(size(X,2)-1));
         end
-        
+
         % Filter clean speech
         Ysimu=zeros(nbin,nfram,nchan);
         for f=1:nbin,
@@ -233,11 +233,11 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             end
         end
         ysimu=istft_multi(Ysimu,nend-nbeg+1).';
-    
+
         % Normalize level and add
         ysimu=sqrt(SNR/sum(sum(ysimu.^2))*sum(sum(n.^2)))*ysimu;
         xsimu=ysimu+n;
-        
+
         % Write WAV file
         for c=1:nchan,
             audiowrite([udir uname '.CH' int2str(c) '.wav'],xsimu(:,c),fs);
@@ -245,16 +245,16 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             audiowrite([udir_ext uname '.CH' int2str(c) '.Clean.wav'],ysimu(:, c), fs);
         end
     end
-    
+
     %% Create simulated development and test datasets from booth recordings %%
     sets={'dt05' 'et05'};
     for set_ind=1:length(sets),
         set=sets{set_ind};
-    
+
         % Read official annotations
         if official,
             mat=json2mat([apath set '_simu.json']);
-            
+
         % Create new (non-official) annotations
         else
             mat=json2mat([apath set '_real.json']);
@@ -275,11 +275,11 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
                 pend=round((dur-noise_dur)*16000)/16000-pbeg;
                 mat{utt_ind}.noise_start=noise_mat.start-pbeg;
                 mat{utt_ind}.noise_end=noise_mat.end+pend;
-                mat{utt_ind}=orderfields(mat{utt_ind}); 
+                mat{utt_ind}=orderfields(mat{utt_ind});
             end
             mat2json(mat,[apath set '_simu_new.json']);
         end
-        
+
         % Loop over utterances
         parfor utt_ind=1:length(mat),
             if official,
@@ -299,7 +299,7 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             uname=[mat{utt_ind}.speaker '_' mat{utt_ind}.wsj_name '_' mat{utt_ind}.environment];
             tbeg=round(mat{utt_ind}.noise_start*16000)+1;
             tend=round(mat{utt_ind}.noise_end*16000);
-            
+
             % Load WAV files
             o=audioread([upath set '_bth/' oname '.CH0.wav']);
             [r,fs]=audioread([cpath nname '.CH0.wav'],[tbeg tend]);
@@ -308,34 +308,34 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
             for c=1:nchan,
                 x(:,c)=audioread([cpath nname '.CH' int2str(c) '.wav'],[tbeg tend]);
             end
-            
+
             % Compute the STFT (short window)
             R=stft_multi(r.',wlen_sub);
             X=stft_multi(x.',wlen_sub);
-            
+
             % Estimate 88 ms impulse responses on 250 ms time blocks
             A=estimate_ir(R,X,blen_sub,ntap_sub,del);
-            
+
             % Filter and subtract close-mic speech
             Y=apply_ir(A,R,del);
             y=istft_multi(Y,nsampl).';
             level=sum(sum(y.^2));
             n=x-y;
-            
+
             % Compute the STFT (long window)
             O=stft_multi(o.',wlen_add);
             X=stft_multi(x.',wlen_add);
             [nbin,nfram] = size(O);
-            
+
             % Localize and track the speaker
             [~,TDOAx]=localize(X,[1:nchan]);
-            
+
             % Interpolate the spatial position over the duration of clean speech
             TDOA=zeros(nchan,nfram);
             for c=1:nchan,
                 TDOA(c,:)=interp1(0:size(X,2)-1,TDOAx(c,:),(0:nfram-1)/(nfram-1)*(size(X,2)-1));
             end
-    
+
             % Filter clean speech
             Ysimu=zeros(nbin,nfram,nchan);
             for f=1:nbin,
@@ -345,11 +345,11 @@ function CHiME3_simulate_data_patched_parallel(official,nj,chime4_dir,chime3_dir
                 end
             end
             ysimu=istft_multi(Ysimu,nsampl).';
-            
+
             % Normalize level and add
             ysimu=sqrt(level/sum(sum(ysimu.^2)))*ysimu;
             xsimu=ysimu+n;
-            
+
             % Write WAV file
             for c=1:nchan,
                 audiowrite([udir uname '.CH' int2str(c) '.wav'],xsimu(:,c),fs);

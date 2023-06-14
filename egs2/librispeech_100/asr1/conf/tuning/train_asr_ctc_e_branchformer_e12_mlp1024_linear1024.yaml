@@ -45,7 +45,7 @@ best_model_criterion:
     - cer_ctc
     - min
 keep_nbest_models: 10
-use_amp: true      
+use_amp: true
 
 optim: adam
 optim_conf:

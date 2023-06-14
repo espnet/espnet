@@ -1,6 +1,8 @@
 """Enhancement model module."""
+import contextlib
 from typing import Dict, List, Optional, OrderedDict, Tuple
 
+import numpy as np
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
@@ -34,6 +36,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
+        extract_feats_in_collect_stats: bool = False,
     ):
         assert check_argument_types()
 
@@ -64,7 +67,13 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.stft_consistency = stft_consistency
 
         # for multi-channel signal
-        self.ref_channel = getattr(self.separator, "ref_channel", -1)
+        self.ref_channel = getattr(self.separator, "ref_channel", None)
+        if self.ref_channel is None:
+            self.ref_channel = 0
+
+        # Used in espnet2/tasks/abs_task.py for determining whether or not to do
+        # collect_feats during collect stats (stage 5).
+        self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
     def forward(
         self,
@@ -203,7 +212,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     "bottleneck_feats_lengths": bottleneck_feats_lengths,
                 }
         if feature_pre is not None:
-            speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
+            # for models like SVoice that output multiple lists of separated signals
+            pre_is_multi_list = isinstance(feature_pre[0], (list, tuple))
+            if pre_is_multi_list:
+                speech_pre = [
+                    [self.decoder(p, speech_lengths)[0] for p in ps]
+                    for ps in feature_pre
+                ]
+            else:
+                speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
         else:
             # some models (e.g. neural beamformer trained with mask loss)
             # do not predict time-domain signal in the training stage
@@ -273,13 +290,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 signal_ref = speech_ref
                 signal_pre = speech_pre
 
+            zero_weight = loss_wrapper.weight == 0.0
             if isinstance(criterion, TimeDomainLoss):
                 assert signal_pre is not None
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=True
                 )
                 # for the time domain criterions
-                l, s, o = loss_wrapper(sref, spre, {**others, **o})
+                with torch.no_grad() if zero_weight else contextlib.ExitStack():
+                    l, s, o = loss_wrapper(sref, spre, {**others, **o})
             elif isinstance(criterion, FrequencyDomainLoss):
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=False
@@ -320,9 +339,19 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 else:
                     # compute on spectrum
                     tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in sref]
-                    tf_pre = [self.encoder(sp, speech_lengths)[0] for sp in spre]
+                    # for models like SVoice that output multiple lists of
+                    # separated signals
+                    pre_is_multi_list = isinstance(spre[0], (list, tuple))
+                    if pre_is_multi_list:
+                        tf_pre = [
+                            [self.encoder(sp, speech_lengths)[0] for sp in ps]
+                            for ps in spre
+                        ]
+                    else:
+                        tf_pre = [self.encoder(sp, speech_lengths)[0] for sp in spre]
 
-                l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
+                with torch.no_grad() if zero_weight else contextlib.ExitStack():
+                    l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
             else:
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 

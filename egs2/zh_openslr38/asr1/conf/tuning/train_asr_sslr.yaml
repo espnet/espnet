@@ -66,7 +66,7 @@ frontend_conf:
       upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
    download_dir: ./hub
    multilayer_feature: True
-   
+
 preencoder: linear
 preencoder_conf:
    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.

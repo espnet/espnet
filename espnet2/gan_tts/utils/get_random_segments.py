@@ -3,7 +3,7 @@
 
 """Function to get random segments."""
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 
@@ -27,6 +27,7 @@ def get_random_segments(
     max_start_idx = x_lengths - segment_size
     start_idxs = (torch.rand([b]).to(x.device) * max_start_idx).to(dtype=torch.long,)
     segments = get_segments(x, start_idxs, segment_size)
+
     return segments, start_idxs
 
 

@@ -183,7 +183,7 @@ decoder_choices = ClassChoices(
         s4=S4Decoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
     optional=True,
 )
 preprocessor_choices = ClassChoices(
@@ -485,6 +485,17 @@ class ASRTask(AbsTask):
             token_list = list(args.token_list)
         else:
             raise RuntimeError("token_list must be str or list")
+
+        # If use multi-blank transducer criterion,
+        # big blank symbols are added just before the standard blank
+        if args.model_conf.get("transducer_multi_blank_durations", None) is not None:
+            sym_blank = args.model_conf.get("sym_blank", "<blank>")
+            blank_idx = token_list.index(sym_blank)
+            for dur in args.model_conf.get("transducer_multi_blank_durations"):
+                if f"<blank{dur}>" not in token_list:  # avoid this during inference
+                    token_list.insert(blank_idx, f"<blank{dur}>")
+            args.token_list = token_list
+
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
 

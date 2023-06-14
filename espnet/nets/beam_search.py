@@ -356,6 +356,8 @@ class BeamSearch(torch.nn.Module):
                 If maxlenratio<0.0, its absolute value is interpreted
                 as a constant max output length.
             minlenratio (float): Input length ratio to obtain min output length.
+                If minlenratio<0.0, its absolute value is interpreted
+                as a constant min output length.
 
         Returns:
             list[Hypothesis]: N-best decoding results
@@ -368,7 +370,10 @@ class BeamSearch(torch.nn.Module):
             maxlen = -1 * int(maxlenratio)
         else:
             maxlen = max(1, int(maxlenratio * x.size(0)))
-        minlen = int(minlenratio * x.size(0))
+        if minlenratio < 0:
+            minlen = -1 * int(minlenratio)
+        else:
+            minlen = int(minlenratio * x.size(0))
         logging.info("decoder input length: " + str(x.shape[0]))
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
@@ -419,7 +424,7 @@ class BeamSearch(torch.nn.Module):
                 + "".join([self.token_list[x] for x in best.yseq[1:-1]])
                 + "\n"
             )
-        if best.yseq[1:-1].shape[0] == x.shape[0]:
+        if best.yseq[1:-1].shape[0] == maxlen:
             logging.warning(
                 "best hypo length: {} == max output length: {}".format(
                     best.yseq[1:-1].shape[0], maxlen

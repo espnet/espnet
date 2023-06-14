@@ -2,7 +2,7 @@ from typing import Iterator, List, Sequence, Tuple, Union
 
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import load_num_sequence_text, read_2column_text
+from espnet2.fileio.read_text import load_num_sequence_text, read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
@@ -57,7 +57,7 @@ class FoldedBatchSampler(AbsSampler):
 
         category2utt = {}
         if utt2category_file is not None:
-            utt2category = read_2column_text(utt2category_file)
+            utt2category = read_2columns_text(utt2category_file)
             if set(utt2category) != set(first_utt2shape):
                 raise RuntimeError(
                     "keys are mismatched between "

@@ -27,7 +27,7 @@ $ ./run_pre_fine.sh --stop-stage 5
 ```
 The detail of stage 1-5 can be found in [`Recipe flow`](../../TEMPLATE/tts1/README.md#recipe-flow).
 
-#### 2. Train pretrain model 
+#### 2. Train pretrain model
 Run the script `./run_pre_fine.sh` with stage 6 with pretrain_stage as True
 
 ```sh
@@ -36,7 +36,7 @@ $ ./run_pre_fine.sh --stage 6
 ```
 #### 3. Finetune model
 Run the script ./run_pre_fine.sh with stage 6 with finetune_stage as True and pretrain_stage as False. Make sure `--init_param` for `--train_args` points to correct pretrain model path.
-    
+
 ```sh
 # Recommend using --tag to name the finetune experiment directory
 $ ./run_pre_fine.sh --stage 6
@@ -64,7 +64,7 @@ You can find the other pretrained models in [ESPnet model zoo](https://github.co
 
 #### 3. Replace token list with pretrained model's one
 Since we use the same language data for fine-tuning, we need to use the token list of the pretrained model instead of that of data for fine-tuning. Follow [jvs recipe example](../../jvs/tts1/README.md).
-    
+
 #### 4. Finetune model
 Run the recipe from stage 6.
 You need to specify `--init_param` for `--train_args` to load pretrained parameters (Or you can write them in `*.yaml` config).

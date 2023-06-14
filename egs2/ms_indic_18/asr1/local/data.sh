@@ -34,7 +34,7 @@ set -o pipefail
 
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then 
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     if [[ ! -d "${MS_INDIC_IS18}/${lang}-in-Train" ]]; then
         log "stage0: Download training data to ${MS_INDIC_IS18}. ${lang}-in-Train directory is missing"
         exit 1

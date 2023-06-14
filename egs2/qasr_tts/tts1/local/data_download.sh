@@ -19,10 +19,10 @@ if [ ! -d "${download_dir}/qasr_tts-1.0" ] && [ -f "qasr_tts-1.0.zip" ]; then
     mkdir -p "${download_dir}"
     unzip "${cwd}/qasr_tts-1.0.zip" -d "${download_dir}"
     echo "successfully prepared data."
-    
+
 else
     echo "Go to this link https://arabicspeech.org/qasr_tts "
     exit 1
 fi
 
-exit 0 
+exit 0

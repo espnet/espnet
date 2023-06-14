@@ -24,11 +24,11 @@ def get_new_manifests(input_dir, output_filename):
     supervisions = []
     for c_k in segcuts.data.keys():
         c_cut = segcuts.data[c_k]
-        recording_id = c_cut.id.split("-")[0]
+
         speaker = c_cut.supervisions[0].speaker
         gss_id = (
-            f"{recording_id}-{speaker}-"
-            f"{int(100*c_cut.start):06d}_{int(100*c_cut.end):06d}"
+            f"{c_cut.recording_id}-{speaker}-"
+            f"{round(100*c_cut.start):06d}_{round(100*c_cut.end):06d}"
         )
         try:
             enhanced_audio = id2wav[gss_id]
@@ -36,9 +36,9 @@ def get_new_manifests(input_dir, output_filename):
             warnings.warn(
                 "Skipped example {}, of length {:.2f}, it was not found in GSS input. "
                 "This may lead to significant errors for ASR if this is inference."
-                "It could be that it was discarded by GSS "
+                " It could be that it was discarded by GSS "
                 "because the segment was too long,"
-                "check GSS max-segment-length argument.".format(
+                " check GSS max-segment-length argument.".format(
                     gss_id, c_cut.end - c_cut.start
                 )
             )
@@ -60,7 +60,7 @@ def get_new_manifests(input_dir, output_filename):
         )
 
         new_sup = deepcopy(c_cut.supervisions[0])
-        new_sup.id = gss_id
+        new_sup.id = c_cut.id + "_gss"
         new_sup.recording_id = gss_id
         new_sup.start = 0
         new_sup.duration = duration

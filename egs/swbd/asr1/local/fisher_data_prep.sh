@@ -96,11 +96,11 @@ if [ $stage -le 1 ]; then
 ## fe_03_00004.sph
 ## Transcpribed at the LDC
 #
-#7.38 8.78 A: an- so the topic is 
+#7.38 8.78 A: an- so the topic is
 
   echo -n > $tmpdir/text.1 || exit 1;
 
-  perl -e ' 
+  perl -e '
    use File::Basename;
    ($tmpdir)=@ARGV;
    open(F, "<$tmpdir/transcripts.flist") || die "Opening list of transcripts";
@@ -111,7 +111,7 @@ if [ $stage -le 1 ]; then
      m:([^/]+)\.txt: || die "Bad filename $_";
      $call_id = $1;
      print R "$call_id-A $call_id A\n";
-     print R "$call_id-B $call_id B\n"; 
+     print R "$call_id-B $call_id B\n";
      open(I, "<$file") || die "Opening file $_";
 
      $line1 = <I>;
@@ -122,7 +122,7 @@ if [ $stage -le 1 ]; then
          $start = sprintf("%06d", $1 * 100.0);
          $end = sprintf("%06d", $2 * 100.0);
          length($end) > 6 && die "Time too long $end in file $file";
-         $side = $3; 
+         $side = $3;
          $words = $4;
          $utt_id = "${call_id}-$side-$start-$end";
          print T "$utt_id $words\n" || die "Error writing to text file";
@@ -158,10 +158,10 @@ if [ $stage -le 3 ]; then
     # convert to absolute path
     utils/make_absolute.sh $f
   done > $tmpdir/sph_abs.flist
-  
+
   cat $tmpdir/sph_abs.flist | perl -ane 'm:/([^/]+)\.sph$: || die "bad line $_; ";  print "$1 $_"; ' > $tmpdir/sph.scp
 
-  cat $tmpdir/sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2); 
+  cat $tmpdir/sph.scp | awk -v sph2pipe=$sph2pipe '{printf("%s-A %s -f wav -p -c 1 %s |\n", $1, sph2pipe, $2);
     printf("%s-B %s -f wav -p -c 2 %s |\n", $1, sph2pipe, $2);}' | \
     sort -k1,1 -u  > $dir/wav.scp || exit 1;
 fi
@@ -186,4 +186,3 @@ if [ $stage -le 4 ]; then
 fi
 
 echo "Fisher data preparation succeeded"
-

@@ -34,15 +34,15 @@ set -o pipefail
 log "data preparation started"
 
 # Github LibriMix : https://github.com/s3prl/LibriMix.git
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then  
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ] ; then
     URL=https://github.com/YushiUeda/LibriMix.git
-    # our fork 
+    # our fork
     if [ ! -d "$FOLDER" ] ; then
         git clone "$URL" "$FOLDER"
         log "git successfully downloaded"
         # Not installing matplotlib to avoid conflict with ESPnet
         sed -i -e "s/matplotlib>=3\.1\.3//" $FOLDER/requirements.txt
-        pip install -r "$FOLDER"/requirements.txt 
+        pip install -r "$FOLDER"/requirements.txt
     fi
 fi
 

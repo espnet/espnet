@@ -44,5 +44,3 @@ with h5py.File('${tmpdir}/feats.h5') as h, open('${tmpdir}/wav.scp', 'r') as s:
         np.testing.assert_array_equal(test, valid[:, None])
 EOF
 }
-
-
