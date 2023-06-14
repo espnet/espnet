@@ -88,6 +88,8 @@ Joint training/decoding incurs an additional computational cost. Anecdotally, CT
 
 #### Transducer
 
+![Transducer](./local/images/rnnt.png)
+
 *Why choose this model?*
 
 The transducer is an autoregressive hard alignment model. Unlike models with an attentional decoder, transducer models typically use shallow LSTM decoders. Notably, the transducer's decoder avoids the quadratic computational complexity of its attentional counterpart -- inference is appreciably faster.
