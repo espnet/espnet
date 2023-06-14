@@ -53,7 +53,7 @@ model_conf:
     tgt_sym_blank: "<pad>"
     tgt_sym_sos: "<s>"
     tgt_sym_eos: "</s>"
-    
+
 
 optim: adam
 optim_conf:
