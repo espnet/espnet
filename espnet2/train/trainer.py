@@ -62,7 +62,6 @@ except ImportError:
     fairscale = None
 
 
-torch.autograd.set_detect_anomaly(True)
 
 @dataclasses.dataclass
 class TrainerOptions:
