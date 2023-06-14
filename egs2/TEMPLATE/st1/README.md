@@ -116,13 +116,19 @@ Multi-decoder inference involves two consecutive beam searches, one for the ASR 
 
 #### ASR Pre-training
 
-![CTC/Attention](./local/images/asr-init.png)
+![](./local/images/asr-init.png)
 
 Initializing encoder parameters from an ASR model is an easy way to speed up the convergence of ST training, allowing for more rapid experiment cycles. Models typically perform better with ASR pre-training as well.
 
 An example of ASR pre-training can be found in [this config](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/train_st_ctc_conformer_asrinit_v2.yaml).
 
 #### SSL Front-end/Encoder
+
+![](./local/images/ssl.png)
+
+We can leverage self-supervised learning representations as either front-end features or as an encoder initialization. The former method is typically less computationally intensive, as SSL models may be very large.
+
+An example of using an SSL front-end can be found in [this config](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/conf_wavlm_nohier_mbart_m2m_asr0.0_stctc0.0.yaml). More information about using SSL representations can be found [here](https://espnet.github.io/espnet/espnet2_tutorial.html#usage-of-self-supervised-learning-representations-as-feature).
 
 #### LLM Decoder
 

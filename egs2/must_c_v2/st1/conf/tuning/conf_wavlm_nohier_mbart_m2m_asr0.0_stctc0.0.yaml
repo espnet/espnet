@@ -39,7 +39,7 @@ postencoder_conf:
 
 decoder: hugging_face_transformers
 decoder_conf:
-    model_name_or_path: /scratch/bbjs/yan2/espnet-ml/egs2/must_c_v2/st1/mbart-large-50-many-to-many-mmt
+    model_name_or_path: ./mbart-large-50-many-to-many-mmt
 
 
 model_conf:
@@ -98,6 +98,6 @@ preencoder_conf:
 
 ignore_init_mismatch: true
 init_param:
-    - "/scratch/bbjs/yan2/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_wavlm_large_pre_raw_bpe4000_sp/2epoch.pth:encoder:encoder"
-    - "/scratch/bbjs/yan2/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_wavlm_large_pre_raw_bpe4000_sp/2epoch.pth:frontend.featurizer:frontend.featurizer"
-    - "/scratch/bbjs/yan2/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_wavlm_large_pre_raw_bpe4000_sp/2epoch.pth:preencoder:preencoder"
+    - "../asr1/exp/asr_train_asr_conformer_wavlm_large_pre_raw_bpe4000_sp/2epoch.pth:encoder:encoder"
+    - "../asr1/exp/asr_train_asr_conformer_wavlm_large_pre_raw_bpe4000_sp/2epoch.pth:frontend.featurizer:frontend.featurizer"
+    - "../asr1/exp/asr_train_asr_conformer_wavlm_large_pre_raw_bpe4000_sp/2epoch.pth:preencoder:preencoder"
