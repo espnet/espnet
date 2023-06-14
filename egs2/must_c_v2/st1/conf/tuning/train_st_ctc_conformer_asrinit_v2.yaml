@@ -65,9 +65,6 @@ extra_asr_decoder_conf:
     num_blocks: 6
     linear_units: 2048
     dropout_rate: 0.1
-    # positional_dropout_rate: 0.1
-    # self_attention_dropout_rate: 0.1
-    # src_attention_dropout_rate: 0.1
 
 model_conf:
     asr_weight: 0.3

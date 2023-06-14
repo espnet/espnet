@@ -43,20 +43,20 @@ Here we're reporting MuST-C-v2 English-to-German results. These example models w
 
 |Model|BLEU|Model Link|Training Config|Decoding Config|
 |---|---|---|---|---|
-|Attentional Encoder-Decoder|25.7|link|link|link|
-|Multi-Decoder Attn Enc-Dec|27.6|link|link|link|
-|CTC/Attention|28.6|link|link|link|
-|Multi-Decoder CTC/Attention|28.8|link|link|link|
-|Transducer|27.6|link|link|link|
+|Attentional Encoder-Decoder|25.7||||
+|Multi-Decoder Attn Enc-Dec|27.6||||
+|CTC/Attention|28.6||[link](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/train_st_ctc_conformer_asrinit_v2.yaml)|[link](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/decode_st_conformer_ctc0.3.yaml)|
+|Multi-Decoder CTC/Attention|28.8||||
+|Transducer|27.6||||
 
 ### Simultaneous ST
 
 |Model|BLEU|AL|Model Link|Training Config|Decoding Config|
 |---|---|---|---|---|---|
-|Blockwise Attn Enc-Dec|22.8|3.23|link|link|link|
-|Label-Sync Blockwise CTC/Attn|24.4|3.23|link|link|link|
-|Time-Sync Blockwise CTC/Attn|24.6|2.34|link|link|link|
-|Blockwise Transducer|22.9|2.37|link|link|link|
+|Blockwise Attn Enc-Dec|22.8|3.23||||
+|Label-Sync Blockwise CTC/Attn|24.4|3.23||||
+|Time-Sync Blockwise CTC/Attn|24.6|2.34||||
+|Blockwise Transducer|22.9|2.37||||
 
 ## Offline ST Models
 
