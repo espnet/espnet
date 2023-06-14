@@ -34,11 +34,7 @@ To use this development version, please clone this branch and then proceed with 
       * Blockwise Transducer
    * Auxiliary Techniques
       * Using an offline model for streaming inference
-* Recipe Flow
-   * Data preparation
-   * Building models from scratch
-   * Downloading our example models
-   * Running models
+* Code Components
 * How to cite
 
 ## Results
@@ -151,3 +147,23 @@ An example of using a pre-trained LLM initialization can be found in [this confi
 Building deeper, more sophisticated encoders can improve ST performance. We have found that hierarchical encoding, where initial layers are trained towards an ASR CTC objective and final layers are trained towards a ST CTC objective, encourages the encoder to take on more of the input-to-output re-ordering required for translation.
 
 An example of hierarchical encoding can be found in [this config](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/train_st_ctc_conformer_asrinit_v2.yaml).
+
+## Code Components
+
+![](./local/images/code.png)
+
+The three main code components can be found in `espnet2/st/espnet_model.py`, `espnet2/tasks/st.py`, and `espnet2/bin/st_inference.py`.
+
+`espnet2/st/espnet_model.py` defines the ST model initialization, forward pass, and loss functions.
+
+`espnet2/tasks/st.py` is the task wrapper which handles data loaders, training loops, and more.
+
+`espnet2/bin/st_inference.py` defines the Speech2Text API which handles inference.
+
+### Tip on modifying code
+
+![](./local/images/python-cmd.png)
+
+If you are developing new functions and wish to debug your new training/inference logic, you can use a Python debugger (e.g. pdb) and directly run Python commands (circumventing the recipe scripts). 
+
+Once you have run the training or inference stage, ESPnet will have created a log file. At the top of these log files, you'll find the corresponding Python command. Note: for debugging you may want to set `--multiprocessing_distributed False`
