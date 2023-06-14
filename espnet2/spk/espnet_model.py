@@ -16,11 +16,11 @@ from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
-from espnet2.diar.decoder.abs_decoder import AbsDecoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.nets_utils import to_device
+from espnet2.spk.loss import *
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -44,11 +44,21 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         encoder: AbsEncoder,
-        aggregator
+        aggregator,
+        projector,
+        loss,
     ):
         assert check_argument_types()
 
         super().__init__()
+
+        self.frontend = frontend
+        self.specaug = specaug
+        self.normalize = normalize
+        self.encoder = encoder
+        self.aggregator = aggregator
+        self.projector = projector
+        self.loss = loss
 
     def forward(
         self,
@@ -70,9 +80,62 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         batch_size = speech.shape[0]
 
         # 1. extract low-level feats (e.g., mel-spectrogram or MFCC)
+        # Will do nothing for raw waveform-based models (e.g., RawNets)
         feats = self.extract_feats(speech)
 
         frame_level_feats = self.encode_frame(speech)
 
         # 2. aggregation into utterance-level
+        utt_level_feat = self.aggregate(frame_level_feats)
+
+        # 3. (optionally) go through further projection(s)
+        spk_embd = self.project_spk_embd(utt_level_feat)
+
+        # 4. calculate loss
+        loss = self.loss(spk_embd, spk_labels)
+
+        stats = dict(
+            loss=loss.detach()
+        )
+
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        return loss, stats, weight
+
+
+    def extract_feats(self, speech: torch.Tensor) -> torch.Tensor:
+        batch_size = speech.shape[0]
+
+        # 1. extract feats
+        if self.frontend is not None:
+            feats, _ = self.frontend(speech, None)
+        else:
+            feats = speech
+
+        # 2. apply augmentations
+        if self.specaug is not None and self.training:
+            feats, _ = self.specaug(feats, None)
+
+        # 3. normalize
+        if self.normalize is not None:
+            feats, _ = self.normalize(feats, None)
+
+        return feats
+
+    def encode_frame(self, feats: torch.Tensor) -> torch.Tensor:
+        frame_level_feats = self.encoder(feats)
+
+        return frame_level_feats
+
+    def aggregate(self, frame_level_feats: torch.Tensor) -> torch.Tensor:
+        utt_level_feat = self.aggregator(frame_level_feats)
+
+        return utt_level_feat
+
+    def project_spk_embd(self, utt_level_feat: torch.Tensor) -> torch.Tensor:
+        if self.projector is not None:
+            spk_embd = self.projector(utt_level_feat)
+        else:
+            spk_embd = utt_level_feat
+
+        return spk_embd
 
