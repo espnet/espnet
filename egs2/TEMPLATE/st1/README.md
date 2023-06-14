@@ -2,6 +2,8 @@
 
 !!This page is under construction!!
 
+Documentation for the ESPnet-ST-v2 project, to be presented at ACL 2023. This branch will be merged to the ESPnet master. More details can be found [here](https://arxiv.org/pdf/2304.04596v1.pdf).
+
 ## Table of Contents
 * Results
    * Offline ST
@@ -37,7 +39,7 @@
 
 The tables below provide a performance snapshot of different core architectures for offline and simultaneous ST. Links for downloading our example models or for building your own models from scratch are also provided.
 
-Here we're reporting MuST-C-v2 English-to-German results. These example models were trained using only the MuST-C-v2 ST corpus. No additional MT data was used. These models use ASR pre-training on the same data for faster convergence ([ASR config](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/asr1/conf/tuning/train_asr_conformer.yaml))
+Here we're reporting MuST-C-v2 English-to-German results. These example models were trained using only the MuST-C-v2 ST corpus. No additional MT data was used. These models use ASR pre-training on the same data for faster convergence ([ASR config](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/asr1/conf/tuning/train_asr_conformer.yaml)).
 
 ### Offline ST
 
