@@ -6,8 +6,8 @@ Documentation for the ESPnet-ST-v2 project, to be presented at ACL 2023. This br
 
 To use this development version, please clone this branch and then proceed with the normal [ESPnet2 installation](https://espnet.github.io/espnet/installation.html) (Kaldi is not required). 
 
-   git clone https://github.com/brianyan918/espnet-ml.git
-   git checkout md_pr
+`git clone https://github.com/brianyan918/espnet-ml.git`
+`git checkout md_pr`
 
 ## Table of Contents
 * Results
