@@ -142,6 +142,6 @@ An example of using a pre-trained LLM initialization can be found in [this confi
 
 ![](./local/images/hier-enc.png)
 
-Building deeper, more sophisticated encoders can improve ST performance. We have found that hierarchical encoding, where initial layers are trained towards an ASR CTC objective and final layers are trained towards a ST CTC objective, encourages the encoder to take on more of the input-to-output re-ordering required for translation. 
+Building deeper, more sophisticated encoders can improve ST performance. We have found that hierarchical encoding, where initial layers are trained towards an ASR CTC objective and final layers are trained towards a ST CTC objective, encourages the encoder to take on more of the input-to-output re-ordering required for translation.
 
 An example of hierarchical encoding can be found in [this config](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/train_st_ctc_conformer_asrinit_v2.yaml).
