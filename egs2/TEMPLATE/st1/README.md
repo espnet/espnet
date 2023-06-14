@@ -162,7 +162,7 @@ The three main code components can be found in `espnet2/st/espnet_model.py`, `es
 
 ### Tip on modifying code
 
-If you are developing new functions and wish to debug your new training/inference logic, you can use a Python debugger (e.g. pdb) and directly run Python commands (circumventing the recipe scripts). 
+If you are developing new functions and wish to debug your new training/inference logic, you can use a Python debugger (e.g. pdb) and directly run Python commands (circumventing the recipe scripts).
 
 ![](./local/images/python-cmd.png)
 
