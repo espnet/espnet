@@ -51,7 +51,7 @@ class XVExtractor:
         if self.toolkit == "speechbrain":
             from speechbrain.dataio.preprocess import AudioNormalizer
             from speechbrain.pretrained import EncoderClassifier
-            
+
             self.audio_norm = AudioNormalizer()
             self.model = EncoderClassifier.from_hparams(
                 source=args.pretrained_model, run_opts={"device": device}
