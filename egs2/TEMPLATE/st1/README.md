@@ -162,8 +162,8 @@ The three main code components can be found in `espnet2/st/espnet_model.py`, `es
 
 ### Tip on modifying code
 
-![](./local/images/python-cmd.png)
-
 If you are developing new functions and wish to debug your new training/inference logic, you can use a Python debugger (e.g. pdb) and directly run Python commands (circumventing the recipe scripts). 
 
-Once you have run the training or inference stage, ESPnet will have created a log file. At the top of these log files, you'll find the corresponding Python command. Note: for debugging you may want to set `--multiprocessing_distributed False`
+![](./local/images/python-cmd.png)
+
+Once you have run the training or inference stage, ESPnet will have created a log file. At the top of these log files, you'll find the corresponding Python command. Note: for debugging you may want to set `--multiprocessing_distributed False`.
