@@ -15,7 +15,7 @@ Documentation for the ESPnet-ST-v2 project, to be presented at ACL 2023. This br
       * Transducer
       * Multi-Decoder
    * Auxiliary Techniques
-      * Pre-training
+      * ASR Pre-training
       * SSL Front-end/Encoder
       * LLM Decoder
       * Hierarchical Encoding
@@ -114,18 +114,16 @@ Multi-decoder inference involves two consecutive beam searches, one for the ASR 
 
 ### Auxiliary Techniques
 
-#### Pre-training
+#### ASR Pre-training
+
+![CTC/Attention](./local/images/asr-init.png)
+
+Initializing encoder parameters from an ASR model is an easy way to speed up the convergence of ST training, allowing for more rapid experiment cycles. Models typically perform better with ASR pre-training as well.
+
+An example of ASR pre-training can be found in [this config](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/train_st_ctc_conformer_asrinit_v2.yaml).
 
 #### SSL Front-end/Encoder
 
 #### LLM Decoder
 
 #### Hierarchical Encoding
-
-#### Minimum Bayes-Risk Decoding
-
-## Simultaneous ST Models
-
-## Recipe Flow
-
-## How to cite
