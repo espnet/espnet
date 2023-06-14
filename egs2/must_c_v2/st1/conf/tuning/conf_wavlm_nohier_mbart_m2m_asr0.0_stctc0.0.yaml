@@ -34,15 +34,14 @@ encoder_conf:
 
 postencoder: length_adaptor
 postencoder_conf:
-    length_adaptor_n_layers: 1
-
+    length_adaptor_n_layers: 1  #2x convolutional downsampling
 
 decoder: hugging_face_transformers
 decoder_conf:
     model_name_or_path: ./mbart-large-50-many-to-many-mmt
 
-
 model_conf:
+    lang_token_id: 250003   #de_DE
     asr_weight: 0.0
     mt_weight: 0.0
     mtlalpha: 0.3
@@ -54,7 +53,7 @@ model_conf:
     tgt_sym_blank: "<pad>"
     tgt_sym_sos: "<s>"
     tgt_sym_eos: "</s>"
-    lang_token_id: 250003   #de_DE
+    
 
 optim: adam
 optim_conf:

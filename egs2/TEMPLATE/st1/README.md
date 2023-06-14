@@ -132,4 +132,10 @@ An example of using an SSL front-end can be found in [this config](https://githu
 
 #### LLM Decoder
 
+![](./local/images/llm.png)
+
+Initializing decoder parameters from a pre-trained large language model can greatly improve performance. This typically increases the model size drastically, but fewer iterations are required for convergence.
+
+An example of using a pre-trained LLM initialization can be found in [this config](https://github.com/brianyan918/espnet-ml/blob/md_pr/egs2/must_c_v2/st1/conf/tuning/conf_wavlm_nohier_mbart_m2m_asr0.0_stctc0.0.yaml).
+
 #### Hierarchical Encoding
