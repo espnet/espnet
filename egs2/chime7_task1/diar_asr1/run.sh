@@ -71,7 +71,7 @@ if [ "${decode_only}" == "eval" ]; then
 fi
 
 
-if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n $decode_only ]];
+if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n "$decode_only" ]];
 then
   log "decode_only argument should be either dev, eval or empty"
   exit

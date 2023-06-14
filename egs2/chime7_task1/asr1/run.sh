@@ -80,7 +80,7 @@ asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
 asr_max_lr=$(calc_float $ngpu/10000.0)
 asr_warmup=$(calc_int 40000.0/$ngpu)
 
-if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n $decode_only ]];
+if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n "$decode_only" ]];
 then
   log "decode_only argument should be either dev, eval or empty"
   exit
