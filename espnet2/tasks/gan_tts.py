@@ -31,6 +31,7 @@ from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
+from espnet2.tts.feats_extract.ying import Ying
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
@@ -79,6 +80,13 @@ energy_extractor_choices = ClassChoices(
     default=None,
     optional=True,
 )
+ying_extractor_choices = ClassChoices(
+    "ying_extract",
+    classes=dict(ying=Ying),
+    type_check=AbsFeatsExtract,
+    default=None,
+    optional=True,
+)
 pitch_normalize_choices = ClassChoices(
     "pitch_normalize",
     classes=dict(
@@ -121,6 +129,8 @@ class GANTTSTask(AbsTask):
         pitch_normalize_choices,
         # --energy_extract and --energy_extract_conf
         energy_extractor_choices,
+        # --ying_extract and --ying_extract_conf
+        ying_extractor_choices,
         # --energy_normalize and --energy_normalize_conf
         energy_normalize_choices,
     ]
@@ -260,6 +270,7 @@ class GANTTSTask(AbsTask):
                 "energy",
                 "sids",
                 "lids",
+                "ying",
             )
         else:
             # Inference mode
@@ -321,6 +332,7 @@ class GANTTSTask(AbsTask):
         energy_extract = None
         pitch_normalize = None
         energy_normalize = None
+        ying_extract = None
         if getattr(args, "pitch_extract", None) is not None:
             pitch_extract_class = pitch_extractor_choices.get_class(
                 args.pitch_extract,
@@ -334,6 +346,13 @@ class GANTTSTask(AbsTask):
             )
             energy_extract = energy_extract_class(
                 **args.energy_extract_conf,
+            )
+        if getattr(args, "ying_extract", None) is not None:
+            ying_extract_class = ying_extractor_choices.get_class(
+                args.ying_extract,
+            )
+            ying_extract = ying_extract_class(
+                **args.ying_extract_conf,
             )
         if getattr(args, "pitch_normalize", None) is not None:
             pitch_normalize_class = pitch_normalize_choices.get_class(
@@ -358,6 +377,7 @@ class GANTTSTask(AbsTask):
             pitch_normalize=pitch_normalize,
             energy_extract=energy_extract,
             energy_normalize=energy_normalize,
+            ying_extract=ying_extract,
             tts=tts,
             **args.model_conf,
         )

@@ -13,7 +13,7 @@ from torch.nn import functional as F
 from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
-from espnet2.gan_svs.avocodo.avocodo import (
+from espnet2.gan_tts.avocodo.avocodo import (
     SBD,
     AvocodoDiscriminator,
     AvocodoDiscriminatorPlus,

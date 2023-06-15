@@ -21,7 +21,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet2.gan_svs.avocodo import AvocodoGenerator
+from espnet2.gan_tts.avocodo import AvocodoGenerator
 from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
 from espnet2.gan_svs.uhifigan.sine_generator import SineGen
 from espnet2.gan_svs.utils.expand_f0 import expand_f0

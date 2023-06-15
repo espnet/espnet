@@ -54,6 +54,7 @@ use_sid=false              # Whether to use speaker id as the inputs (Need utt2s
 use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
 feats_extract=fbank        # On-the-fly feature extractor.
 feats_normalize=global_mvn # On-the-fly feature normalizer.
+ying_extract=None          # Yingram feature extractor
 fs=16000                   # Sampling rate.
 n_fft=1024                 # The number of fft points.
 n_shift=256                # The number of shift points.
@@ -593,6 +594,9 @@ if ! "${skip_train}"; then
         _opts+="--energy_extract_conf n_fft=${n_fft} "
         _opts+="--energy_extract_conf hop_length=${n_shift} "
         _opts+="--energy_extract_conf win_length=${win_length} "
+        _opts+="--ying_extract ${ying_extract} "
+        _opts+="--ying_extract_conf fs=${fs} "
+        _opts+="--ying_extract_conf w_step=${n_shift} "
 
         if [ -n "${teacher_dumpdir}" ]; then
             _teacher_train_dir="${teacher_dumpdir}/${train_set}"
@@ -833,6 +837,14 @@ if ! "${skip_train}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},energy,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},energy,${_type} "
         fi
+        if [ -e "${svs_stats_dir}/train/collect_feats/ying.scp" ]; then
+            _scp=ying.scp
+            _type=npy
+            _train_collect_dir=${svs_stats_dir}/train/collect_feats
+            _valid_collect_dir=${svs_stats_dir}/valid/collect_feats
+            _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},ying,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},ying,${_type} "
+        fi
 
         # Check extra statistics
         if [ -e "${tts_stats_dir}/train/pitch_stats.npz" ]; then
@@ -849,6 +861,10 @@ if ! "${skip_train}"; then
             _opts+="--energy_extract_conf hop_length=${n_shift} "
             _opts+="--energy_extract_conf win_length=${win_length} "
             _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
+        fi
+        if [ -e "${svs_stats_dir}/train/ying_stats.npz" ]; then
+            _opts+="--ying_extract_conf fs=${fs} "
+            _opts+="--ying_extract_conf w_step=${n_shift} "
         fi
 
         # Add X-vector to the inputs if needed
