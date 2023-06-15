@@ -1791,9 +1791,7 @@ def att_to_numpy(att_ws, att):
     return att_ws
 
 
-def _apply_dynamic_filter(
-    p, last_attended_idx, backward_window=1, forward_window=3
-):
+def _apply_dynamic_filter(p, last_attended_idx, backward_window=1, forward_window=3):
     """Apply dynamic filter.
 
     This function apply the dynamic filter
@@ -1917,7 +1915,7 @@ class GDCAttLoc(torch.nn.Module):
         # initialize attention weight with uniform dist.
         if att_prev is None:
             att_prev = enc_hs_pad.new_zeros(*enc_hs_pad.size()[:2])
-            att_prev[:, 0] = 1.0            
+            att_prev[:, 0] = 1.0
 
         # att_prev: utt x frame -> utt x 1 x 1 x frame
         # -> utt x att_conv_chans x 1 x frame

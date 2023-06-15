@@ -41,7 +41,7 @@ svs_conf:                        # keyword arguments for the selected model
     zoneout_rate: 0.1
     use_masking: True
     use_weighted_masking: False
-    bce_pos_weight: 5.0          
+    bce_pos_weight: 5.0
     loss_type: L1+L2
     use_guided_attn_loss: true   # whether to use guided attention loss
     guided_attn_loss_sigma: 0.4  # sigma of guided attention loss

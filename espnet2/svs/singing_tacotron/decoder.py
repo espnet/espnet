@@ -12,7 +12,7 @@ import torch
 import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.rnn.attentions import AttForwardTA
-from espnet.nets.pytorch_backend.tacotron2.decoder import ZoneOutCell, Prenet, Postnet
+from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet, Prenet, ZoneOutCell
 
 
 def decoder_init(m):
@@ -191,8 +191,8 @@ class Decoder(torch.nn.Module):
                     att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w, prev_out)
                 else:
                     att_c, att_w = self.att(hs, hlens, z_list[0], prev_att_w)
-            else: # GDCA
-                    att_c, att_w = self.att(hs, hlens, trans_token, z_list[0], prev_att_w)
+            else:  # GDCA
+                att_c, att_w = self.att(hs, hlens, trans_token, z_list[0], prev_att_w)
             prenet_out = self.prenet(prev_out) if self.prenet is not None else prev_out
             xs = torch.cat([att_c, prenet_out], dim=1)
             z_list[0], c_list[0] = self.lstm[0](xs, (z_list[0], c_list[0]))
@@ -265,7 +265,7 @@ class Decoder(torch.nn.Module):
             use_att_constraint (bool):
                 Whether to apply attention constraint introduced in `Deep Voice 3`_.
             use_dynamic_filter (bool):
-                Whether to apply dynamic filter introduced in `Singing Tacotron`_.            
+                Whether to apply dynamic filter introduced in `Singing Tacotron`_.
             backward_window (int): Backward window size in attention constraint.
             forward_window (int): Forward window size in attention constraint.
         Returns:
@@ -333,7 +333,7 @@ class Decoder(torch.nn.Module):
                         backward_window=backward_window,
                         forward_window=forward_window,
                     )
-                else: # GDCA
+                else:  # GDCA
                     att_c, att_w = self.att(
                         hs,
                         ilens,

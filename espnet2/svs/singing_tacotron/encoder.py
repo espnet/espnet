@@ -22,7 +22,7 @@ class Encoder(torch.nn.Module):
 
     This is a module of encoder of Spectrogram prediction network in Singing Tacotron,
     which described in `Singing-Tacotron: Global Duration Control Attention and Dynamic
-    Filter for End-to-end Singing Voice Synthesis`_. This is the encoder which converts 
+    Filter for End-to-end Singing Voice Synthesis`_. This is the encoder which converts
     either a sequence of characters or acoustic features into the sequence of hidden states.
 
     .. _`Singing-Tacotron: Global Duration Control Attention and Dynamic
@@ -189,7 +189,11 @@ class Duration_Encoder(torch.nn.Module):
     """
 
     def __init__(
-        self, idim, embed_dim=512, dropout_rate=0.5, padding_idx=0,
+        self,
+        idim,
+        embed_dim=512,
+        dropout_rate=0.5,
+        padding_idx=0,
     ):
         """Initialize Singing-Tacotron encoder module.
 
@@ -207,16 +211,30 @@ class Duration_Encoder(torch.nn.Module):
         self.dense24 = torch.nn.Linear(idim, 24)
         self.convs = torch.nn.Sequential(
             torch.nn.ReLU(),
-            torch.nn.Conv1d(24, 32, 3, stride=1, bias=False, padding=2 // 2,),
+            torch.nn.Conv1d(
+                24,
+                32,
+                3,
+                stride=1,
+                bias=False,
+                padding=2 // 2,
+            ),
             torch.nn.ReLU(),
-            torch.nn.Conv1d(32, 32, 3, stride=1, bias=False, padding=2 // 2,),
+            torch.nn.Conv1d(
+                32,
+                32,
+                3,
+                stride=1,
+                bias=False,
+                padding=2 // 2,
+            ),
             torch.nn.ReLU(),
         )
         self.dense1 = torch.nn.Linear(32, 1)
         self.nntanh = torch.nn.Tanh()
 
         # initialize
-        self.apply(encoder_init) 
+        self.apply(encoder_init)
 
     def forward(self, xs):
         """Calculate forward propagation.

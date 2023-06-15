@@ -14,9 +14,8 @@ from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 from typeguard import check_argument_types
 
 from espnet2.svs.abs_svs import AbsSVS
-
-from espnet2.svs.singing_tacotron.encoder import Encoder, Duration_Encoder
 from espnet2.svs.singing_tacotron.decoder import Decoder
+from espnet2.svs.singing_tacotron.encoder import Duration_Encoder, Encoder
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.tts.gst.style_encoder import StyleEncoder
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
@@ -35,8 +34,8 @@ from espnet.nets.pytorch_backend.rnn.attentions import (
 class singing_tacotron(AbsSVS):
     """singing_Tacotron module for end-to-end singing-voice-synthesis.
 
-    This is a module of Spectrogram prediction network in Singing Tacotron 
-    described in `Singing-Tacotron: Global Duration Control Attention and 
+    This is a module of Spectrogram prediction network in Singing Tacotron
+    described in `Singing-Tacotron: Global Duration Control Attention and
     Dynamic Filter for End-to-end Singing Voice Synthesis`_,
     which learn accurate alignment information automatically.
 
@@ -296,7 +295,9 @@ class singing_tacotron(AbsSVS):
         elif self.atype == "GDCA":
             att = GDCAttLoc(dec_idim, dunits, adim, aconv_chans, aconv_filts)
         else:
-            raise NotImplementedError("Support only location, forward, forward_ta or GDCA")
+            raise NotImplementedError(
+                "Support only location, forward, forward_ta or GDCA"
+            )
         self.dec = Decoder(
             idim=dec_idim,
             odim=odim,
@@ -323,7 +324,8 @@ class singing_tacotron(AbsSVS):
         )
         if self.use_guided_attn_loss:
             self.attn_loss = GuidedAttentionLoss(
-                sigma=guided_attn_loss_sigma, alpha=guided_attn_loss_lambda,
+                sigma=guided_attn_loss_sigma,
+                alpha=guided_attn_loss_lambda,
             )
 
     def forward(
@@ -468,7 +470,9 @@ class singing_tacotron(AbsSVS):
             raise ValueError(f"unknown --loss-type {self.loss_type}")
 
         stats = dict(
-            l1_loss=l1_loss.item(), mse_loss=mse_loss.item(), bce_loss=bce_loss.item(),
+            l1_loss=l1_loss.item(),
+            mse_loss=mse_loss.item(),
+            bce_loss=bce_loss.item(),
         )
 
         # calculate attention loss
@@ -504,14 +508,13 @@ class singing_tacotron(AbsSVS):
         sids: torch.Tensor,
         lids: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-
         if self.atype == "GDCA":
             hs, hlens = self.enc(con, ilens)  # hs: (B, seq_len, emb_dim)
             trans_token = self.enc_duration(dur)  # (B, seq_len, 1)
         else:
             hs, hlens = self.enc(con, ilens)  # hs: (B, seq_len, emb_dim)
             hs_dur, hlens_dur = self.dur_enc(dur, ilens)
-            #dense_dur = self.dur_dense(dur)
+            # dense_dur = self.dur_dense(dur)
             hs += hs_dur
             trans_token = None
         if self.use_gst:
@@ -591,7 +594,7 @@ class singing_tacotron(AbsSVS):
         label = F.pad(label, [0, 1], "constant", self.eos)
         midi = F.pad(midi, [0, 1], "constant", self.midi_eos)
         duration = F.pad(duration, [0, 1], "constant", self.tempo_eos)
-        
+
         # add sos at the last of sequence
         label = F.pad(label, [1, 0], "constant", self.eos)
         midi = F.pad(midi, [1, 0], "constant", self.midi_eos)
@@ -625,7 +628,7 @@ class singing_tacotron(AbsSVS):
             )
 
             return dict(feat_gen=outs[0], att_w=att_ws[0])
-        
+
         # inference
         if self.atype == "GDCA_location":
             h = self.enc.inference(con, ilens)  # h: (B, seq_len, emb_dim)
@@ -652,7 +655,7 @@ class singing_tacotron(AbsSVS):
         out, prob, att_w = self.dec.inference(
             h,
             trans_token,
-            ys = y.unsqueeze(0),
+            ys=y.unsqueeze(0),
             threshold=threshold,
             minlenratio=minlenratio,
             maxlenratio=maxlenratio,
