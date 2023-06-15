@@ -107,8 +107,10 @@ class Stft(torch.nn.Module, InversibleInterface):
                 onesided=self.onesided,
             )
             if is_torch_1_7_plus:
-                stft_kwargs["return_complex"] = False
-            output = torch.stft(input, **stft_kwargs)
+                stft_kwargs["return_complex"] = True
+
+            output_complex = torch.stft(input, **stft_kwargs)
+            output = torch.view_as_real(output_complex)
         else:
             if self.training:
                 raise NotImplementedError(
