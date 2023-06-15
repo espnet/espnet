@@ -565,7 +565,7 @@ Then, we transfer the raw data into `score.json`, where situations can be catego
 
 - If the phoneme annotation are misaligned with notes in time domain, align phonemes (from `label`) and note-lyric pairs (from `musicXML`) through g2p. (eg. [Ofuton](https://github.com/espnet/espnet/tree/master/egs2/ofuton_p_utagoe_db/svs1))
 
-- For some datasets such as natsume or namine, there is a method to automatically repair missing silences in the dataset. When you run stage 1 and encounter errors such as "Lyrics are longer than phones" or "Phones are longer than lyrics", the code that needs to be fixed will be automatically printed out. You only need to copy this code into the `get_error_dict` method in `egs2/TEMPLATE/svs1/pyscripts/utils/prep_segments.py`. Depending on the suggested input_type, copy it into the hts or xml's error_dict respectively.
+- We also offer some automatic fixes for missing silences in the dataset. During the stage1, when you encounter errors such as "Lyrics are longer than phones" or "Phones are longer than lyrics", the scripts will auto-generated the fixing code. You may need to put the code into the `get_error_dict` method in `egs2/TEMPLATE/svs1/pyscripts/utils/prep_segments.py`. Noted that depending on the suggested input_type, you may want to copy it into either the `hts` or `xml`'s error_dict. (For more information, please check [namine](https://github.com/espnet/espnet/tree/master/egs2/namine_ritsu_utagoe_db/svs1) or [natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1)
 
 Specially, the note-lyric pairs can be rebuilt through other melody files, like `MIDI`, if there's something wrong with the note duration. (eg. [Natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1))
 
