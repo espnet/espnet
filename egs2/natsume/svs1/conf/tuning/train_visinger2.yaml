@@ -180,7 +180,7 @@ generator_first: false # whether to start updating generator first
 num_iters_per_epoch: 1000 # number of iterations per epoch
 max_epoch: 500            # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_size: 8             # batch size
+batch_size: 4             # batch size
 batch_type: sorted        # how to make batch
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
