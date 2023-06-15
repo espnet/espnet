@@ -572,9 +572,9 @@ class singing_tacotron(AbsSVS):
             maxlenratio (float): Maximum length ratio in inference.
             use_att_constraint (bool): Whether to apply attention constraint.
             use_dynamic_filter (bool): Whether to apply dynamic filter.
-            backward_window (int): Backward window in attention constraint 
+            backward_window (int): Backward window in attention constraint
                 or dynamic filter.
-            forward_window (int): Forward window in attention constraint 
+            forward_window (int): Forward window in attention constraint
                 or dynamic filter.
             use_teacher_forcing (bool): Whether to use teacher forcing.
 
