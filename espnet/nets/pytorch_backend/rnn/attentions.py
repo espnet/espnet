@@ -1886,11 +1886,13 @@ class GDCAttLoc(torch.nn.Module):
         """Calcualte AttLoc forward propagation.
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
         :param list enc_hs_len: padded encoder hidden state length (B)
-        :param torch.Tensor trans_token: Global transition token for duration (B x T_max x 1)
+        :param torch.Tensor trans_token: Global transition token 
+            for duration (B x T_max x 1)
         :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
         :param torch.Tensor att_prev: previous attention weight (B x T_max)
         :param float scaling: scaling parameter before applying softmax
-        :param torch.Tensor forward_window: forward window size when constraining attention
+        :param torch.Tensor forward_window: forward window size 
+            when constraining attention
         :param int last_attended_idx: index of the inputs of the last attended
         :param int backward_window: backward window size in attention constraint
         :param int forward_window: forward window size in attetion constraint

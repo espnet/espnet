@@ -23,7 +23,8 @@ class Encoder(torch.nn.Module):
     This is a module of encoder of Spectrogram prediction network in Singing Tacotron,
     which described in `Singing-Tacotron: Global Duration Control Attention and Dynamic
     Filter for End-to-end Singing Voice Synthesis`_. This is the encoder which converts
-    either a sequence of characters or acoustic features into the sequence of hidden states.
+    either a sequence of characters or acoustic features into the sequence of 
+    hidden states.
 
     .. _`Singing-Tacotron: Global Duration Control Attention and Dynamic
     Filter for End-to-end Singing Voice Synthesis`:
@@ -183,7 +184,8 @@ class Duration_Encoder(torch.nn.Module):
     This is the encoder which converts the sequence
     of durations and tempo features into a transition token.
 
-    .. _`SINGING-TACOTRON: GLOBAL DURATION CONTROL ATTENTION AND DYNAMIC FILTER FOR END-TO-END SINGING VOICE SYNTHESIS`:
+    .. _`SINGING-TACOTRON: GLOBAL DURATION CONTROL ATTENTION AND DYNAMIC FILTER FOR 
+    END-TO-END SINGING VOICE SYNTHESIS`:
        https://arxiv.org/abs/2202.07907
 
     """
