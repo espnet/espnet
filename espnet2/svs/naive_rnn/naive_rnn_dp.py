@@ -4,7 +4,7 @@
 """NaiveRNN-DP-SVS related modules."""
 
 from typing import Dict, Optional, Tuple
-import logging
+
 import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
@@ -353,14 +353,11 @@ class NaiveRNNDP(AbsSVS):
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
         label = label[:, : label_lengths.max()]  # for data-parallel
         batch_size = feats.size(0)
-        logging.info("label max: {}, midi_max: {}, tempo_max: {}".format(torch.max(label), torch.max(midi), torch.max(tempo)))
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
         midi_emb = self.midi_encoder_input_layer(midi)
         tempo_emb = self.tempo_encoder_input_layer(tempo)
 
-        # logging.info(label_lengths)
-        logging.info("label max: {}, midi_max: {}, tempo_max: {}".format(torch.max(label), torch.max(midi), torch.max(tempo)))
         label_emb = torch.nn.utils.rnn.pack_padded_sequence(
             label_emb, label_lengths.to("cpu"), batch_first=True, enforce_sorted=False
         )
