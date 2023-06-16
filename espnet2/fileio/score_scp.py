@@ -90,12 +90,12 @@ class XMLReader(collections.abc.Mapping):
                 prepitch = note.pitch.midi
                 for arti in note.articulations:
                     # NOTE(Yuning): By default, 'breath mark' appears at the end of
-                    # the sentence. In some situations, 'breath mark' doesn't take 
+                    # the sentence. In some situations, 'breath mark' doesn't take
                     # effect in its belonging note. Please handle them under local/.
-                    if arti.name in ["breath mark"]: # <br> is tagged as a notation
+                    if arti.name in ["breath mark"]:  # <br> is tagged as a notation
                         notes_list.append(NOTE("B", 0, st + dur, st + dur))
                     # NOTE(Yuning): In some datasets, there is a break when 'staccato'
-                    # occurs. We let users to decide whether to perform segmentation 
+                    # occurs. We let users to decide whether to perform segmentation
                     # under local/.
             else:  # rest note
                 if prepitch == 0:
