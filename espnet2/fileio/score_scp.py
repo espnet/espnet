@@ -91,7 +91,7 @@ class XMLReader(collections.abc.Mapping):
                 for arti in note.articulations:  # <br> is tagged as a notation
                     # NOTE(Yuning): By default, 'breath mark' appears at the end of the sentence.
                     # For other situations, users can handle them under local/.
-                    if arti.name in ["breath mark"]:  
+                    if arti.name in ["breath mark"]:
                         notes_list.append(NOTE("B", 0, st + dur, st + dur))
                     # NOTE(Yuning): In some datasets, there is a break when 'staccato' occurs.
                     # we let users decide whether to perform segmentation under local/.
