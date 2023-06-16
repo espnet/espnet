@@ -160,12 +160,36 @@ class SpeakerTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetSpeakerModel:
         assert check_argument_types()
 
+        #TODO: check ESPnet data input structure
+
+        if args.specaug is not None:
+            specaug_class = specaug_choices.get_class(args.specaug)
+            specaug = specaug_class(**args.specaug_conf)
+        else:
+            specaug = None
+
+        if args.normalize is not None:
+            normalize_class = normalize_choices.get_class(args.normalize)
+            normalize = normalize_class(**args.normalize_conf)
+        else:
+            normalize = None
+
+        encoder_class = encoder_choices.get_class(args.encoder)
+        encoder = encoder_class(input_size=input_size, &&args.encoder_conf)
+
+        pooling_class = pooling_choices.get_class(args.pooling)
+        pooling = pooling_class(**args.pooling_conf)
+
+        projector_class = projector_class.get_class(args.projector)
+        projector = projector_class(**args.projector_conf)
+
         model = ESPnetSpeakerModel(
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
             encoder=encoder,
             pooling=pooling,
+            projector=projector
             **args.model_conf,
         )
 
