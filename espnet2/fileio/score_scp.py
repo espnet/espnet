@@ -72,7 +72,7 @@ class XMLReader(collections.abc.Mapping):
                         if n.pitch.midi != prepitch:  # Ignore repeat note
                             note = n
                             break
-                if lr is None or lr == "":  # multi note in one syllable
+                if lr is None or lr == "" or lr == "ー":  # multi note in one syllable
                     if note.pitch.midi == prepitch:  # same pitch
                         notes_list[-1].et += dur
                     else:  # different pitch
