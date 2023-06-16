@@ -5,9 +5,20 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.layers.global_mvn import GlobalMVN
+from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
+from espnet2.spk.pooling.abs_pooling import AbsPooling
+from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
+from espnet2.spk.projector.abs_projector import AbsProjector
+from espent2.spk.projector.rawnet3_projector import RawNet3Projector
 from espnet2.tasks.abs_task import AbsTask
 from espent2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -46,7 +57,7 @@ normalize_choices = ClassChoices(
         utterance_mvn=UtteranceMVN,
     ),
     type_check=AbsNormalize,
-    default="utterance_mvn",
+    default=None,
     optional=True,
 )
 
@@ -54,33 +65,35 @@ normalize_choices = ClassChoices(
 encoder_choices = CLassChoices(
     name="encoder",
     classes=dict(
-        conformer=ConformerEncoder,
+        #conformer=ConformerEncoder, #TODO: add.
         rawnet3=RawNet3Encoder,
     ),
     type_check=AbsEncoder,
     default="rawnet3"
 )
 
-aggregator_choices = ClassChoices(
-    name="aggregator",
+pooling_choices = ClassChoices(
+    name="pooling",
     classes=dict(
-        mean=MeanPoolAggregator,
-        max=MaxPoolAggregator,
-        attn_stat=AttnStatAggregator,
-        chn_attn_stat=ChnAttnStatAggregator,
+        #TODO: implement additional aggregators
+        #mean=MeanPoolAggregator,
+        #max=MaxPoolAggregator,
+        #attn_stat=AttnStatAggregator,
+        chn_attn_stat=ChnAttnStatPooling,
     ),
-    type_check=AbsAggregator,
+    type_check=AbsPooling,
     default="chn_attn_stat",
 )
 
 projector_choices = CLassChoices(
     name="projector",
     classes=dict(
-        one_layer=OneLayerProjector,
-        mlp=MLPProjector,
+        #TODO: implement additional Projectors
+        #one_layer=OneLayerProjector,
+        rawnet3=RawNet3Projector,
     ),
     type_check=AbsProjector,
-    default="one_layer",
+    default="rawnet3",
 )
 
 
@@ -93,7 +106,7 @@ class SpeakerTask(AbsTask):
         specaug_choices,
         normalize_choices,
         encoder_choices,
-        aggregator_choices,
+        pooling_choices,
         projector_choices,
     ]
 
@@ -152,7 +165,7 @@ class SpeakerTask(AbsTask):
             specaug=specaug,
             normalize=normalize,
             encoder=encoder,
-            aggregator=aggregator,
+            pooling=pooling,
             **args.model_conf,
         )
 

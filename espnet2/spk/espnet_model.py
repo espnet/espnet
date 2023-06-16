@@ -12,7 +12,7 @@ from packaging.version import parse as V
 from typeguard import check_argument_types
 
 # TODO: remove unused modules
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.abs_encoder import AbsEncoder, RawNet3Encoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.diar.attractor.abs_attractor import AbsAttractor
