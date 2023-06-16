@@ -19,13 +19,13 @@ import numpy as np
 import soundfile as sf
 import torch
 from scipy import spatial
-
 from speechbrain.dataio.preprocess import AudioNormalizer
 from speechbrain.pretrained import EncoderClassifier
 
 
 class XVExtractor:
     """Extract X-vector from speechbrain pretrained models"""
+
     def __init__(self, args, device):
         self.device = device
         self.audio_norm = AudioNormalizer()
