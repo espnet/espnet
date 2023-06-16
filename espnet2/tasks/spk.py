@@ -18,7 +18,84 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espent2.utils.types import int_or_none, str2bool, str_or_none
 
+# Check and understand
+frontend_choices = ClassChoices(
+    name="frontend",
+    classes=dict(
+        default=DefaultFrontend,
+        sliding_window=SlidingWindow,
+        s3prl=S3prlFrontend,
+    ),
+    type_check=AbsFrontend,
+    default="default",
+    optional=True,
+)
+
+specaug_choices = ClassChoices(
+    name="specaug",
+    classes=dict(specaug=SpecAug),
+    type_check=AbsSpecAug,
+    default=None,
+    optional=True,
+)
+
+normalize_choices = ClassChoices(
+    name="normalize",
+    classes=dict(
+        global_mvn=GlobalMVN,
+        utterance_mvn=UtteranceMVN,
+    ),
+    type_check=AbsNormalize,
+    default="utterance_mvn",
+    optional=True,
+)
+
+# add more choices (e.g., ECAPA-TDNN)
+encoder_choices = CLassChoices(
+    name="encoder",
+    classes=dict(
+        conformer=ConformerEncoder,
+        rawnet3=RawNet3Encoder,
+    ),
+    type_check=AbsEncoder,
+    default="rawnet3"
+)
+
+aggregator_choices = ClassChoices(
+    name="aggregator",
+    classes=dict(
+        mean=MeanPoolAggregator,
+        max=MaxPoolAggregator,
+        attn_stat=AttnStatAggregator,
+        chn_attn_stat=ChnAttnStatAggregator,
+    ),
+    type_check=AbsAggregator,
+    default="chn_attn_stat",
+)
+
+projector_choices = CLassChoices(
+    name="projector",
+    classes=dict(
+        one_layer=OneLayerProjector,
+        mlp=MLPProjector,
+    ),
+    type_check=AbsProjector,
+    default="one_layer",
+)
+
+
+
 class SpeakerTask(AbsTask):
+    num_optimizers: int = 1
+
+    class_choices_list = [
+        frontend_choices,
+        specaug_choices,
+        normalize_choices,
+        encoder_choices,
+        aggregator_choices,
+        projector_choices,
+    ]
 
     trainer = Trainer
     def add_task_arguments(cls, parser):
