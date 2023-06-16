@@ -83,12 +83,18 @@ class XMLReader(collections.abc.Mapping):
                     else:
                         notes_list.append(NOTE("P", 0, st, st + dur))
                     prepitch = 0
+                    st += dur
+                    continue
                 else:  # normal note for one syllable
                     notes_list.append(NOTE(lr, note.pitch.midi, st, st + dur))
                 prepitch = note.pitch.midi
                 for arti in note.articulations:  # <br> is tagged as a notation
-                    if arti.name in ["breath mark"]:  # up-bow?
-                        notes_list.append(NOTE("B", 0, st, st))  # , 0))
+                    # NOTE(Yuning): By default, 'breath mark' appears at the end of the sentence.
+                    # For other situations, users can handle them under local/.
+                    if arti.name in ["breath mark"]:  
+                        notes_list.append(NOTE("B", 0, st + dur, st + dur))
+                    # NOTE(Yuning): In some datasets, there is a break when 'staccato' occurs.
+                    # we let users decide whether to perform segmentation under local/.
             else:  # rest note
                 if prepitch == 0:
                     notes_list[-1].et += dur
@@ -163,7 +169,7 @@ class XMLWriter:
             duration = 1.0 * duration / 8
             if duration == 0:
                 duration = 1 / 16
-            if notes_seq[i] != -1:  # isNote
+            if notes_seq[i] != 0:  # isNote
                 n = m21.note.Note(notes_seq[i])
                 if lyrics_seq[i] != "—":
                     n.lyric = lyrics_seq[i]
