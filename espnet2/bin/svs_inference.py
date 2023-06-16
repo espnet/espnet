@@ -24,7 +24,7 @@ from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
-# from espnet2.tts.utils import DurationCalculator
+from espnet2.tts.utils import DurationCalculator
 
 
 class SingingGenerate:
@@ -66,7 +66,7 @@ class SingingGenerate:
         self.svs = model.svs
         self.normalize = model.normalize
         self.feats_extract = model.feats_extract
-        # self.duration_calculator = DurationCalculator() # TODO(Yuning)
+        self.duration_calculator = DurationCalculator()
         self.preprocess_fn = SVSTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
@@ -176,9 +176,9 @@ class SingingGenerate:
             cfg.update(decode_conf)
         output_dict = self.model.inference(**batch, **cfg)
 
-        if output_dict.get("att_ws") is not None:
-            output_dict.update(duration=None, focus_rate=None)
-            # duration, focus_rate = self.duration_calculator(att_ws)
+        if output_dict.get("att_w") is not None:
+            duration, focus_rate = self.duration_calculator(output_dict["att_w"])
+            output_dict.update(duration=duration, focus_rate=focus_rate)
         else:
             output_dict.update(duration=None, focus_rate=None)
 
