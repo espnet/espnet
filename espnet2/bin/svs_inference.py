@@ -109,7 +109,7 @@ class SingingGenerate:
                 threshold=threshold,
                 maxlenratio=maxlenratio,
                 minlenratio=minlenratio,
-                use_att_constraint=use_att_constraint
+                use_att_constraint=use_att_constraint,
                 use_dynamic_filter=use_dynamic_filter,
                 forward_window=forward_window,
                 backward_window=backward_window,
