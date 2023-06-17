@@ -362,7 +362,7 @@ Adapters are small bottleneck layers that can be inserted into any layer of a ne
 
     `FindAdaptNet` would generate a new yaml file with the best adapter insertion whose name would have the original file name as prefix + `_adapt.yaml`. So if your file was originally named `asrconfig.yaml`, the generated config file would be named as `asrconfig_adapt.yaml`.
 
-3. Run __stage 11__ again with `./asr.sh --stage 11 ...`. 
+3. Run __stage 11__ again with `./asr.sh --stage 11 ...`.
     >make sure to specify the **generated config file** as the asr config file in this run.
 
 
