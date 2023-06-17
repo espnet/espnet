@@ -27,3 +27,4 @@ python local/score.py \
 	| sed 's/Intent/Dialog Act/g'
 
 exit 0
+

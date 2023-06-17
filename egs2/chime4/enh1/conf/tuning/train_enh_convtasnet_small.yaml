@@ -60,3 +60,4 @@ criterions:
     wrapper: fixed_order
     wrapper_conf:
         weight: 1.0
+

@@ -77,3 +77,4 @@ for set in dev test train; do
   # Check that data dirs are okay!
   utils/validate_data_dir.sh --no-feats $dir || exit 1
 done
+

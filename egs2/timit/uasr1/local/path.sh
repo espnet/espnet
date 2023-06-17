@@ -13,3 +13,5 @@ if [ ! -e ${MAIN_ROOT}/tools/kenlm.done ]; then
 fi
 
 export VAD_HOME=${MAIN_ROOT}/tools/rVADfast
+
+

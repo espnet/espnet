@@ -1,6 +1,9 @@
-cudnn_benchmark: false
-cudnn_deterministic: false
-use_amp: true
+cudnn_benchmark: false 
+cudnn_deterministic: false 
+use_amp: true 
+cudnn_benchmark: false 
+cudnn_deterministic: false 
+use_amp: true 
 # network architecture
 
 # frontend related

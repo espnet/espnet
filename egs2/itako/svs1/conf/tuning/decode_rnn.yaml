@@ -1,8 +1,0 @@
-# This configuration is the decoding setting for FastSpeech or FastSpeech2.
-
-##########################################################
-#                    DECODING SETTING                    #
-##########################################################
-use_teacher_forcing: false # whether to use teacher forcing
-                           # if true, we use groundtruth of durations
-                           # (+ pitch & energy for FastSpeech2)

@@ -47,3 +47,4 @@ joint-dim: 512
 
 # transducer related
 model-module: "espnet.nets.pytorch_backend.e2e_asr_transducer:E2E"
+

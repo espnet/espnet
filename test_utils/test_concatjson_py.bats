@@ -42,3 +42,4 @@ teardown() {
     python $utils/concatjson.py $tmpdir/*.json > $tmpdir/out.json
     jsondiff $tmpdir/out.json $tmpdir/valid
 }
+

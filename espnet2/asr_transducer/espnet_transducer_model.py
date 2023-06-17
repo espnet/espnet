@@ -388,9 +388,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                     report_wer=self.report_wer,
                 )
 
-            cer_transducer, wer_transducer = self.error_calculator(
-                encoder_out, target, t_len
-            )
+            cer_transducer, wer_transducer = self.error_calculator(encoder_out, target)
 
             return loss_transducer, cer_transducer, wer_transducer
 

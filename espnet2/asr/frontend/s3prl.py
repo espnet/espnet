@@ -51,10 +51,14 @@ class S3prlFrontend(AbsFrontend):
             normalize=frontend_conf.get("normalize", False),
             extra_conf=frontend_conf.get("extra_conf", None),
         )
-        if getattr(upstream.upstream, "model", None):
-            if getattr(upstream.upstream.model, "feature_grad_mult", None):
-                upstream.upstream.model.feature_grad_mult = 1.0
         upstream.eval()
+        if getattr(
+            upstream.upstream, "model", None
+        ) is not None and upstream.upstream.model.__class__.__name__ in [
+            "Wav2Vec2Model",
+            "HubertModel",
+        ]:
+            upstream.upstream.model.encoder.layerdrop = 0.0
 
         # check if adapter is added
         if (

@@ -79,9 +79,8 @@ def prepare_chime6(
             sources = []
             # NOTE: Each headset microphone is binaural
             for idx, audio_path in enumerate(audio_paths):
-                channels = [0, 1]  # if dset_part == "train" else [0]
                 sources.append(
-                    AudioSource(type="file", channels=channels, source=str(audio_path))
+                    AudioSource(type="file", channels=[0, 1], source=str(audio_path))
                 )
                 spk_id = audio_path.stem.split("_")[1]
                 audio_sf = sf.SoundFile(str(audio_paths[0]))
@@ -134,9 +133,9 @@ def prepare_chime6(
             )
     recordings = RecordingSet.from_recordings(recordings)
 
-    def _get_channel(session, dset_part):
+    def _get_channel(session):
         if mic == "ihm":
-            return [0, 1] if dset_part == "train" else [0]
+            return [0, 1]
         else:
             recording = recordings[session]
             return list(range(recording.num_channels))
@@ -147,7 +146,7 @@ def prepare_chime6(
             transcript = json.load(f)
             for idx, segment in enumerate(transcript):
                 spk_id = segment["speaker"]
-                channel = _get_channel(session, dset_part)
+                channel = _get_channel(session)
                 start = float(segment["start_time"])
                 end = float(segment["end_time"])
                 if ignore_shorter is not None and (end - start) < ignore_shorter:
@@ -159,19 +158,9 @@ def prepare_chime6(
                     continue
                 if start >= end:  # some segments may have negative duration
                     continue
-
-                ex_id = (
-                    f"{spk_id}_chime6_{session}_{idx}-"
-                    f"{round(100*start):06d}_{round(100*end):06d}-{mic}"
-                )
-
-                if "words" not in segment.keys():
-                    assert json_dir is not None
-                    segment["words"] = "placeholder"
-
                 supervisions.append(
                     SupervisionSegment(
-                        id=ex_id,
+                        id=f"{session}-{idx}",
                         recording_id=session
                         if mic == "mdm"
                         else session + f"_{spk_id}",
@@ -185,6 +174,7 @@ def prepare_chime6(
                 )
 
     supervisions = SupervisionSet.from_segments(supervisions)
+
     recording_set, supervision_set = fix_manifests(
         recordings=recordings, supervisions=supervisions
     )
@@ -311,16 +301,9 @@ def prepare_dipco(
                     )
                     continue
 
-                ex_id = (
-                    f"{spk_id}_dipco_{session}_{idx}-"
-                    f"{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
-                )
-                if "words" not in segment.keys():
-                    assert json_dir is not None
-                    segment["words"] = "placeholder"
                 supervisions.append(
                     SupervisionSegment(
-                        id=ex_id,
+                        id=f"{session}-{idx}",
                         recording_id=session
                         if mic == "mdm"
                         else session + "_{}".format(spk_id),
@@ -400,51 +383,46 @@ def prepare_mixer6(
     for sess in all_sessions:
         with open(os.path.join(transcriptions_dir, dset_part, f"{sess}.json")) as f:
             transcript = json.load(f)
-        if mic == "ihm":
-            if dset_part.startswith("train"):
-                if mic == "ihm" and dset_part.startswith("train"):
-                    current_sess_audio = [
-                        x
-                        for x in sess2audio[sess]
-                        if Path(x).stem.split("_")[-1] in ["CH02"]
-                    ]  # only interview and call
-
-            elif dset_part == "dev":
+        if mic == "ihm" and dset_part == "dev":
+            raise NotImplementedError
+        else:
+            if mic == "ihm" and dset_part.startswith("train"):
                 current_sess_audio = [
                     x
                     for x in sess2audio[sess]
-                    if Path(x).stem.split("_")[-1] in ["CH02", "CH01"]
-                ]  #
+                    if Path(x).stem.split("_")[-1] in ["CH02"]
+                ]  # only interview and call
             else:
-                raise NotImplementedError("No close-talk mics for eval set")
+                current_sess_audio = [
+                    x
+                    for x in sess2audio[sess]
+                    if Path(x).stem.split("_")[-1] not in ["CH01", "CH02", "CH03"]
+                ]
 
-        elif mic == "mdm":
-            current_sess_audio = [
-                x
-                for x in sess2audio[sess]
-                if Path(x).stem.split("_")[-1] not in ["CH01", "CH02", "CH03"]
+            # recordings here
+            sources = [
+                AudioSource(type="file", channels=[idx], source=str(audio_path))
+                for idx, audio_path in enumerate(current_sess_audio)
             ]
-        else:
-            raise NotImplementedError
-
-        # recordings here
-        sources = [
-            AudioSource(type="file", channels=[idx], source=str(audio_path))
-            for idx, audio_path in enumerate(current_sess_audio)
-        ]
-        audio_sf = sf.SoundFile(str(current_sess_audio[0]))
-        recordings.append(
-            Recording(
-                id=f"{sess}-{dset_part}-{mic}",
-                sources=sources,
-                sampling_rate=int(audio_sf.samplerate),
-                num_samples=audio_sf.frames,
-                duration=audio_sf.frames / audio_sf.samplerate,
+            audio_sf = sf.SoundFile(str(current_sess_audio[0]))
+            recordings.append(
+                Recording(
+                    id=f"{sess}-{dset_part}-{mic}"
+                    if mic == "mdm"
+                    else f"{sess}-{dset_part}-{mic}-SUBJECT",
+                    sources=sources,
+                    sampling_rate=int(audio_sf.samplerate),
+                    num_samples=audio_sf.frames,
+                    duration=audio_sf.frames / audio_sf.samplerate,
+                )
             )
-        )
 
         for idx, segment in enumerate(transcript):
             spk_id = segment["speaker"]
+            if mic == "mdm":
+                channel = list(range(len(current_sess_audio)))
+            else:
+                channel = 0
             start = float(segment["start_time"])
             end = float(segment["end_time"])
             if ignore_shorter is not None and (end - start) < ignore_shorter:
@@ -455,30 +433,15 @@ def prepare_mixer6(
                 )
                 continue
 
-            if mic == "ihm":  # and dset_part.startswith("train"):
-                rec_id = f"{sess}-{dset_part}-{mic}"
-                if mic == "ihm" and dset_part == "dev":
-                    subject_id = sess.split("_")[-1]
-                    if spk_id == subject_id:
-                        channel = 0
-                    else:
-                        channel = 1
-                else:
-                    channel = 0
+            if mic == "ihm" and dset_part.startswith("train"):
+                rec_id = f"{sess}-{dset_part}-{mic}-SUBJECT"
+            elif mic == "ihm" and dset_part == "dev":
+                raise NotImplementedError
             else:
                 rec_id = f"{sess}-{dset_part}-{mic}"
-                channel = list(range(len(current_sess_audio)))
-
-            ex_id = (
-                f"{spk_id}_mixer6_{sess}_{dset_part}_{idx}-"
-                f"{round(100 * start):06d}_{round(100 * end):06d}-{mic}"
-            )
-            if "words" not in segment.keys():
-                assert json_dir is not None
-                segment["words"] = "placeholder"
             supervisions.append(
                 SupervisionSegment(
-                    id=ex_id,
+                    id=f"{sess}-{dset_part}-{mic}-{idx}",
                     recording_id=rec_id,
                     start=start,
                     duration=add_durations(end, -start, sampling_rate=16000),
@@ -545,7 +508,7 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="output_root",
-        help="Path where the new CHiME-7 Task 1 dataset will be saved. "
+        help="Path where the new CHiME-7 Task 1 dataset will be saved."
         "Note that for audio files symbolic links are used.",
     )
     parser.add_argument(
@@ -555,7 +518,7 @@ if __name__ == "__main__":
         metavar="STR",
         required=False,
         help="Choose between chime6 and chime7, this"
-        " select the text normalization applied when creating "
+        " select the text normalization applied when creating"
         "the scoring annotation.",
     )
     parser.add_argument(
@@ -567,7 +530,7 @@ if __name__ == "__main__":
         required=False,
         help="Path to a directory with same structure "
         "as CHiME-7 Task 1 transcription directory, "
-        "containing JSON files "
+        "containing JSON files"
         "with the same structure but from a diarization "
         "system (words field could be missing and will be ignored).",
     )
@@ -578,31 +541,10 @@ if __name__ == "__main__":
         dest="ignore_shorter",
         default=0.0,
         required=False,
-        help="Ignore segments that are shorter than this value in the supervision.",
+        help="Ignore segments that are shorter than" " this value in the supervision.",
     )
 
     args = parser.parse_args()
-
-    if args.diar_json:
-        diarization_json_dir = args.diar_json
-
-        assert os.path.exists(diarization_json_dir), (
-            "{} does not appear to exist"
-            "did you pass the argument "
-            "correctly ?".format(diarization_json_dir)
-        )
-    else:
-        diarization_json_dir = None
-
-    if args.diar_json:
-        diarization_json_dir = args.diar_json
-        assert os.path.exists(diarization_json_dir), (
-            "{} does not appear to exist"
-            "did you pass the argument "
-            "correctly ?".format(diarization_json_dir)
-        )
-    else:
-        diarization_json_dir = None
     assert args.dset_name in ["chime6", "dipco", "mixer6"], (
         "Datasets supported in this script " "are chime6, dipco and mixer6"
     )
@@ -615,9 +557,9 @@ if __name__ == "__main__":
     if args.dset_part == "train" and args.dset_name == "dipco":
         raise NotImplementedError("DiPCo has no training set. Exiting.")
 
-    if args.dset_part in ["train", "dev"] and diarization_json_dir is None:
+    if args.dset_part in ["train", "dev"]:
         valid_mics = ["mdm", "ihm"]
-    elif args.dset_part == "eval" or diarization_json_dir is not None:
+    elif args.dset_part == "eval":
         valid_mics = ["mdm"]
     for mic in valid_mics:
         if args.dset_name == "chime6":
@@ -627,7 +569,6 @@ if __name__ == "__main__":
                 args.dset_part,
                 mic=mic,
                 ignore_shorter=args.ignore_shorter,
-                json_dir=diarization_json_dir,
             )
         elif args.dset_name == "dipco":
             prepare_dipco(
@@ -636,11 +577,10 @@ if __name__ == "__main__":
                 args.dset_part,
                 mic=mic,
                 ignore_shorter=args.ignore_shorter,
-                json_dir=diarization_json_dir,
             )
 
         elif args.dset_name == "mixer6":
-            if args.dset_part in ["eval"] and mic == "ihm":
+            if args.dset_part in ["dev", "eval"] and mic == "ihm":
                 continue
 
             if args.dset_part.startswith("train"):
@@ -653,7 +593,6 @@ if __name__ == "__main__":
                         dset_part,
                         mic=mic,
                         ignore_shorter=args.ignore_shorter,
-                        json_dir=diarization_json_dir,
                     )
 
                     supervisions.append(c_manifest[dset_part]["supervisions"])
@@ -686,5 +625,4 @@ if __name__ == "__main__":
                     args.dset_part,
                     mic=mic,
                     ignore_shorter=args.ignore_shorter,
-                    json_dir=diarization_json_dir,
                 )

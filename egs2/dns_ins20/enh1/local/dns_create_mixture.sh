@@ -61,3 +61,5 @@ fi
 
 echo "Creating Mixtures for Training and Validation Data."
 python ${mix_script} --cfg ${PWD}/${train_cfg} >/dev/null || exit 1;
+
+

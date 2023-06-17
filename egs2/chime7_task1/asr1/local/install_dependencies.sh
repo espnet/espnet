@@ -9,18 +9,16 @@ if ! command conda  &>/dev/null; then
 fi
 
 # install lhotse from master, we need the most up-to-date one
-python3 -m pip install git+https://github.com/lhotse-speech/lhotse@1b31bf2e341e7143ad0a67ba1d7484b8353ba45b
-# pyannote
-python3 -m pip install pyannote-metrics
+pip install git+https://github.com/lhotse-speech/lhotse
+
 # jiwer
-python3 -m pip install jiwer
+pip install jiwer
 
 #check if kaldi has been installed and compiled
 if ! command -v wav-reverberate &>/dev/null; then
   echo "It seems that wav-reverberate Kaldi command cannot be found.
   This happens if you don't have compiled and installed Kaldi.
-  Please follow instructions in ${MAIN_ROOT}/tools/kaldi/INSTALL."
-  exit
+  Please follow instructions in ${MAIN_ROOT}/tools/kaldi/INSTALL. "
 fi
 
 # install s3prl

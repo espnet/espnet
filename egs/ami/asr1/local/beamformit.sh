@@ -33,3 +33,4 @@ while read line; do
   #mv $odir/$line/${line}.ovl  $odir/$line/${line}_MDM$numch.ovl # Was not created!
 
 done < $meetings.$job
+

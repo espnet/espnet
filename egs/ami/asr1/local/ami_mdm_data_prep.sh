@@ -106,3 +106,4 @@ done
 utils/validate_data_dir.sh --no-feats $odir
 
 echo AMI MDM data preparation succeeded.
+

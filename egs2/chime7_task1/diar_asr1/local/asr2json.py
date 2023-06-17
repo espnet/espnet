@@ -1,1 +1,0 @@
-../../asr1/local/asr2json.py

@@ -36,12 +36,4 @@ def test_scoring(tmp_path, spk_scp, flexible_numspk):
         inf_scp=[spk_scp],
         ref_channel=0,
         flexible_numspk=flexible_numspk,
-        use_dnsmos=False,
-        dnsmos_args={
-            "mode": "local",
-            "auth_key": "",
-            "primary_model": "",
-            "p808_model": "",
-        },
-        use_pesq=False,
     )

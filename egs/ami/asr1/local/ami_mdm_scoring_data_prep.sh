@@ -129,3 +129,4 @@ local/convert2stm.pl $dir utt2spk_stm > $dir/stm
 utils/validate_data_dir.sh --no-feats $dir
 
 echo AMI $SET set data preparation succeeded.
+
