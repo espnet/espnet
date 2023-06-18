@@ -353,7 +353,7 @@ class SVSTask(AbsTask):
         else:
             # Give features from data-loader
             args.feats_extract = None
-            args.feats_extract_conf = None
+            args.feats_extract_conf = {"hop_length": None}
             feats_extract = None
             odim = args.odim
 
