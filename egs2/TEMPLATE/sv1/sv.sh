@@ -54,7 +54,7 @@ if [ ${stage} -le 1  ] && [ ${stop_stage} -ge 1  ] && ! [[ " ${skip_stages} " =~
     log "Stage 1 FIN."
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     echo "Stage 2: Train."
     ${python} -m espnet2.bin.launch \
         --cmd ${cuda_cmd} --name ${jobname} \
@@ -67,5 +67,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             --use_preprocessor true \
             --resume true \
             --output_dir ${sv_exp} \
+            --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,sound \
+            --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
             ${_opts} ${sv_args}
 fi
