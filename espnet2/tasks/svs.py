@@ -286,7 +286,7 @@ class SVSTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 fs=args.fs,
-                hop_length=args.feats_extract_conf["hop_length"],
+                hop_length=args.feats_extract_conf["hop_length"] if hasattr(args, "feats_extract_conf") else None,
             )
         else:
             retval = None
@@ -353,7 +353,7 @@ class SVSTask(AbsTask):
         else:
             # Give features from data-loader
             args.feats_extract = None
-            args.feats_extract_conf = {"hop_length": None}
+            args.feats_extract_conf = None
             feats_extract = None
             odim = args.odim
 
