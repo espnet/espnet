@@ -21,6 +21,7 @@ This is a template of SVS recipe for ESPnet2.
     * [XiaoiceSing training](#xiaoicesing-training)
     * [Diffsinger training](#diffsinger-training)
     * [VISinger training](#visinger-training)
+    * [Singing Tacotron training](#singing-tacotron-training)
     * [Multi speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
     * [Multi language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
     * [Vocoder training](#vocoder-training)
@@ -316,6 +317,21 @@ Second, check "train_config" (default `conf/train.yaml`, you can also use `--tra
 
 ```
 
+### Singing Tacotron training
+First, complete the data preparation:
+```sh
+$ ./run.sh \
+    --stage 1 \
+    --stop_stage 4 \
+```
+Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllabel level* in Singing Tacotron) and modify "vocoder_file" with your own vocoder path.
+```sh
+$ ./run.sh --stage 5 \
+    --train_config conf/tuning/train_singing_tacotron.yaml \
+    --inference_config conf/tuning/decode_singing_tacotron.yaml \
+    --score_feats_extract syllable_score_feats \
+    --vocoder_file ${your vocoder path} \
+```
 
 ### Multi-speaker model with speaker ID embedding training
 
@@ -608,6 +624,12 @@ Below are some common errors to watch out for:
     > pypinyin.pinyin("情意深重爱恨两重", style=Style.NORMAL)
     [['qing'], ['shen'], ['yi'], ['zhong'], ['ai'], ['hen'], ['liang'], ['zhong']]
     ```
+#### 4. Special marks in MusicXML
+* Breath:
+  * `breath mark` in note.articulations: usually appears at the end of the sentence. In some situations, `breath mark` doesn't take effect in its belonging note. Please handle them under local/.
+  * `br` in note.lyric. (solved in XMLReader)
+  * Special note with a fixed special pitch. (solved in XMLReader)
+* Staccato: In some situations, there is a break when `staccato` occurs in note.articulations. We let users to decide whether to perform segmentation under local/.
 
 ## Supported text cleaner
 
@@ -638,5 +660,6 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [XiaoiceSing](https://arxiv.org/abs/2006.06261)
 - [VISinger](https://arxiv.org/abs/2110.08813)
 - [VISinger 2](https://arxiv.org/abs/2211.02903)
+- [Singing Tacotron](https://arxiv.org/pdf/2202.07907v1.pdf)
 
 You can find example configs of the above models in [`egs/ofuton_p_utagoe_db/svs1/conf/tuning`](../../ofuton_p_utagoe_db/svs1/conf/tuning).
