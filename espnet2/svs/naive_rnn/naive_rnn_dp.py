@@ -38,7 +38,7 @@ class NaiveRNNDP(AbsSVS):
         odim: int,
         midi_dim: int = 129,
         embed_dim: int = 512,
-        tempo_dim: int = 500,
+        duration_dim: int = 500,
         eprenet_conv_layers: int = 3,
         eprenet_conv_chans: int = 256,
         eprenet_conv_filts: int = 5,
@@ -81,7 +81,7 @@ class NaiveRNNDP(AbsSVS):
         # store hyperparameters
         self.idim = idim
         self.midi_dim = midi_dim
-        self.tempo_dim = tempo_dim
+        self.duration_dim = duration_dim
         self.eunits = eunits
         self.odim = odim
         self.eos = idim - 1
@@ -123,7 +123,7 @@ class NaiveRNNDP(AbsSVS):
                 ),
                 torch.nn.Linear(eprenet_conv_chans, eunits),
             )
-            self.tempo_encoder_input_layer = torch.nn.Sequential(
+            self.duration_encoder_input_layer = torch.nn.Sequential(
                 EncoderPrenet(
                     idim=midi_dim,
                     embed_dim=embed_dim,
@@ -146,8 +146,8 @@ class NaiveRNNDP(AbsSVS):
                 embedding_dim=eunits,
                 padding_idx=self.padding_idx,
             )
-            self.tempo_encoder_input_layer = torch.nn.Embedding(
-                num_embeddings=tempo_dim,
+            self.duration_encoder_input_layer = torch.nn.Embedding(
+                num_embeddings=duration_dim,
                 embedding_dim=eunits,
                 padding_idx=self.padding_idx,
             )
@@ -172,7 +172,7 @@ class NaiveRNNDP(AbsSVS):
             # proj_size=eunits,
         )
 
-        self.tempo_encoder = torch.nn.LSTM(
+        self.duration_encoder = torch.nn.LSTM(
             input_size=eunits,
             hidden_size=eunits,
             num_layers=elayers,
@@ -336,14 +336,13 @@ class NaiveRNNDP(AbsSVS):
         if joint_training:
             label = label
             midi = melody
-            tempo = duration
             label_lengths = label_lengths
             midi_lengths = melody_lengths
             ds = duration
         else:
             label = label["score"]
             midi = melody["score"]
-            tempo = duration["score_phn"]
+            duration = duration["score_phn"]
             label_lengths = label_lengths["score"]
             midi_lengths = melody_lengths["score"]
             ds = duration["lab"]
@@ -356,7 +355,7 @@ class NaiveRNNDP(AbsSVS):
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
         midi_emb = self.midi_encoder_input_layer(midi)
-        tempo_emb = self.tempo_encoder_input_layer(tempo)
+        duration_emb = self.duration_encoder_input_layer(duration)
 
         label_emb = torch.nn.utils.rnn.pack_padded_sequence(
             label_emb, label_lengths.to("cpu"), batch_first=True, enforce_sorted=False
@@ -364,23 +363,23 @@ class NaiveRNNDP(AbsSVS):
         midi_emb = torch.nn.utils.rnn.pack_padded_sequence(
             midi_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
         )
-        tempo_emb = torch.nn.utils.rnn.pack_padded_sequence(
-            tempo_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
+        duration_emb = torch.nn.utils.rnn.pack_padded_sequence(
+            duration_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
         )
 
         hs_label, (_, _) = self.encoder(label_emb)
         hs_midi, (_, _) = self.midi_encoder(midi_emb)
-        hs_tempo, (_, _) = self.tempo_encoder(tempo_emb)
+        hs_duration, (_, _) = self.duration_encoder(duration_emb)
 
         hs_label, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_label, batch_first=True)
         hs_midi, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_midi, batch_first=True)
-        hs_tempo, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_tempo, batch_first=True)
+        hs_duration, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_duration, batch_first=True)
 
         if self.midi_embed_integration_type == "add":
-            hs = hs_label + hs_midi + hs_tempo
+            hs = hs_label + hs_midi + hs_duration
             hs = F.leaky_relu(self.midi_projection(hs))
         else:
-            hs = torch.cat((hs_label, hs_midi, hs_tempo), dim=-1)
+            hs = torch.cat((hs_label, hs_midi, hs_duration), dim=-1)
             hs = F.leaky_relu(self.midi_projection(hs))
         # integrate spk & lang embeddings
         if self.spks is not None:
@@ -495,23 +494,23 @@ class NaiveRNNDP(AbsSVS):
         label = label["score"]
         midi = melody["score"]
         if joint_training:
-            tempo = duration["lab"]
+            duration = duration["lab"]
         else:
-            tempo = duration["score_phn"]
+            duration = duration["score_phn"]
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
         midi_emb = self.midi_encoder_input_layer(midi)
-        tempo_emb = self.tempo_encoder_input_layer(tempo)
+        duration_emb = self.duration_encoder_input_layer(duration)
 
         hs_label, (_, _) = self.encoder(label_emb)
         hs_midi, (_, _) = self.midi_encoder(midi_emb)
-        hs_tempo, (_, _) = self.tempo_encoder(tempo_emb)
+        hs_duration, (_, _) = self.duration_encoder(duration_emb)
 
         if self.midi_embed_integration_type == "add":
-            hs = hs_label + hs_midi + hs_tempo
+            hs = hs_label + hs_midi + hs_duration
             hs = F.leaky_relu(self.midi_projection(hs))
         else:
-            hs = torch.cat((hs_label, hs_midi, hs_tempo), dim=-1)
+            hs = torch.cat((hs_label, hs_midi, hs_duration), dim=-1)
             hs = F.leaky_relu(self.midi_projection(hs))
         # integrate spk & lang embeddings
         if self.spks is not None:

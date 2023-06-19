@@ -51,7 +51,7 @@ class singing_tacotron(AbsSVS):
         idim: int,
         odim: int,
         midi_dim: int = 129,
-        tempo_dim: int = 500,
+        duration_dim: int = 500,
         embed_dim: int = 512,
         elayers: int = 1,
         eunits: int = 512,
@@ -164,7 +164,7 @@ class singing_tacotron(AbsSVS):
         self.odim = odim
         self.eos = idim - 1
         self.midi_eos = midi_dim - 1
-        self.tempo_eos = 0
+        self.duration_eos = 0
         self.cumulate_att_w = cumulate_att_w
         self.reduction_factor = reduction_factor
         self.use_gst = use_gst
@@ -195,8 +195,8 @@ class singing_tacotron(AbsSVS):
             embedding_dim=embed_dim,
             padding_idx=self.padding_idx,
         )
-        self.tempo_encode_layer = torch.nn.Embedding(
-            num_embeddings=tempo_dim,
+        self.duration_encode_layer = torch.nn.Embedding(
+            num_embeddings=duration_dim,
             embedding_dim=embed_dim,
             padding_idx=self.padding_idx,
         )
@@ -407,18 +407,18 @@ class singing_tacotron(AbsSVS):
         for i, l in enumerate(label_lengths):
             label[i, l] = self.eos
             midi[i, l] = self.midi_eos
-            duration[i, l] = self.tempo_eos
+            duration[i, l] = self.duration_eos
 
         # Add sos at the last of sequence
         label = F.pad(label, [1, 0], "constant", self.eos)
         midi = F.pad(midi, [1, 0], "constant", self.midi_eos)
-        duration = F.pad(duration, [1, 0], "constant", self.tempo_eos)
+        duration = F.pad(duration, [1, 0], "constant", self.duration_eos)
 
         ilens = label_lengths + 2
 
         label_emb = self.phone_encode_layer(label)
         midi_emb = self.midi_encode_layer(midi)
-        duration_emb = self.tempo_encode_layer(duration)
+        duration_emb = self.duration_encode_layer(duration)
         input_emb = label_emb + midi_emb + duration_emb
         con = label_emb + midi_emb
         dur = duration_emb
@@ -595,18 +595,18 @@ class singing_tacotron(AbsSVS):
         # add eos at the last of sequence
         label = F.pad(label, [0, 1], "constant", self.eos)
         midi = F.pad(midi, [0, 1], "constant", self.midi_eos)
-        duration = F.pad(duration, [0, 1], "constant", self.tempo_eos)
+        duration = F.pad(duration, [0, 1], "constant", self.duration_eos)
 
         # add sos at the last of sequence
         label = F.pad(label, [1, 0], "constant", self.eos)
         midi = F.pad(midi, [1, 0], "constant", self.midi_eos)
-        duration = F.pad(duration, [1, 0], "constant", self.tempo_eos)
+        duration = F.pad(duration, [1, 0], "constant", self.duration_eos)
 
         ilens = torch.tensor([label.size(1)])
 
         label_emb = self.phone_encode_layer(label)
         midi_emb = self.midi_encode_layer(midi)
-        duration_emb = self.tempo_encode_layer(duration)
+        duration_emb = self.duration_encode_layer(duration)
         input_emb = label_emb + midi_emb + duration_emb
         con = label_emb + midi_emb
         dur = duration_emb

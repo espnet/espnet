@@ -6,7 +6,7 @@
 svs: singing_tacotron            # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi dimension (note number + silence)
-    tempo_dim: 512
+    duration_dim: 512
     embed_dim: 512               # embedding dimension
     elayers: 1                   # number of blstm layers in encoder
     eunits: 512                  # number of blstm units
