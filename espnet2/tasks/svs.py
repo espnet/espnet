@@ -287,8 +287,6 @@ class SVSTask(AbsTask):
                 g2p_type=args.g2p,
                 fs=args.fs,
                 hop_length=args.feats_extract_conf["hop_length"]
-                if "hop_length" in args.feats_extract_conf
-                else None,
             )
         else:
             retval = None
@@ -296,7 +294,6 @@ class SVSTask(AbsTask):
         # assert check_return_type(retval)
         return retval
 
-    # TODO(Yuning): check new names
     @classmethod
     def required_data_names(
         cls, train: bool = True, inference: bool = False
