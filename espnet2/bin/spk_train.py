@@ -4,7 +4,7 @@ from espnet2.tasks.spk import SpeakerTask
 
 
 def get_parser():
-    parser = Speaker.get_parser()
+    parser = SpeakerTask.get_parser()
     return parser
 
 
