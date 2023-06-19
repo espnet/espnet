@@ -286,7 +286,7 @@ class SVSTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 fs=args.fs,
-                hop_length=args.feats_extract_conf["hop_length"]
+                hop_length=args.feats_extract_conf["hop_length"],
             )
         else:
             retval = None
