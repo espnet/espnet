@@ -623,9 +623,7 @@ class HiFiGANScaleDiscriminator(torch.nn.Module):
             - https://github.com/kan-bayashi/ParallelWaveGAN/pull/409
 
         """
-        current_module_keys = [
-            x for x in state_dict.keys() if x.startswith(prefix)
-        ]
+        current_module_keys = [x for x in state_dict.keys() if x.startswith(prefix)]
         if self.use_weight_norm and not any(
             ["weight_g" in k for k in current_module_keys]
         ):
