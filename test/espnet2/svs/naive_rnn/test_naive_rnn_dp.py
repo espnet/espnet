@@ -13,11 +13,18 @@ from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
     [(None, "add"), (2, "add"), (2, "concat")],
 )
 @pytest.mark.parametrize(
-    "spks, langs", [(-1, -1), (5, 2)],
+    "spks, langs",
+    [(-1, -1), (5, 2)],
 )
-
 def test_NaiveRNNDP(
-    eprenet_conv_layers, midi_embed_integration_type, postnet_layers, reduction_factor, spk_embed_dim, spk_embed_integration_type, spks, langs
+    eprenet_conv_layers,
+    midi_embed_integration_type,
+    postnet_layers,
+    reduction_factor,
+    spk_embed_dim,
+    spk_embed_integration_type,
+    spks,
+    langs,
 ):
     idim = 10
     odim = 5
@@ -113,14 +120,49 @@ def test_NaiveRNNDP(
         model.eval()
 
         inputs = dict(
-            text=torch.randint(0, idim, (1, 5,), ),
+            text=torch.randint(
+                0,
+                idim,
+                (
+                    1,
+                    5,
+                ),
+            ),
             label={
-                "lab": torch.randint(0, idim, (1, 5,),),
-                "score": torch.randint(0, idim, (1, 5,),),
+                "lab": torch.randint(
+                    0,
+                    idim,
+                    (
+                        1,
+                        5,
+                    ),
+                ),
+                "score": torch.randint(
+                    0,
+                    idim,
+                    (
+                        1,
+                        5,
+                    ),
+                ),
             },
             melody={
-                "lab": torch.randint(0, 127, (1, 5,),),
-                "score": torch.randint(0, 127, (1, 5,),),
+                "lab": torch.randint(
+                    0,
+                    127,
+                    (
+                        1,
+                        5,
+                    ),
+                ),
+                "score": torch.randint(
+                    0,
+                    127,
+                    (
+                        1,
+                        5,
+                    ),
+                ),
             },
             duration={
                 "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
@@ -141,14 +183,49 @@ def test_NaiveRNNDP(
         # teacher forcing
         # check inference with teachder forcing
         inputs = dict(
-            text=torch.randint(0, idim, (1, 5,),),
+            text=torch.randint(
+                0,
+                idim,
+                (
+                    1,
+                    5,
+                ),
+            ),
             label={
-                "lab": torch.randint(0, idim, (1, 5,),),
-                "score": torch.randint(0, idim,(1, 5,),),
+                "lab": torch.randint(
+                    0,
+                    idim,
+                    (
+                        1,
+                        5,
+                    ),
+                ),
+                "score": torch.randint(
+                    0,
+                    idim,
+                    (
+                        1,
+                        5,
+                    ),
+                ),
             },
             melody={
-                "lab": torch.randint(0, 127,(1, 5,),),
-                "score": torch.randint(0, 127,(1, 5,),),
+                "lab": torch.randint(
+                    0,
+                    127,
+                    (
+                        1,
+                        5,
+                    ),
+                ),
+                "score": torch.randint(
+                    0,
+                    127,
+                    (
+                        1,
+                        5,
+                    ),
+                ),
             },
             duration={
                 "lab": torch.tensor([[1, 2, 2, 3, 3]], dtype=torch.int64),
@@ -167,5 +244,3 @@ def test_NaiveRNNDP(
             inputs["spembs"] = torch.randn(spk_embed_dim)
         output_dict = model.inference(**inputs, use_teacher_forcing=True)
         assert output_dict["wav"].size(0) == inputs["feats"].size(0) * reduction_factor
-
-
