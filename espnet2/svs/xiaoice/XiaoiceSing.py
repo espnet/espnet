@@ -472,17 +472,16 @@ class XiaoiceSing(AbsSVS):
         else:
             label = label["score"]
             midi = melody["score"]
-            duration = duration["score_phn"]
+            duration_ = duration["score_phn"]
             label_lengths = label_lengths["score"]
             midi_lengths = melody_lengths["score"]
             duration_lengths = duration_lengths["score_phn"]
             ds = duration["lab"]
 
-        text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
         label = label[:, : label_lengths.max()]  # for data-parallel
-        duration = duration[:, : duration_lengths.max()]  # for data-parallel
+        duration_ = duration_[:, : duration_lengths.max()]  # for data-parallel
         if self.loss_function == "XiaoiceSing2":
             pitch = pitch[:, : pitch_lengths.max()]
             log_f0 = torch.clamp(pitch, min=0)
@@ -491,7 +490,7 @@ class XiaoiceSing(AbsSVS):
 
         label_emb = self.phone_encode_layer(label)
         midi_emb = self.midi_encode_layer(midi)
-        duration_emb = self.duration_encode_layer(duration)
+        duration_emb = self.duration_encode_layer(duration_)
         input_emb = label_emb + midi_emb + duration_emb
 
         x_masks = self._source_mask(label_lengths)
@@ -644,14 +643,14 @@ class XiaoiceSing(AbsSVS):
         label = label["score"]
         midi = melody["score"]
         if joint_training:
-            duration = duration["lab"]
+            duration_ = duration["lab"]
         else:
-            duration = duration["score_phn"]
+            duration_ = duration["score_phn"]
         ds = duration["lab"]
 
         label_emb = self.phone_encode_layer(label)
         midi_emb = self.midi_encode_layer(midi)
-        duration_emb = self.duration_encode_layer(duration)
+        duration_emb = self.duration_encode_layer(duration_)
         input_emb = label_emb + midi_emb + duration_emb
 
         x_masks = None  # self._source_mask(label_lengths)

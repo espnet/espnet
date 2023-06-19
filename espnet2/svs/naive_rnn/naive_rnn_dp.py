@@ -345,12 +345,13 @@ class NaiveRNNDP(AbsSVS):
             duration_ = duration["score_phn"]
             label_lengths = label_lengths["score"]
             midi_lengths = melody_lengths["score"]
+            duration_lengths = duration_lengths["score_phn"]
             ds = duration["lab"]
 
-        text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
         label = label[:, : label_lengths.max()]  # for data-parallel
+        duration_ = duration_[:, : duration_lengths.max()]  # for data-parallel
         batch_size = feats.size(0)
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
