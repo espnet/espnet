@@ -287,7 +287,7 @@ class SVSTask(AbsTask):
                 g2p_type=args.g2p,
                 fs=args.fs,
                 hop_length=args.feats_extract_conf["hop_length"]
-                if "hop_length" in feats_extract_conf 
+                if "hop_length" in feats_extract_conf
                 else None,
             )
         else:
