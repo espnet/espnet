@@ -33,7 +33,7 @@ def test_NaiveRNNDP(
         odim=odim,
         midi_dim=129,
         embed_dim=5,
-        duartion_dim=10,
+        duration_dim=10,
         eprenet_conv_layers=eprenet_conv_layers,
         eprenet_conv_chans=4,
         eprenet_conv_filts=5,
