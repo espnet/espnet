@@ -373,7 +373,9 @@ class NaiveRNNDP(AbsSVS):
 
         hs_label, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_label, batch_first=True)
         hs_midi, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_midi, batch_first=True)
-        hs_duration, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_duration, batch_first=True)
+        hs_duration, _ = torch.nn.utils.rnn.pad_packed_sequence(
+            hs_duration, batch_first=True
+        )
 
         if self.midi_embed_integration_type == "add":
             hs = hs_label + hs_midi + hs_duration
