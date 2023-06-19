@@ -623,8 +623,11 @@ class HiFiGANScaleDiscriminator(torch.nn.Module):
             - https://github.com/kan-bayashi/ParallelWaveGAN/pull/409
 
         """
+        current_module_keys = [
+            x for x in self.state_dict().keys() if x.startswith(prefix)
+        ]
         if self.use_weight_norm and not any(
-            ["weight_g" in k for k in state_dict.keys()]
+            ["weight_g" in k for k in current_module_keys]
         ):
             logging.warning(
                 "It seems weight norm is not applied in the pretrained model but the"
@@ -641,7 +644,7 @@ class HiFiGANScaleDiscriminator(torch.nn.Module):
             self.use_weight_norm = False
 
         if self.use_spectral_norm and not any(
-            ["weight_u" in k for k in state_dict.keys()]
+            ["weight_u" in k for k in current_module_keys]
         ):
             logging.warning(
                 "It seems spectral norm is not applied in the pretrained model but the"
