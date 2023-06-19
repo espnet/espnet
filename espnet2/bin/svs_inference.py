@@ -17,7 +17,7 @@ from typeguard import check_argument_types
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_svs.vits import VITS
-from espnet2.svs.singing_tacotron import singing_tacotron
+from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 from espnet2.tasks.svs import SVSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
