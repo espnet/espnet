@@ -528,12 +528,18 @@ class HiFiGANScaleDiscriminator(torch.nn.Module):
             raise ValueError("Either use use_weight_norm or use_spectral_norm.")
 
         # apply weight norm
+        self.use_weight_norm = use_weight_norm
         if use_weight_norm:
             self.apply_weight_norm()
 
         # apply spectral norm
+        self.use_spectral_norm = use_spectral_norm
         if use_spectral_norm:
             self.apply_spectral_norm()
+
+        # backward compatibility
+        self._register_load_state_dict_pre_hook(self._load_state_dict_pre_hook)
+        self.register_load_state_dict_post_hook(self._load_state_dict_post_hook)
 
     def forward(self, x: torch.Tensor) -> List[torch.Tensor]:
         """Calculate forward propagation.
@@ -571,6 +577,91 @@ class HiFiGANScaleDiscriminator(torch.nn.Module):
                 logging.debug(f"Spectral norm is applied to {m}.")
 
         self.apply(_apply_spectral_norm)
+
+    def remove_weight_norm(self):
+        """Remove weight normalization module from all of the layers."""
+
+        def _remove_weight_norm(m):
+            try:
+                logging.debug(f"Weight norm is removed from {m}.")
+                torch.nn.utils.remove_weight_norm(m)
+            except ValueError:  # this module didn't have weight norm
+                return
+
+        self.apply(_remove_weight_norm)
+
+    def remove_spectral_norm(self):
+        """Remove spectral normalization module from all of the layers."""
+
+        def _remove_spectral_norm(m):
+            try:
+                logging.debug(f"Spectral norm is removed from {m}.")
+                torch.nn.utils.remove_spectral_norm(m)
+            except ValueError:  # this module didn't have weight norm
+                return
+
+        self.apply(_remove_spectral_norm)
+
+    def _load_state_dict_pre_hook(
+        self,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ):
+        """Fix the compatibility of weight / spectral normalization issue.
+
+        Some pretrained models are trained with configs that use weight / spectral
+        normalization, but actually, the norm is not applied. This causes the mismatch
+        of the parameters with configs. To solve this issue, when parameter mismatch
+        happens in loading, we remove the norm at first, load the parameters, and then
+        apply the norm in post-hook functions.
+
+        See also: https://github.com/espnet/espnet/issues/4595
+
+        """
+        if self.use_weight_norm:
+            if not any(["weight_g" in k for k in state_dict.keys()]):
+                logging.warning(
+                    "It seems weight norm is not applied in the pretrained model. To"
+                    " keep the compatibility, we will remove the norm, load the"
+                    " parameteres, and then apply the norm again."
+                )
+                self.remove_weight_norm()
+        if self.use_spectral_norm:
+            if not any(["weight_u" in k for k in state_dict.keys()]):
+                logging.warning(
+                    "It seems spectral norm is not applied in the pretrained model. To"
+                    " keep the compatibility, we will remove the norm, load the"
+                    " parameteres, and then apply the norm again."
+                )
+                self.remove_spectral_norm()
+
+    def _load_state_dict_post_hook(
+        self,
+        module,
+        improbable_keys,
+    ):
+        """Fix the compatibility of weight / spectral normalization issue.
+
+        Some pretrained models are trained with configs that use weight / spectral
+        normalization, but actually, the norm is not applied. This causes the mismatch
+        of the parameters with configs. To solve this issue, when parameter mismatch
+        happens in loading, we remove the norm at first, load the parameters, and then
+        apply the norm in post-hook functions.
+
+        See also: https://github.com/espnet/espnet/issues/4595
+
+        """
+        if self.use_weight_norm:
+            if not any(["weight_g" in k for k in self.state_dict().keys()]):
+                self.apply_weight_norm()
+        if self.use_spectral_norm:
+            if not any(["weight_u" in k for k in self.state_dict().keys()]):
+                self.apply_spectral_norm()
 
 
 class HiFiGANMultiScaleDiscriminator(torch.nn.Module):
