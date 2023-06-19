@@ -23,7 +23,11 @@ from espnet2.tasks.abs_task import AbsTask
 from espent2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import CommonPreprocessor
+from espnet2.train.preprocessor import (
+    AbsPreprocessor,
+    CommonPreprocessor,
+    SpkPreprocessor
+)
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -85,7 +89,7 @@ pooling_choices = ClassChoices(
     default="chn_attn_stat",
 )
 
-projector_choices = CLassChoices(
+projector_choices = ClassChoices(
     name="projector",
     classes=dict(
         #TODO: implement additional Projectors
@@ -94,6 +98,16 @@ projector_choices = CLassChoices(
     ),
     type_check=AbsProjector,
     default="rawnet3",
+)
+
+preprocessor_choices = ClassChoices(
+    name="preprocessor",
+    classes=dict(
+        common=CommonPreprocessor,
+        spk=SpkPreprocessor,
+    ),
+    type-check=AbsPreprocessor,
+    default="spk",
 )
 
 
@@ -131,7 +145,11 @@ class SpeakerTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-            retval = CommonPreprocessor(train=train)
+            retval = preprocessor_choices.get_class(args.preprocessor)(
+                train=train,
+                **args.preprocessor_conf,
+            )
+
         else:
             retval = None
         assert check_return_type(retval)
