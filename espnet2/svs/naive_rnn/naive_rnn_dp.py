@@ -575,4 +575,4 @@ class NaiveRNNDP(AbsSVS):
         else:
             raise NotImplementedError("support only add or concat.")
 
-        return
+        return hs
