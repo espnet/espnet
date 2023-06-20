@@ -61,9 +61,8 @@ def get_path(s, sep=os.sep):
 
 
 def get_jp_text(text):
-    new_text = run_frontend(text)[0]
-    new_text = " ".join(x.split(",")[0] for x in new_text)
-    return new_text
+    new_text = run_frontend(text)
+    return " ".join([token['string'] for token in new_text])
 
 
 def get_parser():
