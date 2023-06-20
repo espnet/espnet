@@ -16,9 +16,9 @@ import os
 import re
 import sys
 import traceback
-from decimal import Decimal
 from pathlib import Path
 from typing import Dict
+import soundfile as sf
 
 import kaldiio
 from pyopenjtalk import run_frontend
@@ -264,7 +264,6 @@ def validate(args):
 
 def make_durations(args):
     """Make durations file."""
-    import soundfile as sf
 
     wavs_dir = Path(args.corpus_dir)
     textgrid_dir = args.textgrid_dir
@@ -285,10 +284,13 @@ def make_durations(args):
                 if not os.path.exists(wav_path):
                     logging.warning("There is no wav file for %s, skipping.", lab_path)
                     continue
+
+                # get no. of samples and original sr directly from audio file
                 with sf.SoundFile(wav_path) as audio:
-                    no_samples = (
-                        audio.frames
-                    )  # get no. of samples directly from .wav file
+                    orig_sr = audio.samplerate
+                    # We need to account for downsampling (https://github.com/espnet/espnet/pull/5223#issuecomment-1584104592)
+                    no_samples = int(audio.frames * (args.samplerate / orig_sr))
+
                 filename = (
                     lab_path.as_posix()
                     .replace(args.corpus_dir.rstrip("/") + "/", "")
@@ -340,7 +342,6 @@ def make_dictionary(args):
 
 def make_labs(args):
     """Make lab file for datasets."""
-    import soundfile as sf
 
     from espnet2.text.cleaner import TextCleaner
 
