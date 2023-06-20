@@ -8,6 +8,7 @@ class RawNet3Projector(AbsProjector):
         input_size,
         output_size,
     ):
+        super().__init__()
         self._output_size = output_size
 
         self.bn = torch.nn.BatchNorm1d(input_size)

@@ -12,10 +12,12 @@ from packaging.version import parse as V
 from typeguard import check_argument_types
 
 # TODO: remove unused modules
-from espnet2.asr.encoder.abs_encoder import AbsEncoder, RawNet3Encoder
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.diar.attractor.abs_attractor import AbsAttractor
+from espnet2.spk.pooling.abs_pooling import AbsPooling
+from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -43,8 +45,8 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         frontend: Optional[AbsFrontend],
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
-        encoder: AbsEncoder,
-        aggregator,
+        encoder: Optional[AbsEncoder],
+        pooling: Optional[AbsPooling],
         projector,
         loss,
     ):
@@ -56,14 +58,14 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         self.specaug = specaug
         self.normalize = normalize
         self.encoder = encoder
-        self.aggregator = aggregator
+        self.pooling = pooling
         self.projector = projector
         self.loss = loss
 
     def forward(
         self,
         speech: torch.Tensor,
-        speech_lengths: torch.Tensor = None,
+        #speech_lengths: torch.Tensor = None,
         spk_labels: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -86,7 +88,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         frame_level_feats = self.encode_frame(speech)
 
         # 2. aggregation into utterance-level
-        utt_level_feat = self.aggregate(frame_level_feats)
+        utt_level_feat = self.pooling(frame_level_feats)
 
         # 3. (optionally) go through further projection(s)
         spk_embd = self.project_spk_embd(utt_level_feat)
@@ -139,3 +141,11 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         return spk_embd
 
+    def collect_feats(
+        self,
+        speech: torch.Tensor,
+        spk_labels: torch.Tensor = None,
+        **kwargs,
+    ) -> Dict[str, torch.Tensor]:
+        feats = self._extract_feats(speech)
+        return {"feats": feats}

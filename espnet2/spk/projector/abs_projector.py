@@ -1,4 +1,4 @@
-from abd import ABC, abstractmethod
+from abc import ABC, abstractmethod
 
 import torch
 

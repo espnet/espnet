@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from espnet2.spk.pooling import AbsPooling
+from espnet2.spk.pooling.abs_pooling import AbsPooling
 
 class ChnAttnStatPooling(AbsPooling):
     """
@@ -15,6 +15,7 @@ class ChnAttnStatPooling(AbsPooling):
         input_size: int = 1536,
         output_size: int = 3072,
     ):
+        super().__init__()
         self.attention = nn.Sequential(
             nn.Conv1d(input_size * 3, 128, kernel_size=1),
             nn.ReLU(),

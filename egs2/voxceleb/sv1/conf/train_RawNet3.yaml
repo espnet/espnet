@@ -5,5 +5,12 @@ encoder_conf:
   b: 2
 
 model_conf:
-  c: 3
+  loss: a
 
+projector: rawnet3
+projector_conf:
+  input_size: 2048
+  output_size: 256
+
+
+preprocessor: spk

@@ -140,9 +140,14 @@ fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     echo "Change into kaldi-style feature."
-    mkdir -p ${trg_dir}/voxceleb1_test
-    mkdir -p ${trg_dir}/voxceleb2_dev
-    python local/data_prep.py --src "${data_dir_prefix}/voxceleb1/test" --dst "${trg_dir}/voxceleb1_test"
-    python local/data_prep.py --src "${data_dir_prefix}/voxceleb2/dev" --dst "${trg_dir}/voxceleb2_dev"
+    #mkdir -p ${trg_dir}/voxceleb1_test
+    #mkdir -p ${trg_dir}/voxceleb2_dev
+    #python local/data_prep.py --src "${data_dir_prefix}/voxceleb1/test" --dst "${trg_dir}/voxceleb1_test"
+    #python local/data_prep.py --src "${data_dir_prefix}/voxceleb2/dev" --dst "${trg_dir}/voxceleb2_dev"
+
+    for f in wav.scp utt2spk spk2utt; do
+        sort ${trg_dir}/voxceleb1_test/${f} -o ${trg_dir}/voxceleb1_test/${f}
+        sort ${trg_dir}/voxceleb2_dev/${f} -o ${trg_dir}/voxceleb2_dev/${f}
+    done
     echo "Stage 4, DONE."
 fi

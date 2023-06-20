@@ -21,7 +21,7 @@ skip_data_prep=false  # Skip data preparation stages.
 skip_train=false      # Skip training stages.
 skip_eval=false       # Skip decoding and evaluation stages.
 eval_valid_set=false  # Run decoding for the validation set
-n_gpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
+ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1           # The number of nodes.
 nj=32                 # The number of parallel jobs.
 gpu_inference=false   # Whether to perform gpu decoding.
@@ -61,7 +61,6 @@ fi
 
 . ./path.sh
 . ./cmd.sh
-echo "${stage} ${stop_stage}"
 
 # Check feature type
 if [ "${feats_type}" = raw  ]; then
@@ -117,11 +116,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ "${feats_type}" = raw ]; then
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}"
         for dset in ${_dsets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}"]; then
-                _suf="/org"
-            else
-                _suf=""
-            fi
+            #if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+            #    _suf="/org"
+            #else
+            #    _suf=""
+            #fi
+            _suf=""
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
@@ -133,12 +133,30 @@ fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "Stage 3: Train."
+
+    _spk_train_dir="${data_feats}/${train_set}"
+    _spk_valid_dir="${data_feats}/${valid_set}"
+    _opts=
+    if [ -n "${spk_config}"  ]; then
+        # To generate the config file: e.g.
+        #   % python3 -m espnet2.bin.spk_train --print_config --optim adam
+        _opts+="--config ${spk_config} "
+fi
+
+    log "Spk training started... log: '${spk_exp}/train.log'"
+    if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
+        # SGE can't include "/" in a job name
+        jobname="$(basename ${spk_exp})"
+    else
+        jobname="${spk_exp}/train.log"
+    fi
+
     ${python} -m espnet2.bin.launch \
-        --cmd ${cuda_cmd} --name ${jobname} \
+        --cmd "${cuda_cmd} --name ${jobname}" \
         --log ${spk_exp}/train.log \
         --ngpu ${ngpu} \
         --num_nodes ${num_nodes} \
-        --init_file_prefix ${sv_exp}/.dist_init_ \
+        --init_file_prefix ${spk_exp}/.dist_init_ \
         --multiprocessing_distributed true -- \
         ${python} -m espnet2.bin.spk_train \
             --use_preprocessor true \
@@ -146,6 +164,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --output_dir ${spk_exp} \
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,sound \
             --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
+            --valid_data_path_and_name_and_type ${_spk_valid_dir}/wav.scp,speech,sound \
+            --valid_data_path_and_name_and_type ${_spk_valid_dir}/utt2spk,spk_labels,text \
+            --output_dir "${spk_exp}" \
             ${_opts} ${spk_args}
 fi
 

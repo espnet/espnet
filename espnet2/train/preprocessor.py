@@ -1457,3 +1457,30 @@ class TSEPreprocessor(EnhPreprocessor):
         data = super()._speech_process(uid, data)
         data = self._speech_process(uid, data)
         return data
+
+class SpkPreprocessor(CommonPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        utt2spk: str,
+    ):
+        super().__init__(train)
+
+    def _make_label_mapping(
+        self,
+        utt2spk: str,
+    ):
+        pass
+
+    def _speech_process(self,):
+        pass
+
+    def _text_process(
+        self,
+        data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        """
+        Make speaker labels into integers
+        """
+        pass
+

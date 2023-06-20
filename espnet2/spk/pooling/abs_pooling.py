@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import torch
 
-class AbsAggregator(torch.nn.Module, ABC):
+class AbsPooling(torch.nn.Module, ABC):
     @abstractmethod
     def output_size(self) -> int:
         raise NotImplementedError

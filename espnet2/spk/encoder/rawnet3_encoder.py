@@ -23,13 +23,13 @@ class RawNet3Encoder(AbsEncoder):
     """
     def __init__(
         self,
+        block=Bottle2neck,
+        model_scale: int = 8,
         output_size: int = 1024,
-        block,
-        model_scale,
         sinc_stride: int = 16,
         **kwargs,
     ):
-        assesrt check_argument_types()
+        assert check_argument_types()
         super().__init__()
         self._output_size = output_size
 
@@ -46,7 +46,7 @@ class RawNet3Encoder(AbsEncoder):
         self.relu = nn.ReLU()
 
         self.layer1 = block(
-            output_size // 4, C, kernel_size=3, dilation=, scale=model_scale, pool=5
+            output_size // 4, output_size, kernel_size=3, dilation=2, scale=model_scale, pool=5
         )
         self.layer2 = block(
             output_size, output_size, kernel_size=3, dilation=3, scale=model_scale, pool=3
