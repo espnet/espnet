@@ -244,5 +244,3 @@ def test_NaiveRNNDP(
             inputs["spembs"] = torch.randn(spk_embed_dim)
         output_dict = model.inference(**inputs, use_teacher_forcing=True)
         assert output_dict["wav"].size(0) == inputs["feats"].size(0) * reduction_factor
-
-test_NaiveRNNDP(1, "add", 1, 3, 2, "add", 5, 2)
