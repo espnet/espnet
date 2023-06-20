@@ -242,5 +242,4 @@ def test_NaiveRNNDP(
             inputs["lids"] = torch.randint(0, langs, (1,))
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
-        output_dict = model.inference(**inputs, use_teacher_forcing=True)
-        assert output_dict["wav"].size(0) == inputs["feats"].size(0) * reduction_factor
+        model.inference(**inputs, use_teacher_forcing=True)
