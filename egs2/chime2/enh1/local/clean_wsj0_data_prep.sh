@@ -5,7 +5,7 @@ set -e
 # Apache 2.0.
 
 # This is modified from the script in standard Kaldi recipe to account
-# for the way the WSJ data is structured on the Edinburgh systems. 
+# for the way the WSJ data is structured on the Edinburgh systems.
 # - Arnab Ghoshal, 29/05/12
 
 if [ $# -ne 1 ]; then
@@ -44,18 +44,18 @@ cat $CORPUS/11-13.1/wsj0/doc/indices/train/tr_s_wv1.ndx | \
 #  | grep -v wsj0/si_tr_s/401 > train_si284.flist
 
 # Now for the test sets.
-# $CORPUS/wsj1/doc/indices/readme.doc 
+# $CORPUS/wsj1/doc/indices/readme.doc
 # describes all the different test sets.
 # Note: each test-set seems to come in multiple versions depending
 # on different vocabulary sizes, verbalized vs. non-verbalized
 # pronunciations, etc.  We use the largest vocab and non-verbalized
 # pronunciations.
 # The most normal one seems to be the "baseline 60k test set", which
-# is h1_p0. 
+# is h1_p0.
 
 # Nov'92 (333 utts)
-# These index files have a slightly different format; 
-# have to add .wv1, which is done in cstr_ndx2flist.pl 
+# These index files have a slightly different format;
+# have to add .wv1, which is done in cstr_ndx2flist.pl
 cat $CORPUS/11-13.1/wsj0/doc/indices/test/nvp/si_et_20.ndx | \
   $local/cstr_ndx2flist.pl $CORPUS | sort > test_eval92_clean.flist
 
@@ -83,8 +83,8 @@ cat $CORPUS/11-13.1/wsj0/doc/indices/test/nvp/si_et_05.ndx | \
 
 # Dev-set Hub 1,2 (503, 913 utterances)
 
-# Note: the ???'s below match WSJ and SI_DT, or wsj and si_dt.  
-# Sometimes this gets copied from the CD's with upcasing, don't know 
+# Note: the ???'s below match WSJ and SI_DT, or wsj and si_dt.
+# Sometimes this gets copied from the CD's with upcasing, don't know
 # why (could be older versions of the disks).
 find $CORPUS/11-6.1/wsj0/si_dt_20 -print | grep -i ".wv1" | sort > dev_dt_20_clean.flist
 find $CORPUS/11-6.1/wsj0/si_dt_05 -print | grep -i ".wv1" | sort > dev_dt_05_clean.flist
@@ -94,7 +94,7 @@ find $CORPUS/11-6.1/wsj0/si_dt_05 -print | grep -i ".wv1" | sort > dev_dt_05_cle
 find -L $CORPUS -iname '*.dot' > dot_files.flist
 
 # Convert the transcripts into our format (no normalization yet)
-# adding suffix to utt_id 
+# adding suffix to utt_id
 # 0 for clean condition
 for x in train_si84_clean test_eval92_clean test_eval92_5k_clean dev_dt_05_clean dev_dt_20_clean; do
   $local/flist2scp.pl $x.flist | sort > ${x}_sph_tmp.scp
@@ -115,7 +115,7 @@ for x in train_si84_clean test_eval92_clean test_eval92_5k_clean dev_dt_05_clean
   cat $x.trans1 | $local/normalize_transcript.pl $noiseword \
     | sort > $x.txt || exit 1;
 done
- 
+
 # Create scp's with wav's. (the wv1 in the distribution is not really wav, it is sph.)
 for x in train_si84_clean test_eval92_clean test_eval92_5k_clean dev_dt_05_clean dev_dt_20_clean; do
   awk '{printf("%s '$sph2pipe' -f wav %s |\n", $1, $2);}' < ${x}_sph.scp \
@@ -140,14 +140,14 @@ fi
 
 if [ ! -f wsj0-train-spkrinfo.txt ]; then
   echo "Could not get the spkrinfo.txt file from LDC website (moved)?"
-  echo "This is possibly omitted from the training disks; couldn't find it." 
+  echo "This is possibly omitted from the training disks; couldn't find it."
   echo "Everything else may have worked; we just may be missing gender info"
   echo "which is only needed for VTLN-related diagnostics anyway."
   exit 1
 fi
 # Note: wsj0-train-spkrinfo.txt doesn't seem to be on the disks but the
 # LDC put it on the web.  Perhaps it was accidentally omitted from the
-# disks.  
+# disks.
 
 cat $CORPUS/11-13.1/wsj0/doc/spkrinfo.txt \
     ./wsj0-train-spkrinfo.txt  | \

@@ -5,7 +5,7 @@ set -e
 # Apache 2.0.
 
 # This is modified from the script in standard Kaldi recipe to account
-# for the way the WSJ data is structured on the Edinburgh systems. 
+# for the way the WSJ data is structured on the Edinburgh systems.
 # - Arnab Ghoshal, 29/05/12
 
 if [ $# -ne 1 ]; then
@@ -42,8 +42,8 @@ find $1/si_tr_s -name '*.wav' |  sort -u > train_si84_noisy.flist
 
 # Dev-set Hub 1,2 (503, 913 utterances)
 
-# Note: the ???'s below match WSJ and SI_DT, or wsj and si_dt.  
-# Sometimes this gets copied from the CD's with upcasing, don't know 
+# Note: the ???'s below match WSJ and SI_DT, or wsj and si_dt.
+# Sometimes this gets copied from the CD's with upcasing, don't know
 # why (could be older versions of the disks).
 find $1/si_dt_20  -name '*.wav' | sort -u > dev_dt_20_noisy.flist
 find $1/si_dt_05  -name '*.wav' | sort -u > dev_dt_05_noisy.flist
@@ -60,15 +60,15 @@ if [ ! -e $dir/dot_files.flist ]; then
 fi
 
 # Convert the transcripts into our format (no normalization yet)
-# adding suffix to utt_id 
+# adding suffix to utt_id
 # 1 for reverb condition
 for x in train_si84_noisy dev_dt_05_noisy dev_dt_20_noisy test_eval92_noisy test_eval92_5k_noisy; do
-  cat $x.flist | perl -e ' 
+  cat $x.flist | perl -e '
     while(<>) {
       m:^\S+/(\w+)\.wav$: || die "Bad line $_";
       $id = $1;
       $id =~ tr/A-Z/a-z/;
-      print "$id $_"; 
+      print "$id $_";
     }
   ' | sort > ${x}_wav_tmp.scp
   #cat ${x}_wav_tmp.scp | awk '{print $1}' \
@@ -85,12 +85,12 @@ for x in train_si84_noisy dev_dt_05_noisy dev_dt_20_noisy test_eval92_noisy test
       elsif ($condition eq "0dB") {$key_suffix=5;}
       elsif ($condition eq "m3dB") {$key_suffix=6;}
       elsif ($condition eq "m6dB") {$key_suffix=7;}
-      else {print STDERR "error condition $condition";} 
-      print $A[0].$key_suffix." ".$A[1]."\n"; 
+      else {print STDERR "error condition $condition";}
+      print $A[0].$key_suffix." ".$A[1]."\n";
     }
   ' | sort -k1 > ${x}_wav.scp
   cat ${x}_wav.scp | awk '{print $1}' \
-    | $local/find_noisy_transcripts.pl dot_files.flist > ${x}.trans1 
+    | $local/find_noisy_transcripts.pl dot_files.flist > ${x}.trans1
 done
 
 
@@ -102,7 +102,7 @@ for x in train_si84_noisy dev_dt_05_noisy dev_dt_20_noisy test_eval92_noisy test
   cat $x.trans1 | $local/normalize_transcript.pl $noiseword \
     | sort > $x.txt || exit 1;
 done
- 
+
 # Create scp's with wav's. (the wv1 in the distribution is not really wav, it is sph.)
 #for x in train_si84_clean test_eval92_clean test_eval92_5k_clean dev_dt_05_clean dev_dt_20_clean; do
 #  awk '{printf("%s '$sph2pipe' -f wav %s |\n", $1, $2);}' < ${x}_sph.scp \

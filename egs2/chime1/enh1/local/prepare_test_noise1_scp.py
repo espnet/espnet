@@ -4,7 +4,6 @@ from pathlib import Path
 
 from soundfile import SoundFile
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("wav_scp", type=str)
 parser.add_argument("noise_dir", type=str)

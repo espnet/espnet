@@ -5,7 +5,7 @@
 #
 # Create transcriptions for the CHIME/GRID corpus from a list of
 # file names (used as UTTERANCE-ID, e.g. s1_bgab3n)
-# It outputs lines containing UTTERANCE-ID TRANSCRIPTIONS, e.g. 
+# It outputs lines containing UTTERANCE-ID TRANSCRIPTIONS, e.g.
 #   s1_bgab3n BIN GREEN AT B THREE NOW
 #
 # Usage: create_chime1_trans.pl train.flist
@@ -23,7 +23,7 @@ open my $info, $in_list or die "could not open $in_list: $!";
 while (my $line = <$info>) {
   chomp($line);
   $line =~ s/\.[^.]+$//; # Remove extension just in case
-  my @tokens = split("_", $line); 
+  my @tokens = split("_", $line);
   my @chars = split("", $tokens[1]);
   my $trans;
 
@@ -44,7 +44,7 @@ while (my $line = <$info>) {
   elsif ($chars[2] eq "i") { $trans = $trans . " IN" }
   elsif ($chars[2] eq "w") { $trans = $trans . " WITH" }
   else { $trans = $trans . "!UNKNOWN"}
-  
+
   $trans = $trans . " " . uc($chars[3]);
 
   if ($chars[4] eq "z") { $trans = $trans . " ZERO" }
@@ -58,14 +58,13 @@ while (my $line = <$info>) {
   elsif ($chars[4] eq "8") { $trans = $trans . " EIGHT" }
   elsif ($chars[4] eq "9") { $trans = $trans . " NINE" }
   else { $trans = $trans . "!UNKNOWN"}
-  
+
   if ($chars[5] eq "a") { $trans = $trans . " AGAIN" }
   elsif ($chars[5] eq "n") { $trans = $trans . " NOW" }
   elsif ($chars[5] eq "p") { $trans = $trans . " PLEASE" }
   elsif ($chars[5] eq "s") { $trans = $trans . " SOON" }
   else { $trans = $trans . "!UNKNOWN"}
-  
+
   #print "$line    $sil $trans $sil\n";
   print "$line\t$trans\n";
 }
-

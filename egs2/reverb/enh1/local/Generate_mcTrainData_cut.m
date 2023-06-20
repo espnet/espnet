@@ -12,27 +12,27 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
     %  3. noise (ones under ./NOISE/).
     % Generated data has the same directory structure as original wsjcam0 corpus.
     %
-    
+
     if nargin<2
        error('Usage: Generate_mcTrainData(WSJCAM0_data_path, save_dir)  *Note that the input variable WSJCAM0_data_path should indicate the directory name of your clean WSJCAM0 corpus. ');
     end
     if exist([WSJ_dir_name,'/data/'])==0
        error(['Could not find wsjcam0 corpus : Please confirm if ',WSJ_dir_name,' is a correct path to your clean WSJCAM0 corpus']);
     end
-    
+
     if ~exist('save_dir', 'var')
         error('You have to set the save_dir variable in the code before running this script!')
     end
-    
+
     display(['Name of directory for original wsjcam0: ',WSJ_dir_name])
     display(['Name of directory to save generated multi-condition training data: ',save_dir])
-    
+
     % Parameters related to acoustic conditions
     SNRdB=20;
-    
+
     % List of WSJ speech data
     flist1='etc/audio_si_tr.lst';
-    
+
     %
     % List of RIRs
     %
@@ -61,7 +61,7 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
     RIR_sim22='./RIR/RIR_LargeRoom2_near_AnglB.wav';
     RIR_sim23='./RIR/RIR_LargeRoom2_far_AnglA.wav';
     RIR_sim24='./RIR/RIR_LargeRoom2_far_AnglB.wav';
-    
+
     %
     % List of noise
     %
@@ -72,15 +72,15 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
     noise_sim4='./NOISE/Noise_SmallRoom2';
     noise_sim5='./NOISE/Noise_MediumRoom2';
     noise_sim6='./NOISE/Noise_LargeRoom2';
-    
+
     %
     % Start generating noisy reverberant data with creating new directories
     %
-    
+
     fcount=1;
     rcount=1;
     ncount=1;
-    
+
     if save_dir(end)=='/';
         save_dir_tr=[save_dir,'data/mc_train/'];
         save_dir_tr_ref=[save_dir,'data/mc_train/clean_early/'];
@@ -91,56 +91,56 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
     mkdir([save_dir_tr]);
     mkdir([save_dir_tr_ref]);
     %mkdir([save_dir,'/taskfiles/'])
-    
+
     mic_idx=['A';'B';'C';'D';'E';'F';'G';'H'];
     prev_fname='dummy';
-    
+
     for nlist=1:1
         % Open file list
         eval(['fid=fopen(flist',num2str(nlist),',''r'');']);
-    
+
         while 1
-    
+
             % Set data file name
             fname=fgetl(fid);
             if ~ischar(fname);
                 break;
             end
-    
+
             idx1=find(fname=='/');
-    
+
             % Make directory if there isn't any
             if ~strcmp(prev_fname,fname(1:idx1(end)))
                 mkdir([save_dir_tr fname(1:idx1(end))])
                 mkdir([save_dir_tr_ref fname(1:idx1(end))])
             end
             prev_fname=fname(1:idx1(end));
-    
+
             % load speech signal
             x=audioread([WSJ_dir_name, '/data/', fname, '.wav'])';
-    
+
             % load RIR and noise for "THIS" utterance
             eval(['RIR=audioread(RIR_sim',num2str(rcount),');']);
             eval(['NOISE=audioread([noise_sim',num2str(ceil(rcount/4)),',''_',num2str(ncount),'.wav'']);']);
-    
+
             % Generate 8ch noisy reverberant data
             [y,rev_early_y]=gen_obs(x,RIR,NOISE,SNRdB);
-    
+
             % cut to length of original signal
             y = y(1:size(x,2),:);
             rev_early_y = rev_early_y(1:size(x,2),:);
-    
+
             % rotine to cyclicly switch RIRs and noise, utterance by utterance
             rcount=rcount+1;
             if rcount>num_RIRvar;rcount=1;ncount=ncount+1;end
             if ncount>10;ncount=1;end
-    
+
             % save the data
-    
+
             y=y/4; % common normalization to all the data to prevent clipping
                    % denominator was decided experimentally
             rev_early_y=rev_early_y/4;
-    
+
             for ch=1:8
             outfilename = [save_dir_tr, fname, '_ch', num2str(ch), '.wav'];
                 %eval(['audiowrite(y(:,',num2str(ch),'),16000,''',save_dir_tr fname,'_ch',num2str(ch),'.wav'');']);
@@ -148,27 +148,27 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
                 outfilename_ref = [save_dir_tr_ref, fname, '_ch', num2str(ch), '.wav'];
                 eval(['audiowrite(outfilename_ref, rev_early_y(:,',num2str(ch),'), 16000);']);
             end
-    
+
             display(['sentence ',num2str(fcount),' (out of 7861) finished! (Multi-condition training data)'])
             fcount=fcount+1;
-    
+
         end
     end
-    
-    
+
+
     %%%%
     function [y,rev_early_y]=gen_obs(x,RIR,NOISE,SNRdB)
     % function to generate noisy reverberant data
-    
+
     x=x';
-    
+
     % calculate direct+early reflection signal for calculating SNR
     [val,delay]=max(RIR(:,1));
     before_impulse=floor(16000*0.001);
     after_impulse=floor(16000*0.05);
     RIR_direct=RIR(delay-before_impulse:delay+after_impulse,1);
     direct_signal=fconv(x,RIR_direct);
-    
+
     % Finds start sample in a room impulse response.
     % Following the same way as in
     % https://github.com/fgnt/sms_wsj/blob/master/sms_wsj/reverb/reverb_utils.py#L170
@@ -181,18 +181,18 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
     end
     RIR_early=RIR(:, :);
     RIR_early(min_delay+after_impulse+1:end,:)=0;
-    
-    
+
+
     % obtain reverberant speech
     for ch=1:8
         rev_y(:,ch)=fconv(x,RIR(:,ch));
         rev_early_y(:,ch)=fconv(x,RIR_early(:,ch));
     end
-    
+
     % normalize noise data according to the prefixed SNR value
     NOISE=NOISE(1:size(rev_y,1),:);
     NOISE_ref=NOISE(:,1);
-    
+
     iPn = diag(1./mean(NOISE_ref.^2,1));
     Px = diag(mean(direct_signal.^2,1));
     Msnr = sqrt(10^(-SNRdB/10)*iPn*Px);
@@ -200,8 +200,8 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
     y = rev_y + scaled_NOISE;
     y = y(delay:end,:);
     rev_early_y = rev_early_y(delay:end,:);
-    
-    
+
+
     %%%%
     function [y]=fconv(x, h)
     %FCONV Fast Convolution
@@ -236,7 +236,7 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
     %CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
     %ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     %POSSIBILITY OF SUCH DAMAGE.
-    
+
     Ly=length(x)+length(h)-1;  %
     Ly2=pow2(nextpow2(Ly));    % Find smallest power of 2 that is > Ly
     X=fft(x, Ly2);		   % Fast Fourier transform
@@ -244,4 +244,3 @@ function Generate_mcTrainData_cut(WSJ_dir_name, save_dir)
     Y=X.*H;        	           %
     y=real(ifft(Y, Ly2));      % Inverse fast Fourier transform
     y=y(1:1:Ly);               % Take just the first N elements
-    

@@ -105,12 +105,12 @@ for x in train devel test; do
       name="$cond"
     fi
     mkdir -p data/${x}_grid_${name}
-    find "${grid}/${x}/${cond}" -name '*.wav' | sort -u | perl -e ' 
+    find "${grid}/${x}/${cond}" -name '*.wav' | sort -u | perl -e '
       while(<>) {
         m:^\S+/(\w+)\.wav$: || die "Bad line $_";
         $id = $1;
         $id =~ tr/A-Z/a-z/;
-        print "$id $_"; 
+        print "$id $_";
       }
     ' | sort > data/${x}_grid_${name}/wav.scp
     if [ "$x" = "test" ] || [ "$x" = "devel" ]; then
@@ -128,8 +128,8 @@ for x in train devel test; do
             elsif ($condition eq "0dB") {$key_suffix=5;}
             elsif ($condition eq "m3dB") {$key_suffix=6;}
             elsif ($condition eq "m6dB") {$key_suffix=7;}
-            else {print STDERR "error condition $condition";} 
-            print $A[0].$key_suffix." ".$A[1]."\n"; 
+            else {print STDERR "error condition $condition";}
+            print $A[0].$key_suffix." ".$A[1]."\n";
           }
         ' | sort -k1 > data/${x}_grid_${name}/wav.scp
         rm data/${x}_grid_${name}/wav_tmp.scp

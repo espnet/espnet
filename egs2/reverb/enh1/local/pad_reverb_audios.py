@@ -4,7 +4,6 @@ import re
 from soundfile import SoundFile
 from tqdm import tqdm
 
-
 parser = argparse.ArgumentParser()
 parser.add_argument("cln_wav_scp", type=str)
 parser.add_argument("noisy_wav_scp", type=str)
