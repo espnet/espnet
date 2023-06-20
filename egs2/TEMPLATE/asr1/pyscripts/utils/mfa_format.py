@@ -288,7 +288,7 @@ def make_durations(args):
                 # get no. of samples and original sr directly from audio file
                 with sf.SoundFile(wav_path) as audio:
                     orig_sr = audio.samplerate
-                    # We need to account for downsampling (https://github.com/espnet/espnet/pull/5223#issuecomment-1584104592)
+                    # Account for downsampling
                     no_samples = int(audio.frames * (args.samplerate / orig_sr))
 
                 filename = (
