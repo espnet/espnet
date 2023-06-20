@@ -807,10 +807,9 @@ asr_transducer_inference.py
                                        [--quantize_modules [QUANTIZE_MODULES [QUANTIZE_MODULES ...]]]
                                        [--quantize_dtype {float16,qint8}]
                                        [--streaming STREAMING]
-                                       [--chunk_size CHUNK_SIZE]
+                                       [--decoding_window DECODING_WINDOW]
                                        [--left_context LEFT_CONTEXT]
-                                       [--right_context RIGHT_CONTEXT]
-                                       [--display_partial_hypotheses DISPLAY_PARTIAL_HYPOTHESES]
+                                       [--display_hypotheses DISPLAY_HYPOTHESES]
     
     ASR Transducer Decoding
     
@@ -840,18 +839,17 @@ asr_transducer_inference.py
       --streaming STREAMING
                             Whether to perform chunk-by-chunk inference. (default:
                             False)
-      --chunk_size CHUNK_SIZE
-                            Number of frames in chunk AFTER subsampling. (default:
-                            16)
+      --decoding_window DECODING_WINDOW
+                            Audio length (in milliseconds) to process during
+                            decoding. (default: 640)
       --left_context LEFT_CONTEXT
-                            Number of frames in left context of the chunk AFTER
-                            subsampling. (default: 32)
-      --right_context RIGHT_CONTEXT
-                            Number of frames in right context of the chunk AFTER
-                            subsampling. (default: 0)
-      --display_partial_hypotheses DISPLAY_PARTIAL_HYPOTHESES
-                            Whether to display partial hypotheses during chunk-by-
-                            chunk inference. (default: False)
+                            Number of previous frames (AFTER subsamplingà the
+                            attention module can see in current chunk (used by
+                            Conformer and Branchformer block). (default: 32)
+      --display_hypotheses DISPLAY_HYPOTHESES
+                            Whether to display hypotheses during inference. If
+                            streaming=True, partial hypotheses will also be shown.
+                            (default: False)
     
     Input data related:
       --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
@@ -1000,7 +998,7 @@ asr_transducer_train.py
                                    [--specaug_conf SPECAUG_CONF]
                                    [--normalize {global_mvn,utterance_mvn,None}]
                                    [--normalize_conf NORMALIZE_CONF]
-                                   [--decoder {rnn,stateless}]
+                                   [--decoder {mega,rnn,rwkv,stateless}]
                                    [--decoder_conf DECODER_CONF]
     
     base parser
@@ -1405,7 +1403,7 @@ asr_transducer_train.py
                             The normalize type (default: utterance_mvn)
       --normalize_conf NORMALIZE_CONF
                             The keyword arguments for normalize (default: {})
-      --decoder {rnn,stateless}
+      --decoder {mega,rnn,rwkv,stateless}
                             The decoder type (default: rnn)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})

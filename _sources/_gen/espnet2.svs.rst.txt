@@ -37,6 +37,61 @@ espnet2.svs.abs_svs
     :show-inheritance:
 
 
+.. _espnet2.svs.naive_rnn.__init__:
+
+espnet2.svs.naive_rnn.__init__
+------------------------------
+
+.. automodule:: espnet2.svs.naive_rnn.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.naive_rnn.naive_rnn:
+
+espnet2.svs.naive_rnn.naive_rnn
+-------------------------------
+
+.. automodule:: espnet2.svs.naive_rnn.naive_rnn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.naive_rnn.naive_rnn_dp:
+
+espnet2.svs.naive_rnn.naive_rnn_dp
+----------------------------------
+
+.. automodule:: espnet2.svs.naive_rnn.naive_rnn_dp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.feats_extract.__init__:
+
+espnet2.svs.feats_extract.__init__
+----------------------------------
+
+.. automodule:: espnet2.svs.feats_extract.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.feats_extract.score_feats_extract:
+
+espnet2.svs.feats_extract.score_feats_extract
+---------------------------------------------
+
+.. automodule:: espnet2.svs.feats_extract.score_feats_extract
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.svs.xiaoice.__init__:
 
 espnet2.svs.xiaoice.__init__
@@ -65,61 +120,6 @@ espnet2.svs.xiaoice.loss
 ------------------------
 
 .. automodule:: espnet2.svs.xiaoice.loss
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.feats_extract.score_feats_extract:
-
-espnet2.svs.feats_extract.score_feats_extract
----------------------------------------------
-
-.. automodule:: espnet2.svs.feats_extract.score_feats_extract
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.feats_extract.__init__:
-
-espnet2.svs.feats_extract.__init__
-----------------------------------
-
-.. automodule:: espnet2.svs.feats_extract.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.naive_rnn.naive_rnn:
-
-espnet2.svs.naive_rnn.naive_rnn
--------------------------------
-
-.. automodule:: espnet2.svs.naive_rnn.naive_rnn
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.naive_rnn.__init__:
-
-espnet2.svs.naive_rnn.__init__
-------------------------------
-
-.. automodule:: espnet2.svs.naive_rnn.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.naive_rnn.naive_rnn_dp:
-
-espnet2.svs.naive_rnn.naive_rnn_dp
-----------------------------------
-
-.. automodule:: espnet2.svs.naive_rnn.naive_rnn_dp
     :members:
     :undoc-members:
     :show-inheritance:

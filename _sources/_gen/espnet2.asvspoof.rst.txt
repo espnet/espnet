@@ -26,23 +26,23 @@ espnet2.asvspoof.espnet_model
     :show-inheritance:
 
 
-.. _espnet2.asvspoof.decoder.__init__:
-
-espnet2.asvspoof.decoder.__init__
----------------------------------
-
-.. automodule:: espnet2.asvspoof.decoder.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.asvspoof.decoder.abs_decoder:
 
 espnet2.asvspoof.decoder.abs_decoder
 ------------------------------------
 
 .. automodule:: espnet2.asvspoof.decoder.abs_decoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asvspoof.decoder.__init__:
+
+espnet2.asvspoof.decoder.__init__
+---------------------------------
+
+.. automodule:: espnet2.asvspoof.decoder.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -59,23 +59,23 @@ espnet2.asvspoof.decoder.linear_decoder
     :show-inheritance:
 
 
-.. _espnet2.asvspoof.loss.binary_loss:
-
-espnet2.asvspoof.loss.binary_loss
----------------------------------
-
-.. automodule:: espnet2.asvspoof.loss.binary_loss
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.asvspoof.loss.__init__:
 
 espnet2.asvspoof.loss.__init__
 ------------------------------
 
 .. automodule:: espnet2.asvspoof.loss.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asvspoof.loss.abs_loss:
+
+espnet2.asvspoof.loss.abs_loss
+------------------------------
+
+.. automodule:: espnet2.asvspoof.loss.abs_loss
     :members:
     :undoc-members:
     :show-inheritance:
@@ -103,12 +103,12 @@ espnet2.asvspoof.loss.oc_softmax_loss
     :show-inheritance:
 
 
-.. _espnet2.asvspoof.loss.abs_loss:
+.. _espnet2.asvspoof.loss.binary_loss:
 
-espnet2.asvspoof.loss.abs_loss
-------------------------------
+espnet2.asvspoof.loss.binary_loss
+---------------------------------
 
-.. automodule:: espnet2.asvspoof.loss.abs_loss
+.. automodule:: espnet2.asvspoof.loss.binary_loss
     :members:
     :undoc-members:
     :show-inheritance:
