@@ -62,25 +62,23 @@ def check_args(args):
 
     if not os.path.exists(xvector_path):
         sys.stderr.write(
-            f"Error: provided --xvector-path ({xvector_path}) does not exist.",
-            "Exiting...\n"
+            f"Error: provided --xvector-path ({xvector_path}) does not exist. "
         )
+        sys.stderr.write("Exiting...\n")
         sys.stderr.flush()
         exit(1)
 
     if not os.path.exists(spk_xvector_path):
         sys.stderr.write(
-            f"Error: provided --spk-xvector-path ({spk_xvector_path}) does not exist.",
-            "Exiting...\n"
+            f"Error: provided --spk-xvector-path ({spk_xvector_path}) does not exist. "
         )
+        sys.stderr.write("Exiting...\n")
         sys.stderr.flush()
         exit(1)
 
     if utt2spk and (not os.path.exists(utt2spk)):
-        sys.stderr.write(
-            f"Error: provided --utt2spk file ({utt2spk}) does not exist.",
-            "Exiting...\n"
-        )
+        sys.stderr.write(f"Error: provided --utt2spk file ({utt2spk}) does not exist. ")
+        sys.stderr.write("Exiting...\n")
         sys.stderr.flush()
         exit(1)
 
@@ -103,17 +101,15 @@ if __name__ == "__main__":
 
     if spk_id and (spk_id not in spk_xvector_paths):
         sys.stderr.write(
-            f"Error: provided --spk-id: {spk_id} not present in --spk-xvector-path.",
-            "Exiting...\n"
+            f"Error: provided --spk-id: {spk_id} not present in --spk-xvector-path."
         )
+        sys.stderr.write("Exiting...\n")
         sys.stderr.flush()
         exit(1)
 
     print("Backing up xvector file...")
     print(os.path.dirname(xvector_path))
-    shutil.copy(
-        xvector_path, f"{os.path.dirname(xvector_path)}/xvector.scp.bak"
-    )
+    shutil.copy(xvector_path, f"{os.path.dirname(xvector_path)}/xvector.scp.bak")
 
     utt2xvector = []
     with open(args.xvector_path) as f:
