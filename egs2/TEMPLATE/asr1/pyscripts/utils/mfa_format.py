@@ -18,9 +18,9 @@ import sys
 import traceback
 from pathlib import Path
 from typing import Dict
-import soundfile as sf
 
 import kaldiio
+import soundfile as sf
 from pyopenjtalk import run_frontend
 
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
@@ -62,7 +62,7 @@ def get_path(s, sep=os.sep):
 
 def get_jp_text(text):
     new_text = run_frontend(text)
-    return " ".join([token['string'] for token in new_text])
+    return " ".join([token["string"] for token in new_text])
 
 
 def get_parser():
