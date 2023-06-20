@@ -84,7 +84,6 @@ def check_args(args):
 
 
 if __name__ == "__main__":
-
     args = get_parser().parse_args()
     check_args(args)
     spk_id = args.spk_id
