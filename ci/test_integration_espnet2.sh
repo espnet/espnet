@@ -103,7 +103,7 @@ if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
             --encoder_conf main_conf='{'dynamic_chunk_training': True}' \
             --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
             --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30 " \
-            --inference-args "--streaming true --chunk_size 2 --left_context 2 --right_context 0"
+            --inference-args "--streaming true --decoding_window 160 --left_context 2"
     done
 fi
 
