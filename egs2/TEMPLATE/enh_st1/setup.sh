@@ -41,24 +41,18 @@ done
 
 
 # Symlinks to TEMPLATE
-for f in enh_st.sh path.sh; do
+for f in st.sh path.sh db.sh scripts pyscripts; do
     target=../../TEMPLATE/enh_st1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
 
-# Symlinks to TEMPLATE
-f=scripts
-target=../../TEMPLATE/enh_asr1/"${f}"
-ln -sf "${target}" "${dir}"
-targets+="${dir}/${target} "
 
-# Symlinks to TEMPLATE
-for f in db.sh pyscripts utils steps; do
-    target=../../TEMPLATE/asr1/"${f}"
+# Symlinks to Kaldi
+for f in steps utils; do
+    target=../../../tools/kaldi/egs/wsj/s5/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
-
 
 log "Created: ${targets}"

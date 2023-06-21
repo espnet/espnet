@@ -1,1 +1,0 @@
-../../asr1/local/gss2lhotse.py

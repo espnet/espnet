@@ -84,3 +84,4 @@ for set in dev test; do
   # Check that data dirs are okay!
   utils/validate_data_dir.sh --no-feats --no-text $dir || exit 1
 done
+

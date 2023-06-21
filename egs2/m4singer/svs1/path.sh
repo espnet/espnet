@@ -1,1 +1,0 @@
-../../TEMPLATE/svs1/path.sh

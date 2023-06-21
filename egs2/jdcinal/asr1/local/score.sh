@@ -28,3 +28,4 @@ sclite \
 echo "Write ASR result in ${_scoredir}result_asr.txt"
                 grep -e Avg -e SPKR -m 2 "${_scoredir}result_asr.txt"
 exit 0
+

@@ -41,7 +41,7 @@ done
 
 
 # Symlinks to TEMPLATE/tts1
-for f in tts.sh path.sh sid; do
+for f in tts.sh path.sh; do
     target=../../TEMPLATE/tts1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
@@ -49,10 +49,23 @@ done
 
 
 # Symlinks to TEMPLATE/asr1
-for f in db.sh scripts pyscripts utils steps; do
+for f in db.sh scripts pyscripts; do
     target=../../TEMPLATE/asr1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
+
+
+# Symlinks to Kaldi
+for f in steps utils; do
+    target=../../../tools/kaldi/egs/wsj/s5/"${f}"
+    ln -sf "${target}" "${dir}"
+    targets+="${dir}/${target} "
+done
+
+# Symlinks to Kaldi SID
+target=../../../tools/kaldi/egs/sre08/v1/sid
+ln -sf "${target}" "${dir}"
+targets+="${dir}/${target} "
 
 log "Created: ${targets}"

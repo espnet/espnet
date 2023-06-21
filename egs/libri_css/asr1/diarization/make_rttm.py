@@ -33,8 +33,8 @@ where:
 """
 
 import argparse
-import codecs
 import sys
+import codecs
 
 
 def get_args():

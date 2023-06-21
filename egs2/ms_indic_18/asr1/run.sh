@@ -45,3 +45,4 @@ fi
     --min_wav_duration 0.5 \
     --bpe_train_text "data/${train_set}/text" \
     --lm_train_text "data/${train_set}/text" "$@"
+

@@ -234,10 +234,14 @@ class ESPnetEnhS2TModel(AbsESPnetModel):
         loss_enh = None
         perm = None
         if not bypass_enh_flag:
-            ret = self.enh_model.forward_enhance(
+            (
+                speech_pre,
+                feature_mix,
+                feature_pre,
+                others,
+            ) = self.enh_model.forward_enhance(
                 speech, speech_lengths, {"num_spk": num_spk}
             )
-            speech_pre, feature_mix, feature_pre, others = ret
             # loss computation
             if not skip_enhloss_flag:
                 loss_enh, _, _, perm = self.enh_model.forward_loss(

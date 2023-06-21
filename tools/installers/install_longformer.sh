@@ -68,3 +68,4 @@ if [ ${torch_version} != "${current_torch_version}" ]; then
     echo "[ERROR] The torch version has been changed. Please report to espnet administrators"
     exit 1
 fi
+

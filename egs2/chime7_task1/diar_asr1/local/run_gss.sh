@@ -1,1 +1,0 @@
-../../asr1/local/run_gss.sh

@@ -23,3 +23,4 @@ teardown() {
         ${tmpdir}/data/wav.scp \
         ${tmpdir}/data/wav.scp
 }
+

@@ -26,3 +26,4 @@ teardown() {
     python $utils/text2token.py $tmpdir/text > $tmpdir/vocab
     diff $tmpdir/vocab $tmpdir/valid
 }
+

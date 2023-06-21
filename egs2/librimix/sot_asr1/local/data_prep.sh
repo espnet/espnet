@@ -1,1 +1,0 @@
-../../../librispeech/asr1/local/data_prep.sh

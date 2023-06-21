@@ -150,3 +150,4 @@ if [ -n "${out}" ]; then
     opts+="-O ${out}"
 fi
 merge_scp2json.py --verbose ${verbose} ${opts}
+

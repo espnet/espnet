@@ -7,6 +7,7 @@ import torch
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.adapter_utils.add_adapters import add_adapters_wav2vec2
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 
@@ -50,10 +51,31 @@ class S3prlFrontend(AbsFrontend):
             normalize=frontend_conf.get("normalize", False),
             extra_conf=frontend_conf.get("extra_conf", None),
         )
-        if getattr(upstream.upstream, "model", None):
-            if getattr(upstream.upstream.model, "feature_grad_mult", None):
-                upstream.upstream.model.feature_grad_mult = 1.0
         upstream.eval()
+        if getattr(
+            upstream.upstream, "model", None
+        ) is not None and upstream.upstream.model.__class__.__name__ in [
+            "Wav2Vec2Model",
+            "HubertModel",
+        ]:
+            upstream.upstream.model.encoder.layerdrop = 0.0
+
+        # check if adapter is added
+        if (
+            upstream.upstream.model.__class__.__name__ == "Wav2Vec2Model"
+            and frontend_conf.get("add_adapters", None)
+        ):
+            upstream.upstream = add_adapters_wav2vec2(
+                upstream.upstream,
+                adapter_down_dim=192,
+                adapt_layers=frontend_conf.get("adapter_layers", None),
+            )
+        elif (
+            upstream.upstream.model.__class__.__name__ == "Wav2Vec2Model"
+            and frontend_conf.get("adapter_find", None)
+        ):
+            multilayer_feature = True
+            self.adapter_num = frontend_conf.get("adapter_num", None)
 
         if layer != -1:
             layer_selections = [layer]

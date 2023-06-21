@@ -35,7 +35,6 @@ from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-from espnet2.tts.feats_extract.ying import Ying
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
@@ -63,13 +62,6 @@ score_feats_extractor_choices = ClassChoices(
 pitch_extractor_choices = ClassChoices(
     "pitch_extract",
     classes=dict(dio=Dio),
-    type_check=AbsFeatsExtract,
-    default=None,
-    optional=True,
-)
-ying_extractor_choices = ClassChoices(
-    "ying_extract",
-    classes=dict(ying=Ying),
     type_check=AbsFeatsExtract,
     default=None,
     optional=True,
@@ -142,8 +134,6 @@ class GANSVSTask(AbsTask):
         pitch_extractor_choices,
         # --pitch_normalize and --pitch_normalize_conf
         pitch_normalize_choices,
-        # --ying_extract and --ying_extract_conf
-        ying_extractor_choices,
         # --energy_extract and --energy_extract_conf
         energy_extractor_choices,
         # --energy_normalize and --energy_normalize_conf
@@ -289,16 +279,7 @@ class GANSVSTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = (
-                "spembs",
-                "durations",
-                "pitch",
-                "energy",
-                "sids",
-                "lids",
-                "feats",
-                "ying",
-            )
+            retval = ("spembs", "durations", "pitch", "energy", "sids", "lids", "feats")
         else:
             # Inference mode
             retval = ("spembs", "singing", "pitch", "durations", "sids", "lids")
@@ -349,7 +330,6 @@ class GANSVSTask(AbsTask):
         # 4. Extra components
         score_feats_extract = None
         pitch_extract = None
-        ying_extract = None
         energy_extract = None
         pitch_normalize = None
         energy_normalize = None
@@ -368,14 +348,6 @@ class GANSVSTask(AbsTask):
 
             pitch_extract = pitch_extract_class(
                 **args.pitch_extract_conf,
-            )
-        if getattr(args, "ying_extract", None) is not None:
-            ying_extract_class = ying_extractor_choices.get_class(
-                args.ying_extract,
-            )
-
-            ying_extract = ying_extract_class(
-                **args.ying_extract_conf,
             )
         if getattr(args, "energy_extract", None) is not None:
             energy_extract_class = energy_extractor_choices.get_class(
@@ -406,7 +378,6 @@ class GANSVSTask(AbsTask):
             score_feats_extract=score_feats_extract,
             label_extract=score_feats_extract,
             pitch_extract=pitch_extract,
-            ying_extract=ying_extract,
             duration_extract=score_feats_extract,
             energy_extract=energy_extract,
             normalize=normalize,
