@@ -69,7 +69,7 @@ extractor_conf:
     i_adapt_layer: 7
     adapt_layer_type: mul
     adapt_enroll_dim: 256
-    use_spk_emb: true   # this must be True if load_spk_embedding is True
+    use_spk_emb: false   # this must be True if load_spk_embedding is True
     spk_emb_dim: 256
 
 # A list for criterions
