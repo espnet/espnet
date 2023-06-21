@@ -62,7 +62,7 @@ class RWKVDecoder(AbsDecoder):
         linear_size = block_size * 4 if linear_size is None else linear_size
         attention_size = block_size if attention_size is None else attention_size
 
-        self.embed = torch.nn.Embedding(vocab_size, block_size, embed_pad)
+        self.embed = torch.nn.Embedding(vocab_size, block_size, padding_idx=embed_pad)
         self.dropout_embed = torch.nn.Dropout(p=embed_dropout_rate)
 
         self.rwkv_blocks = torch.nn.ModuleList(
