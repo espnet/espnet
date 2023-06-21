@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>espnet2.asr.maskctc_model &mdash; ESPnet 202304 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <title>espnet2.asr.discrete_asr_espnet_model &mdash; ESPnet 202304 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
@@ -194,7 +194,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">espnet2.asr.maskctc_model</li>
+      <li class="breadcrumb-item active">espnet2.asr.discrete_asr_espnet_model</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -203,35 +203,26 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for espnet2.asr.maskctc_model</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
+  <h1>Source code for espnet2.asr.discrete_asr_espnet_model</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">numpy</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.ctc</span> <span class="kn">import</span> <span class="n">CTC</span>
-<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.mlm_decoder</span> <span class="kn">import</span> <span class="n">MLMDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
-<span class="kn">from</span> <span class="nn">espnet2.asr.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetASRModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.frontend.abs_frontend</span> <span class="kn">import</span> <span class="n">AbsFrontend</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.abs_postencoder</span> <span class="kn">import</span> <span class="n">AbsPostEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.abs_preencoder</span> <span class="kn">import</span> <span class="n">AbsPreEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
-<span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.token_id_converter</span> <span class="kn">import</span> <span class="n">TokenIDConverter</span>
+<span class="kn">from</span> <span class="nn">espnet2.mt.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetMTModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.beam_search</span> <span class="kn">import</span> <span class="n">Hypothesis</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">ErrorCalculator</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.maskctc.add_mask_token</span> <span class="kn">import</span> <span class="n">mask_uniform</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">ErrorCalculator</span> <span class="k">as</span> <span class="n">ASRErrorCalculator</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">th_accuracy</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.label_smoothing_loss</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
-    <span class="n">LabelSmoothingLoss</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.add_sos_eos</span> <span class="kn">import</span> <span class="n">add_sos_eos</span>
 
 <span class="k">if</span> <span class="n">V</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">__version__</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">V</span><span class="p">(</span><span class="s2">&quot;1.6.0&quot;</span><span class="p">):</span>
     <span class="kn">from</span> <span class="nn">torch.cuda.amp</span> <span class="kn">import</span> <span class="n">autocast</span>
@@ -242,8 +233,8 @@
         <span class="k">yield</span>
 
 
-<div class="viewcode-block" id="MaskCTCModel"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.maskctc_model.MaskCTCModel">[docs]</a><span class="k">class</span> <span class="nc">MaskCTCModel</span><span class="p">(</span><span class="n">ESPnetASRModel</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Hybrid CTC/Masked LM Encoder-Decoder model (Mask-CTC)&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ESPnetDiscreteASRModel"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.discrete_asr_espnet_model.ESPnetDiscreteASRModel">[docs]</a><span class="k">class</span> <span class="nc">ESPnetDiscreteASRModel</span><span class="p">(</span><span class="n">ESPnetMTModel</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Encoder-Decoder model&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -251,115 +242,113 @@
         <span class="n">token_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>
         <span class="n">frontend</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsFrontend</span><span class="p">],</span>
         <span class="n">specaug</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsSpecAug</span><span class="p">],</span>
-        <span class="n">normalize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsNormalize</span><span class="p">],</span>
         <span class="n">preencoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsPreEncoder</span><span class="p">],</span>
         <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
         <span class="n">postencoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsPostEncoder</span><span class="p">],</span>
-        <span class="n">decoder</span><span class="p">:</span> <span class="n">MLMDecoder</span><span class="p">,</span>
-        <span class="n">ctc</span><span class="p">:</span> <span class="n">CTC</span><span class="p">,</span>
-        <span class="n">joint_network</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
+        <span class="n">ctc</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CTC</span><span class="p">],</span>
         <span class="n">ctc_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="n">interctc_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">src_vocab_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">src_token_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[],</span>
         <span class="n">ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">lsm_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">length_normalized_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">report_cer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
-        <span class="n">report_wer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">report_bleu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">sym_space</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
         <span class="n">sym_blank</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;blank&gt;&quot;</span><span class="p">,</span>
-        <span class="n">sym_mask</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;mask&gt;&quot;</span><span class="p">,</span>
         <span class="n">extract_feats_in_collect_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">share_decoder_input_output_embed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">share_encoder_decoder_input_embed</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">ctc_weight</span> <span class="o">&lt;=</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">ctc_weight</span>
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
             <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
             <span class="n">frontend</span><span class="o">=</span><span class="n">frontend</span><span class="p">,</span>
-            <span class="n">specaug</span><span class="o">=</span><span class="n">specaug</span><span class="p">,</span>
-            <span class="n">normalize</span><span class="o">=</span><span class="n">normalize</span><span class="p">,</span>
             <span class="n">preencoder</span><span class="o">=</span><span class="n">preencoder</span><span class="p">,</span>
             <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
             <span class="n">postencoder</span><span class="o">=</span><span class="n">postencoder</span><span class="p">,</span>
             <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
-            <span class="n">ctc</span><span class="o">=</span><span class="n">ctc</span><span class="p">,</span>
-            <span class="n">joint_network</span><span class="o">=</span><span class="n">joint_network</span><span class="p">,</span>
-            <span class="n">ctc_weight</span><span class="o">=</span><span class="n">ctc_weight</span><span class="p">,</span>
-            <span class="n">interctc_weight</span><span class="o">=</span><span class="n">interctc_weight</span><span class="p">,</span>
+            <span class="n">src_vocab_size</span><span class="o">=</span><span class="n">src_vocab_size</span><span class="p">,</span>
+            <span class="n">src_token_list</span><span class="o">=</span><span class="n">src_token_list</span><span class="p">,</span>
             <span class="n">ignore_id</span><span class="o">=</span><span class="n">ignore_id</span><span class="p">,</span>
             <span class="n">lsm_weight</span><span class="o">=</span><span class="n">lsm_weight</span><span class="p">,</span>
             <span class="n">length_normalized_loss</span><span class="o">=</span><span class="n">length_normalized_loss</span><span class="p">,</span>
-            <span class="n">report_cer</span><span class="o">=</span><span class="n">report_cer</span><span class="p">,</span>
-            <span class="n">report_wer</span><span class="o">=</span><span class="n">report_wer</span><span class="p">,</span>
+            <span class="n">report_bleu</span><span class="o">=</span><span class="n">report_bleu</span><span class="p">,</span>
             <span class="n">sym_space</span><span class="o">=</span><span class="n">sym_space</span><span class="p">,</span>
             <span class="n">sym_blank</span><span class="o">=</span><span class="n">sym_blank</span><span class="p">,</span>
             <span class="n">extract_feats_in_collect_stats</span><span class="o">=</span><span class="n">extract_feats_in_collect_stats</span><span class="p">,</span>
+            <span class="n">share_decoder_input_output_embed</span><span class="o">=</span><span class="n">share_decoder_input_output_embed</span><span class="p">,</span>
+            <span class="n">share_encoder_decoder_input_embed</span><span class="o">=</span><span class="n">share_encoder_decoder_input_embed</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="c1"># Add &lt;mask&gt; and override inherited fields</span>
-        <span class="n">token_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sym_mask</span><span class="p">)</span>
-        <span class="n">vocab_size</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">specaug</span> <span class="o">=</span> <span class="n">specaug</span>
+        <span class="c1"># note that eos is the same as sos (equivalent ID)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">=</span> <span class="n">ctc_weight</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interctc_weight</span> <span class="o">=</span> <span class="n">interctc_weight</span>
 
-        <span class="c1"># MLM loss</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion_att</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">criterion_mlm</span> <span class="o">=</span> <span class="n">LabelSmoothingLoss</span><span class="p">(</span>
-            <span class="n">size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
-            <span class="n">padding_idx</span><span class="o">=</span><span class="n">ignore_id</span><span class="p">,</span>
-            <span class="n">smoothing</span><span class="o">=</span><span class="n">lsm_weight</span><span class="p">,</span>
-            <span class="n">normalize_length</span><span class="o">=</span><span class="n">length_normalized_loss</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="n">report_cer</span> <span class="ow">or</span> <span class="n">report_wer</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="n">ErrorCalculator</span><span class="p">(</span>
-                <span class="n">token_list</span><span class="p">,</span> <span class="n">sym_space</span><span class="p">,</span> <span class="n">sym_blank</span><span class="p">,</span> <span class="n">report_cer</span><span class="p">,</span> <span class="n">report_wer</span>
+        <span class="k">if</span> <span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">ctc</span>
+        <span class="k">if</span> <span class="n">report_bleu</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="o">=</span> <span class="n">ASRErrorCalculator</span><span class="p">(</span>
+                <span class="n">token_list</span><span class="p">,</span> <span class="n">sym_space</span><span class="p">,</span> <span class="n">sym_blank</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span>
             <span class="p">)</span>
 
-<div class="viewcode-block" id="MaskCTCModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.maskctc_model.MaskCTCModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="s2">&quot;interctc_use_conditioning&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">interctc_use_conditioning</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">interctc_use_conditioning</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">conditioning_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
+                <span class="n">vocab_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">output_size</span><span class="p">()</span>
+            <span class="p">)</span>
+
+<div class="viewcode-block" id="ESPnetDiscreteASRModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.discrete_asr_espnet_model.ESPnetDiscreteASRModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
-        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">src_text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">src_text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder + Decoder + Calc loss</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            speech: (Batch, Length, ...)</span>
-<span class="sd">            speech_lengths: (Batch, )</span>
 <span class="sd">            text: (Batch, Length)</span>
 <span class="sd">            text_lengths: (Batch,)</span>
+<span class="sd">            src_text: (Batch, length)</span>
+<span class="sd">            src_text_lengths: (Batch,)</span>
+<span class="sd">            kwargs: &quot;utt_id&quot; is among the input.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span>
         <span class="c1"># Check that batch_size is unified</span>
         <span class="k">assert</span> <span class="p">(</span>
-            <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="o">==</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="o">==</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="o">==</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="p">),</span> <span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">==</span> <span class="n">src_text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="o">==</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="p">),</span> <span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">src_text</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
-        <span class="c1"># For data-parallel</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">src_text</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># for data-parallel</span>
         <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
-
-        <span class="c1"># Define stats to report</span>
-        <span class="n">loss_mlm</span><span class="p">,</span> <span class="n">acc_mlm</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-        <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="n">src_text</span> <span class="o">=</span> <span class="n">src_text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
 
         <span class="c1"># 1. Encoder</span>
-        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">src_text</span><span class="p">,</span> <span class="n">src_text_lengths</span><span class="p">)</span>
         <span class="n">intermediate_outs</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="n">intermediate_outs</span> <span class="o">=</span> <span class="n">encoder_out</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
             <span class="n">encoder_out</span> <span class="o">=</span> <span class="n">encoder_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
-        <span class="c1"># 2. CTC branch</span>
+        <span class="c1"># 1. CTC branch</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">!=</span> <span class="mf">0.0</span><span class="p">:</span>
             <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_ctc_loss</span><span class="p">(</span>
                 <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
@@ -369,7 +358,7 @@
             <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_ctc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_ctc</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_ctc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
             <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;cer_ctc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cer_ctc</span>
 
-        <span class="c1"># 2a. Intermediate CTC (optional)</span>
+        <span class="c1"># Intermediate CTC (optional)</span>
         <span class="n">loss_interctc</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">interctc_weight</span> <span class="o">!=</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">intermediate_outs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">layer_idx</span><span class="p">,</span> <span class="n">intermediate_out</span> <span class="ow">in</span> <span class="n">intermediate_outs</span><span class="p">:</span>
@@ -393,163 +382,132 @@
                 <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">interctc_weight</span>
             <span class="p">)</span> <span class="o">*</span> <span class="n">loss_ctc</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">interctc_weight</span> <span class="o">*</span> <span class="n">loss_interctc</span>
 
-        <span class="c1"># 3. MLM decoder branch</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">!=</span> <span class="mf">1.0</span><span class="p">:</span>
-            <span class="n">loss_mlm</span><span class="p">,</span> <span class="n">acc_mlm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mlm_loss</span><span class="p">(</span>
-                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
-            <span class="p">)</span>
+        <span class="c1"># 2a. Attention-decoder branch (MT)</span>
+        <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att</span><span class="p">,</span> <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_att_loss</span><span class="p">(</span>
+            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
+        <span class="p">)</span>
 
-        <span class="c1"># 4. CTC/MLM loss definition</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
-            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_mlm</span>
-        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
-            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_ctc</span>
+        <span class="c1"># 3. Loss computation</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">*</span> <span class="n">loss_ctc</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_att</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span> <span class="o">*</span> <span class="n">loss_ctc</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_mlm</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss_att</span>
 
-        <span class="c1"># Collect MLM branch stats</span>
-        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_mlm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_mlm</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_mlm</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
-        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;acc_mlm&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">acc_mlm</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss_att&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss_att</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="n">loss_att</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;acc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">acc_att</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;cer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cer_att</span>
+        <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;wer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">wer_att</span>
 
-        <span class="c1"># Collect total loss stats</span>
         <span class="n">stats</span><span class="p">[</span><span class="s2">&quot;loss&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
 
         <span class="c1"># force_gatherable: to-device and to-tensor if scalar for DataParallel</span>
         <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">force_gatherable</span><span class="p">((</span><span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">),</span> <span class="n">loss</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
 
-    <span class="k">def</span> <span class="nf">_calc_mlm_loss</span><span class="p">(</span>
+<div class="viewcode-block" id="ESPnetDiscreteASRModel.encode"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.discrete_asr_espnet_model.ESPnetDiscreteASRModel.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">src_text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">src_text_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by mt_inference.py</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            src_text: (Batch, Length, ...)</span>
+<span class="sd">            src_text_lengths: (Batch, )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">autocast</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+            <span class="c1"># 1. Extract feats</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extract_feats</span><span class="p">(</span><span class="n">src_text</span><span class="p">,</span> <span class="n">src_text_lengths</span><span class="p">)</span>
+
+            <span class="c1"># 2. Data augmentation</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">specaug</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
+                <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">specaug</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+
+        <span class="c1"># Pre-encoder, e.g. used for raw input data</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">preencoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preencoder</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+
+        <span class="c1"># 4. Forward encoder</span>
+        <span class="c1"># feats: (Batch, Length, Dim)</span>
+        <span class="c1"># -&gt; encoder_out: (Batch, Length2, Dim2)</span>
+        <span class="c1"># encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">interctc_use_conditioning</span><span class="p">:</span>
+            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span>
+                <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">,</span> <span class="n">ctc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
+        <span class="n">intermediate_outs</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+            <span class="n">intermediate_outs</span> <span class="o">=</span> <span class="n">encoder_out</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">encoder_out</span> <span class="o">=</span> <span class="n">encoder_out</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># Post-encoder, e.g. NLU</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span><span class="p">(</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span>
+            <span class="p">)</span>
+
+        <span class="k">assert</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="n">src_text</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="p">(</span>
+            <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>
+            <span class="n">src_text</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+        <span class="p">)</span>
+        <span class="k">assert</span> <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">encoder_out_lens</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span> <span class="p">(</span>
+            <span class="n">encoder_out</span><span class="o">.</span><span class="n">size</span><span class="p">(),</span>
+            <span class="n">encoder_out_lens</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">intermediate_outs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">intermediate_outs</span><span class="p">),</span> <span class="n">encoder_out_lens</span>
+
+        <span class="k">return</span> <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span></div>
+
+    <span class="k">def</span> <span class="nf">_calc_att_loss</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="c1"># 1. Apply masks</span>
-        <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span> <span class="o">=</span> <span class="n">mask_uniform</span><span class="p">(</span>
-            <span class="n">ys_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span>
-        <span class="p">)</span>
+        <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span><span class="n">ys_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">)</span>
+        <span class="n">ys_in_lens</span> <span class="o">=</span> <span class="n">ys_pad_lens</span> <span class="o">+</span> <span class="mi">1</span>
 
-        <span class="c1"># 2. Forward decoder</span>
+        <span class="c1"># 1. Forward decoder</span>
         <span class="n">decoder_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span>
-            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_pad_lens</span>
+            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_in_lens</span>
         <span class="p">)</span>
 
-        <span class="c1"># 3. Compute mlm loss</span>
-        <span class="n">loss_mlm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion_mlm</span><span class="p">(</span><span class="n">decoder_out</span><span class="p">,</span> <span class="n">ys_out_pad</span><span class="p">)</span>
-        <span class="n">acc_mlm</span> <span class="o">=</span> <span class="n">th_accuracy</span><span class="p">(</span>
+        <span class="c1"># 2. Compute attention loss</span>
+        <span class="n">loss_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion_mt</span><span class="p">(</span><span class="n">decoder_out</span><span class="p">,</span> <span class="n">ys_out_pad</span><span class="p">)</span>
+        <span class="n">acc_att</span> <span class="o">=</span> <span class="n">th_accuracy</span><span class="p">(</span>
             <span class="n">decoder_out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">),</span>
             <span class="n">ys_out_pad</span><span class="p">,</span>
             <span class="n">ignore_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">,</span>
         <span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">loss_mlm</span><span class="p">,</span> <span class="n">acc_mlm</span>
+        <span class="c1"># Compute cer/wer using attention-decoder</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ys_hat</span> <span class="o">=</span> <span class="n">decoder_out</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span><span class="p">(</span><span class="n">ys_hat</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
 
-<div class="viewcode-block" id="MaskCTCModel.nll"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.maskctc_model.MaskCTCModel.nll">[docs]</a>    <span class="k">def</span> <span class="nf">nll</span><span class="p">(</span>
+        <span class="k">return</span> <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att</span><span class="p">,</span> <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span>
+
+    <span class="k">def</span> <span class="nf">_calc_ctc_loss</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div>
-
-<div class="viewcode-block" id="MaskCTCModel.batchify_nll"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.maskctc_model.MaskCTCModel.batchify_nll">[docs]</a>    <span class="k">def</span> <span class="nf">batchify_nll</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">NotImplementedError</span></div></div>
+        <span class="c1"># Calc CTC loss</span>
+        <span class="n">loss_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">ys_pad_lens</span><span class="p">)</span>
 
-
-<div class="viewcode-block" id="MaskCTCInference"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.maskctc_model.MaskCTCInference">[docs]</a><span class="k">class</span> <span class="nc">MaskCTCInference</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Mask-CTC-based non-autoregressive inference&quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span>
-        <span class="n">asr_model</span><span class="p">:</span> <span class="n">MaskCTCModel</span><span class="p">,</span>
-        <span class="n">n_iterations</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-        <span class="n">threshold_probability</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
-    <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize Mask-CTC inference&quot;&quot;&quot;</span>
-        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">ctc</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mlm</span> <span class="o">=</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span> <span class="o">=</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">mask_token</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">n_iterations</span> <span class="o">=</span> <span class="n">n_iterations</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">threshold_probability</span> <span class="o">=</span> <span class="n">threshold_probability</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">TokenIDConverter</span><span class="p">(</span><span class="n">token_list</span><span class="o">=</span><span class="n">asr_model</span><span class="o">.</span><span class="n">token_list</span><span class="p">)</span>
-
-<div class="viewcode-block" id="MaskCTCInference.ids2text"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.maskctc_model.MaskCTCInference.ids2text">[docs]</a>    <span class="k">def</span> <span class="nf">ids2text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
-        <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">ids2tokens</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&lt;mask&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot;_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="MaskCTCInference.forward"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.maskctc_model.MaskCTCInference.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Perform Mask-CTC inference&quot;&quot;&quot;</span>
-        <span class="c1"># greedy ctc outputs</span>
-        <span class="n">enc_out</span> <span class="o">=</span> <span class="n">enc_out</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">ctc_probs</span><span class="p">,</span> <span class="n">ctc_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">enc_out</span><span class="p">))</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">y_hat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">ctc_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">])])</span>
-        <span class="n">y_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">y_hat</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;ctc:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids2text</span><span class="p">(</span><span class="n">y_hat</span><span class="p">[</span><span class="n">y_idx</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())))</span>
-
-        <span class="c1"># calculate token-level ctc probabilities by taking</span>
-        <span class="c1"># the maximum probability of consecutive frames with</span>
-        <span class="c1"># the same ctc symbols</span>
-        <span class="n">probs_hat</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">cnt</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">y_hat</span><span class="o">.</span><span class="n">tolist</span><span class="p">()):</span>
-            <span class="n">probs_hat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="k">while</span> <span class="n">cnt</span> <span class="o">&lt;</span> <span class="n">ctc_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="ow">and</span> <span class="n">y</span> <span class="o">==</span> <span class="n">ctc_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cnt</span><span class="p">]:</span>
-                <span class="k">if</span> <span class="n">probs_hat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">ctc_probs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cnt</span><span class="p">]:</span>
-                    <span class="n">probs_hat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctc_probs</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">cnt</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="n">cnt</span> <span class="o">+=</span> <span class="mi">1</span>
-        <span class="n">probs_hat</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">probs_hat</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">enc_out</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-
-        <span class="c1"># mask ctc outputs based on ctc probabilities</span>
-        <span class="n">p_thres</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">threshold_probability</span>
-        <span class="n">mask_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">probs_hat</span><span class="p">[</span><span class="n">y_idx</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">p_thres</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">confident_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">probs_hat</span><span class="p">[</span><span class="n">y_idx</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="n">p_thres</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">mask_num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask_idx</span><span class="p">)</span>
-
-        <span class="n">y_in</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">y_idx</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">enc_out</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span>
-        <span class="p">)</span>
-        <span class="n">y_in</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">confident_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_hat</span><span class="p">[</span><span class="n">y_idx</span><span class="p">][</span><span class="n">confident_idx</span><span class="p">]</span>
-
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;msk:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids2text</span><span class="p">(</span><span class="n">y_in</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())))</span>
-
-        <span class="c1"># iterative decoding</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">mask_num</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">K</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_iterations</span>
-            <span class="n">num_iter</span> <span class="o">=</span> <span class="n">K</span> <span class="k">if</span> <span class="n">mask_num</span> <span class="o">&gt;=</span> <span class="n">K</span> <span class="ow">and</span> <span class="n">K</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">mask_num</span>
-
-            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_iter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
-                <span class="n">pred</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlm</span><span class="p">(</span><span class="n">enc_out</span><span class="p">,</span> <span class="p">[</span><span class="n">enc_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)],</span> <span class="n">y_in</span><span class="p">,</span> <span class="p">[</span><span class="n">y_in</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)])</span>
-                <span class="n">pred_score</span><span class="p">,</span> <span class="n">pred_id</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">mask_idx</span><span class="p">]</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-                <span class="n">cand</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">pred_score</span><span class="p">,</span> <span class="n">mask_num</span> <span class="o">//</span> <span class="n">num_iter</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-                <span class="n">y_in</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">mask_idx</span><span class="p">[</span><span class="n">cand</span><span class="p">]]</span> <span class="o">=</span> <span class="n">pred_id</span><span class="p">[</span><span class="n">cand</span><span class="p">]</span>
-                <span class="n">mask_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nonzero</span><span class="p">(</span><span class="n">y_in</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;msk:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids2text</span><span class="p">(</span><span class="n">y_in</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())))</span>
-
-            <span class="c1"># predict leftover masks (|masks| &lt; mask_num // num_iter)</span>
-            <span class="n">pred</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlm</span><span class="p">(</span><span class="n">enc_out</span><span class="p">,</span> <span class="p">[</span><span class="n">enc_out</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)],</span> <span class="n">y_in</span><span class="p">,</span> <span class="p">[</span><span class="n">y_in</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)])</span>
-            <span class="n">y_in</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">mask_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">pred</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="n">mask_idx</span><span class="p">]</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;msk:</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ids2text</span><span class="p">(</span><span class="n">y_in</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">())))</span>
-
-        <span class="c1"># pad with mask tokens to ensure compatibility with sos/eos tokens</span>
-        <span class="n">yseq</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
-            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span><span class="p">]</span> <span class="o">+</span> <span class="n">y_in</span><span class="o">.</span><span class="n">tolist</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">mask_token</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">y_in</span><span class="o">.</span><span class="n">device</span>
-        <span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">Hypothesis</span><span class="p">(</span><span class="n">yseq</span><span class="o">=</span><span class="n">yseq</span><span class="p">)</span></div></div>
+        <span class="c1"># Calc CER using CTC</span>
+        <span class="n">cer_ctc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ys_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+            <span class="n">cer_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">error_calculator</span><span class="p">(</span><span class="n">ys_hat</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">is_ctc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span></div>
 </pre></div>
 
            </div>

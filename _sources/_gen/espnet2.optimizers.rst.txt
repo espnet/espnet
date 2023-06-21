@@ -15,23 +15,23 @@ espnet2.optimizers.__init__
     :show-inheritance:
 
 
-.. _espnet2.optimizers.sgd:
-
-espnet2.optimizers.sgd
-----------------------
-
-.. automodule:: espnet2.optimizers.sgd
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.optimizers.optim_groups:
 
 espnet2.optimizers.optim_groups
 -------------------------------
 
 .. automodule:: espnet2.optimizers.optim_groups
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.optimizers.sgd:
+
+espnet2.optimizers.sgd
+----------------------
+
+.. automodule:: espnet2.optimizers.sgd
     :members:
     :undoc-members:
     :show-inheritance:

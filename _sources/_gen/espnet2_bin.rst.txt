@@ -6199,8 +6199,8 @@ mt_inference.py
                            [--model_tag MODEL_TAG] [--batch_size BATCH_SIZE]
                            [--nbest NBEST] [--beam_size BEAM_SIZE]
                            [--penalty PENALTY] [--maxlenratio MAXLENRATIO]
-                           [--minlenratio MINLENRATIO] [--lm_weight LM_WEIGHT]
-                           [--ngram_weight NGRAM_WEIGHT]
+                           [--minlenratio MINLENRATIO] [--ctc_weight CTC_WEIGHT]
+                           [--lm_weight LM_WEIGHT] [--ngram_weight NGRAM_WEIGHT]
                            [--token_type {char,bpe,None}] [--bpemodel BPEMODEL]
     
     MT Decoding
@@ -6258,6 +6258,8 @@ mt_inference.py
       --minlenratio MINLENRATIO
                             Input length ratio to obtain min output length
                             (default: 0.0)
+      --ctc_weight CTC_WEIGHT
+                            CTC weight in joint decoding (default: 0.0)
       --lm_weight LM_WEIGHT
                             RNNLM weight (default: 1.0)
       --ngram_weight NGRAM_WEIGHT
@@ -6350,7 +6352,7 @@ mt_train.py
                        [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                        [--src_token_list SRC_TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
-                       [--input_size INPUT_SIZE] [--model_conf MODEL_CONF]
+                       [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
                        [--use_preprocessor USE_PREPROCESSOR]
                        [--token_type {bpe,char,word,phn}]
                        [--src_token_type {bpe,char,word,phn}]
@@ -6358,15 +6360,19 @@ mt_train.py
                        [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                        [--cleaner {None,tacotron,jaconv,vietnamese}]
                        [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
+                       [--tokenizer_encode_conf TOKENIZER_ENCODE_CONF]
+                       [--src_tokenizer_encode_conf SRC_TOKENIZER_ENCODE_CONF]
                        [--frontend {embed}] [--frontend_conf FRONTEND_CONF]
+                       [--specaug {specaug,None}] [--specaug_conf SPECAUG_CONF]
                        [--preencoder {sinc,linear,None}]
                        [--preencoder_conf PREENCODER_CONF]
-                       [--encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,branchformer}]
+                       [--encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,branchformer,e_branchformer}]
                        [--encoder_conf ENCODER_CONF]
                        [--postencoder {hugging_face_transformers,None}]
                        [--postencoder_conf POSTENCODER_CONF]
                        [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
-                       [--decoder_conf DECODER_CONF]
+                       [--decoder_conf DECODER_CONF] [--model {mt,discrete_asr}]
+                       [--model_conf MODEL_CONF]
     
     base parser
     
@@ -6378,6 +6384,10 @@ mt_train.py
                             Apply text cleaning (default: None)
       --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}
                             Specify g2p method if --token_type=phn (default: None)
+      --tokenizer_encode_conf TOKENIZER_ENCODE_CONF
+                            Tokenization encoder conf, e.g. BPE dropout: enable_sampling=True, alpha=0.1, nbest_size=-1 (default: None)
+      --src_tokenizer_encode_conf SRC_TOKENIZER_ENCODE_CONF
+                            Src tokenization encoder conf, e.g. BPE dropout: enable_sampling=True, alpha=0.1, nbest_size=-1 (default: None)
     
     Common configuration:
       --print_config        Print the config file and exit (default: False)
@@ -6736,8 +6746,7 @@ mt_train.py
                             The initialization method (default: None)
       --input_size INPUT_SIZE
                             The number of input dimension of the feature (default: None)
-      --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'src_vocab_size': 0, 'src_token_list': [], 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_bleu': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'extract_feats_in_collect_stats': True, 'share_decoder_input_output_embed': False, 'share_encoder_decoder_input_embed': False})
+      --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {'dropout_rate': 0.0, 'ctc_type': 'builtin', 'reduce': True, 'ignore_nan_grad': None, 'zero_infinity': True})
     
       Preprocess related
     
@@ -6753,11 +6762,15 @@ mt_train.py
       --frontend {embed}    The frontend type (default: embed)
       --frontend_conf FRONTEND_CONF
                             The keyword arguments for frontend (default: {})
+      --specaug {specaug,None}
+                            The specaug type (default: None)
+      --specaug_conf SPECAUG_CONF
+                            The keyword arguments for specaug (default: {})
       --preencoder {sinc,linear,None}
                             The preencoder type (default: None)
       --preencoder_conf PREENCODER_CONF
                             The keyword arguments for preencoder (default: {})
-      --encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,branchformer}
+      --encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,branchformer,e_branchformer}
                             The encoder type (default: rnn)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
@@ -6769,6 +6782,10 @@ mt_train.py
                             The decoder type (default: rnn)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})
+      --model {mt,discrete_asr}
+                            The model type (default: mt)
+      --model_conf MODEL_CONF
+                            The keyword arguments for model (default: {})
     /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
       def backtrace(trace: np.ndarray):
 .. _pack.py:

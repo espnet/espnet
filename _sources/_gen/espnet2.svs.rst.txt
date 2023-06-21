@@ -4,6 +4,17 @@ espnet2.svs package
 
 
 
+.. _espnet2.svs.abs_svs:
+
+espnet2.svs.abs_svs
+-------------------
+
+.. automodule:: espnet2.svs.abs_svs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.svs.__init__:
 
 espnet2.svs.__init__
@@ -21,17 +32,6 @@ espnet2.svs.espnet_model
 ------------------------
 
 .. automodule:: espnet2.svs.espnet_model
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.abs_svs:
-
-espnet2.svs.abs_svs
--------------------
-
-.. automodule:: espnet2.svs.abs_svs
     :members:
     :undoc-members:
     :show-inheritance:

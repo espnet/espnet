@@ -37,23 +37,23 @@ espnet2.uasr.segmenter.__init__
     :show-inheritance:
 
 
-.. _espnet2.uasr.segmenter.random_segmenter:
-
-espnet2.uasr.segmenter.random_segmenter
----------------------------------------
-
-.. automodule:: espnet2.uasr.segmenter.random_segmenter
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.uasr.segmenter.join_segmenter:
 
 espnet2.uasr.segmenter.join_segmenter
 -------------------------------------
 
 .. automodule:: espnet2.uasr.segmenter.join_segmenter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.uasr.segmenter.random_segmenter:
+
+espnet2.uasr.segmenter.random_segmenter
+---------------------------------------
+
+.. automodule:: espnet2.uasr.segmenter.random_segmenter
     :members:
     :undoc-members:
     :show-inheritance:
@@ -114,12 +114,12 @@ espnet2.uasr.loss.__init__
     :show-inheritance:
 
 
-.. _espnet2.uasr.loss.abs_loss:
+.. _espnet2.uasr.loss.pseudo_label_loss:
 
-espnet2.uasr.loss.abs_loss
---------------------------
+espnet2.uasr.loss.pseudo_label_loss
+-----------------------------------
 
-.. automodule:: espnet2.uasr.loss.abs_loss
+.. automodule:: espnet2.uasr.loss.pseudo_label_loss
     :members:
     :undoc-members:
     :show-inheritance:
@@ -131,6 +131,28 @@ espnet2.uasr.loss.smoothness_penalty
 ------------------------------------
 
 .. automodule:: espnet2.uasr.loss.smoothness_penalty
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.uasr.loss.abs_loss:
+
+espnet2.uasr.loss.abs_loss
+--------------------------
+
+.. automodule:: espnet2.uasr.loss.abs_loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.uasr.loss.discriminator_loss:
+
+espnet2.uasr.loss.discriminator_loss
+------------------------------------
+
+.. automodule:: espnet2.uasr.loss.discriminator_loss
     :members:
     :undoc-members:
     :show-inheritance:
@@ -158,28 +180,6 @@ espnet2.uasr.loss.gradient_penalty
     :show-inheritance:
 
 
-.. _espnet2.uasr.loss.discriminator_loss:
-
-espnet2.uasr.loss.discriminator_loss
-------------------------------------
-
-.. automodule:: espnet2.uasr.loss.discriminator_loss
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.uasr.loss.pseudo_label_loss:
-
-espnet2.uasr.loss.pseudo_label_loss
------------------------------------
-
-.. automodule:: espnet2.uasr.loss.pseudo_label_loss
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.uasr.generator.__init__:
 
 espnet2.uasr.generator.__init__
@@ -191,23 +191,23 @@ espnet2.uasr.generator.__init__
     :show-inheritance:
 
 
-.. _espnet2.uasr.generator.abs_generator:
-
-espnet2.uasr.generator.abs_generator
-------------------------------------
-
-.. automodule:: espnet2.uasr.generator.abs_generator
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.uasr.generator.conv_generator:
 
 espnet2.uasr.generator.conv_generator
 -------------------------------------
 
 .. automodule:: espnet2.uasr.generator.conv_generator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.uasr.generator.abs_generator:
+
+espnet2.uasr.generator.abs_generator
+------------------------------------
+
+.. automodule:: espnet2.uasr.generator.abs_generator
     :members:
     :undoc-members:
     :show-inheritance:
