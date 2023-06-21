@@ -79,9 +79,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             local/download_se_eval_tool.sh
         fi
         pesqdir="${PWD}/local"
-        local/compute_se_scores.sh --nch "${nch_se}" --enable_pesq "${enable_pesq}" "${REVERB}" "${REVERB_OUT}" "${pesqdir}"
-        cat "exp/compute_se_${nch_se}ch/scores/score_SimData"
-        cat "exp/compute_se_${nch_se}ch/scores/score_RealData"
+        local/compute_se_scores.sh --nch "${nch_train}" --enable_pesq "${enable_pesq}" "${REVERB}" "${REVERB_OUT}" "${pesqdir}"
+        cat "exp/compute_se_${nch_train}ch/scores/score_SimData"
+        cat "exp/compute_se_${nch_train}ch/scores/score_RealData"
     fi
 fi
 
