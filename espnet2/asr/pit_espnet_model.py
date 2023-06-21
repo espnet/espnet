@@ -91,7 +91,8 @@ class PITLossWrapper(AbsLossWrapper):
         )  # (batch_size, num_perm)
 
         min_losses, min_ids = torch.min(losses, dim=1)
-        opt_perm = all_permutations[min_ids.cpu()]  # (batch_size, num_ref)
+        min_ids = min_ids.cpu()  # because all_permutations is a cpu tensor.
+        opt_perm = all_permutations[min_ids]  # (batch_size, num_ref)
 
         # Permute the inf and inf_lens according to the optimal perm
         return min_losses.mean(), opt_perm

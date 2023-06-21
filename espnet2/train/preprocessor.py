@@ -600,7 +600,9 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                         space_symbol=space_symbol,
                         non_linguistic_symbols=non_linguistic_symbols,
                         g2p_type=g2p_type,
-                        encode_kwargs=tokenizer_encode_conf[i],
+                        encode_kwargs=tokenizer_encode_conf[i]
+                        if i < len(tokenizer_encode_conf)
+                        else None,
                     )
                 )
                 self.token_id_converter.append(

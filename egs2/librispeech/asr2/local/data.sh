@@ -17,7 +17,7 @@ stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_960"
 train_dev="dev"
-alignment_phoneme_dir="./data/librispeech_phoneme_alignment"
+alignment_phoneme_dir="./data/mfa_phoneme_alignment"
 
 log "$0 $*"
 . utils/parse_options.sh

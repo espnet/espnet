@@ -1,1 +1,0 @@
-../../ssl1/local/dump_km_label.py
