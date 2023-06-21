@@ -21,7 +21,6 @@ test_sets="test_${sample_rate}"
     --fs ${sample_rate} \
     --ngpu 1 \
     --ref_num 1 \
-    --ref_channel 0 \
     --local_data_opts "--sample_rate ${sample_rate}" \
     --enh_config conf/tuning/train_enh_beamformer_mvdr.yaml \
     --use_dereverb_ref false \
