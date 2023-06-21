@@ -1,6 +1,6 @@
 use_wandb: false
 optim: adam
-max_epoch: 200
+max_epoch: 100
 batch_type: folded
 batch_size: 4
 iterator_type: chunk
@@ -37,11 +37,11 @@ scheduler_conf:
 
 model_conf:
     num_spk: 1
-    share_encoder: false  # this must be False if load_spk_embedding is True
+    share_encoder: true  # this must be False if load_spk_embedding is True
 
 train_spk2enroll: null
 enroll_segment: 24000
-load_spk_embedding: true
+load_spk_embedding: false
 load_all_speakers: false
 
 encoder: conv
