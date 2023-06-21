@@ -76,7 +76,7 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
 - **Transducer** based end-to-end ASR
   - Architecture:
     - Custom encoder supporting RNNs, Conformer, Branchformer (w/ variants), 1D Conv / TDNN.
-    - Decoder w/ parameters shared accross blocks supporting RNN, stateless w/ 1D Conv, [[MEGA]](https://arxiv.org/abs/2209.10655), and [[RWKV]](https://arxiv.org/abs/2305.13048).
+    - Decoder w/ parameters shared accross blocks supporting RNN, stateless w/ 1D Conv, [MEGA](https://arxiv.org/abs/2209.10655), and [RWKV](https://arxiv.org/abs/2305.13048).
     - Pre-encoder: VGG2L or Conv2D available.
   - Search algorithms:
     - Greedy search constrained to one emission by timestep.
