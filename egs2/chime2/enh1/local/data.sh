@@ -45,9 +45,9 @@ if [ ! -e "${CHIME2_GRID}" ]; then
     exit 1
 fi
 
-train_set=train
-valid_set=devel
-test_set=test
+train_set="train"
+valid_set="devel"
+test_set="test"
 
 
 # Setup wav folders
@@ -121,6 +121,7 @@ for x in train devel test; do
     if [ "$x" = "test" ] || [ "$x" = "devel" ]; then
       if [ "$cond" = "isolated" ]; then
         mv data/${x}_grid_${name}/wav.scp data/${x}_grid_${name}/wav_tmp.scp
+          # shellcheck disable=SC2002
         cat data/${x}_grid_${name}/wav_tmp.scp | perl -e '
           while(<STDIN>) {
             @A=split(" ", $_);
