@@ -10,7 +10,7 @@ set -o pipefail
 
 train_set=train
 valid_set=devel
-test_sets="test
+test_sets="test"
 
 ./enh.sh \
     --train_set "${train_set}" \
