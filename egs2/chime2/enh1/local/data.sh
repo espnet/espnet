@@ -34,9 +34,14 @@ if [ ! -e "${WSJ0}" ]; then
     log "Fill the value of 'WSJ0' in db.sh"
     exit 1
 fi
-if [ ! -e "${CHIME2}" ]; then
-    log "Fill the value of 'CHIME2' in db.sh"
-    log "You can download the data from https://catalog.ldc.upenn.edu/LDC2017S10 and https://catalog.ldc.upenn.edu/LDC2017S07"
+if [ ! -e "${CHIME2_WSJ0}" ]; then
+    log "Fill the value of 'CHIME2_WSJ0' in db.sh"
+    log "You can download the data from https://catalog.ldc.upenn.edu/LDC2017S10"
+    exit 1
+fi
+if [ ! -e "${CHIME2_GRID}" ]; then
+    log "Fill the value of 'CHIME2_GRID' in db.sh"
+    log "You can download the data from https://catalog.ldc.upenn.edu/LDC2017S07"
     exit 1
 fi
 

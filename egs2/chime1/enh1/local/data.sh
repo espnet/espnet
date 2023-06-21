@@ -92,6 +92,7 @@ scp="data/${train_set}/spk1.scp"
 rm -f "$scp" || true
 for sid in $(seq 34); do
   sid2=$(printf "s%02d" $sid)
+  # shellcheck disable=SC2012
   ls -1 "${wav_train}/id${sid}"/*.wav \
     | perl -ape "s/(.*)\/(.*).wav/${sid2}_\2\t\1\/\2.wav/;" \
     | sort >> $scp
@@ -99,6 +100,7 @@ done
 rm -f "data/${train_set}/wav.scp" || true
 ln -s spk1.scp "data/${train_set}/wav.scp"
 # Create noise_list.scp
+# shellcheck disable=SC2012
 ls -1 "${noise_train}"/*.wav | sort > "data/${train_set}/noise_list.scp"
 
 
@@ -115,6 +117,7 @@ for x in "${valid_set}" "${test_set}"; do
     fi
     for sid in $(seq 34); do
       sid2=$(printf "s%02d" $sid)
+      # shellcheck disable=SC2012
       ls -1 "${wav_dir}"/{0dB,3dB,6dB,9dB,m3dB,m6dB}/s${sid}_*.wav \
         | perl -ape "s/(.*)\/(.*)\/s.*_(.*).wav/${sid2}_\3_\2\t\1\/\2\/s${sid}_\3.wav/;" \
         | sort >> $scp
@@ -150,7 +153,7 @@ for x in $set_list; do
     perl -ape "s/(s..)(.*)\\t.*/\1\2\t\1/;" < "$scp" > "data/${x}/utt2spk"
 
     # Create spk2utt files
-    cat "data/${x}/utt2spk" | utils/utt2spk_to_spk2utt.pl > "data/${x}/spk2utt" || exit 1;
+    utils/utt2spk_to_spk2utt.pl "data/${x}/utt2spk" > "data/${x}/spk2utt" || exit 1;
   fi
 done
 
