@@ -3,14 +3,13 @@ import logging
 import os
 
 import numpy as np
-
 from ssl_feature_utils import (
-    dump_feature,
-    format_feature_conf_str,
     ESPnetHubertFeatureReader,
     HubertFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
+    dump_feature,
+    format_feature_conf_str,
 )
 
 from espnet2.utils.types import str2bool
@@ -72,9 +71,7 @@ def main(args):
     reader_conf = feature_conf.get("conf", dict())
 
     if reader_conf.get("multilayer_feature", None):
-        reader_conf["multilayer_feature"] = str2bool(
-            reader_conf["multilayer_feature"]
-        )
+        reader_conf["multilayer_feature"] = str2bool(reader_conf["multilayer_feature"])
     if reader_conf.get("layer", None):
         reader_conf["layer"] = int(reader_conf["layer"])
     reader = reader_class(use_gpu=args.use_gpu, **reader_conf)

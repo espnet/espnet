@@ -10,10 +10,10 @@ import soundfile as sf
 import torch
 import torchaudio
 
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import is_scipy_wav_style
 from espnet.utils.cli_writers import file_writer_helper
-from espnet2.asr.frontend.s3prl import S3prlFrontend
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
@@ -79,7 +79,7 @@ class MfccFeatureReader(BaseFeatureReader):
     def __init__(
         self,
         sample_rate=16000,
-        **kwargs,   # placeholder for unused arguments
+        **kwargs,  # placeholder for unused arguments
     ):
         self.sample_rate = sample_rate
 

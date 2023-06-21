@@ -170,8 +170,8 @@ $ ./run.sh
 ```
 @INPROCEEDINGS{9054224,
   author={Baevski, Alexei and Mohamed, Abdelrahman},
-  booktitle={ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)}, 
-  title={Effectiveness of Self-Supervised Pre-Training for ASR}, 
+  booktitle={ICASSP 2020 - 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP)},
+  title={Effectiveness of Self-Supervised Pre-Training for ASR},
   year={2020},
   volume={},
   number={},

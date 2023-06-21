@@ -15,19 +15,18 @@ import sys
 import joblib
 import numpy as np
 import torch
-
 from ssl_feature_utils import (
-    format_feature_conf_str,
     ESPnetHubertFeatureReader,
     HubertFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
+    format_feature_conf_str,
 )
 
+from espnet2.utils.types import str2bool
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import is_scipy_wav_style
 from espnet.utils.cli_writers import file_writer_helper
-from espnet2.utils.types import str2bool
 
 logging.basicConfig(
     format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
