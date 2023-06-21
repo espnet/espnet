@@ -223,7 +223,7 @@ class SelfAttention(torch.nn.Module):
         self.reset_parameters(size, attention_size, block_id, num_blocks)
 
     def reset_parameters(
-        self, size: int, attention_size, block_id: int, num_blocks: int
+        self, size: int, attention_size: int, block_id: int, num_blocks: int
     ) -> None:
         """Reset module parameters.
 
