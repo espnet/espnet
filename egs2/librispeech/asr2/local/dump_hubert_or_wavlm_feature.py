@@ -1,20 +1,10 @@
-# The sklearn_km.py uses code from Fairseq:
-#     https://github.com/pytorch/fairseq/blob/master/examples/hubert/simple_kmeans/learn_kmeans.py
-#
-# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu's help in this implementation,
-# Their origial Hubert work is in:
-#     Paper: https://arxiv.org/pdf/2106.07447.pdf
-#     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
-
 import argparse
 import logging
+import os
 
 import numpy as np
-from hubert_feature_loader import (
-    ESPnetHubertFeatureReader,
-    HubertFeatureReader,
-    MfccFeatureReader,
-)
+from hubert_feature_loader import HubertFeatureReader
+from wavlm_feature_loader import WavLMFeatureReader
 
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import is_scipy_wav_style
@@ -24,27 +14,20 @@ logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
 )
-logger = logging.getLogger("sklearn_kmeans")
+logger = logging.getLogger("dump_hubert_or_wavlm_feature")
 
 
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--feature_type", type=str, default="mfcc", choices=["mfcc", "hubert"]
+        "--ssl_type", type=str, default="wavlm", choices=["wavlm", "hubert"]
     )
-    parser.add_argument("--hubert-model-url", type=str, default=None)
-    parser.add_argument("--hubert-model-path", type=str, default=None)
+
+    parser.add_argument("--ckpt_path", type=str, default="", required=True, help="")
     parser.add_argument("--layer", type=int, default=None)
     parser.add_argument("--sample_rate", type=int, default=16000)
     parser.add_argument("--max_chunk", type=int, default=1600000)
     parser.add_argument("--seed", default=0, type=int)
-    parser.add_argument(
-        "--hubert_type",
-        type=str,
-        default="espnet",
-        choices=["espnet", "fairseq"],
-        help="Whether the HuBERT encoder implementation is based on espnet or fairseq.",
-    )
     parser.add_argument(
         "--in_filetype",
         type=str,
@@ -88,7 +71,7 @@ def dump_feature(
                 rate, mat = mat
                 mat = mat.astype(np.float64, order="C") / 32768.0
             nsample = len(mat)
-            feat = reader.get_feats(mat, nsample).numpy()
+            feat = reader.get_feats(mat, nsample).detach().cpu().numpy()
             writer[utt] = feat
     logger.info("finished successfully")
 
@@ -96,30 +79,16 @@ def dump_feature(
 def main(args):
     np.random.seed(args.seed)
     logging.info("Loading Features")
-    if args.feature_type == "mfcc":
-        reader = MfccFeatureReader(sample_rate=args.sample_rate)
-    elif args.feature_type == "hubert":
-        assert 0 < args.layer < 24
-        if args.hubert_type == "fairseq":
-            logging.warning(
-                "Fairseq based HuBERT is deprecated. Please use the torchaudio one."
-            )
-            reader = HubertFeatureReader(
-                hubert_url=args.hubert_model_url,
-                hubert_dir_path=args.hubert_model_path,
-                layer=args.layer,
-                sample_rate=args.sample_rate,
-                max_chunk=args.max_chunk,
-            )
-        elif args.hubert_type == "espnet":
-            reader = ESPnetHubertFeatureReader(
-                hubert_model_path=args.hubert_model_path,
-                layer=args.layer,
-                sample_rate=args.sample_rate,
-                max_chunk=args.max_chunk,
-            )
-        else:
-            raise ValueError(f"Unknown hubert type {args.hubert_type}")
+    if args.ssl_type == "wavlm":
+        reader = WavLMFeatureReader(args.ckpt_path, args.layer, args.max_chunk)
+    elif args.ssl_type == "hubert":
+        reader = HubertFeatureReader(
+            hubert_url=args.ckpt_path,
+            hubert_dir_path=os.path.dirname(args.ckpt_path),
+            layer=args.layer,
+            sample_rate=args.sample_rate,
+            max_chunk=args.max_chunk,
+        )
     else:
         raise ValueError(f"Unknown feature type {args.feature_type}.")
 

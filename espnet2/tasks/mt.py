@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import (
@@ -15,12 +16,14 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,
     TransformerDecoder,
 )
+from espnet2.asr.discrete_asr_espnet_model import ESPnetDiscreteASRModel
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,
 )
+from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
@@ -32,11 +35,14 @@ from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
+from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.mt.espnet_model import ESPnetMTModel
 from espnet2.mt.frontend.embedding import Embedding
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
@@ -52,6 +58,15 @@ frontend_choices = ClassChoices(
     ),
     type_check=AbsFrontend,
     default="embed",
+)
+specaug_choices = ClassChoices(
+    name="specaug",
+    classes=dict(
+        specaug=SpecAug,
+    ),
+    type_check=AbsSpecAug,
+    default=None,
+    optional=True,
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
@@ -72,6 +87,7 @@ encoder_choices = ClassChoices(
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
         branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -98,6 +114,15 @@ decoder_choices = ClassChoices(
     type_check=AbsDecoder,
     default="rnn",
 )
+model_choices = ClassChoices(
+    "model",
+    classes=dict(
+        mt=ESPnetMTModel,
+        discrete_asr=ESPnetDiscreteASRModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="mt",
+)
 
 
 class MTTask(AbsTask):
@@ -108,6 +133,8 @@ class MTTask(AbsTask):
     class_choices_list = [
         # --frontend and --frontend_conf
         frontend_choices,
+        # --specaug and --specaug_conf
+        specaug_choices,
         # --preencoder and --preencoder_conf
         preencoder_choices,
         # --encoder and --encoder_conf
@@ -116,6 +143,8 @@ class MTTask(AbsTask):
         postencoder_choices,
         # --decoder and --decoder_conf
         decoder_choices,
+        # --model and --model_conf
+        model_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -163,12 +192,11 @@ class MTTask(AbsTask):
             default=None,
             help="The number of input dimension of the feature",
         )
-
         group.add_argument(
-            "--model_conf",
+            "--ctc_conf",
             action=NestedDictAction,
-            default=get_default_kwargs(ESPnetMTModel),
-            help="The keyword arguments for model class.",
+            default=get_default_kwargs(CTC),
+            help="The keyword arguments for CTC class.",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -223,6 +251,20 @@ class MTTask(AbsTask):
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
+        parser.add_argument(
+            "--tokenizer_encode_conf",
+            type=dict,
+            default=None,
+            help="Tokenization encoder conf, "
+            "e.g. BPE dropout: enable_sampling=True, alpha=0.1, nbest_size=-1",
+        )
+        parser.add_argument(
+            "--src_tokenizer_encode_conf",
+            type=dict,
+            default=None,
+            help="Src tokenization encoder conf, "
+            "e.g. BPE dropout: enable_sampling=True, alpha=0.1, nbest_size=-1",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -255,6 +297,12 @@ class MTTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 text_name=["text", "src_text"],
+                tokenizer_encode_conf=[
+                    args.tokenizer_encode_conf,
+                    args.src_tokenizer_encode_conf,
+                ]
+                if train
+                else [dict(), dict()],
             )
         else:
             retval = None
@@ -328,6 +376,13 @@ class MTTask(AbsTask):
             frontend = None
             input_size = args.input_size
 
+        # 2. Data augmentation for spectrogram
+        if getattr(args, "specaug", None) is not None:
+            specaug_class = specaug_choices.get_class(args.specaug)
+            specaug = specaug_class(**args.specaug_conf)
+        else:
+            specaug = None
+
         # 3. Pre-encoder input block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
         if getattr(args, "preencoder", None) is not None:
@@ -362,8 +417,22 @@ class MTTask(AbsTask):
             **args.decoder_conf,
         )
 
+        # 6. CTC
+        ctc = CTC(
+            odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
+        )
+
         # 8. Build model
-        model = ESPnetMTModel(
+        try:
+            model_class = model_choices.get_class(args.model)
+            if args.model == "discrete_asr":
+                extra_model_conf = dict(ctc=ctc, specaug=specaug)
+            else:
+                extra_model_conf = dict()
+        except AttributeError:
+            model_class = model_choices.get_class("mt")
+            extra_model_conf = dict()
+        model = model_class(
             vocab_size=vocab_size,
             src_vocab_size=src_vocab_size,
             frontend=frontend,
@@ -374,6 +443,7 @@ class MTTask(AbsTask):
             token_list=token_list,
             src_token_list=src_token_list,
             **args.model_conf,
+            **extra_model_conf,
         )
 
         # FIXME(kamo): Should be done in model?

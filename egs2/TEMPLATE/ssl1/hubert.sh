@@ -357,22 +357,24 @@ if ! "${skip_train}"; then
 
                 _opts+="--hubert_url espnet "
                 _opts+="--hubert_dir_path ${pretrained_ssl_exp}/${inference_ssl_model} "
+                _opts+="--layer ${layer} "
             fi
 
-            ./local/perform_kmeans.sh \
+            scripts/feats/perform_kmeans.sh \
                 --stage 1 \
                 --stop_stage 5 \
                 --train_set "${train_set}" \
                 --dev_set "${valid_set}" \
                 --nclusters "${n_clusters}" \
                 --feature_type "${feats_km}" \
-                --layer "${layer}" \
                 --datadir "${data_feats}" \
-                --feat_dir "${dumpdir}/hubert_feats" \
+                --featdir "${dumpdir}/hubert_feats" \
                 --km_dir "${expdir}/${km_tag}" \
                 --portion "${portion_km}" \
                 --dictdir "${token_listdir}" \
                 --nj ${nj} \
+                --cpu_cmd "${train_cmd}" \
+                --cuda_cmd "${cuda_cmd}" \
                 ${alignment_phoneme_dir:+--alignment_phoneme_dir ${alignment_phoneme_dir}} \
                 ${_opts} || exit 1;
         fi
