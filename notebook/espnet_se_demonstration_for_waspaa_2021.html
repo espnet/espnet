@@ -353,8 +353,8 @@ from espnet2.bin.enh_inference import SeparateSpeech
 separate_speech = {}
 # For models downloaded from GoogleDrive, you can use the following script:
 enh_model_sc = SeparateSpeech(
-  enh_train_config=&quot;/content/enh_model_sc/exp/enh_train_enh_conv_tasnet_raw/config.yaml&quot;,
-  enh_model_file=&quot;/content/enh_model_sc/exp/enh_train_enh_conv_tasnet_raw/5epoch.pth&quot;,
+  train_config=&quot;/content/enh_model_sc/exp/enh_train_enh_conv_tasnet_raw/config.yaml&quot;,
+  model_file=&quot;/content/enh_model_sc/exp/enh_train_enh_conv_tasnet_raw/5epoch.pth&quot;,
   # for segment-wise process on long speech
   normalize_segment_scale=False,
   show_progressbar=True,
@@ -437,8 +437,8 @@ from espnet2.bin.enh_inference import SeparateSpeech
 separate_speech = {}
 # For models downloaded from GoogleDrive, you can use the following script:
 enh_model_mc = SeparateSpeech(
-  enh_train_config=&quot;/content/enh_model_mc/exp/enh_train_enh_beamformer_mvdr_raw/config.yaml&quot;,
-  enh_model_file=&quot;/content/enh_model_mc/exp/enh_train_enh_beamformer_mvdr_raw/11epoch.pth&quot;,
+  train_config=&quot;/content/enh_model_mc/exp/enh_train_enh_beamformer_mvdr_raw/config.yaml&quot;,
+  model_file=&quot;/content/enh_model_mc/exp/enh_train_enh_beamformer_mvdr_raw/11epoch.pth&quot;,
   # for segment-wise process on long speech
   normalize_segment_scale=False,
   show_progressbar=True,
