@@ -16,7 +16,7 @@ test_sets="test"
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --fs ${sample_rate} \
+    --fs 16k \
     --ngpu 1 \
     --ref_num 1 \
     --ref_channel 0 \
