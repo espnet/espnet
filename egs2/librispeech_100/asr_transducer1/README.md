@@ -1,7 +1,6 @@
 # OFFLINE SYSTEMS
 
-## Conformer/RNN Transducer
-## asr_train_conformer-rnn_transducer_raw_en_bpe500_sp
+## Conformer/RNN Transducer (asr_train_conformer-rnn_transducer_raw_en_bpe500_sp)
 
 - General information
   - Pretrained model: N.A
@@ -48,8 +47,7 @@
 |decode_asr_model_valid.loss.ave_10best/test_clean|2620|105724|95.5|3.2|1.3|0.6|5.1|54.8|
 |decode_asr_model_valid.loss.ave_10best/test_other|2939|101026|86.0|10.4|3.5|1.9|15.9|80.1|
 
-## E-Branchformer/RNN Transducer
-## asr_train_ebranchformer-rnn_transducer_raw_en_bpe500_sp
+## E-Branchformer/RNN Transducer (asr_train_ebranchformer-rnn_transducer_raw_en_bpe500_sp)
 
 - General information
   - Pretrained model: N.A
@@ -96,8 +94,7 @@
 |decode_asr_model_valid.loss.ave_10best/test_clean|2620|105724|95.4|3.2|1.3|0.6|5.1|55.5|
 |decode_asr_model_valid.loss.ave_10best/test_other|2939|101026|85.9|10.5|3.6|2.0|16.0|80.6|
 
-## E-Branchformer/MEGA Transducer
-## asr_train_ebranchformer-mega_transducer_raw_en_bpe500_sp
+## E-Branchformer/MEGA Transducer (asr_train_ebranchformer-mega_transducer_raw_en_bpe500_sp)
 
 - General information
   - Pretrained model: N.A
@@ -145,8 +142,7 @@
 
 # STREAMING SYSTEMS
 
-## Conformer/RNN Transducer
-## asr_train_conformer-rnn_transducer_streaming_raw_en_bpe500_sp
+## Conformer/RNN Transducer (asr_train_conformer-rnn_transducer_streaming_raw_en_bpe500_sp)
 
 - General information
   - Pretrained model: N.A
