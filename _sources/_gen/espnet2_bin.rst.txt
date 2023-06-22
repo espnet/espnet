@@ -2845,11 +2845,11 @@ enh_scoring.py
                             Required if dnsmsos_mode='web' (default: )
       --dnsmos_primary_model DNSMOS_PRIMARY_MODEL
                             Path to the primary DNSMOS model. Required if
-                            dnsmsos_mode='local' (default: ./DNSMOS/model_v8.onnx)
-      --dnsmos_p808_model DNSMOS_P808_MODEL
-                            Path to the p808 model. Required if
                             dnsmsos_mode='local' (default:
                             ./DNSMOS/sig_bak_ovr.onnx)
+      --dnsmos_p808_model DNSMOS_P808_MODEL
+                            Path to the p808 model. Required if
+                            dnsmsos_mode='local' (default: ./DNSMOS/model_v8.onnx)
     
     PESQ related:
       --use_pesq USE_PESQ   Bebore setting this to True, please make sure that you
