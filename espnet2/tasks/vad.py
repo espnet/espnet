@@ -89,7 +89,7 @@ encoder_choices = ClassChoices(
 
 
 class VADTask(ASRTask):
-    #TODO: Try out different iterators, like chunk_iterator
+    # TODO: Try out different iterators, like chunk_iterator
 
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1

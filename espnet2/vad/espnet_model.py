@@ -30,7 +30,7 @@ else:
 
 
 class ESPnetVADModel(ESPnetASRModel):
-    """ frame-level model"""
+    """frame-level model"""
 
     def __init__(
         self,
@@ -191,6 +191,6 @@ class ESPnetVADModel(ESPnetASRModel):
         encoder_out = torch.argmax(encoder_out, dim=1)
         numerator = torch.sum(encoder_out == ys_out)
         denominator = ys_out.numel()
-        #TODO: Add more metrics that provide a better indication of final performance
+        # TODO: Add more metrics that provide a better indication of final performance
         acc = float(numerator) / float(denominator)
         return loss, 1 - acc

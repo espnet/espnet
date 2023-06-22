@@ -36,7 +36,8 @@ class RelPositionalEncoding(torch.nn.Module):
 
         Args:
             x: Input sequences. (B, T, ?)
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk.
 
         """
         time1 = x.size(1) + left_context
@@ -73,7 +74,8 @@ class RelPositionalEncoding(torch.nn.Module):
 
         Args:
             x: Input sequences. (B, T, ?)
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk.
 
         Returns:
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), ?)
