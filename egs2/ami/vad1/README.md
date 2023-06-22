@@ -6,24 +6,29 @@
 - Git hash: `1bd1db914b21bfb5ae5acbe2fc7162e3815ed260`
   - Commit date: `Thu May 4 08:48:15 2023 -0400`
 
+## Model info
+- Model link: https://huggingface.co/espnet/dongwei_ami_vad_rnn
+- ASR config: conf/tuning/train_vad_rnn.yaml
+- Decode config: conf/tuning/decode_rnn.yaml
+
 ## exp/vad_train_asr_transformer_raw
 ### PRECISION
 
 |dataset|value|
 |---|---|
-exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_dev/result.txt:Precision: 0.9311
-exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_eval/result.txt:Precision: 0.9547
+|exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_dev/result.txt|0.9311|
+|exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_eval/result.txt|0.9547|
 
 ### RECALL
 
 |dataset|value|
 |---|---|
-exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_dev/result.txt:Recall: 0.9277
-exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_eval/result.txt:Recall: 0.9412
+|exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_dev/result.txt|0.9277|
+|exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_eval/result.txt|0.9412|
 
 ### F1_SCORE
 
 |dataset|value|
 |---|---|
-exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_dev/result.txt:F1_score: 0.9294
-exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_eval/result.txt:F1_score: 0.9479
+|exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_dev/result.txt|0.9294|
+|exp/vad_train_asr_transformer_raw/decode_rnn_vad_model_valid.acc.ave/ihm_eval/result.txt|0.9479|

@@ -64,9 +64,9 @@ def scoring(
     R = total_TP / (total_TP + total_FN)
     F = 2 * P * R / (P + R)
     write_file = open(output_file, "w")
-    write_file.write("Precision: " + str(round(P, 4)) + "\n")
-    write_file.write("Recall: " + str(round(R, 4)) + "\n")
-    write_file.write("F1_score: " + str(round(F, 4)) + "\n")
+    write_file.write("|Precision: " + str(round(P, 4)) + "|\n")
+    write_file.write("|Recall: " + str(round(R, 4)) + "|\n")
+    write_file.write("|F1_score: " + str(round(F, 4)) + "|\n")
 
 
 def get_parser():
