@@ -734,12 +734,17 @@
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Either use use_weight_norm or use_spectral_norm.&quot;</span><span class="p">)</span>
 
         <span class="c1"># apply weight norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_weight_norm</span> <span class="o">=</span> <span class="n">use_weight_norm</span>
         <span class="k">if</span> <span class="n">use_weight_norm</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">apply_weight_norm</span><span class="p">()</span>
 
         <span class="c1"># apply spectral norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_spectral_norm</span> <span class="o">=</span> <span class="n">use_spectral_norm</span>
         <span class="k">if</span> <span class="n">use_spectral_norm</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">apply_spectral_norm</span><span class="p">()</span>
+
+        <span class="c1"># backward compatibility</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_register_load_state_dict_pre_hook</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_state_dict_pre_hook</span><span class="p">)</span>
 
 <div class="viewcode-block" id="HiFiGANScaleDiscriminator.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.__init__.HiFiGANScaleDiscriminator.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate forward propagation.</span>
@@ -776,7 +781,88 @@
                 <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">spectral_norm</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spectral norm is applied to </span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_apply_spectral_norm</span><span class="p">)</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_apply_spectral_norm</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HiFiGANScaleDiscriminator.remove_weight_norm"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.__init__.HiFiGANScaleDiscriminator.remove_weight_norm">[docs]</a>    <span class="k">def</span> <span class="nf">remove_weight_norm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove weight normalization module from all of the layers.&quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">_remove_weight_norm</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Weight norm is removed from </span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">remove_weight_norm</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># this module didn&#39;t have weight norm</span>
+                <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_remove_weight_norm</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HiFiGANScaleDiscriminator.remove_spectral_norm"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.__init__.HiFiGANScaleDiscriminator.remove_spectral_norm">[docs]</a>    <span class="k">def</span> <span class="nf">remove_spectral_norm</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Remove spectral normalization module from all of the layers.&quot;&quot;&quot;</span>
+
+        <span class="k">def</span> <span class="nf">_remove_spectral_norm</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Spectral norm is removed from </span><span class="si">{</span><span class="n">m</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">remove_spectral_norm</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># this module didn&#39;t have weight norm</span>
+                <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">_remove_spectral_norm</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">_load_state_dict_pre_hook</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">state_dict</span><span class="p">,</span>
+        <span class="n">prefix</span><span class="p">,</span>
+        <span class="n">local_metadata</span><span class="p">,</span>
+        <span class="n">strict</span><span class="p">,</span>
+        <span class="n">missing_keys</span><span class="p">,</span>
+        <span class="n">unexpected_keys</span><span class="p">,</span>
+        <span class="n">error_msgs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Fix the compatibility of weight / spectral normalization issue.</span>
+
+<span class="sd">        Some pretrained models are trained with configs that use weight / spectral</span>
+<span class="sd">        normalization, but actually, the norm is not applied. This causes the mismatch</span>
+<span class="sd">        of the parameters with configs. To solve this issue, when parameter mismatch</span>
+<span class="sd">        happens in loading pretrained model, we remove the norm from the current model.</span>
+
+<span class="sd">        See also:</span>
+<span class="sd">            - https://github.com/espnet/espnet/pull/5240</span>
+<span class="sd">            - https://github.com/kan-bayashi/ParallelWaveGAN/pull/409</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">current_module_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_weight_norm</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;weight_g&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">current_module_keys</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;It seems weight norm is not applied in the pretrained model but the&quot;</span>
+                <span class="s2">&quot; current model uses it. To keep the compatibility, we remove the norm&quot;</span>
+                <span class="s2">&quot; from the current model. This may causes training error due to the&quot;</span>
+                <span class="s2">&quot; parameter mismatch when finetuning. To avoid this issue, please&quot;</span>
+                <span class="s2">&quot; change the following parameters in config to false:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - discriminator_params.follow_official_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - discriminator_params.scale_discriminator_params.use_weight_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - discriminator_params.scale_discriminator_params.use_spectral_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; See also: https://github.com/espnet/espnet/pull/5240&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_weight_norm</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_weight_norm</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_spectral_norm</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="p">[</span><span class="s2">&quot;weight_u&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">current_module_keys</span><span class="p">]</span>
+        <span class="p">):</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;It seems spectral norm is not applied in the pretrained model but the&quot;</span>
+                <span class="s2">&quot; current model uses it. To keep the compatibility, we remove the norm&quot;</span>
+                <span class="s2">&quot; from the current model. This may causes training error due to the&quot;</span>
+                <span class="s2">&quot; parameter mismatch when finetuning. To avoid this issue, please&quot;</span>
+                <span class="s2">&quot; change the following parameters in config to false:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - discriminator_params.follow_official_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - discriminator_params.scale_discriminator_params.use_weight_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - discriminator_params.scale_discriminator_params.use_spectral_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; See also: https://github.com/espnet/espnet/pull/5240&quot;</span>
+            <span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">remove_spectral_norm</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_spectral_norm</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 
 <div class="viewcode-block" id="HiFiGANMultiScaleDiscriminator"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.__init__.HiFiGANMultiScaleDiscriminator">[docs]</a><span class="k">class</span> <span class="nc">HiFiGANMultiScaleDiscriminator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
