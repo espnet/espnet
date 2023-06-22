@@ -58,7 +58,8 @@ class Conformer(torch.nn.Module):
         """Initialize/Reset self-attention and convolution modules cache for streaming.
 
         Args:
-            left_context: Number of left frames during chunk-by-chunk inference.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk.
             device: Device to use for cache tensor.
 
         """
@@ -107,11 +108,10 @@ class Conformer(torch.nn.Module):
 
         residual = x
         x = self.norm_self_att(x)
-        x_q = x
 
         x = residual + self.dropout(
             self.self_att(
-                x_q,
+                x,
                 x,
                 x,
                 pos_enc,
@@ -141,7 +141,6 @@ class Conformer(torch.nn.Module):
         pos_enc: torch.Tensor,
         mask: torch.Tensor,
         left_context: int = 0,
-        right_context: int = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode chunk of input sequence.
 
@@ -149,8 +148,8 @@ class Conformer(torch.nn.Module):
             x: Conformer input sequences. (B, T, D_block)
             pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
             mask: Source mask. (B, T_2)
-            left_context: Number of frames in left context.
-            right_context: Number of frames in right context.
+            left_context: Number of previous frames the attention module can see
+                          in current chunk.
 
         Returns:
             x: Conformer output sequences. (B, T, D_block)
@@ -164,21 +163,17 @@ class Conformer(torch.nn.Module):
 
         residual = x
         x = self.norm_self_att(x)
+
         if left_context > 0:
             key = torch.cat([self.cache[0], x], dim=1)
         else:
             key = x
-        val = key
-
-        if right_context > 0:
-            att_cache = key[:, -(left_context + right_context) : -right_context, :]
-        else:
-            att_cache = key[:, -left_context:, :]
+        att_cache = key[:, -left_context:, :]
 
         x = residual + self.self_att(
             x,
             key,
-            val,
+            key,
             pos_enc,
             mask,
             left_context=left_context,
@@ -187,17 +182,16 @@ class Conformer(torch.nn.Module):
         residual = x
 
         x = self.norm_conv(x)
-        x, conv_cache = self.conv_mod(
-            x, cache=self.cache[1], right_context=right_context
-        )
-
+        x, conv_cache = self.conv_mod(x, cache=self.cache[1])
         x = residual + x
+
         residual = x
 
         x = self.norm_feed_forward(x)
         x = residual + self.feed_forward_scale * self.feed_forward(x)
 
         x = self.norm_final(x)
+
         self.cache = [att_cache, conv_cache]
 
         return x, pos_enc

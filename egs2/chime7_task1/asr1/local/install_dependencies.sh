@@ -2,25 +2,36 @@
 set -euo pipefail
 [ -f ./path.sh ] && . ./path.sh
 
+
+if ! command conda  &>/dev/null; then
+  echo "Conda command not found, please follow the instructions on
+  this recipe README.md on how to install ESPNet with conda as the venv."
+fi
+
 # install lhotse from master, we need the most up-to-date one
-pip install git+https://github.com/lhotse-speech/lhotse
+python3 -m pip install git+https://github.com/lhotse-speech/lhotse@1b31bf2e341e7143ad0a67ba1d7484b8353ba45b
+# pyannote
+python3 -m pip install pyannote-metrics
+# jiwer
+python3 -m pip install jiwer
 
 #check if kaldi has been installed and compiled
 if ! command -v wav-reverberate &>/dev/null; then
   echo "It seems that wav-reverberate Kaldi command cannot be found.
   This happens if you don't have compiled and installed Kaldi.
-  Please follow instructions in ${MAIN_ROOT}/tools/kaldi/INSTALL. "
+  Please follow instructions in ${MAIN_ROOT}/tools/kaldi/INSTALL."
+  exit
 fi
 
 # install s3prl
-./tools/installers/install_s3prl.sh
+${MAIN_ROOT}/tools/installers/install_s3prl.sh
 
 if ! command -v gss &>/dev/null; then
   conda install -yc conda-forge cupy=10.2
-  ./${MAIN_ROOT}/tools/install_gss.sh
+  ${MAIN_ROOT}/tools/installers/install_gss.sh
 fi
 
-sox_conda=`command -v ../../../tools/venv/bin/sox 2>/dev/null`
+sox_conda=`command -v ${CONDA_PREFIX}/bin/sox 2>/dev/null`
 if [ -z "${sox_conda}" ]; then
   echo "install conda sox (v14.4.2)"
   conda install -c conda-forge sox
@@ -38,3 +49,5 @@ if [ ! -z "$ffmpeg" ]; then
     exit 1
   fi
 fi
+
+echo "All dependencies installed successfully"

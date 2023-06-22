@@ -32,6 +32,7 @@ from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sample
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
+from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
 from espnet2.torch_utils.load_pretrained_model import load_pretrained_model
 from espnet2.torch_utils.model_summary import model_summary
@@ -144,8 +145,9 @@ scheduler_classes = dict(
     exponentiallr=torch.optim.lr_scheduler.ExponentialLR,
     CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
     noamlr=NoamLR,
-    warmupsteplr=WarmupStepLR,
     warmuplr=WarmupLR,
+    warmupsteplr=WarmupStepLR,
+    warmupReducelronplateau=WarmupReduceLROnPlateau,
     cycliclr=torch.optim.lr_scheduler.CyclicLR,
     onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
     CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
@@ -761,6 +763,17 @@ class AbsTask(ABC):
             help="Shuffle in the specified number of chunks and generate mini-batches "
             "More larger this value, more randomness can be obtained.",
         )
+        group.add_argument(
+            "--chunk_excluded_key_prefixes",
+            type=str,
+            nargs="+",
+            default=[],
+            help="List of key prefixes. Keys that satisfy either condition below "
+            "will be excluded from the length consistency check in ChunkIterFactory:\n"
+            "  - exactly match one of the prefixes in `chunk_excluded_key_prefixes`\n"
+            "  - have one of the prefixes in `chunk_excluded_key_prefixes` and "
+            "end with numbers",
+        )
 
         group = parser.add_argument_group("Dataset related")
         _data_path_and_name_and_type_help = (
@@ -1226,6 +1239,10 @@ class AbsTask(ABC):
             else:
                 valid_key_file = None
 
+            if model and not getattr(model, "extract_feats_in_collect_stats", True):
+                model = None
+                logging.info("Skipping collect_feats in collect_stats stage.")
+
             collect_stats(
                 model=model,
                 train_iter=cls.build_streaming_iterator(
@@ -1655,6 +1672,7 @@ class AbsTask(ABC):
             chunk_length=args.chunk_length,
             chunk_shift_ratio=args.chunk_shift_ratio,
             num_cache_chunks=num_cache_chunks,
+            excluded_key_prefixes=args.chunk_excluded_key_prefixes,
         )
 
     # NOTE(kamo): Not abstract class
@@ -1863,6 +1881,30 @@ class AbsTask(ABC):
                 # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
-            model.load_state_dict(torch.load(model_file, map_location=device))
+            try:
+                model.load_state_dict(torch.load(model_file, map_location=device))
+            except RuntimeError:
+                # Note(simpleoier): the following part is to be compatible with
+                #   pretrained model using earlier versions before `0a625088`
+                state_dict = torch.load(model_file, map_location=device)
+                if any(["frontend.upstream.model" in k for k in state_dict.keys()]):
+                    if any(
+                        [
+                            "frontend.upstream.upstream.model" in k
+                            for k in dict(model.named_parameters())
+                        ]
+                    ):
+                        state_dict = {
+                            k.replace(
+                                "frontend.upstream.model",
+                                "frontend.upstream.upstream.model",
+                            ): v
+                            for k, v in state_dict.items()
+                        }
+                        model.load_state_dict(state_dict)
+                    else:
+                        raise
+                else:
+                    raise
 
         return model, args

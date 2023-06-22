@@ -34,7 +34,7 @@ lmtag=            # tag for managing LMs
 recog_model=model.acc.best # set a model to be used for decoding: 'model.acc.best' or 'model.loss.best'
 n_average=10
 
-lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk 
+lang=en # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
 
 # bpemode (unigram or bpe)
 if [[ "zh" == *"${lang}"* ]]; then
@@ -72,7 +72,7 @@ train_dev=dev_"$(echo "${lang}" | tr - _)"
 test_set=test_"$(echo "${lang}" | tr - _)"
 recog_set="${train_dev} ${test_set}"
 
-if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then 
+if [ ${stage} -le -1 ] && [ ${stop_stage} -ge -1 ]; then
     echo "stage -1: Data Download"
     mkdir -p ${datadir}
     local/download_and_untar.sh ${datadir} ${data_url} ${lang}.tar.gz
@@ -80,7 +80,7 @@ fi
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ### Task dependent. You have to make data the following preparation part by yourself.
-    ### But you can utilize Kaldi recipes in most cases 
+    ### But you can utilize Kaldi recipes in most cases
     for part in "validated" "test" "dev"; do
         # use underscore-separated names in data directories.
         local/data_prep.pl "${datadir}/cv-corpus-5.1-2020-06-22/${lang}" ${part} data/"$(echo "${part}_${lang}" | tr - _)"
@@ -124,7 +124,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
             data/${train_set}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/train ${feat_tr_dir}
     dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \
-            data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir} 
+            data/${train_dev}/feats.scp data/${train_set}/cmvn.ark exp/dump_feats/dev ${feat_dt_dir}
     for rtask in ${recog_set}; do
         feat_recog_dir=${dumpdir}/${rtask}/delta${do_delta}; mkdir -p ${feat_recog_dir}
         dump.sh --cmd "$train_cmd" --nj 4 --do_delta ${do_delta} \

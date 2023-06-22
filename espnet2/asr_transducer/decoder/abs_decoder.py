@@ -1,7 +1,7 @@
 """Abstract decoder definition for Transducer models."""
 
 from abc import ABC, abstractmethod
-from typing import Any, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
 
@@ -14,10 +14,10 @@ class AbsDecoder(torch.nn.Module, ABC):
         """Encode source label sequences.
 
         Args:
-            labels: Label ID sequences. (B, L)
+            labels: Label ID sequences.
 
         Returns:
-            dec_out: Decoder output sequences. (B, T, D_dec)
+            : Decoder output sequences.
 
         """
         raise NotImplementedError
@@ -25,22 +25,29 @@ class AbsDecoder(torch.nn.Module, ABC):
     @abstractmethod
     def score(
         self,
-        label: torch.Tensor,
         label_sequence: List[int],
-        dec_state: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]],
-    ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]]:
+        states: Union[
+            List[Dict[str, torch.Tensor]],
+            List[torch.Tensor],
+            Tuple[torch.Tensor, Optional[torch.Tensor]],
+        ],
+    ) -> Tuple[
+        torch.Tensor,
+        Union[
+            List[Dict[str, torch.Tensor]],
+            List[torch.Tensor],
+            Tuple[torch.Tensor, Optional[torch.Tensor]],
+        ],
+    ]:
         """One-step forward hypothesis.
 
         Args:
-            label: Previous label. (1, 1)
             label_sequence: Current label sequence.
-            dec_state: Previous decoder hidden states.
-                         ((N, 1, D_dec), (N, 1, D_dec) or None) or None
+            state: Decoder hidden states.
 
         Returns:
-            dec_out: Decoder output sequence. (1, D_dec) or (1, D_emb)
-            dec_state: Decoder hidden states.
-                         ((N, 1, D_dec), (N, 1, D_dec) or None) or None
+            out: Decoder output sequence.
+            state: Decoder hidden states.
 
         """
         raise NotImplementedError
@@ -49,16 +56,22 @@ class AbsDecoder(torch.nn.Module, ABC):
     def batch_score(
         self,
         hyps: List[Any],
-    ) -> Tuple[torch.Tensor, Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]]:
+    ) -> Tuple[
+        torch.Tensor,
+        Union[
+            List[Dict[str, torch.Tensor]],
+            List[torch.Tensor],
+            Tuple[torch.Tensor, Optional[torch.Tensor]],
+        ],
+    ]:
         """One-step forward hypotheses.
 
         Args:
             hyps: Hypotheses.
 
         Returns:
-            dec_out: Decoder output sequences. (B, D_dec) or (B, D_emb)
+            out: Decoder output sequences.
             states: Decoder hidden states.
-                      ((N, B, D_dec), (N, B, D_dec) or None) or None
 
         """
         raise NotImplementedError
@@ -76,15 +89,18 @@ class AbsDecoder(torch.nn.Module, ABC):
     @abstractmethod
     def init_state(
         self, batch_size: int
-    ) -> Optional[Tuple[torch.Tensor, Optional[torch.tensor]]]:
+    ) -> Union[
+        List[Dict[str, torch.Tensor]],
+        List[torch.Tensor],
+        Tuple[torch.Tensor, Optional[torch.tensor]],
+    ]:
         """Initialize decoder states.
 
         Args:
             batch_size: Batch size.
 
         Returns:
-            : Initial decoder hidden states.
-                ((N, B, D_dec), (N, B, D_dec) or None) or None
+            : Decoder hidden states.
 
         """
         raise NotImplementedError
@@ -92,19 +108,51 @@ class AbsDecoder(torch.nn.Module, ABC):
     @abstractmethod
     def select_state(
         self,
-        states: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]] = None,
+        states: Union[
+            List[Dict[str, torch.Tensor]],
+            List[torch.Tensor],
+            Tuple[torch.Tensor, Optional[torch.Tensor]],
+        ],
         idx: int = 0,
-    ) -> Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]]:
+    ) -> Union[
+        List[Dict[str, torch.Tensor]],
+        List[torch.Tensor],
+        Tuple[torch.Tensor, Optional[torch.Tensor]],
+    ]:
         """Get specified ID state from batch of states, if provided.
 
         Args:
             states: Decoder hidden states.
-                      ((N, B, D_dec), (N, B, D_dec) or None) or None
             idx: State ID to extract.
 
         Returns:
             : Decoder hidden state for given ID.
-                ((N, 1, D_dec), (N, 1, D_dec) or None) or None
+
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def create_batch_states(
+        self,
+        new_states: List[
+            Union[
+                List[Dict[str, Optional[torch.Tensor]]],
+                List[List[torch.Tensor]],
+                Tuple[torch.Tensor, Optional[torch.Tensor]],
+            ],
+        ],
+    ) -> Union[
+        List[Dict[str, torch.Tensor]],
+        List[torch.Tensor],
+        Tuple[torch.Tensor, Optional[torch.Tensor]],
+    ]:
+        """Create batch of decoder hidden states given a list of new states.
+
+        Args:
+            new_states: Decoder hidden states.
+
+        Returns:
+            : Decoder hidden states.
 
         """
         raise NotImplementedError

@@ -2,7 +2,7 @@
 
 This is the TTS recipe of [M-AILABS](https://www.caito.de/2019/01/03/the-m-ailabs-speech-dataset/) dataset.
 
-If you train the model only on the en_us single-speaker subset, specify `train_type=en_us` in run.sh.  
+If you train the model only on the en_us single-speaker subset, specify `train_type=en_us` in run.sh.
 Or if you train the model w/ language ids and speaker ids on the whole multilingual dataset, specify `train_type=multilingual` in run.sh.
 
 See the following pages for the usage:

@@ -56,10 +56,17 @@ sessions1="S01 S02 S03 S04 S05 S06 S07"
 sessions2="S08 S09 S12 S13 S16 S17 S18"
 sessions3="S19 S20 S21 S22 S23 S24"
 
-CONDA_PATH=${MAIN_ROOT}/tools/venv/bin/sox
+CONDA_SOX=${CONDA_PREFIX}/bin/
+if [ -z "${CONDA_SOX}" ]; then
+  echo "Please run ./local/install_dependencies.sh to install sox via conda"
+  exit 1
+fi
+
 IN_PATH=${sdir}/audio
 OUT_PATH=${odir}/audio
 TMP_PATH=${odir}/audio_tmp
+
+
 
 if [ ! -d "${IN_PATH}" ]; then
   echo "please specify the CHiME-5 data path correctly"
@@ -77,46 +84,45 @@ pushd ${SYNC_PATH}
 echo "Correct for frame dropping"
 for session in ${sessions1}; do
   $cmd ${expdir}/correct_signals_for_frame_drops.${session}.log \
-    ${CONDA_PATH}/python correct_signals_for_frame_drops.py --session=${session} chime6_audio_edits.json $IN_PATH $TMP_PATH &
+    python correct_signals_for_frame_drops.py --session=${session} chime6_audio_edits.json $IN_PATH $TMP_PATH &
 done
 wait
 for session in ${sessions2}; do
   $cmd ${expdir}/correct_signals_for_frame_drops.${session}.log \
-    ${CONDA_PATH}/python correct_signals_for_frame_drops.py --session=${session} chime6_audio_edits.json $IN_PATH $TMP_PATH &
+    python correct_signals_for_frame_drops.py --session=${session} chime6_audio_edits.json $IN_PATH $TMP_PATH &
 done
 wait
 for session in ${sessions3}; do
   $cmd ${expdir}/correct_signals_for_frame_drops.${session}.log \
-    ${CONDA_PATH}/python correct_signals_for_frame_drops.py --session=${session} chime6_audio_edits.json $IN_PATH $TMP_PATH &
+    python correct_signals_for_frame_drops.py --session=${session} chime6_audio_edits.json $IN_PATH $TMP_PATH &
 done
 wait
 
 echo "Sox processing for correcting clock drift"
 for session in ${sessions1}; do
   $cmd ${expdir}/correct_signals_for_clock_drift.${session}.log \
-    ${CONDA_PATH}/python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_PATH chime6_audio_edits.json $TMP_PATH $OUT_PATH &
+    python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_SOX chime6_audio_edits.json $TMP_PATH $OUT_PATH &
 done
 wait
 for session in ${sessions2}; do
   $cmd ${expdir}/correct_signals_for_clock_drift.${session}.log \
-    ${CONDA_PATH}/python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_PATH chime6_audio_edits.json $TMP_PATH $OUT_PATH &
+    python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_SOX chime6_audio_edits.json $TMP_PATH $OUT_PATH &
 done
 wait
 for session in ${sessions3}; do
   $cmd ${expdir}/correct_signals_for_clock_drift.${session}.log \
-    ${CONDA_PATH}/python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_PATH chime6_audio_edits.json $TMP_PATH $OUT_PATH &
+    python correct_signals_for_clock_drift.py --session=${session} --sox_path $CONDA_SOX chime6_audio_edits.json $TMP_PATH $OUT_PATH &
 done
 wait
 
 echo "adjust the JSON files"
 mkdir -p ${odir}/transcriptions/eval ${odir}/transcriptions/dev ${odir}/transcriptions/train
-${CONDA_PATH}/python correct_transcript_for_clock_drift.py --clock_drift_data chime6_audio_edits.json ${sdir}/transcriptions ${odir}/transcriptions
+python correct_transcript_for_clock_drift.py --clock_drift_data chime6_audio_edits.json ${sdir}/transcriptions ${odir}/transcriptions
 popd
 
 # finally check md5sum
-pushd ${odir}
 echo "check MD5 hash value for generated audios"
-md5sum -c ${SYNC_PATH}/audio_md5sums.txt || echo "check https://github.com/chimechallenge/chime6-synchronisation"
-popd
+sed "s+audio+${odir}/audio+g" ${SYNC_PATH}/audio_md5sums.txt > ${SYNC_PATH}/audio_md5sums_abs.txt
+md5sum -c ${SYNC_PATH}/audio_md5sums_abs.txt || echo "check https://github.com/chimechallenge/chime6-synchronisation"
 
 echo "`basename $0` Done."

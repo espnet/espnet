@@ -32,7 +32,7 @@ rm -r ${data}/{cv, tt}_2spk 2>/dev/null || true
 
 tmpdir=data/temp
 rm -r  $tmpdir 2>/dev/null || true
-mkdir -p $tmpdir 
+mkdir -p $tmpdir
 
 train_dir=${NOISY_SPEECH}/noisy_trainset_28spk_wav
 test_dir=${NOISY_SPEECH}/noisy_testset_wav
@@ -58,7 +58,7 @@ for x in tr cv tt; do
   | sort -k1,1 >  $tmpdir/${x}.scp
   mkdir -p ${data}/${ddir}
   cp $tmpdir/${x}.scp ${data}/${ddir}/wav.scp
-  
+
   awk '{split($1, lst, "_"); spk=lst[1]; print($1, spk)}' ${data}/${ddir}/wav.scp | \
     sort -u> ${data}/${ddir}/utt2spk
   utt2spk_to_spk2utt.pl ${data}/${ddir}/utt2spk > ${data}/${ddir}/spk2utt
@@ -66,9 +66,6 @@ for x in tr cv tt; do
   awk '{print($1, "dummy")}' ${data}/${ddir}/wav.scp | \
     sort -u> ${data}/${ddir}/text
 
-  sed -e "s#noisy_#clean_#g" ${data}/${ddir}/wav.scp \
+  sed -e "s#${NOISY_SPEECH}/noisy_#${NOISY_SPEECH}/clean_#g" ${data}/${ddir}/wav.scp \
     > ${data}/${ddir}/spk1.scp
 done
-
-
-

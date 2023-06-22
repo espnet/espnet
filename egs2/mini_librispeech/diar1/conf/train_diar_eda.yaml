@@ -1,4 +1,4 @@
-#    If "attractor" is "None" or not specified, SA-EEND will be used. 
+#    If "attractor" is "None" or not specified, SA-EEND will be used.
 #    Else if "attractor" is not "None" EEND-EDA will be used.
 #    For the details about SA-EEND and EEND-EDA, refer to the following papers:
 #    SA-EEND: https://arxiv.org/pdf/1909.06247.pdf
