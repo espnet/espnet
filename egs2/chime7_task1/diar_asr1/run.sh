@@ -38,7 +38,8 @@ diar_inf_dset="dev"
 pyan_merge_closer=0.5
 pyan_max_length_merged=20
 pyan_inf_max_batch=32
-pyan_use_pretrained= #popcornell/pyannote-segmentation-chime6-mixer6
+pyan_use_pretrained=popcornell/pyannote-segmentation-chime6-mixer6
+download_baseline_diarization=0
 # fine-tune
 pyan_finetune_dir=exp/pyannote_finetuned
 pyan_batch_size=32
@@ -51,7 +52,7 @@ gss_max_batch_dur=90
 
 # ASR config
 use_pretrained=
-decode_only=1
+decode_only=""
 
 gss_asr_stage=
 gss_asr_stop_stage=10
@@ -62,6 +63,29 @@ gss_asr_stop_stage=10
 
 if [ -z "$gss_asr_stage" ]; then
   gss_asr_stage=2
+fi
+
+
+if [ "${decode_only}" == "eval" ]; then
+  diar_inf_dset="eval"
+fi
+
+
+if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n "$decode_only" ]];
+then
+  log "decode_only argument should be either dev, eval or empty"
+  exit
+fi
+
+
+if [ $download_baseline_diarization == 1 ]; then
+  log "Using organizer-provided JSON manifests from the baseline diarization system."
+  if [ ! -d CHiME7DASRDiarizationBaselineJSONs ]; then
+      git clone https://github.com/popcornell/CHiME7DASRDiarizationBaselineJSONs
+  fi
+  mkdir -p exp/diarization
+  cp -r CHiME7DASRDiarizationBaselineJSONs/diarization exp/
+  stage=3
 fi
 
 
@@ -155,7 +179,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 fi
 
 
-if [ ${stage} -le 4 ] && [ $stop_stage -ge 4 ]; then
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   log "Performing GSS+Channel Selection+ASR inference on diarized output"
   # now that we have diarized the dataset, we can run the sub-track 1 baseline
   # and use the diarization output in place of oracle diarization.

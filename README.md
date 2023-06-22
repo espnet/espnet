@@ -75,9 +75,9 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
 - Data augmentation
 - **Transducer** based end-to-end ASR
   - Architecture:
-    - RNN-based encoder and decoder.
-    - Custom encoder and decoder supporting Transformer, Conformer (encoder), 1D Conv / TDNN (encoder) and causal 1D Conv (decoder) blocks.
-    - VGG2L (RNN/custom encoder) and Conv2D (custom encoder) bottlenecks.
+    - Custom encoder supporting RNNs, Conformer, Branchformer (w/ variants), 1D Conv / TDNN.
+    - Decoder w/ parameters shared accross blocks supporting RNN, stateless w/ 1D Conv, [MEGA](https://arxiv.org/abs/2209.10655), and [RWKV](https://arxiv.org/abs/2305.13048).
+    - Pre-encoder: VGG2L or Conv2D available.
   - Search algorithms:
     - Greedy search constrained to one emission by timestep.
     - Default beam search algorithm [[Graves, 2012]](https://arxiv.org/abs/1211.3711) without prefix search.
@@ -86,6 +86,7 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
     - N-step Constrained beam search modified from [[Kim et al., 2020]](https://arxiv.org/abs/2002.03577).
     - modified Adaptive Expansion Search based on [[Kim et al., 2021]](https://ieeexplore.ieee.org/abstract/document/9250505) and NSC.
   - Features:
+    - Unified interface for offline and streaming speech recognition.
     - Multi-task learning with various auxiliary losses:
       - Encoder: CTC, auxiliary Transducer and symmetric KL divergence.
       - Decoder: cross-entropy w/ label smoothing.

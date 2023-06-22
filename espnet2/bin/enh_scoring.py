@@ -312,13 +312,13 @@ def get_parser():
     group.add_argument(
         "--dnsmos_primary_model",
         type=str,
-        default="./DNSMOS/model_v8.onnx",
+        default="./DNSMOS/sig_bak_ovr.onnx",
         help="Path to the primary DNSMOS model. Required if dnsmsos_mode='local'",
     )
     group.add_argument(
         "--dnsmos_p808_model",
         type=str,
-        default="./DNSMOS/sig_bak_ovr.onnx",
+        default="./DNSMOS/model_v8.onnx",
         help="Path to the p808 model. Required if dnsmsos_mode='local'",
     )
 
