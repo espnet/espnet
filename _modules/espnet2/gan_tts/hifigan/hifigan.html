@@ -826,43 +826,60 @@
 
 <span class="sd">        See also:</span>
 <span class="sd">            - https://github.com/espnet/espnet/pull/5240</span>
+<span class="sd">            - https://github.com/espnet/espnet/pull/5249</span>
 <span class="sd">            - https://github.com/kan-bayashi/ParallelWaveGAN/pull/409</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">current_module_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">prefix</span><span class="p">)]</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_weight_norm</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
-            <span class="p">[</span><span class="s2">&quot;weight_g&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">current_module_keys</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_weight_norm</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;weight&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">current_module_keys</span><span class="p">]</span>
         <span class="p">):</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">&quot;It seems weight norm is not applied in the pretrained model but the&quot;</span>
                 <span class="s2">&quot; current model uses it. To keep the compatibility, we remove the norm&quot;</span>
-                <span class="s2">&quot; from the current model. This may causes training error due to the&quot;</span>
-                <span class="s2">&quot; parameter mismatch when finetuning. To avoid this issue, please&quot;</span>
-                <span class="s2">&quot; change the following parameters in config to false:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; from the current model. This may cause unexpected behavior due to the&quot;</span>
+                <span class="s2">&quot; parameter mismatch in finetuning. To avoid this issue, please change&quot;</span>
+                <span class="s2">&quot; the following parameters in config to false:</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot; - discriminator_params.follow_official_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot; - discriminator_params.scale_discriminator_params.use_weight_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot; - discriminator_params.scale_discriminator_params.use_spectral_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot; See also: https://github.com/espnet/espnet/pull/5240&quot;</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;See also:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - https://github.com/espnet/espnet/pull/5240</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - https://github.com/espnet/espnet/pull/5249&quot;</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">remove_weight_norm</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">use_weight_norm</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">current_module_keys</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;weight_g&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;weight_v&quot;</span><span class="p">):</span>
+                    <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_spectral_norm</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span>
-            <span class="p">[</span><span class="s2">&quot;weight_u&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">current_module_keys</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_spectral_norm</span> <span class="ow">and</span> <span class="nb">any</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;weight&quot;</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">current_module_keys</span><span class="p">]</span>
         <span class="p">):</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">&quot;It seems spectral norm is not applied in the pretrained model but the&quot;</span>
                 <span class="s2">&quot; current model uses it. To keep the compatibility, we remove the norm&quot;</span>
-                <span class="s2">&quot; from the current model. This may causes training error due to the&quot;</span>
-                <span class="s2">&quot; parameter mismatch when finetuning. To avoid this issue, please&quot;</span>
-                <span class="s2">&quot; change the following parameters in config to false:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; from the current model. This may cause unexpected behavior due to the&quot;</span>
+                <span class="s2">&quot; parameter mismatch in finetuning. To avoid this issue, please change&quot;</span>
+                <span class="s2">&quot; the following parameters in config to false:</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot; - discriminator_params.follow_official_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot; - discriminator_params.scale_discriminator_params.use_weight_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
                 <span class="s2">&quot; - discriminator_params.scale_discriminator_params.use_spectral_norm</span><span class="se">\n</span><span class="s2">&quot;</span>
-                <span class="s2">&quot; See also: https://github.com/espnet/espnet/pull/5240&quot;</span>
+                <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot;See also:</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - https://github.com/espnet/espnet/pull/5240</span><span class="se">\n</span><span class="s2">&quot;</span>
+                <span class="s2">&quot; - https://github.com/espnet/espnet/pull/5249&quot;</span>
             <span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">remove_spectral_norm</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">use_spectral_norm</span> <span class="o">=</span> <span class="kc">False</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_spectral_norm</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">current_module_keys</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;weight_u&quot;</span><span class="p">)</span>
+                    <span class="ow">or</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;weight_v&quot;</span><span class="p">)</span>
+                    <span class="ow">or</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;weight_orig&quot;</span><span class="p">)</span>
+                <span class="p">):</span>
+                    <span class="k">del</span> <span class="n">state_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="HiFiGANMultiScaleDiscriminator"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.hifigan.__init__.HiFiGANMultiScaleDiscriminator">[docs]</a><span class="k">class</span> <span class="nc">HiFiGANMultiScaleDiscriminator</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
