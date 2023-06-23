@@ -2,12 +2,12 @@ import collections.abc
 import logging
 from pathlib import Path
 from typing import Union
-from miditoolkit import midi
 
+import miditoolkit
 import numpy as np
 import soundfile
+from miditoolkit import midi
 from typeguard import check_argument_types
-import miditoolkit
 
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.fileio.utils import midi_to_seq, seq_to_midi

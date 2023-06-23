@@ -74,12 +74,13 @@ def get_parser():
     return parser
 
 
-def make_segment(file_id, labels, scorescp, update_scorescp, threshold=13.5, sil=["pau", "br", "sil"]):
+def make_segment(
+    file_id, labels, scorescp, update_scorescp, threshold=13.5, sil=["pau", "br", "sil"]
+):
     reader = SingingScoreReader(scorescp)
     segments = []
     segment = SegInfo()
     for label in labels:
-
         if label.label_id in sil:
             if len(segment.segs) > 0:
                 segments.extend(segment.split(threshold=threshold))
@@ -137,9 +138,15 @@ if __name__ == "__main__":
                 LabelInfo(phn_info[i * 3], phn_info[i * 3 + 1], phn_info[i * 3 + 2])
             )
         segments.append(
-            make_segment(recording_id, temp_info, scorescp, update_scorescp, args.threshold, args.silence)
+            make_segment(
+                recording_id,
+                temp_info,
+                scorescp,
+                update_scorescp,
+                args.threshold,
+                args.silence,
+            )
         )
-        
 
     for file in segments:
         for key, val in file.items():

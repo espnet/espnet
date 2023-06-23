@@ -1,11 +1,11 @@
 import argparse
 import os
+
 import librosa
 import numpy as np
 import soundfile as sf
 
 from espnet2.fileio.score_scp import SingingScoreWriter
-
 
 DEV_LIST = ["f001_003"]
 TEST_LIST = ["f001_004", "f001_007", "f001_010"]
@@ -61,6 +61,7 @@ def create_midi(notes, tempo, duration, sr):
     tempo_info = [tempo] * len(note_info)
     return note_info, tempo_info
 
+
 def create_score(label_id, phns, midis, syb_dur):
     # Transfer into 'score' format
     assert len(phns) == len(midis)
@@ -89,16 +90,14 @@ def create_score(label_id, phns, midis, syb_dur):
         note_info.extend([st, syb, midi, syb])
         note_list.append(note_info)
         # multi notes in one syllable
-        while (
-            index_phn < len(phns)
-            and phns[index_phn] == phns[index_phn - 1]
-        ):
+        while index_phn < len(phns) and phns[index_phn] == phns[index_phn - 1]:
             note_info = [st]
             st += syb_dur[index_phn]
             note_info.extend([st, "—", midis[index_phn], phns[index_phn]])
             note_list.append(note_info)
             index_phn += 1
     return note_list
+
 
 def process_utterance(
     writer,
@@ -124,7 +123,11 @@ def process_utterance(
         note_label = label_info[i].split(" ")
         note_mono = mono_info[i].split()
         if len(note_label) != 3 or len(note_mono) != 3:
-            print("mismatch note_label or note_mono at line {} in {}".format(i + 1, label_id))
+            print(
+                "mismatch note_label or note_mono at line {} in {}".format(
+                    i + 1, label_id
+                )
+            )
             print(note_label, note_mono)
             continue
         start = int(note_mono[0])
@@ -143,8 +146,14 @@ def process_utterance(
             notes.append(aligned_note)
         phns.append(note_mono[2])
         phn_dur.append(end - start)
-        
-    y, sr = sf.read(os.path.join(audio_dir, label_id) + ".raw", subtype="PCM_16", channels=1, samplerate=48000, endian="LITTLE")
+
+    y, sr = sf.read(
+        os.path.join(audio_dir, label_id) + ".raw",
+        subtype="PCM_16",
+        channels=1,
+        samplerate=48000,
+        endian="LITTLE",
+    )
     onset_env = librosa.onset.onset_strength(y=y, sr=sr)
     # estimate a static tempo for midi format
     tempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr)[0]
@@ -154,7 +163,7 @@ def process_utterance(
     notes = [midi_mapping[note] if note != "rest" else 0 for note in notes]
 
     # duration type convert
-    phn_dur = [float(dur/ 1e7) for dur in phn_dur]
+    phn_dur = [float(dur / 1e7) for dur in phn_dur]
 
     note_list = create_score(label_id, phns, notes, phn_dur)
 
@@ -165,7 +174,11 @@ def process_utterance(
     cmd = f"sox -t raw -r 48000 -b 16 -c 1 -L -e signed-integer {os.path.join(audio_dir, label_id)}.raw -c 1 -t wavpcm -b 16 -r {tgt_sr} {os.path.join(wav_dumpdir, label_id)}_bits16.wav"
     os.system(cmd)
 
-    wavscp.write("nit_song070_{} {}_bits16.wav\n".format(label_id, os.path.join(wav_dumpdir, label_id)))
+    wavscp.write(
+        "nit_song070_{} {}_bits16.wav\n".format(
+            label_id, os.path.join(wav_dumpdir, label_id)
+        )
+    )
 
     running_dur = 0
     assert len(phn_dur) == len(phns)
