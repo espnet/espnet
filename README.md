@@ -215,12 +215,10 @@ Demonstration
 - Architecture
   - RNN-based non-autoregressive model
   - Xiaoice
-  - Sequence-to-sequence Transformer (with GLU-based encoder)
-  - MLP singer (in progress)
   - Tacotron-singing (in progress)
   - DiffSinger (in progress)
   - VISinger
-  - VISinger 2
+  - VISinger 2 (its variations with different vocoders-architecture)
 - Support multi-speaker & multilingual singing synthesis
   - Speaker ID embedding
   - Language ID embedding
