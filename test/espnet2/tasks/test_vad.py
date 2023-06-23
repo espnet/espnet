@@ -1,10 +1,10 @@
+import tempfile
 from argparse import Namespace
 
 import pytest
-import tempfile
 
-from espnet2.tasks.vad import VADTask
 from espnet2.bin.vad_scoring import scoring
+from espnet2.tasks.vad import VADTask
 
 
 def test_add_arguments():
@@ -58,7 +58,7 @@ def get_dummy_namespace():
             "num_layers": 4,
             "hidden_size": 320,
             "output_size": 320,
-            "dropout": 0.2
+            "dropout": 0.2,
         },
         init=None,
         model_conf={},
@@ -109,20 +109,31 @@ def test_optional_data_names(inference):
 
 def test_scoring(capfd):
     # Case 1
-    with tempfile.NamedTemporaryFile(mode='w+', delete=True) as hyp_file, \
-         tempfile.NamedTemporaryFile(mode='w+', delete=True) as ref_file, \
-         tempfile.NamedTemporaryFile(mode='w+', delete=True) as output_file:
-
-        hyp_file.writelines(["AMI_EN2002a_H00_0000 0.0 0.14 0.97 5.36 6.7 6.91\n",
-                             "AMI_EN2002a_H00_0020 0.0 0.14 1.48 3.64 5.54 10.0\n",
-                             "AMI_EN2002a_H00_0030 0.0 0.14 2.62 2.84\n",
-                             "AMI_EN2002a_H00_0100 0.0 0.14\n",
-                             "AMI_EN2002a_H00_0180 0.0 0.14 2.74 4.77 5.51 6.12\n"])
-        ref_file.writelines(["AMI_EN2002a_H00_0000 0.96 6.85\n",
-                             "AMI_EN2002a_H00_0020 1.47 3.29 5.5 10\n",
-                             "AMI_EN2002a_H00_0030 0 0.16 2.58 2.71\n",
-                             "AMI_EN2002a_H00_0100 6.69 6.87\n",
-                             "AMI_EN2002a_H00_0180 1.89 5.98\n"])
+    with tempfile.NamedTemporaryFile(
+        mode="w+", delete=True
+    ) as hyp_file, tempfile.NamedTemporaryFile(
+        mode="w+", delete=True
+    ) as ref_file, tempfile.NamedTemporaryFile(
+        mode="w+", delete=True
+    ) as output_file:
+        hyp_file.writelines(
+            [
+                "AMI_EN2002a_H00_0000 0.0 0.14 0.97 5.36 6.7 6.91\n",
+                "AMI_EN2002a_H00_0020 0.0 0.14 1.48 3.64 5.54 10.0\n",
+                "AMI_EN2002a_H00_0030 0.0 0.14 2.62 2.84\n",
+                "AMI_EN2002a_H00_0100 0.0 0.14\n",
+                "AMI_EN2002a_H00_0180 0.0 0.14 2.74 4.77 5.51 6.12\n",
+            ]
+        )
+        ref_file.writelines(
+            [
+                "AMI_EN2002a_H00_0000 0.96 6.85\n",
+                "AMI_EN2002a_H00_0020 1.47 3.29 5.5 10\n",
+                "AMI_EN2002a_H00_0030 0 0.16 2.58 2.71\n",
+                "AMI_EN2002a_H00_0100 6.69 6.87\n",
+                "AMI_EN2002a_H00_0180 1.89 5.98\n",
+            ]
+        )
 
         # Ensure the data is written to the file
         hyp_file.flush()
@@ -139,30 +150,41 @@ def test_scoring(capfd):
         assert output_data == expected_output, "Output data is not as expected."
 
     # Case 2
-    with tempfile.NamedTemporaryFile(mode='w+', delete=True) as hyp_file, \
-         tempfile.NamedTemporaryFile(mode='w+', delete=True) as ref_file, \
-         tempfile.NamedTemporaryFile(mode='w+', delete=True) as output_file:
-
-        hyp_file.writelines(["AMI_TS3003d_H03_2430 0.02 1.26 5.32 5.68\n",
-                             "AMI_TS3003d_H03_2440 0.0 0.14\n",
-                             "AMI_TS3003d_H03_2460 0.0 0.14 1.81 2.17\n",
-                             "AMI_TS3003d_H03_2480 0.0 0.14\n",
-                             "AMI_TS3003d_H03_2530 0.0 0.14 0.67 0.84\n",
-                             "AMI_TS3003d_H03_2550 0.0 0.14 1.55 2.96\n",
-                             "AMI_TS3003d_H03_2560 0.0 0.14 4.26 6.95\n",
-                             "AMI_TS3003d_H03_2570 0.0 0.14\n",
-                             "AMI_TS3003d_H03_2580 0.0 0.14 6.93 7.57\n",
-                             "AMI_TS3003d_H03_2590 0.02 0.19 0.62 1.54"])
-        ref_file.writelines(["AMI_TS3003d_H03_2430 0 1.21 5.3 5.57\n",
-                             "AMI_TS3003d_H03_2440 4.79 5.21\n",
-                             "AMI_TS3003d_H03_2460 1.76 2.09\n",
-                             "AMI_TS3003d_H03_2480 2.15 2.63\n",
-                             "AMI_TS3003d_H03_2530 0.17 1.06\n",
-                             "AMI_TS3003d_H03_2550 1.48 5.15\n",
-                             "AMI_TS3003d_H03_2560 4.21 6.88\n",
-                             "AMI_TS3003d_H03_2570 0.62 1.02\n",
-                             "AMI_TS3003d_H03_2580 6.6 7.42\n",
-                             "AMI_TS3003d_H03_2590 0.69 1.56"])
+    with tempfile.NamedTemporaryFile(
+        mode="w+", delete=True
+    ) as hyp_file, tempfile.NamedTemporaryFile(
+        mode="w+", delete=True
+    ) as ref_file, tempfile.NamedTemporaryFile(
+        mode="w+", delete=True
+    ) as output_file:
+        hyp_file.writelines(
+            [
+                "AMI_TS3003d_H03_2430 0.02 1.26 5.32 5.68\n",
+                "AMI_TS3003d_H03_2440 0.0 0.14\n",
+                "AMI_TS3003d_H03_2460 0.0 0.14 1.81 2.17\n",
+                "AMI_TS3003d_H03_2480 0.0 0.14\n",
+                "AMI_TS3003d_H03_2530 0.0 0.14 0.67 0.84\n",
+                "AMI_TS3003d_H03_2550 0.0 0.14 1.55 2.96\n",
+                "AMI_TS3003d_H03_2560 0.0 0.14 4.26 6.95\n",
+                "AMI_TS3003d_H03_2570 0.0 0.14\n",
+                "AMI_TS3003d_H03_2580 0.0 0.14 6.93 7.57\n",
+                "AMI_TS3003d_H03_2590 0.02 0.19 0.62 1.54",
+            ]
+        )
+        ref_file.writelines(
+            [
+                "AMI_TS3003d_H03_2430 0 1.21 5.3 5.57\n",
+                "AMI_TS3003d_H03_2440 4.79 5.21\n",
+                "AMI_TS3003d_H03_2460 1.76 2.09\n",
+                "AMI_TS3003d_H03_2480 2.15 2.63\n",
+                "AMI_TS3003d_H03_2530 0.17 1.06\n",
+                "AMI_TS3003d_H03_2550 1.48 5.15\n",
+                "AMI_TS3003d_H03_2560 4.21 6.88\n",
+                "AMI_TS3003d_H03_2570 0.62 1.02\n",
+                "AMI_TS3003d_H03_2580 6.6 7.42\n",
+                "AMI_TS3003d_H03_2590 0.69 1.56",
+            ]
+        )
 
         # Ensure the data is written to the file
         hyp_file.flush()

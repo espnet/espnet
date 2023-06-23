@@ -555,7 +555,7 @@ if ! "${skip_train}"; then
             # Default normalization is utterance_mvn and changes to global_mvn
             _opts+="--normalize=global_mvn --normalize_conf stats_file=${vad_stats_dir}/train/feats_stats.npz "
         fi
-        
+
         _opts+="--train_data_path_and_name_and_type ${_vad_train_dir}/${_scp},speech,${_type} "
         _opts+="--train_shape_file ${vad_stats_dir}/train/speech_shape "
 
