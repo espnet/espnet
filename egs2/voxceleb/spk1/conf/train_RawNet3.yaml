@@ -14,3 +14,8 @@ projector_conf:
 
 
 preprocessor: spk
+preprocessor_conf:
+  utt2spk: dump/raw/voxceleb2_dev/utt2spk
+  spk2utt: dump/raw/voxceleb2_dev/spk2utt
+
+optim: adam
