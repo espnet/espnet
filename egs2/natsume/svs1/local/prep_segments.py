@@ -71,13 +71,15 @@ class NatsumeDataHandler(DataHandler):
                     else (labels, segment, segments, False),
                 ],
                 "10": [
-                    lambda i, labels, segment, segments, threshold: self.add_missing_phoneme(
-                        i, "a", 81.00, labels, segment, segments
-                    )
-                    if labels[i].label_id == "a"
-                    and labels[i + 1].label_id == "a"
-                    and labels[i + 2].label_id == "o"
-                    else (labels, segment, segments, False),
+                    lambda i, labels, segment, segments, threshold: (
+                        self.add_missing_phoneme(
+                            i, "a", 81.00, labels, segment, segments
+                        )
+                        if labels[i].label_id == "a"
+                        and labels[i + 1].label_id == "a"
+                        and labels[i + 2].label_id == "o"
+                        else (labels, segment, segments, False)
+                    ),
                 ],
             }
         elif input_type == "xml":
