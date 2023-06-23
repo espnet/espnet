@@ -1463,17 +1463,42 @@ class SpkPreprocessor(CommonPreprocessor):
         self,
         train: bool,
         utt2spk: str,
+        spk2utt: str,
     ):
         super().__init__(train)
+        with open(utt2spk, "r") as f_u2s, open(spk2utt, "r") as f_s2u:
+            self.utt2spk = f_u2s.readlines()
+            self.spk2utt = f_s2u.readlines()
+
+        self.nspk = len(self.spk2utt)
+        self.nutt = len(self.utt2spk)
+        self.spk2label = None # a dictionary that maps string speaker label to
+                              # an integer
+        self._make_label_mapping()
+
+        print(self.nspk, self.nutt)
+
 
     def _make_label_mapping(
         self,
-        utt2spk: str,
     ):
-        pass
+        label_idx = 0
+        self.spk2label = {}
+        for spk in self.spk2utt:
+            self.spk2label[spk] = label_idx
+            label_idx += 1
 
-    def _speech_process(self,):
-        pass
+
+
+
+    def _speech_process(
+            self,
+            data: Dict[np.ndarray, str],
+    ):
+        audio = data["speech"]
+        print(audio.shape)
+
+        return data
 
     def _text_process(
         self,
@@ -1482,5 +1507,9 @@ class SpkPreprocessor(CommonPreprocessor):
         """
         Make speaker labels into integers
         """
-        pass
+        int_label = self.spk2label[data[spk_labels]]
+        data["spk_labels"] = np.asarray(int_label, dtype=np.int64)
+
+        return data
+
 
