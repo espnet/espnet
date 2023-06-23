@@ -10,6 +10,7 @@
 - Model link: https://huggingface.co/espnet/dongwei_ami_vad_rnn
 - ASR config: conf/tuning/train_vad_rnn.yaml
 - Decode config: conf/tuning/decode_rnn.yaml
+- The metrics are frame-level precision, frame-level recall and frame-level F1 for speech frames
 
 ## exp/vad_train_asr_transformer_raw
 ### PRECISION

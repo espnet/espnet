@@ -135,7 +135,7 @@ def test_scoring(capfd):
         output_file.seek(0)  # reset the file pointer to the start of the file
         output_data = output_file.read()
 
-        expected_output = "Precision: 0.916\nRecall: 0.8068\nF1_score: 0.858\n"
+        expected_output = "|Precision: 0.916|\n|Recall: 0.8068|\n|F1_score: 0.858|\n"
         assert output_data == expected_output, "Output data is not as expected."
 
     # Case 2
@@ -175,5 +175,5 @@ def test_scoring(capfd):
         output_file.seek(0)  # reset the file pointer to the start of the file
         output_data = output_file.read()
 
-        expected_output = "Precision: 0.7996\nRecall: 0.6035\nF1_score: 0.6878\n"
+        expected_output = "|Precision: 0.7996|\n|Recall: 0.6035|\n|F1_score: 0.6878|\n"
         assert output_data == expected_output, "Output data is not as expected."
