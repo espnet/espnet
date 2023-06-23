@@ -1,5 +1,5 @@
 # ASR2 recipe for LibriSpeech960
-## Related work: 
+## Related work:
    Chang, Xuankai, et al. "Exploration of Efficient End-to-End ASR using Discretized Input from Self-Supervised Learning." InterSpeech 2023.
    <details>
    <summary>bib info</summary>
@@ -135,4 +135,3 @@ Date:   Thu Jun 22 14:16:13 2023 +0000
 |decode_ctc0.3_asr_model_valid.acc.ave/dev_other|2864|63048|94.6|3.9|1.5|0.6|6.0|41.7|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_clean|2620|65769|97.3|1.8|1.0|0.3|3.0|29.2|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_other|2939|65268|94.6|3.6|1.8|0.6|5.9|43.3|
-

@@ -14,10 +14,16 @@ def test_discrete_asr_espnet_model(input_layer_type):
     src_vocab_size = 4
     enc_out = 4
     frontend = Embedding(
-        input_size=src_vocab_size, embed_dim=6, positional_dropout_rate=0,
+        input_size=src_vocab_size,
+        embed_dim=6,
+        positional_dropout_rate=0,
     )
     encoder = EBranchformerEncoder(
-        6, output_size=enc_out, linear_units=4, num_blocks=2, input_layer=input_layer_type,
+        6,
+        output_size=enc_out,
+        linear_units=4,
+        num_blocks=2,
+        input_layer=input_layer_type,
     )
     decoder = TransformerDecoder(vocab_size, enc_out, linear_units=4, num_blocks=2)
     ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
