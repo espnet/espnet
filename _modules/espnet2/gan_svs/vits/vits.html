@@ -930,18 +930,18 @@
             <span class="n">loss</span> <span class="o">=</span> <span class="n">mel_loss</span> <span class="o">+</span> <span class="n">kl_loss</span> <span class="o">+</span> <span class="n">adv_loss</span> <span class="o">+</span> <span class="n">feat_match_loss</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocoder_generator_type</span> <span class="o">==</span> <span class="s2">&quot;visinger2&quot;</span><span class="p">:</span>
                 <span class="n">ddsp_mel_loss</span> <span class="o">=</span> <span class="n">ddsp_mel_loss</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lambda_mel</span>
-                <span class="n">loss</span> <span class="o">+=</span> <span class="n">ddsp_mel_loss</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="n">ddsp_mel_loss</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_type</span> <span class="o">==</span> <span class="s2">&quot;visinger2&quot;</span><span class="p">:</span>
                 <span class="n">loss_mel_am</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mse_loss</span><span class="p">(</span><span class="n">feats</span> <span class="o">*</span> <span class="n">z_mask</span><span class="p">,</span> <span class="n">predict_mel</span> <span class="o">*</span> <span class="n">z_mask</span><span class="p">)</span>
-                <span class="n">loss</span> <span class="o">+=</span> <span class="n">loss_mel_am</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="n">loss_mel_am</span>
 
-            <span class="n">loss</span> <span class="o">+=</span> <span class="n">pitch_loss</span>
-            <span class="n">loss</span> <span class="o">+=</span> <span class="n">phoneme_dur_loss</span>
-            <span class="n">loss</span> <span class="o">+=</span> <span class="n">score_dur_loss</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="n">pitch_loss</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="n">phoneme_dur_loss</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="n">score_dur_loss</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_phoneme_predictor</span><span class="p">:</span>
-                <span class="n">loss</span> <span class="o">+=</span> <span class="n">ctc_loss</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="n">ctc_loss</span>
             <span class="k">if</span> <span class="s2">&quot;pisinger&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">generator_type</span><span class="p">:</span>
-                <span class="n">loss</span> <span class="o">+=</span> <span class="n">yin_dec_loss</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">+</span> <span class="n">yin_dec_loss</span>
 
         <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">generator_loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>

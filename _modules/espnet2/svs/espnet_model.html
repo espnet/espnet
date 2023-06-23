@@ -430,6 +430,8 @@
                 <span class="p">]</span>
                 <span class="n">duration_score_syb</span> <span class="o">=</span> <span class="n">duration_syb</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">duration_score_syb_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
                 <span class="n">slur</span> <span class="o">=</span> <span class="n">slur</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">slur_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Cannot understand score_feats extract type&quot;</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">pitch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">pitch</span><span class="p">,</span> <span class="n">pitch_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pitch_extract</span><span class="p">(</span>
