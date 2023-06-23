@@ -63,6 +63,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         mv ${src_data}/segments.tmp ${src_data}/segments
         mv ${src_data}/label.tmp ${src_data}/label
         mv ${src_data}/text.tmp ${src_data}/text
+        mv ${src_data}/score.scp.tmp ${src_data}/score.scp
 	cat ${src_data}/segments | awk '{printf("%s nit_song070\n", $1);}' > ${src_data}/utt2spk
         utils/utt2spk_to_spk2utt.pl < ${src_data}/utt2spk > ${src_data}/spk2utt
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" ${src_data}

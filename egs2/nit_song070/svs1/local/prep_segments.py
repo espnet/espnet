@@ -68,6 +68,9 @@ def get_parser():
     parser.add_argument(
         "--silence", action="append", help="silence_phone", default=["pau"]
     )
+    parser.add_argument(
+        "--score_dump", type=str, default="score_dump", help="score dump directory"
+    )
     return parser
 
 
@@ -95,8 +98,8 @@ def make_segment(file_id, labels, scorescp, update_scorescp, threshold=13.5, sil
         # TODO(wwwbxy123): Refer kiritan to make score.scp segment
         key = pack_zero(file_id, id)
         segments_w_id[key] = seg
-        score = reader[file_id]
-        update_scorescp[key] = score
+        # score = reader[file_id]
+        # update_scorescp[key] = score
         id += 1
     return segments_w_id
 
