@@ -335,7 +335,25 @@ tts_conf:
     spk_embed_dim: 512               # dimension of speaker embedding
     spk_embed_integration_type: add  # how to integrate speaker embedding
 ```
-Please run the training from stage 6.
+
+#### (Optional) Train on speaker-averaged X-vectors
+
+Models trained using speaker-averaged X-vectors may generalise better to inference tasks where the utterance-specific xvector is unknown, compared to models trained using embeddings derived from individual training utterances.
+After you perform the above extraction step, if you want to train and evaluate using speaker-averaged X-vectors you can use the following command to replace utterance-level X-vectors with speaker-averaged values. Make sure to set your `train_set` `dev_set` and `test_set` variables beforehand:
+```
+for dset in "${train_set}" "${dev_set}" "${test_set}"
+do
+    ./pyscripts/utils/convert_to_avg_xvectors.py \
+        --xvector-path dump/xvector/${dset}/xvector.scp \
+        --utt2spk data/${dset}/utt2spk \
+        --spk-xvector-path dump/xvector/${dset}/spk_xvector.scp
+done
+```
+The original xvector.scp files are renamed to xvector.scp.bak in case you wish to revert the changes.
+
+---
+
+Once you've performed extraction and optionally the speaker-averaged replacement step, please run the training from stage 6.
 ```sh
 $ ./run.sh --stage 6 --use_xvector true --train_config /path/to/your_xvector_config.yaml
 ```
