@@ -5,7 +5,9 @@ import pytest
 import torch
 
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.rwkv_decoder import RWKVDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr_transducer.encoder.encoder import Encoder
 from espnet2.asr_transducer.espnet_transducer_model import ESPnetASRTransducerModel
@@ -49,8 +51,14 @@ def prepare(model, input_size, vocab_size, batch_size):
 
 
 def get_decoder(vocab_size, params):
-    if "rnn_type" in params:
+    if "is_rwkv" in params:
+        del params["is_rwkv"]
+
+        decoder = RWKVDecoder(vocab_size, **params)
+    elif "rnn_type" in params:
         decoder = RNNDecoder(vocab_size, **params)
+    elif "block_size" in params:
+        decoder = MEGADecoder(vocab_size, **params)
     else:
         decoder = StatelessDecoder(vocab_size, **params)
 
@@ -156,7 +164,7 @@ def get_specaug():
             {
                 "dynamic_chunk_training": True,
                 "short_chunk_size": 1,
-                "left_chunk_size": 1,
+                "num_left_chunks": 1,
             },
             {"embed_size": 4},
             {"joint_space_size": 4},
@@ -189,11 +197,110 @@ def get_specaug():
             {
                 "dynamic_chunk_training": True,
                 "short_chunk_size": 1,
-                "left_chunk_size": 1,
+                "num_left_chunks": 1,
             },
             {"embed_size": 4},
             {"joint_space_size": 4},
             {"transducer_weight": 1.0},
+        ),
+        (
+            [
+                {
+                    "block_type": "ebranchformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
+            {},
+            {"rnn_type": "lstm", "num_layers": 2},
+            {"joint_space_size": 4},
+            {"report_cer": True, "report_wer": True},
+        ),
+        (
+            [
+                {
+                    "block_type": "ebranchformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                },
+                {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
+            ],
+            {
+                "dynamic_chunk_training": True,
+                "short_chunk_size": 1,
+                "num_left_chunks": 1,
+            },
+            {"embed_size": 4},
+            {"joint_space_size": 4},
+            {"transducer_weight": 1.0},
+        ),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                },
+                {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
+            ],
+            {
+                "dynamic_chunk_training": True,
+                "short_chunk_size": 1,
+                "num_left_chunks": 1,
+            },
+            {"block_size": 4, "chunk_size": 3},
+            {"joint_space_size": 4},
+            {"transducer_weight": 1.0},
+        ),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
+            {},
+            {"block_size": 4, "rel_pos_bias_type": "rotary"},
+            {"joint_space_size": 4},
+            {"report_cer": True, "report_wer": True},
+        ),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                },
+                {"block_type": "conv1d", "kernel_size": 1, "output_size": 2},
+            ],
+            {
+                "dynamic_chunk_training": True,
+                "short_chunk_size": 1,
+                "num_left_chunks": 1,
+            },
+            {"block_size": 4, "linear_size": 4, "is_rwkv": True},
+            {"joint_space_size": 4},
+            {"transducer_weight": 1.0},
+        ),
+        (
+            [
+                {
+                    "block_type": "conformer",
+                    "hidden_size": 4,
+                    "linear_size": 4,
+                    "conv_mod_kernel_size": 3,
+                }
+            ],
+            {},
+            {"block_size": 4, "linear_size": 4, "is_rwkv": True},
+            {"joint_space_size": 4},
+            {"report_cer": True, "report_wer": True},
         ),
     ],
 )
@@ -206,6 +313,9 @@ def test_model_training(
     token_list = ["<blank>", "a", "b", "c", "<space>"]
     vocab_size = len(token_list)
 
+    if dec_params.get("is_rwkv") is not None and not torch.cuda.is_available():
+        pytest.skip("A GPU is required for WKV kernel computation")
+
     encoder = Encoder(input_size, enc_params, main_conf=enc_gen_params)
     decoder = get_decoder(vocab_size, dec_params)
 
@@ -214,7 +324,6 @@ def test_model_training(
     )
 
     specaug = get_specaug() if main_params.pop("specaug", False) else None
-    #    normalize = get_normalize() if main_params.pop("normalize", False) else None
 
     normalize = main_params.pop("normalize", None)
     if normalize is not None:
