@@ -273,7 +273,7 @@ date: 22 August 2022
 bibliography: paper.bib</p></li>
 </ul>
 <hr class="docutils" />
-<p><img alt="https://i.imgur.com/mV3ukCX.png" src="https://i.imgur.com/mV3ukCX.png" /></p>
+<p><img alt="The Joint-task Systems of SSE with ASR, ST, and SLU in ESPnet-SE++." src="paper/espnet-se++/graphics/espnet-SE%2B%2B.png" /></p>
 <section id="summary">
 <h1>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h1>
 <p>This paper presents the software design and user interface of ESPnet-SE++, a new speech separation and enhancement (SSE) module of the ESPnet toolkit.
@@ -287,37 +287,30 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <h1>ESPnet-SE++ Recipes and Software Structure<a class="headerlink" href="#espnet-se-recipes-and-software-structure" title="Permalink to this headline">¶</a></h1>
 <section id="espnet-se-recipes-for-sse-and-joint-task">
 <h2>ESPNet-SE++ Recipes for SSE and Joint-Task<a class="headerlink" href="#espnet-se-recipes-for-sse-and-joint-task" title="Permalink to this headline">¶</a></h2>
-<p><img alt="https://i.imgur.com/zKu612c.png" src="https://i.imgur.com/zKu612c.png" /></p>
-<p>For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts which are carefully designed to work out-of-the-box with a wide variety of corpora. Under the <code class="docutils literal notranslate"><span class="pre">TEMPLATE</span></code> folder, the common scripts <code class="docutils literal notranslate"><span class="pre">enh1/enh.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">enh_asr1/enh_asr.sh</span></code> are shared for all the SSE and joint-task recipes.</p>
+<p>For each task, ESPnet-SE++, following the ESPnet2 style, provides common scripts which are carefully designed to work out-of-the-box with a wide variety of corpora. The recipes for different corpora are under the <code class="docutils literal notranslate"><span class="pre">egs2/</span></code> folder. Under the <code class="docutils literal notranslate"><span class="pre">egs2/TEMPLATE</span></code> folder, the common scripts <code class="docutils literal notranslate"><span class="pre">enh1/enh.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">enh_asr1/enh_asr.sh</span></code> are shared for all the SSE and joint-task recipes. The directory structure can be found in <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md">TEMPLATE/enh_asr1/README.md</a>.</p>
 <section id="common-scripts">
 <h3>Common Scripts<a class="headerlink" href="#common-scripts" title="Permalink to this headline">¶</a></h3>
 <p><code class="docutils literal notranslate"><span class="pre">enh.sh</span></code> contains 13 stages, and the details for the scripts can be found in <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md">TEMPLATE/enh1/README.md</a>.</p>
-<p><img alt="https://i.imgur.com/0rGcwmw.png" src="https://i.imgur.com/0rGcwmw.png" /></p>
-<p><code class="docutils literal notranslate"><span class="pre">enh_asr.sh</span></code> contains 17 stages and <code class="docutils literal notranslate"><span class="pre">enh_diar.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">enh_st.sh</span></code> are similar to it:</p>
-<p><img alt="https://i.imgur.com/WfB0yVM.png" src="https://i.imgur.com/WfB0yVM.png" /></p>
+<p><img alt="../../_images/enh_script.png" src="../../_images/enh_script.png" /></p>
+<p><code class="docutils literal notranslate"><span class="pre">enh_asr.sh</span></code> contains 17 stages, and the details for the scripts can be found in <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md">TEMPLATE/enh_asr1/README.md</a>. The <code class="docutils literal notranslate"><span class="pre">enh_diar.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">enh_st.sh</span></code> are similar to it.</p>
+<p><img alt="../../_images/enh_asr_script.png" src="../../_images/enh_asr_script.png" /></p>
 </section>
 <section id="training-configuration">
 <h3>Training Configuration<a class="headerlink" href="#training-configuration" title="Permalink to this headline">¶</a></h3>
 <section id="sse-task-training-configuration">
 <h4>SSE Task Training Configuration<a class="headerlink" href="#sse-task-training-configuration" title="Permalink to this headline">¶</a></h4>
-<p>An example of an enhancement task for the CHiME-4 <code class="docutils literal notranslate"><span class="pre">enh1</span></code>  recipe is configured as <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/chime4/enh1/conf/tuning/train_enh_dprnn_tasnet.yaml"><code class="docutils literal notranslate"><span class="pre">conf/tuning/train_enh_dprnn_tasnet.yaml</span></code></a>. Part of this configuration is:</p>
-<p><img alt="https://i.imgur.com/dsEy0gJ.png" src="https://i.imgur.com/dsEy0gJ.png" /></p>
+<p>An example of an enhancement task for the CHiME-4 <code class="docutils literal notranslate"><span class="pre">enh1</span></code>  recipe is configured as <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/chime4/enh1/conf/tuning/train_enh_dprnn_tasnet.yaml"><code class="docutils literal notranslate"><span class="pre">conf/tuning/train_enh_dprnn_tasnet.yaml</span></code></a>. This file includes the specific types of <code class="docutils literal notranslate"><span class="pre">encoder</span></code>, <code class="docutils literal notranslate"><span class="pre">decoder</span></code>, <code class="docutils literal notranslate"><span class="pre">separator</span></code>, and their respective settings. Furthermore, the file also defines the training setup and <code class="docutils literal notranslate"><span class="pre">criterions</span></code>.</p>
 </section>
 <section id="joint-task-training-configuration">
 <h4>Joint-Task Training Configuration<a class="headerlink" href="#joint-task-training-configuration" title="Permalink to this headline">¶</a></h4>
-<p>An example of joint-task training configuration is the CHiME-4 <code class="docutils literal notranslate"><span class="pre">enh_asr1</span></code> recipe, configured as <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/chime4/enh_asr1/conf/tuning/train_enh_asr_convtasnet_si_snr_fbank_transformer_lr2e-3_accum2_warmup20k_specaug.yaml"><code class="docutils literal notranslate"><span class="pre">conf/tuning/train_enh_asr_convtasnet.yaml</span></code></a>. This joint-task includes a front-end enhancmenet model and a back-end ASR model:</p>
-<p><img alt="https://i.imgur.com/kTapPT5.png" src="https://i.imgur.com/kTapPT5.png" />
-<img alt="https://i.imgur.com/uVWW7ft.png" src="https://i.imgur.com/uVWW7ft.png" /></p>
+<p>An example of joint-task training configuration is the CHiME-4 <code class="docutils literal notranslate"><span class="pre">enh_asr1</span></code> recipe, configured as <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/chime4/enh_asr1/conf/tuning/train_enh_asr_convtasnet_si_snr_fbank_transformer_lr2e-3_accum2_warmup20k_specaug.yaml"><code class="docutils literal notranslate"><span class="pre">conf/tuning/train_enh_asr_convtasnet.yaml</span></code></a>. This joint-task comprises of a front-end SSE model and a back-end ASR model. The configuration file includes specifications for the  <code class="docutils literal notranslate"><span class="pre">encoder</span></code>, <code class="docutils literal notranslate"><span class="pre">decoder</span></code>, <code class="docutils literal notranslate"><span class="pre">separator</span></code>, and <code class="docutils literal notranslate"><span class="pre">criterions</span></code> of both the SSE and ASR models,using prefixes such as <code class="docutils literal notranslate"><span class="pre">enh_</span></code> and <code class="docutils literal notranslate"><span class="pre">asr_</span></code>.</p>
 </section>
 </section>
 </section>
 <section id="espnet-se-software-structure-for-sse-task">
 <h2>ESPNet-SE++ Software Structure for SSE Task<a class="headerlink" href="#espnet-se-software-structure-for-sse-task" title="Permalink to this headline">¶</a></h2>
-<p><img alt="https://i.imgur.com/W50IuzE.png" src="https://i.imgur.com/W50IuzE.png" /></p>
-<section id="unified-modeling-language-diagram-for-espnet-se-enhancement-only-task">
-<h3>Unified Modeling Language Diagram for ESPNet-SE++ Enhancement-Only Task<a class="headerlink" href="#unified-modeling-language-diagram-for-espnet-se-enhancement-only-task" title="Permalink to this headline">¶</a></h3>
-<p><img alt="https://i.imgur.com/YPUERjy.png" src="https://i.imgur.com/YPUERjy.png" /></p>
-</section>
+<p>The directory structure for the SSE python files can be found in <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh1/README.md">TEMPLATE/enh1/README.md</a>. Additionally, the UML diagram for the enhancement-only task in ESPNet-SE++ is provided below.</p>
+<p><img alt="UML Diagram for Speech Separation and Enhancement in ESPnet-SE++" src="../../_images/UML_SSE.png" /></p>
 <section id="sse-executable-code-bin">
 <h3>SSE Executable Code <code class="docutils literal notranslate"><span class="pre">bin/*</span></code><a class="headerlink" href="#sse-executable-code-bin" title="Permalink to this headline">¶</a></h3>
 <section id="bin-enh-train-py">
@@ -370,11 +363,8 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 </section>
 <section id="espnet-se-software-structure-for-joint-task">
 <h2>ESPNet-SE++ Software Structure for Joint-Task<a class="headerlink" href="#espnet-se-software-structure-for-joint-task" title="Permalink to this headline">¶</a></h2>
-<p><img alt="https://i.imgur.com/BPgf1b5.png" src="https://i.imgur.com/BPgf1b5.png" /></p>
-<section id="unified-modeling-language-diagram-for-espnet-se-joint-task">
-<h3>Unified Modeling Language Diagram for ESPNet-SE++ Joint-Task<a class="headerlink" href="#unified-modeling-language-diagram-for-espnet-se-joint-task" title="Permalink to this headline">¶</a></h3>
-<p><img alt="https://i.imgur.com/qXxjwR5.png" src="https://i.imgur.com/qXxjwR5.png" /></p>
-</section>
+<p>The directory structure for the SSE python files can be found in <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/enh_asr1/README.md">TEMPLATE/enh_asr1/README.md</a>. Furthermore, the UML diagram for the joint-task in ESPNet-SE++ is displayed below.</p>
+<p><img alt="UML Diagram for Joint-Task in ESPnet-SE++" src="../../_images/UML_Joint.png" /></p>
 <section id="joint-task-executable-code-bin">
 <h3>Joint-Task Executable Code <code class="docutils literal notranslate"><span class="pre">bin/*</span></code><a class="headerlink" href="#joint-task-executable-code-bin" title="Permalink to this headline">¶</a></h3>
 <section id="bin-enh-s2t-train-py">
@@ -408,7 +398,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">ESPnetEnhS2TModel</span></code> takes a front-end <code class="docutils literal notranslate"><span class="pre">enh_model</span></code>, and a back-end <code class="docutils literal notranslate"><span class="pre">s2t_model</span></code> (such as ASR, SLU, ST, and SD models) as inputs to build a joint-model.</p>
-<p><img alt="https://i.imgur.com/1QaZ68u.png" src="https://i.imgur.com/1QaZ68u.png" /></p>
+<p><img alt="../../_images/joint_init.png" src="../../_images/joint_init.png" /></p>
 <p>The <code class="docutils literal notranslate"><span class="pre">forward</span></code> function of the class follows the general design in ESPnet2:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span> 	<span class="k">def</span>  <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech_mix</span><span class="p">,</span> <span class="n">speech_ref</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 </pre></div>
@@ -422,7 +412,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <section id="building-a-new-recipe-from-scratch">
 <h2>Building a New Recipe from Scratch<a class="headerlink" href="#building-a-new-recipe-from-scratch" title="Permalink to this headline">¶</a></h2>
 <p>Since ESPnet2 provides common scripts such as <code class="docutils literal notranslate"><span class="pre">enh.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">enh_asr.sh</span></code> for each task, users only need to create <code class="docutils literal notranslate"><span class="pre">local/data.sh</span></code>  for the data preparation of a new corpus.  The generated data follows the Kaldi-style structure:</p>
-<p><img alt="https://i.imgur.com/aSW6a2M.png" src="https://i.imgur.com/aSW6a2M.png" /></p>
+<p><img alt="../../_images/data_structure.png" src="../../_images/data_structure.png" /></p>
 <p>The detailed instructions for data preparation and building new recipes in espnet2 are described in the <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE">link</a>.</p>
 </section>
 <section id="inference-with-pre-trained-models">
@@ -431,16 +421,16 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <section id="inference-api">
 <h3>Inference API<a class="headerlink" href="#inference-api" title="Permalink to this headline">¶</a></h3>
 <p>The inference functions are from the <code class="docutils literal notranslate"><span class="pre">enh_inference</span></code> and <code class="docutils literal notranslate"><span class="pre">enh_asr_inference</span></code> in the executable code <code class="docutils literal notranslate"><span class="pre">bin/</span></code></p>
-<p><img alt="https://i.imgur.com/hAjO6Pj.png" src="https://i.imgur.com/hAjO6Pj.png" /></p>
+<p><img alt="../../_images/inference.png" src="../../_images/inference.png" /></p>
 <p>Calling <code class="docutils literal notranslate"><span class="pre">SeparateSpeech</span></code> and <code class="docutils literal notranslate"><span class="pre">Speech2Text</span></code> with unprocessed audios returns the separated speech and their recognition results.</p>
 <section id="sse">
 <h4>SSE<a class="headerlink" href="#sse" title="Permalink to this headline">¶</a></h4>
-<p><img alt="https://i.imgur.com/cBHjCSV.png" src="https://i.imgur.com/cBHjCSV.png" /></p>
+<p><img alt="../../_images/inference_SSE.png" src="../../_images/inference_SSE.png" /></p>
 </section>
 <section id="joint-task">
 <h4>Joint-Task<a class="headerlink" href="#joint-task" title="Permalink to this headline">¶</a></h4>
-<p><img alt="https://i.imgur.com/6P3jZpJ.png" src="https://i.imgur.com/6P3jZpJ.png" /></p>
-<p>The details for downloading models and inference are described in the <a class="reference external" href="https://github.com/espnet/espnet_model_zoo">link</a>.</p>
+<p><img alt="../../_images/inference_joint.png" src="../../_images/inference_joint.png" /></p>
+<p>The details for downloading models and inference are described in <a class="reference external" href="https://github.com/espnet/espnet_model_zoo">espnet_model_zoo</a>.</p>
 </section>
 </section>
 </section>
@@ -455,7 +445,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 </section>
 <section id="development-plan">
 <h1>Development plan<a class="headerlink" href="#development-plan" title="Permalink to this headline">¶</a></h1>
-<p>The development plan of the ESPnet-SE++ can be found in https://github.com/espnet/espnet/issues/2200. In addition, we will explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion.</p>
+<p>The development plan of the ESPnet-SE++ can be found in <a class="reference external" href="https://github.com/espnet/espnet/issues/2200">Development plan for ESPnet2 speech enhancement</a>. In addition, we will explore the combinations with other front-end tasks, such as using ASR as a front-end model and TTS as a back-end model for speech-to-speech conversion.</p>
 </section>
 <section id="conclusions">
 <h1>Conclusions<a class="headerlink" href="#conclusions" title="Permalink to this headline">¶</a></h1>
