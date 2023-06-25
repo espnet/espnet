@@ -21,7 +21,6 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
-from espnet2.gan_tts.avocodo import AvocodoGenerator
 from espnet2.gan_svs.uhifigan import UHiFiGANGenerator
 from espnet2.gan_svs.uhifigan.sine_generator import SineGen
 from espnet2.gan_svs.utils.expand_f0 import expand_f0
@@ -37,6 +36,7 @@ from espnet2.gan_svs.vits.phoneme_predictor import PhonemePredictor
 from espnet2.gan_svs.vits.pitch_predictor import Decoder
 from espnet2.gan_svs.vits.prior_decoder import PriorDecoder
 from espnet2.gan_svs.vits.text_encoder import TextEncoder
+from espnet2.gan_tts.avocodo import AvocodoGenerator
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_tts.utils import get_random_segments, get_segments
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder

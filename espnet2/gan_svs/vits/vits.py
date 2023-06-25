@@ -13,14 +13,14 @@ from torch.nn import functional as F
 from typeguard import check_argument_types
 
 from espnet2.gan_svs.abs_gan_svs import AbsGANSVS
+from espnet2.gan_svs.visinger2.visinger2_vocoder import VISinger2Discriminator
+from espnet2.gan_svs.vits.generator import VISingerGenerator
 from espnet2.gan_tts.avocodo.avocodo import (
     SBD,
     AvocodoDiscriminator,
     AvocodoDiscriminatorPlus,
     CoMBD,
 )
-from espnet2.gan_svs.visinger2.visinger2_vocoder import VISinger2Discriminator
-from espnet2.gan_svs.vits.generator import VISingerGenerator
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
