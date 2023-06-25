@@ -8,9 +8,15 @@ from distutils.version import LooseVersion
 from typing import Any, Dict, Optional
 
 import torch
+from torch.nn import functional as F
 from typeguard import check_argument_types
 
 from espnet2.gan_tts.abs_gan_tts import AbsGANTTS
+from espnet2.gan_tts.avocodo.avocodo import (
+    SBD,
+    AvocodoDiscriminator,
+    CoMBD,
+)
 from espnet2.gan_tts.hifigan import (
     HiFiGANMultiPeriodDiscriminator,
     HiFiGANMultiScaleDiscriminator,
@@ -25,12 +31,14 @@ from espnet2.gan_tts.hifigan.loss import (
     MelSpectrogramLoss,
 )
 from espnet2.gan_tts.utils import get_segments
+from espnet2.gan_tts.pits.generator import PITSGenerator
 from espnet2.gan_tts.vits.generator import VITSGenerator
 from espnet2.gan_tts.vits.loss import KLDivergenceLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 
 AVAILABLE_GENERATERS = {
     "vits_generator": VITSGenerator,
+    "pits_generator": PITSGenerator,
 }
 AVAILABLE_DISCRIMINATORS = {
     "hifigan_period_discriminator": HiFiGANPeriodDiscriminator,
@@ -38,6 +46,9 @@ AVAILABLE_DISCRIMINATORS = {
     "hifigan_multi_period_discriminator": HiFiGANMultiPeriodDiscriminator,
     "hifigan_multi_scale_discriminator": HiFiGANMultiScaleDiscriminator,
     "hifigan_multi_scale_multi_period_discriminator": HiFiGANMultiScaleMultiPeriodDiscriminator,  # NOQA
+    "combd": CoMBD,
+    "sbd": SBD,
+    "avocodo": AvocodoDiscriminator,
 }
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
@@ -184,6 +195,7 @@ class VITS(AbsGANTTS):
         lambda_feat_match: float = 2.0,
         lambda_dur: float = 1.0,
         lambda_kl: float = 1.0,
+        lambda_yin: float = 45.0,
         cache_generator_outputs: bool = True,
     ):
         """Initialize VITS module.
@@ -218,7 +230,8 @@ class VITS(AbsGANTTS):
 
         # define modules
         generator_class = AVAILABLE_GENERATERS[generator_type]
-        if generator_type == "vits_generator":
+        self.generator_type = generator_type
+        if generator_type == "vits_generator" or generator_type == "pits_generator":
             # NOTE(kan-bayashi): Update parameters for the compatibility.
             #   The idim and odim is automatically decided from input data,
             #   where idim represents #vocabularies and odim represents
@@ -228,6 +241,11 @@ class VITS(AbsGANTTS):
             **generator_params,
         )
         discriminator_class = AVAILABLE_DISCRIMINATORS[discriminator_type]
+        if "pits" in self.generator_type:
+            discriminator_params["sbd"].update(
+                segment_size=generator_params["segment_size"]
+                * mel_loss_params["hop_length"]
+            )
         self.discriminator = discriminator_class(
             **discriminator_params,
         )
@@ -251,6 +269,7 @@ class VITS(AbsGANTTS):
         self.lambda_kl = lambda_kl
         self.lambda_feat_match = lambda_feat_match
         self.lambda_dur = lambda_dur
+        self.lambda_yin = lambda_yin
 
         # cache
         self.cache_generator_outputs = cache_generator_outputs
@@ -283,6 +302,8 @@ class VITS(AbsGANTTS):
         feats_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
+        ying: torch.Tensor = None,
+        ying_lengths: torch.Tensor = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -297,6 +318,8 @@ class VITS(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
+            ying (Tensor): Yingram tensor (B, T_feats, ying_channels).
+            ying_lengths (Tensor): Yingram length tensor (B,).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
@@ -318,6 +341,7 @@ class VITS(AbsGANTTS):
                 feats_lengths=feats_lengths,
                 speech=speech,
                 speech_lengths=speech_lengths,
+                ying=ying,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -330,6 +354,7 @@ class VITS(AbsGANTTS):
                 feats_lengths=feats_lengths,
                 speech=speech,
                 speech_lengths=speech_lengths,
+                ying=ying,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -343,6 +368,7 @@ class VITS(AbsGANTTS):
         feats_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
+        ying: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -356,6 +382,7 @@ class VITS(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
+            ying (Tensor): Yingram tensor (B, T_feats, ying_channels).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
@@ -371,21 +398,34 @@ class VITS(AbsGANTTS):
         # setup
         batch_size = text.size(0)
         feats = feats.transpose(1, 2)
+        ying = ying.transpose(1, 2)
         speech = speech.unsqueeze(1)
 
         # calculate generator outputs
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            outs = self.generator(
-                text=text,
-                text_lengths=text_lengths,
-                feats=feats,
-                feats_lengths=feats_lengths,
-                sids=sids,
-                spembs=spembs,
-                lids=lids,
-            )
+            if "vits" in self.generator_type:
+                outs = self.generator(
+                    text=text,
+                    text_lengths=text_lengths,
+                    feats=feats,
+                    feats_lengths=feats_lengths,
+                    sids=sids,
+                    spembs=spembs,
+                    lids=lids,
+                )
+            elif "pits" in self.generator_type:
+                outs = self.generator(
+                    text=text,
+                    text_lengths=text_lengths,
+                    feats=feats,
+                    feats_lengths=feats_lengths,
+                    ying=ying,
+                    sids=sids,
+                    spembs=spembs,
+                    lids=lids,
+                )
         else:
             outs = self._cache
 
@@ -394,34 +434,75 @@ class VITS(AbsGANTTS):
             self._cache = outs
 
         # parse outputs
-        speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
-        _, z_p, m_p, logs_p, _, logs_q = outs_
+        if "vits" in self.generator_type:
+            speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
+            _, z_p, m_p, logs_p, _, logs_q = outs_
+        elif "pits" in self.generator_type:
+            speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_, outs2_, outs3_ = outs
+            _, z_p, m_p, logs_p, _, logs_q = outs_
+            z_spec, m_spec, logs_spec, z_yin, m_yin, logs_yin, yin_mask = outs2_
+            (
+                yin_gt_crop,
+                yin_gt_shifted_crop,
+                yin_dec_crop,
+                yin_hat_crop,
+                scope_shift,
+                yin_hat_shifted,
+            ) = outs3_
         speech_ = get_segments(
-            x=speech,
+            x=torch.cat([speech, speech], dim=0),
             start_idxs=start_idxs * self.generator.upsample_factor,
             segment_size=self.generator.segment_size * self.generator.upsample_factor,
         )
+        if "pits" in self.generator_type:
+            yin_gt_crop = get_segments(
+                x=torch.cat([yin_gt_crop, yin_gt_shifted_crop], dim=0),
+                start_idxs=start_idxs,
+                segment_size=self.generator.segment_size,
+            )
 
         # calculate discriminator outputs
-        p_hat = self.discriminator(speech_hat_)
-        with torch.no_grad():
-            # do not store discriminator gradient in generator turn
-            p = self.discriminator(speech_)
+        if "pits" in self.generator_type:
+            p, p_hat, fmaps_real, fmaps_fake = self.discriminator(speech_, speech_hat_)
+        else:
+            p_hat = self.discriminator(speech_hat_)
+            with torch.no_grad():
+                # do not store discriminator gradient in generator turn
+                p = self.discriminator(speech_)
 
         # calculate losses
         with autocast(enabled=False):
-            mel_loss = self.mel_loss(speech_hat_, speech_)
+            if "pits" in self.generator_type:
+                mel_loss = self.mel_loss(speech_hat_[-1], speech_)
+            else:
+                mel_loss = self.mel_loss(speech_hat_, speech_)
             kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
             dur_loss = torch.sum(dur_nll.float())
             adv_loss = self.generator_adv_loss(p_hat)
             feat_match_loss = self.feat_match_loss(p_hat, p)
+            yin_dec_loss = F.l1_loss(yin_gt_shifted_crop, yin_dec_crop)
+
+            # print("yin_gt_crop", yin_gt_crop.shape)
+            # print("yin_hat_crop", yin_hat_crop.shape)
+
+            yin_shift_loss = F.l1_loss(
+                torch.exp(-yin_gt_crop), torch.exp(-yin_hat_crop)
+            ) + F.l1_loss(
+                torch.exp(-yin_hat_shifted),
+                torch.exp(-(torch.chunk(yin_hat_crop, 2, dim=0)[1])),
+            )
 
             mel_loss = mel_loss * self.lambda_mel
             kl_loss = kl_loss * self.lambda_kl
             dur_loss = dur_loss * self.lambda_dur
             adv_loss = adv_loss * self.lambda_adv
+            yin_dec_loss = yin_dec_loss * self.lambda_yin
+            yin_shift_loss = yin_shift_loss * self.lambda_yin
+
             feat_match_loss = feat_match_loss * self.lambda_feat_match
             loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
+            if "pits" in self.generator_type:
+                loss += yin_dec_loss + yin_shift_loss
 
         stats = dict(
             generator_loss=loss.item(),
@@ -431,6 +512,9 @@ class VITS(AbsGANTTS):
             generator_adv_loss=adv_loss.item(),
             generator_feat_match_loss=feat_match_loss.item(),
         )
+        if "pits" in self.generator_type:
+            stats["generator_yin_dec_loss"] = yin_dec_loss.item()
+            stats["generator_yin_shift_loss"] = yin_shift_loss.item()
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -453,6 +537,7 @@ class VITS(AbsGANTTS):
         feats_lengths: torch.Tensor,
         speech: torch.Tensor,
         speech_lengths: torch.Tensor,
+        ying: torch.Tensor,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -466,6 +551,7 @@ class VITS(AbsGANTTS):
             feats_lengths (Tensor): Feature length tensor (B,).
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
+            ying (Tensor): Yingram tensor (B, T_feats, ying_channels).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
@@ -481,21 +567,34 @@ class VITS(AbsGANTTS):
         # setup
         batch_size = text.size(0)
         feats = feats.transpose(1, 2)
+        ying = ying.transpose(1, 2)
         speech = speech.unsqueeze(1)
 
         # calculate generator outputs
         reuse_cache = True
         if not self.cache_generator_outputs or self._cache is None:
             reuse_cache = False
-            outs = self.generator(
-                text=text,
-                text_lengths=text_lengths,
-                feats=feats,
-                feats_lengths=feats_lengths,
-                sids=sids,
-                spembs=spembs,
-                lids=lids,
-            )
+            if "vits" in self.generator_type:
+                outs = self.generator(
+                    text=text,
+                    text_lengths=text_lengths,
+                    feats=feats,
+                    feats_lengths=feats_lengths,
+                    sids=sids,
+                    spembs=spembs,
+                    lids=lids,
+                )
+            elif "pits" in self.generator_type:
+                outs = self.generator(
+                    text=text,
+                    text_lengths=text_lengths,
+                    feats=feats,
+                    feats_lengths=feats_lengths,
+                    ying=ying,
+                    sids=sids,
+                    spembs=spembs,
+                    lids=lids,
+                )
         else:
             outs = self._cache
 
@@ -505,15 +604,23 @@ class VITS(AbsGANTTS):
 
         # parse outputs
         speech_hat_, _, _, start_idxs, *_ = outs
+        # print("speech", speech.shape)
+        # print("start_idxs", start_idxs.shape)
         speech_ = get_segments(
-            x=speech,
+            x=torch.cat([speech, speech], dim=0),
             start_idxs=start_idxs * self.generator.upsample_factor,
             segment_size=self.generator.segment_size * self.generator.upsample_factor,
         )
 
         # calculate discriminator outputs
-        p_hat = self.discriminator(speech_hat_.detach())
-        p = self.discriminator(speech_)
+        if "pits" in self.generator_type:
+            detached_singing_hat_ = [x.detach() for x in speech_hat_]
+            p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
+                speech_, detached_singing_hat_
+            )
+        else:
+            p_hat = self.discriminator(speech_hat_.detach())
+            p = self.discriminator(speech_)
 
         # calculate losses
         with autocast(enabled=False):

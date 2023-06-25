@@ -837,11 +837,11 @@ if ! "${skip_train}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},energy,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},energy,${_type} "
         fi
-        if [ -e "${svs_stats_dir}/train/collect_feats/ying.scp" ]; then
+        if [ -e "${tts_stats_dir}/train/collect_feats/ying.scp" ]; then
             _scp=ying.scp
             _type=npy
-            _train_collect_dir=${svs_stats_dir}/train/collect_feats
-            _valid_collect_dir=${svs_stats_dir}/valid/collect_feats
+            _train_collect_dir=${tts_stats_dir}/train/collect_feats
+            _valid_collect_dir=${tts_stats_dir}/valid/collect_feats
             _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},ying,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},ying,${_type} "
         fi
@@ -862,7 +862,7 @@ if ! "${skip_train}"; then
             _opts+="--energy_extract_conf win_length=${win_length} "
             _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
         fi
-        if [ -e "${svs_stats_dir}/train/ying_stats.npz" ]; then
+        if [ -e "${tts_stats_dir}/train/ying_stats.npz" ]; then
             _opts+="--ying_extract_conf fs=${fs} "
             _opts+="--ying_extract_conf w_step=${n_shift} "
         fi
