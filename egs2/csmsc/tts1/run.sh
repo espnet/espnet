@@ -9,7 +9,6 @@ fs=24000
 n_fft=2048
 n_shift=300
 win_length=1200
-ying_extract=None
 
 opts=
 if [ "${fs}" -eq 48000 ]; then
