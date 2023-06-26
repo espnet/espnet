@@ -28,4 +28,3 @@ loss_conf:
   scale: 15
 
 optim: adam
-

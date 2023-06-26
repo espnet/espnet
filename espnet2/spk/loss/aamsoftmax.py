@@ -19,6 +19,7 @@ class AAMSoftmax(nn.Module):
     deep face recognition." Proceedings of the IEEE/CVF conference on computer
     vision and pattern recognition. 2019.
     """
+
     def __init__(
         self, nOut, nClasses, margin=0.3, scale=15, easy_margin=False, **kwargs
     ):
