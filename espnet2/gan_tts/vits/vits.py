@@ -446,11 +446,20 @@ class VITS(AbsGANTTS):
                 scope_shift,
                 yin_hat_shifted,
             ) = outs3_
-        speech_ = get_segments(
-            x=torch.cat([speech, speech], dim=0),
-            start_idxs=start_idxs * self.generator.upsample_factor,
-            segment_size=self.generator.segment_size * self.generator.upsample_factor,
-        )
+        if "pits" in self.generator_type:
+            speech_ = get_segments(
+                x=torch.cat([speech, speech], dim=0),
+                start_idxs=start_idxs * self.generator.upsample_factor,
+                segment_size=self.generator.segment_size
+                * self.generator.upsample_factor,
+            )
+        else:
+            speech_ = get_segments(
+                x=speech,
+                start_idxs=start_idxs * self.generator.upsample_factor,
+                segment_size=self.generator.segment_size
+                * self.generator.upsample_factor,
+            )
         if "pits" in self.generator_type:
             yin_gt_crop = get_segments(
                 x=torch.cat([yin_gt_crop, yin_gt_shifted_crop], dim=0),
@@ -472,29 +481,29 @@ class VITS(AbsGANTTS):
             if "pits" in self.generator_type:
                 mel_loss = self.mel_loss(speech_hat_[-1], speech_)
             else:
+                print("speech_hat_", speech_hat_.shape)
+                print("speech_", speech_.shape)
                 mel_loss = self.mel_loss(speech_hat_, speech_)
             kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
             dur_loss = torch.sum(dur_nll.float())
             adv_loss = self.generator_adv_loss(p_hat)
             feat_match_loss = self.feat_match_loss(p_hat, p)
-            yin_dec_loss = F.l1_loss(yin_gt_shifted_crop, yin_dec_crop)
-
-            # print("yin_gt_crop", yin_gt_crop.shape)
-            # print("yin_hat_crop", yin_hat_crop.shape)
-
-            yin_shift_loss = F.l1_loss(
-                torch.exp(-yin_gt_crop), torch.exp(-yin_hat_crop)
-            ) + F.l1_loss(
-                torch.exp(-yin_hat_shifted),
-                torch.exp(-(torch.chunk(yin_hat_crop, 2, dim=0)[1])),
-            )
+            if "pits" in self.generator_type:
+                yin_dec_loss = F.l1_loss(yin_gt_shifted_crop, yin_dec_crop)
+                yin_shift_loss = F.l1_loss(
+                    torch.exp(-yin_gt_crop), torch.exp(-yin_hat_crop)
+                ) + F.l1_loss(
+                    torch.exp(-yin_hat_shifted),
+                    torch.exp(-(torch.chunk(yin_hat_crop, 2, dim=0)[1])),
+                )
 
             mel_loss = mel_loss * self.lambda_mel
             kl_loss = kl_loss * self.lambda_kl
             dur_loss = dur_loss * self.lambda_dur
             adv_loss = adv_loss * self.lambda_adv
-            yin_dec_loss = yin_dec_loss * self.lambda_yin
-            yin_shift_loss = yin_shift_loss * self.lambda_yin
+            if "pits" in self.generator_type:
+                yin_dec_loss = yin_dec_loss * self.lambda_yin
+                yin_shift_loss = yin_shift_loss * self.lambda_yin
 
             feat_match_loss = feat_match_loss * self.lambda_feat_match
             loss = mel_loss + kl_loss + dur_loss + adv_loss + feat_match_loss
@@ -602,13 +611,21 @@ class VITS(AbsGANTTS):
 
         # parse outputs
         speech_hat_, _, _, start_idxs, *_ = outs
-        # print("speech", speech.shape)
-        # print("start_idxs", start_idxs.shape)
-        speech_ = get_segments(
-            x=torch.cat([speech, speech], dim=0),
-            start_idxs=start_idxs * self.generator.upsample_factor,
-            segment_size=self.generator.segment_size * self.generator.upsample_factor,
-        )
+
+        if "pits" in self.generator_type:
+            speech_ = get_segments(
+                x=torch.cat([speech, speech], dim=0),
+                start_idxs=start_idxs * self.generator.upsample_factor,
+                segment_size=self.generator.segment_size
+                * self.generator.upsample_factor,
+            )
+        else:
+            speech_ = get_segments(
+                x=speech,
+                start_idxs=start_idxs * self.generator.upsample_factor,
+                segment_size=self.generator.segment_size
+                * self.generator.upsample_factor,
+            )
 
         # calculate discriminator outputs
         if "pits" in self.generator_type:
