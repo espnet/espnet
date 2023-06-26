@@ -8,6 +8,7 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
+from torch.cuda.amp import autocast
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
@@ -23,14 +24,6 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet2.spk.loss import *
-
-if V(torch.__version__) >= V("1.6.0"):
-    from torch.cuda.amp import autocast
-else:
-    # Nothing to do if torch<1.6.0
-    @contextmanager
-    def autocast(enabled=True):
-        yield
 
 
 class ESPnetSpeakerModel(AbsESPnetModel):
