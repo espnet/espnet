@@ -8,9 +8,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time, pdb, numpy, math
 
-class LossFunction(nn.Module):
+class AAMSoftmax(nn.Module):
     def __init__(self, nOut, nClasses, margin=0.3, scale=15, easy_margin=False, **kwargs):
-        super(LossFunction, self).__init__()
+        super().__init__()
 
         self.test_normalize = True
 
@@ -32,6 +32,7 @@ class LossFunction(nn.Module):
         print('Initialised AAMSoftmax margin %.3f scale %.3f'%(self.m,self.s))
 
     def forward(self, x, label=None):
+        label = label.squeeze()
 
         assert x.size()[0] == label.size()[0]
         assert x.size()[1] == self.in_feats
