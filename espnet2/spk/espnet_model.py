@@ -31,6 +31,20 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     Speaker embedding extraction model.
     Core model for diverse speaker-related tasks (e.g., verification, open-set
     identification, diarization)
+
+    The model architecture comprises mainly 'encoder', 'pooling', and
+    'projector'.
+    In common speaker recognition field, the combination of three would be
+    usually named as 'speaker_encoder' (or speaker embedding extractor).
+    We splitted it into three for flexibility in future extensions:
+      - 'encoder'   : extract frame-level speaker embeddings.
+      - 'pooling'   : aggregate into single utterance-level embedding.
+      - 'projector' : (optional) additional processing (e.g., one fully-
+                      connected layer) to derive speaker embedding.
+
+    Possibly, in the future, 'pooling' and/or 'projector' can be integrated as
+    a 'decoder', depending on the extension for joint usage of different tasks
+    (e.g., ASR, SE, target speaker extraction).
     """
 
     def __init__(

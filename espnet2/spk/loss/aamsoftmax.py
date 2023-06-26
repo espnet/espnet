@@ -4,8 +4,6 @@
 # Adapted from https://github.com/wujiyang/Face_Pytorch (Apache License)
 
 import math
-import pdb
-import time
 
 import numpy
 import torch
@@ -14,6 +12,13 @@ import torch.nn.functional as F
 
 
 class AAMSoftmax(nn.Module):
+    """
+    Additive angular margin softmax.
+
+    Paper: Deng, Jiankang, et al. "Arcface: Additive angular margin loss for
+    deep face recognition." Proceedings of the IEEE/CVF conference on computer
+    vision and pattern recognition. 2019.
+    """
     def __init__(
         self, nOut, nClasses, margin=0.3, scale=15, easy_margin=False, **kwargs
     ):

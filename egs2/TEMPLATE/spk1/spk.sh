@@ -80,8 +80,6 @@ if [ "${feats_type}" = raw  ]; then
 elif [ "${feats_type}" = raw_copy  ]; then
     # raw_copy is as same as raw except for skipping the format_wav stage
     data_feats=${dumpdir}/raw_copy
-elif [ "${feats_type}" = fbank_pitch  ]; then
-    data_feats=${dumpdir}/fbank_pitch
 elif [ "${feats_type}" = fbank  ]; then
     data_feats=${dumpdir}/fbank
 elif [ "${feats_type}" == extracted  ]; then
@@ -135,14 +133,16 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ "${feats_type}" = raw ]; then
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}"
         for dset in ${_dsets}; do
-            #if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-            #    _suf="/org"
-            #else
-            #    _suf=""
-            #fi
-            _suf=""
-            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
+            echo "${feats_type}" > "${data_feats}$/${dset}/feats_type"
+
+            # shellcheck disable=SC2086
+            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                --audio-format "${audio_format}" --fs "${fs}" \
+                --multi-columns-input "${multi_columns_input_wav_scp}" \
+                --multi-columns-output "${multi_columns_output_wav_scp}" \
+                "data/${dset}"/wav.scp" "${data_feats}"/${dset}"
+
         done
     else
         log "${feats_type} is not supported yet."
