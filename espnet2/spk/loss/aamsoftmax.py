@@ -13,6 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+
 class AAMSoftmax(nn.Module):
     def __init__(
         self, nOut, nClasses, margin=0.3, scale=15, easy_margin=False, **kwargs
