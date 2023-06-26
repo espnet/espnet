@@ -400,6 +400,7 @@ We provide four objective evaluation metrics:
 - Logarithmic rooted mean square error of the fundamental frequency (log-F0 RMSE)
 - Semitone accuracy (Semitone ACC)
 - Voiced / unvoiced error rate (VUV_E)
+- Word/character error rate (WER/CER, optional executated by users)
 
 For MCD, we apply dynamic time-warping (DTW) to match the length difference between ground-truth singing and generated singing.
 
@@ -412,6 +413,33 @@ cd egs2/<recipe_name>/svs1
 ./pyscripts/utils/evaluate_*.py \
     exp/<model_dir_name>/<decode_dir_name>/eval/wav/gen_wavdir_or_wavscp.scp \
     dump/raw/eval/gt_wavdir_or_wavscp.scp
+
+# Evaluate CER
+./scripts/utils/evaluate_asr.sh \
+    --model_tag <asr_model_tag> \
+    --nj 1 \
+    --inference_args "--beam_size 10 --ctc_weight 0.4 --lm_weight 0.0" \
+    --gt_text "dump/raw/eval1/text" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+# Since ASR model does not use punctuation, it is better to remove punctuations if it contains
+./scripts/utils/remove_punctuation.pl < dump/raw/eval1/text > dump/raw/eval1/text.no_punc
+./scripts/utils/evaluate_asr.sh \
+    --model_tag <asr_model_tag> \
+    --nj 1 \
+    --inference_args "--beam_size 10 --ctc_weight 0.4 --lm_weight 0.0" \
+    --gt_text "dump/raw/eval1/text.no_punc" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+# You can also use openai whisper for evaluation
+./scripts/utils/evaluate_asr.sh \
+    --whisper_tag base \
+    --nj 1 \
+    --gt_text "dump/raw/eval1/text" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
 ```
 
 While these objective metrics can estimate the quality of synthesized singing, it is still difficult to fully determine human perceptual quality from these values, especially with high-fidelity generated singing.
@@ -564,6 +592,8 @@ Then, we transfer the raw data into `score.json`, where situations can be catego
 - If the phonemes and notes are aligned in time domain, convert the raw data directly. (eg. [Opencpop](https://github.com/espnet/espnet/tree/master/egs2/opencpop/svs1))
 
 - If the phoneme annotation are misaligned with notes in time domain, align phonemes (from `label`) and note-lyric pairs (from `musicXML`) through g2p. (eg. [Ofuton](https://github.com/espnet/espnet/tree/master/egs2/ofuton_p_utagoe_db/svs1))
+
+- We also offer some automatic fixes for missing silences in the dataset. During the stage1, when you encounter errors such as "Lyrics are longer than phones" or "Phones are longer than lyrics", the scripts will auto-generated the fixing code. You may need to put the code into the `get_error_dict` method in `egs2/[dataset name]/svs1/local/prep_segments.py`. Noted that depending on the suggested input_type, you may want to copy it into either the `hts` or `xml`'s error_dict. (For more information, please check [namine](https://github.com/espnet/espnet/tree/master/egs2/namine_ritsu_utagoe_db/svs1) or [natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1)
 
 Specially, the note-lyric pairs can be rebuilt through other melody files, like `MIDI`, if there's something wrong with the note duration. (eg. [Natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1))
 

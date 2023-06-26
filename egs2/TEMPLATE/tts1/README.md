@@ -588,11 +588,13 @@ You can find the example configs in:
 
 ### Evaluation
 
-We provide three objective evaluation metrics:
+We provide five objective evaluation metrics:
 
 - Mel-cepstral distortion (MCD)
 - Log-F0 root mean square error (log-F0 RMSE)
 - Character error rate (CER)
+- Conditional Fréchet Speech Distance (CFSD)
+- Speaker Embedding Cosine Similarity (SECS)
 
 MCD and log-F0 RMSE reflect speaker, prosody, and phonetic content similarities, and CER can reflect the intelligibility.
 For MCD and log-F0 RMSE, we apply dynamic time-warping (DTW) to match the length difference between ground-truth speech and generated speech.
@@ -629,6 +631,14 @@ cd egs2/<recipe_name>/tts1
     exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
     exp/<model_dir_name>/<decode_dir_name>/asr_results
 
+# You can also use openai whisper for evaluation
+./scripts/utils/evaluate_asr.sh \
+    --whisper_tag base \
+    --nj 1 \
+    --gt_text "dump/raw/eval1/text" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
 # Since ASR model does not use punctuation, it is better to remove punctuations if it contains
 ./scripts/utils/remove_punctuation.pl < dump/raw/eval1/text > dump/raw/eval1/text.no_punc
 ./scripts/utils/evaluate_asr.sh \
@@ -651,6 +661,16 @@ awk < "exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp" \
     --gt_text "dump/raw/eval1/text.no_punc" \
     exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav_pad.scp \
     exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+# Evaluate CFSD
+./pyscripts/utils/evaluate_cfsd.py \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    dump/raw/eval1/wav.scp
+
+# Evaluate SECS
+./pyscripts/utils/evaluate_secs.py \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    dump/raw/eval1/wav.scp
 
 ```
 
