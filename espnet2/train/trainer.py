@@ -1,4 +1,5 @@
 """Trainer module."""
+import os
 import argparse
 import dataclasses
 import logging
@@ -287,6 +288,7 @@ class Trainer:
             reporter.set_epoch(iepoch)
             # 1. Train and validation for one-epoch
             with reporter.observe("train") as sub_reporter:
+                setattr(dp_model, "epoch", iepoch)
                 all_steps_are_invalid = cls.train_one_epoch(
                     model=dp_model,
                     optimizers=optimizers,
@@ -336,6 +338,13 @@ class Trainer:
             if not distributed_option.distributed or distributed_option.dist_rank == 0:
                 # 3. Report the results
                 logging.info(reporter.log_message())
+                # Hack here for logging
+                with open(
+                    os.path.join(trainer_options.output_dir, "log.txt"),
+                    "a",
+                ) as fout:
+                    fout.write(reporter.log_message() + "\n")
+
                 if trainer_options.use_matplotlib:
                     reporter.matplotlib_plot(output_dir / "images")
                 if train_summary_writer is not None:
@@ -730,6 +739,10 @@ class Trainer:
             reporter.next()
             if iiter % log_interval == 0:
                 logging.info(reporter.log_message(-log_interval))
+                # Hack here for logging
+                with open(os.path.join(options.output_dir, "log.txt"), "a") as fout:
+                    fout.write(reporter.log_message(-log_interval) + "\n")
+
                 if summary_writer is not None:
                     reporter.tensorboard_add_scalar(summary_writer, -log_interval)
                 if use_wandb:

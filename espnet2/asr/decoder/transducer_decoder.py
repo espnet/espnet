@@ -59,6 +59,7 @@ class TransducerDecoder(AbsDecoder):
         self.dunits = hidden_size
         self.dtype = rnn_type
         self.odim = vocab_size
+        self.embed_size = hidden_size
 
         self.ignore_id = -1
         self.blank_id = embed_pad

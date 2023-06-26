@@ -3,6 +3,7 @@
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
+import math
 
 import numpy as np
 import torch
@@ -30,6 +31,8 @@ class Hypothesis:
         torch.Tensor,
     ]
     lm_state: Union[Dict[str, Any], List[Any]] = None
+    # biasing
+    lextree: list = None
 
 
 @dataclass
@@ -62,6 +65,9 @@ class BeamSearchTransducer:
         score_norm: bool = True,
         nbest: int = 1,
         token_list: Optional[List[str]] = None,
+        biasing: bool = False,
+        deepbiasing: bool = False,
+        BiasingBundle: dict = None,
     ):
         """Initialize Transducer search module.
 
@@ -153,6 +159,17 @@ class BeamSearchTransducer:
         self.lm = lm
         self.lm_weight = lm_weight
 
+        # biasing
+        self.biasing = biasing
+        self.deepbiasing = deepbiasing
+        if self.biasing and BiasingBundle is not None:
+            self.Qproj_acoustic = BiasingBundle["Qproj_acoustic"]
+            self.Qproj_char = BiasingBundle["Qproj_char"]
+            self.Kproj = BiasingBundle["Kproj"]
+            self.ooKBemb = BiasingBundle["ooKBemb"]
+            self.pointer_gate = BiasingBundle["pointer_gate"]
+            self.gnn = BiasingBundle["gnn"]
+
         if self.use_lm and self.beam_size == 1:
             logging.warning("LM is provided but not used, since this is greedy search.")
 
@@ -160,7 +177,7 @@ class BeamSearchTransducer:
         self.nbest = nbest
 
     def __call__(
-        self, enc_out: torch.Tensor
+        self, enc_out: torch.Tensor, lextree: list = None,
     ) -> Union[List[Hypothesis], List[ExtendedHypothesis]]:
         """Perform beam search.
 
@@ -173,7 +190,7 @@ class BeamSearchTransducer:
         """
         self.decoder.set_device(enc_out.device)
 
-        nbest_hyps = self.search_algorithm(enc_out)
+        nbest_hyps = self.search_algorithm(enc_out, lextree=lextree)
 
         return nbest_hyps
 
@@ -266,7 +283,11 @@ class BeamSearchTransducer:
 
         return [hyp]
 
-    def default_beam_search(self, enc_out: torch.Tensor) -> List[Hypothesis]:
+    def default_beam_search(
+        self,
+        enc_out: torch.Tensor,
+        lextree: list = None
+    ) -> List[Hypothesis]:
         """Beam search implementation.
 
         Modified from https://arxiv.org/pdf/1211.3711.pdf
@@ -283,9 +304,15 @@ class BeamSearchTransducer:
 
         dec_state = self.decoder.init_state(1)
 
-        kept_hyps = [Hypothesis(score=0.0, yseq=[self.blank_id], dec_state=dec_state)]
+        kept_hyps = [Hypothesis(
+            score=0.0, yseq=[self.blank_id], dec_state=dec_state, lextree=lextree)]
         cache = {}
         cache_lm = {}
+
+        # Encode prefix tree using GNN
+        node_encs = None
+        if self.gnn is not None:
+            node_encs = self.gnn(lextree, self.decoder.embed)
 
         for enc_out_t in enc_out:
             hyps = kept_hyps
@@ -310,10 +337,57 @@ class BeamSearchTransducer:
 
                 dec_out, state, lm_tokens = self.decoder.score(max_hyp, cache)
 
-                logp = torch.log_softmax(
-                    self.joint_network(enc_out_t, dec_out),
-                    dim=-1,
-                )
+                # biasing
+                trees = [None]
+                if self.biasing and lextree is not None:
+                    vy = max_hyp.yseq[-1] if len(max_hyp.yseq) > 1 else self.blank_id
+                    retval = self.get_step_biasing_embs(
+                        [vy], [max_hyp.lextree], [lextree], node_encs)
+                    step_mask = retval[0]
+                    step_embs = retval[1]
+                    trees = retval[2]
+                    p_gen_mask = retval[3]
+                    back_transform = retval[4]
+                    index_list = retval[5]
+
+                    query_char = self.decoder.embed(torch.LongTensor([vy])).squeeze(0)
+                    query_char = self.Qproj_char(query_char)
+                    query_acoustic = self.Qproj_acoustic(enc_out_t)
+                    query = (query_char + query_acoustic).unsqueeze(0).unsqueeze(0)
+                    hptr, tcpgen_dist = self.get_meetingKB_emb_map(
+                        query,
+                        step_mask,
+                        back_transform,
+                        index_list,
+                        meeting_KB=step_embs,
+                    )
+                    tcpgen_dist = tcpgen_dist[0, 0]
+                    hptr = hptr[0, 0]
+
+                if self.biasing and self.deepbiasing:
+                    joint_out, joint_act = self.joint_network(enc_out_t, dec_out, hptr)
+                else:
+                    joint_out, joint_act = self.joint_network(enc_out_t, dec_out)
+
+                # biasing
+                if self.biasing and lextree is not None:
+                    p_gen = torch.sigmoid(self.pointer_gate(
+                        torch.cat([joint_act, hptr], dim=-1)))
+                    model_dist = torch.softmax(joint_out, dim=-1)
+                    p_gen = p_gen if p_gen_mask[0] == 0 else 0
+                    # Get factorised loss
+                    p_not_null = 1.0 - model_dist[0:1]
+                    ptr_dist_fact = tcpgen_dist[1:] * p_not_null
+                    ptr_gen_complement = tcpgen_dist[-1:] * p_gen
+                    p_partial = ptr_dist_fact[:-1] * p_gen + model_dist[1:] * (
+                        1 - p_gen + ptr_gen_complement)
+                    p_final = torch.cat([model_dist[0:1], p_partial], dim=-1)
+                    logp = torch.log(p_final)
+                else:
+                    logp = torch.log_softmax(
+                        joint_out,
+                        dim=-1,
+                    )
                 top_k = logp[1:].topk(beam_k, dim=-1)
 
                 kept_hyps.append(
@@ -322,6 +396,7 @@ class BeamSearchTransducer:
                         yseq=max_hyp.yseq[:],
                         dec_state=max_hyp.dec_state,
                         lm_state=max_hyp.lm_state,
+                        lextree=max_hyp.lextree,
                     )
                 )
 
@@ -353,6 +428,7 @@ class BeamSearchTransducer:
                             yseq=max_hyp.yseq[:] + [int(k + 1)],
                             dec_state=state,
                             lm_state=lm_state,
+                            lextree=trees[0] if self.biasing else None,
                         )
                     )
 
@@ -366,6 +442,87 @@ class BeamSearchTransducer:
                     break
 
         return self.sort_nbest(kept_hyps)
+
+    def get_step_biasing_embs(self, char_ids, trees, origTries, node_encs=None):
+        ooKB_id = self.vocab_size
+        p_gen_mask = []
+        maxlen = 0
+        index_list = []
+        new_trees = []
+        masks_list = []
+        nodes_list = []
+        step_embs = []
+        for i, vy in enumerate(char_ids):
+            new_tree = trees[i][0]
+            if vy == self.blank_id:
+                new_tree = origTries[i]
+                p_gen_mask.append(0)
+            elif self.token_list[vy].endswith('▁'):
+                if vy in new_tree and new_tree[vy][0] != {}:
+                    new_tree = new_tree[vy]
+                else:
+                    new_tree = origTries[i]
+                p_gen_mask.append(0)
+            elif vy not in new_tree:
+                new_tree = [{}]
+                p_gen_mask.append(1)
+            else:
+                new_tree = new_tree[vy]
+                p_gen_mask.append(0)
+            new_trees.append(new_tree)
+            if len(new_tree[0].keys()) > maxlen:
+                maxlen = len(new_tree[0].keys())
+            index_list.append(list(new_tree[0].keys()))
+            if node_encs is not None:
+                nodes_list.append([value[4] for key, value in new_tree[0].items()])
+
+        maxlen += 1
+        step_mask = []
+        back_transform = torch.zeros(
+            len(new_trees), maxlen, ooKB_id + 1, device=self.decoder.device)
+        ones_mat = torch.ones(back_transform.size()).to(self.decoder.device)
+        for i, indices in enumerate(index_list):
+            step_mask.append(
+                len(indices) * [0] + (maxlen - len(indices) - 1) * [1] + [0])
+            if node_encs is not None:
+                nodes_list[i] = nodes_list[i] + [node_encs.size(0)] * (
+                    maxlen - len(indices))
+            indices += [ooKB_id] * (maxlen - len(indices))
+        step_mask = torch.tensor(step_mask).byte().to(self.decoder.device)
+        index_list = torch.LongTensor(index_list).to(self.decoder.device)
+        back_transform.scatter_(dim=-1, index=index_list.unsqueeze(-1), src=ones_mat)
+        if node_encs is not None:
+            node_encs = torch.cat([node_encs, self.ooKBemb.weight], dim=0)
+            step_embs = node_encs[torch.tensor(nodes_list).to(node_encs.device)]
+
+        return step_mask, step_embs, new_trees, p_gen_mask, back_transform, index_list
+
+    def get_meetingKB_emb_map(
+        self,
+        query,
+        meeting_mask,
+        back_transform,
+        index_list,
+        meeting_KB=[],
+    ):
+        if meeting_KB == []:
+            meeting_KB = torch.cat(
+                [self.decoder.embed.weight.data, self.ooKBemb.weight], dim=0)
+            meeting_KB = meeting_KB[index_list]
+        meeting_KB = self.Kproj(meeting_KB)
+        KBweight = torch.einsum('ijk,itk->itj', meeting_KB, query)
+        KBweight = KBweight / math.sqrt(query.size(-1))
+        KBweight.masked_fill_(
+            meeting_mask.bool().unsqueeze(1).repeat(1, query.size(1), 1), -1e9)
+        KBweight = torch.nn.functional.softmax(KBweight, dim=-1)
+        if meeting_KB.size(1) > 1:
+            KBembedding = torch.einsum(
+                'ijk,itj->itk', meeting_KB[:,:-1,:], KBweight[:,:,:-1])
+        else:
+            KBembedding = KBweight.new_zeros(
+                meeting_KB.size(0), query.size(1), meeting_KB.size(-1))
+        KBweight = torch.einsum('ijk,itj->itk', back_transform, KBweight)
+        return KBembedding, KBweight
 
     def time_sync_decoding(self, enc_out: torch.Tensor) -> List[Hypothesis]:
         """Time synchronous beam search implementation.

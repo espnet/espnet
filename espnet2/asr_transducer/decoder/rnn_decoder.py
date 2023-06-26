@@ -64,6 +64,7 @@ class RNNDecoder(AbsDecoder):
 
         self.output_size = hidden_size
         self.vocab_size = vocab_size
+        self.embed_size = embed_size
 
         self.device = next(self.parameters()).device
         self.score_cache = {}

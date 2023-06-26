@@ -84,6 +84,7 @@ from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
+from espnet2.asr.Butils import BiasProc
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -466,6 +467,7 @@ class ASRTask(AbsTask):
         MAX_REFERENCE_NUM = 4
 
         retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+        retval += ["blist"]
         retval = tuple(retval)
 
         logging.info(f"Optional Data Names: {retval }")
@@ -566,6 +568,8 @@ class ASRTask(AbsTask):
                     vocab_size,
                     encoder.output_size(),
                     decoder.dunits,
+                    deepbiasing=getattr(args, "deepbiasing", False),
+                    biasingsize=getattr(args, "battndim", False),
                     **args.joint_net_conf,
                 )
             else:
@@ -584,6 +588,17 @@ class ASRTask(AbsTask):
             odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
         )
 
+        # 6.5 biasing list
+        bprocessor = None
+        if getattr(args, "biasinglist", "") != "":
+            bprocessor = BiasProc(
+                args.biasinglist,
+                maxlen=args.bmaxlen,
+                bdrop=args.bdrop,
+                bpemodel=args.bpemodel,
+                charlist=token_list
+            )
+
         # 7. Build model
         try:
             model_class = model_choices.get_class(args.model)
@@ -601,6 +616,12 @@ class ASRTask(AbsTask):
             ctc=ctc,
             joint_network=joint_network,
             token_list=token_list,
+            bprocessor=bprocessor,
+            biasing=getattr(args, "biasing", False),
+            deepbiasing=getattr(args, "deepbiasing", False),
+            biasingsche=getattr(args, "bsche", 0),
+            battndim=getattr(args, "battndim", 256),
+            biasingGNN=getattr(args, "biasingGNN", ""),
             **args.model_conf,
         )
 

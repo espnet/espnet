@@ -25,24 +25,32 @@ class JointNetwork(torch.nn.Module):
         decoder_size: int,
         joint_space_size: int = 256,
         joint_activation_type: str = "tanh",
+        deepbiasing: bool = False,
+        biasingsize: int = 256,
         **activation_parameters,
     ) -> None:
         """Construct a JointNetwork object."""
         super().__init__()
 
         self.lin_enc = torch.nn.Linear(encoder_size, joint_space_size)
-        self.lin_dec = torch.nn.Linear(decoder_size, joint_space_size)
+        self.lin_dec = torch.nn.Linear(decoder_size, joint_space_size, bias=False)
 
         self.lin_out = torch.nn.Linear(joint_space_size, output_size)
 
         self.joint_activation = get_activation(
             joint_activation_type, **activation_parameters
         )
+        # biasing
+        self.joint_space_size = joint_space_size
+        self.deepbiasing = deepbiasing
+        if deepbiasing:
+            self.lin_biasing = torch.nn.Linear(biasingsize, joint_space_size)
 
     def forward(
         self,
         enc_out: torch.Tensor,
         dec_out: torch.Tensor,
+        hptr: torch.Tensor = None,
     ) -> torch.Tensor:
         """Joint computation of encoder and decoder hidden state sequences.
 
@@ -54,6 +62,11 @@ class JointNetwork(torch.nn.Module):
             joint_out: Joint output state sequences. (B, T, U, D_out)
 
         """
-        joint_out = self.joint_activation(self.lin_enc(enc_out) + self.lin_dec(dec_out))
+        if self.deepbiasing and hptr is not None:
+            joint_out = self.joint_activation(
+                self.lin_enc(enc_out) + self.lin_dec(dec_out) + self.lin_biasing(hptr))
+        else:
+            joint_out = self.joint_activation(
+                self.lin_enc(enc_out) + self.lin_dec(dec_out))
 
-        return self.lin_out(joint_out)
+        return self.lin_out(joint_out), joint_out
