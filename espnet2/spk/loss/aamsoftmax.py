@@ -8,7 +8,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time, pdb, numpy, math
 
-class AAMSoftmax(nn.Module):
+from espnet2.spk.loss.abs_loss import AbsLoss
+
+class AAMSoftmax(AbsLoss):
     def __init__(self, nOut, nClasses, margin=0.3, scale=15, easy_margin=False, **kwargs):
         super().__init__()
 
