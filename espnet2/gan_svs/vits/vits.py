@@ -724,18 +724,18 @@ class VITS(AbsGANSVS):
             loss = mel_loss + kl_loss + adv_loss + feat_match_loss
             if self.vocoder_generator_type == "visinger2":
                 ddsp_mel_loss = ddsp_mel_loss * self.lambda_mel
-                loss += ddsp_mel_loss
+                loss = loss + ddsp_mel_loss
             if self.generator_type == "visinger2":
                 loss_mel_am = self.mse_loss(feats * z_mask, predict_mel * z_mask)
-                loss += loss_mel_am
+                loss = loss + loss_mel_am
 
-            loss += pitch_loss
-            loss += phoneme_dur_loss
-            loss += score_dur_loss
+            loss = loss + pitch_loss
+            loss = loss + phoneme_dur_loss
+            loss = loss + score_dur_loss
             if self.use_phoneme_predictor:
-                loss += ctc_loss
+                loss = loss + ctc_loss
             if "pisinger" in self.generator_type:
-                loss += yin_dec_loss
+                loss = loss + yin_dec_loss
 
         stats = dict(
             generator_loss=loss.item(),
