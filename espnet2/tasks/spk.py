@@ -20,6 +20,7 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
+from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -40,6 +41,7 @@ frontend_choices = ClassChoices(
     classes=dict(
         default=DefaultFrontend,
         sliding_window=SlidingWindow,
+        raw=AbsFrontend,
     ),
     type_check=AbsFrontend,
     default="default",
@@ -110,6 +112,14 @@ preprocessor_choices = ClassChoices(
     default="spk",
 )
 
+loss_choices = ClassChoices(
+    name="loss",
+    classes=dict(
+        aamsoftmax=AAMSoftmax,
+    ),
+    type_check=AAMSoftmax,
+    default="aam",
+)
 
 
 class SpeakerTask(AbsTask):
@@ -123,6 +133,7 @@ class SpeakerTask(AbsTask):
         pooling_choices,
         projector_choices,
         preprocessor_choices,
+        loss_choices,
     ]
 
     trainer = Trainer
@@ -158,6 +169,27 @@ class SpeakerTask(AbsTask):
             type=int_or_none,
             default=None,
             help="The number of input dimension of the feature",
+        )
+
+        group.add_argument(
+            "--target_duration",
+            type=float,
+            default=3.0,
+            help="Duration of samples in a minibatch",
+        )
+
+        group.add_argument(
+            "--sr",
+            type=int,
+            default=16000,
+            help="Sampling rate",
+        )
+
+        group.add_argument(
+            "--num_eval",
+            type=int,
+            default=10,
+            help="Number of segments to make from one utterance in the inference phase",
         )
 
         group.add_argument(
@@ -221,13 +253,16 @@ class SpeakerTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetSpeakerModel:
         assert check_argument_types()
 
-        #TODO: check ESPnet data input structure
-        if args.input_size is None:
+        if args.frontend != "raw":
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
             input_size = frontend.output_size()
         else:
-            raise NotImplementedError
+            # Give features from data-loader
+            args.frontend = None
+            args.frontend_conf = {}
+            frontend = None
+            input_size = args.input_size
 
         if args.specaug is not None:
             specaug_class = specaug_choices.get_class(args.specaug)
@@ -250,6 +285,9 @@ class SpeakerTask(AbsTask):
         projector_class = projector_choices.get_class(args.projector)
         projector = projector_class(**args.projector_conf)
 
+        loss_class = loss_choices.get_class(args.loss)
+        loss = loss_class(**args.loss_conf)
+
         model = ESPnetSpeakerModel(
             frontend=frontend,
             specaug=specaug,
@@ -257,7 +295,8 @@ class SpeakerTask(AbsTask):
             encoder=encoder,
             pooling=pooling,
             projector=projector,
-            **args.model_conf,
+            loss=loss,
+            #**args.model_conf, # uncomment when model_conf exists
         )
 
         if args.init is not None:
