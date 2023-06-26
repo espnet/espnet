@@ -54,6 +54,8 @@ class RawNet3Encoder(AbsEncoder):
         self.layer3 = block(output_size, output_size, kernel_size=3, dilation=4, scale=model_scale)
         self.layer4 = nn.Conv1d(3 * output_size, 1536, kernel_size=1)
 
+        self.mp3 = nn.MaxPool1d(3)
+
     def output_size(self) -> int:
         return self._output_size
 
@@ -70,7 +72,7 @@ class RawNet3Encoder(AbsEncoder):
 
         # frame-level propagation
         x1 = self.layer1(x)
-        x2 = self.layer2(x)
+        x2 = self.layer2(x1)
         x3 = self.layer3(self.mp3(x1) + x2)
 
         x = self.layer4(torch.cat((self.mp3(x1), x2, x3), dim=1))
