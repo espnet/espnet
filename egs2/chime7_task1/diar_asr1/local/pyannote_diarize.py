@@ -39,8 +39,9 @@ def split_maxlen(utt_group, min_len=10):
 
 
 def merge_closer(annotation, delta=1.0, max_len=60, min_len=10):
+    name = annotation.uri
     speakers = annotation.labels()
-    new_annotation = Annotation()
+    new_annotation = Annotation(uri=name)
     for spk in speakers:
         c_segments = sorted(annotation.label_timeline(spk), key=lambda x: x.start)
         stack = []
@@ -97,6 +98,7 @@ def rttm2json(rttm_file):
 
 
 def diarize_session(
+    sess_name,
     pipeline,
     wav_files,
     uem_boundaries=None,
@@ -231,7 +233,7 @@ def diarize_session(
     )
     result = to_annotation(discrete_diarization)
     offset = uem_boundaries[0] / fs
-    new_annotation = Annotation()  # new annotation
+    new_annotation = Annotation(uri=sess_name)  # new annotation
     speakers = result.labels()
     for spk in speakers:
         for seg in result.label_timeline(spk):
@@ -424,6 +426,7 @@ if __name__ == "__main__":
             else:
                 c_uem = None
             c_result = diarize_session(
+                sess,
                 diarization_pipeline,
                 sess2audio[sess],
                 c_uem,

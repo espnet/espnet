@@ -60,7 +60,6 @@ class Bottle2neck(nn.Module):
         scale=4,
         pool=False,
     ):
-
         super().__init__()
 
         width = int(math.floor(planes / scale))

@@ -7,12 +7,11 @@ from typing import List, Optional, Tuple
 
 import torch
 import torch.nn as nn
-from typeguard import check_argument_types
 from asteroid_filterbanks import Encoder, ParamSincFB
+from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.spk.layers.RawNetBasicBlock import *
-
 
 
 class RawNet3Encoder(AbsEncoder):
@@ -21,6 +20,7 @@ class RawNet3Encoder(AbsEncoder):
 
     Args:
     """
+
     def __init__(
         self,
         block=Bottle2neck,
@@ -36,22 +36,28 @@ class RawNet3Encoder(AbsEncoder):
         self.waveform_process = nn.Sequential(
             PreEmphasis(), nn.InstanceNorm1d(1, eps=1e-4, affine=True)
         )
-        self.conv = Encoder(
-            ParamSincFB(
-                output_size // 4,
-                251,
-                stride=sinc_stride
-            )
-        )
+        self.conv = Encoder(ParamSincFB(output_size // 4, 251, stride=sinc_stride))
         self.relu = nn.ReLU()
 
         self.layer1 = block(
-            output_size // 4, output_size, kernel_size=3, dilation=2, scale=model_scale, pool=5
+            output_size // 4,
+            output_size,
+            kernel_size=3,
+            dilation=2,
+            scale=model_scale,
+            pool=5,
         )
         self.layer2 = block(
-            output_size, output_size, kernel_size=3, dilation=3, scale=model_scale, pool=3
+            output_size,
+            output_size,
+            kernel_size=3,
+            dilation=3,
+            scale=model_scale,
+            pool=3,
         )
-        self.layer3 = block(output_size, output_size, kernel_size=3, dilation=4, scale=model_scale)
+        self.layer3 = block(
+            output_size, output_size, kernel_size=3, dilation=4, scale=model_scale
+        )
         self.layer4 = nn.Conv1d(3 * output_size, 1536, kernel_size=1)
 
         self.mp3 = nn.MaxPool1d(3)
@@ -79,7 +85,3 @@ class RawNet3Encoder(AbsEncoder):
         x = self.relu(x)
 
         return x
-
-
-
-

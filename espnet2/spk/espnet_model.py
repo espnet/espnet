@@ -14,16 +14,16 @@ from typeguard import check_argument_types
 
 # TODO: remove unused modules
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.layers.abs_normalize import AbsNormalize
+from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
+from espnet2.spk.loss import *
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
-from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.pytorch_backend.nets_utils import to_device
-from espnet2.spk.loss import *
 
 
 class ESPnetSpeakerModel(AbsESPnetModel):
@@ -58,7 +58,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     def forward(
         self,
         speech: torch.Tensor,
-        #speech_lengths: torch.Tensor = None,
+        # speech_lengths: torch.Tensor = None,
         spk_labels: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -89,13 +89,10 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         # 4. calculate loss
         loss = self.loss(spk_embd, spk_labels)
 
-        stats = dict(
-            loss=loss.detach()
-        )
+        stats = dict(loss=loss.detach())
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
-
 
     def extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor

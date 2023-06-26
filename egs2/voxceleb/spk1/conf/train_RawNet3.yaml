@@ -1,6 +1,6 @@
 # RawNet3 reproduce recipe configuration.
 encoder: rawnet3
-encoder_conf: 
+encoder_conf:
   a: 1
   b: 2
 
