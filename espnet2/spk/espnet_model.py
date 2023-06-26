@@ -47,7 +47,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         normalize: Optional[AbsNormalize],
         encoder: Optional[AbsEncoder],
         pooling: Optional[AbsPooling],
-        projector,
+        projector: Optional[AbsProjector],
         loss,
     ):
         assert check_argument_types()
@@ -83,9 +83,9 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         # 1. extract low-level feats (e.g., mel-spectrogram or MFCC)
         # Will do nothing for raw waveform-based models (e.g., RawNets)
-        feats = self.extract_feats(speech)
+        feats, _ = self.extract_feats(speech, None)
 
-        frame_level_feats = self.encode_frame(speech)
+        frame_level_feats = self.encode_frame(feats)
 
         # 2. aggregation into utterance-level
         utt_level_feat = self.pooling(frame_level_feats)
@@ -104,24 +104,32 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         return loss, stats, weight
 
 
-    def extract_feats(self, speech: torch.Tensor) -> torch.Tensor:
+    def extract_feats(
+        self, speech: torch.Tensor, speech_lengths: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         batch_size = speech.shape[0]
+        speech_lengths = (
+            speech_lengths
+            if speech_lengths is not None
+            else torch.ones(batch_size).int() * speech.shape[1]
+        )
 
         # 1. extract feats
         if self.frontend is not None:
-            feats, _ = self.frontend(speech, None)
+            feats, feat_lengths = self.frontend(speech, speech_lengths)
         else:
             feats = speech
+            feat_lengths = None
 
         # 2. apply augmentations
         if self.specaug is not None and self.training:
-            feats, _ = self.specaug(feats, None)
+            feats, _ = self.specaug(feats, feat_lengths)
 
         # 3. normalize
         if self.normalize is not None:
-            feats, _ = self.normalize(feats, None)
+            feats, _ = self.normalize(feats, feat_lengths)
 
-        return feats
+        return feats, feat_lengths
 
     def encode_frame(self, feats: torch.Tensor) -> torch.Tensor:
         frame_level_feats = self.encoder(feats)
@@ -144,8 +152,9 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     def collect_feats(
         self,
         speech: torch.Tensor,
+        speech_lengths: torch.Tensor,
         spk_labels: torch.Tensor = None,
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
-        feats = self._extract_feats(speech)
-        return {"feats": feats}
+        feats, feats_lengths = self.extract_feats(speech, speech_lengths)
+        return {"feats": feats, "feats_lengths": feats_lengths}
