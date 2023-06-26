@@ -10,7 +10,8 @@ class PreEmphasis(torch.nn.Module):
         super().__init__()
         self.coef = coef
         # make kernel
-        # In pytorch, the convolution operation uses cross-correlation. So, filter is flipped.
+        # In pytorch, the convolution operation uses cross-correlation.
+        # So, filter is flipped.
         self.register_buffer(
             "flipped_filter",
             torch.FloatTensor([-self.coef, 1.0]).unsqueeze(0).unsqueeze(0),

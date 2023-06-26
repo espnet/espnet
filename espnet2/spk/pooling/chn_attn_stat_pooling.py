@@ -7,7 +7,8 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 class ChnAttnStatPooling(AbsPooling):
     """
     Aggregates frame-level features to single utterance-level feature.
-    Proposed in B.Desplanques et al., "ECAPA-TDNN: Emphasized Channel Attention, Propagation and Aggregation in TDNN Based Speaker Verification"
+    Proposed in B.Desplanques et al., "ECAPA-TDNN: Emphasized Channel
+    Attention, Propagation and Aggregation in TDNN Based Speaker Verification"
 
     """
 
