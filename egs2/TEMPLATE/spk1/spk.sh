@@ -260,4 +260,3 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --output_dir "${spk_exp}" \
             ${_opts} ${spk_args}
 fi
-

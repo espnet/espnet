@@ -1462,6 +1462,7 @@ class TSEPreprocessor(EnhPreprocessor):
         data = self._speech_process(uid, data)
         return data
 
+
 class SpkPreprocessor(CommonPreprocessor):
     def __init__(
         self,
@@ -1479,8 +1480,8 @@ class SpkPreprocessor(CommonPreprocessor):
 
         self.nspk = len(self.spk2utt)
         self.nutt = len(self.utt2spk)
-        self.spk2label = None # a dictionary that maps string speaker label to
-                              # an integer
+        self.spk2label = None  # a dictionary that maps string speaker label to
+        # an integer
         self.target_duration = int(target_duration * sr)
         self.num_eval = num_eval
         self._make_label_mapping()
@@ -1498,8 +1499,8 @@ class SpkPreprocessor(CommonPreprocessor):
             label_idx += 1
 
     def _speech_process(
-            self,
-            data: Dict[np.ndarray, str],
+        self,
+        data: Dict[np.ndarray, str],
     ):
         audio = data["speech"]
 
@@ -1509,11 +1510,9 @@ class SpkPreprocessor(CommonPreprocessor):
             audio = np.pad(audio, (0, shortage), "wrap")
 
         if self.train:
-            startframe = np.array([
-                np.int64(
-                    random.random() * (len(audio) - self.target_duration)
-                )
-            ])
+            startframe = np.array(
+                [np.int64(random.random() * (len(audio) - self.target_duration))]
+            )
         else:
             startframe = np.linspace(
                 0, len(audio) - self.target_duration, num=self.num_eval
@@ -1521,17 +1520,15 @@ class SpkPreprocessor(CommonPreprocessor):
 
         audios = []
         for frame in startframe:
-            audios.append(audio[int(frame):int(frame)+self.target_duration])
+            audios.append(audio[int(frame) : int(frame) + self.target_duration])
         audios = np.stack(audios, axis=0)
 
         data["speech"] = np.squeeze(audios)
 
-
         return data
 
     def _text_process(
-        self,
-        data: Dict[str, Union[str, np.ndarray]]
+        self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
         """
         Make speaker labels into integers
@@ -1555,5 +1552,3 @@ class SpkPreprocessor(CommonPreprocessor):
         data = self._speech_process(data)
 
         return data
-
-

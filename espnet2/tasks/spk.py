@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
@@ -13,14 +14,13 @@ from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.spk.espnet_model import ESPnetSpeakerModel
-from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
+from espnet2.spk.espnet_model import ESPnetSpeakerModel
+from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
-from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -28,7 +28,7 @@ from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
-    SpkPreprocessor
+    SpkPreprocessor,
 )
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -71,20 +71,20 @@ normalize_choices = ClassChoices(
 encoder_choices = ClassChoices(
     name="encoder",
     classes=dict(
-        #conformer=ConformerEncoder, #TODO: add.
+        # conformer=ConformerEncoder, #TODO: add.
         rawnet3=RawNet3Encoder,
     ),
     type_check=AbsEncoder,
-    default="rawnet3"
+    default="rawnet3",
 )
 
 pooling_choices = ClassChoices(
     name="pooling",
     classes=dict(
-        #TODO: implement additional aggregators
-        #mean=MeanPoolAggregator,
-        #max=MaxPoolAggregator,
-        #attn_stat=AttnStatAggregator,
+        # TODO: implement additional aggregators
+        # mean=MeanPoolAggregator,
+        # max=MaxPoolAggregator,
+        # attn_stat=AttnStatAggregator,
         chn_attn_stat=ChnAttnStatPooling,
     ),
     type_check=AbsPooling,
@@ -94,8 +94,8 @@ pooling_choices = ClassChoices(
 projector_choices = ClassChoices(
     name="projector",
     classes=dict(
-        #TODO: implement additional Projectors
-        #one_layer=OneLayerProjector,
+        # TODO: implement additional Projectors
+        # one_layer=OneLayerProjector,
         rawnet3=RawNet3Projector,
     ),
     type_check=AbsProjector,
@@ -199,14 +199,12 @@ class SpeakerTask(AbsTask):
             help="The keyword arguments for model class.",
         )
 
-
         for class_choices in cls.class_choices_list:
             class_choices.add_arguments(group)
 
-
     @classmethod
     def build_collate_fn(
-            cls, args: argparse.Namespace, train: bool
+        cls, args: argparse.Namespace, train: bool
     ) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
@@ -237,7 +235,7 @@ class SpeakerTask(AbsTask):
         if not inference:
             retval = ("speech", "spk_labels")
         else:
-        # Recognition mode
+            # Recognition mode
             retval = ("speech",)
         return retval
 
@@ -296,7 +294,7 @@ class SpeakerTask(AbsTask):
             pooling=pooling,
             projector=projector,
             loss=loss,
-            #**args.model_conf, # uncomment when model_conf exists
+            # **args.model_conf, # uncomment when model_conf exists
         )
 
         if args.init is not None:

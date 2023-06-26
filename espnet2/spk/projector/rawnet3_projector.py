@@ -2,6 +2,7 @@ import torch
 
 from espnet2.spk.projector.abs_projector import AbsProjector
 
+
 class RawNet3Projector(AbsProjector):
     def __init__(
         self,
@@ -22,4 +23,3 @@ class RawNet3Projector(AbsProjector):
         x,
     ):
         return self.fc(self.bn(x))
-

@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 import torch
 
+
 class AbsProjector(torch.nn.Module, ABC):
     @abstractmethod
     def output_size(self) -> int:
