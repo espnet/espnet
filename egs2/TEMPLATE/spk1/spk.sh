@@ -32,13 +32,14 @@ skip_data_prep=false  # Skip data preparation stages.
 skip_train=false      # Skip training stages.
 skip_eval=false       # Skip decoding and evaluation stages.
 eval_valid_set=false  # Run decoding for the validation set
-ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
+ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1           # The number of nodes.
 nj=32                 # The number of parallel jobs.
 gpu_inference=false   # Whether to perform gpu decoding.
 dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
 python=python3        # Specify python to execute espnet commands.
+fold_length=80000     # fold_length for speech data during enhancement training
 
 run_args=$(scripts/utils/print_args.sh $0 "$@")
 
@@ -211,7 +212,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # 4. Aggregate shape files
     _opts=
     for i in $(seq "${nj}"); do
-        _opts+="--input_dir ${_logidr}/stats.${i} "
+        _opts+="--input_dir ${_logdir}/stats.${i} "
     done
     # shellcheck disable=SC2086
     ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --skip_sum_stats --output_dir "${spk_stats_dir}"
@@ -251,8 +252,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --output_dir ${spk_exp} \
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,sound \
             --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
+            --train_shape_file ${spk_stats_dir}/train/speech_shape \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/wav.scp,speech,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/utt2spk,spk_labels,text \
+            --fold_length ${fold_length} \
+            --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
             --output_dir "${spk_exp}" \
             ${_opts} ${spk_args}
 fi
