@@ -1,0 +1,34 @@
+# RawNet3 reproduce recipe configuration.
+encoder: rawnet3
+encoder_conf: 
+  a: 1
+  b: 2
+
+  #model_conf:
+
+frontend: raw
+
+projector: rawnet3
+projector_conf:
+  input_size: 3072
+  output_size: 256
+
+
+preprocessor: spk
+preprocessor_conf:
+  utt2spk: dump/raw/voxceleb2_dev/utt2spk
+  spk2utt: dump/raw/voxceleb2_dev/spk2utt
+  target_duration: 3.0
+  sr: 16000
+  num_eval: 1
+
+loss: aamsoftmax
+loss_conf:
+  nOut: 256
+  nClasses: 5994
+  margin: 0.3
+  scale: 15
+
+optim: adam
+
+#num_workers: 6
