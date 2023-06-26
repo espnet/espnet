@@ -64,9 +64,11 @@ class JointNetwork(torch.nn.Module):
         """
         if self.deepbiasing and hptr is not None:
             joint_out = self.joint_activation(
-                self.lin_enc(enc_out) + self.lin_dec(dec_out) + self.lin_biasing(hptr))
+                self.lin_enc(enc_out) + self.lin_dec(dec_out) + self.lin_biasing(hptr)
+            )
         else:
             joint_out = self.joint_activation(
-                self.lin_enc(enc_out) + self.lin_dec(dec_out))
+                self.lin_enc(enc_out) + self.lin_dec(dec_out)
+            )
 
         return self.lin_out(joint_out), joint_out

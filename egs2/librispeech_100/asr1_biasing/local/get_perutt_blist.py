@@ -1,6 +1,6 @@
-import sys, os
 import json
-
+import os
+import sys
 
 all_rare_words = set()
 dirname = sys.argv[1]

@@ -93,8 +93,9 @@ WER = total_errors / total_words
 print("=" * 89)
 print(
     "Common words error rate: {} / {} = {}".format(
-        common_error + insert_common, common_freq, (
-            common_error + insert_common) / common_freq
+        common_error + insert_common,
+        common_freq,
+        (common_error + insert_common) / common_freq,
     )
 )
 print(

@@ -1,16 +1,15 @@
 from __future__ import division
 
 import argparse
+import json
 import logging
 import math
 import os
-from time import time
-from copy import deepcopy
 import random
-import json
+from copy import deepcopy
+from time import time
 
 import editdistance
-
 import numpy as np
 import six
 import torch
@@ -43,13 +42,17 @@ class GCN(torch.nn.Module):
         if self.residual:
             self.layernorm_l1 = torch.nn.LayerNorm(self.treehid)
         for i in range(nlayer - 1):
-            setattr(self, 'gcn_l{}'.format(i + 2), torch.nn.Linear(
-                self.treehid, self.treehid))
-            if self.tied and i < nlayer - 2:
-                getattr(self, 'gcn_l{}'.format(i + 2)).weight = self.gcn_l1.weight
-                getattr(self, 'gcn_l{}'.format(i + 2)).bias = self.gcn_l1.bias
             setattr(
-                self, 'layernorm_l{}'.format(i + 2), torch.nn.LayerNorm(self.treehid))
+                self,
+                "gcn_l{}".format(i + 2),
+                torch.nn.Linear(self.treehid, self.treehid),
+            )
+            if self.tied and i < nlayer - 2:
+                getattr(self, "gcn_l{}".format(i + 2)).weight = self.gcn_l1.weight
+                getattr(self, "gcn_l{}".format(i + 2)).bias = self.gcn_l1.bias
+            setattr(
+                self, "layernorm_l{}".format(i + 2), torch.nn.LayerNorm(self.treehid)
+            )
         self.dropout = torch.nn.Dropout(dropout)
         self.nlayer = nlayer
 
@@ -67,8 +70,9 @@ class GCN(torch.nn.Module):
             if wordpiece is not None:
                 embeddings.append(wordpiece)
             for newpiece, values in lextree[0].items():
-                ids.append(self.get_lextree_encs_gcn(
-                    values, embeddings, adjacency, newpiece))
+                ids.append(
+                    self.get_lextree_encs_gcn(values, embeddings, adjacency, newpiece)
+                )
             if wordpiece is not None:
                 adjacency.append([idx] + ids)
             lextree.append(ids)
@@ -83,33 +87,36 @@ class GCN(torch.nn.Module):
             for neighbour in node:
                 adjacency_mat[node[0], neighbour] = 1.0
         degrees = torch.diag(torch.sum(adjacency_mat, dim=-1) ** -0.5)
-        adjacency_mat = torch.einsum('ij,jk->ik', degrees, adjacency_mat)
-        adjacency_mat = torch.einsum('ij,jk->ik', adjacency_mat, degrees)
+        adjacency_mat = torch.einsum("ij,jk->ik", degrees, adjacency_mat)
+        adjacency_mat = torch.einsum("ij,jk->ik", adjacency_mat, degrees)
 
         if self.training:
-            edgedropmat = torch.rand(
-                adjacency_mat.size()).to(adjacency_mat.device) < self.edgedrop
+            edgedropmat = (
+                torch.rand(adjacency_mat.size()).to(adjacency_mat.device)
+                < self.edgedrop
+            )
             adjacency_mat = adjacency_mat.masked_fill(edgedropmat, 0.0)
         all_node_encs = []
         for i in range(self.nlayer):
-            next_nodes_encs = getattr(self, 'gcn_l{}'.format(i + 1))(nodes_encs)
+            next_nodes_encs = getattr(self, "gcn_l{}".format(i + 1))(nodes_encs)
             if i == 0:
                 first_layer_enc = next_nodes_encs
             if self.nhead > 1 and i == 0:
                 all_node_encs.append(next_nodes_encs)
             next_nodes_encs = torch.relu(
-                torch.einsum('ij,jk->ik', adjacency_mat, next_nodes_encs))
+                torch.einsum("ij,jk->ik", adjacency_mat, next_nodes_encs)
+            )
             if self.residual and i > 0:
                 nodes_encs = next_nodes_encs + nodes_encs
-                nodes_encs = getattr(self, 'layernorm_l{}'.format(i + 1))(nodes_encs)
+                nodes_encs = getattr(self, "layernorm_l{}".format(i + 1))(nodes_encs)
             elif self.residual:
                 nodes_encs = next_nodes_encs + first_layer_enc
-                nodes_encs = getattr(self, 'layernorm_l{}'.format(i + 1))(nodes_encs)
+                nodes_encs = getattr(self, "layernorm_l{}".format(i + 1))(nodes_encs)
             else:
                 nodes_encs = next_nodes_encs
             all_node_encs.append(nodes_encs)
         if self.nhead > 1:
-            output_encs = all_node_encs[0:1] + all_node_encs[-self.nhead + 1:]
+            output_encs = all_node_encs[0:1] + all_node_encs[-self.nhead + 1 :]
             nodes_encs = torch.cat(output_encs, dim=-1)
         return nodes_encs
 

@@ -1,22 +1,21 @@
 from __future__ import division
 
 import argparse
+import json
 import logging
 import math
 import os
-from time import time
-from copy import deepcopy
 import random
-import json
+from copy import deepcopy
+from time import time
 
 import editdistance
-
 import numpy as np
 import six
 import torch
 
-from espnet.lm.lm_utils import make_lexical_tree
 from espnet2.text.build_tokenizer import build_tokenizer
+from espnet.lm.lm_utils import make_lexical_tree
 
 random.seed(0)
 
@@ -61,7 +60,7 @@ class BiasProc(object):
         else:
             sampled_words = bwords
         uttKB = sorted(sampled_words)
-        worddict = {word:i + 1 for i, word in enumerate(uttKB)}
+        worddict = {word: i + 1 for i, word in enumerate(uttKB)}
         lextree = make_lexical_tree(worddict, self.chardict, -1)
         return lextree
 

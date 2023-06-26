@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import logging
 import sys
 from distutils.version import LooseVersion
 from itertools import groupby
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-import json
 
 import numpy as np
 import torch
 import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.asr.Butils import BiasProc
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
     ExtendedHypothesis as ExtTransHypothesis,
 )
 from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TransHypothesis
-from espnet2.asr.Butils import BiasProc
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
@@ -137,7 +137,7 @@ class Speech2Text:
                 maxlen=bmaxlen,
                 bdrop=bdrop,
                 bpemodel=asr_train_args.bpemodel,
-                charlist=asr_model.token_list
+                charlist=asr_model.token_list,
             )
             asr_model.bprocessor = bprocessor
 
@@ -404,7 +404,9 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray], blist: list = None,
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        blist: list = None,
     ) -> Union[
         ListOfHypothesis,
         Tuple[

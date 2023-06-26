@@ -1,30 +1,29 @@
 import logging
+import math
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
-import math
 
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
+from espnet2.asr.Butils import BiasProc
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.asr.layers.gnn import GCN
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.layers.gnn import GCN
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
-from espnet2.asr.Butils import BiasProc
 from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.nets_utils import th_accuracy, to_device
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.nets_utils import to_device
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
@@ -134,6 +133,7 @@ class ESPnetASRModel(AbsESPnetModel):
 
             if self.biasing:
                 from warp_rnnt import rnnt_loss
+
                 self.criterion_transducer = rnnt_loss
             elif not transducer_multi_blank_durations:
                 from warprnnt_pytorch import RNNTLoss
@@ -687,7 +687,8 @@ class ESPnetASRModel(AbsESPnetModel):
             query_acoustic = self.Qproj_acoustic(encoder_out)
             for i in range(decoder_in.size(1)):
                 retval = self.get_step_biasing_embs(
-                    decoder_in[:, i], trees, lextrees, node_encs=node_encs)
+                    decoder_in[:, i], trees, lextrees, node_encs=node_encs
+                )
                 step_mask = retval[0]
                 step_embs = reval[1]
                 trees = retval[2]
@@ -697,11 +698,13 @@ class ESPnetASRModel(AbsESPnetModel):
 
                 p_gen_mask_all.append(p_gen_mask)
                 query_char = self.decoder.dropout_embed(
-                    self.decoder.embed(decoder_in[:,i]))
+                    self.decoder.embed(decoder_in[:, i])
+                )
                 query_char = self.Qproj_char(query_char).unsqueeze(1)
                 query = query_char + query_acoustic  # nutts * T * attn_dim
                 hptr_i, tcpgen_dist_i = self.get_meetingKB_emb_map(
-                    query, step_mask, back_transform, index_list, meeting_KB=step_embs)
+                    query, step_mask, back_transform, index_list, meeting_KB=step_embs
+                )
                 ptr_dist.append(tcpgen_dist_i.unsqueeze(2))
                 KBembedding.append(hptr_i.unsqueeze(2))
             KBembedding = torch.cat(KBembedding, dim=2)
@@ -718,18 +721,20 @@ class ESPnetASRModel(AbsESPnetModel):
 
         # biasing
         if self.biasing and self.epoch >= self.biasingsche:
-            p_gen = torch.sigmoid(self.pointer_gate(
-                torch.cat((joint_acts, KBembedding), dim=-1)))
+            p_gen = torch.sigmoid(
+                self.pointer_gate(torch.cat((joint_acts, KBembedding), dim=-1))
+            )
             ptr_mask = to_device(self, torch.tensor(p_gen_mask_all)).t()
             p_gen = p_gen.masked_fill(ptr_mask.unsqueeze(1).unsqueeze(-1).bool(), 0)
             # Get factorised loss
             model_dist = torch.softmax(joint_out, dim=-1)
-            p_not_null = 1.0 - model_dist[:,:,:,0:1]
-            ptr_dist_fact = ptr_dist[:,:,:,1:] * p_not_null
-            ptr_gen_complement = (ptr_dist[:,:,:,-1:]) * p_gen
-            p_partial = ptr_dist_fact[:,:,:,:-1] * p_gen + model_dist[:,:,:,1:] * (
-                1 - p_gen + ptr_gen_complement)
-            p_final = torch.cat([model_dist[:,:,:,0:1], p_partial], dim=-1)
+            p_not_null = 1.0 - model_dist[:, :, :, 0:1]
+            ptr_dist_fact = ptr_dist[:, :, :, 1:] * p_not_null
+            ptr_gen_complement = (ptr_dist[:, :, :, -1:]) * p_gen
+            p_partial = ptr_dist_fact[:, :, :, :-1] * p_gen + model_dist[
+                :, :, :, 1:
+            ] * (1 - p_gen + ptr_gen_complement)
+            p_final = torch.cat([model_dist[:, :, :, 0:1], p_partial], dim=-1)
             joint_out = torch.log(p_final + 1e-12)
 
         if self.biasing:
@@ -807,7 +812,7 @@ class ESPnetASRModel(AbsESPnetModel):
             if vy == self.blank_id or vy == self.eos:
                 new_tree = origTries[i]
                 p_gen_mask.append(0)
-            elif self.token_list[vy].endswith('▁'):
+            elif self.token_list[vy].endswith("▁"):
                 if vy in new_tree and new_tree[vy][0] != {}:
                     new_tree = new_tree[vy]
                 else:
@@ -829,14 +834,17 @@ class ESPnetASRModel(AbsESPnetModel):
         maxlen += 1
         step_mask = []
         back_transform = torch.zeros(
-            len(new_trees), maxlen, ooKB_id + 1, device=char_ids.device)
+            len(new_trees), maxlen, ooKB_id + 1, device=char_ids.device
+        )
         ones_mat = torch.ones(back_transform.size(), device=char_ids.device)
         for i, indices in enumerate(index_list):
             step_mask.append(
-                len(indices) * [0] + (maxlen - len(indices) - 1) * [1] + [0])
+                len(indices) * [0] + (maxlen - len(indices) - 1) * [1] + [0]
+            )
             if node_encs is not None:
                 nodes_list[i] = nodes_list[i] + [node_encs.size(0)] * (
-                    maxlen - len(indices))
+                    maxlen - len(indices)
+                )
             indices += [ooKB_id] * (maxlen - len(indices))
         step_mask = torch.tensor(step_mask).byte().to(char_ids.device)
         index_list = torch.LongTensor(index_list).to(char_ids.device)
@@ -848,28 +856,32 @@ class ESPnetASRModel(AbsESPnetModel):
         return step_mask, step_embs, new_trees, p_gen_mask, back_transform, index_list
 
     def get_meetingKB_emb_map(
-            self,
-            query,
-            meeting_mask,
-            back_transform,
-            index_list,
-            meeting_KB=[],
+        self,
+        query,
+        meeting_mask,
+        back_transform,
+        index_list,
+        meeting_KB=[],
     ):
         if meeting_KB == []:
             meeting_KB = torch.cat(
-                [self.decoder.embed.weight.data, self.ooKBemb.weight], dim=0)
+                [self.decoder.embed.weight.data, self.ooKBemb.weight], dim=0
+            )
             meeting_KB = meeting_KB[index_list]
         meeting_KB = self.Bdrop(self.Kproj(meeting_KB))
-        KBweight = torch.einsum('ijk,itk->itj', meeting_KB, query)
+        KBweight = torch.einsum("ijk,itk->itj", meeting_KB, query)
         KBweight = KBweight / math.sqrt(query.size(-1))
         KBweight.masked_fill_(
-            meeting_mask.bool().unsqueeze(1).repeat(1, query.size(1), 1), -1e9)
+            meeting_mask.bool().unsqueeze(1).repeat(1, query.size(1), 1), -1e9
+        )
         KBweight = torch.nn.functional.softmax(KBweight, dim=-1)
         if meeting_KB.size(1) > 1:
             KBembedding = torch.einsum(
-                'ijk,itj->itk', meeting_KB[:,:-1,:], KBweight[:,:,:-1])
+                "ijk,itj->itk", meeting_KB[:, :-1, :], KBweight[:, :, :-1]
+            )
         else:
             KBembedding = KBweight.new_zeros(
-                meeting_KB.size(0), query.size(1), meeting_KB.size(-1))
-        KBweight = torch.einsum('ijk,itj->itk', back_transform, KBweight)
+                meeting_KB.size(0), query.size(1), meeting_KB.size(-1)
+            )
+        KBweight = torch.einsum("ijk,itj->itk", back_transform, KBweight)
         return KBembedding, KBweight

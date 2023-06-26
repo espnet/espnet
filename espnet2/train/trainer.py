@@ -1,8 +1,8 @@
 """Trainer module."""
-import os
 import argparse
 import dataclasses
 import logging
+import os
 import time
 from contextlib import contextmanager
 from dataclasses import is_dataclass

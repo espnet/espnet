@@ -1,9 +1,9 @@
 """Search algorithms for Transducer models."""
 
 import logging
+import math
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
-import math
 
 import numpy as np
 import torch
@@ -177,7 +177,9 @@ class BeamSearchTransducer:
         self.nbest = nbest
 
     def __call__(
-        self, enc_out: torch.Tensor, lextree: list = None,
+        self,
+        enc_out: torch.Tensor,
+        lextree: list = None,
     ) -> Union[List[Hypothesis], List[ExtendedHypothesis]]:
         """Perform beam search.
 
@@ -284,9 +286,7 @@ class BeamSearchTransducer:
         return [hyp]
 
     def default_beam_search(
-        self,
-        enc_out: torch.Tensor,
-        lextree: list = None
+        self, enc_out: torch.Tensor, lextree: list = None
     ) -> List[Hypothesis]:
         """Beam search implementation.
 
@@ -304,8 +304,11 @@ class BeamSearchTransducer:
 
         dec_state = self.decoder.init_state(1)
 
-        kept_hyps = [Hypothesis(
-            score=0.0, yseq=[self.blank_id], dec_state=dec_state, lextree=lextree)]
+        kept_hyps = [
+            Hypothesis(
+                score=0.0, yseq=[self.blank_id], dec_state=dec_state, lextree=lextree
+            )
+        ]
         cache = {}
         cache_lm = {}
 
@@ -342,7 +345,8 @@ class BeamSearchTransducer:
                 if self.biasing and lextree is not None:
                     vy = max_hyp.yseq[-1] if len(max_hyp.yseq) > 1 else self.blank_id
                     retval = self.get_step_biasing_embs(
-                        [vy], [max_hyp.lextree], [lextree], node_encs)
+                        [vy], [max_hyp.lextree], [lextree], node_encs
+                    )
                     step_mask = retval[0]
                     step_embs = retval[1]
                     trees = retval[2]
@@ -371,8 +375,9 @@ class BeamSearchTransducer:
 
                 # biasing
                 if self.biasing and lextree is not None:
-                    p_gen = torch.sigmoid(self.pointer_gate(
-                        torch.cat([joint_act, hptr], dim=-1)))
+                    p_gen = torch.sigmoid(
+                        self.pointer_gate(torch.cat([joint_act, hptr], dim=-1))
+                    )
                     model_dist = torch.softmax(joint_out, dim=-1)
                     p_gen = p_gen if p_gen_mask[0] == 0 else 0
                     # Get factorised loss
@@ -380,7 +385,8 @@ class BeamSearchTransducer:
                     ptr_dist_fact = tcpgen_dist[1:] * p_not_null
                     ptr_gen_complement = tcpgen_dist[-1:] * p_gen
                     p_partial = ptr_dist_fact[:-1] * p_gen + model_dist[1:] * (
-                        1 - p_gen + ptr_gen_complement)
+                        1 - p_gen + ptr_gen_complement
+                    )
                     p_final = torch.cat([model_dist[0:1], p_partial], dim=-1)
                     logp = torch.log(p_final)
                 else:
@@ -457,7 +463,7 @@ class BeamSearchTransducer:
             if vy == self.blank_id:
                 new_tree = origTries[i]
                 p_gen_mask.append(0)
-            elif self.token_list[vy].endswith('▁'):
+            elif self.token_list[vy].endswith("▁"):
                 if vy in new_tree and new_tree[vy][0] != {}:
                     new_tree = new_tree[vy]
                 else:
@@ -479,14 +485,17 @@ class BeamSearchTransducer:
         maxlen += 1
         step_mask = []
         back_transform = torch.zeros(
-            len(new_trees), maxlen, ooKB_id + 1, device=self.decoder.device)
+            len(new_trees), maxlen, ooKB_id + 1, device=self.decoder.device
+        )
         ones_mat = torch.ones(back_transform.size()).to(self.decoder.device)
         for i, indices in enumerate(index_list):
             step_mask.append(
-                len(indices) * [0] + (maxlen - len(indices) - 1) * [1] + [0])
+                len(indices) * [0] + (maxlen - len(indices) - 1) * [1] + [0]
+            )
             if node_encs is not None:
                 nodes_list[i] = nodes_list[i] + [node_encs.size(0)] * (
-                    maxlen - len(indices))
+                    maxlen - len(indices)
+                )
             indices += [ooKB_id] * (maxlen - len(indices))
         step_mask = torch.tensor(step_mask).byte().to(self.decoder.device)
         index_list = torch.LongTensor(index_list).to(self.decoder.device)
@@ -507,21 +516,25 @@ class BeamSearchTransducer:
     ):
         if meeting_KB == []:
             meeting_KB = torch.cat(
-                [self.decoder.embed.weight.data, self.ooKBemb.weight], dim=0)
+                [self.decoder.embed.weight.data, self.ooKBemb.weight], dim=0
+            )
             meeting_KB = meeting_KB[index_list]
         meeting_KB = self.Kproj(meeting_KB)
-        KBweight = torch.einsum('ijk,itk->itj', meeting_KB, query)
+        KBweight = torch.einsum("ijk,itk->itj", meeting_KB, query)
         KBweight = KBweight / math.sqrt(query.size(-1))
         KBweight.masked_fill_(
-            meeting_mask.bool().unsqueeze(1).repeat(1, query.size(1), 1), -1e9)
+            meeting_mask.bool().unsqueeze(1).repeat(1, query.size(1), 1), -1e9
+        )
         KBweight = torch.nn.functional.softmax(KBweight, dim=-1)
         if meeting_KB.size(1) > 1:
             KBembedding = torch.einsum(
-                'ijk,itj->itk', meeting_KB[:,:-1,:], KBweight[:,:,:-1])
+                "ijk,itj->itk", meeting_KB[:, :-1, :], KBweight[:, :, :-1]
+            )
         else:
             KBembedding = KBweight.new_zeros(
-                meeting_KB.size(0), query.size(1), meeting_KB.size(-1))
-        KBweight = torch.einsum('ijk,itj->itk', back_transform, KBweight)
+                meeting_KB.size(0), query.size(1), meeting_KB.size(-1)
+            )
+        KBweight = torch.einsum("ijk,itj->itk", back_transform, KBweight)
         return KBembedding, KBweight
 
     def time_sync_decoding(self, enc_out: torch.Tensor) -> List[Hypothesis]:

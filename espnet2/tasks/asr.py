@@ -6,6 +6,7 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.asr.Butils import BiasProc
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H301
@@ -84,7 +85,6 @@ from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_none
-from espnet2.asr.Butils import BiasProc
 
 frontend_choices = ClassChoices(
     name="frontend",
@@ -596,7 +596,7 @@ class ASRTask(AbsTask):
                 maxlen=args.bmaxlen,
                 bdrop=args.bdrop,
                 bpemodel=args.bpemodel,
-                charlist=token_list
+                charlist=token_list,
             )
 
         # 7. Build model
