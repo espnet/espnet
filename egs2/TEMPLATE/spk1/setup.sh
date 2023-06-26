@@ -34,23 +34,23 @@ targets=""
 
 # Copy
 for f in cmd.sh conf local; do
-    target="${dir}"/../../TEMPLATE/sv1/"${f}"
+    target="${dir}"/../../TEMPLATE/spk1/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
 
 
-# Symlinks to TEMPLATE/sv1
+# Symlinks to TEMPLATE/spk1
 for f in sv.sh path.sh scripts pyscripts; do
-    target=../../TEMPLATE/sv1/"${f}"
+    target=../../TEMPLATE/spk1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
 
 
-# Symlinks to TEMPLATE/sv1
+# Symlinks to TEMPLATE/spk1
 for f in db.sh utils steps; do
-    target=../../TEMPLATE/sv1/"${f}"
+    target=../../TEMPLATE/spk1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
