@@ -8,8 +8,8 @@ from typing import Dict, Optional, Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.cuda.amp import autocast
 from packaging.version import parse as V
+from torch.cuda.amp import autocast
 from typeguard import check_argument_types
 
 # TODO: remove unused modules
