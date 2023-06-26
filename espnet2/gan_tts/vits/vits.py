@@ -394,7 +394,8 @@ class VITS(AbsGANTTS):
         # setup
         batch_size = text.size(0)
         feats = feats.transpose(1, 2)
-        ying = ying.transpose(1, 2)
+        if ying is not None:
+            ying = ying.transpose(1, 2)
         speech = speech.unsqueeze(1)
 
         # calculate generator outputs
@@ -563,7 +564,8 @@ class VITS(AbsGANTTS):
         # setup
         batch_size = text.size(0)
         feats = feats.transpose(1, 2)
-        ying = ying.transpose(1, 2)
+        if ying is not None:
+            ying = ying.transpose(1, 2)
         speech = speech.unsqueeze(1)
 
         # calculate generator outputs
