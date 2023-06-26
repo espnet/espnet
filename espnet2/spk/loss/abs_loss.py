@@ -14,7 +14,7 @@ import torch.nn.functional as F
 
 
 class AbsLoss(nn.Module):
-    def __init__(self, nOut, nClasses**kwargs):
+    def __init__(self, nOut: int, **kwargs):
         super().__init__()
 
 
