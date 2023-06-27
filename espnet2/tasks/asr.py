@@ -568,6 +568,7 @@ class ASRTask(AbsTask):
                     vocab_size,
                     encoder.output_size(),
                     decoder.dunits,
+                    biasing=getattr(args, "biasing", False),
                     deepbiasing=getattr(args, "deepbiasing", False),
                     biasingsize=getattr(args, "battndim", False),
                     **args.joint_net_conf,

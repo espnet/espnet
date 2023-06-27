@@ -27,6 +27,7 @@ class JointNetwork(torch.nn.Module):
         joint_activation_type: str = "tanh",
         deepbiasing: bool = False,
         biasingsize: int = 256,
+        biasing: bool = False,
         **activation_parameters,
     ) -> None:
         """Construct a JointNetwork object."""
@@ -43,7 +44,8 @@ class JointNetwork(torch.nn.Module):
         # biasing
         self.joint_space_size = joint_space_size
         self.deepbiasing = deepbiasing
-        if deepbiasing:
+        self.biasing = biasing
+        if biasing and deepbiasing:
             self.lin_biasing = torch.nn.Linear(biasingsize, joint_space_size)
 
     def forward(
@@ -71,4 +73,7 @@ class JointNetwork(torch.nn.Module):
                 self.lin_enc(enc_out) + self.lin_dec(dec_out)
             )
 
-        return self.lin_out(joint_out), joint_out
+        if self.biasing:
+            return self.lin_out(joint_out), joint_out
+        else:
+            return self.lin_out(joint_out)

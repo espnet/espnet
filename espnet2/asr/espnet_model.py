@@ -71,7 +71,7 @@ class ESPnetASRModel(AbsESPnetModel):
         sym_eos: str = "<sos/eos>",
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
-        bprocessor: BiasProc = None,
+        bprocessor: Optional[BiasProc] = None,
         biasing: bool = False,
         biasingsche: int = 0,
         battndim: int = 0,
@@ -690,7 +690,7 @@ class ESPnetASRModel(AbsESPnetModel):
                     decoder_in[:, i], trees, lextrees, node_encs=node_encs
                 )
                 step_mask = retval[0]
-                step_embs = reval[1]
+                step_embs = retval[1]
                 trees = retval[2]
                 p_gen_mask = retval[3]
                 back_transform = retval[4]
@@ -710,12 +710,14 @@ class ESPnetASRModel(AbsESPnetModel):
             KBembedding = torch.cat(KBembedding, dim=2)
             ptr_dist = torch.cat(ptr_dist, dim=2)
 
-        if self.biasing and self.deepbiasing and self.epoch >= self.biasingsche:
+        if self.biasing:
             joint_out, joint_acts = self.joint_network(
-                encoder_out.unsqueeze(2), decoder_out.unsqueeze(1), KBembedding
+                encoder_out.unsqueeze(2),
+                decoder_out.unsqueeze(1),
+                KBembedding if self.epoch >= self.biasingsche else None,
             )
         else:
-            joint_out, joint_acts = self.joint_network(
+            joint_out = self.joint_network(
                 encoder_out.unsqueeze(2), decoder_out.unsqueeze(1)
             )
 

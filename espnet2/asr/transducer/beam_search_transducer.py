@@ -162,6 +162,7 @@ class BeamSearchTransducer:
         # biasing
         self.biasing = biasing
         self.deepbiasing = deepbiasing
+        self.gnn = None
         if self.biasing and BiasingBundle is not None:
             self.Qproj_acoustic = BiasingBundle["Qproj_acoustic"]
             self.Qproj_char = BiasingBundle["Qproj_char"]
@@ -175,6 +176,7 @@ class BeamSearchTransducer:
 
         self.score_norm = score_norm
         self.nbest = nbest
+        self.search_type = search_type
 
     def __call__(
         self,
@@ -192,7 +194,11 @@ class BeamSearchTransducer:
         """
         self.decoder.set_device(enc_out.device)
 
-        nbest_hyps = self.search_algorithm(enc_out, lextree=lextree)
+        # Only supporting biasing in default_beam_search for now
+        if self.search_type == "default":
+            nbest_hyps = self.search_algorithm(enc_out, lextree=lextree)
+        else:
+            nbest_hyps = self.search_algorithm(enc_out)
 
         return nbest_hyps
 
@@ -371,7 +377,7 @@ class BeamSearchTransducer:
                 if self.biasing and self.deepbiasing:
                     joint_out, joint_act = self.joint_network(enc_out_t, dec_out, hptr)
                 else:
-                    joint_out, joint_act = self.joint_network(enc_out_t, dec_out)
+                    joint_out = self.joint_network(enc_out_t, dec_out)
 
                 # biasing
                 if self.biasing and lextree is not None:
