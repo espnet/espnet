@@ -215,8 +215,6 @@ Demonstration
 - Architecture
   - RNN-based non-autoregressive model
   - Xiaoice
-  - Sequence-to-sequence Transformer (with GLU-based encoder)
-  - MLP singer (in progress)
   - Tacotron-singing
   - DiffSinger (in progress)
   - VISinger
