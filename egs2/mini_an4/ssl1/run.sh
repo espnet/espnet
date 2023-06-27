@@ -14,7 +14,7 @@ n_clusters_iter1=10
 
 feature_iter0="mfcc"
 layer_iter0="0"
-feature_iter1="hubert"
+feature_iter1="espnet_hubert"
 layer_iter1="6"
 
 train_set="train_nodev"

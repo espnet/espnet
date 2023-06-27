@@ -1,0 +1,1 @@
+../../asr1/local/prepare_rir_noise_1ch.sh
