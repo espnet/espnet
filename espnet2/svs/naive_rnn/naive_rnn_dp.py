@@ -537,7 +537,10 @@ class NaiveRNNDP(AbsSVS):
         hs = self.length_regulator(hs, d_outs_int)  # (B, T_feats, adim)
         zs, (_, _) = self.decoder(hs)
 
-        zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
+        if self.reduction_factor > zs.size(0):
+            zs = zs[:, :1] # if too short, use the first frame
+        else:
+            zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
 
         # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
