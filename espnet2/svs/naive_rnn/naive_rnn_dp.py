@@ -188,7 +188,7 @@ class NaiveRNNDP(AbsSVS):
                 eunits * dim_direction, eunits * dim_direction
             )
         else:
-            self.midi_projection = torch.nn.linear(
+            self.midi_projection = torch.nn.Linear(
                 3 * eunits * dim_direction, eunits * dim_direction
             )
 
