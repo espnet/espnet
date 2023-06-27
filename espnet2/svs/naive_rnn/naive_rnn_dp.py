@@ -538,7 +538,7 @@ class NaiveRNNDP(AbsSVS):
         zs, (_, _) = self.decoder(hs)
 
         if self.reduction_factor > zs.size(0):
-            zs = zs[:, :1] # if too short, use the first frame
+            zs = zs[:, :1]  # if too short, use the first frame
         else:
             zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
 
