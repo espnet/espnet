@@ -24,28 +24,28 @@ log "$0 $*"
 
 . utils/parse_options.sh || exit 1;
 
-if [ -z "${NATSUME}" ]; then
-    log "Fill the value of 'NATSUME' of db.sh"
+if [ -z "${NAMINE}" ]; then
+    log "Fill the value of 'NAMINE' of db.sh"
     exit 1
 fi
 
-mkdir -p ${NATSUME}
+mkdir -p ${NAMINE}
 
 train_set="tr_no_dev"
 train_dev="dev"
 recog_set="eval"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    log "stage 0: Data Download"
-    # The natsume data should be downloaded from https://github.com/AmanoKei/Natsume_Singing
-    # with authentication
+# if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+#     log "stage 0: Data Download"
+#     # The Namine data should be downloaded from https://drive.google.com/drive/folders/1XA2cm3UyRpAk_BJb1LTytOWrhjsZKbSN
+#     # with authentication
 
-fi
+# fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Dataset split "
     # We use a pre-defined split (see details in local/dataset_split.py)"
-    python local/dataset_split.py ${NATSUME} \
+    python local/dataset_split.py ${NAMINE} \
         data/${train_set} data/${train_dev} data/${recog_set} --fs ${fs}
 fi
 
@@ -53,14 +53,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Prepare segments"
     for x in ${train_set} ${train_dev} ${recog_set}; do
         src_data=data/${x}
-        local/prep_segments.py --input_type hts --silence pau --silence sil --silence br ${src_data}
+        pyscripts/utils/prep_segments.py --dataset namine --input_type hts --silence pau --silence sil --silence br ${src_data}
         mv ${src_data}/segments.tmp ${src_data}/segments
         mv ${src_data}/label.tmp ${src_data}/label
-        local/prep_segments.py --input_type xml --silence P --silence B ${src_data}
+        pyscripts/utils/prep_segments.py --dataset namine --input_type xml --silence P --silence B ${src_data}
         mv ${src_data}/text.tmp ${src_data}/text
         mv ${src_data}/segments_from_xml.tmp ${src_data}/segments_from_xml
         mv ${src_data}/score.scp.tmp ${src_data}/score.scp
-        awk '{printf("%s natsume\n", $1);}' < ${src_data}/segments > ${src_data}/utt2spk
+        awk '{printf("%s namine\n", $1);}' < ${src_data}/segments > ${src_data}/utt2spk
         utils/utt2spk_to_spk2utt.pl < ${src_data}/utt2spk > ${src_data}/spk2utt
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" ${src_data}
     done
