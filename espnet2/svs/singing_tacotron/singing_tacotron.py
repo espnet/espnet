@@ -657,7 +657,6 @@ class singing_tacotron(AbsSVS):
         out, prob, att_w = self.dec.inference(
             h,
             trans_token,
-            ys=y.unsqueeze(0),
             threshold=threshold,
             minlenratio=minlenratio,
             maxlenratio=maxlenratio,

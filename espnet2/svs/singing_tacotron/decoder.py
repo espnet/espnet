@@ -242,7 +242,6 @@ class Decoder(torch.nn.Module):
         self,
         h,
         trans_token,
-        ys,
         threshold=0.5,
         minlenratio=0.0,
         maxlenratio=30.0,
@@ -304,7 +303,6 @@ class Decoder(torch.nn.Module):
         # loop for an output sequence
         idx = 0
         outs, att_ws, probs = [], [], []
-        ys = ys.transpose(0, 1)
 
         while True:
             # updated index
@@ -363,10 +361,7 @@ class Decoder(torch.nn.Module):
             if self.output_activation_fn is not None:
                 prev_out = self.output_activation_fn(outs[-1][:, :, -1])  # (1, odim)
             else:
-                if idx >= 0:
-                    prev_out = outs[-1][:, :, -1]  # (1, odim)
-                else:
-                    prev_out = ys[idx]
+                prev_out = outs[-1][:, :, -1]  # (1, odim)
             if self.cumulate_att_w and prev_att_w is not None:
                 prev_att_w = prev_att_w + att_w  # Note: error when use +=
             else:
