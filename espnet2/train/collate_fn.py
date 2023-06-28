@@ -102,7 +102,14 @@ class HuBERTCollateFn(CommonCollateFn):
                 label = label[:: self.label_downsampling]
             if self.crop_audio:
                 waveform, label, length = _crop_audio_label(
-                    waveform, label, length, num_frames, self.rand_crop, self.kernel_size, self.stride, self.sample_rate
+                    waveform,
+                    label,
+                    length,
+                    num_frames,
+                    self.rand_crop,
+                    self.kernel_size,
+                    self.stride,
+                    self.sample_rate,
                 )
             new_data.append((uid, dict(speech=waveform, text=label)))
 
