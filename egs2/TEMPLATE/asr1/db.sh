@@ -181,6 +181,13 @@ AMEBOSHI=
 ITAKO=
 NATSUME=
 KIRITAN=
+CSD=
+
+if [[ `hostname` == libra_tyx_2227 ]]; then
+    OPENCPOP=/data10/tyx/dataset/Opencpop/
+    CSD=/data10/tyx/dataset/CSD
+    NATSUME=/data10/tyx/dataset/Natsume_Singing_DB
+fi
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
