@@ -22,6 +22,7 @@ from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
@@ -52,6 +53,7 @@ class Text2Text:
         batch_size: int = 1,
         dtype: str = "float32",
         beam_size: int = 20,
+        ctc_weight: float = 0.5,
         lm_weight: float = 1.0,
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
@@ -67,9 +69,16 @@ class Text2Text:
         mt_model.to(dtype=getattr(torch, dtype)).eval()
 
         decoder = mt_model.decoder
+        ctc = (
+            CTCPrefixScorer(ctc=mt_model.ctc, eos=mt_model.eos)
+            if ctc_weight != 0.0
+            else None
+        )
         token_list = mt_model.token_list
         scorers.update(
-            decoder=decoder, length_bonus=LengthBonus(len(token_list)),
+            decoder=decoder,
+            ctc=ctc,
+            length_bonus=LengthBonus(len(token_list)),
         )
 
         # 2. Build Language model
@@ -94,8 +103,13 @@ class Text2Text:
         scorers["ngram"] = ngram
 
         # 4. Build BeamSearch object
+
         weights = dict(
-            decoder=1.0, lm=lm_weight, ngram=ngram_weight, length_bonus=penalty,
+            decoder=1.0 - ctc_weight,
+            ctc=ctc_weight,
+            lm=lm_weight,
+            ngram=ngram_weight,
+            length_bonus=penalty,
         )
         beam_search = BeamSearch(
             beam_size=beam_size,
@@ -105,7 +119,7 @@ class Text2Text:
             eos=mt_model.eos,
             vocab_size=len(token_list),
             token_list=token_list,
-            pre_beam_score_key="full",
+            pre_beam_score_key=None if ctc_weight == 1.0 else "full",
         )
         # TODO(karita): make all scorers batchfied
         if batch_size == 1:
@@ -187,6 +201,9 @@ class Text2Text:
 
         # b. Forward Encoder
         enc, _ = self.mt_model.encode(**batch)
+        # self-condition case
+        if isinstance(enc, tuple):
+            enc = enc[0]
         assert len(enc) == 1, len(enc)
 
         # c. Passed the encoder result and the beam search
@@ -223,7 +240,8 @@ class Text2Text:
 
     @staticmethod
     def from_pretrained(
-        model_tag: Optional[str] = None, **kwargs: Optional[Any],
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
     ):
         """Build Text2Text instance from the pretrained model.
 
@@ -259,6 +277,7 @@ def inference(
     beam_size: int,
     ngpu: int,
     seed: int,
+    ctc_weight: float,
     lm_weight: float,
     ngram_weight: float,
     penalty: float,
@@ -314,12 +333,16 @@ def inference(
         minlenratio=minlenratio,
         dtype=dtype,
         beam_size=beam_size,
+        ctc_weight=ctc_weight,
         lm_weight=lm_weight,
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
     )
-    text2text = Text2Text.from_pretrained(model_tag=model_tag, **text2text_kwargs,)
+    text2text = Text2Text.from_pretrained(
+        model_tag=model_tag,
+        **text2text_kwargs,
+    )
 
     # 3. Build data-iterator
     loader = MTTask.build_streaming_iterator(
@@ -385,7 +408,10 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -413,25 +439,39 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--mt_train_config", type=str, help="ST training configuration",
+        "--mt_train_config",
+        type=str,
+        help="ST training configuration",
     )
     group.add_argument(
-        "--mt_model_file", type=str, help="MT model parameter file",
+        "--mt_model_file",
+        type=str,
+        help="MT model parameter file",
     )
     group.add_argument(
-        "--lm_train_config", type=str, help="LM training configuration",
+        "--lm_train_config",
+        type=str,
+        help="LM training configuration",
     )
     group.add_argument(
-        "--lm_file", type=str, help="LM parameter file",
+        "--lm_file",
+        type=str,
+        help="LM parameter file",
     )
     group.add_argument(
-        "--word_lm_train_config", type=str, help="Word LM training configuration",
+        "--word_lm_train_config",
+        type=str,
+        help="Word LM training configuration",
     )
     group.add_argument(
-        "--word_lm_file", type=str, help="Word LM parameter file",
+        "--word_lm_file",
+        type=str,
+        help="Word LM parameter file",
     )
     group.add_argument(
-        "--ngram_file", type=str, help="N-gram parameter file",
+        "--ngram_file",
+        type=str,
+        help="N-gram parameter file",
     )
     group.add_argument(
         "--model_tag",
@@ -442,7 +482,10 @@ def get_parser():
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
@@ -463,6 +506,12 @@ def get_parser():
         type=float,
         default=0.0,
         help="Input length ratio to obtain min output length",
+    )
+    group.add_argument(
+        "--ctc_weight",
+        type=float,
+        default=0.0,
+        help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
