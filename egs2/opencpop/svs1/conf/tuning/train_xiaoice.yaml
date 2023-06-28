@@ -3,10 +3,10 @@
 ##########################################################
 #                  SVS MODEL SETTING                     #
 ##########################################################
-svs: xiaoice                   # model architecture
+svs: xiaoice                     # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi embedding range (note number + silence)
-    tempo_dim: 512               # tempo embedding range
+    duration_dim: 512            # duration embedding range
     embed_dim: 384               # char or phn embedding range
     adim: 384
     aheads: 4

@@ -17,6 +17,7 @@ stop_stage=100000
 data_url=www.openslr.org/resources/12
 train_set="train_960"
 train_dev="dev"
+alignment_phoneme_dir="./data/librispeech_phoneme_alignment"
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -37,35 +38,18 @@ if [ -z "${LIBRISPEECH}" ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${LIBRISPEECH}/LibriSpeech/LICENSE.TXT" ]; then
-        echo "stage 1: Data Download to ${LIBRISPEECH}"
-        for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-                local/download_and_untar.sh ${LIBRISPEECH} ${data_url} ${part}
-        done
-    else
-        log "stage 1: ${LIBRISPEECH}/LibriSpeech/LICENSE.TXT is already existing. Skip data downloading"
-    fi
+    local/data_asr1.sh --stage 1 --stop-stage 1 --data_url "${data_url}"
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Data Preparation"
-    for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
-        # use underscore-separated names in data directories.
-        local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
-    done
+    local/data_asr1.sh --stage 2 --stop-stage 2
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    log "stage 3: combine all training and development sets"
-    utils/combine_data.sh --extra_files utt2num_frames \
-        data/${train_set} data/train_clean_100 data/train_clean_360 data/train_other_500
-    utils/combine_data.sh --extra_files utt2num_frames \
-        data/${train_dev} data/dev_clean data/dev_other
+    local/data_asr1.sh --stage 3 --stop-stage 3 --train_set "${train_set}" --train_dev "${train_dev}"
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    alignment_phoneme_dir="./data/librispeech_phoneme_alignment"
-
     if [ ! -f ${alignment_phoneme_dir}/dev-clean.tsv ]; then
         log "Stage 4: Downloading  from https://zenodo.org/record/2619474#.Y2F3ZewVDu0"
         mkdir -p ${alignment_phoneme_dir}

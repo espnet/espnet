@@ -60,7 +60,7 @@ ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also fo
 - Support numbers of `SE/SS` recipes (DNS-IS2020, LibriMix, SMS-WSJ, VCTK-noisyreverb, WHAM!, WHAMR!, WSJ-2mix, etc.)
 - Support voice conversion recipe (VCC2020 baseline)
 - Support speaker diarization recipe (mini_librispeech, librimix)
-- Support singing voice synthesis recipe (ofuton_p_utagoe_db)
+- Support singing voice synthesis recipe (ofuton_p_utagoe_db, opencpop, m4singer, etc.)
 
 ### ASR: Automatic Speech Recognition
 - **State-of-the-art performance** in several ASR benchmarks (comparable/superior to hybrid DNN/HMM and CTC)
@@ -215,7 +215,7 @@ Demonstration
 - Architecture
   - RNN-based non-autoregressive model
   - Xiaoice
-  - Tacotron-singing (in progress)
+  - Tacotron-singing
   - DiffSinger (in progress)
   - VISinger
   - VISinger 2 (its variations with different vocoders-architecture)
