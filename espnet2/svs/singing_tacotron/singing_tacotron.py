@@ -58,7 +58,7 @@ class singing_tacotron(AbsSVS):
         econv_layers: int = 3,
         econv_chans: int = 512,
         econv_filts: int = 5,
-        atype: str = "GDCA_location",
+        atype: str = "GDCA",
         adim: int = 512,
         aconv_chans: int = 32,
         aconv_filts: int = 15,
@@ -95,7 +95,7 @@ class singing_tacotron(AbsSVS):
         use_masking: bool = True,
         use_weighted_masking: bool = False,
         bce_pos_weight: float = 5.0,
-        loss_type: str = "L1+L2",
+        loss_type: str = "L1",
         use_guided_attn_loss: bool = True,
         guided_attn_loss_sigma: float = 0.4,
         guided_attn_loss_lambda: float = 1.0,
@@ -386,12 +386,12 @@ class singing_tacotron(AbsSVS):
 
         """
 
-        label = label["lab"]
-        midi = melody["lab"]
-        duration = duration["lab"]
-        label_lengths = label_lengths["lab"]
-        midi_lengths = melody_lengths["lab"]
-        duration_lengths = duration_lengths["lab"]
+        label = label["score"]
+        midi = melody["score"]
+        duration = duration["score_phn"]
+        label_lengths = label_lengths["score"]
+        midi_lengths = melody_lengths["score"]
+        duration_lengths = duration_lengths["score_phn"]
 
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
@@ -586,8 +586,8 @@ class singing_tacotron(AbsSVS):
 
         """
 
-        label = label["lab"]
-        midi = melody["lab"]
+        label = label["score"]
+        midi = melody["score"]
         duration = duration["lab"]
         y = feats
         spemb = spembs
@@ -632,7 +632,7 @@ class singing_tacotron(AbsSVS):
             return dict(feat_gen=outs[0], att_w=att_ws[0])
 
         # inference
-        if self.atype == "GDCA_location":
+        if self.atype == "GDCA":
             h = self.enc.inference(con, ilens)  # h: (B, seq_len, emb_dim)
             trans_token = self.enc_duration.inference(dur)  # (B, seq_len, 1)
         else:
