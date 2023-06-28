@@ -187,13 +187,16 @@ AMEBOSHI=
 ITAKO=
 NATSUME=
 KIRITAN=
-NAMINE=
+CSD=
 
-if [[ `hostname` == venus_tyx_2236 ]]; then
-    POPCS=/data1/wyn/Mus_data/popcs/
-    OPENCPOP=/data1/wyn/Mus_data/Opencpop/
-    ONIKU=/data1/wyn/Mus_data/ONIKU_KURUMI_UTAGOE_DB/
-    OFUTON=/data1/wyn/Mus_data/OFUTON_P_UTAGOE_DB/
+if [[ `hostname` == libra_tyx_2227 ]]; then
+    OPENCPOP=/data10/tyx/dataset/Opencpop/
+    CSD=/data10/tyx/dataset/CSD
+    NATSUME=/data10/tyx/dataset/Natsume_Singing_DB
+    M4SINGER=/data10/tyx/dataset/m4singer
+    POPCS=/data10/tyx/dataset/popcs
+    ONIKU=/data10/tyx/dataset/ONIKU_KURUMI_UTAGOE_DB
+    OFUTON=/data10/tyx/dataset/OFUTON_P_UTAGOE_DB
 fi
 
 # For only CMU TIR environment

@@ -33,6 +33,8 @@ egs*/*/*/data*
 egs*/*/*/db
 egs*/*/*/downloads
 egs*/*/*/dump
+egs*/*/*/dump_en
+egs*/*/*/dump_kr
 egs*/*/*/enhan
 egs*/*/*/exp
 egs*/*/*/fbank
