@@ -51,7 +51,9 @@ def dump_feature(
             if is_scipy_wav_style(mat):
                 # If data is sound file, then got as Tuple[int, ndarray]
                 rate, mat = mat
-                mat = mat.astype(np.float64, order="C") / 32768.0
+                mat = mat.astype(np.float64, order="C") 
+                if in_filetype == "sound":
+                    mat = mat / 32768.0
             nsample = len(mat)
             feat = reader.get_feats(mat, nsample).numpy()
             writer[utt] = feat
