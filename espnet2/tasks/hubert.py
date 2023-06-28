@@ -282,6 +282,9 @@ class HubertTask(AbsTask):
             pad=args.collate_fn_conf.get("pad", False),
             rand_crop=args.collate_fn_conf.get("rand_crop", True),
             crop_audio=not args.collect_stats,
+            kernel_size=args.collate_fn_conf.get("kernel_size", 25),
+            stride=args.collate_fn_conf.get("stride", 20),
+            sample_rate=args.collate_fn_conf.get("sample_rate", 16),
         )
 
     @classmethod
