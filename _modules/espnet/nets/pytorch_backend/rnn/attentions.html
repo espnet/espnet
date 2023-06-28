@@ -1995,6 +1995,181 @@
         <span class="c1"># att_ws =&gt; list of attentions</span>
         <span class="n">att_ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">att_ws</span></div>
+
+
+<span class="k">def</span> <span class="nf">_apply_dynamic_filter</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">last_attended_idx</span><span class="p">,</span> <span class="n">backward_window</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">forward_window</span><span class="o">=</span><span class="mi">3</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply dynamic filter.</span>
+
+<span class="sd">    This function apply the dynamic filter</span>
+<span class="sd">    introduced in `Singing-Tacotron: Global Duration Control Attention and Dynamic</span>
+<span class="sd">    Filter for End-to-end Singing Voice Synthesis`_.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        p (Tensor): probability before applying softmax (1, T).</span>
+<span class="sd">        last_attended_idx (int): The index of the inputs of the last attended [0, T].</span>
+<span class="sd">        backward_window (int, optional): Backward window size in dynamic filter.</span>
+<span class="sd">        forward_window (int, optional): Forward window size in dynamic filter.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tensor: Dynamic filtered probability (1, T).</span>
+
+<span class="sd">    .. _`Singing-Tacotron: Global Duration Control Attention and Dynamic</span>
+<span class="sd">    Filter for End-to-end Singing Voice Synthesis`:</span>
+<span class="sd">        https://arxiv.org/pdf/2202.07907v1.pdf</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Batch dynamic filter is not yet supported.&quot;</span><span class="p">)</span>
+    <span class="n">backward_idx</span> <span class="o">=</span> <span class="n">last_attended_idx</span> <span class="o">-</span> <span class="n">backward_window</span>
+    <span class="n">forward_idx</span> <span class="o">=</span> <span class="n">last_attended_idx</span> <span class="o">+</span> <span class="n">forward_window</span>
+    <span class="k">if</span> <span class="n">backward_idx</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[:,</span> <span class="p">:</span><span class="n">backward_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="n">forward_idx</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">p</span><span class="p">[:,</span> <span class="n">forward_idx</span><span class="p">:]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+
+<div class="viewcode-block" id="GDCAttLoc"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.GDCAttLoc">[docs]</a><span class="k">class</span> <span class="nc">GDCAttLoc</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Global duration control attention module.</span>
+<span class="sd">    Reference: Singing-Tacotron: Global Duration Control Attention and Dynamic</span>
+<span class="sd">    Filter for End-to-end Singing Voice Synthesis</span>
+<span class="sd">    (https://arxiv.org/abs/2202.07907)</span>
+<span class="sd">    :param int eprojs: # projection-units of encoder</span>
+<span class="sd">    :param int dunits: # units of decoder</span>
+<span class="sd">    :param int att_dim: attention dimension</span>
+<span class="sd">    :param int aconv_chans: # channels of attention convolution</span>
+<span class="sd">    :param int aconv_filts: filter size of attention convolution</span>
+<span class="sd">    :param bool han_mode: flag to swith on mode of hierarchical attention</span>
+<span class="sd">        and not store pre_compute_enc_h</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dunits</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">,</span> <span class="n">aconv_chans</span><span class="p">,</span> <span class="n">aconv_filts</span><span class="p">,</span> <span class="n">han_mode</span><span class="o">=</span><span class="kc">False</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">GDCAttLoc</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pt_zero_linear</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">att_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp_enc</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">eprojs</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp_dec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">dunits</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mlp_att</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">aconv_chans</span><span class="p">,</span> <span class="n">att_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">loc_conv</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Conv2d</span><span class="p">(</span>
+            <span class="mi">1</span><span class="p">,</span>
+            <span class="n">aconv_chans</span><span class="p">,</span>
+            <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">aconv_filts</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+            <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">aconv_filts</span><span class="p">),</span>
+            <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gvec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">att_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span> <span class="o">=</span> <span class="n">dunits</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">eprojs</span> <span class="o">=</span> <span class="n">eprojs</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">att_dim</span> <span class="o">=</span> <span class="n">att_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span> <span class="o">=</span> <span class="n">han_mode</span>
+
+<div class="viewcode-block" id="GDCAttLoc.reset"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.GDCAttLoc.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;reset states&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="GDCAttLoc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.GDCAttLoc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">enc_hs_pad</span><span class="p">,</span>
+        <span class="n">enc_hs_len</span><span class="p">,</span>
+        <span class="n">trans_token</span><span class="p">,</span>
+        <span class="n">dec_z</span><span class="p">,</span>
+        <span class="n">att_prev</span><span class="p">,</span>
+        <span class="n">scaling</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">last_attended_idx</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">backward_window</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">forward_window</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calcualte AttLoc forward propagation.</span>
+<span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
+<span class="sd">        :param list enc_hs_len: padded encoder hidden state length (B)</span>
+<span class="sd">        :param torch.Tensor trans_token: Global transition token</span>
+<span class="sd">            for duration (B x T_max x 1)</span>
+<span class="sd">        :param torch.Tensor dec_z: decoder hidden state (B x D_dec)</span>
+<span class="sd">        :param torch.Tensor att_prev: previous attention weight (B x T_max)</span>
+<span class="sd">        :param float scaling: scaling parameter before applying softmax</span>
+<span class="sd">        :param torch.Tensor forward_window: forward window size</span>
+<span class="sd">            when constraining attention</span>
+<span class="sd">        :param int last_attended_idx: index of the inputs of the last attended</span>
+<span class="sd">        :param int backward_window: backward window size in attention constraint</span>
+<span class="sd">        :param int forward_window: forward window size in attetion constraint</span>
+<span class="sd">        :return: attention weighted encoder state (B, D_enc)</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        :return: previous attention weights (B x T_max)</span>
+<span class="sd">        :rtype: torch.Tensor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc_hs_pad</span><span class="p">)</span>
+        <span class="c1"># pre-compute all h outside the decoder loop</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">han_mode</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">=</span> <span class="n">enc_hs_pad</span>  <span class="c1"># utt x frame x hdim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="c1"># utt x frame x att_dim</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_enc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">dec_z</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dec_z</span> <span class="o">=</span> <span class="n">enc_hs_pad</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dec_z</span> <span class="o">=</span> <span class="n">dec_z</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dunits</span><span class="p">)</span>
+
+        <span class="c1"># initialize attention weight with uniform dist.</span>
+        <span class="k">if</span> <span class="n">att_prev</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">att_prev</span> <span class="o">=</span> <span class="n">enc_hs_pad</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="o">*</span><span class="n">enc_hs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">()[:</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">att_prev</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="c1"># att_prev: utt x frame -&gt; utt x 1 x 1 x frame</span>
+        <span class="c1"># -&gt; utt x att_conv_chans x 1 x frame</span>
+        <span class="n">att_conv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loc_conv</span><span class="p">(</span><span class="n">att_prev</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span><span class="p">))</span>
+        <span class="c1"># att_conv: utt x att_conv_chans x 1 x frame -&gt; utt x frame x att_conv_chans</span>
+        <span class="n">att_conv</span> <span class="o">=</span> <span class="n">att_conv</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="c1"># att_conv: utt x frame x att_conv_chans -&gt; utt x frame x att_dim</span>
+        <span class="n">att_conv</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_att</span><span class="p">(</span><span class="n">att_conv</span><span class="p">)</span>
+
+        <span class="c1"># dec_z_tiled: utt x frame x att_dim</span>
+        <span class="n">dec_z_tiled</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mlp_dec</span><span class="p">(</span><span class="n">dec_z</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">att_dim</span><span class="p">)</span>
+
+        <span class="c1"># dot with gvec</span>
+        <span class="c1"># utt x frame x att_dim -&gt; utt x frame</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gvec</span><span class="p">(</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">att_conv</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_enc_h</span> <span class="o">+</span> <span class="n">dec_z_tiled</span><span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># NOTE: consider zero padding when compute w.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">make_pad_mask</span><span class="p">(</span><span class="n">enc_hs_len</span><span class="p">))</span>
+        <span class="n">e</span><span class="o">.</span><span class="n">masked_fill_</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="o">-</span><span class="nb">float</span><span class="p">(</span><span class="s2">&quot;inf&quot;</span><span class="p">))</span>
+
+        <span class="n">w</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">scaling</span> <span class="o">*</span> <span class="n">e</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># dynamic filter</span>
+        <span class="k">if</span> <span class="n">last_attended_idx</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">att_prev</span> <span class="o">=</span> <span class="n">_apply_dynamic_filter</span><span class="p">(</span>
+                <span class="n">att_prev</span><span class="p">,</span> <span class="n">last_attended_idx</span><span class="p">,</span> <span class="n">backward_window</span><span class="p">,</span> <span class="n">forward_window</span>
+            <span class="p">)</span>
+
+        <span class="c1"># GDCA attention</span>
+        <span class="n">att_prev_shift</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">att_prev</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">trans_token</span> <span class="o">=</span> <span class="n">trans_token</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">trans_token_shift</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">trans_token</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))[:,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="p">((</span><span class="mi">1</span> <span class="o">-</span> <span class="n">trans_token_shift</span><span class="p">)</span> <span class="o">*</span> <span class="n">att_prev_shift</span> <span class="o">+</span> <span class="n">trans_token</span> <span class="o">*</span> <span class="n">att_prev</span><span class="p">)</span> <span class="o">*</span> <span class="n">w</span>
+
+        <span class="c1"># NOTE: clamp is needed to avoid nan gradient</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">),</span> <span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># weighted sum over flames</span>
+        <span class="c1"># utt x hdim</span>
+        <span class="c1"># NOTE use bmm instead of sum(*)</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enc_h</span> <span class="o">*</span> <span class="n">w</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">h_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">c</span><span class="p">,</span> <span class="n">w</span></div></div>
 </pre></div>
 
            </div>

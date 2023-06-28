@@ -244,7 +244,7 @@
         <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">midi_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">129</span><span class="p">,</span>
         <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
-        <span class="n">tempo_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
+        <span class="n">duration_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
         <span class="n">eprenet_conv_layers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
         <span class="n">eprenet_conv_chans</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
         <span class="n">eprenet_conv_filts</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">,</span>
@@ -287,7 +287,7 @@
         <span class="c1"># store hyperparameters</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">idim</span> <span class="o">=</span> <span class="n">idim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">midi_dim</span> <span class="o">=</span> <span class="n">midi_dim</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tempo_dim</span> <span class="o">=</span> <span class="n">tempo_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">duration_dim</span> <span class="o">=</span> <span class="n">duration_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eunits</span> <span class="o">=</span> <span class="n">eunits</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">idim</span> <span class="o">-</span> <span class="mi">1</span>
@@ -329,7 +329,7 @@
                 <span class="p">),</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">eprenet_conv_chans</span><span class="p">,</span> <span class="n">eunits</span><span class="p">),</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encoder_input_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">duration_encoder_input_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
                 <span class="n">EncoderPrenet</span><span class="p">(</span>
                     <span class="n">idim</span><span class="o">=</span><span class="n">midi_dim</span><span class="p">,</span>
                     <span class="n">embed_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
@@ -352,8 +352,8 @@
                 <span class="n">embedding_dim</span><span class="o">=</span><span class="n">eunits</span><span class="p">,</span>
                 <span class="n">padding_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span><span class="p">,</span>
             <span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encoder_input_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
-                <span class="n">num_embeddings</span><span class="o">=</span><span class="n">tempo_dim</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">duration_encoder_input_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
+                <span class="n">num_embeddings</span><span class="o">=</span><span class="n">duration_dim</span><span class="p">,</span>
                 <span class="n">embedding_dim</span><span class="o">=</span><span class="n">eunits</span><span class="p">,</span>
                 <span class="n">padding_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span><span class="p">,</span>
             <span class="p">)</span>
@@ -378,7 +378,7 @@
             <span class="c1"># proj_size=eunits,</span>
         <span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encoder</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">duration_encoder</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTM</span><span class="p">(</span>
             <span class="n">input_size</span><span class="o">=</span><span class="n">eunits</span><span class="p">,</span>
             <span class="n">hidden_size</span><span class="o">=</span><span class="n">eunits</span><span class="p">,</span>
             <span class="n">num_layers</span><span class="o">=</span><span class="n">elayers</span><span class="p">,</span>
@@ -394,7 +394,7 @@
                 <span class="n">eunits</span> <span class="o">*</span> <span class="n">dim_direction</span><span class="p">,</span> <span class="n">eunits</span> <span class="o">*</span> <span class="n">dim_direction</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">midi_projection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">midi_projection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
                 <span class="mi">3</span> <span class="o">*</span> <span class="n">eunits</span> <span class="o">*</span> <span class="n">dim_direction</span><span class="p">,</span> <span class="n">eunits</span> <span class="o">*</span> <span class="n">dim_direction</span>
             <span class="p">)</span>
 
@@ -542,27 +542,27 @@
         <span class="k">if</span> <span class="n">joint_training</span><span class="p">:</span>
             <span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
             <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span>
-            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span>
             <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_lengths</span>
             <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">melody_lengths</span>
             <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
             <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
+            <span class="n">duration_</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
             <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
             <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">melody_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
+            <span class="n">duration_lengths</span> <span class="o">=</span> <span class="n">duration_lengths</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
             <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
 
-        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">feats_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">midi</span> <span class="o">=</span> <span class="n">midi</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">label_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
+        <span class="n">duration_</span> <span class="o">=</span> <span class="n">duration_</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">duration_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">feats</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
         <span class="n">label_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_input_layer</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>  <span class="c1"># FIX ME: label Float to Int</span>
         <span class="n">midi_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_encoder_input_layer</span><span class="p">(</span><span class="n">midi</span><span class="p">)</span>
-        <span class="n">tempo_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encoder_input_layer</span><span class="p">(</span><span class="n">tempo</span><span class="p">)</span>
+        <span class="n">duration_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_encoder_input_layer</span><span class="p">(</span><span class="n">duration_</span><span class="p">)</span>
 
         <span class="n">label_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pack_padded_sequence</span><span class="p">(</span>
             <span class="n">label_emb</span><span class="p">,</span> <span class="n">label_lengths</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span>
@@ -570,23 +570,25 @@
         <span class="n">midi_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pack_padded_sequence</span><span class="p">(</span>
             <span class="n">midi_emb</span><span class="p">,</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
-        <span class="n">tempo_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pack_padded_sequence</span><span class="p">(</span>
-            <span class="n">tempo_emb</span><span class="p">,</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span>
+        <span class="n">duration_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pack_padded_sequence</span><span class="p">(</span>
+            <span class="n">duration_emb</span><span class="p">,</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
 
         <span class="n">hs_label</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">label_emb</span><span class="p">)</span>
         <span class="n">hs_midi</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_encoder</span><span class="p">(</span><span class="n">midi_emb</span><span class="p">)</span>
-        <span class="n">hs_tempo</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encoder</span><span class="p">(</span><span class="n">tempo_emb</span><span class="p">)</span>
+        <span class="n">hs_duration</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_encoder</span><span class="p">(</span><span class="n">duration_emb</span><span class="p">)</span>
 
         <span class="n">hs_label</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pad_packed_sequence</span><span class="p">(</span><span class="n">hs_label</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">hs_midi</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pad_packed_sequence</span><span class="p">(</span><span class="n">hs_midi</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">hs_tempo</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pad_packed_sequence</span><span class="p">(</span><span class="n">hs_tempo</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="n">hs_duration</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pad_packed_sequence</span><span class="p">(</span>
+            <span class="n">hs_duration</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span>
+        <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;add&quot;</span><span class="p">:</span>
-            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs_label</span> <span class="o">+</span> <span class="n">hs_midi</span> <span class="o">+</span> <span class="n">hs_tempo</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs_label</span> <span class="o">+</span> <span class="n">hs_midi</span> <span class="o">+</span> <span class="n">hs_duration</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">midi_projection</span><span class="p">(</span><span class="n">hs</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">hs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">hs_label</span><span class="p">,</span> <span class="n">hs_midi</span><span class="p">,</span> <span class="n">hs_tempo</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">hs_label</span><span class="p">,</span> <span class="n">hs_midi</span><span class="p">,</span> <span class="n">hs_duration</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">midi_projection</span><span class="p">(</span><span class="n">hs</span><span class="p">))</span>
         <span class="c1"># integrate spk &amp; lang embeddings</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -701,23 +703,23 @@
         <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
         <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">joint_training</span><span class="p">:</span>
-            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
+            <span class="n">duration_</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
+            <span class="n">duration_</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
 
         <span class="n">label_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_input_layer</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>  <span class="c1"># FIX ME: label Float to Int</span>
         <span class="n">midi_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_encoder_input_layer</span><span class="p">(</span><span class="n">midi</span><span class="p">)</span>
-        <span class="n">tempo_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encoder_input_layer</span><span class="p">(</span><span class="n">tempo</span><span class="p">)</span>
+        <span class="n">duration_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_encoder_input_layer</span><span class="p">(</span><span class="n">duration_</span><span class="p">)</span>
 
         <span class="n">hs_label</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">label_emb</span><span class="p">)</span>
         <span class="n">hs_midi</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_encoder</span><span class="p">(</span><span class="n">midi_emb</span><span class="p">)</span>
-        <span class="n">hs_tempo</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encoder</span><span class="p">(</span><span class="n">tempo_emb</span><span class="p">)</span>
+        <span class="n">hs_duration</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_encoder</span><span class="p">(</span><span class="n">duration_emb</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_embed_integration_type</span> <span class="o">==</span> <span class="s2">&quot;add&quot;</span><span class="p">:</span>
-            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs_label</span> <span class="o">+</span> <span class="n">hs_midi</span> <span class="o">+</span> <span class="n">hs_tempo</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">hs_label</span> <span class="o">+</span> <span class="n">hs_midi</span> <span class="o">+</span> <span class="n">hs_duration</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">midi_projection</span><span class="p">(</span><span class="n">hs</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">hs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">hs_label</span><span class="p">,</span> <span class="n">hs_midi</span><span class="p">,</span> <span class="n">hs_tempo</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">((</span><span class="n">hs_label</span><span class="p">,</span> <span class="n">hs_midi</span><span class="p">,</span> <span class="n">hs_duration</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">midi_projection</span><span class="p">(</span><span class="n">hs</span><span class="p">))</span>
         <span class="c1"># integrate spk &amp; lang embeddings</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spks</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -726,6 +728,8 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">lid_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lid_emb</span><span class="p">(</span><span class="n">lids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">lid_embs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">spembs</span> <span class="o">=</span> <span class="n">spembs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
         <span class="c1"># integrate speaker embedding</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -739,7 +743,10 @@
         <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_outs_int</span><span class="p">)</span>  <span class="c1"># (B, T_feats, adim)</span>
         <span class="n">zs</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs</span><span class="p">)</span>
 
-        <span class="n">zs</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">):</span>
+            <span class="n">zs</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># if too short, use the first frame</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">zs</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span><span class="p">]</span>
 
         <span class="c1"># (B, T_feats//r, odim * r) -&gt; (B, T_feats//r * r, odim)</span>
         <span class="n">before_outs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">))</span>
@@ -780,7 +787,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;support only add or concat.&quot;</span><span class="p">)</span>
 
-        <span class="k">return</span></div>
+        <span class="k">return</span> <span class="n">hs</span></div>
 </pre></div>
 
            </div>

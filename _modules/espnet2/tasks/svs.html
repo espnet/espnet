@@ -228,10 +228,11 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.svs.naive_rnn.naive_rnn</span> <span class="kn">import</span> <span class="n">NaiveRNN</span>
 <span class="kn">from</span> <span class="nn">espnet2.svs.naive_rnn.naive_rnn_dp</span> <span class="kn">import</span> <span class="n">NaiveRNNDP</span>
-<span class="kn">from</span> <span class="nn">espnet2.svs.xiaoice.XiaoiceSing</span> <span class="kn">import</span> <span class="n">XiaoiceSing</span>
 
 <span class="c1"># TODO(Yuning): Models to be added</span>
-<span class="c1"># from espnet2.svs.singing_tacotron2.singing_tacotron2 import singing_tacotron2</span>
+<span class="kn">from</span> <span class="nn">espnet2.svs.singing_tacotron.singing_tacotron</span> <span class="kn">import</span> <span class="n">singing_tacotron</span>
+<span class="kn">from</span> <span class="nn">espnet2.svs.xiaoice.XiaoiceSing</span> <span class="kn">import</span> <span class="n">XiaoiceSing</span>
+
 <span class="c1"># from espnet2.svs.encoder_decoder.transformer.transformer import Transformer</span>
 <span class="c1"># from espnet2.svs.mlp_singer.mlp_singer import MLPSinger</span>
 <span class="c1"># from espnet2.svs.glu_transformer.glu_transformer import GLU_Transformer</span>
@@ -333,7 +334,7 @@
         <span class="n">vits</span><span class="o">=</span><span class="n">VITS</span><span class="p">,</span>
         <span class="n">joint_score2wav</span><span class="o">=</span><span class="n">JointScore2Wav</span><span class="p">,</span>
         <span class="c1"># mlp=MLPSinger,</span>
-        <span class="c1"># singing_tacotron2=singing_tacotron2,</span>
+        <span class="n">singing_tacotron</span><span class="o">=</span><span class="n">singing_tacotron</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsSVS</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;naive_rnn&quot;</span><span class="p">,</span>
@@ -499,7 +500,6 @@
         <span class="c1"># assert check_return_type(retval)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 
-    <span class="c1"># TODO(Yuning): check new names</span>
 <div class="viewcode-block" id="SVSTask.required_data_names"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.svs.SVSTask.required_data_names">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">required_data_names</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>

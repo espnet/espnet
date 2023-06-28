@@ -11630,6 +11630,69 @@ and not store pre_compute_k and pre_compute_v</p></li>
 </dd></dl>
 
 <dl class="class">
+<dt id="espnet.nets.pytorch_backend.rnn.attentions.GDCAttLoc">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.rnn.attentions.</code><code class="sig-name descname">GDCAttLoc</code><span class="sig-paren">(</span><em class="sig-param">eprojs</em>, <em class="sig-param">dunits</em>, <em class="sig-param">att_dim</em>, <em class="sig-param">aconv_chans</em>, <em class="sig-param">aconv_filts</em>, <em class="sig-param">han_mode=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#GDCAttLoc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.GDCAttLoc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Global duration control attention module.
+Reference: Singing-Tacotron: Global Duration Control Attention and Dynamic
+Filter for End-to-end Singing Voice Synthesis
+(<a class="reference external" href="https://arxiv.org/abs/2202.07907">https://arxiv.org/abs/2202.07907</a>)
+:param int eprojs: # projection-units of encoder
+:param int dunits: # units of decoder
+:param int att_dim: attention dimension
+:param int aconv_chans: # channels of attention convolution
+:param int aconv_filts: filter size of attention convolution
+:param bool han_mode: flag to swith on mode of hierarchical attention</p>
+<blockquote>
+<div><p>and not store pre_compute_enc_h</p>
+</div></blockquote>
+<dl class="method">
+<dt id="espnet.nets.pytorch_backend.rnn.attentions.GDCAttLoc.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">trans_token</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em>, <em class="sig-param">scaling=1.0</em>, <em class="sig-param">last_attended_idx=None</em>, <em class="sig-param">backward_window=1</em>, <em class="sig-param">forward_window=3</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#GDCAttLoc.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.GDCAttLoc.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calcualte AttLoc forward propagation.
+:param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+:param list enc_hs_len: padded encoder hidden state length (B)
+:param torch.Tensor trans_token: Global transition token</p>
+<blockquote>
+<div><p>for duration (B x T_max x 1)</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dec_z</strong> (<em>torch.Tensor</em>) – decoder hidden state (B x D_dec)</p></li>
+<li><p><strong>att_prev</strong> (<em>torch.Tensor</em>) – previous attention weight (B x T_max)</p></li>
+<li><p><strong>scaling</strong> (<em>float</em>) – scaling parameter before applying softmax</p></li>
+<li><p><strong>forward_window</strong> (<em>int</em>) – forward window size
+when constraining attention</p></li>
+<li><p><strong>last_attended_idx</strong> (<em>int</em>) – index of the inputs of the last attended</p></li>
+<li><p><strong>backward_window</strong> (<em>int</em>) – backward window size in attention constraint</p></li>
+<li><p><strong>forward_window</strong> – forward window size in attetion constraint</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>attention weighted encoder state (B, D_enc)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>previous attention weights (B x T_max)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.pytorch_backend.rnn.attentions.GDCAttLoc.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#GDCAttLoc.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.GDCAttLoc.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>reset states</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet.nets.pytorch_backend.rnn.attentions.NoAtt">
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.rnn.attentions.</code><code class="sig-name descname">NoAtt</code><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#NoAtt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.NoAtt" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>

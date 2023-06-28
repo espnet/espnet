@@ -260,7 +260,7 @@
         <span class="n">idim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">odim</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">midi_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">129</span><span class="p">,</span>
-        <span class="n">tempo_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
+        <span class="n">duration_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">500</span><span class="p">,</span>
         <span class="n">embed_dim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">512</span><span class="p">,</span>
         <span class="n">adim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">384</span><span class="p">,</span>
         <span class="n">aheads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
@@ -393,7 +393,7 @@
         <span class="c1"># store hyperparameters</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">idim</span> <span class="o">=</span> <span class="n">idim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">midi_dim</span> <span class="o">=</span> <span class="n">midi_dim</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tempo_dim</span> <span class="o">=</span> <span class="n">tempo_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">duration_dim</span> <span class="o">=</span> <span class="n">duration_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">odim</span> <span class="o">=</span> <span class="n">odim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">embed_dim</span> <span class="o">=</span> <span class="n">embed_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">idim</span> <span class="o">-</span> <span class="mi">1</span>
@@ -449,8 +449,8 @@
             <span class="n">embedding_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
             <span class="n">padding_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span><span class="p">,</span>
         <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encode_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
-            <span class="n">num_embeddings</span><span class="o">=</span><span class="n">tempo_dim</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">duration_encode_layer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
+            <span class="n">num_embeddings</span><span class="o">=</span><span class="n">duration_dim</span><span class="p">,</span>
             <span class="n">embedding_dim</span><span class="o">=</span><span class="n">embed_dim</span><span class="p">,</span>
             <span class="n">padding_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">padding_idx</span><span class="p">,</span>
         <span class="p">)</span>
@@ -671,25 +671,23 @@
         <span class="k">if</span> <span class="n">joint_training</span><span class="p">:</span>
             <span class="n">label</span> <span class="o">=</span> <span class="n">label</span>
             <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span>
-            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span>
             <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_lengths</span>
             <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">melody_lengths</span>
-            <span class="n">tempo_lengths</span> <span class="o">=</span> <span class="n">duration_lengths</span>
+            <span class="n">duration_lengths</span> <span class="o">=</span> <span class="n">duration_lengths</span>
             <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
             <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
+            <span class="n">duration_</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
             <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
             <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">melody_lengths</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
-            <span class="n">tempo_lengths</span> <span class="o">=</span> <span class="n">duration_lengths</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
+            <span class="n">duration_lengths</span> <span class="o">=</span> <span class="n">duration_lengths</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
             <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
 
-        <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">feats</span> <span class="o">=</span> <span class="n">feats</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">feats_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">midi</span> <span class="o">=</span> <span class="n">midi</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">label_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
-        <span class="n">tempo</span> <span class="o">=</span> <span class="n">tempo</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">tempo_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
+        <span class="n">duration_</span> <span class="o">=</span> <span class="n">duration_</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">duration_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>  <span class="c1"># for data-parallel</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_function</span> <span class="o">==</span> <span class="s2">&quot;XiaoiceSing2&quot;</span><span class="p">:</span>
             <span class="n">pitch</span> <span class="o">=</span> <span class="n">pitch</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">pitch_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
             <span class="n">log_f0</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">pitch</span><span class="p">,</span> <span class="nb">min</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -698,8 +696,8 @@
 
         <span class="n">label_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phone_encode_layer</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
         <span class="n">midi_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_encode_layer</span><span class="p">(</span><span class="n">midi</span><span class="p">)</span>
-        <span class="n">tempo_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encode_layer</span><span class="p">(</span><span class="n">tempo</span><span class="p">)</span>
-        <span class="n">input_emb</span> <span class="o">=</span> <span class="n">label_emb</span> <span class="o">+</span> <span class="n">midi_emb</span> <span class="o">+</span> <span class="n">tempo_emb</span>
+        <span class="n">duration_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_encode_layer</span><span class="p">(</span><span class="n">duration_</span><span class="p">)</span>
+        <span class="n">input_emb</span> <span class="o">=</span> <span class="n">label_emb</span> <span class="o">+</span> <span class="n">midi_emb</span> <span class="o">+</span> <span class="n">duration_emb</span>
 
         <span class="n">x_masks</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_source_mask</span><span class="p">(</span><span class="n">label_lengths</span><span class="p">)</span>
         <span class="n">hs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">input_emb</span><span class="p">,</span> <span class="n">x_masks</span><span class="p">)</span>  <span class="c1"># (B, T_text, adim)</span>
@@ -851,15 +849,15 @@
         <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
         <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
         <span class="k">if</span> <span class="n">joint_training</span><span class="p">:</span>
-            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
+            <span class="n">duration_</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">tempo</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
+            <span class="n">duration_</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;score_phn&quot;</span><span class="p">]</span>
         <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span><span class="p">[</span><span class="s2">&quot;lab&quot;</span><span class="p">]</span>
 
         <span class="n">label_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">phone_encode_layer</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
         <span class="n">midi_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi_encode_layer</span><span class="p">(</span><span class="n">midi</span><span class="p">)</span>
-        <span class="n">tempo_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tempo_encode_layer</span><span class="p">(</span><span class="n">tempo</span><span class="p">)</span>
-        <span class="n">input_emb</span> <span class="o">=</span> <span class="n">label_emb</span> <span class="o">+</span> <span class="n">midi_emb</span> <span class="o">+</span> <span class="n">tempo_emb</span>
+        <span class="n">duration_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_encode_layer</span><span class="p">(</span><span class="n">duration_</span><span class="p">)</span>
+        <span class="n">input_emb</span> <span class="o">=</span> <span class="n">label_emb</span> <span class="o">+</span> <span class="n">midi_emb</span> <span class="o">+</span> <span class="n">duration_emb</span>
 
         <span class="n">x_masks</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># self._source_mask(label_lengths)</span>
         <span class="n">hs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">input_emb</span><span class="p">,</span> <span class="n">x_masks</span><span class="p">)</span>  <span class="c1"># (B, T_text, adim)</span>
