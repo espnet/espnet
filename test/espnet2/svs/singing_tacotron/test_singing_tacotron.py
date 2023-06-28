@@ -4,7 +4,6 @@ import torch
 from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 
 
-
 @pytest.mark.parametrize("prenet_layers", [0, 1])
 @pytest.mark.parametrize("postnet_layers", [0, 1])
 @pytest.mark.parametrize("reduction_factor", [1, 3])
@@ -193,7 +192,12 @@ def test_singing_tacotron(
         else:
             use_dynamic_filter = False
             use_att_constraint = True
-        model.inference(**inputs, maxlenratio=1.0, use_att_constraint=use_att_constraint, use_dynamic_filter=use_dynamic_filter)
+        model.inference(
+            **inputs,
+            maxlenratio=1.0,
+            use_att_constraint=use_att_constraint,
+            use_dynamic_filter=use_dynamic_filter
+        )
 
         # teacher forcing
         # check inference with teachder forcing
@@ -262,4 +266,9 @@ def test_singing_tacotron(
         use_dynamic_filter = False
         use_att_constraint = False
 
-        model.inference(**inputs, use_teacher_forcing=True, use_att_constraint=use_att_constraint, use_dynamic_filter=use_dynamic_filter)
+        model.inference(
+            **inputs,
+            use_teacher_forcing=True,
+            use_att_constraint=use_att_constraint,
+            use_dynamic_filter=use_dynamic_filter
+        )
