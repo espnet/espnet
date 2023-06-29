@@ -1,5 +1,9 @@
-source=tst-COMMON/en-de/wavs.txt
-target=tst-COMMON/en-de/refs.txt
+# simuleval requires .wav format
+# source file should have 1 path per line, with no uttid
+# cut -d' ' -f2- dump_wav/raw/tst-COMMON.en-de/wav.scp > dump_wav/raw/tst-COMMON.en-de/wav.scp.noid
+
+source=dump_wav/raw/tst-COMMON.en-de/wav.scp.noid
+target=dump_wav/raw/tst-COMMON.en-de/ref.trn.detok
 agent=pyscripts/utils/simuleval_agent.py
 nj=8
 python=python3
@@ -24,7 +28,6 @@ token_delay=false
 target_type=text
 hold_n=0
 chunk_decay=1.0
-use_word_list=false
 
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
 run_args=$(pyscripts/utils/print_args.py $0 "$@")
@@ -33,7 +36,7 @@ run_args=$(pyscripts/utils/print_args.py $0 "$@")
 . ./path.sh
 . ./cmd.sh
 
-output="$exp/beam${beam_size}_ctc${ctc_weight}_pen${penalty}_chunk${sim_chunk_length}_drd${disable_repetition_detection}_tokdelay${token_delay}_holdn${hold_n}_decay${chunk_decay}_wordlist${use_word_list}_v2"
+output="$exp/beam${beam_size}_ctc${ctc_weight}_pen${penalty}_chunk${sim_chunk_length}_drd${disable_repetition_detection}_tokdelay${token_delay}_holdn${hold_n}_decay${chunk_decay}"
 st_train_config=$exp/config.yaml
 st_model_file=$exp/$inference_st_model
 
@@ -57,7 +60,6 @@ ${_cmd} --gpu "${ngpu}" JOB=1:"${nj}" "${output}"/simuleval.JOB.log \
         --ctc_weight $ctc_weight \
         --sim_chunk_length $sim_chunk_length \
         --chunk_decay $chunk_decay \
-        --use_word_list $use_word_list \
         --hold_n $hold_n \
         --backend $backend \
         --incremental_decode $incremental_decode \
@@ -70,7 +72,7 @@ ${_cmd} --gpu "${ngpu}" JOB=1:"${nj}" "${output}"/simuleval.JOB.log \
         --token_delay $token_delay \
         --target-type $target_type
 
-${python} local/merge_simuleval_logs.py --src $output/ --nj $nj --dst $output/instances.log
+${python} pyscripts/utils/merge_simuleval_logs.py --src $output/ --nj $nj --dst $output/instances.log
 
 simuleval --score-only \
     --output $output \
