@@ -16,7 +16,7 @@ Dataset are extracted from various multilingual sources. All sources are with ei
 
 ### Data download/setup
 
-[Download link](https://drive.google.com/file/d/1-XxaFv3bd-XFdbiq-5k1uXD1nlF7jiKZ/view?usp=drive_link)
+[Download link](https://drive.google.com/file/d/1zslKQwadZaYWXAmfBCvlos9BVQ9k6PHT/view?usp=sharing)
 
 After download the dataset, please set the `MLSUPERB` to the data directory. The preparation will be automatically done in scripts for each tasks.
 

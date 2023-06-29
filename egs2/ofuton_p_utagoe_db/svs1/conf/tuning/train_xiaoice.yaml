@@ -6,7 +6,7 @@
 svs: xiaoice                     # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi embedding range (note number + silence)
-    tempo_dim: 500               # tempo embedding range
+    duration_dim: 500            # duration embedding range
     embed_dim: 384               # char or phn embedding range
     adim: 384
     aheads: 4
@@ -43,7 +43,7 @@ optim_conf:           # keyword arguments for selected optimizer
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-# num_iters_per_epoch: 200    # number of iterations per epoch
+num_iters_per_epoch: 500    # number of iterations per epoch
 max_epoch: 500              # number of epochs
 grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
@@ -57,7 +57,7 @@ sort_batch: descending      # how to sort created batches
 num_workers: 10              # number of workers of data loader
 train_dtype: float32        # dtype in training
 log_interval: null          # log interval in iterations
-keep_nbest_models: 2        # number of models to keep
+keep_nbest_models: 5        # number of models to keep
 num_att_plot: 3             # number of attention figures to be saved in every check
 seed: 0                     # random seed number
 best_model_criterion:

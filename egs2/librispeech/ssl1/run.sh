@@ -18,10 +18,10 @@ n_clusters_iter2=500
 feature_iter0="mfcc"
 layer_iter0="0"
 # Extract latent features from transformer layer 6 of HuBERT model pre-trained in the iteration0
-feature_iter1="hubert"
+feature_iter1="espnet_hubert"
 layer_iter1="6"
 # Extract latent features from transformer layer 9 of HuBERT model pre-trained in the iteration1
-feature_iter2="hubert"
+feature_iter2="espnet_hubert"
 layer_iter2="9"
 
 train_set="train_960"
