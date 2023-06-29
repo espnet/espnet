@@ -115,7 +115,6 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
         logging.info("Pretrained Transformers model parameters reloaded!")
 
     def score(self, ys, state, x, speech=None):
-        # import pdb;pdb.set_trace()
         model_kwargs = {
             "encoder_outputs": ModelOutput(
                 last_hidden_state=self.linear_in(x).unsqueeze(0)
