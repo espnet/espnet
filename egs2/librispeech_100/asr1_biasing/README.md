@@ -1,26 +1,38 @@
 # TCPGen in RNN-T
-## TCPGen
+# RESULTS
+## Environments
+- date: `Wed Jul  5 02:01:19 BST 2023`
+- python version: `3.8.16 (default, Mar  2 2023, 03:21:46)  [GCC 11.2.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 2.0.1+cu117`
+- Git hash: `6f33b9d9a999d4cd7e9bc0dcfc0ba342bdff7c17`
+  - Commit date: `Thu Jun 29 02:16:09 2023 +0100`
 
-## asr_train_conformer_transducer_tcpgen500_deep_sche30_suffix
-
-- ASR Config: [conf/train_rnnt.yaml](conf/train_rnnt.yaml)
-- Params: 27.13M
-
+## exp/asr_train_conformer_transducer_tcpgen500_deep_sche30_GCN6L_rep_suffix
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/test_clean|2620|52576|95.4|4.1|0.5|0.7|5.3|50.7|
-|decode_asr_asr_model_valid.acc.ave/test_other|2939|52343|85.9|12.4|1.7|1.7|15.8|78.0|
+|decode_asr_asr_model_valid.loss.ave/dev_clean|2703|54402|95.7|3.9|0.4|0.6|4.9|48.0|
+|decode_asr_asr_model_valid.loss.ave/dev_other|2864|50948|85.8|12.6|1.6|1.9|16.1|77.0|
+|decode_asr_asr_model_valid.loss.ave/test_clean|2620|52576|95.4|4.1|0.5|0.7|5.2|49.9|
+|decode_asr_asr_model_valid.loss.ave/test_other|2939|52343|86.0|12.2|1.7|1.8|15.8|78.4|
+|decode_b20_nolm_avebest/test_clean|2620|52576|0.0|0.0|100.0|0.0|100.0|100.0|
 
-## asr_train_conformer_transducer_tcpgen500_deep_sche30_suffix
-
-- ASR Config: [conf/tuning/train_rnnt_std_tcpgen.yaml](conf/tuning/train_rnnt_std_tcpgen.yaml)
-- Params: 26.99M
-
-### WER
+### CER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
-|decode_asr_asr_model_valid.acc.ave/test_clean|2620|52576|95.1|4.5|0.5|0.7|5.6|54.3|
-|decode_asr_asr_model_valid.acc.ave/test_other|2939|52343|85.2|13.0|1.8|1.7|16.5|79.6|
+|decode_asr_asr_model_valid.loss.ave/dev_clean|2703|288456|98.4|1.0|0.7|0.6|2.3|48.0|
+|decode_asr_asr_model_valid.loss.ave/dev_other|2864|265951|93.3|4.2|2.5|2.1|8.8|77.0|
+|decode_asr_asr_model_valid.loss.ave/test_clean|2620|281530|98.3|1.0|0.7|0.6|2.3|49.9|
+|decode_asr_asr_model_valid.loss.ave/test_other|2939|272758|93.6|3.8|2.6|1.9|8.3|78.4|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_asr_model_valid.loss.ave/dev_clean|2703|103998|95.3|3.5|1.2|0.6|5.3|48.0|
+|decode_asr_asr_model_valid.loss.ave/dev_other|2864|95172|85.2|11.8|3.0|2.5|17.3|77.0|
+|decode_asr_asr_model_valid.loss.ave/test_clean|2620|102045|95.3|3.4|1.3|0.6|5.4|49.9|
+|decode_asr_asr_model_valid.loss.ave/test_other|2939|98108|85.5|11.0|3.5|2.2|16.7|78.4|

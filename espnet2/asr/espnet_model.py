@@ -7,7 +7,6 @@ import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet2.asr.Butils import BiasProc
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -18,6 +17,7 @@ from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.asr_transducer.utils import get_transducer_task_io
+from espnet2.text.Butils import BiasProc
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
@@ -173,9 +173,9 @@ class ESPnetASRModel(AbsESPnetModel):
                     self.encoder.output_size(),
                     self.attndim,
                 )
-                self.Qproj_char = torch.nn.Linear(self.decoder.embed_size, self.attndim)
-                self.Kproj = torch.nn.Linear(self.decoder.embed_size, self.attndim)
-                self.ooKBemb = torch.nn.Embedding(1, self.decoder.embed_size)
+                self.Qproj_char = torch.nn.Linear(self.decoder.dunits, self.attndim)
+                self.Kproj = torch.nn.Linear(self.decoder.dunits, self.attndim)
+                self.ooKBemb = torch.nn.Embedding(1, self.decoder.dunits)
                 self.pointer_gate = torch.nn.Linear(
                     self.attndim + self.joint_network.joint_space_size,
                     1,
@@ -184,8 +184,8 @@ class ESPnetASRModel(AbsESPnetModel):
                 self.deepbiasing = deepbiasing
                 if self.GNN.startswith("gcn"):
                     self.gnn = GCN(
-                        self.decoder.embed_size,
-                        self.decoder.embed_size,
+                        self.decoder.dunits,
+                        self.decoder.dunits,
                         int(self.GNN[3:]),
                         0.1,
                         residual=True,

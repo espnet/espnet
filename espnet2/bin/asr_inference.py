@@ -13,7 +13,6 @@ import torch
 import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
-from espnet2.asr.Butils import BiasProc
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
@@ -27,6 +26,7 @@ from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
+from espnet2.text.Butils import BiasProc
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse

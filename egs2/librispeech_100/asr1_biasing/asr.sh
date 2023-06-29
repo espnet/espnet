@@ -1533,7 +1533,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
 
         if "${biasing}"; then
             python local/get_perutt_blist.py data/${dset}
-            _opts+="--perutt_blist data/${dset}/perutt_blist.json"
+            biasing_opts="--perutt_blist data/${dset}/perutt_blist.json"
         fi
 
         _feats_type="$(<${_data}/feats_type)"
@@ -1581,7 +1581,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
                 --asr_train_config "${asr_exp}"/config.yaml \
                 --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
                 --output_dir "${_logdir}"/output.JOB \
-                ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
+                ${_opts} ${biasing_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
         # 3. Calculate and report RTF based on decoding logs
         if [ ${asr_task} == "asr" ] && [ -z ${inference_bin_tag} ]; then

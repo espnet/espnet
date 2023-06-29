@@ -6,7 +6,6 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
-from espnet2.asr.Butils import BiasProc
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H301
@@ -568,9 +567,9 @@ class ASRTask(AbsTask):
                     vocab_size,
                     encoder.output_size(),
                     decoder.dunits,
-                    biasing=getattr(args, "biasing", False),
-                    deepbiasing=getattr(args, "deepbiasing", False),
-                    biasingsize=getattr(args, "battndim", 256),
+                    biasing=args.model_conf.get("biasing", False),
+                    deepbiasing=args.model_conf.get("deepbiasing", False),
+                    biasingsize=args.model_conf.get("battndim", 256),
                     **args.joint_net_conf,
                 )
             else:
@@ -590,7 +589,7 @@ class ASRTask(AbsTask):
         )
 
         # 6.5 biasing list
-        if getattr(args, "biasing", False) and getattr(args, "bpemodel", None):
+        if args.model_conf.get("biasing", False) and getattr(args, "bpemodel", None):
             args.model_conf["bpemodel"] = args.bpemodel
 
         # 7. Build model

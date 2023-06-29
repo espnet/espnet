@@ -5,13 +5,15 @@ set -e
 set -u
 set -o pipefail
 
+export PATH=~/rds/rds-t2-cs164-KQ4S3rlDzm8/gs534/MultiModal/espnet/tools/sctk/bin/:$PATH
+
 train_set="train_clean_100"
 valid_set="dev"
 test_sets="test_clean test_other dev_clean dev_other"
 
 asr_config=conf/train_rnnt.yaml
 inference_config=conf/decode_asr.yaml
-asr_tag=train_conformer_transducer_tcpgen500_deep_sche30_GCN6L
+asr_tag=train_conformer_transducer_tcpgen500_deep_sche30_GCN6L_rep
 
 ./asr.sh \
     --lang en \
@@ -32,7 +34,6 @@ asr_tag=train_conformer_transducer_tcpgen500_deep_sche30_GCN6L
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --lm_train_text "data/${train_set}/text" \
-    --stage 12 \
     --asr_tag ${asr_tag} \
     --inference_asr_model valid.loss.ave.pth \
     --biasing true \
