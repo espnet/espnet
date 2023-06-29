@@ -360,7 +360,7 @@ class BeamSearchTransducer:
                     back_transform = retval[4]
                     index_list = retval[5]
 
-                    query_char = self.decoder.embed(torch.LongTensor([vy])).squeeze(0)
+                    query_char = self.decoder.embed(torch.LongTensor([vy]).to(node_encs.device)).squeeze(0)
                     query_char = self.Qproj_char(query_char)
                     query_acoustic = self.Qproj_acoustic(enc_out_t)
                     query = (query_char + query_acoustic).unsqueeze(0).unsqueeze(0)

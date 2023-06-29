@@ -38,5 +38,3 @@ python -m espnet2.bin.asr_inference \
     --output_dir "${_logdir}"/output.$JOB \
     --config conf/decode_asr.yaml \
     --perutt_blist $perutt_blist \
-    --biasinglist data/Blist/all_rare_words.txt \
-    --bmaxlen 1000 \

@@ -131,7 +131,7 @@ class Speech2Text:
             asr_train_config, asr_model_file, device
         )
 
-        if asr_model.biasing and biasinglist != "":
+        if getattr(asr_model, "biasing", None) and biasinglist != "":
             bprocessor = BiasProc(
                 biasinglist,
                 maxlen=bmaxlen,

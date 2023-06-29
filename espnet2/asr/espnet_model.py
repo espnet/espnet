@@ -71,12 +71,15 @@ class ESPnetASRModel(AbsESPnetModel):
         sym_eos: str = "<sos/eos>",
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
-        bprocessor: Optional[BiasProc] = None,
         biasing: bool = False,
         biasingsche: int = 0,
         battndim: int = 0,
         deepbiasing: bool = False,
         biasingGNN: str = "",
+        biasinglist: str = "",
+        bmaxlen: int = 100,
+        bdrop: float = 0.0,
+        bpemodel: str = "",
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
@@ -111,7 +114,14 @@ class ESPnetASRModel(AbsESPnetModel):
         self.postencoder = postencoder
         self.encoder = encoder
         # biasing
-        self.bprocessor = bprocessor
+        if biasinglist != "":
+            self.bprocessor = BiasProc(
+                biasinglist,
+                maxlen=bmaxlen,
+                bdrop=bdrop,
+                bpemodel=bpemodel,
+                charlist=token_list,
+            )
         self.biasing = biasing
         self.biasingsche = biasingsche
         self.GNN = biasingGNN
@@ -679,6 +689,7 @@ class ESPnetASRModel(AbsESPnetModel):
         ptr_dist = []
         node_encs = None
         if self.biasing and self.epoch >= self.biasingsche:
+            import pdb; pdb.set_trace()
             # Encode prefix tree using GNN
             if self.GNN != "":
                 node_encs = self.gnn(lextrees[0], self.decoder.embed)

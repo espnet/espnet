@@ -160,7 +160,9 @@ local_score_opts=          # The options given to local/score.sh.
 asr_speech_fold_length=800 # fold_length for speech data during ASR training.
 asr_text_fold_length=150   # fold_length for text data during ASR training.
 lm_fold_length=150         # fold_length for LM training.
-suffixbpe=false
+suffixbpe=
+# contextual biasing
+biasing=false
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -383,10 +385,11 @@ if [ "${lang}" != noinfo ]; then
 else
     token_listdir=data/token_list
 fi
-if ${suffixbpe}; then
-    bpedir="${token_listdir}/bpe_${bpemode}${nbpe}suffix"
-else
+if [ -z "${suffixbpe}" ]; then
     bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
+else
+    usesuffixbpe=true
+    bpedir="${token_listdir}/bpe_${bpemode}${nbpe}${suffixbpe}"
 fi
 bpeprefix="${bpedir}"/bpe
 bpemodel="${bpeprefix}".model
@@ -492,7 +495,7 @@ if [ -z "${asr_stats_dir}" ]; then
         asr_stats_dir+="_sp"
     fi
 fi
-if ${suffixbpe}; then
+if [ ! -z "${suffixbpe}" ]; then
     asr_stats_dir="${asr_stats_dir}suffix"
     asr_tag+="_suffix"
 fi
@@ -910,7 +913,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             --model_type="${bpemode}" \
             --model_prefix="${bpeprefix}" \
             --character_coverage=${bpe_char_cover} \
-            --treat_whitespace_as_suffix=${suffixbpe} \
+            --treat_whitespace_as_suffix=${usesuffixbpe} \
             --input_sentence_size="${bpe_input_sentence_size}" \
             ${_opts_spm}
 
@@ -1527,6 +1530,11 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         _dir="${asr_exp}/${inference_tag}/${dset}"
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
+
+        if "${biasing}"; then
+            python local/get_perutt_blist.py data/${dset}
+            _opts+="--perutt_blist data/${dset}/perutt_blist.json"
+        fi
 
         _feats_type="$(<${_data}/feats_type)"
         _audio_format="$(cat ${_data}/audio_format 2>/dev/null || echo ${audio_format})"

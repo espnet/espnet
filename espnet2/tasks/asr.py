@@ -570,7 +570,7 @@ class ASRTask(AbsTask):
                     decoder.dunits,
                     biasing=getattr(args, "biasing", False),
                     deepbiasing=getattr(args, "deepbiasing", False),
-                    biasingsize=getattr(args, "battndim", False),
+                    biasingsize=getattr(args, "battndim", 256),
                     **args.joint_net_conf,
                 )
             else:
@@ -590,15 +590,8 @@ class ASRTask(AbsTask):
         )
 
         # 6.5 biasing list
-        bprocessor = None
-        if getattr(args, "biasinglist", "") != "":
-            bprocessor = BiasProc(
-                args.biasinglist,
-                maxlen=args.bmaxlen,
-                bdrop=args.bdrop,
-                bpemodel=args.bpemodel,
-                charlist=token_list,
-            )
+        if getattr(args, "biasing", False) and getattr(args, "bpemodel", None):
+            args.model_conf["bpemodel"] = args.bpemodel
 
         # 7. Build model
         try:
@@ -617,12 +610,6 @@ class ASRTask(AbsTask):
             ctc=ctc,
             joint_network=joint_network,
             token_list=token_list,
-            bprocessor=bprocessor,
-            biasing=getattr(args, "biasing", False),
-            deepbiasing=getattr(args, "deepbiasing", False),
-            biasingsche=getattr(args, "bsche", 0),
-            battndim=getattr(args, "battndim", 256),
-            biasingGNN=getattr(args, "biasingGNN", ""),
             **args.model_conf,
         )
 

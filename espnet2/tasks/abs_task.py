@@ -871,7 +871,7 @@ class AbsTask(ABC):
             help="TCPGen attention dim",
         )
         group.add_argument(
-            "--bsche",
+            "--biasingsche",
             type=int,
             default=0,
             help="TCPGen starting epoch",

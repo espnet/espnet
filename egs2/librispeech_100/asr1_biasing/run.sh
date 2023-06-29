@@ -18,9 +18,9 @@ asr_tag=train_conformer_transducer_tcpgen500_deep_sche30_GCN6L
     --ngpu 1 \
     --nj 16 \
     --gpu_inference true \
-    --inference_nj 2 \
+    --inference_nj 1 \
     --nbpe 600 \
-    --suffixbpe true \
+    --suffixbpe suffix \
     --max_wav_duration 30 \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --audio_format "flac.ark" \
@@ -32,6 +32,8 @@ asr_tag=train_conformer_transducer_tcpgen500_deep_sche30_GCN6L
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --lm_train_text "data/${train_set}/text" \
-    --stage 11 \
+    --stage 12 \
     --asr_tag ${asr_tag} \
+    --inference_asr_model valid.loss.ave.pth \
+    --biasing true \
     --bpe_train_text "data/${train_set}/text" "$@"
