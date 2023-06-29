@@ -689,7 +689,9 @@ class ESPnetASRModel(AbsESPnetModel):
         ptr_dist = []
         node_encs = None
         if self.biasing and self.epoch >= self.biasingsche:
-            import pdb; pdb.set_trace()
+            import pdb
+
+            pdb.set_trace()
             # Encode prefix tree using GNN
             if self.GNN != "":
                 node_encs = self.gnn(lextrees[0], self.decoder.embed)
