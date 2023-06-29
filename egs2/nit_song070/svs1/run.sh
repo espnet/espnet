@@ -7,7 +7,6 @@ set -o pipefail
 
 # spectrogram-related arguments
 fs=24000
-fmin=80
 fmax=7600
 n_fft=2048
 n_shift=300
