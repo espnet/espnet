@@ -135,7 +135,7 @@ def prepare(E2E, args, mtlalpha=0.0):
         for dtype in ("float16", "float32", "float64")
     ],
 )
-def test_beam_search_timesync(
+def test_beam_search_timesync_streaming(
     model_class, args, mtlalpha, ctc_weight, lm_weight, bonus, device, dtype
 ):
     if device == "cuda" and not torch.cuda.is_available():
@@ -200,7 +200,7 @@ def test_beam_search_timesync(
     beam.eval()
     with torch.no_grad():
         enc = model.encode(torch.as_tensor(feat).to(device, dtype=dtype))
-        beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio)
+        beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio, is_final=True, incremental_decode=True)
 
     # just checking it is decodable
     return
