@@ -187,9 +187,7 @@ class BatchBeamSearch(BeamSearch):
                     hyp.yseq, hyp.states[k], x, return_hs=self.return_hs
                 )
             elif "decoder" in k and pre_x is not None:
-                scores[k], states[k] = d.batch_score(
-                    hyp.yseq, hyp.states[k], x, pre_x
-                )
+                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x, pre_x)
             else:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
 
@@ -309,9 +307,7 @@ class BatchBeamSearch(BeamSearch):
         # NOTE(takaaki-hori): Unlike BeamSearch, we assume that score_partial returns
         # full-size score matrices, which has non-zero scores for part_ids and zeros
         # for others.
-        part_scores, part_states = self.score_partial(
-            running_hyps, part_ids, x, pre_x
-        )
+        part_scores, part_states = self.score_partial(running_hyps, part_ids, x, pre_x)
         for k in self.part_scorers:
             weighted_scores += self.weights[k] * part_scores[k]
         # add previous hyp scores

@@ -98,7 +98,12 @@ class BeamSearchTimeSync(torch.nn.Module):
 
             # TODO(brian): change to hyp_primer to support prompts
             decoder_scores, decoder_state = self.decoder.score(
-                torch.tensor([self.sos,], device=enc_output.device),
+                torch.tensor(
+                    [
+                        self.sos,
+                    ],
+                    device=enc_output.device,
+                ),
                 init_decoder_state,
                 enc_output,
             )
