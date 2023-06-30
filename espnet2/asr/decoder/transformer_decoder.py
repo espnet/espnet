@@ -235,7 +235,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             states (List[Any]): Scorer states for prefix tokens.
             xs (torch.Tensor):
                 The encoder feature that generates ys (n_batch, xlen, n_feat).
-            
+
 
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
