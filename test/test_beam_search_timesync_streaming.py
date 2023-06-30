@@ -200,7 +200,13 @@ def test_beam_search_timesync_streaming(
     beam.eval()
     with torch.no_grad():
         enc = model.encode(torch.as_tensor(feat).to(device, dtype=dtype))
-        beam(x=enc, maxlenratio=args.maxlenratio, minlenratio=args.minlenratio, is_final=True, incremental_decode=True)
+        beam(
+            x=enc,
+            maxlenratio=args.maxlenratio,
+            minlenratio=args.minlenratio,
+            is_final=True,
+            incremental_decode=True,
+        )
 
     # just checking it is decodable
     return
