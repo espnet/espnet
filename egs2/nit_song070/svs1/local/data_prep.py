@@ -29,7 +29,7 @@ def test_check(song):
     return False
 
 
-def pack_zero(string, size=20):
+def pack_zero(string, size=4):
     if len(string) < size:
         string = "0" * (size - len(string)) + string
     return string
@@ -119,6 +119,13 @@ def process_utterance(
     mono_info = mono_label.read().split("\n")
     prev_end = 0
     phns, notes, phn_dur = [], [], []
+    seg_start = 0
+    seg_id = 0
+    seg_len_phns = 0
+    segs = []   # store (seg_id, seg_start, seg_end, seg_len_phns)
+
+    sil = ["pau", "sil"]
+    sil = set(sil)
     for i in range(len(label_info)):
         note_label = label_info[i].split(" ")
         note_mono = mono_info[i].split()
@@ -140,60 +147,86 @@ def process_utterance(
             print("skip {} for no note label".format(label_id))
             continue
         aligned_note = detailed_info[1].split("]")[0]
+        if note_mono[2] in sil:
+            if seg_len_phns > 0:
+                segs.append([pack_zero(str(seg_id)), seg_start, end, seg_len_phns])
+                seg_id += 1
+            seg_start = end
+            seg_len_phns = 0
+            continue
         if aligned_note == "xx":
             notes.append("rest")
         else:
             notes.append(aligned_note)
         phns.append(note_mono[2])
         phn_dur.append(end - start)
+        seg_len_phns += 1
 
-    y, sr = sf.read(
-        os.path.join(audio_dir, label_id) + ".raw",
-        subtype="PCM_16",
-        channels=1,
-        samplerate=48000,
-        endian="LITTLE",
-    )
-    onset_env = librosa.onset.onset_strength(y=y, sr=sr)
-    # estimate a static tempo for midi format
-    tempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr)[0]
-    tempo = int(tempo)
-
-    # note to midi index
-    notes = [midi_mapping[note] if note != "rest" else 0 for note in notes]
-
-    # duration type convert
-    phn_dur = [float(dur / 1e7) for dur in phn_dur]
-
-    note_list = create_score(label_id, phns, notes, phn_dur)
-
-    text.write("nit_song070_{} {}\n".format(label_id, " ".join(phns)))
-    utt2spk.write("nit_song070_{} {}\n".format(label_id, "onit_song070"))
-
-    # apply bit convert, there is a known issue in direct convert in format wavscp
-    cmd = f"sox -t raw -r 48000 -b 16 -c 1 -L -e signed-integer {os.path.join(audio_dir, label_id)}.raw -c 1 -t wavpcm -b 16 -r {tgt_sr} {os.path.join(wav_dumpdir, label_id)}_bits16.wav"
-    os.system(cmd)
-
-    wavscp.write(
-        "nit_song070_{} {}_bits16.wav\n".format(
-            label_id, os.path.join(wav_dumpdir, label_id)
+    start_phn_index = 0
+    # y, sr = sf.read(
+    #     os.path.join(audio_dir, label_id) + ".raw",
+    #     subtype="PCM_16",
+    #     channels=1,
+    #     samplerate=48000,
+    #     endian="LITTLE"
+    # )
+    # onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+    # # estimate a static tempo for midi format
+    # tempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr)[0]
+    # tempo = int(tempo)
+    print(label_id)
+    for seg in segs:
+        print(seg)
+        y, sr = sf.read(
+            os.path.join(audio_dir, label_id) + ".raw",
+            subtype="PCM_16",
+            channels=1,
+            samplerate=48000,
+            endian="LITTLE",
+            start=int(seg[1] * 48000 * 16 // 1e7),
+            stop=int(seg[2] * 48000 * 16 // 1e7)
         )
-    )
+        onset_env = librosa.onset.onset_strength(y=y, sr=sr)
+        # estimate a static tempo for midi format
+        tempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr)[0]
+        tempo = int(tempo)
 
-    running_dur = 0
-    assert len(phn_dur) == len(phns)
-    label_entry = []
-    for i in range(len(phns)):
-        start = running_dur
-        end = running_dur + phn_dur[i]
-        label_entry.append("{:.3f} {:.3f} {}".format(start, end, phns[i]))
-        running_dur += phn_dur[i]
+        # note to midi index
+        seg_notes = [midi_mapping[note] if note != "rest" else 0 for note in notes[start_phn_index:start_phn_index+seg[3]]]
 
-    label.write("nit_song070_{} {}\n".format(label_id, " ".join(label_entry)))
-    score = dict(
-        tempo=tempo, item_list=["st", "et", "lyric", "midi", "phns"], note=note_list
-    )
-    writer["nit_song070_{}".format(label_id)] = score
+        # duration type convert
+        seg_phn_dur = [float(dur / 1e7) for dur in phn_dur[start_phn_index:start_phn_index+seg[3]]]
+
+        note_list = create_score(label_id + "_" + seg[0], phns[start_phn_index:start_phn_index+seg[3]], seg_notes, seg_phn_dur)
+
+        text.write("nit_song070_{}_{} {}\n".format(label_id, seg[0], " ".join(phns[start_phn_index:start_phn_index+seg[3]])))
+        utt2spk.write("nit_song070_{}_{} {}\n".format(label_id, seg[0], "onit_song070"))
+
+        # apply bit convert, there is a known issue in direct convert in format wavscp
+        cmd = f"sox -t raw -r 48000 -b 16 -c 1 -L -e signed-integer {os.path.join(audio_dir, label_id)}.raw -c 1 -t wavpcm -b 16 -r {tgt_sr} {os.path.join(wav_dumpdir, label_id+'_'+seg[0])}_bits16.wav trim {float(seg[1] / 1e7)} {float((seg[2]-seg[1]) / 1e7)}"
+        os.system(cmd)
+
+        wavscp.write(
+            "nit_song070_{}_{} {}_bits16.wav\n".format(
+                label_id, seg[0], os.path.join(wav_dumpdir, label_id+'_'+seg[0])
+            )
+        )
+
+        running_dur = 0
+        assert len(seg_phn_dur) == len(phns[start_phn_index:start_phn_index+seg[3]]) == seg[3]
+        label_entry = []
+        for i in range(seg[3]):
+            start = running_dur
+            end = running_dur + seg_phn_dur[i]
+            label_entry.append("{:.3f} {:.3f} {}".format(start, end, phns[start_phn_index+i]))
+            running_dur += seg_phn_dur[i]
+
+        label.write("nit_song070_{}_{} {}\n".format(label_id, seg[0], " ".join(label_entry)))
+        score = dict(
+            tempo=tempo, item_list=["st", "et", "lyric", "midi", "phns"], note=note_list
+        )
+        writer["nit_song070_{}_{}".format(label_id, seg[0])] = score
+        start_phn_index += seg[3]
 
 
 def process_subset(args, set_name):

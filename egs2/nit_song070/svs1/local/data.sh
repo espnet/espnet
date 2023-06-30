@@ -29,9 +29,9 @@ fi
 
 mkdir -p ${NIT_SONG070}
 
-train_set=train
-train_dev=dev
-eval_set=eval
+train_set="train"
+train_dev="dev"
+eval_set="eval"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
@@ -52,20 +52,5 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for src_data in ${train_set} ${train_dev} ${eval_set}; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
-    done
-fi
-
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "stage 2: Prepare segments"
-    for dataset in ${train_set} ${train_dev} ${eval_set}; do
-        src_data=data/${dataset}
-        local/prep_segments.py --score_dump score_dump --silence pau --silence sil ${src_data} 10000 # in ms
-        mv ${src_data}/segments.tmp ${src_data}/segments
-        mv ${src_data}/label.tmp ${src_data}/label
-        mv ${src_data}/text.tmp ${src_data}/text
-        mv ${src_data}/score.scp.tmp ${src_data}/score.scp
-	cat ${src_data}/segments | awk '{printf("%s nit_song070\n", $1);}' > ${src_data}/utt2spk
-        utils/utt2spk_to_spk2utt.pl < ${src_data}/utt2spk > ${src_data}/spk2utt
-        utils/fix_data_dir.sh --utt_extra_files "label score.scp" ${src_data}
     done
 fi
