@@ -163,17 +163,6 @@ def process_utterance(
         seg_len_phns += 1
 
     start_phn_index = 0
-    # y, sr = sf.read(
-    #     os.path.join(audio_dir, label_id) + ".raw",
-    #     subtype="PCM_16",
-    #     channels=1,
-    #     samplerate=48000,
-    #     endian="LITTLE"
-    # )
-    # onset_env = librosa.onset.onset_strength(y=y, sr=sr)
-    # # estimate a static tempo for midi format
-    # tempo = librosa.beat.tempo(onset_envelope=onset_env, sr=sr)[0]
-    # tempo = int(tempo)
     print(label_id)
     for seg in segs:
         print(seg)
