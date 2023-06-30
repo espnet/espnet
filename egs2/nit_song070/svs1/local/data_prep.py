@@ -122,7 +122,7 @@ def process_utterance(
     seg_start = 0
     seg_id = 0
     seg_len_phns = 0
-    segs = []   # store (seg_id, seg_start, seg_end, seg_len_phns)
+    segs = []  # store (seg_id, seg_start, seg_end, seg_len_phns)
 
     sil = ["pau", "sil"]
     sil = set(sil)
@@ -184,7 +184,7 @@ def process_utterance(
             samplerate=48000,
             endian="LITTLE",
             start=int(seg[1] * 48000 * 16 // 1e7),
-            stop=int(seg[2] * 48000 * 16 // 1e7)
+            stop=int(seg[2] * 48000 * 16 // 1e7),
         )
         onset_env = librosa.onset.onset_strength(y=y, sr=sr)
         # estimate a static tempo for midi format
@@ -192,14 +192,31 @@ def process_utterance(
         tempo = int(tempo)
 
         # note to midi index
-        seg_notes = [midi_mapping[note] if note != "rest" else 0 for note in notes[start_phn_index:start_phn_index+seg[3]]]
+        seg_notes = [
+            midi_mapping[note] if note != "rest" else 0
+            for note in notes[start_phn_index : start_phn_index + seg[3]]
+        ]
 
         # duration type convert
-        seg_phn_dur = [float(dur / 1e7) for dur in phn_dur[start_phn_index:start_phn_index+seg[3]]]
+        seg_phn_dur = [
+            float(dur / 1e7)
+            for dur in phn_dur[start_phn_index : start_phn_index + seg[3]]
+        ]
 
-        note_list = create_score(label_id + "_" + seg[0], phns[start_phn_index:start_phn_index+seg[3]], seg_notes, seg_phn_dur)
+        note_list = create_score(
+            label_id + "_" + seg[0],
+            phns[start_phn_index : start_phn_index + seg[3]],
+            seg_notes,
+            seg_phn_dur,
+        )
 
-        text.write("nit_song070_{}_{} {}\n".format(label_id, seg[0], " ".join(phns[start_phn_index:start_phn_index+seg[3]])))
+        text.write(
+            "nit_song070_{}_{} {}\n".format(
+                label_id,
+                seg[0],
+                " ".join(phns[start_phn_index : start_phn_index + seg[3]]),
+            )
+        )
         utt2spk.write("nit_song070_{}_{} {}\n".format(label_id, seg[0], "onit_song070"))
 
         # apply bit convert, there is a known issue in direct convert in format wavscp
@@ -208,20 +225,28 @@ def process_utterance(
 
         wavscp.write(
             "nit_song070_{}_{} {}_bits16.wav\n".format(
-                label_id, seg[0], os.path.join(wav_dumpdir, label_id+'_'+seg[0])
+                label_id, seg[0], os.path.join(wav_dumpdir, label_id + "_" + seg[0])
             )
         )
 
         running_dur = 0
-        assert len(seg_phn_dur) == len(phns[start_phn_index:start_phn_index+seg[3]]) == seg[3]
+        assert (
+            len(seg_phn_dur)
+            == len(phns[start_phn_index : start_phn_index + seg[3]])
+            == seg[3]
+        )
         label_entry = []
         for i in range(seg[3]):
             start = running_dur
             end = running_dur + seg_phn_dur[i]
-            label_entry.append("{:.3f} {:.3f} {}".format(start, end, phns[start_phn_index+i]))
+            label_entry.append(
+                "{:.3f} {:.3f} {}".format(start, end, phns[start_phn_index + i])
+            )
             running_dur += seg_phn_dur[i]
 
-        label.write("nit_song070_{}_{} {}\n".format(label_id, seg[0], " ".join(label_entry)))
+        label.write(
+            "nit_song070_{}_{} {}\n".format(label_id, seg[0], " ".join(label_entry))
+        )
         score = dict(
             tempo=tempo, item_list=["st", "et", "lyric", "midi", "phns"], note=note_list
         )
