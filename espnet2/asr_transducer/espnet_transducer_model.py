@@ -41,8 +41,10 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         joint_network: Joint Network module.
         transducer_weight: Weight of the Transducer loss.
         use_k2_pruned_loss: Whether to use k2 pruned Transducer loss.
-        k2_pruned_loss_args: Argumenets of the k2 loss pruned Transducer loss.
+        k2_pruned_loss_args: Arguments of the k2 loss pruned Transducer loss.
         warmup_steps: Number of steps in warmup, used for pruned loss scaling.
+        validation_nstep: Maximum number of symbol expansions at each time step
+                          during validation decoding (w/ mAES).
         fastemit_lambda: FastEmit lambda value.
         auxiliary_ctc_weight: Weight of auxiliary CTC loss.
         auxiliary_ctc_dropout_rate: Dropout rate for auxiliary CTC loss inputs.
@@ -68,9 +70,10 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         decoder: AbsDecoder,
         joint_network: JointNetwork,
         transducer_weight: float = 1.0,
-        warmup_steps: int = 25000,
         use_k2_pruned_loss: bool = False,
         k2_pruned_loss_args: Dict = {},
+        warmup_steps: int = 25000,
+        validation_nstep: int = 2,
         fastemit_lambda: float = 0.0,
         auxiliary_ctc_weight: float = 0.0,
         auxiliary_ctc_dropout_rate: float = 0.0,
@@ -128,6 +131,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             self.steps_num = -1
 
             self.k2_pruned_loss_args = k2_pruned_loss_args
+            self.k2_rnnt_type = k2_pruned_loss_args.get("rnnt_type", "regular")
 
         self.use_k2_pruned_loss = use_k2_pruned_loss
 
@@ -151,6 +155,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         self.report_cer = report_cer
         self.report_wer = report_wer
+        self.validation_nstep = validation_nstep
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
@@ -245,12 +250,16 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             if self.error_calculator is None:
                 from espnet2.asr_transducer.error_calculator import ErrorCalculator
 
+                if self.use_k2_pruned_loss and self.k2_rnnt_type == "modified":
+                    self.validation_nstep = 1
+
                 self.error_calculator = ErrorCalculator(
                     self.decoder,
                     self.joint_network,
                     self.token_list,
                     self.sym_space,
                     self.sym_blank,
+                    nstep=self.validation_nstep,
                     report_cer=self.report_cer,
                     report_wer=self.report_wer,
                 )

@@ -18,6 +18,7 @@ class ErrorCalculator:
         token_list: List of token units.
         sym_space: Space symbol.
         sym_blank: Blank symbol.
+        nstep: Maximum number of symbol expansions at each time step w/ mAES.
         report_cer: Whether to compute CER.
         report_wer: Whether to compute WER.
 
@@ -30,6 +31,7 @@ class ErrorCalculator:
         token_list: List[int],
         sym_space: str,
         sym_blank: str,
+        nstep: int = 2,
         report_cer: bool = False,
         report_wer: bool = False,
     ) -> None:
@@ -41,6 +43,7 @@ class ErrorCalculator:
             joint_network=joint_network,
             beam_size=2,
             search_type="maes",
+            nstep=nstep,
             score_norm=False,
         )
 
