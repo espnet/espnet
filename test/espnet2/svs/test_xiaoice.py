@@ -1,68 +1,61 @@
 import pytest
 import torch
 
-from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
+from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
 
 
-@pytest.mark.parametrize("eprenet_conv_layers", [0, 1])
-@pytest.mark.parametrize("midi_embed_integration_type", ["add", "cat"])
-@pytest.mark.parametrize("postnet_layers", [0, 1])
 @pytest.mark.parametrize("reduction_factor", [1, 3])
 @pytest.mark.parametrize(
     "spk_embed_dim, spk_embed_integration_type",
     [(None, "add"), (2, "add"), (2, "concat")],
 )
+@pytest.mark.parametrize("encoder_type", ["transformer", "conformer"])
+@pytest.mark.parametrize("decoder_type", ["transformer", "conformer"])
 @pytest.mark.parametrize(
     "spks, langs",
     [(-1, -1), (5, 2)],
 )
-def test_NaiveRNNDP(
-    eprenet_conv_layers,
-    midi_embed_integration_type,
-    postnet_layers,
+@pytest.mark.parametrize("loss_function", ["FastSpeech1", "XiaoiceSing2"])
+
+def test_XiaoiceSing(
     reduction_factor,
     spk_embed_dim,
     spk_embed_integration_type,
+    encoder_type,
+    decoder_type,
     spks,
     langs,
+    loss_function,
 ):
     idim = 10
-    odim = 4
-    model = NaiveRNNDP(
+    odim = 5
+    model = XiaoiceSing(
         idim=idim,
         odim=odim,
         midi_dim=129,
-        embed_dim=5,
         duration_dim=10,
-        eprenet_conv_layers=eprenet_conv_layers,
-        eprenet_conv_chans=4,
-        eprenet_conv_filts=5,
-        elayers=2,
-        eunits=6,
-        ebidirectional=True,
-        midi_embed_integration_type=midi_embed_integration_type,
-        dlayers=2,
-        dunits=6,
-        postnet_layers=postnet_layers,
+        adim=4,
+        aheads=2,
+        elayers=1,
+        eunits=4,
+        dlayers=1,
+        dunits=4,
+        postnet_layers=1,
         postnet_chans=4,
         postnet_filts=5,
-        use_batch_norm=True,
+        reduction_factor=reduction_factor,
+        encoder_type=encoder_type,
+        decoder_type=decoder_type,
         duration_predictor_layers=2,
         duration_predictor_chans=4,
         duration_predictor_kernel_size=3,
-        duration_predictor_dropout_rate=0.1,
-        reduction_factor=reduction_factor,
         spks=spks,
         langs=langs,
         spk_embed_dim=spk_embed_dim,
         spk_embed_integration_type=spk_embed_integration_type,
-        eprenet_dropout_rate=0.2,
-        edropout_rate=0.1,
-        ddropout_rate=0.1,
-        postnet_dropout_rate=0.5,
-        init_type="pytorch",
-        use_masking=True,
-        use_weighted_masking=False,
+        use_masking=False,
+        use_weighted_masking=True,
+        loss_function=loss_function,
     )
 
     inputs = dict(
@@ -113,6 +106,7 @@ def test_NaiveRNNDP(
         inputs.update(sids=torch.randint(0, spks, (2, 1)))
     if langs > 0:
         inputs.update(lids=torch.randint(0, langs, (2, 1)))
+    torch.autograd.set_detect_anomaly(True)
     loss, *_ = model(**inputs)
     loss.backward()
 
@@ -179,4 +173,3 @@ def test_NaiveRNNDP(
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
         model.inference(**inputs)
-
