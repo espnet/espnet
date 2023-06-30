@@ -32,7 +32,9 @@ class JointNetwork(torch.nn.Module):
         super().__init__()
 
         self.lin_enc = torch.nn.Linear(encoder_size, joint_space_size)
-        self.lin_dec = torch.nn.Linear(decoder_size, joint_space_size, bias=lin_dec_bias)
+        self.lin_dec = torch.nn.Linear(
+            decoder_size, joint_space_size, bias=lin_dec_bias
+        )
 
         self.lin_out = torch.nn.Linear(joint_space_size, output_size)
 

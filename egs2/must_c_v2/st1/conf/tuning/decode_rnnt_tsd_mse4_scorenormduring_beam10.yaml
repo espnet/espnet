@@ -1,4 +1,4 @@
-beam_size: 10                                                                                                                                                                                                    
+beam_size: 10
 transducer_conf:
     search_type: tsd
     score_norm: True
