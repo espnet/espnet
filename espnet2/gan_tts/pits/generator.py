@@ -528,6 +528,8 @@ class PITSGenerator(torch.nn.Module):
         )
 
         # forward decoder with random segments
+        if g is not None:
+            g = torch.cat([g, g], dim=0)
         wav = self.decoder(z_segments, g=g)
         o = [torch.chunk(o_hier, 2, dim=0)[0] for o_hier in wav]
 
