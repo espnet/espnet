@@ -481,7 +481,7 @@ class XiaoiceSing(AbsSVS):
         label = label[:, : label_lengths.max()]  # for data-parallel
         duration_ = duration_[:, : duration_lengths.max()]  # for data-parallel
         olens = feats_lengths
-        
+
         if self.loss_function == "XiaoiceSing2":
             pitch = pitch[:, : pitch_lengths.max()]
             log_f0 = torch.clamp(pitch, min=0)
@@ -522,7 +522,11 @@ class XiaoiceSing(AbsSVS):
         h_masks = self._source_mask(olens_in)
 
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs, log_f0_outs, vuv_outs = self.linear_projection(zs).view((zs.size(0), -1, self.odim + 2)).split_with_sizes([self.odim, 1, 1], dim=2)
+        before_outs, log_f0_outs, vuv_outs = (
+            self.linear_projection(zs)
+            .view((zs.size(0), -1, self.odim + 2))
+            .split_with_sizes([self.odim, 1, 1], dim=2)
+        )
         # (B. T_feats, odim), (B. T_feats, 1), (B. T_feats, 1)
 
         # postnet -> (B, Lmax//r * r, odim)
@@ -689,7 +693,11 @@ class XiaoiceSing(AbsSVS):
         # forward decoder
         h_masks = None  # self._source_mask(feats_lengths)
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs, _, _ = self.linear_projection(zs).view((zs.size(0), -1, self.odim + 2)).split_with_sizes([self.odim, 1, 1], dim=2)        
+        before_outs, _, _ = (
+            self.linear_projection(zs)
+            .view((zs.size(0), -1, self.odim + 2))
+            .split_with_sizes([self.odim, 1, 1], dim=2)
+        )
         # (B, T_feats, odim), (B, T_feats, 1), (B, T_feats, 1)
 
         # postnet -> (B, Lmax//r * r, odim)

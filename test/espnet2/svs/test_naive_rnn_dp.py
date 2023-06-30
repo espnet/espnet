@@ -179,4 +179,3 @@ def test_NaiveRNNDP(
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
         model.inference(**inputs)
-

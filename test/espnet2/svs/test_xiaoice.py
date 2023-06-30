@@ -16,7 +16,6 @@ from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
     [(-1, -1), (5, 2)],
 )
 @pytest.mark.parametrize("loss_function", ["FastSpeech1", "XiaoiceSing2"])
-
 def test_XiaoiceSing(
     reduction_factor,
     spk_embed_dim,

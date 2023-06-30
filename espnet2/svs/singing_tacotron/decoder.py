@@ -386,4 +386,3 @@ class Decoder(torch.nn.Module):
             outs = self.output_activation_fn(outs)
 
         return outs, probs, att_ws
-

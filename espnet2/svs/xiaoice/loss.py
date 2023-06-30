@@ -105,9 +105,13 @@ class XiaoiceSing2Loss(torch.nn.Module):
             if after_outs is not None:
                 mel_loss += self.mse_criterion(after_outs, ys)
         elif loss_type == "L1+L2":
-            mel_loss = self.l1_criterion(before_outs, ys) + self.mse_criterion(before_outs, ys)
+            mel_loss = self.l1_criterion(before_outs, ys) + self.mse_criterion(
+                before_outs, ys
+            )
             if after_outs is not None:
-                mel_loss += self.l1_criterion(after_outs, ys) + self.mse_criterion(after_outs, ys)
+                mel_loss += self.l1_criterion(after_outs, ys) + self.mse_criterion(
+                    after_outs, ys
+                )
         else:
             raise NotImplementedError("Mel loss support only L1, L2 or L1+L2.")
         duration_loss = self.duration_criterion(d_outs, ds)
