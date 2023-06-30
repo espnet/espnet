@@ -115,11 +115,13 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         if use_k2_pruned_loss:
             self.am_proj = torch.nn.Linear(
-                encoder.output_size, vocab_size,
+                encoder.output_size,
+                vocab_size,
             )
 
             self.lm_proj = torch.nn.Linear(
-                decoder.output_size, vocab_size,
+                decoder.output_size,
+                vocab_size,
             )
 
             self.warmup_steps = warmup_steps
@@ -203,12 +205,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         # 4. Joint Network and RNNT loss computation
         if self.use_k2_pruned_loss:
             loss_trans = self._calc_k2_transducer_pruned_loss(
-                encoder_out,
-                decoder_out,
-                text,
-                t_len,
-                u_len,
-                **self.k2_pruned_loss_args
+                encoder_out, decoder_out, text, t_len, u_len, **self.k2_pruned_loss_args
             )
         else:
             joint_out = self.joint_network(
@@ -216,7 +213,11 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             )
 
             loss_trans = self._calc_transducer_loss(
-                encoder_out, joint_out, target, t_len, u_len,
+                encoder_out,
+                joint_out,
+                target,
+                t_len,
+                u_len,
             )
 
         # 5. Auxiliary losses
@@ -516,7 +517,10 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             )
 
         ranges = k2.get_rnnt_prune_ranges(
-            px_grad, py_grad, boundary, prune_range,
+            px_grad,
+            py_grad,
+            boundary,
+            prune_range,
         )
 
         am_pruned, lm_pruned = k2.do_rnnt_pruning(
