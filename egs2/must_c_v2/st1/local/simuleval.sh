@@ -1,3 +1,4 @@
+#!/usr/bin/env bash
 # simuleval requires .wav format
 # source file should have 1 path per line, with no uttid
 # cut -d' ' -f2- dump_wav/raw/tst-COMMON.en-de/wav.scp > dump_wav/raw/tst-COMMON.en-de/wav.scp.noid

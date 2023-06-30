@@ -17,6 +17,7 @@ class Hypothesis(NamedTuple):
     score: Union[float, torch.Tensor] = 0
     scores: Dict[str, Union[float, torch.Tensor]] = dict()
     states: Dict[str, Any] = dict()
+    # dec hidden state corresponding to yseq, used for searchable hidden ints
     hs: List[torch.Tensor] = []
 
     def asdict(self) -> dict:
@@ -314,6 +315,8 @@ class BeamSearch(torch.nn.Module):
             running_hyps (List[Hypothesis]): Running hypotheses on beam
             x (torch.Tensor): Encoded speech feature (T, D)
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             List[Hypotheses]: Best sorted hypotheses
@@ -387,6 +390,8 @@ class BeamSearch(torch.nn.Module):
                 as a constant max output length.
             minlenratio (float): Input length ratio to obtain min output length.
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             list[Hypothesis]: N-best decoding results

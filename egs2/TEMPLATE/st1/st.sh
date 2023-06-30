@@ -80,12 +80,12 @@ ngram_num=3
 use_src_ngram=false
 
 # Language model related
-use_lm=false       # Use language model for ST decoding.
-use_src_lm=false       # Use language model for ASR multi-decoder decoding.
+use_lm=false      # Use language model for ST decoding.
+use_src_lm=false  # Use language model for ASR multi-decoder decoding.
 lm_tag=           # Suffix to the result dir for language model training.
 lm_exp=           # Specify the directory path for LM experiment.
                   # If this option is specified, lm_tag is ignored.
-src_lm_exp=           # Specify the directory path for LM experiment.
+src_lm_exp=       # Specify the directory path for LM experiment.
 lm_stats_dir=     # Specify the directory path for LM statistics.
 lm_config=        # Config for language model training.
 lm_args=          # Arguments for language model training, e.g., "--max_epoch 10".

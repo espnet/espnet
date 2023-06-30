@@ -159,6 +159,7 @@ class BeamSearchTimeSync(torch.nn.Module):
 
         return score
 
+    # TODO(brian): make this extendable to multiple scorers
     def joint_score(
         self, hyps: Any, ctc_score_dp: Any, recompute_cache: bool = False
     ) -> Any:

@@ -68,6 +68,8 @@ class CTC(torch.nn.Module):
                 loss = loss / size
             return loss
 
+        # builtin2 ignores nan losses using the logic below, while
+        # builtin relies on the zero_infinity flag in pytorch CTC
         elif self.ctc_type == "builtin2":
             th_pred = th_pred.log_softmax(2)
             loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)

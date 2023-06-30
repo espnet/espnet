@@ -108,6 +108,8 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                 if input_layer == "embed"
                 input tensor (batch, maxlen_out, #mels) in the other cases
             ys_in_lens: (batch)
+            return_hs: dec hidden state corresponding to ys,
+                used for searchable hidden ints
         Returns:
             (tuple): tuple containing:
 
@@ -168,6 +170,8 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                       dtype=torch.bool in PyTorch 1.2+ (include 1.2)
             memory: encoded memory, float32  (batch, maxlen_in, feat)
             cache: cached output list of (batch, max_time_out-1, size)
+            return_hs: dec hidden state corresponding to ys,
+                used for searchable hidden ints
         Returns:
             y, cache: NN output value and cache per `self.decoders`.
             y.shape` is (batch, maxlen_out, token)
@@ -231,6 +235,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             states (List[Any]): Scorer states for prefix tokens.
             xs (torch.Tensor):
                 The encoder feature that generates ys (n_batch, xlen, n_feat).
+            
 
         Returns:
             tuple[torch.Tensor, List[Any]]: Tuple of
@@ -644,6 +649,8 @@ class TransformerMDDecoder(BaseTransformerDecoder):
                 if input_layer == "embed"
                 input tensor (batch, maxlen_out, #mels) in the other cases
             ys_in_lens: (batch)
+            return_hs: dec hidden state corresponding to ys,
+                used for searchable hidden ints
         Returns:
             (tuple): tuple containing:
 
@@ -713,6 +720,8 @@ class TransformerMDDecoder(BaseTransformerDecoder):
             memory: encoded memory, float32  (batch, maxlen_in, feat)
             speech: encoded speech, float32  (batch, maxlen_in, feat)
             cache: cached output list of (batch, max_time_out-1, size)
+            return_hs: dec hidden state corresponding to ys,
+                used for searchable hidden ints
         Returns:
             y, cache: NN output value and cache per `self.decoders`.
             y.shape` is (batch, maxlen_out, token)

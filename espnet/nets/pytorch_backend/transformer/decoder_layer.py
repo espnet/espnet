@@ -30,6 +30,8 @@ class DecoderLayer(nn.Module):
             if True, additional linear will be applied.
             i.e. x -> x + linear(concat(x, att(x)))
             if False, no additional linear will be applied. i.e. x -> x + att(x)
+        sequential_attn (bool): computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
 
     """
