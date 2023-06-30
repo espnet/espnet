@@ -431,7 +431,9 @@ class BeamSearchTransducer:
                     )
 
                 if self.score_norm_during:
-                    hyps_max = float(max(hyps, key=lambda x: x.score / len(x.yseq)).score)
+                    hyps_max = float(
+                        max(hyps, key=lambda x: x.score / len(x.yseq)).score
+                    )
                 else:
                     hyps_max = float(max(hyps, key=lambda x: x.score).score)
                 kept_most_prob = sorted(
@@ -636,7 +638,9 @@ class BeamSearchTransducer:
                             D.append(new_hyp)
 
                 if self.score_norm_during:
-                    C = sorted(D, key=lambda x: x.score / len(x.yseq), reverse=True)[:beam]
+                    C = sorted(D, key=lambda x: x.score / len(x.yseq), reverse=True)[
+                        :beam
+                    ]
                 else:
                     C = sorted(D, key=lambda x: x.score, reverse=True)[:beam]
 
@@ -837,7 +841,9 @@ class BeamSearchTransducer:
                         A.append(new_hyp)
 
                 if self.score_norm_during:
-                    B = sorted(A, key=lambda x: x.score / len(x.yseq), reverse=True)[:beam]
+                    B = sorted(A, key=lambda x: x.score / len(x.yseq), reverse=True)[
+                        :beam
+                    ]
                 else:
                     B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
                 B = recombine_hyps(B)

@@ -194,9 +194,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     scores=init_scores,
                     states=init_states,
                     length=torch.tensor([2]),
-                    yseq=torch.tensor(
-                        [self.hyp_primer], device=x.device
-                    ), 
+                    yseq=torch.tensor([self.hyp_primer], device=x.device),
                     hs=[],
                 )
                 self.prev_incremental = self.running_hyps
