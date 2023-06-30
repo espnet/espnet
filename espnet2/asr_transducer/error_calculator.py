@@ -39,8 +39,8 @@ class ErrorCalculator:
         self.beam_search = BeamSearchTransducer(
             decoder=decoder,
             joint_network=joint_network,
-            beam_size=1,
-            search_type="default",
+            beam_size=2,
+            search_type="maes",
             score_norm=False,
         )
 
