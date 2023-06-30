@@ -60,6 +60,7 @@ class BeamSearchTransducer:
         multi_blank_durations: List[int] = [],
         multi_blank_indices: List[int] = [],
         score_norm: bool = True,
+        score_norm_during: bool = False,
         nbest: int = 1,
         token_list: Optional[List[str]] = None,
     ):
@@ -82,6 +83,7 @@ class BeamSearchTransducer:
             multi_blank_durations: The duration of each blank token. (MBG)
             multi_blank_indices: The index of each blank token in token_list. (MBG)
             score_norm: Normalize final scores by length. ("default")
+            score_norm_during: Normalize scores by length during search. (default, TSD, ALSD)
             nbest: Number of final hypothesis.
 
         """
@@ -157,6 +159,7 @@ class BeamSearchTransducer:
             logging.warning("LM is provided but not used, since this is greedy search.")
 
         self.score_norm = score_norm
+        self.score_norm_during = score_norm_during
         self.nbest = nbest
 
     def __call__(
@@ -457,9 +460,17 @@ class BeamSearchTransducer:
 
                             D.append(new_hyp)
 
-                C = sorted(D, key=lambda x: x.score, reverse=True)[:beam]
+                if self.score_norm_during:
+                    C = sorted(D, key=lambda x: x.score / len(x.yseq), reverse=True)[
+                        :beam
+                    ]
+                else:
+                    C = sorted(D, key=lambda x: x.score, reverse=True)[:beam]
 
-            B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
+            if self.score_norm_during:
+                B = sorted(A, key=lambda x: x.score / len(x.yseq), reverse=True)[:beam]
+            else:
+                B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
 
         return self.sort_nbest(B)
 

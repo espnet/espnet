@@ -431,12 +431,6 @@ class STTask(AbsTask):
             default=0.0,
             help="Sample greedy CTC output as AR decoder target.",
         )
-        group.add_argument(
-            "--md_version",
-            type=str,
-            default="v1",
-            help="",
-        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
