@@ -51,17 +51,6 @@ def load_midi_note_scp(midi_note_scp):
     return midi_mapping
 
 
-def create_midi(notes, tempo, duration, sr):
-    # we assume the tempo is static tempo with only one value
-    assert len(notes) == len(duration)
-    note_info = []
-    for i in range(len(notes)):
-        note_dur = int(duration[i] * sr + 0.5)
-        note_info.extend(note_dur * [notes[i]])
-    tempo_info = [tempo] * len(note_info)
-    return note_info, tempo_info
-
-
 def create_score(label_id, phns, midis, syb_dur):
     # Transfer into 'score' format
     assert len(phns) == len(midis)
@@ -209,7 +198,12 @@ def process_utterance(
         utt2spk.write("nit_song070_{}_{} {}\n".format(label_id, seg[0], "onit_song070"))
 
         # apply bit convert, there is a known issue in direct convert in format wavscp
-        cmd = f"sox -t raw -r 48000 -b 16 -c 1 -L -e signed-integer {os.path.join(audio_dir, label_id)}.raw -c 1 -t wavpcm -b 16 -r {tgt_sr} {os.path.join(wav_dumpdir, label_id+'_'+seg[0])}_bits16.wav trim {float(seg[1] / 1e7)} {float((seg[2]-seg[1]) / 1e7)}"
+        cmd = (
+            f"sox -t raw -r 48000 -b 16 -c 1 -L -e signed-integer "
+            f"{os.path.join(audio_dir, label_id)}.raw -c 1 -t wavpcm -b 16 -r {tgt_sr} "
+            f"{os.path.join(wav_dumpdir, label_id+'_'+seg[0])}_bits16.wav "
+            f"trim {float(seg[1] / 1e7)} {float((seg[2]-seg[1]) / 1e7)}"
+        )
         os.system(cmd)
 
         wavscp.write(
