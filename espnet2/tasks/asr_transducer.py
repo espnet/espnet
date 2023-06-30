@@ -417,6 +417,7 @@ class ASRTransducerTask(AbsTask):
             encoder=encoder,
             decoder=decoder,
             joint_network=joint_network,
+            warmup_steps=args.scheduler_conf.get("warmup_steps", 25000),
             **args.model_conf,
         )
 
