@@ -27,6 +27,9 @@ WSJCAM0=
 REAZONSPEECH=downloads
 REVERB=
 REVERB_OUT="${PWD}/REVERB"  # Output file path
+CHIME1=
+CHIME2_WSJ0=
+CHIME2_GRID=
 CHIME3=
 CHIME4=
 CHIME5=
@@ -175,13 +178,14 @@ CATSLU=downloads
 ELRA_E0024=
 ELRA_S0272=
 ELRA_S0371=
-M4SINGER=downloads/m4singer
+M4SINGER=
 ONIKU=
 PJS=
 AMEBOSHI=
 ITAKO=
 NATSUME=
 KIRITAN=
+NAMINE=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

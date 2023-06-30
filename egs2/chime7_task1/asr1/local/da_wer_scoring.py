@@ -167,7 +167,7 @@ def compute_wer(df_or_dict):
     return wer
 
 
-def compute_diar_errors(hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
+def compute_diar_errors(name, hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
     # computing all diarization errors for each session here.
     # find optimal mapping too, which will then be used to find the WER.
     if uem_boundaries is not None:
@@ -175,8 +175,8 @@ def compute_diar_errors(hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
     else:
         uem = None
 
-    def to_annotation(segs):
-        out = Annotation()
+    def to_annotation(segs, name):
+        out = Annotation(uri=name)
         for s in segs:
             speaker = s["speaker"]
             start = float(s["start_time"])
@@ -184,8 +184,8 @@ def compute_diar_errors(hyp_segs, ref_segs, uem_boundaries=None, collar=0.5):
             out[Segment(start, end)] = speaker
         return out
 
-    hyp_annotation = to_annotation(hyp_segs)
-    ref_annotation = to_annotation(ref_segs)
+    hyp_annotation = to_annotation(hyp_segs, name)
+    ref_annotation = to_annotation(ref_segs, name)
 
     der_computer = DERComputer(collar=collar, skip_overlap=False)
     reference, hypothesis, uem = der_computer.get_uemified(
@@ -441,7 +441,7 @@ def score(
                 reference,
                 hypothesis,
                 errors,
-            ) = compute_diar_errors(hyp_segs, ref_segs, c_uem, collar=collar)
+            ) = compute_diar_errors(session, hyp_segs, ref_segs, c_uem, collar=collar)
 
             log_diarization(sess_dir, reference, hypothesis, errors)
             # save ref hyps and errors in a folder
