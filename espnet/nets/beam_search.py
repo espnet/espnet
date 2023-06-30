@@ -172,6 +172,9 @@ class BeamSearch(torch.nn.Module):
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of

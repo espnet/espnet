@@ -195,8 +195,8 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                     states=init_states,
                     length=torch.tensor([2]),
                     yseq=torch.tensor(
-                        [[self.sos, 250003]], device=x.device
-                    ),  # hacky way to avoid 2 2 hypothesis clogging decoding
+                        [self.hyp_primer], device=x.device
+                    ), 
                     hs=[],
                 )
                 self.prev_incremental = self.running_hyps

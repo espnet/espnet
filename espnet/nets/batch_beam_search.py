@@ -161,13 +161,15 @@ class BatchBeamSearch(BeamSearch):
         hyp: BatchHypothesis,
         x: torch.Tensor,
         pre_x: torch.Tensor = None,
-        pre_x2: torch.Tensor = None,
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -185,14 +187,9 @@ class BatchBeamSearch(BeamSearch):
                     hyp.yseq, hyp.states[k], x, return_hs=self.return_hs
                 )
             elif "decoder" in k and pre_x is not None:
-                if pre_x2 is not None:
-                    scores[k], states[k] = d.batch_score(
-                        hyp.yseq, hyp.states[k], x, pre_x, pre_x2
-                    )
-                else:
-                    scores[k], states[k] = d.batch_score(
-                        hyp.yseq, hyp.states[k], x, pre_x
-                    )
+                scores[k], states[k] = d.batch_score(
+                    hyp.yseq, hyp.states[k], x, pre_x
+                )
             else:
                 scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
 
@@ -206,7 +203,6 @@ class BatchBeamSearch(BeamSearch):
         ids: torch.Tensor,
         x: torch.Tensor,
         pre_x: torch.Tensor = None,
-        md2: bool = False,
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
@@ -214,6 +210,9 @@ class BatchBeamSearch(BeamSearch):
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             ids (torch.Tensor): 2D tensor of new partial tokens to score
             x (torch.Tensor): Corresponding input feature
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -225,21 +224,15 @@ class BatchBeamSearch(BeamSearch):
         """
         scores = dict()
         states = dict()
-        # import pdb;pdb.set_trace()
         for k, d in self.part_scorers.items():
-            if "ctc" in k and md2:
+            if "ctc" in k and pre_x is not None:
+                scores[k], states[k] = d.batch_score_partial(
+                    hyp.yseq, ids, hyp.states[k], pre_x
+                )
+            else:
                 scores[k], states[k] = d.batch_score_partial(
                     hyp.yseq, ids, hyp.states[k], x
                 )
-            else:
-                if "ctc" in k and pre_x is not None:
-                    scores[k], states[k] = d.batch_score_partial(
-                        hyp.yseq, ids, hyp.states[k], pre_x
-                    )
-                else:
-                    scores[k], states[k] = d.batch_score_partial(
-                        hyp.yseq, ids, hyp.states[k], x
-                    )
         return scores, states
 
     def merge_states(self, states: Any, part_states: Any, part_idx: int) -> Any:
@@ -268,8 +261,6 @@ class BatchBeamSearch(BeamSearch):
         running_hyps: BatchHypothesis,
         x: torch.Tensor,
         pre_x: torch.Tensor = None,
-        pre_x2: torch.Tensor = None,
-        md2: bool = False,
     ) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
 
@@ -297,27 +288,13 @@ class BatchBeamSearch(BeamSearch):
                 else None,
             )
         else:
-            if pre_x2 is not None:
-                scores, states = self.score_full(
-                    running_hyps,
-                    x.expand(n_batch, *x.shape),
-                    pre_x=pre_x.expand(n_batch, *pre_x.shape)
-                    if pre_x is not None
-                    else None,
-                    pre_x2=pre_x2.expand(n_batch, *pre_x2.shape),
-                )
-            elif pre_x is not None:
-                scores, states = self.score_full(
-                    running_hyps,
-                    x.expand(n_batch, *x.shape),
-                    pre_x=pre_x.expand(n_batch, *pre_x.shape)
-                    if pre_x is not None
-                    else None,
-                )
-            else:
-                scores, states = self.score_full(
-                    running_hyps, x.expand(n_batch, *x.shape)
-                )
+            scores, states = self.score_full(
+                running_hyps,
+                x.expand(n_batch, *x.shape),
+                pre_x=pre_x.expand(n_batch, *pre_x.shape)
+                if pre_x is not None
+                else None,
+            )
 
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]
@@ -333,7 +310,7 @@ class BatchBeamSearch(BeamSearch):
         # full-size score matrices, which has non-zero scores for part_ids and zeros
         # for others.
         part_scores, part_states = self.score_partial(
-            running_hyps, part_ids, x, pre_x, md2=md2
+            running_hyps, part_ids, x, pre_x
         )
         for k in self.part_scorers:
             weighted_scores += self.weights[k] * part_scores[k]

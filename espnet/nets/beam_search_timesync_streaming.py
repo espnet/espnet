@@ -69,8 +69,7 @@ class BeamSearchTimeSync(torch.nn.Module):
         self.blank_penalty = (
             np.log(weights["blank_penalty"]) if "blank_penalty" in weights else 0.0
         )
-        # self.sos = sos
-        self.sos = 0  # hacked
+        self.sos = sos
         self.sos_th = torch.tensor([self.sos])
         self.blank = blank
         self.attn_cache = dict()  # cache for p_attn(Y|X)
@@ -97,13 +96,13 @@ class BeamSearchTimeSync(torch.nn.Module):
                 log_sum=0.0,
             )
 
-            # hacked
+            # TODO(brian): change to hyp_primer to support prompts
             decoder_scores, decoder_state = self.decoder.score(
-                torch.tensor([self.sos, 250003], device=enc_output.device),
+                torch.tensor([self.sos,], device=enc_output.device),
                 init_decoder_state,
                 enc_output,
             )
-            self.attn_cache[(self.sos, 250003)] = CacheItem(
+            self.attn_cache[(self.sos,)] = CacheItem(
                 state=decoder_state,
                 scores=decoder_scores,
                 log_sum=0.0,
@@ -127,10 +126,7 @@ class BeamSearchTimeSync(torch.nn.Module):
         """Retrieve decoder/LM scores which may be cached."""
         root = h[:-1]  # prefix
 
-        # if (root in cache and not recompute_cache) or len(root) == 1:
-        #     if root not in self.block_set:
-        #         import pdb;pdb.set_trace()
-        if (root in cache and root in self.block_set) or len(root) <= 1:  # hacked 1-->2
+        if (root in cache and root in self.block_set) or len(root) <= 1:
             logging.debug("not recomputing")
             root_scores = cache[root].scores
             root_state = cache[root].state
@@ -259,18 +255,20 @@ class BeamSearchTimeSync(torch.nn.Module):
         lpz = lpz.cpu().detach().numpy()
         if start_idx == 0:
             self.reset(x)
-            hyps = [(self.sos, 250003)]
+            # TODO(brian): change to hyp_primer to support prompts
+            hyps = [(self.sos,)]
             ctc_score_dp = defaultdict(
                 lambda: (float("-inf"), float("-inf"))
             )  # (p_nb, p_b) - dp object tracking p_ctc
-            ctc_score_dp[(self.sos, 250003)] = (float("-inf"), 0.0)
+            ctc_score_dp[(self.sos,)] = (float("-inf"), 0.0)
         else:
             self.enc_output = x
             hyps = self.hyps
             ctc_score_dp = self.ctc_score_dp
 
         self.block_set = set()
-        self.block_set.add((self.sos, 250003))
+        # TODO(brian): change to hyp_primer to support prompts
+        self.block_set.add((self.sos,))
 
         for t in range(start_idx, lpz.shape[0]):
             logging.debug("position " + str(t))
