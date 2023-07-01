@@ -5,7 +5,7 @@
 ## CTC/Attention (st_train_st_ctc_conformer_asrinit_v2_raw_en_de_bpe_tc4000_sp)
 
 - Model link: [huggingface]()
-- ST config: [train_ctc_conformer_asrinit_v2.yaml](./conf/tuning/train_ctc_conformer_asrinit_v2.yaml)
+- ST config: [train_st_ctc_conformer_asrinit_v2.yaml](./conf/tuning/train_st_ctc_conformer_asrinit_v2.yaml)
 - Inference config: [decode_st_conformer_ctc0.3.yaml](./conf/tuning/decode_st_conformer_ctc0.3.yaml)
 
 |dataset|score|verbose_score|
