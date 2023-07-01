@@ -5,8 +5,8 @@
 ## CTC/Attention (st_train_st_ctc_conformer_asrinit_v2_raw_en_de_bpe_tc4000_sp)
 
 - Model link: [huggingface]()
-- ST config: [./conf/tuning/train_ctc_conformer_asrinit_v2.yaml](./conf/train_ctc_conformer_asrinit_v2.yaml)
-- Inference config: [./conf/decode_st_conformer_ctc0.3.yaml](./conf/decode_st_conformer_ctc0.3.yaml)
+- ST config: [./conf/tuning/train_ctc_conformer_asrinit_v2.yaml](./conf/tuning/train_ctc_conformer_asrinit_v2.yaml)
+- Inference config: [./conf/decode_st_conformer_ctc0.3.yaml](./conf/tuning/decode_st_conformer_ctc0.3.yaml)
 
 |dataset|score|verbose_score|
 |---|---|---|
@@ -15,8 +15,8 @@
 ## Transducer (st_train_st_ctc_rnnt_asrinit_raw_en_de_bpe_tc4000_sp)
 
 - Model link: [huggingface]()
-- ST config: [./conf/tuning/train_st_ctc_rnnt_asrinit.yaml](./conf/train_st_ctc_rnnt_asrinit.yaml)
-- Inference config: [./conf/decode_rnnt_tsd_mse4_scorenormduring_beam10.yaml](./conf/decode_rnnt_tsd_mse4_scorenormduring_beam10.yaml)
+- ST config: [./conf/tuning/train_st_ctc_rnnt_asrinit.yaml](./conf/tuning/train_st_ctc_rnnt_asrinit.yaml)
+- Inference config: [./conf/decode_rnnt_tsd_mse4_scorenormduring_beam10.yaml](./conf/tuning/decode_rnnt_tsd_mse4_scorenormduring_beam10.yaml)
 
 |dataset|score|verbose_score|
 |---|---|---|
