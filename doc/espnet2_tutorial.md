@@ -415,7 +415,7 @@ Latency: 52581.004 [ms/sentence]
 
 ## Transducer ASR
 
-> ***Important***: If you encounter any issue related to Transducer loss, please open an issue in [our fork of warp-transducer](https://github.com/b-flo/warp-transducer).
+> ***Important***: If you encounter any issue related to `warp-transducer`, please open an issue in [our forked repo](https://github.com/b-flo/warp-transducer).
 
 ESPnet2 supports models trained with the (RNN-)Tranducer loss, aka Transducer models. Currently, two versions of these models exist within ESPnet2: one under `asr` and the other under `asr_transducer`. The first one is designed as a supplement of CTC-Attention ASR models while the second is designed independently and purely for the Transducer task. For that, we rely on `ESPnetASRTransducerModel` instead of `ESPnetASRModel` and a new task called `ASRTransducerTask` is used in place of `ASRTask`.
 
@@ -431,12 +431,30 @@ To enable Transducer model training or decoding in your experiments, the followi
 asr.sh --asr_task asr_transducer [...]
 ```
 
-For Transducer loss computation during training, we rely on a fork of `warp-transducer`. The installation procedure is described [here](https://espnet.github.io/espnet/installation.html#step-3-optional-custom-tool-installation).
+For Transducer loss computation during training, we rely by default on a fork of `warp-transducer`. The installation procedure is described [here](https://espnet.github.io/espnet/installation.html#step-3-optional-custom-tool-installation).
 
 **Note:** We made available FastEmit regularization [[Yu et al., 2021]](https://arxiv.org/pdf/2010.11148) during loss computation. To enable it, `fastemit_lambda` need to be set in `model_conf`:
 
     model_conf:
       fastemit_lambda: Regularization parameter for FastEmit. (float, default = 0.0)
+
+Optionnaly, we also support training with the Pruned RNN-T loss [[Kuang et al. 2022]](https://arxiv.org/pdf/2206.13236.pdf) made available in the [k2](https://github.com/k2-fsa/k2) toolkit. To use it, the parameter `use_k2_pruned_loss` should be set to `True` in `model_conf`. From here, the loss computation can be controlled by setting the following parameters through `k2_pruned_loss_args` in `model_conf`:
+
+    model_conf:
+      use_k2_pruned_loss: True
+      k2_pruned_loss_args:
+        prune_range: How many tokens by frame are used compute the pruned loss. (int, default = 5)
+	simple_loss_scaling: The weight to scale the simple loss after warm-up. (float, default = 0.5)
+	lm_scale: The scale factor to smooth the LM part. (float, default = 0.0)
+	am_scale: The scale factor to smooth the AM part. (float, default = 0.0)
+	loss_type: Define the type of path to take for loss computation, either 'regular', 'smoothed' or 'constrained'. (str, default = "regular")
+
+**Note:** Because the number of tokens emitted by timestep can be restricted during training with this version, we also make available the parameter `validation_nstep`. It let the users apply similar constraints during the validation process, when reporting CER or/and WER:
+
+    model_conf:
+      validation_nstep: Maximum number of symbol expansions at each time step when reporting CER or/and WER using mAES.
+
+For more information, see section Inference and "modified Adaptive Expansion Search" algorithm.
 
 ### Architecture
 

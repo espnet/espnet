@@ -44,7 +44,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         k2_pruned_loss_args: Arguments of the k2 loss pruned Transducer loss.
         warmup_steps: Number of steps in warmup, used for pruned loss scaling.
         validation_nstep: Maximum number of symbol expansions at each time step
-                          during validation decoding (w/ mAES).
+                          when reporting CER or/and WER using mAES.
         fastemit_lambda: FastEmit lambda value.
         auxiliary_ctc_weight: Weight of auxiliary CTC loss.
         auxiliary_ctc_dropout_rate: Dropout rate for auxiliary CTC loss inputs.
@@ -456,12 +456,12 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             labels: Label ID sequences. (B, L)
             encoder_out_len: Encoder output sequences lengths. (B,)
             decoder_out_len: Target label ID sequences lengths. (B,)
-            prune_range: How many tokens are used compute Transducer loss.
-            simple_loss_scaling: Weight to scale k2 smoothed loss.
+            prune_range: How many tokens by frame are used compute the pruned loss.
+            simple_loss_scaling: The weight to scale the simple loss after warm-up.
             lm_scale: The scale factor to smooth the LM part.
             am_scale: The scale factor to smooth the AM part.
             loss_type: Define the type of path to take for loss computation.
-                         (Either 'regular', smoothed' or 'constrained')
+                         (Either 'regular', 'smoothed' or 'constrained')
             padding_idx: SOS/EOS + Padding index.
 
         Return:
