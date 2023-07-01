@@ -1,3 +1,6 @@
+# Trained on 4xA40 GPUs. If facing GPU memory issues, decrease batch_bins (and increase accum_grad)
+# Note: this config uses ASR pretraining
+
 batch_type: numel
 batch_bins: 5000000
 accum_grad: 5
@@ -108,6 +111,6 @@ specaug_conf:
 
 ignore_init_mismatch: true
 init_param:
-    - "/exp/byan/working/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:encoder:encoder"
-    - "/exp/byan/working/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:decoder:extra_asr_decoder"
-    - "/exp/byan/working/espnet-ml/egs2/must_c_v2/asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:ctc:ctc"
+    - "../asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:encoder:encoder"
+    - "../asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:decoder:extra_asr_decoder"
+    - "../asr1/exp/asr_train_asr_conformer_raw_bpe4000_sp/valid.acc.ave_10best.pth:ctc:ctc"
