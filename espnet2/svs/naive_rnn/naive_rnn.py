@@ -498,6 +498,8 @@ class NaiveRNN(AbsSVS):
         if self.langs is not None:
             lid_embs = self.lid_emb(lids.view(-1))
             hs = hs + lid_embs.unsqueeze(1)
+        if spembs is not None:
+            spembs = spembs.unsqueeze(0)
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
