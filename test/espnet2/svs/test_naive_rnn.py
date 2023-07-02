@@ -83,10 +83,18 @@ def test_NaiveRNN(
         },
         duration={
             "lab": torch.tensor(
-                [[1, 2, 2, 2, 2, 3, 3, 3, 1, 3, 3, 3, 2, 2, 2, 2], [2, 2, 2, 2, 1, 3, 3, 3, 1, 1, 0, 0, 0, 0, 0, 0]], dtype=torch.int64
+                [
+                    [1, 2, 2, 2, 2, 3, 3, 3, 1, 3, 3, 3, 2, 2, 2, 2],
+                    [2, 2, 2, 2, 1, 3, 3, 3, 1, 1, 0, 0, 0, 0, 0, 0],
+                ],
+                dtype=torch.int64,
             ),
             "score_phn": torch.tensor(
-                [[1, 2, 2, 2, 2, 3, 3, 3, 1, 3, 3, 3, 2, 2, 2, 2], [2, 2, 2, 2, 1, 4, 4, 4, 4, 1, 2, 2, 0, 0, 0, 0]], dtype=torch.int64
+                [
+                    [1, 2, 2, 2, 2, 3, 3, 3, 1, 3, 3, 3, 2, 2, 2, 2],
+                    [2, 2, 2, 2, 1, 4, 4, 4, 4, 1, 2, 2, 0, 0, 0, 0],
+                ],
+                dtype=torch.int64,
             ),
         },
         duration_lengths={
@@ -156,8 +164,12 @@ def test_NaiveRNN(
                 ),
             },
             duration={
-                "lab": torch.tensor([[1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3]], dtype=torch.int64),
-                "score_phn": torch.tensor([[1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4]], dtype=torch.int64),
+                "lab": torch.tensor(
+                    [[1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3]], dtype=torch.int64
+                ),
+                "score_phn": torch.tensor(
+                    [[1, 2, 2, 2, 2, 3, 3, 3, 4, 4, 4, 4]], dtype=torch.int64
+                ),
             },
             slur=torch.randint(0, 2, (1, 5)),
             pitch=torch.randn(11 * reduction_factor, 1),
