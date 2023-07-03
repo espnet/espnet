@@ -71,7 +71,7 @@ normalize_choices = ClassChoices(
 encoder_choices = ClassChoices(
     name="encoder",
     classes=dict(
-        # conformer=ConformerEncoder, #TODO: add.
+        # conformer=ConformerEncoder, #TODO (Jee-weon): add.
         rawnet3=RawNet3Encoder,
     ),
     type_check=AbsEncoder,
@@ -81,7 +81,7 @@ encoder_choices = ClassChoices(
 pooling_choices = ClassChoices(
     name="pooling",
     classes=dict(
-        # TODO: implement additional aggregators
+        # TODO (Jee-weon): implement additional aggregators
         # mean=MeanPoolAggregator,
         # max=MaxPoolAggregator,
         # attn_stat=AttnStatAggregator,
@@ -94,7 +94,7 @@ pooling_choices = ClassChoices(
 projector_choices = ClassChoices(
     name="projector",
     classes=dict(
-        # TODO: implement additional Projectors
+        # TODO (Jee-weon): implement additional Projectors
         # one_layer=OneLayerProjector,
         rawnet3=RawNet3Projector,
     ),

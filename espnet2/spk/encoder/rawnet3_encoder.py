@@ -11,14 +11,21 @@ from asteroid_filterbanks import Encoder, ParamSincFB
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.spk.layers.RawNetBasicBlock import *
+from espnet2.spk.layers.RawNetBasicBlock import PreEmphasis,Bottle2neck
 
 
 class RawNet3Encoder(AbsEncoder):
     """
     RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.
+    paper: J. Jung et al., "Pushing the limits of raw waveform speaker
+        recognition", in Proc. INTERSPEECH, 2022.
 
     Args:
+        block: type of encoder block class to use.
+        model_scale: scale value of the Res2Net architecture.
+        output_size: dimensionality of the hidden representation.
+        sinc_stride: stride size of the first sinc-conv layer where it decides
+            the compression rate (Hz).
     """
 
     def __init__(
