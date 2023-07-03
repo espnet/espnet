@@ -7,6 +7,7 @@ encoder: rawnet3
 frontend: raw
 
 pooling: chn_attn_stat
+pooling_conf:
   input_size: 1536
   output_size: 3072
 
