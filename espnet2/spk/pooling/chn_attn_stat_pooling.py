@@ -10,6 +10,12 @@ class ChnAttnStatPooling(AbsPooling):
     Proposed in B.Desplanques et al., "ECAPA-TDNN: Emphasized Channel
     Attention, Propagation and Aggregation in TDNN Based Speaker Verification"
 
+    args:
+        input_size: dimensionality of the input frame-level embeddings.
+            Determined by encoder hyperparameter.
+        output_size: output dimensionality of the pooled utterance-level
+            embedding. In case of this class, output_size is double of input
+            _size becuase it concatenates mean and std.
     """
 
     def __init__(

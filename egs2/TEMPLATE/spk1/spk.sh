@@ -41,8 +41,6 @@ expdir=exp            # Directory to save experiments.
 python=python3        # Specify python to execute espnet commands.
 fold_length=80000     # fold_length for speech data during enhancement training
 
-run_args=$(scripts/utils/print_args.sh $0 "$@")
-
 # Feature extraction related
 feats_type=raw       # Feature type (raw, raw_copy, fbank_pitch, or extracted).
 audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
@@ -63,6 +61,52 @@ train_set=       # Name of training set.
 valid_set=       # Name of validation set used for monitoring/tuning network training.
 test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
 
+help_message=$(cat <<EOF
+Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
+
+Options:
+    # General configuration
+    stage=1               # Processes starts from the specified stage.
+    stop_stage=10000      # Processes is stopped at the specified stage.
+    skip_stages=          # Spicify the stage to be skipped
+    skip_data_prep=false  # Skip data preparation stages.
+    skip_train=false      # Skip training stages.
+    skip_eval=false       # Skip decoding and evaluation stages.
+    eval_valid_set=false  # Run decoding for the validation set
+    ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
+    num_nodes=1           # The number of nodes.
+    nj=32                 # The number of parallel jobs.
+    gpu_inference=false   # Whether to perform gpu decoding.
+    dumpdir=dump          # Directory to dump features.
+    expdir=exp            # Directory to save experiments.
+    python=python3        # Specify python to execute espnet commands.
+    fold_length=80000     # fold_length for speech data during enhancement training
+
+    # Feature extraction related
+    feats_type=raw       # Feature type (raw, raw_copy, fbank_pitch, or extracted).
+    audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+    multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
+    multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
+    fs=16k               # Sampling rate.
+    min_wav_duration=1.0  # Minimum duration in second.
+    max_wav_duration=60.  # Maximum duration in second.
+
+    # Speaker model related
+    spk_exp=              # Specify the directory path for spk experiment.
+    spk_tag=              # Suffix to the result dir for spk model training.
+    spk_config=           # Config for the spk model training.
+    spk_args=             # Arguments for spk model training.
+
+    # [Task dependent] Set the datadir name created by local/data.sh
+    train_set=       # Name of training set.
+    valid_set=       # Name of validation set used for monitoring/tuning network training.
+    test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
+
+EOF
+)
+
+log "$0 $*"
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0  ]; then
@@ -105,7 +149,15 @@ if [ -z "${spk_exp}"  ]; then
     spk_exp="${expdir}/spk_${spk_tag}"
 fi
 
-# TODO: add speed perturb
+# Determine which stages to skip
+if "${skip_data_perp}"; then
+    skip_stages+="1 2"
+fi
+
+skip_stages=$(echo "${skip_stages}" | tr ' ' '\n' | sort -nu | tr '\n' ' ')
+log "Skipped stages: ${skip_stages}"
+
+# TODO (Jee-weon): add speed perturb
 #if [ -n "${speed_perturb_factors}"  ]; then
 #    spk_stats_dir="${spk_stats_dir}_sp"
 #    spk_exp="${spk_exp}_sp"
@@ -200,9 +252,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         ${python} -m espnet2.bin.spk_train \
             --collect_stats true \
-            --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,sound \
+            --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,${_type} \
             --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
-            --valid_data_path_and_name_and_type ${_spk_valid_dir}/wav.scp,speech,sound \
+            --valid_data_path_and_name_and_type ${_spk_valid_dir}/wav.scp,speech,${_type} \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/utt2spk,spk_labels,text \
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/valid.JOB.scp" \
