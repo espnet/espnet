@@ -77,6 +77,7 @@ Options:
     --bpemodel    # BPE model path, needed if you want to calculate TER (default="${bpemodel}").
     --nlsyms_txt  # Non-language symbol file (default="${nlsyms_txt}").
     --cleaner     # Text cleaner module for the reference (default="${cleaner}").
+    --hyp_cleaner # Text cleaner module for the hypothesis (default="${hyp_cleaner}").
     --gt_text     # Kaldi-format groundtruth text file (default="${gt_text}")
                   # This must be provided if you want to calculate scores.
 
