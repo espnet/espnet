@@ -5,6 +5,8 @@
 ## Attentional Enc-Dec (st_train_st_conformer_asrinit_v2_raw_en_de_bpe_tc4000_sp)
 
 - Model link: [huggingface]()
+    `./run.sh --skip_data_prep true --skip_train true --download_model espnet/brianyan918_mustc-v2_en-de_st_conformer_asrinit_v2
+_raw_en_de_bpe_tc4000_sp --inference_config conf/tuning/decode_st_conformer.yaml`
 - ST config: [train_st_conformer_asrinit_v2.yaml](./conf/tuning/train_st_conformer_asrinit_v2.yaml)
 - Inference config: [decode_st_conformer.yaml](./conf/tuning/decode_st_conformer.yaml)
 
