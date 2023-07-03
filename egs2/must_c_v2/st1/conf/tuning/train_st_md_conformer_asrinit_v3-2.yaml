@@ -1,3 +1,6 @@
+# Trained on 4xA40 GPUs. If facing GPU memory issues, decrease batch_bins (and increase accum_grad)
+# Note: this config uses ASR pretraining
+
 batch_type: numel
 batch_bins: 25000000
 accum_grad: 1
