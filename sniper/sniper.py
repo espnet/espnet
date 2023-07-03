@@ -1,20 +1,19 @@
-import random
-from pathlib import Path
-import dataclasses
-import numpy as np
 import collections
-import os
-import time
+import dataclasses
 import logging
+import os
+import random
+import time
 from functools import reduce
-from typing import Dict, Callable, Iterable
+from pathlib import Path
+from typing import Callable, Dict, Iterable
+
+import numpy as np
 import torch
 
 
 class SniperTraining:
-
-    def __init__(self, sniper_dir, device='cuda', logger=logging.root):
-
+    def __init__(self, sniper_dir, device="cuda", logger=logging.root):
         # Sniper init variables
         self.sniper_dir = Path(sniper_dir)
         self.device = device
@@ -23,7 +22,7 @@ class SniperTraining:
         # Training args
         self.schedule = {}
         self.model_builder = None
-        self.snip_module_name = ''
+        self.snip_module_name = ""
         self.batch_iterator = None
         self.get_loss_fn = None
         self.max_lr_scaling = 10.0
@@ -47,24 +46,27 @@ class SniperTraining:
         self.optimizers = None
         self.schedulers = None
 
-
-    def train(self,
-              schedule: Dict[int, float],
-              model: torch.nn.Module,
-              model_builder: Callable,
-              snip_module_name: str,
-              batch_iterator: Iterable,
-              get_loss_fn: Callable,
-              scale_lr_by_param: bool = True,
-              max_lr_scaling: float = 10.0,
-              max_param_sparsity: float = 100.0,
-              exclude_params: Iterable[str] = ('embed', 'norm',),
-              restore_init_values: bool = True,
-              train_dtype=torch.float32,
-              resume=False,
-              optim_lr=1.0,
-              track_all_params_lr=False,
-              ):
+    def train(
+        self,
+        schedule: Dict[int, float],
+        model: torch.nn.Module,
+        model_builder: Callable,
+        snip_module_name: str,
+        batch_iterator: Iterable,
+        get_loss_fn: Callable,
+        scale_lr_by_param: bool = True,
+        max_lr_scaling: float = 10.0,
+        max_param_sparsity: float = 100.0,
+        exclude_params: Iterable[str] = (
+            "embed",
+            "norm",
+        ),
+        restore_init_values: bool = True,
+        train_dtype=torch.float32,
+        resume=False,
+        optim_lr=1.0,
+        track_all_params_lr=False,
+    ):
         """
 
         Args:
@@ -134,19 +136,19 @@ class SniperTraining:
 
         self.module_to_snip = get_module_to_snip(model, snip_module_name)
 
-        init_values_path = self.sniper_dir / 'init_values.pt'
-        total_grads_path = self.sniper_dir / 'total_grads.pt'
+        init_values_path = self.sniper_dir / "init_values.pt"
+        total_grads_path = self.sniper_dir / "total_grads.pt"
 
         if not self.sniper_dir.exists():
             os.makedirs(self.sniper_dir)
 
         if init_values_path.exists():
-            self.logger.info(f'Loading initial model state from {init_values_path}')
+            self.logger.info(f"Loading initial model state from {init_values_path}")
             init_values = torch.load(init_values_path, map_location=self.device)
             if not resume:
                 model.load_state_dict(init_values)
         else:
-            self.logger.info(f'Saving initial model state to {init_values_path}')
+            self.logger.info(f"Saving initial model state to {init_values_path}")
             init_values = model.state_dict()
             torch.save(init_values, init_values_path)
 
@@ -154,26 +156,28 @@ class SniperTraining:
         missing_sparsities = {}
         for sparsity in sparsities:
             if sparsity:  # ignore 0
-                max_suffix = '' if max_param_sparsity == 100.0 else f'_max{max_param_sparsity}'
-                masks_path = self.sniper_dir / f'masks_{sparsity}{max_suffix}.pt'
+                max_suffix = (
+                    "" if max_param_sparsity == 100.0 else f"_max{max_param_sparsity}"
+                )
+                masks_path = self.sniper_dir / f"masks_{sparsity}{max_suffix}.pt"
                 if not os.path.exists(masks_path):
                     missing_sparsities[sparsity] = masks_path
 
         if missing_sparsities:
             if total_grads_path.exists():
-                self.logger.info(f'Loading gradients from {total_grads_path}')
+                self.logger.info(f"Loading gradients from {total_grads_path}")
                 total_grads = torch.load(total_grads_path)
             else:
-                self.logger.info(f'Computing gradients...')
+                self.logger.info(f"Computing gradients...")
                 total_grads = self.compute_gradients(init_values)
                 torch.save(total_grads, total_grads_path)
-                self.logger.info(f'Saved gradients to {total_grads_path}')
+                self.logger.info(f"Saved gradients to {total_grads_path}")
 
             for sparsity in sorted(missing_sparsities):
                 masks_path = missing_sparsities[sparsity]
                 masks = self.create_masks(sparsity, total_grads, max_param_sparsity)
                 torch.save(masks, masks_path)
-                self.logger.info(f'Saved masks at sparsity {sparsity} to {masks_path}')
+                self.logger.info(f"Saved masks at sparsity {sparsity} to {masks_path}")
                 del masks
 
             del total_grads
@@ -184,19 +188,27 @@ class SniperTraining:
             self.logger.info(scale_lr_by_param)
             if resume or not scale_lr_by_param:
                 for model_full_name, param in model.named_parameters():
-                    param_groups.append({'name': model_full_name, 'params': [param], 'lr': optim_lr})
+                    param_groups.append(
+                        {"name": model_full_name, "params": [param], "lr": optim_lr}
+                    )
             else:
-                self.logger.info(f'All required sparsities present, loading sparsity {start_sparsity}...')
+                self.logger.info(
+                    f"All required sparsities present, loading sparsity {start_sparsity}..."
+                )
                 start_masks = self.load_masks(start_sparsity)
                 self.current_masks = start_masks
 
-                self.logger.info(f'Adding mask operation to forward hook...')
-                self.forward_hook = self.module_to_snip.register_forward_pre_hook(hook=get_forward_hook(start_masks))
+                self.logger.info(f"Adding mask operation to forward hook...")
+                self.forward_hook = self.module_to_snip.register_forward_pre_hook(
+                    hook=get_forward_hook(start_masks)
+                )
                 # self.forward_hooks = register_masks(module_to_snip, start_masks)
                 # log_nonzeros_count(self.module_to_snip, self.logger)
 
-                param_groups = []  # full_name: {'name': str, 'params': [Tensor], 'lr': float}
-                self.logger.info('Creating optimizer learning rates')
+                param_groups = (
+                    []
+                )  # full_name: {'name': str, 'params': [Tensor], 'lr': float}
+                self.logger.info("Creating optimizer learning rates")
 
                 cutoff = len(self.snip_module_name) + 1 if self.snip_module_name else 0
                 for model_full_name, param in model.named_parameters():
@@ -213,12 +225,14 @@ class SniperTraining:
                             lr = optim_lr
                     else:
                         lr = optim_lr
-                    param_groups.append({'name': model_full_name, 'params': [param], 'lr': lr})
+                    param_groups.append(
+                        {"name": model_full_name, "params": [param], "lr": lr}
+                    )
             self.param_groups = param_groups
 
             if not track_all_params_lr:
                 for i, pg in enumerate(param_groups):
-                    if pg['lr'] == optim_lr:
+                    if pg["lr"] == optim_lr:
                         self.track_pg_index = i
                         break
 
@@ -242,7 +256,7 @@ class SniperTraining:
         self.epoch = epoch
         self.optimizers = optimizers
         self.schedulers = schedulers
-        self.logger.info(f'Resuming from epoch {epoch}')
+        self.logger.info(f"Resuming from epoch {epoch}")
         resume_sparsity = get_sparsity(self.schedule, epoch)
         self.update_hooks(resume_sparsity)
         # No need to update learning rates here as they should be loaded when resuming checkpoint
@@ -254,39 +268,47 @@ class SniperTraining:
             # for forward_hook in self.forward_hooks:
             #     forward_hook.remove()
         if new_sparsity:
-            self.logger.info(f'New sparsity scheduled: {new_sparsity} -- replacing with new mask')
+            self.logger.info(
+                f"New sparsity scheduled: {new_sparsity} -- replacing with new mask"
+            )
             new_masks = self.load_masks(new_sparsity)
             self.current_masks = new_masks
-            self.forward_hook = self.module_to_snip.register_forward_pre_hook(hook=get_forward_hook(new_masks))
+            self.forward_hook = self.module_to_snip.register_forward_pre_hook(
+                hook=get_forward_hook(new_masks)
+            )
             # update_masks(self.module_to_snip, new_masks)
 
         else:
-            self.logger.info(f'New sparsity is 0 -- removing mask')
+            self.logger.info(f"New sparsity is 0 -- removing mask")
             self.current_masks = None
             self.forward_hook = None
 
     def update_lrs(self):
         if self.optimizers is not None:
-            self.logger.info('Setting new learning rates')
+            self.logger.info("Setting new learning rates")
             cutoff = len(self.snip_module_name) + 1 if self.snip_module_name else 0
             for i, optim in enumerate(self.optimizers):
                 new_lrs = []
                 for param_group in optim.param_groups:
-                    model_full_name = param_group['name']
+                    model_full_name = param_group["name"]
                     full_name = model_full_name[cutoff:]
                     if full_name in self.current_masks:
                         mask = self.current_masks[full_name]
                         density = mask.sum().item() / torch.numel(mask)
                         if density:
-                            new_lr = self.optim_lr * min(1.0 / density, self.max_lr_scaling)
+                            new_lr = self.optim_lr * min(
+                                1.0 / density, self.max_lr_scaling
+                            )
                             new_lrs.append(new_lr)
                         else:
                             new_lrs.append(self.optim_lr)
                     else:
                         new_lrs.append(self.optim_lr)
-                if self.schedulers is None:  # learning rate completely controlled by sniper
+                if (
+                    self.schedulers is None
+                ):  # learning rate completely controlled by sniper
                     for new_lr, param_group in zip(new_lrs, optim.param_groups):
-                        param_group['lr'] = new_lr
+                        param_group["lr"] = new_lr
                 else:  # learning rate controlled by scheduler; update scheduler.base_lrs
                     scheduler = self.schedulers[i]
                     scheduler.base_lrs = new_lrs
@@ -294,18 +316,27 @@ class SniperTraining:
 
     def reset_lrs(self):
         if self.optimizers is not None:
-            self.logger.info('Restoring original learning rates')
+            self.logger.info("Restoring original learning rates")
             for i, optim in enumerate(self.optimizers):
                 if self.schedulers is None:
                     for param_group in optim.param_groups:
-                        param_group['lr'] = self.optim_lr
+                        param_group["lr"] = self.optim_lr
                 else:
                     scheduler = self.schedulers[i]
                     scheduler.base_lrs = [self.optim_lr] * len(optim.param_groups)
 
-    def create_masks(self, sparsity: float, total_grads: Dict[str, torch.Tensor], max_param_sparsity: float = 100.0):
-        flattened_grads = torch.cat([total_grad.view(-1) for total_grad in total_grads.values()])
-        threshold = torch.kthvalue(flattened_grads, int(sparsity / 100. * len(flattened_grads))).values.item()
+    def create_masks(
+        self,
+        sparsity: float,
+        total_grads: Dict[str, torch.Tensor],
+        max_param_sparsity: float = 100.0,
+    ):
+        flattened_grads = torch.cat(
+            [total_grad.view(-1) for total_grad in total_grads.values()]
+        )
+        threshold = torch.kthvalue(
+            flattened_grads, int(sparsity / 100.0 * len(flattened_grads))
+        ).values.item()
         max_sparsity = max_param_sparsity / 100.0
         masks = {}
         for full_name, total_grad in total_grads.items():
@@ -314,7 +345,9 @@ class SniperTraining:
             numel = mask.numel()
             if 1 - nonzero / numel > max_sparsity:
                 grad = total_grad.view(-1)
-                param_threshold = torch.kthvalue(grad, 1 + int(max_sparsity * numel)).values.item()
+                param_threshold = torch.kthvalue(
+                    grad, 1 + int(max_sparsity * numel)
+                ).values.item()
                 mask = total_grad > param_threshold
                 nonzero = mask.sum().item()
                 if nonzero == 0:  # randomly fill the mask to max_sparsity
@@ -324,23 +357,32 @@ class SniperTraining:
                     random.Random(0).shuffle(bools)
                     mask = torch.BoolTensor(bools).reshape_as(mask)
             masks[full_name] = mask
-            self.logger.info(f'{full_name}: {numel} -> {nonzero}')
+            self.logger.info(f"{full_name}: {numel} -> {nonzero}")
 
         return masks
 
     def compute_gradients(self, init_values: collections.OrderedDict):
-
         start = time.time()
 
         model = self.load_model(init_values)
         module_to_snip = get_module_to_snip(model, self.snip_module_name)
 
-        param_sizes = {full_name: p.numel() for full_name, p in module_to_snip.named_parameters() if p.requires_grad}
-        self.logger.info('Total trainable params: {}'.format(sum(param_sizes.values())))
-        params_to_prune = [full_name for full_name, _ in module_to_snip.named_parameters()
-                           if will_prune(param_name=full_name, exclude_params=self.exclude_params)]
-        self.logger.info('Total params eligible to prune: {}'.format(
-            sum(param_sizes[full_name] for full_name in params_to_prune)))
+        param_sizes = {
+            full_name: p.numel()
+            for full_name, p in module_to_snip.named_parameters()
+            if p.requires_grad
+        }
+        self.logger.info("Total trainable params: {}".format(sum(param_sizes.values())))
+        params_to_prune = [
+            full_name
+            for full_name, _ in module_to_snip.named_parameters()
+            if will_prune(param_name=full_name, exclude_params=self.exclude_params)
+        ]
+        self.logger.info(
+            "Total params eligible to prune: {}".format(
+                sum(param_sizes[full_name] for full_name in params_to_prune)
+            )
+        )
 
         masks = mask_params(module_to_snip, params_to_prune, self.device)
         total_grads = [torch.zeros_like(mask).to(device=self.device) for mask in masks]
@@ -350,18 +392,23 @@ class SniperTraining:
             batch = to_device(batch, device=self.device)
             loss = self.get_loss_fn(model, batch)
             grads = torch.autograd.grad(loss, masks)
-            total_grads = [total_grad + grad for total_grad, grad in zip(total_grads, grads)]
+            total_grads = [
+                total_grad + grad for total_grad, grad in zip(total_grads, grads)
+            ]
             # Recreate the whole model to avoid backwarding through graph 2nd time
             model = self.load_model(init_values)
             module_to_snip = get_module_to_snip(model, self.snip_module_name)
             masks = mask_params(module_to_snip, params_to_prune, self.device)
             module_to_snip.zero_grad()
 
-        total_grads = {full_name: total_grad.abs() for full_name, total_grad in zip(params_to_prune, total_grads)}
+        total_grads = {
+            full_name: total_grad.abs()
+            for full_name, total_grad in zip(params_to_prune, total_grads)
+        }
 
         time_taken = time.time() - start
-        self.logger.info(f'SNIP time: {time_taken}')
-        self.logger.info(f'SNIP time/batch: {time_taken / (i + 1)}')
+        self.logger.info(f"SNIP time: {time_taken}")
+        self.logger.info(f"SNIP time/batch: {time_taken / (i + 1)}")
         return total_grads
 
     def load_model(self, init_values):
@@ -381,10 +428,11 @@ class SniperTraining:
             numels += param.numel()
         sparsity = 100.0 * (1 - nonzeros / numels)
         self.logger.info(
-            f'Module has {nonzeros} / {numels} parameters (sparsity {sparsity:.2f}%) at epoch {self.epoch}')
+            f"Module has {nonzeros} / {numels} parameters (sparsity {sparsity:.2f}%) at epoch {self.epoch}"
+        )
 
     def restore_init(self):
-        init_values_path = self.sniper_dir / 'init_values.pt'
+        init_values_path = self.sniper_dir / "init_values.pt"
         init_values = torch.load(init_values_path, map_location=self.device)
         # The keys in init_values are fully qualified names for the whole model,
         # whereas in masks, they are the qualified names for module_to_snip
@@ -394,34 +442,42 @@ class SniperTraining:
             drop_len = len(self.snip_module_name) + 1 if self.snip_module_name else 0
             for full_name, param_init_values in init_values.items():
                 if full_name.startswith(self.snip_module_name):
-                    m, n = full_name.rsplit('.', 1)
+                    m, n = full_name.rsplit(".", 1)
                     m = m[drop_len:]
                     last_module = get_module_by_name(self.module_to_snip, m)
                     param = getattr(last_module, n)
-                    values_to_update = (param.data == 0.0)
-                    param.data = param_init_values.data * values_to_update.to(param.dtype) + param.data
+                    values_to_update = param.data == 0.0
+                    param.data = (
+                        param_init_values.data * values_to_update.to(param.dtype)
+                        + param.data
+                    )
         else:
             # Prepend snip_module_name to the qualified name
             # e.g. if module_to_snip = model.tts, we need to make 'encoder.weight' -> 'tts.encoder.weight'
-            prefix = self.snip_module_name + '.' if self.snip_module_name else ''
+            prefix = self.snip_module_name + "." if self.snip_module_name else ""
             for full_name, mask in self.current_masks.items():
                 param_init_values = init_values[prefix + full_name]
-                m, n = full_name.rsplit('.', 1)
+                m, n = full_name.rsplit(".", 1)
                 last_module = get_module_by_name(self.module_to_snip, m)
                 param = getattr(last_module, n)
                 values_to_update = torch.logical_and(param.data == 0.0, mask)
-                param.data = param_init_values.data * values_to_update.to(param.dtype) + param.data
+                param.data = (
+                    param_init_values.data * values_to_update.to(param.dtype)
+                    + param.data
+                )
 
     def load_masks(self, sparsity):
-        max_suffix = '' if self.max_param_sparsity == 100.0 else f'_max{self.max_param_sparsity}'
-        masks_path = self.sniper_dir / f'masks_{sparsity}{max_suffix}.pt'
+        max_suffix = (
+            "" if self.max_param_sparsity == 100.0 else f"_max{self.max_param_sparsity}"
+        )
+        masks_path = self.sniper_dir / f"masks_{sparsity}{max_suffix}.pt"
         masks = torch.load(masks_path, map_location=self.device)
         for full_name in list(masks.keys()):
             for exclude_param in self.exclude_params:
                 if exclude_param in full_name:
                     del masks[full_name]
                     break
-        self.logger.info(f'Loaded mask from {masks_path}')
+        self.logger.info(f"Loaded mask from {masks_path}")
         return masks
 
 
@@ -430,7 +486,7 @@ def get_sparsity(schedule, epoch):
     i = 0
     while i < len(schedule_epochs) and epoch >= schedule_epochs[i]:
         i += 1
-    match_epoch = schedule_epochs[i-1]
+    match_epoch = schedule_epochs[i - 1]
     return schedule[match_epoch]
 
 
@@ -438,7 +494,7 @@ def get_sparsity(schedule, epoch):
 def get_forward_hook(masks):
     def hook(module_to_snip, inp):
         for full_name, mask in masks.items():
-            m, n = full_name.rsplit('.', 1)
+            m, n = full_name.rsplit(".", 1)
             last_module = get_module_by_name(module_to_snip, m)
             param = getattr(last_module, n)
             param.data = param.data * mask.to(param.dtype)
@@ -449,19 +505,20 @@ def get_forward_hook(masks):
 def get_backward_hook(masks):
     def hook(module_to_snip, grad_input, grad_output):
         for full_name, mask in masks.items():
-            m, n = full_name.rsplit('.', 1)
+            m, n = full_name.rsplit(".", 1)
             last_module = get_module_by_name(module_to_snip, m)
             param = getattr(last_module, n)
             param.grad = param.grad * mask.to(param.dtype)
+
     return hook
 
 
 def register_forward_hooks(module_to_snip, masks):
     forward_hooks = []
     for full_name, mask in masks.items():
-        m, n = full_name.rsplit('.', 1)
+        m, n = full_name.rsplit(".", 1)
         last_module = get_module_by_name(module_to_snip, m)
-        last_module.register_buffer(n + '_mask', mask, persistent=False)
+        last_module.register_buffer(n + "_mask", mask, persistent=False)
         forward_hook = last_module.register_forward_pre_hook(hook=apply_weights_hook)
         forward_hooks.append(forward_hook)
     return forward_hooks
@@ -470,36 +527,43 @@ def register_forward_hooks(module_to_snip, masks):
 def register_backward_hooks(module_to_snip, masks, grad_scaling):
     backward_hooks = []
     for full_name, mask in masks.items():
-        m, n = full_name.rsplit('.', 1)
+        m, n = full_name.rsplit(".", 1)
         last_module = get_module_by_name(module_to_snip, m)
         param = getattr(last_module, n)
         backward_hook = param.register_hook(
-            lambda grad, grad_mask=mask, scaling=grad_scaling: grad.mul_(grad_mask).mul_(scaling))
+            lambda grad, grad_mask=mask, scaling=grad_scaling: grad.mul_(
+                grad_mask
+            ).mul_(scaling)
+        )
         backward_hooks.append(backward_hook)
     return backward_hooks
 
 
 def update_masks(module_to_snip, masks):
     for full_name, mask in masks.items():
-        m, n = full_name.rsplit('.', 1)
+        m, n = full_name.rsplit(".", 1)
         last_module = get_module_by_name(module_to_snip, m)
-        mask_buffer = getattr(last_module, n + '_mask')
+        mask_buffer = getattr(last_module, n + "_mask")
         mask_buffer.data = mask.data
 
 
-def apply_weights_hook(last_module: torch.nn.Module, inp):  # inp is needed to match hook signature
+def apply_weights_hook(
+    last_module: torch.nn.Module, inp
+):  # inp is needed to match hook signature
     param_names = last_module.named_parameters()
     for n in param_names:
         param = getattr(last_module, n)
-        mask_buffer = getattr(last_module, n + '_mask')
+        mask_buffer = getattr(last_module, n + "_mask")
         param.data = param.data * mask_buffer.to(param.dtype)
 
 
 def mask_params(module_to_snip, params_to_prune, device) -> Dict[str, torch.Tensor]:
     # This just multiplies all params by 1 and reinserts them into the module
     # Necessary to avoid weird leaf errors when doing autograd
-    fmn = [(full_name, *full_name.rsplit('.', 1)) for full_name in params_to_prune]
-    fmn = [(full_name, get_module_by_name(module_to_snip, m), n) for full_name, m, n in fmn]
+    fmn = [(full_name, *full_name.rsplit(".", 1)) for full_name in params_to_prune]
+    fmn = [
+        (full_name, get_module_by_name(module_to_snip, m), n) for full_name, m, n in fmn
+    ]
     masks = []
     for full_name, module, name in fmn:
         param = getattr(module, name)
@@ -529,12 +593,12 @@ def will_prune(param_name, exclude_params):
 
 
 def get_module_by_name(model, access_string) -> torch.nn.Module:
-    names = access_string.split(sep='.')
+    names = access_string.split(sep=".")
     return reduce(getattr, names, model)
 
 
 def get_param_by_name(module, full_name) -> torch.Tensor:
-    m, n = full_name.rsplit('.', 1)
+    m, n = full_name.rsplit(".", 1)
     last_module = get_module_by_name(module, m)
     try:
         return getattr(last_module, n)

@@ -55,5 +55,6 @@ class ParallelWaveGANPretrainedVocoder(torch.nn.Module):
 
         """
         return self.vocoder.inference(
-            feats, normalize_before=self.normalize_before,
+            feats,
+            normalize_before=self.normalize_before,
         ).view(-1)

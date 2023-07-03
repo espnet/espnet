@@ -7,7 +7,7 @@ import sys
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union, Iterable
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import humanfriendly
 import numpy as np
@@ -65,7 +65,6 @@ from espnet2.utils.types import (
 )
 from espnet2.utils.yaml_no_alias_safe_dump import yaml_no_alias_safe_dump
 from espnet.utils.cli_utils import get_commandline_args
-
 from sniper.sniper import SniperTraining
 
 try:
@@ -879,15 +878,12 @@ class AbsTask(ABC):
 
         group = parser.add_argument_group("SNIP related")
         group.add_argument(
-            "--use_sniper",
-            type=str2bool,
-            default=False,
-            help="Whether to use SNIP"
+            "--use_sniper", type=str2bool, default=False, help="Whether to use SNIP"
         )
         group.add_argument(
             "--sniper_dir",
             type=str,
-            default='',
+            default="",
             help="Directory to save masks and initial weights",
         )
         group.add_argument(
@@ -905,7 +901,10 @@ class AbsTask(ABC):
 
     @classmethod
     def build_optimizers(
-        cls, args: argparse.Namespace, model: torch.nn.Module, param_groups: List[Dict] = None
+        cls,
+        args: argparse.Namespace,
+        model: torch.nn.Module,
+        param_groups: List[Dict] = None,
     ) -> List[torch.optim.Optimizer]:
         if cls.num_optimizers != 1:
             raise RuntimeError(
@@ -1203,18 +1202,23 @@ class AbsTask(ABC):
                         logging.info(f"Setting {k}.requires_grad = False")
                         p.requires_grad = False
 
-
             # 7. Build iterator factories
             if args.multiple_iterator:
                 train_iter_factory = cls.build_multiple_iter_factory(
-                    args=args, distributed_option=distributed_option, mode="train",
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode="train",
                 )
             else:
                 train_iter_factory = cls.build_iter_factory(
-                    args=args, distributed_option=distributed_option, mode="train",
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode="train",
                 )
             valid_iter_factory = cls.build_iter_factory(
-                args=args, distributed_option=distributed_option, mode="valid",
+                args=args,
+                distributed_option=distributed_option,
+                mode="valid",
             )
             if not args.use_matplotlib and args.num_att_plot != 0:
                 args.num_att_plot = 0
@@ -1222,19 +1226,25 @@ class AbsTask(ABC):
 
             if args.num_att_plot != 0:
                 plot_attention_iter_factory = cls.build_iter_factory(
-                    args=args, distributed_option=distributed_option, mode="plot_att",
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode="plot_att",
                 )
             else:
                 plot_attention_iter_factory = None
 
             if args.use_sniper:
-                sniper = SniperTraining(sniper_dir=args.sniper_dir, device=device, logger=logging.root)
+                sniper = SniperTraining(
+                    sniper_dir=args.sniper_dir, device=device, logger=logging.root
+                )
                 data_loader = train_iter_factory.build_iter(epoch=1)
                 batch_iterator = (batch for utt_id, batch in data_loader)
                 model_builder = lambda: cls.build_model(args)
+
                 def get_loss_fn(model, batch):
                     retval = model(**batch)
                     return retval["loss"] if isinstance(retval, dict) else retval[0]
+
                 sniper_resume = args.resume and (output_dir / "checkpoint.pth").exists()
                 sniper.train(
                     **args.sniper_conf,
@@ -1247,13 +1257,17 @@ class AbsTask(ABC):
                     resume=sniper_resume,
                     optim_lr=args.optim_conf["lr"],
                 )
-                param_groups = None if sniper.param_groups is None else sniper.param_groups
+                param_groups = (
+                    None if sniper.param_groups is None else sniper.param_groups
+                )
             else:
                 sniper = None
                 param_groups = None
 
             # 3. Build optimizer
-            optimizers = cls.build_optimizers(args, model=model, param_groups=param_groups)
+            optimizers = cls.build_optimizers(
+                args, model=model, param_groups=param_groups
+            )
 
             # 4. Build schedulers
             schedulers = []

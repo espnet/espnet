@@ -70,8 +70,13 @@ class DiarizeSpeech:
         )
         if enh_s2t_task:
             diar_model.inherite_attributes(
-                inherite_s2t_attrs=["decoder", "attractor",],
-                inherite_enh_attrs=["mask_module",],
+                inherite_s2t_attrs=[
+                    "decoder",
+                    "attractor",
+                ],
+                inherite_enh_attrs=[
+                    "mask_module",
+                ],
             )
 
         diar_model.to(dtype=getattr(torch, dtype)).eval()
@@ -171,7 +176,10 @@ class DiarizeSpeech:
                     [batch_size], dtype=torch.long, fill_value=T
                 )
                 # b. Diarization Forward
-                encoder_out, encoder_out_lens = self.encode(speech_seg, lengths_seg,)
+                encoder_out, encoder_out_lens = self.encode(
+                    speech_seg,
+                    lengths_seg,
+                )
                 spk_prediction, _ = self.decode(encoder_out, encoder_out_lens)
                 # List[torch.Tensor(B, T, num_spks)]
                 diarized_wavs.append(spk_prediction)
@@ -334,7 +342,8 @@ class DiarizeSpeech:
 
     @staticmethod
     def from_pretrained(
-        model_tag: Optional[str] = None, **kwargs: Optional[Any],
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
     ):
         """Build DiarizeSpeech instance from the pretrained model.
 
@@ -416,13 +425,16 @@ class DiarizeSpeech:
                     encoder_out_lens,
                     to_device(
                         torch.zeros(
-                            encoder_out.size(0), self.num_spk + 1, encoder_out.size(2),
+                            encoder_out.size(0),
+                            self.num_spk + 1,
+                            encoder_out.size(2),
                         ),
                         device=self.device,
                     ),
                 )
                 spk_prediction = torch.bmm(
-                    encoder_out, attractor[:, : self.num_spk, :].permute(0, 2, 1),
+                    encoder_out,
+                    attractor[:, : self.num_spk, :].permute(0, 2, 1),
                 )
                 num_spk = self.num_spk
             # else find the first att_prob[i] < 0
@@ -433,7 +445,9 @@ class DiarizeSpeech:
                     encoder_out_lens,
                     to_device(
                         torch.zeros(
-                            encoder_out.size(0), max_num_spk + 1, encoder_out.size(2),
+                            encoder_out.size(0),
+                            max_num_spk + 1,
+                            encoder_out.size(2),
                         ),
                         device=self.device,
                     ),
@@ -507,7 +521,8 @@ def inference(
         enh_s2t_task=enh_s2t_task,
     )
     diarize_speech = DiarizeSpeech.from_pretrained(
-        model_tag=model_tag, **diarize_speech_kwargs,
+        model_tag=model_tag,
+        **diarize_speech_kwargs,
     )
 
     # 3. Build data-iterator
@@ -589,7 +604,10 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -623,10 +641,14 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--train_config", type=str, help="Diarization training configuration",
+        "--train_config",
+        type=str,
+        help="Diarization training configuration",
     )
     group.add_argument(
-        "--model_file", type=str, help="Diarization model parameter file",
+        "--model_file",
+        type=str,
+        help="Diarization model parameter file",
     )
     group.add_argument(
         "--model_tag",
@@ -637,7 +659,10 @@ def get_parser():
 
     group = parser.add_argument_group("Data loading related")
     group.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     group = parser.add_argument_group("Diarize speech related")
     group.add_argument(

@@ -162,7 +162,7 @@ class AttentionReference(torch.nn.Module):
         psd = (psd.sum(dim=-1) / (C - 1)).transpose(-1, -2)
 
         # Calculate amplitude
-        psd_feat = (psd.real ** 2 + psd.imag ** 2) ** 0.5
+        psd_feat = (psd.real**2 + psd.imag**2) ** 0.5
 
         # (B, C, F) -> (B, C, F2)
         mlp_psd = self.mlp_psd(psd_feat)

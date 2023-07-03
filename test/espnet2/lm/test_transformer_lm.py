@@ -51,7 +51,9 @@ def test_TransformerLM_beam_search(pos_enc, dtype):
     enc = torch.randn(10, 20).type(dtype)
     with torch.no_grad():
         beam(
-            x=enc, maxlenratio=0.0, minlenratio=0.0,
+            x=enc,
+            maxlenratio=0.0,
+            minlenratio=0.0,
         )
 
 
@@ -77,5 +79,7 @@ def test_TransformerLM_batch_beam_search(pos_enc, dtype):
     enc = torch.randn(10, 20).type(dtype)
     with torch.no_grad():
         beam(
-            x=enc, maxlenratio=0.0, minlenratio=0.0,
+            x=enc,
+            maxlenratio=0.0,
+            minlenratio=0.0,
         )

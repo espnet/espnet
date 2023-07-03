@@ -13,7 +13,10 @@ import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "--out", "-o", type=str, help="Path to output directory.",
+    "--out",
+    "-o",
+    type=str,
+    help="Path to output directory.",
 )
 parser.add_argument("--data", "-d", type=str, help="Path to original corpus.")
 args = parser.parse_args()

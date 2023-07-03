@@ -148,5 +148,6 @@ def test_parallel_wavegan_compatibility():
         out_pwg = model_pwg.inference(c)
         out_espnet2 = model_espnet2.inference(c)
         np.testing.assert_array_equal(
-            out_pwg.cpu().numpy(), out_espnet2.cpu().numpy(),
+            out_pwg.cpu().numpy(),
+            out_espnet2.cpu().numpy(),
         )

@@ -91,7 +91,10 @@ def make_jets_generator_args(**kwargs):
             "generator_upsample_scales": [16, 16],
             "generator_upsample_kernel_sizes": [32, 32],
             "generator_resblock_kernel_sizes": [3, 3],
-            "generator_resblock_dilations": [[1, 3], [1, 3],],
+            "generator_resblock_dilations": [
+                [1, 3],
+                [1, 3],
+            ],
             "generator_use_additional_convs": True,
             "generator_bias": True,
             "generator_nonlinear_activation": "LeakyReLU",
@@ -284,7 +287,13 @@ def test_jets_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
     gen_args = make_jets_generator_args(**gen_dict)
     dis_args = make_jets_discriminator_args(**dis_dict)
     loss_args = make_jets_loss_args(**loss_dict)
-    model = JETS(idim=idim, odim=odim, **gen_args, **dis_args, **loss_args,)
+    model = JETS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
     model.train()
     upsample_factor = model.generator.upsample_factor
     inputs = dict(
@@ -308,12 +317,22 @@ def test_jets_is_trainable_and_decodable(gen_dict, dis_dict, loss_dict):
         model.eval()
 
         # check inference
-        inputs = dict(text=torch.randint(0, idim, (5,),))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            )
+        )
         model.inference(**inputs)
 
         # check inference with teachder forcing
         inputs = dict(
-            text=torch.randint(0, idim, (5,),),
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
             feats=torch.randn(16, odim),
             pitch=torch.randn(16, 1),
             energy=torch.randn(16, 1),
@@ -427,7 +446,13 @@ def test_multi_speaker_jets_is_trainable_and_decodable(
     gen_args["generator_params"]["spk_embed_dim"] = spk_embed_dim
     dis_args = make_jets_discriminator_args(**dis_dict)
     loss_args = make_jets_loss_args(**loss_dict)
-    model = JETS(idim=idim, odim=odim, **gen_args, **dis_args, **loss_args,)
+    model = JETS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
     model.train()
     upsample_factor = model.generator.upsample_factor
     inputs = dict(
@@ -457,7 +482,13 @@ def test_multi_speaker_jets_is_trainable_and_decodable(
         model.eval()
 
         # check inference
-        inputs = dict(text=torch.randint(0, idim, (5,),),)
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+        )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
         if langs > 0:
@@ -468,7 +499,11 @@ def test_multi_speaker_jets_is_trainable_and_decodable(
 
         # check inference with teacher forcing
         inputs = dict(
-            text=torch.randint(0, idim, (5,),),
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
             feats=torch.randn(16, odim),
             pitch=torch.randn(16, 1),
             energy=torch.randn(16, 1),
@@ -484,7 +519,8 @@ def test_multi_speaker_jets_is_trainable_and_decodable(
 
 
 @pytest.mark.skipif(
-    not torch.cuda.is_available(), reason="GPU is needed.",
+    not torch.cuda.is_available(),
+    reason="GPU is needed.",
 )
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
@@ -623,7 +659,13 @@ def test_jets_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
     gen_args = make_jets_generator_args(**gen_dict)
     dis_args = make_jets_discriminator_args(**dis_dict)
     loss_args = make_jets_loss_args(**loss_dict)
-    model = JETS(idim=idim, odim=odim, **gen_args, **dis_args, **loss_args,)
+    model = JETS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
     model.train()
     upsample_factor = model.generator.upsample_factor
     inputs = dict(
@@ -650,13 +692,23 @@ def test_jets_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
         model.eval()
 
         # check inference
-        inputs = dict(text=torch.randint(0, idim, (5,),))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            )
+        )
         inputs = {k: v.to(device) for k, v in inputs.items()}
         model.inference(**inputs)
 
         # check inference with teacher forcing
         inputs = dict(
-            text=torch.randint(0, idim, (5,),),
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
             feats=torch.randn(16, odim),
             pitch=torch.randn(16, 1),
             energy=torch.randn(16, 1),
@@ -667,7 +719,8 @@ def test_jets_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
 
 
 @pytest.mark.skipif(
-    not torch.cuda.is_available(), reason="GPU is needed.",
+    not torch.cuda.is_available(),
+    reason="GPU is needed.",
 )
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
@@ -814,7 +867,13 @@ def test_multi_speaker_jets_is_trainable_and_decodable_on_gpu(
     gen_args["generator_params"]["spk_embed_dim"] = spk_embed_dim
     dis_args = make_jets_discriminator_args(**dis_dict)
     loss_args = make_jets_loss_args(**loss_dict)
-    model = JETS(idim=idim, odim=odim, **gen_args, **dis_args, **loss_args,)
+    model = JETS(
+        idim=idim,
+        odim=odim,
+        **gen_args,
+        **dis_args,
+        **loss_args,
+    )
     model.train()
     upsample_factor = model.generator.upsample_factor
     inputs = dict(
@@ -847,7 +906,13 @@ def test_multi_speaker_jets_is_trainable_and_decodable_on_gpu(
         model.eval()
 
         # check inference
-        inputs = dict(text=torch.randint(0, idim, (5,),),)
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
+        )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
         if langs > 0:
@@ -859,7 +924,11 @@ def test_multi_speaker_jets_is_trainable_and_decodable_on_gpu(
 
         # check inference with teacher forcing
         inputs = dict(
-            text=torch.randint(0, idim, (5,),),
+            text=torch.randint(
+                0,
+                idim,
+                (5,),
+            ),
             feats=torch.randn(16, odim),
             pitch=torch.randn(16, 1),
             energy=torch.randn(16, 1),

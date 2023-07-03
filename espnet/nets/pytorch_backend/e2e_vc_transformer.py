@@ -603,7 +603,8 @@ class Transformer(TTSInterface, torch.nn.Module):
         )
         if self.use_guided_attn_loss:
             self.attn_criterion = GuidedMultiHeadAttentionLoss(
-                sigma=args.guided_attn_loss_sigma, alpha=args.guided_attn_loss_lambda,
+                sigma=args.guided_attn_loss_sigma,
+                alpha=args.guided_attn_loss_lambda,
             )
 
         # initialize parameters

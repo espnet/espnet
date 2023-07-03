@@ -100,5 +100,3 @@ best_model_criterion:     # criterion to save the best models
 -   - train
     - loss
     - min
-
-

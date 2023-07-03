@@ -188,14 +188,18 @@ else:
                         att_w = self.trim_attention_weight(uttid_list[idx], att_w)
                         plot = self.draw_attention_plot(att_w)
                         logger.add_figure(
-                            "%s_att%d" % (uttid_list[idx], i + 1), plot.gcf(), step,
+                            "%s_att%d" % (uttid_list[idx], i + 1),
+                            plot.gcf(),
+                            step,
                         )
                 # han
                 for idx, att_w in enumerate(att_ws[num_encs]):
                     att_w = self.trim_attention_weight(uttid_list[idx], att_w)
                     plot = self.draw_han_plot(att_w)
                     logger.add_figure(
-                        "%s_han" % (uttid_list[idx]), plot.gcf(), step,
+                        "%s_han" % (uttid_list[idx]),
+                        plot.gcf(),
+                        step,
                     )
             else:
                 for idx, att_w in enumerate(att_ws):
@@ -422,7 +426,9 @@ else:
                         ctc_prob = self.trim_ctc_prob(uttid_list[idx], ctc_prob)
                         plot = self.draw_ctc_plot(ctc_prob)
                         logger.add_figure(
-                            "%s_ctc%d" % (uttid_list[idx], i + 1), plot.gcf(), step,
+                            "%s_ctc%d" % (uttid_list[idx], i + 1),
+                            plot.gcf(),
+                            step,
                         )
             else:
                 for idx, ctc_prob in enumerate(ctc_probs):
@@ -659,7 +665,7 @@ def add_gradient_noise(model, iteration, duration=100, eta=1.0, scale_factor=0.5
         scale_factor (float) {0.55}: The scale of `sigma`.
     """
     interval = (iteration // duration) + 1
-    sigma = eta / interval ** scale_factor
+    sigma = eta / interval**scale_factor
     for param in model.parameters():
         if param.grad is not None:
             _shape = param.grad.size()

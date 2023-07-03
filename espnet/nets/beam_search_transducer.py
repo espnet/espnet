@@ -367,7 +367,10 @@ class BeamSearchTransducer:
                 D = []
 
                 beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    C, beam_state, cache, self.use_lm,
+                    C,
+                    beam_state,
+                    cache,
+                    self.use_lm,
                 )
 
                 beam_logp = torch.log_softmax(
@@ -479,7 +482,10 @@ class BeamSearchTransducer:
 
             if B_:
                 beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    B_, beam_state, cache, self.use_lm,
+                    B_,
+                    beam_state,
+                    cache,
+                    self.use_lm,
                 )
 
                 beam_enc_out = torch.stack([x[1] for x in B_enc_out])
@@ -568,7 +574,10 @@ class BeamSearchTransducer:
         cache = {}
 
         beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-            init_tokens, beam_state, cache, self.use_lm,
+            init_tokens,
+            beam_state,
+            cache,
+            self.use_lm,
         )
 
         state = self.decoder.select_state(beam_state, 0)
@@ -598,7 +607,8 @@ class BeamSearchTransducer:
 
         for enc_out_t in enc_out:
             hyps = self.prefix_search(
-                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True), enc_out_t,
+                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True),
+                enc_out_t,
             )
             kept_hyps = []
 
@@ -649,10 +659,15 @@ class BeamSearchTransducer:
                 V = subtract(V, hyps)[:beam]
 
                 beam_state = self.decoder.create_batch_states(
-                    beam_state, [v.dec_state for v in V], [v.yseq for v in V],
+                    beam_state,
+                    [v.dec_state for v in V],
+                    [v.yseq for v in V],
                 )
                 beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                    V, beam_state, cache, self.use_lm,
+                    V,
+                    beam_state,
+                    cache,
+                    self.use_lm,
                 )
 
                 if self.use_lm:
@@ -729,7 +744,10 @@ class BeamSearchTransducer:
         cache = {}
 
         beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-            init_tokens, beam_state, cache, self.use_lm,
+            init_tokens,
+            beam_state,
+            cache,
+            self.use_lm,
         )
 
         state = self.decoder.select_state(beam_state, 0)
@@ -759,7 +777,8 @@ class BeamSearchTransducer:
 
         for enc_out_t in enc_out:
             hyps = self.prefix_search(
-                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True), enc_out_t,
+                sorted(kept_hyps, key=lambda x: len(x.yseq), reverse=True),
+                enc_out_t,
             )
             kept_hyps = []
 
@@ -823,7 +842,10 @@ class BeamSearchTransducer:
                     )
 
                     beam_dec_out, beam_state, beam_lm_tokens = self.decoder.batch_score(
-                        list_exp, beam_state, cache, self.use_lm,
+                        list_exp,
+                        beam_state,
+                        cache,
+                        self.use_lm,
                     )
 
                     if self.use_lm:

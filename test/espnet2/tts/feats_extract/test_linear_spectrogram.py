@@ -45,5 +45,6 @@ def test_log_mel_equal():
     y2, _ = layer2(x, torch.LongTensor([4, 3]))
     y1_2, _ = layer2.logmel(y1, y1_lens)
     np.testing.assert_array_equal(
-        y2.detach().cpu().numpy(), y1_2.detach().cpu().numpy(),
+        y2.detach().cpu().numpy(),
+        y1_2.detach().cpu().numpy(),
     )

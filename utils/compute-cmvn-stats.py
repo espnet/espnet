@@ -145,7 +145,7 @@ def main():
 
         counts[spk] += matrix.shape[0]
         sum_feats[spk] += matrix.sum(axis=0)
-        square_sum_feats[spk] += (matrix ** 2).sum(axis=0)
+        square_sum_feats[spk] += (matrix**2).sum(axis=0)
     logging.info("Processed {} utterances".format(idx))
     assert idx > 0, idx
 

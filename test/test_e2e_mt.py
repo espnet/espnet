@@ -162,7 +162,7 @@ def test_sortagrad_trainable(module):
     else:
         import espnet.nets.chainer_backend.e2e_mt as m
     batchset = make_batchset(
-        dummy_json, 2, 2 ** 10, 2 ** 10, shortest_first=True, mt=True, iaxis=1, oaxis=0
+        dummy_json, 2, 2**10, 2**10, shortest_first=True, mt=True, iaxis=1, oaxis=0
     )
     model = m.E2E(6, 5, args)
     for batch in batchset:

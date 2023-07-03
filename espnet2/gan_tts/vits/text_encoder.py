@@ -78,7 +78,7 @@ class TextEncoder(torch.nn.Module):
 
         # define modules
         self.emb = torch.nn.Embedding(vocabs, attention_dim)
-        torch.nn.init.normal_(self.emb.weight, 0.0, attention_dim ** -0.5)
+        torch.nn.init.normal_(self.emb.weight, 0.0, attention_dim**-0.5)
         self.encoder = Encoder(
             idim=-1,
             input_layer=None,
@@ -102,7 +102,9 @@ class TextEncoder(torch.nn.Module):
         self.proj = torch.nn.Conv1d(attention_dim, attention_dim * 2, 1)
 
     def forward(
-        self, x: torch.Tensor, x_lengths: torch.Tensor,
+        self,
+        x: torch.Tensor,
+        x_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Calculate forward propagation.
 
@@ -120,7 +122,10 @@ class TextEncoder(torch.nn.Module):
         x = self.emb(x) * math.sqrt(self.attention_dim)
         x_mask = (
             make_non_pad_mask(x_lengths)
-            .to(device=x.device, dtype=x.dtype,)
+            .to(
+                device=x.device,
+                dtype=x.dtype,
+            )
             .unsqueeze(1)
         )
         # encoder assume the channel last (B, T_text, attention_dim)

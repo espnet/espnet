@@ -53,7 +53,9 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(embed=Embedding,),
+    classes=dict(
+        embed=Embedding,
+    ),
     type_check=AbsFrontend,
     default="embed",
 )
@@ -68,7 +70,10 @@ specaug_choices = ClassChoices(
 )
 preencoder_choices = ClassChoices(
     name="preencoder",
-    classes=dict(sinc=LightweightSincConvs, linear=LinearProjection,),
+    classes=dict(
+        sinc=LightweightSincConvs,
+        linear=LinearProjection,
+    ),
     type_check=AbsPreEncoder,
     default=None,
     optional=True,
@@ -89,7 +94,9 @@ encoder_choices = ClassChoices(
 )
 postencoder_choices = ClassChoices(
     name="postencoder",
-    classes=dict(hugging_face_transformers=HuggingFaceTransformersPostEncoder,),
+    classes=dict(
+        hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+    ),
     type_check=AbsPostEncoder,
     default=None,
     optional=True,

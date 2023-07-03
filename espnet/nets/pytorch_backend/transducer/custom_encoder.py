@@ -77,7 +77,9 @@ class CustomEncoder(torch.nn.Module):
         self.aux_enc_output_layers = aux_enc_output_layers
 
     def forward(
-        self, feats: torch.Tensor, mask: torch.Tensor,
+        self,
+        feats: torch.Tensor,
+        mask: torch.Tensor,
     ) -> Tuple[Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor], torch.Tensor]]:
         """Encode feature sequences.
 

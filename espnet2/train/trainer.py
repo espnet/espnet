@@ -6,7 +6,7 @@ import time
 from contextlib import contextmanager
 from dataclasses import is_dataclass
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union, Callable
+from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import humanfriendly
 import numpy as np
@@ -34,7 +34,6 @@ from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.kwargs2args import kwargs2args
-
 from sniper.sniper import SniperTraining
 
 if torch.distributed.is_available():
@@ -220,7 +219,9 @@ class Trainer:
             if sniper is not None:
                 sniper.resume_from(reporter.get_epoch(), optimizers, schedulers)
 
-        save_epochs = set(trainer_options.save_epochs) if trainer_options.save_epochs else set()
+        save_epochs = (
+            set(trainer_options.save_epochs) if trainer_options.save_epochs else set()
+        )
 
         start_epoch = reporter.get_epoch() + 1
         if start_epoch == trainer_options.max_epoch + 1:
@@ -746,10 +747,14 @@ class Trainer:
                     }
                 else:
                     lr_dict = {
-                        f"optim{i}_lr0": optimizer.param_groups[sniper.track_pg_index]["lr"]
+                        f"optim{i}_lr0": optimizer.param_groups[sniper.track_pg_index][
+                            "lr"
+                        ]
                         for i, optimizer in enumerate(optimizers)
                     }
-                reporter.register(dict(lr_dict, train_time=time.perf_counter() - start_time))
+                reporter.register(
+                    dict(lr_dict, train_time=time.perf_counter() - start_time)
+                )
                 start_time = time.perf_counter()
 
             # NOTE(kamo): Call log_message() after next()

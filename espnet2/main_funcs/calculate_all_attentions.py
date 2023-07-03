@@ -86,7 +86,15 @@ def calculate_all_attentions(
                 att_w = [_w.detach().cpu() for _w in w]
                 outputs.setdefault(name, []).append(att_w)
             elif isinstance(
-                module, (AttAdd, AttDot, AttForward, AttForwardTA, AttLoc, NoAtt,),
+                module,
+                (
+                    AttAdd,
+                    AttDot,
+                    AttForward,
+                    AttForwardTA,
+                    AttLoc,
+                    NoAtt,
+                ),
             ):
                 c, w = output
                 att_w = w.detach().cpu()

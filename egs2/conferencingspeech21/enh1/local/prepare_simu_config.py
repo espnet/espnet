@@ -53,7 +53,9 @@ def get_parser():
     """Argument parser."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "config", type=str, help="Path to the config file for simulation",
+        "config",
+        type=str,
+        help="Path to the config file for simulation",
     )
     parser.add_argument(
         "--clean_list",

@@ -104,7 +104,12 @@ diar_attractor_choices.name = "diar_attractor"
 
 MAX_REFERENCE_NUM = 100
 
-name2task = dict(enh=EnhancementTask, asr=ASRTask, st=STTask, diar=DiarizationTask,)
+name2task = dict(
+    enh=EnhancementTask,
+    asr=ASRTask,
+    st=STTask,
+    diar=DiarizationTask,
+)
 
 # More can be added to the following attributes
 enh_attributes = [

@@ -13,14 +13,15 @@ import os
 import sys
 import traceback
 from pathlib import Path
-from tacotron_cleaner.cleaners import *
+
 from praatio import textgrid
+from tacotron_cleaner.cleaners import *
 
 ROOT_DIR = os.getcwd()
 
-TEXTGRID_DIR = f'{ROOT_DIR}/textgrids'
-TRAIN_TEXT_PATH = f'{ROOT_DIR}/data/train/text'
-DURATIONS_PATH = f'{ROOT_DIR}/data/train/durations'
+TEXTGRID_DIR = f"{ROOT_DIR}/textgrids"
+TRAIN_TEXT_PATH = f"{ROOT_DIR}/data/train/text"
+DURATIONS_PATH = f"{ROOT_DIR}/data/train/durations"
 
 punctuation = "!',.?" + '"'
 
@@ -30,35 +31,45 @@ hop_length = 256
 
 def get_parser():
     parser = argparse.ArgumentParser(
-        description='Utilities to format from MFA to ESPnet.\n'
-                    'Usage: python scripts/utils/mfa_format.py ACTION [dataset] [options]\n'
-                    'python scripts/utils/mfa_format.py labs --dataset ljspeech --wavs_dir downloads/LJSpeech-1.1/wavs\n'
-                    'python scripts/utils/mfa_format.py validate\n'
-                    'python scripts/utils/mfa_format.py durations \
+        description="Utilities to format from MFA to ESPnet.\n"
+        "Usage: python scripts/utils/mfa_format.py ACTION [dataset] [options]\n"
+        "python scripts/utils/mfa_format.py labs --dataset ljspeech --wavs_dir downloads/LJSpeech-1.1/wavs\n"
+        "python scripts/utils/mfa_format.py validate\n"
+        "python scripts/utils/mfa_format.py durations \
                         --wavs_dir downloads/LJSpeech-1.1/wavs \
-                        --text\n'
+                        --text\n"
     )
 
-    parser.add_argument('type', help='Must be "labs, "validate" or "durations')
-    parser.add_argument('--dataset', help='Currently only supports "ljspeech"')
-    parser.add_argument('--wavs_dir', help='Path to wavs dir, lab files will be added here')
-    parser.add_argument('--textgrid_dir', default=TEXTGRID_DIR, help='Path to output MFA .TextGrid files')
-    parser.add_argument('--train_text_path', default=TRAIN_TEXT_PATH,
-                        help='Path to output list of utterances to phonemes')
-    parser.add_argument('--durations_path', default=DURATIONS_PATH,
-                        help='Path to output durations file')
+    parser.add_argument("type", help='Must be "labs, "validate" or "durations')
+    parser.add_argument("--dataset", help='Currently only supports "ljspeech"')
+    parser.add_argument(
+        "--wavs_dir", help="Path to wavs dir, lab files will be added here"
+    )
+    parser.add_argument(
+        "--textgrid_dir",
+        default=TEXTGRID_DIR,
+        help="Path to output MFA .TextGrid files",
+    )
+    parser.add_argument(
+        "--train_text_path",
+        default=TRAIN_TEXT_PATH,
+        help="Path to output list of utterances to phonemes",
+    )
+    parser.add_argument(
+        "--durations_path", default=DURATIONS_PATH, help="Path to output durations file"
+    )
 
     return parser
 
 
 def make_labs_ljspeech(args):
     wavs_dir = Path(args.wavs_dir)
-    with open(wavs_dir / '../metadata.csv') as f:
+    with open(wavs_dir / "../metadata.csv") as f:
         for line in f:
-            items = line.rstrip().split('|')
+            items = line.rstrip().split("|")
             filename = items[0]
             text = items[-1]
-            with open(wavs_dir / f'{filename}.lab', 'w') as lab_f:
+            with open(wavs_dir / f"{filename}.lab", "w") as lab_f:
                 # same as custom_english_cleaners but without uppercasing.
                 text = convert_to_ascii(text)
                 text = lowercase(text)
@@ -72,16 +83,15 @@ def make_labs_ljspeech(args):
                 text = re.sub(r"(\W|^)'(\w[\w .,!?']*)'(\W|$)", r'\1"\2"\3', text)
                 lab_f.write(text)
                 print(filename)
-    print('Finished writing .lab files')
+    print("Finished writing .lab files")
 
 
-def get_phoneme_durations(tg: textgrid.Textgrid,
-                          original_text: str):
-    orig_text = original_text.replace(' ', '').rstrip()
+def get_phoneme_durations(tg: textgrid.Textgrid, original_text: str):
+    orig_text = original_text.replace(" ", "").rstrip()
     text_pos = 0
 
-    words = tg.tierDict['words'].entryList
-    phones = tg.tierDict['phones'].entryList
+    words = tg.tierDict["words"].entryList
+    phones = tg.tierDict["phones"].entryList
 
     prev_end = 0.0
     time2punc = {}
@@ -93,7 +103,7 @@ def get_phoneme_durations(tg: textgrid.Textgrid,
             phrase_words.append(word.label)
         else:
             # find punctuation at end of previous phrase
-            phrase = ''.join(phrase_words)
+            phrase = "".join(phrase_words)
             for letter in phrase:
                 char = orig_text[text_pos]
                 while char != letter:
@@ -110,7 +120,7 @@ def get_phoneme_durations(tg: textgrid.Textgrid,
                 else:
                     puncs.append(char)
                     text_pos += 1
-            time2punc[timing] = puncs if puncs else ['sil']
+            time2punc[timing] = puncs if puncs else ["sil"]
 
             phrase_words = [word.label]
         prev_end = word.end
@@ -125,8 +135,10 @@ def get_phoneme_durations(tg: textgrid.Textgrid,
             # insert punctuation
             try:
                 puncs = time2punc[(prev_end, start)]
-            except KeyError:  # in some cases MFA word segmentation fails and there is a pause inside the word
-                puncs = ['sil']
+            except (
+                KeyError
+            ):  # in some cases MFA word segmentation fails and there is a pause inside the word
+                puncs = ["sil"]
             new_phones.extend(puncs)
             num_puncs = len(puncs)
             pause_time = (start - prev_end) / num_puncs
@@ -142,9 +154,9 @@ def get_phoneme_durations(tg: textgrid.Textgrid,
         text_pos = len(orig_text) - 1
         while orig_text[text_pos] in punctuation:
             text_pos -= 1
-        puncs = orig_text[text_pos + 1:]
+        puncs = orig_text[text_pos + 1 :]
         if not puncs:
-            puncs = ['sil']
+            puncs = ["sil"]
         new_phones.extend(puncs)
         num_puncs = len(puncs)
         pause_time = (tg.maxTimestamp - word.end) / num_puncs
@@ -155,7 +167,9 @@ def get_phoneme_durations(tg: textgrid.Textgrid,
 
     total_durations = int(tg.maxTimestamp * fs) // hop_length + 1
     timing_frames = [int(timing * fs / hop_length + 0.5) for timing in timings]
-    durations = [timing_frames[i + 1] - timing_frames[i] for i in range(len(timing_frames) - 1)]
+    durations = [
+        timing_frames[i + 1] - timing_frames[i] for i in range(len(timing_frames) - 1)
+    ]
 
     assert sum(durations) == total_durations
 
@@ -164,16 +178,16 @@ def get_phoneme_durations(tg: textgrid.Textgrid,
 
 def validate(args):
     valid = True
-    tg_paths = sorted(Path(args.textgrid_dir).glob('*.TextGrid'))
+    tg_paths = sorted(Path(args.textgrid_dir).glob("*.TextGrid"))
     for tg_path in tg_paths:
         filename = tg_path.stem
         tg = textgrid.openTextgrid(tg_path, False)
-        phones = tg.tierDict['phones'].entryList
+        phones = tg.tierDict["phones"].entryList
         for phone in phones:
-            if phone.label == 'spn':
-                with open(Path(args.wavs_dir) / f'{filename}.lab') as f:
+            if phone.label == "spn":
+                with open(Path(args.wavs_dir) / f"{filename}.lab") as f:
                     original_text = f.read()
-                    print(f'{filename} contains spn. Text: {original_text}')
+                    print(f"{filename} contains spn. Text: {original_text}")
                 valid = False
     assert valid
 
@@ -185,30 +199,30 @@ def make_durations(args):
     durations_path = args.durations_path
 
     os.makedirs(os.path.dirname(train_text_path), exist_ok=True)
-    with open(train_text_path, 'w') as text_file:
-        with open(durations_path, 'w') as durations_file:
-            lab_paths = sorted(wavs_dir.glob('*.lab'))
+    with open(train_text_path, "w") as text_file:
+        with open(durations_path, "w") as durations_file:
+            lab_paths = sorted(wavs_dir.glob("*.lab"))
             for lab_path in lab_paths:
                 filename = lab_path.stem
                 with open(lab_path) as lab_file:
                     original_text = lab_file.read()
-                tg_path = os.path.join(textgrid_dir, f'{filename}.TextGrid')
+                tg_path = os.path.join(textgrid_dir, f"{filename}.TextGrid")
                 tg = textgrid.openTextgrid(tg_path, False)
                 new_phones, durations = get_phoneme_durations(tg, original_text)
                 text_file.write(f'{filename} {" ".join(new_phones)}\n')
-                durations = ' '.join(str(d) for d in durations)
-                durations_file.write(f'{filename} {durations} 0\n')
+                durations = " ".join(str(d) for d in durations)
+                durations_file.write(f"{filename} {durations} 0\n")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = get_parser().parse_args()
     try:
-        if args.type == 'labs':
-            func = globals()[f'make_labs_{args.dataset}']
+        if args.type == "labs":
+            func = globals()[f"make_labs_{args.dataset}"]
             func(args)
-        elif args.type == 'validate':
+        elif args.type == "validate":
             validate(args)
-        elif args.type == 'durations':
+        elif args.type == "durations":
             make_durations(args)
         else:
             raise NotImplementedError

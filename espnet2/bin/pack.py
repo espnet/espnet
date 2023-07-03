@@ -78,7 +78,8 @@ def get_parser() -> argparse.ArgumentParser:
         ("ssl", SSLPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
-            name, formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+            name,
+            formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         )
         add_arguments(parser_asr, contents)
         parser_asr.set_defaults(contents=contents)
@@ -101,7 +102,10 @@ def main(cmd=None):
         y: getattr(args, y) for y in args.contents.files if getattr(args, y) is not None
     }
     pack(
-        yaml_files=yaml_files, files=files, option=args.option, outpath=args.outpath,
+        yaml_files=yaml_files,
+        files=files,
+        option=args.option,
+        outpath=args.outpath,
     )
 
 

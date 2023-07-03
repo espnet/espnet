@@ -88,7 +88,9 @@ class Speech2TextStreaming:
         ctc = CTCPrefixScorer(ctc=asr_model.ctc, eos=asr_model.eos)
         token_list = asr_model.token_list
         scorers.update(
-            decoder=decoder, ctc=ctc, length_bonus=LengthBonus(len(token_list)),
+            decoder=decoder,
+            ctc=ctc,
+            length_bonus=LengthBonus(len(token_list)),
         )
 
         # 2. Build Language model
@@ -508,7 +510,10 @@ def get_parser():
 
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
-        "--ngpu", type=int, default=0, help="The number of gpus. 0 indicates CPU mode",
+        "--ngpu",
+        type=int,
+        default=0,
+        help="The number of gpus. 0 indicates CPU mode",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
@@ -551,7 +556,10 @@ def get_parser():
 
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
-        "--batch_size", type=int, default=1, help="The batch size for inference",
+        "--batch_size",
+        type=int,
+        default=1,
+        help="The batch size for inference",
     )
     group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
     group.add_argument("--beam_size", type=int, default=20, help="Beam size")
@@ -572,7 +580,10 @@ def get_parser():
         help="Input length ratio to obtain min output length",
     )
     group.add_argument(
-        "--ctc_weight", type=float, default=0.5, help="CTC weight in joint decoding",
+        "--ctc_weight",
+        type=float,
+        default=0.5,
+        help="CTC weight in joint decoding",
     )
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--disable_repetition_detection", type=str2bool, default=False)

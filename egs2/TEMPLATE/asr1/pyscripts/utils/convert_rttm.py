@@ -82,7 +82,10 @@ def get_parser() -> argparse.Namespace:
     )
     parser.add_argument("--rttm", required=True, type=str, help="Path of rttm file")
     parser.add_argument(
-        "--wavscp", required=True, type=str, help="Path of corresponding scp file",
+        "--wavscp",
+        required=True,
+        type=str,
+        help="Path of corresponding scp file",
     )
     parser.add_argument(
         "--output_path",

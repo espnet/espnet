@@ -1,4 +1,4 @@
-MOS_SECTION_TEMPLATE = '''
+MOS_SECTION_TEMPLATE = """
 page: begin
 
 l: mos
@@ -8,7 +8,7 @@ q: Welcome to the listening experiment! It would be good to use earphones. For t
 l: name
 t: textline
 q: Please input your name first :)
-- 
+-
 
 random: begin
 
@@ -21,18 +21,18 @@ t: info
 q: Congrats! Please click the button below to continue. (If you cannot click it, please check if you missed out something. All the bars should be green.
 
 page: end
-'''
+"""
 
-MOS_QN_TEMPLATE = '''
+MOS_QN_TEMPLATE = """
 l: {wav_id}
 a: {hosting_url}/{wav_path}
 t: range
-q: 
+q:
 - {{min=1,max=5,by=0.25,start=3,left=Totally Unnatural,right=Totally Natural}}
-'''
+"""
 
 
-PREF3_TEST_TEMPLATE = '''
+PREF3_TEST_TEMPLATE = """
 page: begin
 
 l: pref3_test
@@ -47,12 +47,12 @@ scale: abx
 {pref3_questions}
 
 page: end
-'''
+"""
 
-PREF3_QN_TEMPLATE = '''
+PREF3_QN_TEMPLATE = """
 l: {group_id}
 a: {hosting_url}/{wav_paths[0]} {hosting_url}/{wav_paths[1]} {hosting_url}/{wav_paths[2]}
 t: scale abx
 - Most natural
 - Least natural
-'''
+"""

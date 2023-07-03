@@ -189,7 +189,8 @@ def make_loss_args(**kwargs):
 
 
 @pytest.mark.skipif(
-    V(torch.__version__) < V("1.4"), reason="Pytorch >= 1.4 is required.",
+    V(torch.__version__) < V("1.4"),
+    reason="Pytorch >= 1.4 is required.",
 )
 @pytest.mark.skipif(
     "1.6" in torch.__version__,
@@ -414,7 +415,10 @@ def make_loss_args(**kwargs):
                 "discriminator_params": {
                     "repeats": 2,
                     "window_sizes": [4, 8],
-                    "pqmf_params": [[1, None, None, None], [2, 62, 0.26700, 9.0],],
+                    "pqmf_params": [
+                        [1, None, None, None],
+                        [2, 62, 0.26700, 9.0],
+                    ],
                     "discriminator_params": {
                         "out_channels": 1,
                         "kernel_sizes": [5, 3],
@@ -529,6 +533,12 @@ def test_joint_model_is_trainable_and_decodable(
         model.eval()
 
         # check inference
-        inputs = dict(text=torch.randint(0, idim, (10,),))
+        inputs = dict(
+            text=torch.randint(
+                0,
+                idim,
+                (10,),
+            )
+        )
         output_dict = model.inference(**inputs)
         assert len(output_dict["wav"]) == len(output_dict["feat_gen"]) * upsample_factor

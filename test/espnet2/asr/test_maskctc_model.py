@@ -11,7 +11,10 @@ from espnet2.asr.maskctc_model import MaskCTCInference, MaskCTCModel
 @pytest.mark.parametrize("encoder_arch", [TransformerEncoder, ConformerEncoder])
 @pytest.mark.parametrize(
     "interctc_layer_idx, interctc_use_conditioning, interctc_weight",
-    [([], False, 0.0), ([1], True, 0.5),],
+    [
+        ([], False, 0.0),
+        ([1], True, 0.5),
+    ],
 )
 def test_maskctc(
     encoder_arch, interctc_layer_idx, interctc_use_conditioning, interctc_weight
@@ -26,7 +29,12 @@ def test_maskctc(
         interctc_layer_idx=interctc_layer_idx,
         interctc_use_conditioning=interctc_use_conditioning,
     )
-    decoder = MLMDecoder(vocab_size, enc_out, linear_units=4, num_blocks=2,)
+    decoder = MLMDecoder(
+        vocab_size,
+        enc_out,
+        linear_units=4,
+        num_blocks=2,
+    )
     ctc = CTC(odim=vocab_size, encoder_output_size=enc_out)
 
     model = MaskCTCModel(
@@ -56,9 +64,13 @@ def test_maskctc(
         model.eval()
 
         s2t = MaskCTCInference(
-            asr_model=model, n_iterations=2, threshold_probability=0.5,
+            asr_model=model,
+            n_iterations=2,
+            threshold_probability=0.5,
         )
 
         # free running
-        inputs = dict(enc_out=torch.randn(2, 4),)
+        inputs = dict(
+            enc_out=torch.randn(2, 4),
+        )
         s2t(**inputs)

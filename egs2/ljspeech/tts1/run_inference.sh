@@ -39,6 +39,3 @@ for x in exp/fastspeech2_0 exp/*max75*; do
         fi
     fi
 done
-
-
-

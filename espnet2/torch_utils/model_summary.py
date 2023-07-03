@@ -35,7 +35,7 @@ def get_human_readable_count(number: int) -> str:
     num_groups = int(np.ceil(num_digits / 3))
     num_groups = min(num_groups, len(labels))  # don't abbreviate beyond trillions
     shift = -3 * (num_groups - 1)
-    number = number * (10 ** shift)
+    number = number * (10**shift)
     index = num_groups - 1
     return f"{number:.2f} {labels[index]}"
 

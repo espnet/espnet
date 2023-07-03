@@ -76,7 +76,11 @@ def world_extract(
     # extract features
     x = x.astype(np.float64)
     f0, time_axis = pw.harvest(
-        x, fs, f0_floor=f0min, f0_ceil=f0max, frame_period=n_shift / fs * 1000,
+        x,
+        fs,
+        f0_floor=f0min,
+        f0_ceil=f0max,
+        frame_period=n_shift / fs * 1000,
     )
     sp = pw.cheaptrick(x, f0, time_axis, fs, fft_size=n_fft)
     if mcep_dim is None or mcep_alpha is None:
@@ -181,7 +185,9 @@ def get_parser() -> argparse.Namespace:
         help="Path of directory or wav.scp for ground truth waveforms.",
     )
     parser.add_argument(
-        "--outdir", type=str, help="Path of directory to write the results.",
+        "--outdir",
+        type=str,
+        help="Path of directory to write the results.",
     )
 
     # analysis related
@@ -204,19 +210,34 @@ def get_parser() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
-        "--n_fft", default=1024, type=int, help="The number of FFT points.",
+        "--n_fft",
+        default=1024,
+        type=int,
+        help="The number of FFT points.",
     )
     parser.add_argument(
-        "--n_shift", default=256, type=int, help="The number of shift points.",
+        "--n_shift",
+        default=256,
+        type=int,
+        help="The number of shift points.",
     )
     parser.add_argument(
-        "--f0min", default=40, type=int, help="Minimum f0 value.",
+        "--f0min",
+        default=40,
+        type=int,
+        help="Minimum f0 value.",
     )
     parser.add_argument(
-        "--f0max", default=800, type=int, help="Maximum f0 value.",
+        "--f0max",
+        default=800,
+        type=int,
+        help="Maximum f0 value.",
     )
     parser.add_argument(
-        "--nj", default=16, type=int, help="Number of parallel jobs.",
+        "--nj",
+        default=16,
+        type=int,
+        help="Number of parallel jobs.",
     )
     parser.add_argument(
         "--verbose",

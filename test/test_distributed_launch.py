@@ -83,7 +83,13 @@ def test_simple_function_ok_with_right_envvar(nprocs):
 
 
 @pytest.mark.parametrize(
-    "nprocs, exitcode", [(1, 1), (2, 1), (1, 2), (2, 2),],
+    "nprocs, exitcode",
+    [
+        (1, 1),
+        (2, 1),
+        (1, 2),
+        (2, 2),
+    ],
 )
 @pytest.mark.execution_timeout(10.0)
 def test_worker_exits_nonzero_code_ng(nprocs, exitcode):
