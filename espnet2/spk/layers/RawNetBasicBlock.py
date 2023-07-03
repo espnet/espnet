@@ -53,13 +53,7 @@ class AFMS(nn.Module):
 
 class Bottle2neck(nn.Module):
     def __init__(
-        self,
-        inplanes,
-        planes,
-        kernel_size=None,
-        dilation=None,
-        scale=4,
-        pool=False,
+        self, inplanes, planes, kernel_size=None, dilation=None, scale=4, pool=False
     ):
         super().__init__()
 

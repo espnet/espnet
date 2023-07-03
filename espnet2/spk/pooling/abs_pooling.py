@@ -9,8 +9,5 @@ class AbsPooling(torch.nn.Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def forward(
-        self,
-        input: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, input: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError

@@ -1,29 +1,20 @@
 # Copyright 2023 Jee-weon Jung
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from contextlib import contextmanager
-from itertools import permutations
 from typing import Dict, Optional, Tuple
 
-import numpy as np
 import torch
-import torch.nn.functional as F
-from packaging.version import parse as V
-from torch.cuda.amp import autocast
 from typeguard import check_argument_types
 
-# TODO: remove unused modules
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
-from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.pytorch_backend.nets_utils import to_device
 
 
 class ESPnetSpeakerModel(AbsESPnetModel):

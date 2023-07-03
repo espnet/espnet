@@ -18,11 +18,7 @@ class ChnAttnStatPooling(AbsPooling):
             _size becuase it concatenates mean and std.
     """
 
-    def __init__(
-        self,
-        input_size: int = 1536,
-        output_size: int = 3072,
-    ):
+    def __init__(self, input_size: int = 1536, output_size: int = 3072):
         super().__init__()
         self.attention = nn.Sequential(
             nn.Conv1d(input_size * 3, 128, kernel_size=1),

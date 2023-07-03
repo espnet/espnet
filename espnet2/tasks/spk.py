@@ -16,6 +16,7 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
+from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
@@ -117,7 +118,7 @@ loss_choices = ClassChoices(
     classes=dict(
         aamsoftmax=AAMSoftmax,
     ),
-    type_check=AAMSoftmax,
+    type_check=AbsLoss,
     default="aam",
 )
 
