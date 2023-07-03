@@ -6,6 +6,10 @@ encoder: rawnet3
 
 frontend: raw
 
+pooling: chn_attn_stat
+  input_size: 1536
+  output_size: 3072
+
 projector: rawnet3
 projector_conf:
   input_size: 3072
