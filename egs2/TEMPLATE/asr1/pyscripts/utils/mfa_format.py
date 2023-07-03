@@ -378,7 +378,7 @@ def make_labs(args):
                 text = re.sub(r"(\W|^)'(\w[\w .,!?']*)'(\W|$)", r'\1"\2"\3', text)
 
                 # Remove braces because MFA interprets them as enclosing a single word
-                text = re.sub(r"[\{\}]", '', text)
+                text = re.sub(r"[\{\}]", "", text)
 
                 # In case of frontend, preprocess data.
                 if frontend is not None:
@@ -391,7 +391,7 @@ def make_labs(args):
                     ) as writer:
                         writer.write(text)
                 except KeyError:
-                    logging.warning(f'{utt} is in text file but not in utt2spk')
+                    logging.warning(f"{utt} is in text file but not in utt2spk")
 
         # Generate wavs according to wav.scp and segment files
         if (dset / "segments").exists():
@@ -404,7 +404,7 @@ def make_labs(args):
                         dst_file = (corpus_dir / spk / f"{utt}.wav").as_posix()
                         sf.write(dst_file, array, rate)
                     except KeyError:
-                        logging.warning(f'{utt} is in wav.scp file but not in utt2spk')
+                        logging.warning(f"{utt} is in wav.scp file but not in utt2spk")
         else:
             with open(dset / "wav.scp") as reader:
                 for line in reader:
@@ -421,7 +421,7 @@ def make_labs(args):
                             rate, array = kaldiio.load_mat(src_file)
                             sf.write(dst_file.as_posix(), array, rate)
                     except KeyError:
-                        logging.warning(f'{utt} is in wav.scp file but not in utt2spk')
+                        logging.warning(f"{utt} is in wav.scp file but not in utt2spk")
     logging.info("Finished writing .lab files")
 
 
