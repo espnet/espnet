@@ -257,7 +257,7 @@ You need to fill `model_name` by yourself. You can search for pretrained models 
 
 ### Evaluation using OpenAI Whisper
 
-ESPnet2 provides a [script](egs2/TEMPLATE/asr1/scripts/utils/evaluate_asr.sh) to run inference and scoring using OpenAI's Whisper. This can be used to evaluate speech generation models. Here is an example:
+ESPnet2 provides a [script](../egs2/TEMPLATE/asr1/scripts/utils/evaluate_asr.sh) to run inference and scoring using OpenAI's Whisper. This can be used to evaluate speech generation models. Here is an example:
 
 ```bash
 #!/usr/bin/env bash
