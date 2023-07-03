@@ -41,11 +41,13 @@ whisper_tag=""
 # Inference option related configuration
 inference_config=""
 inference_args=""
+decode_options="{task: transcribe}"
 
 # Scoring related configuration
 bpemodel=""
 nlsyms_txt=none
 cleaner=none
+hyp_cleaner=none
 gt_text=""
 
 help_message=$(cat << EOF
@@ -69,6 +71,7 @@ Options:
     # Inference related configuration
     --inference_config  # ASR inference configuration file (default="${inference_config}").
     --inference_args    # Additional arguments for ASR inference (default=${inference_args}).
+    --decode_options    # Decode options for Whisper's transcribe method (default=${decode_options}).
 
     # Scoring related configuration
     --bpemodel    # BPE model path, needed if you want to calculate TER (default="${bpemodel}").
@@ -115,8 +118,8 @@ if [ -z "${gt_text}" ] && [ "${stop_stage}" -ge 3 ]; then
     log "--gt_text must be provided if perform scoring."
     exit 1
 fi
-if [ -z "${model_tag}" ] && [ -z "${asr_model_file}" ]; then
-    log "Either --model_tag or --asr_model_file must be provided."
+if [ -z "${model_tag}" ] && [ -z "${asr_model_file}" ] && [ -z "${whisper_tag}" ]; then
+    log "--model_tag or --asr_model_file or --whisper_tag must be provided."
     exit 1
 fi
 
@@ -186,8 +189,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${wavscp}" \
                 --key_file "${logdir}"/keys.JOB.scp \
-                --model_tag ${whisper_tag} \
-                --output_dir "${logdir}"/output.JOB || { cat $(grep -l -i error "${logdir}"/asr_inference.*.log) ; exit 1; }
+                --model_tag "${whisper_tag}" \
+                --output_dir "${logdir}"/output.JOB \
+                --decode_options "${decode_options}" || { cat $(grep -l -i error "${logdir}"/asr_inference.*.log) ; exit 1; }
     else
         # shellcheck disable=SC2046,SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${logdir}"/asr_inference.JOB.log \
@@ -201,9 +205,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # 3. Concatenates the output files from each jobs
     for f in token token_int score text; do
-        for i in $(seq "${_nj}"); do
-            cat "${logdir}/output.${i}/1best_recog/${f}"
-        done | LC_ALL=C sort -k1 >"${outdir}/${f}"
+        if [ -f "${logdir}/output.1/1best_recog/${f}" ]; then
+            for i in $(seq "${_nj}"); do
+                cat "${logdir}/output.${i}/1best_recog/${f}"
+            done | LC_ALL=C sort -k1 >"${outdir}/${f}"
+        fi
     done
 fi
 
@@ -234,6 +240,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                           --token_type word \
                           --non_linguistic_symbols "${nlsyms_txt}" \
                           --remove_non_linguistic_symbols true \
+                          --cleaner "${hyp_cleaner}" \
                           ) \
                 <(<"${wavscp}" awk '{ print "(" $1 ")" }') \
                     >"${_scoredir}/hyp.trn"
@@ -257,6 +264,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                           --token_type char \
                           --non_linguistic_symbols "${nlsyms_txt}" \
                           --remove_non_linguistic_symbols true \
+                          --cleaner "${hyp_cleaner}" \
                           ) \
                 <(<"${wavscp}" awk '{ print "(" $1 ")" }') \
                     >"${_scoredir}/hyp.trn"
@@ -278,6 +286,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
                           -f 2- --input - --output - \
                           --token_type bpe \
                           --bpemodel "${bpemodel}" \
+                          --cleaner "${hyp_cleaner}" \
                           ) \
                 <(<"${wavscp}" awk '{ print "(" $1 ")" }') \
                     >"${_scoredir}/hyp.trn"
