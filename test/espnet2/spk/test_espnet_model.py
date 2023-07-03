@@ -6,9 +6,8 @@ from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
-from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
-
+from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 
 rawnet3_encoder = RawNet3Encoder(model_scale=8, output_size=64, sinc_stride=16)
 
