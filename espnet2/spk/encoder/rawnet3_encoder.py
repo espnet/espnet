@@ -11,7 +11,7 @@ from asteroid_filterbanks import Encoder, ParamSincFB
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.spk.layers.RawNetBasicBlock import PreEmphasis,Bottle2neck
+from espnet2.spk.layers.RawNetBasicBlock import Bottle2neck, PreEmphasis
 
 
 class RawNet3Encoder(AbsEncoder):
