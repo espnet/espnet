@@ -11,7 +11,7 @@ from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 
 rawnet3_encoder = RawNet3Encoder(model_scale=8, ndim=64, sinc_stride=16)
 
-chn_attn_stat_pooling = ChnAttnStatPooling(input_size=96, output_size=192)
+chn_attn_stat_pooling = ChnAttnStatPooling(input_size=96)
 
 rawnet3_projector = RawNet3Projector(input_size=192, output_size=16)
 
