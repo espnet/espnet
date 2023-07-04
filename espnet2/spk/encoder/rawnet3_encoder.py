@@ -63,9 +63,7 @@ class RawNet3Encoder(AbsEncoder):
             scale=model_scale,
             pool=3,
         )
-        self.layer3 = block(
-            ndim, ndim, kernel_size=3, dilation=4, scale=model_scale
-        )
+        self.layer3 = block(ndim, ndim, kernel_size=3, dilation=4, scale=model_scale)
         self.layer4 = nn.Conv1d(3 * ndim, int(1.5 * ndim), kernel_size=1)
 
         self.mp3 = nn.MaxPool1d(3)
