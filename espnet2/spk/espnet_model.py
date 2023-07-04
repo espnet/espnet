@@ -11,6 +11,7 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.spk.loss.abs_loss import AbsLoss
+from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
@@ -152,4 +153,4 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self.extract_feats(speech, speech_lengths)
-        return {"feats": feats, "feats_lengths": feats_lengths}
+        return {"feats": feats}
