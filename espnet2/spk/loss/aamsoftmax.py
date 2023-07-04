@@ -48,7 +48,8 @@ class AAMSoftmax(AbsLoss):
         print("Initialised AAMSoftmax margin %.3f scale %.3f" % (self.m, self.s))
 
     def forward(self, x, label=None):
-        label = label.squeeze()
+        if len(label.size()) == 2:
+            label = label.squeeze(1)
 
         assert x.size()[0] == label.size()[0]
         assert x.size()[1] == self.in_feats
