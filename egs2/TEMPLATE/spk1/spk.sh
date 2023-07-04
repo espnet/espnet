@@ -263,7 +263,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
     # 4. Aggregate shape files
     _opts=
-    for i in $(seq "${nj}"); do
+    for i in $(seq "${_nj}"); do
         _opts+="--input_dir ${_logdir}/stats.${i} "
     done
     # shellcheck disable=SC2086
