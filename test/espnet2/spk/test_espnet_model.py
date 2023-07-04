@@ -9,7 +9,7 @@ from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 
-rawnet3_encoder = RawNet3Encoder(model_scale=8, output_size=64, sinc_stride=16)
+rawnet3_encoder = RawNet3Encoder(model_scale=8, ndim=64, sinc_stride=16)
 
 chn_attn_stat_pooling = ChnAttnStatPooling(input_size=96, output_size=192)
 
@@ -36,7 +36,7 @@ normalize = UtteranceMVN()
 @pytest.mark.parametrize("encoder, projector", [(rawnet3_encoder, rawnet3_projector)])
 @pytest.mark.parametrize("pooling", [chn_attn_stat_pooling])
 @pytest.mark.parametrize("training", [True, False])
-def test_single_channel_model(encoder, pooling, projector, training):
+def test_single_channel_spk_model(encoder, pooling, projector, training):
     inputs = torch.randn(2, 8000)
     ilens = torch.LongTensor([8000, 7800])
     spk_labels = torch.randint(0, 108, (2,))
@@ -64,7 +64,7 @@ def test_single_channel_model(encoder, pooling, projector, training):
 
 @pytest.mark.parametrize("training", [True, False])
 @pytest.mark.parametrize("loss", [aamsoftmax_loss, aamsoftmax_em_loss])
-def test_loss(training, loss):
+def test_spk_loss(training, loss):
     inputs = torch.randn(2, 8000)
     ilens = torch.LongTensor([8000, 7800])
     spk_labels = torch.randint(0, 108, (2,))
