@@ -9,8 +9,5 @@ class AbsProjector(torch.nn.Module, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def forward(
-        self,
-        utt_embd: torch.Tensor,
-    ) -> torch.Tensor:
+    def forward(self, utt_embd: torch.Tensor) -> torch.Tensor:
         raise NotImplementedError

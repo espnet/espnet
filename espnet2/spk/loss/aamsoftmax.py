@@ -5,7 +5,6 @@
 
 import math
 
-import numpy
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,7 +24,7 @@ class AAMSoftmax(AbsLoss):
     def __init__(
         self, nOut, nClasses, margin=0.3, scale=15, easy_margin=False, **kwargs
     ):
-        super().__init__()
+        super().__init__(nOut)
 
         self.test_normalize = True
 

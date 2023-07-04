@@ -3,8 +3,6 @@
 
 """RawNet3 Encoder"""
 
-from typing import List, Optional, Tuple
-
 import torch
 import torch.nn as nn
 from asteroid_filterbanks import Encoder, ParamSincFB
@@ -75,10 +73,7 @@ class RawNet3Encoder(AbsEncoder):
     def output_size(self) -> int:
         return self._output_size
 
-    def forward(
-        self,
-        data: torch.Tensor,
-    ):
+    def forward(self, data: torch.Tensor):
         # waveform transformation and normalization here
         with torch.cuda.amp.autocast(enabled=False):
             x = self.waveform_process(data)
