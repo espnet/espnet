@@ -150,7 +150,7 @@ if [ -z "${spk_exp}"  ]; then
 fi
 
 # Determine which stages to skip
-if "${skip_data_perp}"; then
+if "${skip_data_prep}"; then
     skip_stages+="1 2"
 fi
 
@@ -167,7 +167,7 @@ log "Skipped stages: ${skip_stages}"
 if [ ${stage} -le 1  ] && [ ${stop_stage} -ge 1  ] && ! [[ " ${skip_stages} " =~ [[:space:]]1[[:space:]]  ]]; then
     log "Stage 1: Data preparation for train and evaluation."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh ${local_data_opts}
+    local/data.sh
     log "Stage 1 FIN."
 fi
 
@@ -186,14 +186,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}"
         for dset in ${_dsets}; do
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
-            echo "${feats_type}" > "${data_feats}$/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
 
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" \
                 --multi-columns-input "${multi_columns_input_wav_scp}" \
                 --multi-columns-output "${multi_columns_output_wav_scp}" \
-                "data/${dset}"/wav.scp" "${data_feats}"/${dset}"
+                "data/${dset}/wav.scp" "${data_feats}/${dset}"
 
         done
     else
