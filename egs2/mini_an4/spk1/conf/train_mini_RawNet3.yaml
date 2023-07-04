@@ -1,19 +1,14 @@
 # RawNet3 reproduce recipe configuration.
+frontend: raw
+
 encoder: rawnet3
 encoder_conf:  # uncomment for customized arguments
   model_scale: 4
   ndim: 64
 
-#model_conf:    # uncomment for customized arguments
-
-frontend: raw
-
-
-
 pooling: chn_attn_stat
 pooling_conf:
   input_size: 96
-  output_size: 192
 
 projector: rawnet3
 projector_conf:

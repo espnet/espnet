@@ -19,6 +19,12 @@ class AAMSoftmax(AbsLoss):
     Paper: Deng, Jiankang, et al. "Arcface: Additive angular margin loss for
     deep face recognition." Proceedings of the IEEE/CVF conference on computer
     vision and pattern recognition. 2019.
+
+    args:
+        nOut    : dimensionality of speaker embedding
+        nClaases: number of speakers in the training set
+        margin  : margin value of AAMSoftmax
+        scale   : scale value of AAMSoftmax
     """
 
     def __init__(
