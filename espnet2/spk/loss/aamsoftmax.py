@@ -10,8 +10,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from espnet2.spk.loss.abs_loss import AbsLoss
 
-class AAMSoftmax(nn.Module):
+
+class AAMSoftmax(AbsLoss):
     """
     Additive angular margin softmax.
 
