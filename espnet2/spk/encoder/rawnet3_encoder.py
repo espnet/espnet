@@ -20,10 +20,13 @@ class RawNet3Encoder(AbsEncoder):
     paper: J. Jung et al., "Pushing the limits of raw waveform speaker
         recognition", in Proc. INTERSPEECH, 2022.
 
+    Note that the model's output dimensionality self._output_size equals to
+        1.5 * ndim.
+
     Args:
         block: type of encoder block class to use.
         model_scale: scale value of the Res2Net architecture.
-        output_size: dimensionality of the hidden representation.
+        ndim: dimensionality of the hidden representation.
         sinc_stride: stride size of the first sinc-conv layer where it decides
             the compression rate (Hz).
     """
@@ -32,40 +35,40 @@ class RawNet3Encoder(AbsEncoder):
         self,
         block=Bottle2neck,
         model_scale: int = 8,
-        output_size: int = 1024,
+        ndim: int = 1024,
         sinc_stride: int = 16,
         **kwargs,
     ):
         assert check_argument_types()
         super().__init__()
-        self._output_size = output_size
+        self._output_size = int(ndim * 1.5)
 
         self.waveform_process = nn.Sequential(
             PreEmphasis(), nn.InstanceNorm1d(1, eps=1e-4, affine=True)
         )
-        self.conv = Encoder(ParamSincFB(output_size // 4, 251, stride=sinc_stride))
+        self.conv = Encoder(ParamSincFB(ndim // 4, 251, stride=sinc_stride))
         self.relu = nn.ReLU()
 
         self.layer1 = block(
-            output_size // 4,
-            output_size,
+            ndim // 4,
+            ndim,
             kernel_size=3,
             dilation=2,
             scale=model_scale,
             pool=5,
         )
         self.layer2 = block(
-            output_size,
-            output_size,
+            ndim,
+            ndim,
             kernel_size=3,
             dilation=3,
             scale=model_scale,
             pool=3,
         )
         self.layer3 = block(
-            output_size, output_size, kernel_size=3, dilation=4, scale=model_scale
+            ndim, ndim, kernel_size=3, dilation=4, scale=model_scale
         )
-        self.layer4 = nn.Conv1d(3 * output_size, int(1.5 * output_size), kernel_size=1)
+        self.layer4 = nn.Conv1d(3 * ndim, int(1.5 * ndim), kernel_size=1)
 
         self.mp3 = nn.MaxPool1d(3)
 
