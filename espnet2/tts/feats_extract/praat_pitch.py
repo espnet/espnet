@@ -1,7 +1,7 @@
 # Copyright 2020 Nagoya University (Tomoki Hayashi)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""F0 extractor using DIO + Stonemask algorithm."""
+"""F0 extractor from Praat with Parselmouth Python wrapper."""
 
 import logging
 from typing import Any, Dict, Tuple, Union
@@ -42,6 +42,7 @@ class PraatPitch(AbsFeatsExtract):
         use_continuous_f0: bool = True,
         use_log_f0: bool = True,
         reduction_factor: int = None,
+        enable_warnings: bool = True
     ):
         assert check_argument_types()
         super().__init__()
@@ -57,6 +58,7 @@ class PraatPitch(AbsFeatsExtract):
         if use_token_averaged_f0:
             assert reduction_factor >= 1
         self.reduction_factor = reduction_factor
+        self.enable_warnings = enable_warnings
         self.padding = 2 * hop_length
 
     def output_size(self) -> int:
@@ -90,12 +92,13 @@ class PraatPitch(AbsFeatsExtract):
 
         # F0 extraction
         if feats_lengths is None:
-            assert durations is None, "Number of pitch frames will be different from mel frames!"
-            logging.warning('Number of pitch frames will be different from mel frames.')
-            pitch = [self._calc_f0(inp) for inp in inputs]
+            if self.enable_warnings:
+                logging.warning('Number of pitch frames will be different from mel frames.')
+            pitch = [self._calc_f0(x[:xl]) for x, xl in zip(inputs, input_lengths)]
         else:
             pitch = [
-                self._calc_f0_corrected(inp, feats_length) for inp, feats_length in zip(inputs, feats_lengths)
+                self._calc_f0_corrected(x[:xl], feats_length)
+                for x, xl, feats_length in zip(inputs, input_lengths, feats_lengths)
             ]
 
         # (Optional): Average by duration to calculate token-wise f0
@@ -119,7 +122,7 @@ class PraatPitch(AbsFeatsExtract):
         x = inp.cpu().numpy().astype(np.double)
         sound = parselmouth.Sound(x, self.fs)
         pitch = sound.to_pitch(pitch_floor=self.f0min, pitch_ceiling=self.f0max)
-        f0 = np.array(x[0] for x in pitch.selected_array)
+        f0 = np.array([p[0] for p in pitch.selected_array])
         return self._get_f0_tensor(inp, f0)
 
     def _calc_f0_corrected(self, inp: torch.Tensor, feats_length) -> torch.Tensor:
@@ -135,10 +138,12 @@ class PraatPitch(AbsFeatsExtract):
         # len(f0) and feats_length should usually be the same, but could be -1 or 1 due to rounding errors
         diff = feats_length - len(f0)
         if diff > 0:
-            logging.warning(f'f0 length ({len(f0)}) shorter than feats length ({feats_length})')
+            if self.enable_warnings:
+                logging.warning(f'f0 length ({len(f0)}) shorter than feats length ({feats_length})')
             f0 = np.pad(f0, (0, diff))
         elif diff < 0:
-            logging.warning(f'f0 length ({len(f0)}) longer than feats length ({feats_length})')
+            if self.enable_warnings:
+                logging.warning(f'f0 length ({len(f0)}) longer than feats length ({feats_length})')
             f0 = f0[:diff]
         return self._get_f0_tensor(inp, f0)
 
