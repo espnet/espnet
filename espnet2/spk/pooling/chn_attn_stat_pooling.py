@@ -28,9 +28,6 @@ class ChnAttnStatPooling(AbsPooling):
             nn.Softmax(dim=2),
         )
 
-    def output_size(self) -> int:
-        return self._output_size
-
     def forward(self, x):
         t = x.size()[-1]
         global_x = torch.cat(
