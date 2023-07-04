@@ -204,6 +204,174 @@
 <h1>espnet2.text package<a class="headerlink" href="#espnet2-text-package" title="Permalink to this headline">¶</a></h1>
 <section id="espnet2-text-phoneme-tokenizer-1">
 <span id="espnet2-text-phoneme-tokenizer"></span><h2>espnet2.text.phoneme_tokenizer<a class="headerlink" href="#espnet2-text-phoneme-tokenizer-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.phoneme_tokenizer"></span><dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.G2p_en">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">G2p_en</code><span class="sig-paren">(</span><em class="sig-param">no_space: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#G2p_en"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.G2p_en" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>On behalf of g2p_en.G2p.</p>
+<p>g2p_en.G2p isn’t pickalable and it can’t be copied to the other processes
+via multiprocessing module.
+As a workaround, g2p_en.G2p is instantiated upon calling this class.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.G2pk">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">G2pk</code><span class="sig-paren">(</span><em class="sig-param">descritive=False</em>, <em class="sig-param">group_vowels=False</em>, <em class="sig-param">to_syl=False</em>, <em class="sig-param">no_space=False</em>, <em class="sig-param">explicit_space=False</em>, <em class="sig-param">space_symbol='&lt;space&gt;'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#G2pk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.G2pk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>On behalf of g2pk.G2p.</p>
+<p>g2pk.G2p isn’t pickalable and it can’t be copied to the other processes
+via multiprocessing module.
+As a workaround, g2pk.G2p is instantiated upon calling this class.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.IsG2p">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">IsG2p</code><span class="sig-paren">(</span><em class="sig-param">dialect: str = 'standard'</em>, <em class="sig-param">syllabify: bool = True</em>, <em class="sig-param">word_sep: str = '</em>, <em class="sig-param">'</em>, <em class="sig-param">use_dict: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#IsG2p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.IsG2p" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Minimal wrapper for <a class="reference external" href="https://github.com/grammatek/ice-g2p">https://github.com/grammatek/ice-g2p</a></p>
+<p>The g2p module uses a Bi-LSTM model along with
+a pronunciation dictionary to generate phonemization
+Unfortunately does not support multi-thread phonemization as of yet</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.Jaso">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">Jaso</code><span class="sig-paren">(</span><em class="sig-param">space_symbol=' '</em>, <em class="sig-param">no_space=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#Jaso"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Jaso" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="espnet2.text.phoneme_tokenizer.Jaso.JAMO_LEADS">
+<code class="sig-name descname">JAMO_LEADS</code><em class="property"> = 'ᄀᄁᄂᄃᄄᄅᄆᄇᄈᄉᄊᄋᄌᄍᄎᄏᄐᄑᄒ'</em><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Jaso.JAMO_LEADS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.text.phoneme_tokenizer.Jaso.JAMO_TAILS">
+<code class="sig-name descname">JAMO_TAILS</code><em class="property"> = 'ᆨᆩᆪᆫᆬᆭᆮᆯᆰᆱᆲᆳᆴᆵᆶᆷᆸᆹᆺᆻᆼᆽᆾᆿᇀᇁᇂ'</em><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Jaso.JAMO_TAILS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.text.phoneme_tokenizer.Jaso.JAMO_VOWELS">
+<code class="sig-name descname">JAMO_VOWELS</code><em class="property"> = 'ᅡᅢᅣᅤᅥᅦᅧᅨᅩᅪᅫᅬᅭᅮᅯᅰᅱᅲᅳᅴᅵ'</em><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Jaso.JAMO_VOWELS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.text.phoneme_tokenizer.Jaso.PUNC">
+<code class="sig-name descname">PUNC</code><em class="property"> = &quot;!'(),-.:;?&quot;</em><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Jaso.PUNC" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.text.phoneme_tokenizer.Jaso.SPACE">
+<code class="sig-name descname">SPACE</code><em class="property"> = ' '</em><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Jaso.SPACE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.text.phoneme_tokenizer.Jaso.VALID_CHARS">
+<code class="sig-name descname">VALID_CHARS</code><em class="property"> = &quot;ᄀᄁᄂᄃᄄᄅᄆᄇᄈᄉᄊᄋᄌᄍᄎᄏᄐᄑ하ᅢᅣᅤᅥᅦᅧᅨᅩᅪᅫᅬᅭᅮᅯᅰᅱᅲᅳᅴᅵᆨᆩᆪᆫᆬᆭᆮᆯᆰᆱᆲᆳᆴᆵᆶᆷᆸᆹᆺᆻᆼᆽᆾᆿᇀᇁᇂ!'(),-.:;? &quot;</em><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Jaso.VALID_CHARS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.PhonemeTokenizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">PhonemeTokenizer</code><span class="sig-paren">(</span><em class="sig-param">g2p_type: Union[None, str], non_linguistic_symbols: Union[pathlib.Path, str, Iterable[str]] = None, space_symbol: str = '&lt;space&gt;', remove_non_linguistic_symbols: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#PhonemeTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.PhonemeTokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.text.abs_tokenizer.AbsTokenizer" title="espnet2.text.abs_tokenizer.AbsTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.text.abs_tokenizer.AbsTokenizer</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.text.phoneme_tokenizer.PhonemeTokenizer.text2tokens">
+<code class="sig-name descname">text2tokens</code><span class="sig-paren">(</span><em class="sig-param">line: str</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#PhonemeTokenizer.text2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.PhonemeTokenizer.text2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.phoneme_tokenizer.PhonemeTokenizer.text2tokens_svs">
+<code class="sig-name descname">text2tokens_svs</code><span class="sig-paren">(</span><em class="sig-param">syllable: str</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#PhonemeTokenizer.text2tokens_svs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.PhonemeTokenizer.text2tokens_svs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.phoneme_tokenizer.PhonemeTokenizer.tokens2text">
+<code class="sig-name descname">tokens2text</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; str<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#PhonemeTokenizer.tokens2text"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.PhonemeTokenizer.tokens2text" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.text.phoneme_tokenizer.Phonemizer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">Phonemizer</code><span class="sig-paren">(</span><em class="sig-param">backend</em>, <em class="sig-param">word_separator: Optional[str] = None</em>, <em class="sig-param">syllable_separator: Optional[str] = None</em>, <em class="sig-param">phone_separator: Optional[str] = ' '</em>, <em class="sig-param">strip=False</em>, <em class="sig-param">split_by_single_token: bool = False</em>, <em class="sig-param">**phonemizer_kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#Phonemizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.Phonemizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Phonemizer module for various languages.</p>
+<p>This is wrapper module of <a class="reference external" href="https://github.com/bootphon/phonemizer">https://github.com/bootphon/phonemizer</a>.
+You can define various g2p modules by specifying options for phonemizer.</p>
+<dl class="simple">
+<dt>See available options:</dt><dd><p><a class="reference external" href="https://github.com/bootphon/phonemizer/blob/master/phonemizer/phonemize.py#L32">https://github.com/bootphon/phonemizer/blob/master/phonemizer/phonemize.py#L32</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_accent">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p_accent</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p_accent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_accent" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_accent_with_pause">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p_accent_with_pause</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p_accent_with_pause"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_accent_with_pause" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_kana">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p_kana</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p_kana"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_kana" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_prosody">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pyopenjtalk_g2p_prosody</code><span class="sig-paren">(</span><em class="sig-param">text: str</em>, <em class="sig-param">drop_unvoiced_vowels: bool = True</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pyopenjtalk_g2p_prosody"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pyopenjtalk_g2p_prosody" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract phoneme + prosoody symbol sequence from input full-context labels.</p>
+<p>The algorithm is based on <a class="reference external" href="https://doi.org/10.1587/transinf.2020EDP7104">Prosodic features control by symbols as input of
+sequence-to-sequence acoustic modeling for neural TTS</a> with some r9y9’s tweaks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>text</strong> (<em>str</em>) – Input text.</p></li>
+<li><p><strong>drop_unvoiced_vowels</strong> (<em>bool</em>) – whether to drop unvoiced vowels.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>List of phoneme + prosody symbols.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[str]</p>
+</dd>
+</dl>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">pyopenjtalk_g2p_prosody</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">pyopenjtalk_g2p_prosody</span><span class="p">(</span><span class="s2">&quot;こんにちは。&quot;</span><span class="p">)</span>
+<span class="go">[&#39;^&#39;, &#39;k&#39;, &#39;o&#39;, &#39;[&#39;, &#39;N&#39;, &#39;n&#39;, &#39;i&#39;, &#39;ch&#39;, &#39;i&#39;, &#39;w&#39;, &#39;a&#39;, &#39;$&#39;]</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pypinyin_g2p">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pypinyin_g2p</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pypinyin_g2p"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pypinyin_g2p" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pypinyin_g2p_phone">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pypinyin_g2p_phone</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pypinyin_g2p_phone"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pypinyin_g2p_phone" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.pypinyin_g2p_phone_without_prosody">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">pypinyin_g2p_phone_without_prosody</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#pypinyin_g2p_phone_without_prosody"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.pypinyin_g2p_phone_without_prosody" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.text.phoneme_tokenizer.split_by_space">
+<code class="sig-prename descclassname">espnet2.text.phoneme_tokenizer.</code><code class="sig-name descname">split_by_space</code><span class="sig-paren">(</span><em class="sig-param">text</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/phoneme_tokenizer.html#split_by_space"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.phoneme_tokenizer.split_by_space" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </section>
 <section id="espnet2-text-char-tokenizer-1">
 <span id="espnet2-text-char-tokenizer"></span><h2>espnet2.text.char_tokenizer<a class="headerlink" href="#espnet2-text-char-tokenizer-1" title="Permalink to this headline">¶</a></h2>
@@ -226,6 +394,19 @@
 </section>
 <section id="espnet2-text-cleaner-1">
 <span id="espnet2-text-cleaner"></span><h2>espnet2.text.cleaner<a class="headerlink" href="#espnet2-text-cleaner-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.cleaner"></span><dl class="class">
+<dt id="espnet2.text.cleaner.TextCleaner">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.cleaner.</code><code class="sig-name descname">TextCleaner</code><span class="sig-paren">(</span><em class="sig-param">cleaner_types: Collection[str] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/cleaner.html#TextCleaner"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.cleaner.TextCleaner" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Text cleaner.</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cleaner</span> <span class="o">=</span> <span class="n">TextCleaner</span><span class="p">(</span><span class="s2">&quot;tacotron&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cleaner</span><span class="p">(</span><span class="s2">&quot;(Hello-World);   &amp;  jr. &amp; dr.&quot;</span><span class="p">)</span>
+<span class="go">&#39;HELLO WORLD, AND JUNIOR AND DOCTOR&#39;</span>
+</pre></div>
+</div>
+</dd></dl>
+
 </section>
 <section id="espnet2-text-token-id-converter-1">
 <span id="espnet2-text-token-id-converter"></span><h2>espnet2.text.token_id_converter<a class="headerlink" href="#espnet2-text-token-id-converter-1" title="Permalink to this headline">¶</a></h2>
@@ -253,6 +434,12 @@
 </section>
 <section id="espnet2-text-build-tokenizer-1">
 <span id="espnet2-text-build-tokenizer"></span><h2>espnet2.text.build_tokenizer<a class="headerlink" href="#espnet2-text-build-tokenizer-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.build_tokenizer"></span><dl class="function">
+<dt id="espnet2.text.build_tokenizer.build_tokenizer">
+<code class="sig-prename descclassname">espnet2.text.build_tokenizer.</code><code class="sig-name descname">build_tokenizer</code><span class="sig-paren">(</span><em class="sig-param">token_type: str</em>, <em class="sig-param">bpemodel: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">non_linguistic_symbols: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">remove_non_linguistic_symbols: bool = False</em>, <em class="sig-param">space_symbol: str = '&lt;space&gt;'</em>, <em class="sig-param">delimiter: str = None</em>, <em class="sig-param">g2p_type: str = None</em>, <em class="sig-param">nonsplit_symbol: Iterable[str] = None</em>, <em class="sig-param">encode_kwargs: Dict = None</em><span class="sig-paren">)</span> &#x2192; espnet2.text.abs_tokenizer.AbsTokenizer<a class="reference internal" href="../_modules/espnet2/text/build_tokenizer.html#build_tokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.build_tokenizer.build_tokenizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>A helper function to instantiate Tokenizer</p>
+</dd></dl>
+
 </section>
 <section id="espnet2-text-init-1">
 <span id="espnet2-text-init"></span><h2>espnet2.text.__init__<a class="headerlink" href="#espnet2-text-init-1" title="Permalink to this headline">¶</a></h2>
