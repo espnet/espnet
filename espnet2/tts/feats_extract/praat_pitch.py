@@ -42,7 +42,7 @@ class PraatPitch(AbsFeatsExtract):
         use_continuous_f0: bool = True,
         use_log_f0: bool = True,
         reduction_factor: int = None,
-        enable_warnings: bool = True
+        enable_warnings: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
@@ -93,7 +93,9 @@ class PraatPitch(AbsFeatsExtract):
         # F0 extraction
         if feats_lengths is None:
             if self.enable_warnings:
-                logging.warning('Number of pitch frames will be different from mel frames.')
+                logging.warning(
+                    "Number of pitch frames will be different from mel frames."
+                )
             pitch = [self._calc_f0(x[:xl]) for x, xl in zip(inputs, input_lengths)]
         else:
             pitch = [
@@ -133,17 +135,23 @@ class PraatPitch(AbsFeatsExtract):
         x = np.pad(x, (padding, padding))
         sound = parselmouth.Sound(x, self.fs)
         time_step = self.hop_length / self.fs
-        pitch = sound.to_pitch(pitch_floor=self.f0min, pitch_ceiling=self.f0max, time_step=time_step)
+        pitch = sound.to_pitch(
+            pitch_floor=self.f0min, pitch_ceiling=self.f0max, time_step=time_step
+        )
         f0 = np.array([p[0] for p in pitch.selected_array])
         # len(f0) and feats_length should usually be the same, but could be -1 or 1 due to rounding errors
         diff = feats_length - len(f0)
         if diff > 0:
             if self.enable_warnings:
-                logging.warning(f'f0 length ({len(f0)}) shorter than feats length ({feats_length})')
+                logging.warning(
+                    f"f0 length ({len(f0)}) shorter than feats length ({feats_length})"
+                )
             f0 = np.pad(f0, (0, diff))
         elif diff < 0:
             if self.enable_warnings:
-                logging.warning(f'f0 length ({len(f0)}) longer than feats length ({feats_length})')
+                logging.warning(
+                    f"f0 length ({len(f0)}) longer than feats length ({feats_length})"
+                )
             f0 = f0[:diff]
         return self._get_f0_tensor(inp, f0)
 

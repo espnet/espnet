@@ -27,11 +27,11 @@ from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts.fastspeech2 import FastSpeech2
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
-from espnet2.tts.feats_extract.praat_pitch import PraatPitch
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
+from espnet2.tts.feats_extract.praat_pitch import PraatPitch
 from espnet2.tts.prodiff import ProDiff
 from espnet2.tts.tacotron2 import Tacotron2
 from espnet2.tts.transformer import Transformer
