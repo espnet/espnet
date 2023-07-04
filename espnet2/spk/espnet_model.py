@@ -153,4 +153,4 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         **kwargs,
     ) -> Dict[str, torch.Tensor]:
         feats, feats_lengths = self.extract_feats(speech, speech_lengths)
-        return {"feats": feats, "feats_lengths": feats_lengths}
+        return {"feats": feats}
