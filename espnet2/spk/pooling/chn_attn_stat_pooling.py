@@ -13,12 +13,11 @@ class ChnAttnStatPooling(AbsPooling):
     args:
         input_size: dimensionality of the input frame-level embeddings.
             Determined by encoder hyperparameter.
-        output_size: output dimensionality of the pooled utterance-level
-            embedding. In case of this class, output_size is double of input
-            _size becuase it concatenates mean and std.
+            For this pooling layer, the output dimensionality will be double of
+            the input_size
     """
 
-    def __init__(self, input_size: int = 1536, output_size: int = 3072):
+    def __init__(self, input_size: int = 1536):
         super().__init__()
         self.attention = nn.Sequential(
             nn.Conv1d(input_size * 3, 128, kernel_size=1),
