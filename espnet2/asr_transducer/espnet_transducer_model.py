@@ -131,7 +131,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             self.steps_num = -1
 
             self.k2_pruned_loss_args = k2_pruned_loss_args
-            self.k2_rnnt_type = k2_pruned_loss_args.get("rnnt_type", "regular")
+            self.k2_loss_type = k2_pruned_loss_args.get("loss_type", "regular")
 
         self.use_k2_pruned_loss = use_k2_pruned_loss
 
@@ -250,7 +250,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
             if self.error_calculator is None:
                 from espnet2.asr_transducer.error_calculator import ErrorCalculator
 
-                if self.use_k2_pruned_loss and self.k2_rnnt_type == "modified":
+                if self.use_k2_pruned_loss and self.k2_loss_type == "modified":
                     self.validation_nstep = 1
 
                 self.error_calculator = ErrorCalculator(
