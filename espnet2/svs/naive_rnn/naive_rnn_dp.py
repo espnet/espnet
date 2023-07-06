@@ -366,7 +366,10 @@ class NaiveRNNDP(AbsSVS):
             midi_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
         )
         duration_emb = torch.nn.utils.rnn.pack_padded_sequence(
-            duration_emb, duration_lengths.to("cpu"), batch_first=True, enforce_sorted=False
+            duration_emb,
+            duration_lengths.to("cpu"),
+            batch_first=True,
+            enforce_sorted=False,
         )
 
         hs_label, (_, _) = self.encoder(label_emb)
