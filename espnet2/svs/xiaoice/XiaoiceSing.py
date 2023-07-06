@@ -117,8 +117,10 @@ class XiaoiceSing(AbsSVS):
         """Initialize XiaoiceSing module.
 
         Args:
-            idim (int): Dimension of the inputs.
+            idim (int): Dimension of the label inputs.
             odim (int): Dimension of the outputs.
+            midi_dim (int): Dimension of the midi inputs.
+            duration_dim (int): Dimension of the duration inputs.
             elayers (int): Number of encoder layers.
             eunits (int): Number of encoder hidden units.
             dlayers (int): Number of decoder layers.

@@ -16,11 +16,13 @@ from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
     "spks, langs, use_gst",
     [(-1, -1, False), (5, 2, True)],
 )
+@pytest.mark.parametrize("loss_type", ["L1", "L2", "L1+L2"])
 @pytest.mark.parametrize("use_guided_attn_loss", [True, False])
 def test_singing_tacotron(
     prenet_layers,
     postnet_layers,
     reduction_factor,
+    loss_type,
     atype,
     spks,
     langs,
@@ -65,7 +67,7 @@ def test_singing_tacotron(
         gst_conv_stride=2,
         gst_gru_layers=1,
         gst_gru_units=4,
-        loss_type="L1",
+        loss_type=loss_type,
         use_guided_attn_loss=use_guided_attn_loss,
         guided_attn_loss_sigma=0.4,
         guided_attn_loss_lambda=1.0,

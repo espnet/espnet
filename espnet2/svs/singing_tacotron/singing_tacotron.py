@@ -103,7 +103,7 @@ class singing_tacotron(AbsSVS):
         """Initialize Singing Tacotron module.
 
         Args:
-            idim (int): Dimension of the inputs.
+            idim (int): Dimension of the label inputs.
             odim: (int) Dimension of the outputs.
             embed_dim (int): Dimension of the token embedding.
             elayers (int): Number of encoder blstm layers.

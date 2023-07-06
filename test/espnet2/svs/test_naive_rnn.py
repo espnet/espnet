@@ -16,6 +16,7 @@ from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
     "spks, langs",
     [(-1, -1), (5, 2)],
 )
+@pytest.mark.parametrize("loss_type", ["L1", "L2", "L1+L2"])
 def test_NaiveRNN(
     eprenet_conv_layers,
     midi_embed_integration_type,
@@ -25,6 +26,7 @@ def test_NaiveRNN(
     spk_embed_integration_type,
     spks,
     langs,
+    loss_type,
 ):
     idim = 10
     odim = 4
@@ -58,6 +60,7 @@ def test_NaiveRNN(
         init_type="pytorch",
         use_masking=True,
         use_weighted_masking=False,
+        loss_type=loss_type,
     )
 
     inputs = dict(

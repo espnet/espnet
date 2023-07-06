@@ -128,7 +128,7 @@ class NaiveRNN(AbsSVS):
         """Initialize NaiveRNN module.
 
         Args:
-            idim (int): Dimension of the inputs.
+            idim (int): Dimension of the label inputs.
             odim (int): Dimension of the outputs.
             midi_dim (int): Dimension of the midi inputs.
             embed_dim (int): Dimension of the token embedding.
