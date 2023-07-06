@@ -424,12 +424,13 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
                 )
                 exit(1)
 
-        loss_transducer = self.criterion_transducer(
-            joint_out,
-            target,
-            t_len,
-            u_len,
-        )
+        with autocast(False):
+            loss_transducer = self.criterion_transducer(
+                joint_out.float(),
+                target,
+                t_len,
+                u_len,
+            )
 
         return loss_transducer
 
@@ -511,7 +512,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
         lm = self.lm_proj(decoder_out)
         am = self.am_proj(encoder_out)
 
-        with torch.cuda.amp.autocast(enabled=False):
+        with autocast(False):
             simple_loss, (px_grad, py_grad) = k2.rnnt_loss_smoothed(
                 lm.float(),
                 am.float(),
@@ -540,7 +541,7 @@ class ESPnetASRTransducerModel(AbsESPnetModel):
 
         joint_out = self.joint_network(am_pruned, lm_pruned, no_projection=True)
 
-        with torch.cuda.amp.autocast(enabled=False):
+        with autocast(False):
             pruned_loss = k2.rnnt_loss_pruned(
                 joint_out.float(),
                 target_padded,
