@@ -338,6 +338,7 @@ class NaiveRNNDP(AbsSVS):
             midi = melody
             label_lengths = label_lengths
             midi_lengths = melody_lengths
+            duration_ = duration
             ds = duration
         else:
             label = label["score"]
@@ -365,7 +366,7 @@ class NaiveRNNDP(AbsSVS):
             midi_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
         )
         duration_emb = torch.nn.utils.rnn.pack_padded_sequence(
-            duration_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
+            duration_emb, duration_lengths.to("cpu"), batch_first=True, enforce_sorted=False
         )
 
         hs_label, (_, _) = self.encoder(label_emb)
@@ -401,16 +402,21 @@ class NaiveRNNDP(AbsSVS):
         d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
         hs = self.length_regulator(hs, ds)  # (B, seq_len, eunits)
 
+        olens = feats_lengths
+        if self.reduction_factor > 1:
+            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+        else:
+            olens_in = olens
+
         hs_emb = torch.nn.utils.rnn.pack_padded_sequence(
-            hs, feats_lengths.to("cpu"), batch_first=True, enforce_sorted=False
+            hs, olens_in.to("cpu"), batch_first=True, enforce_sorted=False
         )
 
         zs, (_, _) = self.decoder(hs_emb)
         zs, _ = torch.nn.utils.rnn.pad_packed_sequence(zs, batch_first=True)
 
-        zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
-
-        # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
+        # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
+        # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
 
         # postnet -> (B, T_feats//r * r, odim)
@@ -537,14 +543,9 @@ class NaiveRNNDP(AbsSVS):
         hs = self.length_regulator(hs, d_outs_int)  # (B, T_feats, adim)
         zs, (_, _) = self.decoder(hs)
 
-        if self.reduction_factor > zs.size(0):
-            zs = zs[:, :1]  # if too short, use the first frame
-        else:
-            zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
-
-        # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
+        # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
+        # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
-
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
