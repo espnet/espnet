@@ -66,7 +66,7 @@ def make_score2mel_args(**kwargs):
             "init_dec_alpha": 1.0,
             "use_masking": False,
             "use_weighted_masking": False,
-            "loss_function":  "XiaoiceSing2",
+            "loss_function": "XiaoiceSing2",
             "loss_type": "L1",
             "lambda_mel": 1,
             "lambda_dur": 0.1,
@@ -400,10 +400,11 @@ def make_loss_args(**kwargs):
             {},
             {},
         ),
-    ]
+    ],
 )
 def test_joint_model_is_trainable_and_decodable(
-    s2m_dict, voc_dict, dis_dict, loss_dict):
+    s2m_dict, voc_dict, dis_dict, loss_dict
+):
     idim = 10
     odim = 5
     s2m_args = make_score2mel_args(**s2m_dict)
@@ -518,5 +519,3 @@ def test_joint_model_is_trainable_and_decodable(
         )
         output_dict = model.inference(**inputs)
         assert len(output_dict["wav"]) == len(output_dict["feat_gen"]) * upsample_factor
-
-
