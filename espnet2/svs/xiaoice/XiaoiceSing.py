@@ -466,6 +466,7 @@ class XiaoiceSing(AbsSVS):
             label_lengths = label_lengths
             midi_lengths = melody_lengths
             duration_lengths = duration_lengths
+            duration_ = duration
             ds = duration
         else:
             label = label["score"]

@@ -1,7 +1,8 @@
 # Copyright 2021 Tomoki Hayashi
+# Copyright 2023 Renmin University of China (Yuning Wu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Joint text-to-wav module for end-to-end training."""
+"""Joint score-to-wav module for end-to-end training."""
 
 from typing import Any, Dict, Optional
 
@@ -71,7 +72,6 @@ class JointScore2Wav(AbsGANSVS):
         score2mel_params: Dict[str, Any] = {
             "midi_dim": 129,
             "tempo_dim": 500,
-            "embed_dim": 512,
             "adim": 384,
             "aheads": 4,
             "elayers": 6,
@@ -124,7 +124,12 @@ class JointScore2Wav(AbsGANSVS):
             "init_dec_alpha": 1.0,
             "use_masking": False,
             "use_weighted_masking": False,
+            "loss_function": "XiaoiceSing2",
             "loss_type": "L1",
+            "lambda_mel": 1,
+            "lambda_dur": 0.1,
+            "lambda_pitch": 0.01,
+            "lambda_vuv": 0.01,
         },
         vocoder_type: str = "hifigan_generator",
         vocoder_params: Dict[str, Any] = {
@@ -340,11 +345,9 @@ class JointScore2Wav(AbsGANSVS):
         label: Optional[Dict[str, torch.Tensor]] = None,
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
-        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: torch.LongTensor = None,
-        pitch_lengths: torch.Tensor = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
-        duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        slur: torch.LongTensor = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -365,16 +368,10 @@ class JointScore2Wav(AbsGANSVS):
                 value (LongTensor): Batch of the lengths of padded label ids (B, ).
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, Tmax).
-            melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (B, Tmax).
-            duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded duration (B, ).
             slur (FloatTensor): Batch of padded slur (B, Tmax).
-            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
@@ -388,13 +385,11 @@ class JointScore2Wav(AbsGANSVS):
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
         """
-        beat = duration["lab"]
-        beat_lengths = duration_lengths["lab"]
-        duration = duration["lab"]
+
         label = label["score"]
         label_lengths = label_lengths["score"]
         melody = melody["score"]
-        melody_lengths = melody_lengths["score"]
+        duration = duration["lab"]
 
         if forward_generator:
             return self._forward_generator(
@@ -404,15 +399,12 @@ class JointScore2Wav(AbsGANSVS):
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
-                duration=duration,
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                melody_lengths=melody_lengths,
-                beat=beat,
-                beat_lengths=beat_lengths,
+                duration=duration,
+                slur=slur,
                 pitch=pitch,
-                pitch_lengths=pitch_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -425,15 +417,12 @@ class JointScore2Wav(AbsGANSVS):
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
-                duration=duration,
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                melody_lengths=melody_lengths,
-                beat=beat,
-                beat_lengths=beat_lengths,
+                duration=duration,
+                slur=slur,
                 pitch=pitch,
-                pitch_lengths=pitch_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -447,15 +436,12 @@ class JointScore2Wav(AbsGANSVS):
         feats_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
-        duration: torch.Tensor,
         label: Optional[Dict[str, torch.Tensor]] = None,
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
-        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        beat: Optional[Dict[str, torch.Tensor]] = None,
-        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
-        pitch_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -469,26 +455,16 @@ class JointScore2Wav(AbsGANSVS):
             feats_lengths (Tensor): Feature length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, Tmax).
             label_lengths (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of the lengths of padded label ids (B, ).
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, Tmax).
-            melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
-            tempo (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded tempo (B, Tmax).
-            tempo_lengths (Optional[Dict]):  key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded tempo (B, ).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded beat (B, ).
+            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of padded duration (B, Tmax).
+            slur (FloatTensor): Batch of padded slur (B, T_max).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
@@ -518,11 +494,11 @@ class JointScore2Wav(AbsGANSVS):
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                melody_lengths=melody_lengths,
-                duration=beat,
-                duration_lengths=beat_lengths,
+                melody_lengths=label_lengths,
+                duration=duration,
+                duration_lengths=label_lengths,
                 pitch=pitch,
-                pitch_lengths=pitch_lengths,
+                pitch_lengths=feats_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -600,15 +576,12 @@ class JointScore2Wav(AbsGANSVS):
         feats_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
-        duration: torch.Tensor,
         label: Optional[Dict[str, torch.Tensor]] = None,
         label_lengths: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
-        melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
-        beat: Optional[Dict[str, torch.Tensor]] = None,
-        beat_lengths: Optional[Dict[str, torch.Tensor]] = None,
+        duration: Optional[Dict[str, torch.Tensor]] = None,
+        slur: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
-        pitch_lengths: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -622,26 +595,16 @@ class JointScore2Wav(AbsGANSVS):
             feats_lengths (Tensor): Feature length tensor (B,).
             singing (Tensor): Singing waveform tensor (B, T_wav).
             singing_lengths (Tensor): Singing length tensor (B,).
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
             label (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded label ids (B, Tmax).
             label_lengths (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of the lengths of padded label ids (B, ).
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, Tmax).
-            melody_lengths (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded melody (B, ).
-            tempo (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded tempo (B, Tmax).
-            tempo_lengths (Optional[Dict]):  key is "lab" or "score";
-                value (LongTensor): Batch of the lengths of padded tempo (B, ).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
-            beat_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of the lengths of padded beat (B, ).
+            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of padded duration (B, Tmax).
+            slur (FloatTensor): Batch of padded slur (B, T_max).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            pitch_lengths (LongTensor): Batch of the lengths of padded f0 (B, ).
             sids (Optional[Tensor]): Speaker index tensor (B,) or (B, 1).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, spk_embed_dim).
             lids (Optional[Tensor]): Language index tensor (B,) or (B, 1).
@@ -671,11 +634,11 @@ class JointScore2Wav(AbsGANSVS):
                 label=label,
                 label_lengths=label_lengths,
                 melody=melody,
-                melody_lengths=melody_lengths,
-                duration=beat,
-                duration_lengths=beat_lengths,
+                melody_lengths=label_lengths,
+                duration=duration,
+                duration_lengths=label_lengths,
                 pitch=pitch,
-                pitch_lengths=pitch_lengths,
+                pitch_lengths=feats_lengths,
                 sids=sids,
                 spembs=spembs,
                 lids=lids,
@@ -758,13 +721,9 @@ class JointScore2Wav(AbsGANSVS):
                 value (LongTensor): Batch of padded label ids (B, Tmax).
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (B, Tmax).
-            tempo (Optional[Dict]): key is "lab" or "score";
-                value (LongTensor): Batch of padded tempo (B, Tmax).
-            beat (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
+            duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
+                value (LongTensor): Batch of padded duration (B, Tmax).
             pitch (FloatTensor): Batch of padded f0 (B, Tmax).
-            duration (Optional[Dict]): key is "phn", "syb";
-                value (LongTensor): Batch of padded beat (B, Tmax).
             slur (LongTensor): Batch of padded slur (B, Tmax).
             sids (Tensor): Speaker index tensor (1,).
             spembs (Optional[Tensor]): Speaker embedding tensor (spk_embed_dim,).

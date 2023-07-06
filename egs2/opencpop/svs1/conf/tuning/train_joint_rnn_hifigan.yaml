@@ -1,26 +1,23 @@
-# This EXPERIMENTAL configuration is for ESPnet2 to finetune
-# Xiaoice + HiFiGAN vocoder jointly. To run
-# this config, you need to specify "--svs_task gan_svs"
-# option for svs.sh at least and use 22050 hz audio as the
-# training data (mainly tested on LJspeech).
+# This EXPERIMENTAL configuration is for ESPnet2 to train
+# Xiaoice + HiFiGAN vocoder jointly. To run this config,
+# you need to specify "--svs_task gan_svs" option for
+# svs.sh at least and use 24000 hz audio as the training
+# data (mainly tested on Ofuton).
 # This configuration tested on 4 GPUs with 12GB GPU memory.
-# It takes around less than 1 week to finish the training but
-# 100k iters model should generate reasonable results.
-
-# YOU NEED TO MODIFY THE "*_params" AND "init_param" SECTIONS
-# IF YOU WANT TO USE YOUR OWN PRETRAINED MODLES.
+# It takes around 1.5 weeks to finish the training but 100k
+# iters model should generate reasonable results.
 
 ##########################################################
 #                  SVS MODEL SETTING                     #
 ##########################################################
 svs: joint_score2wav                     # model architecture
 svs_conf:
-  # copied from pretrained model's config.yaml
+  # score2mel related
   score2mel_type: naive_rnn_dp
   score2mel_params:              # keyword arguments for the selected model
     midi_dim: 129                # midi dimension (note number + silence)
     embed_dim: 512               # char or phn embedding dimension
-    duration_dim: 500            # duration embedding range
+    duration_dim: 512            # duration embedding range
     eprenet_conv_layers: 0       # prenet (from bytesing) conv layers
     eprenet_conv_chans: 256      # prenet (from bytesing) conv channels numbers
     eprenet_conv_filts: 3        # prenet (from bytesing) conv filters size
@@ -67,7 +64,7 @@ svs_conf:
   # discriminator related
   discriminator_type: hifigan_multi_scale_multi_period_discriminator
   discriminator_params:
-    scales: 3                              # Number of multi-scale discriminator.
+    scales: 1                              # Number of multi-scale discriminator.
     scale_downsample_pooling: "AvgPool1d"  # Pooling operation for scale discriminator.
     scale_downsample_pooling_params:
       kernel_size: 4                     # Pooling kernel size.
@@ -81,7 +78,7 @@ svs_conf:
       max_downsample_channels: 1024      # Maximum number of channels in downsampling conv layers.
       max_groups: 16                     # Maximum number of groups in downsampling conv layers.
       bias: true
-      downsample_scales: [4, 4, 4, 4, 1] # Downsampling scales.
+      downsample_scales: [2, 2, 4, 4, 1] # Downsampling scales.
       nonlinear_activation: "LeakyReLU"  # Nonlinear activation.
       nonlinear_activation_params:
         negative_slope: 0.1
@@ -108,7 +105,7 @@ svs_conf:
   discriminator_adv_loss_params:
     average_by_discriminators: false # whether to average loss value by #discriminators
     loss_type: mse                   # loss type, "mse" or "hinge"
-  use_feat_match_loss: true          # whether to use feat match loss
+  use_feat_match_loss: true            # whether to use feat match loss
   feat_match_loss_params:
     average_by_discriminators: false # whether to average loss value by #discriminators
     average_by_layers: false         # whether to average loss value by #layers of each discriminator
@@ -142,20 +139,15 @@ pitch_extract_conf:
   use_token_averaged_f0: false
 pitch_normalize: global_mvn  # normalizer for the pitch feature
 
-# initialization (might need to modify for your own pretrained model)
-init_param:
-#- exp/rnn-dp/latest.pth:svs:svs.generator.score2mel
-#- exp/ofuton_hifigan.v1/generator.pth::svs.generator.vocoder
-#- exp/ofuton_hifigan.v1/discriminator.pth::svs.discriminator
-
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
 ##########################################################
 # optimizer setting for generator
 optim: adamw
 optim_conf:
-  lr: 1.25e-5
-  betas: [0.5, 0.9]
+  lr: 2.0e-4
+  betas: [0.8, 0.99]
+  eps: 1.0e-9
   weight_decay: 0.0
 scheduler: exponentiallr
 scheduler_conf:
@@ -163,8 +155,9 @@ scheduler_conf:
 # optimizer setting for discriminator
 optim2: adamw
 optim2_conf:
-  lr: 1.25e-5
-  betas: [0.5, 0.9]
+  lr: 2.0e-4
+  betas: [0.8, 0.99]
+  eps: 1.0e-9
   weight_decay: 0.0
 scheduler2: exponentiallr
 scheduler2_conf:
@@ -175,7 +168,7 @@ generator_first: true # whether to start updating generator first
 #                OTHER TRAINING SETTING                  #
 ##########################################################
 num_iters_per_epoch: 500    # number of iterations per epoch
-max_epoch: 250              # number of epochs
+max_epoch: 500              # number of epochs
 grad_clip: -1               # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
@@ -204,7 +197,7 @@ best_model_criterion:       # criterion to save the best models
 -   - train
     - total_count
     - max
-cudnn_deterministic: false # setting to false accelerates the training speed but makes it non-deterministic
-                           # in the case of GAN-TTS training, we strongly recommend setting to false
-cudnn_benchmark: false     # setting to true might acdelerate the training speed but sometimes decrease it
-                           # therefore, we set to false as a default (recommend trying both cases)
+cudnn_deterministic: false  # setting to false accelerates the training speed but makes it non-deterministic
+                            # in the case of GAN-TTS training, we strongly recommend setting to false
+cudnn_benchmark: false      # setting to true might acdelerate the training speed but sometimes decrease it
+                            # therefore, we set to false as a default (recommend trying both cases)
