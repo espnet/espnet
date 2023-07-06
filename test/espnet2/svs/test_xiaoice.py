@@ -17,7 +17,9 @@ from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
 )
 @pytest.mark.parametrize("loss_function", ["FastSpeech1", "XiaoiceSing2"])
 @pytest.mark.parametrize("loss_type", ["L1", "L2", "L1+L2"])
-@pytest.mark.parametrize("use_masking, use_weighted_masking", [(False, True), (False, False), (True, False)])
+@pytest.mark.parametrize(
+    "use_masking, use_weighted_masking", [(False, True), (False, False), (True, False)]
+)
 def test_XiaoiceSing(
     reduction_factor,
     spk_embed_dim,
