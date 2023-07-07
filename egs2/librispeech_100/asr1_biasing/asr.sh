@@ -495,7 +495,7 @@ if [ -z "${asr_stats_dir}" ]; then
         asr_stats_dir+="_sp"
     fi
 fi
-if [ ! -z "${suffixbpe}" ]; then
+if [ -n "${suffixbpe}" ]; then
     asr_stats_dir="${asr_stats_dir}suffix"
     asr_tag+="_suffix"
 fi
