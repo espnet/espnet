@@ -88,7 +88,7 @@ class DummyAgent(SpeechToTextAgent):
         else:
             if kwargs["rnnt"]:
                 transducer_conf = {
-                    "search_type": "tsd2",
+                    "search_type": "tsd",
                     "score_norm": True,
                     "max_sym_exp": 8,
                 }
@@ -524,11 +524,11 @@ class DummyAgent(SpeechToTextAgent):
                             prediction = ""
                         else:
                             # token delay
-                            print("token delay occurred:", prediction_split[-1])
+                            print("token delay occurred:", prediction[-1])
                             if len(prediction) == 1:
                                 prediction = ""
                             else:
-                                prediction = prediction_split[0]
+                                prediction = prediction[0]
 
                     unwritten_length = len(prediction) - len(
                         "".join(self.states.target)

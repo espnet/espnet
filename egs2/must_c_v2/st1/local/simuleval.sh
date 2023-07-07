@@ -15,12 +15,12 @@ exp=
 inference_st_model=train.loss.ave_5best.pth
 
 disable_repetition_detection=true
-beam_size=5
+beam_size=10
 sim_chunk_length=32000
 ctc_weight=0.0
 backend=streaming
 incremental_decode=true
-penalty=0.4
+penalty=0.0
 latency_metrics="LAAL AL AP DAL"
 hugging_face_decoder=true
 source_segment_size=2000
@@ -29,6 +29,8 @@ token_delay=false
 target_type=text
 hold_n=0
 chunk_decay=1.0
+time_sync=false
+blank_penalty=1.0
 
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
 run_args=$(pyscripts/utils/print_args.py $0 "$@")
@@ -37,7 +39,7 @@ run_args=$(pyscripts/utils/print_args.py $0 "$@")
 . ./path.sh
 . ./cmd.sh
 
-output="$exp/beam${beam_size}_ctc${ctc_weight}_pen${penalty}_chunk${sim_chunk_length}_drd${disable_repetition_detection}_tokdelay${token_delay}_holdn${hold_n}_decay${chunk_decay}"
+output="$exp/beam${beam_size}_ctc${ctc_weight}_pen${penalty}_chunk${sim_chunk_length}_drd${disable_repetition_detection}_tokdelay${token_delay}_holdn${hold_n}_decay${chunk_decay}_timesync${time_sync}_blankpenalty${blank_penalty}"
 st_train_config=$exp/config.yaml
 st_model_file=$exp/$inference_st_model
 
@@ -69,6 +71,8 @@ ${_cmd} --gpu "${ngpu}" JOB=1:"${nj}" "${output}"/simuleval.JOB.log \
         --hugging_face_decoder $hugging_face_decoder \
         --source-segment-size $source_segment_size \
         --recompute $recompute \
+        --time_sync $time_sync \
+        --blank_penalty $blank_penalty \
         --output $output/out.JOB \
         --token_delay $token_delay \
         --target-type $target_type
