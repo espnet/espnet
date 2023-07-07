@@ -45,7 +45,6 @@ egs*/*/*/nltk*
 egs*/*/*/.cache*
 egs*/*/*/pretrained_models*
 egs*/fisher_callhome_spanish/*/local/mapping*
-egs*/*/*/midi_dump
 
 # tools related
 tools/chainer
