@@ -17,7 +17,7 @@ import torch.nn.functional as F
 from espnet2.gan_tts.avocodo import AvocodoGenerator
 from espnet2.gan_tts.hifigan import HiFiGANGenerator
 from espnet2.gan_tts.pits.ying_decoder import YingDecoder
-from espnet2.gan_tts.utils import get_random_segments
+from espnet2.gan_tts.utils import get_random_segments_for_cat
 from espnet2.gan_tts.vits.duration_predictor import StochasticDurationPredictor
 from espnet2.gan_tts.vits.posterior_encoder import PosteriorEncoder
 from espnet2.gan_tts.vits.residual_coupling import ResidualAffineCouplingBlock
@@ -523,7 +523,7 @@ class PITSGenerator(torch.nn.Module):
         logs_p = torch.matmul(attn.squeeze(1), logs_p.transpose(1, 2)).transpose(1, 2)
 
         # get random segments
-        z_segments, z_start_idxs = get_random_segments(
+        z_segments, z_start_idxs = get_random_segments_for_cat(
             z_dec_, torch.cat([feats_lengths, feats_lengths], dim=0), self.segment_size
         )
 
@@ -554,6 +554,7 @@ class PITSGenerator(torch.nn.Module):
         # raise ValueError
 
         return (
+            o,
             wav,
             dur_nll,
             attn,

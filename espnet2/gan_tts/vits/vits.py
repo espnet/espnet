@@ -435,7 +435,18 @@ class VITS(AbsGANTTS):
             speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_ = outs
             _, z_p, m_p, logs_p, _, logs_q = outs_
         elif "pits" in self.generator_type:
-            speech_hat_, dur_nll, _, start_idxs, _, z_mask, outs_, outs2_, outs3_ = outs
+            (
+                speech_hat_,
+                speech_hat_all,
+                dur_nll,
+                _,
+                start_idxs,
+                _,
+                z_mask,
+                outs_,
+                outs2_,
+                outs3_,
+            ) = outs
             _, z_p, m_p, logs_p, _, logs_q = outs_
             z_spec, m_spec, logs_spec, z_yin, m_yin, logs_yin, yin_mask = outs2_
             (
@@ -447,6 +458,13 @@ class VITS(AbsGANTTS):
                 yin_hat_shifted,
             ) = outs3_
         if "pits" in self.generator_type:
+            len_speech = len(speech)
+            speech_original = get_segments(
+                x=speech,
+                start_idxs=start_idxs[:len_speech] * self.generator.upsample_factor,
+                segment_size=self.generator.segment_size
+                * self.generator.upsample_factor,
+            )
             speech_ = get_segments(
                 x=torch.cat([speech, speech], dim=0),
                 start_idxs=start_idxs * self.generator.upsample_factor,
@@ -469,7 +487,9 @@ class VITS(AbsGANTTS):
 
         # calculate discriminator outputs
         if "pits" in self.generator_type:
-            p, p_hat, fmaps_real, fmaps_fake = self.discriminator(speech_, speech_hat_)
+            p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
+                speech_, speech_hat_all
+            )
         else:
             p_hat = self.discriminator(speech_hat_)
             with torch.no_grad():
@@ -479,10 +499,8 @@ class VITS(AbsGANTTS):
         # calculate losses
         with autocast(enabled=False):
             if "pits" in self.generator_type:
-                mel_loss = self.mel_loss(speech_hat_[-1], speech_)
+                mel_loss = self.mel_loss(speech_hat_[-1], speech_original)
             else:
-                print("speech_hat_", speech_hat_.shape)
-                print("speech_", speech_.shape)
                 mel_loss = self.mel_loss(speech_hat_, speech_)
             kl_loss = self.kl_loss(z_p, logs_q, m_p, logs_p, z_mask)
             dur_loss = torch.sum(dur_nll.float())
@@ -610,7 +628,7 @@ class VITS(AbsGANTTS):
             self._cache = outs
 
         # parse outputs
-        speech_hat_, _, _, start_idxs, *_ = outs
+        speech_hat_, speech_hat_all, _, _, start_idxs, *_ = outs
 
         if "pits" in self.generator_type:
             speech_ = get_segments(
@@ -629,7 +647,7 @@ class VITS(AbsGANTTS):
 
         # calculate discriminator outputs
         if "pits" in self.generator_type:
-            detached_singing_hat_ = [x.detach() for x in speech_hat_]
+            detached_singing_hat_ = [x.detach() for x in speech_hat_all]
             p, p_hat, fmaps_real, fmaps_fake = self.discriminator(
                 speech_, detached_singing_hat_
             )

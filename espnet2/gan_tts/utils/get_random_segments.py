@@ -35,6 +35,34 @@ def get_random_segments(
     return segments, start_idxs
 
 
+def get_random_segments_for_cat(
+    x: torch.Tensor,
+    x_lengths: torch.Tensor,
+    segment_size: int,
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Get random segments for cat.
+
+    Args:
+        x (Tensor): Input tensor (B, C, T).
+        x_lengths (Tensor): Length tensor (B,).
+        segment_size (int): Segment size.
+
+    Returns:
+        Tensor: Segmented tensor (B, C, segment_size).
+        Tensor: Start index tensor (B,).
+
+    """
+    b, c, t = x.size()
+    max_start_idx = x_lengths - segment_size
+    start_idxs = torch.rand([b // 2]).to(x.device)
+    start_idxs = (torch.cat([start_idxs, start_idxs], dim=0) * max_start_idx).to(
+        dtype=torch.long,
+    )
+    segments = get_segments(x, start_idxs, segment_size)
+
+    return segments, start_idxs
+
+
 def get_segments(
     x: torch.Tensor,
     start_idxs: torch.Tensor,
