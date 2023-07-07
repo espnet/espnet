@@ -40,8 +40,7 @@ def main():
                 if len(line) == 0:
                     continue
                 utt_id, _, _, _ = line.strip().split(" ")
-                if utt_id in dic.keys():
-                    fscp.write(f"{utt_id} {dic[utt_id]}\n")
+                fscp.write(f"{utt_id} {dic[utt_id]}\n")
         fscp.close()
 
     else:
