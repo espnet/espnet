@@ -44,7 +44,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p score_dump
     mkdir -p wav_dump
-    # we convert the music score to midi format
     python local/data_prep.py ${NIT_SONG070}/HTS-demo_NIT-SONG070-F001/data --midi_note_scp local/midi-note.scp \
         --score_dump score_dump \
         --wav_dumpdir wav_dump \
