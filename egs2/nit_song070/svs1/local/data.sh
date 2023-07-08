@@ -23,7 +23,7 @@ log "$0 $*"
 . utils/parse_options.sh || exit 1;
 
 if [ -z "${NIT_SONG070}" ]; then
-    log "Fill the value of 'HIT_SONG070' of db.sh"
+    log "Fill the value of 'NIT_SONG070' of db.sh"
     exit 1
 fi
 
