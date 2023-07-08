@@ -222,19 +222,18 @@ class Speech2TextStreaming:
             speech_to_process = speech
             waveform_buffer = None
         else:
-            n_frames = (
-                speech.size(0) - (self.win_length - self.hop_length)
-            ) // self.hop_length
-            n_residual = (
-                speech.size(0) - (self.win_length - self.hop_length)
-            ) % self.hop_length
-            speech_to_process = speech.narrow(
-                0, 0, (self.win_length - self.hop_length) + n_frames * self.hop_length
-            )
+            n_frames = speech.size(0) // self.hop_length
+            n_residual = speech.size(0) % self.hop_length
+            speech_to_process = speech.narrow(0, 0, n_frames * self.hop_length)
             waveform_buffer = speech.narrow(
                 0,
-                speech.size(0) - (self.win_length - self.hop_length) - n_residual,
-                (self.win_length - self.hop_length) + n_residual,
+                speech.size(0)
+                - (math.ceil(math.ceil(self.win_length / self.hop_length) / 2) * 2 - 1)
+                * self.hop_length
+                - n_residual,
+                (math.ceil(math.ceil(self.win_length / self.hop_length) / 2) * 2 - 1)
+                * self.hop_length
+                + n_residual,
             ).clone()
 
         # data: (Nsamples,) -> (1, Nsamples)
