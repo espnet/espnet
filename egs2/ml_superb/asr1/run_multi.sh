@@ -21,7 +21,7 @@ lid=false # whether to add joint LID task in multiligual ASR
 inference_config=conf/decode_asr.yaml
 asr_config=conf/tuning/train_asr_fbank_${duration}.yaml
 
-./utils/parse_options.sh || exit 1
+. utils/parse_options.sh || exit 1
 
 # Common configs for ML-SUPERB
 token_type=char
