@@ -12,7 +12,7 @@
 ## enh_train_enh_tse_td_speakerbeam_raw
 
  - config: conf/tuning/train_enh_tse_td_speakerbeam.yaml
- - Pretrained model: https://huggingface.co/espnet/Wangyou_Zhang_wsj0_2mix_train_enh_tse_td_speakerbeam_raw/blob/main/exp/enh_train_enh_tse_td_speakerbeam_raw/RESULTS.md
+ - Pretrained model: https://huggingface.co/espnet/Wangyou_Zhang_wsj0_2mix_train_enh_tse_td_speakerbeam_raw
 
 |dataset|PESQ_NB|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|---|
