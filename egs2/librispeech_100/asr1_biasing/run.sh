@@ -5,8 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-export PATH=~/rds/rds-t2-cs164-KQ4S3rlDzm8/gs534/MultiModal/espnet/tools/sctk/bin/:$PATH
-
 train_set="train_clean_100"
 valid_set="dev"
 test_sets="test_clean test_other dev_clean dev_other"

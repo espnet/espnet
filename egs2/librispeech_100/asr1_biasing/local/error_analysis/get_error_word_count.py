@@ -2,19 +2,13 @@ import sys
 
 error_words_freqs = {}
 infile = sys.argv[1]
-# setname = sys.argv[2]
+biasinglist = sys.argv[2]
 insert_error = 0
 insert_rare = 0
 freqlist_test = {}
 
 freqlist = {}
-# TODO: Change to path to your word frequency file
-# with open("word_freq.txt") as fin:
-#     for line in fin:
-#         word, freq = line.split()
-#         freqlist[word.upper()] = int(freq)
-
-with open("../data/Blist/all_rare_words.txt") as fin:
+with open(biasinglist) as fin:
     rareset = set()
     for line in fin:
         rareset.add(line.strip().upper())
@@ -52,8 +46,6 @@ for i, line in enumerate(lines):
                     error_words_freqs[word.upper()] = 0
                 elif word == word.upper():
                     print("special token found in: {}".format(project))
-print(len(error_words_freqs.keys()))
-print(insert_rare)
 
 commonwords = []
 rarewords = []
@@ -77,10 +69,6 @@ for word, error in error_words_freqs.items():
         rarewords.append(word)
         rare_freq += freqlist_test[word]
         rare_error += error
-    # elif word not in freqlist:
-    #     oovwords.append(word)
-    #     oov_freq += freqlist_test[word] if word in freqlist_test else 1
-    #     oov_error += error
     else:
         commonwords.append(word)
         common_freq += freqlist_test[word]
@@ -95,23 +83,13 @@ print(
     "Common words error rate: {} / {} = {}".format(
         common_error + insert_common,
         common_freq,
-        (common_error + insert_common) / common_freq,
+        round((common_error + insert_common) / common_freq, 4),
     )
 )
 print(
     "Rare words error rate: {} / {} = {}".format(
-        rare_error + insert_rare, rare_freq, (rare_error + insert_rare) / rare_freq
+        rare_error + insert_rare, rare_freq, round((rare_error + insert_rare) / rare_freq, 4)
     )
 )
-# print("OOV words error freq: {} / {} = {}".format(
-#     oov_error, oov_freq, oov_error / max(oov_freq, 1)))
-print("WER estimate: {} / {} = {}".format(total_errors, total_words, WER))
-# print(
-#     "Insert error: {} / {} = {}".format(
-#         insert_error - insert_rare, total_words, (
-#             insert_error - insert_rare) / total_words
-#     )
-# )
-# print("Insertion + OOV error {}".format(
-#     (insert_error + oov_error - insert_rare) / total_words))
-print("=" * 89)
+print("WER estimate: {} / {} = {}".format(total_errors, total_words, round(WER, 4)))
+print("=" * 89 + "\n")

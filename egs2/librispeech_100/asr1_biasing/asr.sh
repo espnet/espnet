@@ -1628,86 +1628,89 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
     else
         _dsets="${test_sets}"
     fi
-    for dset in ${_dsets}; do
-        _data="${data_feats}/${dset}"
-        _dir="${asr_exp}/${inference_tag}/${dset}"
+    # for dset in ${_dsets}; do
+    #     _data="${data_feats}/${dset}"
+    #     _dir="${asr_exp}/${inference_tag}/${dset}"
 
-        for _tok_type in "char" "word" "bpe"; do
-            [ "${_tok_type}" = bpe ] && [ ! -f "${bpemodel}" ] && continue
+    #     for _tok_type in "char" "word" "bpe"; do
+    #         [ "${_tok_type}" = bpe ] && [ ! -f "${bpemodel}" ] && continue
 
-            _opts="--token_type ${_tok_type} "
-            if [ "${_tok_type}" = "char" ] || [ "${_tok_type}" = "word" ]; then
-                _type="${_tok_type:0:1}er"
-                _opts+="--non_linguistic_symbols ${nlsyms_txt} "
-                _opts+="--remove_non_linguistic_symbols true "
+    #         _opts="--token_type ${_tok_type} "
+    #         if [ "${_tok_type}" = "char" ] || [ "${_tok_type}" = "word" ]; then
+    #             _type="${_tok_type:0:1}er"
+    #             _opts+="--non_linguistic_symbols ${nlsyms_txt} "
+    #             _opts+="--remove_non_linguistic_symbols true "
 
-            elif [ "${_tok_type}" = "bpe" ]; then
-                _type="ter"
-                _opts+="--bpemodel ${bpemodel} "
+    #         elif [ "${_tok_type}" = "bpe" ]; then
+    #             _type="ter"
+    #             _opts+="--bpemodel ${bpemodel} "
 
-            else
-                log "Error: unsupported token type ${_tok_type}"
-            fi
+    #         else
+    #             log "Error: unsupported token type ${_tok_type}"
+    #         fi
 
-            _scoredir="${_dir}/score_${_type}"
-            mkdir -p "${_scoredir}"
+    #         _scoredir="${_dir}/score_${_type}"
+    #         mkdir -p "${_scoredir}"
 
-            # shellcheck disable=SC2068
-            for ref_txt in ${ref_text_files[@]}; do
-                # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
-                suffix=$(echo ${ref_txt} | sed 's/text//')
+    #         # shellcheck disable=SC2068
+    #         for ref_txt in ${ref_text_files[@]}; do
+    #             # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
+    #             suffix=$(echo ${ref_txt} | sed 's/text//')
 
-                # Tokenize text to ${_tok_type} level
-                paste \
-                    <(<"${_data}/${ref_txt}" \
-                        ${python} -m espnet2.bin.tokenize_text  \
-                            -f 2- --input - --output - \
-                            --cleaner "${cleaner}" \
-                            ${_opts} \
-                            ) \
-                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                        >"${_scoredir}/ref${suffix:-${suffix}}.trn"
+    #             # Tokenize text to ${_tok_type} level
+    #             paste \
+    #                 <(<"${_data}/${ref_txt}" \
+    #                     ${python} -m espnet2.bin.tokenize_text  \
+    #                         -f 2- --input - --output - \
+    #                         --cleaner "${cleaner}" \
+    #                         ${_opts} \
+    #                         ) \
+    #                 <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+    #                     >"${_scoredir}/ref${suffix:-${suffix}}.trn"
 
-                # NOTE(kamo): Don't use cleaner for hyp
-                paste \
-                    <(<"${_dir}/${ref_txt}"  \
-                        ${python} -m espnet2.bin.tokenize_text  \
-                            -f 2- --input - --output - \
-                            ${_opts} \
-                            --cleaner "${hyp_cleaner}" \
-                            ) \
-                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                        >"${_scoredir}/hyp${suffix:-${suffix}}.trn"
+    #             # NOTE(kamo): Don't use cleaner for hyp
+    #             paste \
+    #                 <(<"${_dir}/${ref_txt}"  \
+    #                     ${python} -m espnet2.bin.tokenize_text  \
+    #                         -f 2- --input - --output - \
+    #                         ${_opts} \
+    #                         --cleaner "${hyp_cleaner}" \
+    #                         ) \
+    #                 <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
+    #                     >"${_scoredir}/hyp${suffix:-${suffix}}.trn"
 
-            done
+    #         done
 
-            # Note(simpleoier): score across all possible permutations
-            if [ ${num_ref} -gt 1 ] && [ -n "${suffix}" ]; then
-                for i in $(seq ${num_ref}); do
-                    for j in $(seq ${num_inf}); do
-                        sclite \
-                            ${score_opts} \
-                            -r "${_scoredir}/ref_spk${i}.trn" trn \
-                            -h "${_scoredir}/hyp_spk${j}.trn" trn \
-                            -i rm -o all stdout > "${_scoredir}/result_r${i}h${j}.txt"
-                    done
-                done
-                # Generate the oracle permutation hyp.trn and ref.trn
-                pyscripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
-                    --results-dir ${_scoredir}
-            fi
+    #         # Note(simpleoier): score across all possible permutations
+    #         if [ ${num_ref} -gt 1 ] && [ -n "${suffix}" ]; then
+    #             for i in $(seq ${num_ref}); do
+    #                 for j in $(seq ${num_inf}); do
+    #                     sclite \
+    #                         ${score_opts} \
+    #                         -r "${_scoredir}/ref_spk${i}.trn" trn \
+    #                         -h "${_scoredir}/hyp_spk${j}.trn" trn \
+    #                         -i rm -o all stdout > "${_scoredir}/result_r${i}h${j}.txt"
+    #                 done
+    #             done
+    #             # Generate the oracle permutation hyp.trn and ref.trn
+    #             pyscripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
+    #                 --results-dir ${_scoredir}
+    #         fi
 
-            sclite \
-                ${score_opts} \
-                -r "${_scoredir}/ref.trn" trn \
-                -h "${_scoredir}/hyp.trn" trn \
-                -i rm -o all stdout > "${_scoredir}/result.txt"
+    #         sclite \
+    #             ${score_opts} \
+    #             -r "${_scoredir}/ref.trn" trn \
+    #             -h "${_scoredir}/hyp.trn" trn \
+    #             -i rm -o all stdout > "${_scoredir}/result.txt"
 
-            log "Write ${_type} result in ${_scoredir}/result.txt"
-            grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
-        done
-    done
+    #         log "Write ${_type} result in ${_scoredir}/result.txt"
+    #         grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
+    #     done
+    # done
 
+    if "${biasing}"; then
+        local_score_opts="${inference_tag}"
+    fi
     [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
 
     # Show results in Markdown syntax

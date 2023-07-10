@@ -6,5 +6,5 @@ minlenratio: 0.0
 penalty: 0.0
 
 # Biasing
-biasinglist: data/Blist/all_rare_words.txt
+biasinglist: local/all_rare_words.txt
 bmaxlen: 1000

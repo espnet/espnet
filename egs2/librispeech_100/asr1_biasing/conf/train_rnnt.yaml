@@ -35,7 +35,7 @@ model_conf:
     report_wer: False
     # Biasing
     # Change this to the path of your biasing list
-    biasinglist: data/Blist/rareword_f15.txt
+    biasinglist: local/rareword_f15.txt
     bmaxlen: 500
     bdrop: 0.0
     battndim: 256
@@ -68,7 +68,6 @@ use_amp: false
 optim: adam
 optim_conf:
     lr: 0.002
-    # weight_decay: 0.000001
 scheduler: warmuplr
 scheduler_conf:
     warmup_steps: 15000
