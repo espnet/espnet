@@ -88,7 +88,9 @@ print(
 )
 print(
     "Rare words error rate: {} / {} = {}".format(
-        rare_error + insert_rare, rare_freq, round((rare_error + insert_rare) / rare_freq, 4)
+        rare_error + insert_rare,
+        rare_freq,
+        round((rare_error + insert_rare) / rare_freq, 4),
     )
 )
 print("WER estimate: {} / {} = {}".format(total_errors, total_words, round(WER, 4)))
