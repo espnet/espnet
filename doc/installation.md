@@ -218,7 +218,7 @@ e.g.
     ```sh
     cd <espnet-root>/tools
     cuda_root=<cuda-root>  # e.g. <cuda-root> = /usr/local/cuda
-    bach -c ". activate_python.sh; . ./setup_cuda_env.sh $cuda_root; ./installers/install_warp-transducer.sh"
+    bash -c ". activate_python.sh; . ./setup_cuda_env.sh $cuda_root; ./installers/install_warp-transducer.sh"
     ```
 - To install PyOpenJTalk
     ```sh
