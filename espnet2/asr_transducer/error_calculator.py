@@ -38,6 +38,18 @@ class ErrorCalculator:
         """Construct an ErrorCalculatorTransducer object."""
         super().__init__()
 
+        # (b-flo): Since the commit #8c9c851 we rely on the mAES algorithm for
+        # validation instead of the default algorithm.
+        #
+        # With the addition of k2 pruned transducer loss, the number of emitted symbols
+        # at each timestep can be restricted during training. Performing an unrestricted
+        # (/ unconstrained) decoding without regard to the training conditions can lead
+        # to huge performance degradation. It won't be an issue with mAES and the user
+        # can now control the number of emitted symbols during validation.
+        #
+        # Also, under certain conditions, using the default algorithm can lead to a long
+        # decoding procedure due to the loop break condition. Other algorithms,
+        # such as mAES, won't be impacted by that.
         self.beam_search = BeamSearchTransducer(
             decoder=decoder,
             joint_network=joint_network,
