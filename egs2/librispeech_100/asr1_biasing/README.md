@@ -42,8 +42,8 @@
 ```Bibtex
 @INPROCEEDINGS{9687915,
   author={Sun, Guangzhi and Zhang, Chao and Woodland, Philip C.},
-  booktitle={2021 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)}, 
-  title={Tree-Constrained Pointer Generator for End-to-End Contextual Speech Recognition}, 
+  booktitle={2021 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)},
+  title={Tree-Constrained Pointer Generator for End-to-End Contextual Speech Recognition},
   year={2021},
   volume={},
   number={},
