@@ -330,6 +330,11 @@ class Speech2Text:
         if bpemodel is None:
             bpemodel = asr_train_args.bpemodel
 
+        # for the Whisper model, get the tokenizer language
+        tokenizer_language = asr_train_args.preprocessor_conf.get(
+            "tokenizer_language", "en"
+        )
+
         if token_type is None:
             tokenizer = None
         elif (
@@ -338,7 +343,12 @@ class Speech2Text:
             or "whisper" in token_type
         ):
             if bpemodel is not None:
-                tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
+                # tokenizer_language is only for the Whisper model
+                tokenizer = build_tokenizer(
+                    token_type=token_type,
+                    bpemodel=bpemodel,
+                    tokenizer_language=tokenizer_language,
+                )
             else:
                 tokenizer = None
         else:
@@ -347,7 +357,9 @@ class Speech2Text:
         if bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
-            converter = OpenAIWhisperTokenIDConverter(model_type=bpemodel)
+            converter = OpenAIWhisperTokenIDConverter(
+                model_type=bpemodel, language=tokenizer_language
+            )
             beam_search.set_hyp_primer(
                 list(converter.tokenizer.sot_sequence_including_notimestamps)
             )

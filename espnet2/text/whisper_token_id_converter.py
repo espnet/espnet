@@ -16,6 +16,7 @@ class OpenAIWhisperTokenIDConverter:
     def __init__(
         self,
         model_type: str = "whisper_multilingual",
+        language: str = "en",
     ):
         assert check_argument_types()
 
@@ -31,11 +32,9 @@ class OpenAIWhisperTokenIDConverter:
 
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-        # TODO(Shih-Lun): should support feeding in
-        #                  different languages (default is en)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=None
+                multilingual=True, language=language
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)

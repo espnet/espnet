@@ -148,6 +148,8 @@ class CommonPreprocessor(AbsPreprocessor):
         text_name: str = "text",
         fs: int = 0,
         nonsplit_symbol: Iterable[str] = None,
+        # only use for init whisper tokenizer
+        tokenizer_language: str = "en",
     ):
         super().__init__(train)
         self.train = train
@@ -172,6 +174,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 non_linguistic_symbols=non_linguistic_symbols,
                 g2p_type=g2p_type,
                 nonsplit_symbol=nonsplit_symbol,
+                tokenizer_language=tokenizer_language,
             )
             if bpemodel not in ["whisper_en", "whisper_multilingual"]:
                 self.token_id_converter = TokenIDConverter(
@@ -180,7 +183,8 @@ class CommonPreprocessor(AbsPreprocessor):
                 )
             else:
                 self.token_id_converter = OpenAIWhisperTokenIDConverter(
-                    model_type=bpemodel
+                    model_type=bpemodel,
+                    language=tokenizer_language,
                 )
         else:
             self.text_cleaner = None

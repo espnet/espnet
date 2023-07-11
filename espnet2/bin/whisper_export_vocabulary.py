@@ -9,7 +9,7 @@ from typeguard import check_argument_types
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def export_vocabulary(output: str, whisper_model: str, log_level: str):
+def export_vocabulary(output: str, whisper_model: str, language: str, log_level: str):
     try:
         import whisper.tokenizer
     except Exception as e:
@@ -35,10 +35,10 @@ def export_vocabulary(output: str, whisper_model: str, log_level: str):
 
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-    # TODO(Shih-Lun): should support feeding in
-    #                  different languages (default is en)
     elif whisper_model == "whisper_multilingual":
-        tokenizer = whisper.tokenizer.get_tokenizer(multilingual=True, language=None)
+        tokenizer = whisper.tokenizer.get_tokenizer(
+            multilingual=True, language=language
+        )
     else:
         raise ValueError("tokenizer unsupported:", whisper_model)
 
@@ -79,6 +79,12 @@ def get_parser() -> argparse.ArgumentParser:
         type=str,
         required=True,
         help="Whisper model type",
+    )
+    parser.add_argument(
+        "--language",
+        type=str,
+        default="en",
+        help="Language of Whisper multilingual tokenizer (default is en)",
     )
 
     return parser

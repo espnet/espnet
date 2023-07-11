@@ -6,7 +6,7 @@ from espnet2.text.abs_tokenizer import AbsTokenizer
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
-    def __init__(self, model_type: str):
+    def __init__(self, model_type: str, language: str = "en"):
         assert check_argument_types()
 
         try:
@@ -26,7 +26,7 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         #                  different languages (default is en)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=None
+                multilingual=True, language=language
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)
