@@ -36,3 +36,25 @@
 |decode_asr_asr_model_valid.loss.ave/dev_other|2864|95172|85.2|11.8|3.0|2.5|17.3|77.0|
 |decode_asr_asr_model_valid.loss.ave/test_clean|2620|102045|95.3|3.4|1.3|0.6|5.4|49.9|
 |decode_asr_asr_model_valid.loss.ave/test_other|2939|98108|85.5|11.0|3.5|2.2|16.7|78.4|
+
+
+### Please cite our papers
+```Bibtex
+@INPROCEEDINGS{9687915,
+  author={Sun, Guangzhi and Zhang, Chao and Woodland, Philip C.},
+  booktitle={2021 IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)}, 
+  title={Tree-Constrained Pointer Generator for End-to-End Contextual Speech Recognition}, 
+  year={2021},
+  volume={},
+  number={},
+  pages={780-787},
+  doi={10.1109/ASRU51503.2021.9687915}
+}
+
+@inproceedings{Sun2022TreeconstrainedPG,
+  title={Tree-constrained Pointer Generator with Graph Neural Network Encodings for Contextual Speech Recognition},
+  author={Guangzhi Sun and C. Zhang and Philip C. Woodland},
+  booktitle={Interspeech},
+  year={2022}
+}
+```
