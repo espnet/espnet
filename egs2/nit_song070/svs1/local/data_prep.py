@@ -208,8 +208,9 @@ def process_utterance(
 
         wavscp.write(
             "nit_song070_{}_{} {}.wav\n".format(
-                label_id, seg[0], os.path.join(wav_dumpdir,
-                                               "nit_song070_" + label_id + "_" + seg[0])
+                label_id,
+                seg[0],
+                os.path.join(wav_dumpdir, "nit_song070_" + label_id + "_" + seg[0]),
             )
         )
 
