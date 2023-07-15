@@ -1692,11 +1692,6 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
     [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
 
     # Show results in Markdown syntax
-    if "${eval_valid_set}"; then
-        for dset in ${valid_set}; do
-            ln -s -f "${asr_exp}/${inference_tag}/org/${dset}" "${asr_exp}/${inference_tag}/${dset}"
-        done
-    fi
     scripts/utils/show_asr_result.sh "${asr_exp}" > "${asr_exp}"/RESULTS.md
     cat "${asr_exp}"/RESULTS.md
 
