@@ -359,6 +359,12 @@ class ASRTransducerTask(AbsTask):
         else:
             raise RuntimeError("token_list must be str or list")
         vocab_size = len(token_list)
+
+        if hasattr(args, "scheduler_conf"):
+            args.model_conf["warmup_steps"] = args.scheduler_conf.get(
+                "warmup_steps", 25000
+            )
+
         logging.info(f"Vocabulary size: {vocab_size }")
 
         # 1. frontend
