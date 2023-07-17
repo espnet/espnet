@@ -20,10 +20,10 @@ from espnet2.asr_transducer.beam_search_transducer import (
     Hypothesis,
 )
 from espnet2.asr_transducer.frontend.online_audio_processor import OnlineAudioProcessor
+from espnet2.asr_transducer.pretrained_lm.token_lm import PretrainedTokenLM
 from espnet2.asr_transducer.utils import TooShortUttError
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.asr_transducer import ASRTransducerTask
-from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
@@ -39,15 +39,16 @@ class Speech2Text:
         asr_train_config: ASR model training config path.
         asr_model_file: ASR model path.
         beam_search_config: Beam search config path.
-        lm_train_config: Language Model training config path.
-        lm_file: Language Model config path.
+        lm_file: N-gram or LSTM language model path.
         token_type: Type of token units.
         bpemodel: BPE model path.
         device: Device to use for inference.
         beam_size: Size of beam during search.
         dtype: Data type.
         lm_weight: Language model weight.
-        quantize_asr_model: Whether to apply dynamic quantization to ASR model.
+        ilme_weight: Internal Language Model Estimation weight.
+        quantize_asr_model: Whether to apply dynamic quantization to the ASR model.
+        quantize_lm: Whether to apply dynamic quantization to the language model.
         quantize_modules: List of module names to apply dynamic quantization on.
         quantize_dtype: Dynamic quantization data type.
         nbest: Number of final hypothesis.
@@ -63,7 +64,6 @@ class Speech2Text:
         asr_train_config: Union[Path, str] = None,
         asr_model_file: Union[Path, str] = None,
         beam_search_config: Dict[str, Any] = None,
-        lm_train_config: Union[Path, str] = None,
         lm_file: Union[Path, str] = None,
         token_type: str = None,
         bpemodel: str = None,
@@ -71,7 +71,9 @@ class Speech2Text:
         beam_size: int = 5,
         dtype: str = "float32",
         lm_weight: float = 1.0,
+        ilme_weight: float = 0.0,
         quantize_asr_model: bool = False,
+        quantize_lm: bool = False,
         quantize_modules: List[str] = None,
         quantize_dtype: str = "qint8",
         nbest: int = 1,
@@ -88,7 +90,7 @@ class Speech2Text:
             asr_train_config, asr_model_file, device
         )
 
-        if quantize_asr_model:
+        if quantize_asr_model or quantize_lm:
             if quantize_modules is not None:
                 if not all([q in ["LSTM", "Linear"] for q in quantize_modules]):
                     raise ValueError(
@@ -98,7 +100,7 @@ class Speech2Text:
 
                 q_config = set([getattr(torch.nn, q) for q in quantize_modules])
             else:
-                q_config = {torch.nn.Linear}
+                q_config = {torch.nn.Linear, torch.nn.LSTM}
 
             if quantize_dtype == "float16" and (V(torch.__version__) < V("1.5.0")):
                 raise ValueError(
@@ -107,6 +109,7 @@ class Speech2Text:
                 )
             q_dtype = getattr(torch, quantize_dtype)
 
+        if quantize_asr_model:
             asr_model = torch.quantization.quantize_dynamic(
                 asr_model, q_config, dtype=q_dtype
             ).eval()
@@ -129,13 +132,23 @@ class Speech2Text:
 
             asr_model.decoder.rescaled_layers = True
 
-        if lm_train_config is not None:
-            lm, lm_train_args = LMTask.build_model_from_file(
-                lm_train_config, lm_file, device
+        if lm_file is not None:
+            lm_scorer = PretrainedTokenLM(
+                lm_file,
+                asr_train_args.token_list,
+                lm_weight,
+                next(asr_model.encoder.parameters()).device,
             )
-            lm_scorer = lm.lm
-        else:
-            lm_scorer = None
+
+            if lm_scorer.lm_type == "lstm":
+                if quantize_lm:
+                    lm = torch.quantization.quantize - dynamic(
+                        lm_scorer.lm, q_config, dtype=q_dtype
+                    )
+                else:
+                    lm = lm_scorer.lm.to(dtype=getattr(torch, dtype)).eval()
+            else:
+                lm = lm_scorer.lm
 
         # 4. Build BeamSearch object
         if beam_search_config is None:
@@ -145,8 +158,8 @@ class Speech2Text:
             asr_model.decoder,
             asr_model.joint_network,
             beam_size,
-            lm=lm_scorer,
-            lm_weight=lm_weight,
+            lm=lm,
+            ilme_weight=ilme_weight,
             nbest=nbest,
             **beam_search_config,
         )
@@ -345,6 +358,7 @@ def inference(
     ngpu: int,
     seed: int,
     lm_weight: float,
+    ilme_weight: float,
     nbest: int,
     num_workers: int,
     log_level: Union[int, str],
@@ -354,12 +368,14 @@ def inference(
     beam_search_config: Optional[dict],
     lm_train_config: Optional[str],
     lm_file: Optional[str],
+    pretrained_lm_file: Optional[str],
     model_tag: Optional[str],
     token_type: Optional[str],
     bpemodel: Optional[str],
     key_file: Optional[str],
     allow_variable_data_keys: bool,
     quantize_asr_model: Optional[bool],
+    quantize_lm: Optional[bool],
     quantize_modules: Optional[List[str]],
     quantize_dtype: Optional[str],
     streaming: bool,
@@ -377,6 +393,7 @@ def inference(
         ngpu: Number of GPUs.
         seed: Random number generator seed.
         lm_weight: Weight of language model.
+        ilme_weight: Internal Language Model Estimation weight.
         nbest: Number of final hypothesis.
         num_workers: Number of workers.
         log_level: Level of verbose for logs.
@@ -391,7 +408,8 @@ def inference(
         bpemodel: BPE model path.
         key_file: File key.
         allow_variable_data_keys: Whether to allow variable data keys.
-        quantize_asr_model: Whether to apply dynamic quantization to ASR model.
+        quantize_asr_model: Whether to apply dynamic quantization to the ASR model.
+        quantize_lm: Whether to apply dynamic quantization to the language model.
         quantize_modules: List of module names to apply dynamic quantization on.
         quantize_dtype: Dynamic quantization data type.
         streaming: Whether to perform chunk-by-chunk inference.
@@ -426,14 +444,15 @@ def inference(
         asr_train_config=asr_train_config,
         asr_model_file=asr_model_file,
         beam_search_config=beam_search_config,
-        lm_train_config=lm_train_config,
-        lm_file=lm_file,
+        # (b-flo): Verify why a new parameter was used instead of the old one...
+        lm_file=pretrained_lm_file if pretrained_lm_file is not None else lm_file,
         token_type=token_type,
         bpemodel=bpemodel,
         device=device,
         dtype=dtype,
         beam_size=beam_size,
         lm_weight=lm_weight,
+        ilme_weight=ilme_weight,
         nbest=nbest,
         quantize_asr_model=quantize_asr_model,
         quantize_modules=quantize_modules,
@@ -553,20 +572,20 @@ def get_parser():
         "--ngpu",
         type=int,
         default=0,
-        help="The number of gpus. 0 indicates CPU mode",
+        help="The number of gpus (0 indicates CPU mode).",
     )
     parser.add_argument("--seed", type=int, default=0, help="Random seed")
     parser.add_argument(
         "--dtype",
         default="float32",
         choices=["float16", "float32", "float64"],
-        help="Data type",
+        help="Data type.",
     )
     parser.add_argument(
         "--num_workers",
         type=int,
         default=1,
-        help="The number of workers used for DataLoader",
+        help="The number of workers used for DataLoader.",
     )
 
     group = parser.add_argument_group("Input data related")
@@ -583,28 +602,35 @@ def get_parser():
     group.add_argument(
         "--asr_train_config",
         type=str,
-        help="ASR training configuration",
+        help="ASR training configuration.",
     )
     group.add_argument(
         "--asr_model_file",
         type=str,
-        help="ASR model parameter file",
+        help="ASR model parameter file.",
     )
     group.add_argument(
         "--lm_train_config",
         type=str,
-        help="LM training configuration",
+        help="LM training configuration.",
     )
     group.add_argument(
         "--lm_file",
         type=str,
-        help="LM parameter file",
+        help="LM parameter file.",
+    )
+    group.add_argument(
+        "--pretrained_lm_file",
+        type=str_or_none,
+        default=None,
+        help="""Pretrained LM file. It can be either a N-gram LM trained
+        with kenLM or a LSTM LM trained with ESPnet.""",
     )
     group.add_argument(
         "--model_tag",
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
-        "*_file will be overwritten",
+        "*_file will be overwritten.",
     )
 
     group = parser.add_argument_group("Beam-search related")
@@ -612,11 +638,18 @@ def get_parser():
         "--batch_size",
         type=int,
         default=1,
-        help="The batch size for inference",
+        help="The batch size for inference.",
     )
-    group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses")
-    group.add_argument("--beam_size", type=int, default=5, help="Beam size")
-    group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
+    group.add_argument("--nbest", type=int, default=1, help="Output N-best hypotheses.")
+    group.add_argument("--beam_size", type=int, default=5, help="Beam size.")
+    group.add_argument("--lm_weight", type=float, default=0.1, help="LM weight.")
+    group.add_argument(
+        "--ilme_weight",
+        type=float,
+        default=0.0,
+        help="Internal Language Model Estimation weight. See "
+        "https://arxiv.org/pdf/2011.01991.pdf for more information.",
+    )
     group.add_argument(
         "--beam_search_config",
         default={},
@@ -630,14 +663,14 @@ def get_parser():
         default=None,
         choices=["char", "bpe", None],
         help="The token type for ASR model. "
-        "If not given, refers from the training args",
+        "If not given, refers from the training args.",
     )
     group.add_argument(
         "--bpemodel",
         type=str_or_none,
         default=None,
         help="The model path of sentencepiece. "
-        "If not given, refers from the training args",
+        "If not given, refers from the training args.",
     )
 
     group = parser.add_argument_group("Dynamic quantization related")
@@ -646,6 +679,12 @@ def get_parser():
         type=bool,
         default=False,
         help="Apply dynamic quantization to ASR model.",
+    )
+    parser.add_argument(
+        "--quantize_lm",
+        type=bool,
+        default=False,
+        help="Apply dynamic quantization to LM.",
     )
     parser.add_argument(
         "--quantize_modules",
@@ -682,7 +721,7 @@ def get_parser():
         "--left_context",
         type=int,
         default=32,
-        help="""Number of previous frames (AFTER subsamplingà the attention module
+        help="""Number of previous frames (AFTER subsampling) the attention module
         can see in current chunk (used by Conformer and Branchformer block).""",
     )
     parser.add_argument(

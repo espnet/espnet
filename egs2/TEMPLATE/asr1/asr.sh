@@ -133,6 +133,7 @@ inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
 inference_lm=valid.loss.ave.pth       # Language model path for decoding.
+pretrained_lm_file=		      # Pre-trained language model path for ASR Transducer decoding.
 inference_ngram=${ngram_num}gram.bin
 inference_asr_model=valid.acc.ave.pth # ASR model path for decoding.
                                       # e.g.
@@ -1472,13 +1473,17 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         _opts+="--config ${inference_config} "
     fi
     if "${use_lm}"; then
-        if "${use_word_lm}"; then
-            _opts+="--word_lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--word_lm_file ${lm_exp}/${inference_lm} "
-        else
-            _opts+="--lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--lm_file ${lm_exp}/${inference_lm} "
-        fi
+	if [ ! -z "${pretrained_lm_file}" ]; then
+	    _opts+="--lm_file ${pretrained_lm_file} "
+	else
+            if "${use_word_lm}"; then
+		_opts+="--word_lm_train_config ${lm_exp}/config.yaml "
+		_opts+="--word_lm_file ${lm_exp}/${inference_lm} "
+            else
+		_opts+="--lm_train_config ${lm_exp}/config.yaml "
+		_opts+="--lm_file ${lm_exp}/${inference_lm} "
+            fi
+	fi
     fi
     if "${use_ngram}"; then
          _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
