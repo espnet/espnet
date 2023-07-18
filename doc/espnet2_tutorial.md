@@ -444,10 +444,10 @@ Optionnaly, we also support training with the Pruned RNN-T loss [[Kuang et al. 2
       use_k2_pruned_loss: True
       k2_pruned_loss_args:
         prune_range: How many tokens by frame are used compute the pruned loss. (int, default = 5)
-	simple_loss_scaling: The weight to scale the simple loss after warm-up. (float, default = 0.5)
-	lm_scale: The scale factor to smooth the LM part. (float, default = 0.0)
-	am_scale: The scale factor to smooth the AM part. (float, default = 0.0)
-	loss_type: Define the type of path to take for loss computation, either 'regular', 'smoothed' or 'constrained'. (str, default = "regular")
+        simple_loss_scaling: The weight to scale the simple loss after warm-up. (float, default = 0.5)
+        lm_scale: The scale factor to smooth the LM part. (float, default = 0.0)
+        am_scale: The scale factor to smooth the AM part. (float, default = 0.0)
+        loss_type: Define the type of path to take for loss computation, either 'regular', 'smoothed' or 'constrained'. (str, default = "regular")
 
 **Note:** Because the number of tokens emitted by timestep can be restricted during training with this version, we also make available the parameter `validation_nstep`. It let the users apply similar constraints during the validation process, when reporting CER or/and WER:
 
