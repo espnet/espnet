@@ -277,8 +277,8 @@ class BeamSearchTransducer:
                 Hypothesis(
                     score=0.0,
                     yseq=[0],
-                    dec_state=self.decoder.init_state(1),
-                    lm_state=self.lm.zero_state() if self.use_lm else None,
+                    dec_state=self.decoder.init_state(),
+                    lm_state=self.lm.init_state() if self.use_lm else None,
                 )
             ]
 
@@ -380,8 +380,8 @@ class BeamSearchTransducer:
             Hypothesis(
                 yseq=[0],
                 score=0.0,
-                dec_state=self.decoder.init_state(1),
-                lm_state=self.lm.zero_state() if self.use_lm else None,
+                dec_state=self.decoder.init_state(),
+                lm_state=self.lm.init_state() if self.use_lm else None,
             )
         ]
         final = []
@@ -482,8 +482,8 @@ class BeamSearchTransducer:
                 Hypothesis(
                     yseq=[0],
                     score=0.0,
-                    dec_state=self.decoder.init_state(1),
-                    lm_state=self.lm.zero_state() if self.use_lm else None,
+                    dec_state=self.decoder.init_state(),
+                    lm_state=self.lm.init_state() if self.use_lm else None,
                 )
             ]
 
@@ -584,8 +584,8 @@ class BeamSearchTransducer:
                 ExtendedHypothesis(
                     yseq=[0],
                     score=0.0,
-                    dec_state=self.decoder.init_state(1),
-                    lm_state=self.lm.zero_state() if self.use_lm else None,
+                    dec_state=self.decoder.init_state(),
+                    lm_state=self.lm.init_state() if self.use_lm else None,
                 )
             ]
 

@@ -190,7 +190,7 @@ class RNNDecoder(AbsDecoder):
         self.device = device
 
     def init_state(
-        self, batch_size: int
+        self, batch_size: int = 1
     ) -> Tuple[torch.Tensor, Optional[torch.tensor]]:
         """Initialize decoder states.
 

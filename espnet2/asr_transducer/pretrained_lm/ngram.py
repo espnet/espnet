@@ -1,4 +1,4 @@
-"""Pretrained token-level N-gram model implementation."""
+"""Pretrained token-level N-gram model definition."""
 
 from typing import List, Tuple
 
@@ -30,6 +30,7 @@ class PretrainedTokenNgram:
         score_weight: float,
         device: str,
     ) -> None:
+        """Construct a PretrainedTokenNgram object."""
         super().__init__()
 
         self.lm = kenlm.Model(model_path)
@@ -43,9 +44,7 @@ class PretrainedTokenNgram:
         self.token_list = [x if x != "<eos>" else "</s>" for x in token_list]
         self.num_tokens = len(self.token_list)
 
-        self.sos_id = self.num_tokens - 1
-
-    def zero_state(self) -> List["kenlm.State"]:
+    def init_state(self) -> List["kenlm.State"]:
         """Initialize KenLM state with null context.
 
         Args:
@@ -57,7 +56,9 @@ class PretrainedTokenNgram:
         """
         state = kenlm.State()
 
-        return self.lm.NullContextWrite(state)
+        self.lm.NullContextWrite(state)
+
+        return state
 
     def score(
         self,

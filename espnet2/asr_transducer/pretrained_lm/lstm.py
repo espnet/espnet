@@ -1,4 +1,4 @@
-"""Pretrained token-level language model implementation."""
+"""Pretrained token-level language model definition."""
 
 from typing import Dict, List, Tuple
 
@@ -31,6 +31,7 @@ class PretrainedTokenLSTM(torch.nn.Module):
         device: torch.device,
         padding_id: int = 0,
     ) -> None:
+        """Construct a PretrainedTokenLSTM object."""
         super().__init__()
 
         self.encoder = torch.nn.Embedding(
@@ -54,7 +55,7 @@ class PretrainedTokenLSTM(torch.nn.Module):
 
         self.load_state_dict(model_state_dict)
 
-    def zero_state(self, batch_size: int = 1) -> Tuple[torch.Tensor, torch.Tensor]:
+    def init_state(self, batch_size: int = 1) -> Tuple[torch.Tensor, torch.Tensor]:
         """Create LSTM hidden state filled with zero values.
 
         Args:
