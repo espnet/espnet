@@ -448,6 +448,11 @@ class Speech2Text:
                 for idx, tok in enumerate(token_int)
                 if tok >= first_time_id and tok <= last_time_id
             ]
+            # NOTE(yifan): this is an edge case with only a start time
+            if len(time_pos) == 1:
+                token_int.append(last_time_id)
+                time_pos.append(len(token_int) - 1)
+
             if len(time_pos) % 2 == 0:  # Timestamps are all paired
                 if (
                     len(time_pos) > 2
