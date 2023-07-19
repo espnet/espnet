@@ -68,29 +68,22 @@ class RNNDecoder(AbsDecoder):
         self.device = next(self.parameters()).device
         self.score_cache = {}
 
-    def forward(
-        self,
-        labels: torch.Tensor,
-        states: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]] = None,
-    ) -> torch.Tensor:
+    def forward(self, labels: torch.Tensor) -> torch.Tensor:
         """Encode source label sequences.
 
         Args:
             labels: Label ID sequences. (B, L)
-            states: Decoder hidden states.
-                      ((N, B, D_dec), (N, B, D_dec) or None) or None
 
         Returns:
-            dec_out: Decoder output sequences. (B, U, D_dec)
+            out: Decoder output sequences. (B, U, D_dec)
 
         """
-        if states is None:
-            states = self.init_state(labels.size(0))
+        states = self.init_state(labels.size(0))
 
-        dec_embed = self.dropout_embed(self.embed(labels))
-        dec_out, states = self.rnn_forward(dec_embed, states)
+        embed = self.dropout_embed(self.embed(labels))
+        out, _ = self.rnn_forward(embed, states)
 
-        return dec_out
+        return out
 
     def rnn_forward(
         self,
@@ -128,35 +121,40 @@ class RNNDecoder(AbsDecoder):
 
     def score(
         self,
-        label: torch.Tensor,
         label_sequence: List[int],
-        dec_state: Tuple[torch.Tensor, Optional[torch.Tensor]],
+        states: Tuple[torch.Tensor, Optional[torch.Tensor]],
     ) -> Tuple[torch.Tensor, Tuple[torch.Tensor, Optional[torch.Tensor]]]:
         """One-step forward hypothesis.
 
         Args:
-            label: Previous label. (1, 1)
             label_sequence: Current label sequence.
-            dec_state: Previous decoder hidden states.
-                         ((N, 1, D_dec), (N, 1, D_dec) or None)
+            states: Decoder hidden states.
+                      ((N, 1, D_dec), (N, 1, D_dec) or None)
 
         Returns:
-            dec_out: Decoder output sequence. (1, D_dec)
-            dec_state: Decoder hidden states.
-                         ((N, 1, D_dec), (N, 1, D_dec) or None)
+            out: Decoder output sequence. (1, D_dec)
+            states: Decoder hidden states.
+                      ((N, 1, D_dec), (N, 1, D_dec) or None)
 
         """
         str_labels = "_".join(map(str, label_sequence))
 
         if str_labels in self.score_cache:
-            dec_out, dec_state = self.score_cache[str_labels]
+            out, states = self.score_cache[str_labels]
         else:
-            dec_embed = self.embed(label)
-            dec_out, dec_state = self.rnn_forward(dec_embed, dec_state)
+            label = torch.full(
+                (1, 1),
+                label_sequence[-1],
+                dtype=torch.long,
+                device=self.device,
+            )
 
-            self.score_cache[str_labels] = (dec_out, dec_state)
+            embed = self.embed(label)
+            out, states = self.rnn_forward(embed, states)
 
-        return dec_out[0], dec_state
+            self.score_cache[str_labels] = (out, states)
+
+        return out[0], states
 
     def batch_score(
         self,
@@ -168,17 +166,19 @@ class RNNDecoder(AbsDecoder):
             hyps: Hypotheses.
 
         Returns:
-            dec_out: Decoder output sequences. (B, D_dec)
+            out: Decoder output sequences. (B, D_dec)
             states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec) or None)
 
         """
-        labels = torch.LongTensor([[h.yseq[-1]] for h in hyps], device=self.device)
-        dec_embed = self.embed(labels)
+        labels = torch.tensor(
+            [[h.yseq[-1]] for h in hyps], dtype=torch.long, device=self.device
+        )
+        embed = self.embed(labels)
 
         states = self.create_batch_states([h.dec_state for h in hyps])
-        dec_out, states = self.rnn_forward(dec_embed, states)
+        out, states = self.rnn_forward(embed, states)
 
-        return dec_out.squeeze(1), states
+        return out.squeeze(1), states
 
     def set_device(self, device: torch.device) -> None:
         """Set GPU device to use.
@@ -245,7 +245,8 @@ class RNNDecoder(AbsDecoder):
         """Create decoder hidden states.
 
         Args:
-            new_states: Decoder hidden states. [N x ((1, D_dec), (1, D_dec) or None)]
+            new_states: Decoder hidden states.
+                            [B x ((N, 1, D_dec), (N, 1, D_dec) or None)]
 
         Returns:
             states: Decoder hidden states. ((N, B, D_dec), (N, B, D_dec) or None)

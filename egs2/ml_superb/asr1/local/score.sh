@@ -54,7 +54,8 @@ fi
 python local/split_results.py \
     --dir ${asr_exp} \
     --lid ${lid} \
-    --only_lid ${only_lid}
+    --only_lid ${only_lid} \
+    --score_type ${score_type}
 
 if "${only_lid}" || "${lid}"; then
     if [ "${score_type}" = independent ]; then
@@ -79,13 +80,13 @@ fi
 
 if ! "${only_lid}"; then
     if [ "${score_type}" = independent ]; then
-        directories=$(find ${asr_exp} -wholename "*/*/score_lid/independent/*" -type d -not -path '/\.')
+        directories=$(find ${asr_exp} -wholename "*/*/score_cer/independent/*" -type d -not -path '/\.')
     elif [ "${score_type}" = "normal" ]; then
-        directories=$(find ${asr_exp} -wholename "*/*/score_lid/few_shot/*" -type d -not -path '/\.')
+        directories=$(find ${asr_exp} -wholename "*/*/score_cer/few_shot/*" -type d -not -path '/\.')
     elif [ "${score_type}" = "language_family" ]; then
-        directories=$(find ${asr_exp} -wholename "*/*/score_lid/language_family/*" -type d -not -path '/\.')
+        directories=$(find ${asr_exp} -wholename "*/*/score_cer/language_family/*" -type d -not -path '/\.')
     elif [ "${score_type}" = "all" ]; then
-        directories=$(find ${asr_exp} -wholename "*/*/score_lid/all/*" -type d -not -path '/\.')
+        directories=$(find ${asr_exp} -wholename "*/*/score_cer/all/*" -type d -not -path '/\.')
     else
         log "Not recognized score_type ${score_type}"
 	exit 1

@@ -61,7 +61,6 @@ class LengthRegulator(torch.nn.Module):
         Returns:
             Tensor: Output tensor (D_frame, dim).
         """
-        predicted = torch.squeeze(predicted)
         out = list()
 
         for i, vec in enumerate(batch):
