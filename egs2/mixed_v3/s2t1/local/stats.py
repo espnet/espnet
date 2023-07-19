@@ -35,7 +35,7 @@ if __name__ == "__main__":
     stats, langs = collect_stats(args.data_dir)
     stats = sorted(list(stats.items()), key=lambda x: x[-1], reverse=True)
     total_duration = sum(x[1] for x in stats)
-    asr_duration =sum(x[1] for x in stats if x[0][0] == x[0][1]) 
+    asr_duration = sum(x[1] for x in stats if x[0][0] == x[0][1])
     st_duration = sum(x[1] for x in stats if x[0][0] != x[0][1])
 
     with open(args.data_dir / "stats.txt", "w") as fp:

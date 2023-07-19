@@ -4,7 +4,7 @@ import random
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Collection, Dict, Iterable, List, Tuple, Optional, Union
+from typing import Collection, Dict, Iterable, List, Optional, Tuple, Union
 
 import numpy as np
 import scipy.signal
