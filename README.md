@@ -398,7 +398,7 @@ We list 4-gram BLEU of major ST tasks.
 | Mboshi-French dev (Fr->Mboshi)                    | 6.18  |                                                                                                N/A                                                                                                |
 
 #### cascaded system
-| Task                                              | BLEU  | pre-trained model |
+| Task                                              | BLEU  | Pre-trained model |
 | ------------------------------------------------- | :---: | :--------------: |
 | Fisher-CallHome Spanish fisher_test (Es->En)      | 42.16 |       N/A        |
 | Fisher-CallHome Spanish callhome_evltest (Es->En) | 19.82 |       N/A        |
@@ -474,11 +474,11 @@ You can listen to the generated samples in the following URL.
 
 You can download pre-trained models via `espnet_model_zoo`.
 - [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo)
-- [pre-trained model list](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv)
+- [Pre-trained model list](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv)
 
 You can download pre-trained vocoders via `kan-bayashi/ParallelWaveGAN`.
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
-- [pre-trained vocoder list](https://github.com/kan-bayashi/ParallelWaveGAN#results)
+- [Pre-trained vocoder list](https://github.com/kan-bayashi/ParallelWaveGAN#results)
 
 </div></details>
 
