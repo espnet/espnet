@@ -19,17 +19,32 @@ projector_conf:
 
 preprocessor: spk
 preprocessor_conf:
-  utt2spk: dump/raw/voxceleb2_dev/utt2spk
-  spk2utt: dump/raw/voxceleb2_dev/spk2utt
+  utt2spk: dump/raw_copy/voxceleb12_devs/utt2spk
+  spk2utt: dump/raw_copy/voxceleb12_devs/spk2utt
   target_duration: 3.0
   sr: 16000
-  num_eval: 1
+  num_eval: 5
+
+model_conf:
+  extract_feats_in_collect_stats: false
 
 loss: aamsoftmax
 loss_conf:
   nOut: 256
-  nClasses: 5994
-  margin: 0.3
+  nClasses: 7205
+  margin: 0.2
   scale: 15
 
 optim: adam
+max_epoch: 40
+#num_iters_per_epoch: 1
+num_att_plot: 0
+num_workers: 6
+cudnn_deterministic: False
+cudnn_benchmark: True
+batch_size: 32
+#batch_type: unsorted
+iterator_type: sequence
+shuffle_within_batch: True
+log_interval: 50
+#scheduler: CosineAnnealingLR
