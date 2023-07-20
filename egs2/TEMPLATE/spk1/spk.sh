@@ -181,21 +181,69 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             _dsets="${test_sets}"
         fi
     else
-        _dsets="${train_set} ${valid_set} ${test_sets}"
+        _dsets="${valid_set} ${test_sets}"
     fi
 
     if [ "${feats_type}" = raw ]; then
-        log "Stage 2: Format wav.scp: data/ -> ${data_feats}"
-        for dset in ${_dsets}; do
-            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+        if [ "${skip_train}" = false ]; then
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
 
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" \
                 --multi-columns-input "${multi_columns_input_wav_scp}" \
                 --multi-columns-output "${multi_columns_output_wav_scp}" \
-                "data/${dset}/wav.scp" "${data_feats}/${dset}"
+                "data/${train_set}/wav.scp" "${data_feats}/${train_set}"
+
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            if "${multi_columns_output_wav_scp}"; then
+                echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
+            else
+                echo "${audio_format}" > "${data_feats}/${dset}/audio_format"
+            fi
+        fi
+
+        # Calculate EER for valid/test since speaker verification is an open set problem
+        # Train can be either multi-column data or not, but valid/test always require multi-column trial
+        for dset in ${_dsets}; do
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
+            cp data/${dset}/trial.scp "${data_feats}/${dset}"
+            cp data/${dset}/trial2.scp "${data_feats}/${dset}"
+            cp data/${dset}/trial_label "${data_feats}/${dset}"
+
+            # shellcheck disable=SC2086
+            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                --audio-format "${audio_format}" --fs "${fs}" \
+                --multi-columns-input true \
+                --multi-columns-output true \
+                "data/${dset}/trial.scp" "${data_feats}/${dset}"
+
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
+
+        done
+    elif [ "${feats_type}" = raw_copy ]; then
+        if [ "${skip_train}" = false ]; then
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
+
+            echo "${feats_type}" > "${data_feats}/${train_set}/feats_type"
+            if "${multi_columns_output_wav_scp}"; then
+                echo "multi_${audio_format}" > "${data_feats}/${train_set}/audio_format"
+            else
+                echo "${audio_format}" > "${data_feats}/${train_set}/audio_format"
+            fi
+        fi
+
+        # Calculate EER for valid/test since speaker verification is an open set problem
+        # Train can be either multi-column data or not, but valid/test always require multi-column trial
+        for dset in ${_dsets}; do
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
+            cp data/${dset}/trial.scp "${data_feats}/${dset}"
+            cp data/${dset}/trial2.scp "${data_feats}/${dset}"
+            cp data/${dset}/trial_label "${data_feats}/${dset}"
+
+            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
 
         done
     else
@@ -271,6 +319,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # shellcheck disable=SC2086
     ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --skip_sum_stats --output_dir "${spk_stats_dir}"
 
+    cp ${spk_stats_dir}/valid/speech_shape ${spk_stats_dir}/valid/speech_shape2
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then

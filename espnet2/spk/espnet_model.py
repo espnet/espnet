@@ -66,6 +66,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         speech: torch.Tensor,
         # speech_lengths: torch.Tensor = None,
         spk_labels: torch.Tensor,
+        extract_embd: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """
@@ -75,9 +76,12 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         Args:
             speech: (Batch, samples)
             speech_lengths: (Batch,)
+            extract_embd: a flag which doesn't go through the classification
+                head when set True
             spk_labels: (Batch, )
         """
-        assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
+        if spk_labels is not None:
+            assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
         batch_size = speech.shape[0]
 
         # 1. extract low-level feats (e.g., mel-spectrogram or MFCC)
@@ -91,6 +95,9 @@ class ESPnetSpeakerModel(AbsESPnetModel):
 
         # 3. (optionally) go through further projection(s)
         spk_embd = self.project_spk_embd(utt_level_feat)
+
+        if extract_embd:
+            return spk_embd
 
         # 4. calculate loss
         loss = self.loss(spk_embd, spk_labels)
