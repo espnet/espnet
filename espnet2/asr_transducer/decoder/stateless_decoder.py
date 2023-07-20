@@ -1,6 +1,6 @@
 """Stateless decoder definition for Transducer models."""
 
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -44,7 +44,7 @@ class StatelessDecoder(AbsDecoder):
     def forward(
         self,
         labels: torch.Tensor,
-        states: Optional[Tuple[torch.Tensor, Optional[torch.Tensor]]] = None,
+        states: Optional[Any] = None,
     ) -> torch.Tensor:
         """Encode source label sequences.
 
@@ -53,60 +53,64 @@ class StatelessDecoder(AbsDecoder):
             states: Decoder hidden states. None
 
         Returns:
-            dec_embed: Decoder output sequences. (B, U, D_emb)
+            embed: Decoder output sequences. (B, U, D_emb)
 
         """
-        dec_embed = self.embed_dropout_rate(self.embed(labels))
+        embed = self.embed_dropout_rate(self.embed(labels))
 
-        return dec_embed
+        return embed
 
     def score(
         self,
-        label: torch.Tensor,
         label_sequence: List[int],
-        state: None,
+        states: Optional[Any] = None,
     ) -> Tuple[torch.Tensor, None]:
         """One-step forward hypothesis.
 
         Args:
-            label: Previous label. (1, 1)
             label_sequence: Current label sequence.
-            state: Previous decoder hidden states. None
+            states: Decoder hidden states. None
 
         Returns:
-            dec_out: Decoder output sequence. (1, D_emb)
+            : Decoder output sequence. (1, D_emb)
             state: Decoder hidden states. None
 
         """
         str_labels = "_".join(map(str, label_sequence))
 
         if str_labels in self.score_cache:
-            dec_embed = self.score_cache[str_labels]
+            embed = self.score_cache[str_labels]
         else:
-            dec_embed = self.embed(label)
+            label = torch.full(
+                (1, 1),
+                label_sequence[-1],
+                dtype=torch.long,
+                device=self.device,
+            )
 
-            self.score_cache[str_labels] = dec_embed
+            embed = self.embed(label)
 
-        return dec_embed[0], None
+            self.score_cache[str_labels] = embed
 
-    def batch_score(
-        self,
-        hyps: List[Hypothesis],
-    ) -> Tuple[torch.Tensor, None]:
+        return embed[0], None
+
+    def batch_score(self, hyps: List[Hypothesis]) -> Tuple[torch.Tensor, None]:
         """One-step forward hypotheses.
 
         Args:
             hyps: Hypotheses.
 
         Returns:
-            dec_out: Decoder output sequences. (B, D_dec)
+            out: Decoder output sequences. (B, D_dec)
             states: Decoder hidden states. None
 
         """
-        labels = torch.LongTensor([[h.yseq[-1]] for h in hyps], device=self.device)
-        dec_embed = self.embed(labels)
+        labels = torch.tensor(
+            [[h.yseq[-1]] for h in hyps], dtype=torch.long, device=self.device
+        )
+        embed = self.embed(labels)
 
-        return dec_embed.squeeze(1), None
+        return embed.squeeze(1), None
 
     def set_device(self, device: torch.device) -> None:
         """Set GPU device to use.
@@ -138,6 +142,21 @@ class StatelessDecoder(AbsDecoder):
 
         Returns:
             : Decoder hidden state for given ID. None
+
+        """
+        return None
+
+    def create_batch_states(
+        self,
+        new_states: List[Optional[torch.Tensor]],
+    ) -> None:
+        """Create decoder hidden states.
+
+        Args:
+            new_states: Decoder hidden states. [N x None]
+
+        Returns:
+            states: Decoder hidden states. None
 
         """
         return None

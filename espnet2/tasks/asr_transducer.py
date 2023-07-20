@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import os
 from typing import Callable, Collection, Dict, List, Optional, Tuple
 
 import numpy as np
@@ -14,7 +15,9 @@ from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.asr_transducer.decoder.abs_decoder import AbsDecoder
+from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.rwkv_decoder import RWKVDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr_transducer.encoder.encoder import Encoder
 from espnet2.asr_transducer.espnet_transducer_model import ESPnetASRTransducerModel
@@ -63,7 +66,9 @@ normalize_choices = ClassChoices(
 decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
+        mega=MEGADecoder,
         rnn=RNNDecoder,
+        rwkv=RWKVDecoder,
         stateless=StatelessDecoder,
     ),
     type_check=AbsDecoder,
@@ -354,6 +359,12 @@ class ASRTransducerTask(AbsTask):
         else:
             raise RuntimeError("token_list must be str or list")
         vocab_size = len(token_list)
+
+        if hasattr(args, "scheduler_conf"):
+            args.model_conf["warmup_steps"] = args.scheduler_conf.get(
+                "warmup_steps", 25000
+            )
+
         logging.info(f"Vocabulary size: {vocab_size }")
 
         # 1. frontend
@@ -387,6 +398,7 @@ class ASRTransducerTask(AbsTask):
 
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
+
         decoder = decoder_class(
             vocab_size,
             **args.decoder_conf,
