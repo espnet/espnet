@@ -19,10 +19,11 @@ mkdir -p nkf
 (
     set -euo pipefail
     cd nkf
-    wget --tries=3 https://ja.osdn.net/dl/nkf/nkf-2.1.4.tar.gz
-    tar zxvf nkf-2.1.4.tar.gz
+    wget --tries=3 https://github.com/nurse/nkf/archive/refs/tags/v2_1_4.tar.gz
+    tar zxvf v2_1_4.tar.gz
     (
         set -euo pipefail
+        mv -f nkf-2_1_4 nkf-2.1.4
         cd nkf-2.1.4
         make prefix=.
     )
