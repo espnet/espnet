@@ -172,7 +172,7 @@ class SpkTrainer(Trainer):
 
         # exception for collect_stats.
         if len(scores) == 1:
-            reporter.register(stats=dict(eer=1., mindcf=1.))
+            reporter.register(stats=dict(eer=1.0, mindcf=1.0))
             return
 
         results = tuneThresholdfromScore(scores, labels, [1, 0.1])
