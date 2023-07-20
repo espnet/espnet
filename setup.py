@@ -36,8 +36,7 @@ requirements = {
         # TTS
         # NOTE(kan-bayashi): Should update after pyworld new release:
         #   https://github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder/pull/90
-        # noqa: E501
-        "pyworld @ git+https://github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder.git",
+        "pyworld @ git+https://github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder.git", # noqa: E501
         "pypinyin<=0.44.0",
         "espnet_tts_frontend",
         # ENH
