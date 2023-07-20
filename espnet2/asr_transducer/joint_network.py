@@ -11,7 +11,7 @@ class JointNetwork(torch.nn.Module):
     Args:
         output_size: Output size.
         encoder_size: Encoder output size.
-        decoder_size: Decoder output size..
+        decoder_size: Decoder output size.
         joint_space_size: Joint space size.
         joint_act_type: Type of activation for joint network.
         **activation_parameters: Parameters for the activation function.
@@ -43,17 +43,26 @@ class JointNetwork(torch.nn.Module):
         self,
         enc_out: torch.Tensor,
         dec_out: torch.Tensor,
+        no_projection: bool = False,
     ) -> torch.Tensor:
         """Joint computation of encoder and decoder hidden state sequences.
 
         Args:
-            enc_out: Expanded encoder output state sequences (B, T, 1, D_enc)
-            dec_out: Expanded decoder output state sequences (B, 1, U, D_dec)
+            enc_out: Expanded encoder output state sequences.
+                         (B, T, s_range, D_enc) or (B, T, 1, D_enc)
+            dec_out: Expanded decoder output state sequences.
+                         (B, T, s_range, D_dec) or (B, 1, U, D_dec)
 
         Returns:
-            joint_out: Joint output state sequences. (B, T, U, D_out)
+            joint_out: Joint output state sequences.
+                           (B, T, U, D_out) or (B, T, s_range, D_out)
 
         """
-        joint_out = self.joint_activation(self.lin_enc(enc_out) + self.lin_dec(dec_out))
+        if no_projection:
+            joint_out = self.joint_activation(enc_out + dec_out)
+        else:
+            joint_out = self.joint_activation(
+                self.lin_enc(enc_out) + self.lin_dec(dec_out)
+            )
 
         return self.lin_out(joint_out)
