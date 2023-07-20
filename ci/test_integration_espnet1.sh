@@ -58,9 +58,6 @@ echo "=== ASR (backend=pytorch, model=conformer-transducer) ==="
 echo "=== ASR (backend=pytorch, model=rnnt, tasks=L1+L2+L3+L4+L5)"
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_aux.yaml \
          --decode-config conf/decode_transducer.yaml
-echo "=== ASR (backend=pytorch, model=conformer-transducer, tasks=L1+L2+L5) ==="
-./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer_aux.yaml \
-        --decode-config conf/decode_transducer.yaml
 
 # test finetuning
 ## test transfer learning
@@ -94,12 +91,8 @@ cd ./egs/mini_an4/st1 || exit 1
 
 echo "==== ST (backend=pytorch) ==="
 ./run.sh --python "${python}"
-echo "==== ST (backend=pytorch asr0.3) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_asr0.3.yaml
 echo "==== ST (backend=pytorch ctc asr0.3) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_ctc_asr0.3.yaml
-echo "==== ST (backend=pytorch mt0.3) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_mt0.3.yaml
 echo "==== ST (backend=pytorch asr0.2 mt0.2) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_asr0.2_mt0.2.yaml
 echo "==== ST (backend=pytorch, model=transformer) ==="
@@ -111,13 +104,7 @@ echo "==== ST (backend=pytorch, model=transformer) ==="
 ./run.sh --python "${python}" --stage 5 --train_config conf/train_transformer.yaml \
     --metric loss
 echo "==== ST (backend=pytorch asr0.3, model=transformer) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_asr0.3.yaml
-echo "==== ST (backend=pytorch ctc asr0.3, model=transformer) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_ctc_asr0.3.yaml
-echo "==== ST (backend=pytorch mt0.3, model=transformer) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_mt0.3.yaml
-echo "==== ST (backend=pytorch asr0.2 mt0.2, model=transformer) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_asr0.2_mt0.2.yaml
 echo "==== ST (backend=pytorch asr0.2 mt0.2, model=conformer) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_conformer_asr0.2_mt0.2.yaml
 # Remove generated files in order to reduce the disk usage
