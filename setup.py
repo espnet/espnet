@@ -87,6 +87,8 @@ requirements = {
         "gtn==0.0.0",
     ],
     "setup": [
+        "setuptools",
+        "Cython<=0.29.35",
         "pytest-runner",
     ],
     "test": [
