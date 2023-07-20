@@ -1467,26 +1467,23 @@ class SpkPreprocessor(CommonPreprocessor):
     def __init__(
         self,
         train: bool,
-        utt2spk: str,
         spk2utt: str,
         target_duration: float,
         sr: int = 16000,
         num_eval: int = 10,
     ):
         super().__init__(train)
-        with open(utt2spk, "r") as f_u2s, open(spk2utt, "r") as f_s2u:
-            self.utt2spk = f_u2s.readlines()
+        with open(spk2utt, "r") as f_s2u:
             self.spk2utt = f_s2u.readlines()
 
         self.nspk = len(self.spk2utt)
-        self.nutt = len(self.utt2spk)
         self.spk2label = None  # a dictionary that maps string speaker label to
         # an integer
         self.target_duration = int(target_duration * sr)
         self.num_eval = num_eval
         self._make_label_mapping()
 
-        print("n_spk, n_utt: ", self.nspk, self.nutt)
+        print("n_spk: ", self.nspk)
 
     def _make_label_mapping(
         self,
@@ -1533,13 +1530,12 @@ class SpkPreprocessor(CommonPreprocessor):
         """
         Make speaker labels into integers
         """
-        # Set dummy label for valid set during collect_stats
-        if data["spk_labels"] not in self.spk2label:
-            int_label = -1
-        else:
+        if self.train:
             int_label = self.spk2label[data["spk_labels"]]
+            data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
 
-        data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
+        else:
+            data["spk_labels"] = np.asarray([int(data["spk_labels"])])
 
         return data
 

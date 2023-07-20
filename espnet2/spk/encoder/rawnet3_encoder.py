@@ -31,7 +31,7 @@ class RawNet3Encoder(AbsEncoder):
 
     def __init__(
         self,
-        block=Bottle2neck,
+        block: str = "Bottle2neck",
         model_scale: int = 8,
         ndim: int = 1024,
         sinc_stride: int = 16,
@@ -39,6 +39,10 @@ class RawNet3Encoder(AbsEncoder):
     ):
         assert check_argument_types()
         super().__init__()
+        if block == "Bottle2neck":
+            block = Bottle2neck
+        else:
+            raise ValueError(f"unsupported block, got: {block}")
         self._output_size = int(ndim * 1.5)
 
         self.waveform_process = nn.Sequential(

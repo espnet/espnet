@@ -31,7 +31,7 @@ from espnet2.train.preprocessor import (
     CommonPreprocessor,
     SpkPreprocessor,
 )
-from espnet2.train.trainer import Trainer
+from espnet2.train.spk_trainer import SpkTrainer as Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
@@ -180,6 +180,13 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
+            "--spk2utt",
+            type=str,
+            default="",
+            help="Directory of spk2utt file to be used in label mapping",
+        )
+
+        group.add_argument(
             "--sr",
             type=int,
             default=16000,
@@ -221,6 +228,7 @@ class SpeakerTask(AbsTask):
         if args.use_preprocessor:
             retval = preprocessor_choices.get_class(args.preprocessor)(
                 train=train,
+                args.spk2utt,
                 **args.preprocessor_conf,
             )
 
