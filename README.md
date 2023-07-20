@@ -122,7 +122,7 @@ Demonstration
     - VITS
     - JETS
 - Multi-speaker & multi-language extention
-    - Pretrained speaker embedding (e.g., X-vector)
+    - Pre-trained speaker embedding (e.g., X-vector)
     - Speaker ID embedding
     - Language ID embedding
     - Global style token (GST) embedding
@@ -223,7 +223,7 @@ Demonstration
 - Tight integration with neural vocoders (the same as TTS)
 
 ### SSL: Self-supervised Learning
-- Support HuBERT Pretraining:
+- Support HuBERT Pre-training:
   * Example recipe: [egs2/LibriSpeech/ssl1](egs2/LibriSpeech/ssl1)
 
 ### UASR: Unsupervised ASR (EURO: ESPnet Unsupervised Recognition - Open-source)
@@ -294,7 +294,7 @@ You can find useful tutorials and demos in [Interspeech 2019 Tutorial](https://g
 
 We list the character error rate (CER) and word error rate (WER) of major ASR tasks.
 
-| Task                                                              |     CER (%)     |     WER (%)     |                                                                              Pretrained model                                                                               |
+| Task                                                              |     CER (%)     |     WER (%)     |                                                                              Pre-trained model                                                                               |
 | ----------------------------------------------------------------- | :-------------: | :-------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Aishell dev/test                                                  |     4.6/5.1     |       N/A       |                [link](https://github.com/espnet/espnet/blob/master/egs/aishell/asr1/RESULTS.md#conformer-kernel-size--15--specaugment--lm-weight--00-result)                |
 | **ESPnet2** Aishell dev/test                                      |     4.1/4.4     |       N/A       |                [link](https://github.com/espnet/espnet/tree/master/egs2/aishell/asr1#branchformer-initial)                                                                  |
@@ -325,7 +325,7 @@ If you want to check the results of the other recipes, please check `egs/<name_o
 
 <details><summary>expand</summary><div>
 
-You can recognize speech in a WAV file using pretrained models.
+You can recognize speech in a WAV file using pre-trained models.
 Go to a recipe directory and run `utils/recog_wav.sh` as follows:
 ```sh
 # go to the recipe directory and source path of espnet tools
@@ -371,7 +371,7 @@ You can try the interactive demo with Google Colab. Please click the following b
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1fjRJCh96SoYLZPRxsjF9VDv4Q2VoIckI?usp=sharing)
 
 
-It is based on ESPnet2. Pretrained models are available for both speech enhancement and speech separation tasks.
+It is based on ESPnet2. Pre-trained models are available for both speech enhancement and speech separation tasks.
 
 Speech separation streaming demos:
 
@@ -388,7 +388,7 @@ Speech separation streaming demos:
 We list 4-gram BLEU of major ST tasks.
 
 #### end-to-end system
-| Task                                              | BLEU  |                                                                                         Pretrained model                                                                                          |
+| Task                                              | BLEU  |                                                                                         Pre-trained model                                                                                          |
 | ------------------------------------------------- | :---: | :-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Fisher-CallHome Spanish fisher_test (Es->En)      | 51.03 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/st1/RESULTS.md#train_spen_lcrm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans) |
 | Fisher-CallHome Spanish callhome_evltest (Es->En) | 20.44 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/st1/RESULTS.md#train_spen_lcrm_pytorch_train_pytorch_transformer_bpe_short_long_bpe1000_specaug_asrtrans_mttrans) |
@@ -398,7 +398,7 @@ We list 4-gram BLEU of major ST tasks.
 | Mboshi-French dev (Fr->Mboshi)                    | 6.18  |                                                                                                N/A                                                                                                |
 
 #### cascaded system
-| Task                                              | BLEU  | pretrained model |
+| Task                                              | BLEU  | pre-trained model |
 | ------------------------------------------------- | :---: | :--------------: |
 | Fisher-CallHome Spanish fisher_test (Es->En)      | 42.16 |       N/A        |
 | Fisher-CallHome Spanish callhome_evltest (Es->En) | 19.82 |       N/A        |
@@ -448,7 +448,7 @@ Available pre-trained models in the demo script are listed as below.
 
 <details><summary>expand</summary><div>
 
-| Task                                              | BLEU  |                                                                        Pretrained model                                                                         |
+| Task                                              | BLEU  |                                                                        pre-trained model                                                                         |
 | ------------------------------------------------- | :---: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Fisher-CallHome Spanish fisher_test (Es->En)      | 61.45 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/mt1/RESULTS.md#trainen_lcrm_lcrm_pytorch_train_pytorch_transformer_bpe_bpe1000) |
 | Fisher-CallHome Spanish callhome_evltest (Es->En) | 29.86 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/mt1/RESULTS.md#trainen_lcrm_lcrm_pytorch_train_pytorch_transformer_bpe_bpe1000) |
@@ -474,11 +474,11 @@ You can listen to the generated samples in the following URL.
 
 You can download pre-trained models via `espnet_model_zoo`.
 - [ESPnet model zoo](https://github.com/espnet/espnet_model_zoo)
-- [Pretrained model list](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv)
+- [pre-trained model list](https://github.com/espnet/espnet_model_zoo/blob/master/espnet_model_zoo/table.csv)
 
 You can download pre-trained vocoders via `kan-bayashi/ParallelWaveGAN`.
 - [kan-bayashi/ParallelWaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)
-- [Pretrained vocoder list](https://github.com/kan-bayashi/ParallelWaveGAN#results)
+- [pre-trained vocoder list](https://github.com/kan-bayashi/ParallelWaveGAN#results)
 
 </div></details>
 
@@ -533,7 +533,7 @@ Here we list all of the pre-trained neural vocoders. Please download and enjoy t
 | [csmsc.wavenet.mol.v1](https://drive.google.com/open?id=1PsjFRV5eUP0HHwBaRYya9smKy5ghXKzj)           |  ZH   |   24k   |    80-7600     |   2048 / 300 / 1200    | [MoL WaveNet](https://github.com/r9y9/wavenet_vocoder)                  |
 | [csmsc.parallel_wavegan.v1](https://drive.google.com/open?id=10M6H88jEUGbRWBmU1Ff2VaTmOAeL8CEy)      |  ZH   |   24k   |    80-7600     |   2048 / 300 / 1200    | [Parallel WaveGAN](https://github.com/kan-bayashi/ParallelWaveGAN)      |
 
-If you want to use the above pre trained vocoders, please exactly match the feature setting with them.
+If you want to use the above pre-trained vocoders, please exactly match the feature setting with them.
 
 </div></details>
 
@@ -622,7 +622,7 @@ You can download converted samples of the cascade ASR+TTS baseline system [here]
 
 We list the performance on various SLU tasks and datasets using the metric reported in the original dataset paper
 
-| Task                                                              | Dataset                                                              |    Metric     |     Result     |                                                                              Pretrained Model                                         |
+| Task                                                              | Dataset                                                              |    Metric     |     Result     |                                                                              Pre-trained Model                                         |
 | ----------------------------------------------------------------- | :-------------: | :-------------: | :-------------: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Intent Classification                                                 |     SLURP     |       Acc       |       86.3       |                [link](https://github.com/espnet/espnet/tree/master/egs2/slurp/asr1/README.md)                |
 | Intent Classification                                                   |     FSC     |       Acc       |       99.6       |                [link](https://github.com/espnet/espnet/tree/master/egs2/fsc/asr1/README.md)                |
