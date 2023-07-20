@@ -4,23 +4,23 @@ espnet2.fst package
 
 
 
-.. _espnet2.fst.__init__:
-
-espnet2.fst.__init__
---------------------
-
-.. automodule:: espnet2.fst.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.fst.lm_rescore:
 
 espnet2.fst.lm_rescore
 ----------------------
 
 .. automodule:: espnet2.fst.lm_rescore
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.fst.__init__:
+
+espnet2.fst.__init__
+--------------------
+
+.. automodule:: espnet2.fst.__init__
     :members:
     :undoc-members:
     :show-inheritance:

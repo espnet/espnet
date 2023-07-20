@@ -1361,7 +1361,7 @@ asr_transducer_train.py
                             The number of dimensions for input features. (default: None)
       --init INIT           Type of model initialization to use. (default: None)
       --model_conf MODEL_CONF
-                            The keyword arguments for the model class. (default: {'transducer_weight': 1.0, 'fastemit_lambda': 0.0, 'auxiliary_ctc_weight': 0.0, 'auxiliary_ctc_dropout_rate': 0.0, 'auxiliary_lm_loss_weight': 0.0, 'auxiliary_lm_loss_smoothing': 0.05, 'ignore_id': -1, 'sym_space': '<space>', 'sym_blank': '<blank>', 'report_cer': False, 'report_wer': False, 'extract_feats_in_collect_stats': True})
+                            The keyword arguments for the model class. (default: {'transducer_weight': 1.0, 'use_k2_pruned_loss': False, 'k2_pruned_loss_args': {}, 'warmup_steps': 25000, 'validation_nstep': 2, 'fastemit_lambda': 0.0, 'auxiliary_ctc_weight': 0.0, 'auxiliary_ctc_dropout_rate': 0.0, 'auxiliary_lm_loss_weight': 0.0, 'auxiliary_lm_loss_smoothing': 0.05, 'ignore_id': -1, 'sym_space': '<space>', 'sym_blank': '<blank>', 'report_cer': False, 'report_wer': False, 'extract_feats_in_collect_stats': True})
       --encoder_conf ENCODER_CONF
                             The keyword arguments for the encoder class. (default: {})
       --joint_network_conf JOINT_NETWORK_CONF
