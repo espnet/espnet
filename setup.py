@@ -62,7 +62,7 @@ requirements = {
         "espnet_model_zoo",
         "gdown",
         "resampy",
-        "pysptk>=0.1.17",
+        "pysptk>=0.2.1",
         "morfessor",  # for zeroth-korean
         "youtube_dl",  # for laborotv
         "nnmnkwii",
