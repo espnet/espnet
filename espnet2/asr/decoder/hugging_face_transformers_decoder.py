@@ -16,7 +16,7 @@ from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 try:
-    from transformers import AutoModelForSeq2SeqLM, AutoModelForCausalLM, AutoTokenizer
+    from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer
 
     is_transformers_available = True
 except ImportError:

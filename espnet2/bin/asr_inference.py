@@ -41,7 +41,7 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
 try:
-    from transformers import AutoModelForSeq2SeqLM, AutoModelForCausalLM
+    from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM
     from transformers.file_utils import ModelOutput
 
     is_transformers_available = True
