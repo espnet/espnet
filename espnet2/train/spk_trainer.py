@@ -25,7 +25,6 @@ from espnet2.schedulers.abs_scheduler import (
     AbsScheduler,
     AbsValEpochStepScheduler,
 )
-from espnet2.train.trainer import Trainer, TrainerOptions
 from espnet2.torch_utils.add_gradient_noise import add_gradient_noise
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.recursive_op import recursive_average
@@ -33,10 +32,10 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.distributed_utils import DistributedOption
 from espnet2.train.reporter import Reporter, SubReporter
+from espnet2.train.trainer import Trainer, TrainerOptions
 from espnet2.utils.build_dataclass import build_dataclass
+from espnet2.utils.eer import ComputeErrorRates, ComputeMinDcf, tuneThresholdfromScore
 from espnet2.utils.kwargs2args import kwargs2args
-from espnet2.utils.eer import (
-    tuneThresholdfromScore, ComputeErrorRates, ComputeMinDcf)
 
 if torch.distributed.is_available():
     from torch.distributed import ReduceOp
@@ -95,8 +94,8 @@ class SpkTrainer(Trainer):
         model.eval()
 
         ##tmp
-        #idxx = 0
-        #rank = torch.distributed.get_rank()
+        # idxx = 0
+        # rank = torch.distributed.get_rank()
 
         scores = []
         labels = []
@@ -104,8 +103,8 @@ class SpkTrainer(Trainer):
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
         for utt_id, batch in iterator:
-            #idxx += 1
-            #if idxx % 10 == 0:
+            # idxx += 1
+            # if idxx % 10 == 0:
             #    print("rank", rank, "idxx", idxx)
             #    if idxx == 10:
             #        break
@@ -122,15 +121,15 @@ class SpkTrainer(Trainer):
                 continue
 
             org_shape = (batch["speech"].size(0), batch["speech"].size(1))
-            batch["speech"] = batch["speech"].flatten(0,1)
-            batch["speech2"] = batch["speech2"].flatten(0,1)
+            batch["speech"] = batch["speech"].flatten(0, 1)
+            batch["speech2"] = batch["speech2"].flatten(0, 1)
 
             speech_embds = model(
-                speech=batch["speech"], spk_labels=None,
-                extract_embd=True)
+                speech=batch["speech"], spk_labels=None, extract_embd=True
+            )
             speech2_embds = model(
-                speech=batch["speech2"], spk_labels=None,
-                extract_embd=True)
+                speech=batch["speech2"], spk_labels=None, extract_embd=True
+            )
 
             speech_embds = F.normalize(speech_embds, p=2, dim=1)
             speech2_embds = F.normalize(speech2_embds, p=2, dim=1)
@@ -140,8 +139,8 @@ class SpkTrainer(Trainer):
 
             for i in range(speech_embds.size(0)):
                 score = torch.cdist(speech_embds[i], speech2_embds[i])
-                score = -1. * torch.mean(score)
-                scores.append(score.view(1)) # 0-dim to 1-dim tensor for cat
+                score = -1.0 * torch.mean(score)
+                scores.append(score.view(1))  # 0-dim to 1-dim tensor for cat
             labels.append(batch["spk_labels"])
 
         else:
@@ -151,50 +150,52 @@ class SpkTrainer(Trainer):
 
         scores = torch.cat(scores).type(torch.float32)
         labels = torch.cat(labels).type(torch.int32).flatten()
-        #print("rank", rank, "scores", len(scores))
+        # print("rank", rank, "scores", len(scores))
         if distributed:
             # get the number of trials assigned on each GPU
-            length = to_device(torch.tensor([labels.size(0)], dtype=torch.int32), "cuda")
+            length = to_device(
+                torch.tensor([labels.size(0)], dtype=torch.int32), "cuda"
+            )
             lengths_all = [
-                to_device(
-                    torch.zeros(1, dtype=torch.int32), "cuda") for _ in range(
-                torch.distributed.get_world_size()
-            )]
+                to_device(torch.zeros(1, dtype=torch.int32), "cuda")
+                for _ in range(torch.distributed.get_world_size())
+            ]
             torch.distributed.all_gather(lengths_all, length)
 
-            #scores_all = [
+            # scores_all = [
             #    None for _ in range(0, torch.distributed.get_world_size())]
             scores_all = [
-                to_device(torch.zeros(i, dtype=torch.float32), "cuda") for i in lengths_all]
+                to_device(torch.zeros(i, dtype=torch.float32), "cuda")
+                for i in lengths_all
+            ]
             torch.distributed.all_gather(scores_all, scores)
-            #print("rank", rank, "scores_all", scores_all, len(scores_all))
+            # print("rank", rank, "scores_all", scores_all, len(scores_all))
             scores = torch.cat(scores_all)
 
-            #labels_all = [
+            # labels_all = [
             #    None for _ in range(0, torch.distributed.get_world_size())]
             labels_all = [
-                to_device(torch.zeros(i, dtype=torch.int32), "cuda") for i in lengths_all]
+                to_device(torch.zeros(i, dtype=torch.int32), "cuda")
+                for i in lengths_all
+            ]
             torch.distributed.all_gather(labels_all, labels)
             labels = torch.cat(labels_all)
-            #tmp
+            # tmp
             rank = torch.distributed.get_rank()
-            #print(rank, "rank")
+            # print(rank, "rank")
             torch.distributed.barrier()
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
-        #print("scores2", scores)
-        #print("scores2", scores.shape)
-        #print("labels2", labels)
-        #print("labels2", labels.shape)
+        # print("scores2", scores)
+        # print("scores2", scores.shape)
+        # print("labels2", labels)
+        # print("labels2", labels.shape)
 
         results = tuneThresholdfromScore(scores, labels, [1, 0.1])
         eer = results[1]
         fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
         p_trg, c_miss, c_fa = 0.05, 1, 1
-        mindcf, _ = ComputeMinDcf(
-            fnrs, fprs, thresholds, p_trg, c_miss, c_fa
-        )
-        print('eer', eer, 'mindcf', mindcf)
+        mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
+        print("eer", eer, "mindcf", mindcf)
 
         reporter.register(stats=dict(eer=eer, mindcf=mindcf))
-

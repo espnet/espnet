@@ -1,7 +1,10 @@
-import os,sys
 import argparse
+import os
+import sys
+
 import soundfile as sf
-#from tqdm import tqdm
+
+# from tqdm import tqdm
 from tqdm.contrib import tzip
 
 
@@ -11,9 +14,7 @@ def main(args):
     with open(args.utt2spk, "r") as f:
         lines_u2s = f.readlines()
 
-    with open(args.scp+"2", "w") as f_scp, \
-        open(args.utt2spk+"2", "w") as f_u2s:
-
+    with open(args.scp + "2", "w") as f_scp, open(args.utt2spk + "2", "w") as f_u2s:
         assert len(lines_scp) == len(lines_u2s)
 
         for scp, u2s in tzip(lines_scp, lines_u2s):
@@ -23,11 +24,6 @@ def main(args):
                 f_u2s.write(u2s)
             except:
                 continue
-
-
-
-
-
 
 
 if __name__ == "__main__":
@@ -47,5 +43,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     sys.exit(main(args))
-
-

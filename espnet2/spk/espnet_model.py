@@ -81,7 +81,10 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             spk_labels: (Batch, )
         """
         if spk_labels is not None:
-            assert speech.shape[0] == spk_labels.shape[0], (speech.shape, spk_labels.shape)
+            assert speech.shape[0] == spk_labels.shape[0], (
+                speech.shape,
+                spk_labels.shape,
+            )
         batch_size = speech.shape[0]
 
         # 1. extract low-level feats (e.g., mel-spectrogram or MFCC)

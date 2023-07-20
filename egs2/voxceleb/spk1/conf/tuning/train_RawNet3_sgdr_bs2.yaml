@@ -47,9 +47,9 @@ valid_batch_size: 40
 optim: adamw
 optim_conf:
   lr: 0.0005
-  weight_decay: 0.00005 
+  weight_decay: 0.00005
   amsgrad: False
-  
+
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
   first_cycle_steps: 49632
@@ -58,5 +58,3 @@ scheduler_conf:
   min_lr: 0.00001
   warmup_steps: 1000
   gamma: 0.75
-
-

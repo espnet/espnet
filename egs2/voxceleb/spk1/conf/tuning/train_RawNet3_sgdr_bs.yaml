@@ -41,7 +41,7 @@ num_att_plot: 0
 num_workers: 8
 cudnn_deterministic: False
 cudnn_benchmark: True
-batch_size: 128 
+batch_size: 128
 #batch_type: unsorted
 iterator_type: sequence
 shuffle_within_batch: True
@@ -49,9 +49,9 @@ log_interval: 50
 optim: adamw
 optim_conf:
   lr: 0.001
-  weight_decay: 0.00005 
+  weight_decay: 0.00005
   amsgrad: False
-  
+
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
   first_cycle_steps: 77544
@@ -60,5 +60,3 @@ scheduler_conf:
   min_lr: 0.000005
   warmup_steps: 1000
   gamma: 0.75
-
-

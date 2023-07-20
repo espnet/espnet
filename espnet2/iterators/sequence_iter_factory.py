@@ -151,7 +151,7 @@ class SequenceIterFactory(AbsIterFactory):
             np.random.RandomState(epoch + self.seed).shuffle(batches)
             _batches = []
             for ii in range(0, len(batches), _bs):
-                _batches.append(batches[ii:ii+_bs])
+                _batches.append(batches[ii : ii + _bs])
             batches = _batches
             del _batches
 
