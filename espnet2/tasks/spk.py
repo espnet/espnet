@@ -227,8 +227,8 @@ class SpeakerTask(AbsTask):
         assert check_argument_types()
         if args.use_preprocessor:
             retval = preprocessor_choices.get_class(args.preprocessor)(
-                train=train,
                 args.spk2utt,
+                train=train,
                 **args.preprocessor_conf,
             )
 
