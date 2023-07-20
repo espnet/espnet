@@ -448,7 +448,7 @@ Available pre-trained models in the demo script are listed as below.
 
 <details><summary>expand</summary><div>
 
-| Task                                              | BLEU  |                                                                        pre-trained model                                                                         |
+| Task                                              | BLEU  |                                                                        Pre-trained model                                                                         |
 | ------------------------------------------------- | :---: | :-------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | Fisher-CallHome Spanish fisher_test (Es->En)      | 61.45 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/mt1/RESULTS.md#trainen_lcrm_lcrm_pytorch_train_pytorch_transformer_bpe_bpe1000) |
 | Fisher-CallHome Spanish callhome_evltest (Es->En) | 29.86 | [link](https://github.com/espnet/espnet/blob/master/egs/fisher_callhome_spanish/mt1/RESULTS.md#trainen_lcrm_lcrm_pytorch_train_pytorch_transformer_bpe_bpe1000) |
