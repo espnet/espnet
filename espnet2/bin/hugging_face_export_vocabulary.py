@@ -44,11 +44,12 @@ def export_vocabulary(
         fout = p.open("w", encoding="utf-8")
 
     tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+    words = ["" for _ in range(tokenizer.vocab_size)]
     vocab = tokenizer.get_vocab()
-    words = ["" for _ in range(len(vocab))]
 
     for w in vocab:
-        words[vocab[w]] = w
+        if vocab[w] < tokenizer.vocab_size:# pythia tokenizer
+            words[vocab[w]] = w
 
     # Parse the values of --add_symbol
     for symbol_and_id in add_symbol:
