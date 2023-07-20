@@ -170,6 +170,11 @@ class SpkTrainer(Trainer):
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
 
+        # exception for collect_stats.
+        if len(scores) == 1:
+            reporter.register(stats=dict(eer=1., mindcf=1.))
+            return
+
         results = tuneThresholdfromScore(scores, labels, [1, 0.1])
         eer = results[1]
         fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)

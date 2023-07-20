@@ -195,11 +195,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --multi-columns-output "${multi_columns_output_wav_scp}" \
                 "data/${train_set}/wav.scp" "${data_feats}/${train_set}"
 
-            echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
+            echo "${feats_type}" > "${data_feats}/${train_set}/feats_type"
             if "${multi_columns_output_wav_scp}"; then
-                echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
+                echo "multi_${audio_format}" > "${data_feats}/${train_set}/audio_format"
             else
-                echo "${audio_format}" > "${data_feats}/${dset}/audio_format"
+                echo "${audio_format}" > "${data_feats}/${train_set}/audio_format"
             fi
         fi
 
@@ -214,9 +214,17 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" \
-                --multi-columns-input true \
-                --multi-columns-output true \
+                --multi-columns-input "${multi_columns_input_wav_scp}" \
+                --multi-columns-output "${multi_columns_output_wav_scp}" \
+                --out_filename trial.scp \
                 "data/${dset}/trial.scp" "${data_feats}/${dset}"
+            # shellcheck disable=SC2086
+            scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                --audio-format "${audio_format}" --fs "${fs}" \
+                --multi-columns-input "${multi_columns_input_wav_scp}" \
+                --multi-columns-output "${multi_columns_output_wav_scp}" \
+                --out_filename trial2.scp \
+                "data/${dset}/trial2.scp" "${data_feats}/${dset}"
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
             echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
@@ -238,8 +246,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # Train can be either multi-column data or not, but valid/test always require multi-column trial
         for dset in ${_dsets}; do
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
-            cp data/${dset}/trial.scp "${data_feats}/${dset}"
-            cp data/${dset}/trial2.scp "${data_feats}/${dset}"
             cp data/${dset}/trial_label "${data_feats}/${dset}"
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
@@ -300,14 +306,13 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         ${python} -m espnet2.bin.spk_train \
-            --use_preprocessor true \
+            --use_preprocessor false \
             --collect_stats true \
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,${_type} \
-            --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial.scp,speech,${_type} \
-            --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial_label,spk_labels,text \
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/valid.JOB.scp" \
+            --spk2utt ${_spk_train_dir}/spk2utt \
             --output_dir "${_logdir}/stats.JOB" \
             ${_opts} ${spk_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1;  }
 

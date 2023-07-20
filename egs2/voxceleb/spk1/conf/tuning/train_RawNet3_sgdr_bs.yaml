@@ -19,8 +19,6 @@ projector_conf:
 
 preprocessor: spk
 preprocessor_conf:
-  utt2spk: dump/raw_copy/voxceleb12_devs/utt2spk
-  spk2utt: dump/raw_copy/voxceleb12_devs/spk2utt
   target_duration: 3.0
   sr: 16000
   num_eval: 5

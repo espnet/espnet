@@ -15,14 +15,14 @@ projector_conf:
   input_size: 192
   output_size: 16
 
-
 preprocessor: spk
 preprocessor_conf:
-  utt2spk: dump/raw/train_nodev/utt2spk
-  spk2utt: dump/raw/train_nodev/spk2utt
   target_duration: 3.0
   sr: 16000
   num_eval: 1
+
+model_conf:
+  extract_feats_in_collect_stats: false
 
 loss: aamsoftmax
 loss_conf:
@@ -32,3 +32,4 @@ loss_conf:
   scale: 15
 
 optim: adam
+num_att_plot: 0

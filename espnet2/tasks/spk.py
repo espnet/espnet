@@ -241,18 +241,18 @@ class SpeakerTask(AbsTask):
     def required_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        if not inference:
+        if train:
             retval = ("speech", "spk_labels")
         else:
             # Recognition mode
-            retval = ("speech", "spk_labels")
+            retval = ("speech",)
         return retval
 
     @classmethod
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ("speech2", "trial")
+        retval = ("speech2", "trial", "spk_labels")
         assert check_return_type(retval)
         return retval
 
