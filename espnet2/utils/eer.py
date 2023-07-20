@@ -1,4 +1,3 @@
-##-*- coding: utf-8 -*-
 """
 Source code from:
 https://github.com/clovaai/voxceleb_trainer/blob/master/tuneThreshold.py

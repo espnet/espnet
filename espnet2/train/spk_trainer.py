@@ -93,21 +93,12 @@ class SpkTrainer(Trainer):
 
         model.eval()
 
-        ##tmp
-        # idxx = 0
-        # rank = torch.distributed.get_rank()
-
         scores = []
         labels = []
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
         for utt_id, batch in iterator:
-            # idxx += 1
-            # if idxx % 10 == 0:
-            #    print("rank", rank, "idxx", idxx)
-            #    if idxx == 10:
-            #        break
             assert isinstance(batch, dict), type(batch)
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
@@ -150,7 +141,6 @@ class SpkTrainer(Trainer):
 
         scores = torch.cat(scores).type(torch.float32)
         labels = torch.cat(labels).type(torch.int32).flatten()
-        # print("rank", rank, "scores", len(scores))
         if distributed:
             # get the number of trials assigned on each GPU
             length = to_device(
@@ -162,34 +152,23 @@ class SpkTrainer(Trainer):
             ]
             torch.distributed.all_gather(lengths_all, length)
 
-            # scores_all = [
-            #    None for _ in range(0, torch.distributed.get_world_size())]
             scores_all = [
                 to_device(torch.zeros(i, dtype=torch.float32), "cuda")
                 for i in lengths_all
             ]
             torch.distributed.all_gather(scores_all, scores)
-            # print("rank", rank, "scores_all", scores_all, len(scores_all))
             scores = torch.cat(scores_all)
 
-            # labels_all = [
-            #    None for _ in range(0, torch.distributed.get_world_size())]
             labels_all = [
                 to_device(torch.zeros(i, dtype=torch.int32), "cuda")
                 for i in lengths_all
             ]
             torch.distributed.all_gather(labels_all, labels)
             labels = torch.cat(labels_all)
-            # tmp
             rank = torch.distributed.get_rank()
-            # print(rank, "rank")
             torch.distributed.barrier()
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
-        # print("scores2", scores)
-        # print("scores2", scores.shape)
-        # print("labels2", labels)
-        # print("labels2", labels.shape)
 
         results = tuneThresholdfromScore(scores, labels, [1, 0.1])
         eer = results[1]

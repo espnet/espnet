@@ -22,7 +22,7 @@ def main(args):
                 audio = sf.read(scp.strip().split(" ")[1])
                 f_scp.write(scp)
                 f_u2s.write(u2s)
-            except:
+            except sf.LibsndfileError:
                 continue
 
 
