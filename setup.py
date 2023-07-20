@@ -34,7 +34,7 @@ requirements = {
         "sentencepiece==0.1.97",
         "ctc-segmentation>=1.6.6",
         # TTS
-        "pyworld>=0.2.10",
+        "pyworld @ git+https://github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder.git",
         "pypinyin<=0.44.0",
         "espnet_tts_frontend",
         # ENH
