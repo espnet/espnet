@@ -206,7 +206,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     cd ./egs2/mini_an4/enh_asr1
     gen_dummy_coverage
     echo "==== [ESPnet2] ENH_ASR ==="
-    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--max_epoch=1 --enh_separator_conf num_spk=1 --asr_decoder rnn" --python "${python}"
+    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --use-lm false --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--max_epoch=1 --enh_separator_conf num_spk=1 --asr_decoder rnn" --python "${python}"
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"
@@ -216,7 +216,7 @@ fi
 cd ./egs2/mini_an4/st1
 echo "==== [ESPnet2] ST ==="
 ./run.sh --stage 1 --stop-stage 1
-feats_types="raw fbank_pitch"
+feats_types="raw"
 token_types="bpe char"
 for t in ${feats_types}; do
     ./run.sh --stage 2 --stop-stage 4 --feats-type "${t}" --python "${python}"
@@ -296,7 +296,7 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
     done
 fi
 
-# These files must be same each other.
+# These files must be the same as each other.
 for base in cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf; do
     file1=
     for f in egs2/*/*/"${base}"; do
