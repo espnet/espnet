@@ -222,14 +222,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         _type=sound
     fi
 
-    ## temporarily combine trial files
-    #tmp_trial_dir=${_spk_valid_dir}/trial_combined_tmp.scp
-    #cat ${_spk_valid_dir}/trial.scp > ${_spk_valid_dir}/trial_combined_tmp.scp
-    #cat ${_spk_valid_dir}/trial2.scp >> ${_spk_valid_dir}/trial_combined_tmp.scp
-    #tmp_trial_label_dir=${_spk_valid_dir}/trial_label_combined_tmp
-    #cat ${_spk_valid_dir}/trial_label > ${_spk_valid_dir}/trial_label_combined_tmp
-    #cat ${_spk_valid_dir}/trial_label >> ${_spk_valid_dir}/trial_label_combined_tmp
-
     # 1. Split key file
     _logdir="${spk_stats_dir}/logdir"
     mkdir -p "${_logdir}"
