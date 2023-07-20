@@ -41,7 +41,7 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
 try:
-    from transformers import AutoModelForSeq2SeqLM
+    from transformers import AutoModelForSeq2SeqLM, AutoModelForCausalLM
     from transformers.file_utils import ModelOutput
 
     is_transformers_available = True
@@ -227,20 +227,33 @@ class Speech2Text:
                     " && ./installers/install_transformers.sh`."
                 )
 
-            hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
-                decoder.model_name_or_path
-            )
+            if decoder.causal_lm:
+                hugging_face_model = AutoModelForCausalLM.from_pretrained(
+                    decoder.model_name_or_path
+                )
 
-            hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
-
-            if hasattr(hugging_face_model, "model"):
-                hugging_face_model.model.decoder.load_state_dict(
+                hugging_face_model.resize_token_embeddings(decoder.lm_head.out_features)
+                hugging_face_model.transformer.load_state_dict(
                     decoder.decoder.state_dict()
                 )
-                del hugging_face_model.model.encoder
+                hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
             else:
-                hugging_face_model.decoder.load_state_dict(decoder.decoder.state_dict())
-                del hugging_face_model.encoder
+                hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
+                    decoder.model_name_or_path
+                )
+
+                hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
+
+                if hasattr(hugging_face_model, "model"):
+                    hugging_face_model.model.decoder.load_state_dict(
+                        decoder.decoder.state_dict()
+                    )
+                    del hugging_face_model.model.encoder
+                else:
+                    hugging_face_model.decoder.load_state_dict(
+                        decoder.decoder.state_dict()
+                    )
+                    del hugging_face_model.encoder
 
             del asr_model.decoder.lm_head
             del asr_model.decoder.decoder
@@ -480,18 +493,56 @@ class Speech2Text:
                 "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
             )
         elif self.hugging_face_model:
-            decoder_start_token_id = (
-                self.hugging_face_model.config.decoder_start_token_id
-            )
-            yseq = self.hugging_face_model.generate(
-                encoder_outputs=ModelOutput(
-                    last_hidden_state=self.hugging_face_linear_in(enc).unsqueeze(0)
-                ),
-                use_cache=True,
-                decoder_start_token_id=decoder_start_token_id,
-                num_beams=self.hugging_face_beam_size,
-                max_length=self.hugging_face_decoder_max_length,
-            )
+            enc = self.hugging_face_linear_in(enc).unsqueeze(0)
+            if self.asr_model.decoder.causal_lm:
+                forward_args, _ = self.asr_model.decoder.add_prefix_postfix(
+                    enc,
+                    torch.tensor([enc.shape[1]]).to(enc.device),
+                    torch.ones([1, 1], dtype=int, device=enc.device),
+                    torch.ones([1], dtype=int, device=enc.device),
+                )
+                forward_args["inputs_embeds"] = forward_args["inputs_embeds"][:, :-1, :]
+                forward_args["attention_mask"] = forward_args["attention_mask"][:, :-1]
+
+                forward_out = self.hugging_face_model(**forward_args)
+
+                past = tuple(
+                    (
+                        forward_out["past_key_values"][l][0].repeat(
+                            self.hugging_face_beam_size, 1, 1
+                        ),
+                        forward_out["past_key_values"][l][1].repeat(
+                            self.hugging_face_beam_size, 1, 1
+                        ),
+                    )
+                    for l in range(len(forward_out["past_key_values"]))
+                )
+
+                input_ids = torch.ones(
+                    [1, forward_args["inputs_embeds"].shape[1] + 1], dtype=int
+                )
+                input_ids[-1, -1] = self.asr_model.decoder.postfix_tokens[-1, -1]
+
+                yseq = self.hugging_face_model.generate(
+                    input_ids,
+                    num_beams=self.hugging_face_beam_size,
+                    max_length=self.hugging_face_decoder_max_length,
+                    past=past,
+                )
+
+                yseq = yseq[:, input_ids.shape[1] - 1 :]
+            else:
+                decoder_start_token_id = (
+                    self.hugging_face_model.config.decoder_start_token_id
+                )
+                yseq = self.hugging_face_model.generate(
+                    encoder_outputs=ModelOutput(last_hidden_state=enc),
+                    use_cache=True,
+                    decoder_start_token_id=decoder_start_token_id,
+                    num_beams=self.hugging_face_beam_size,
+                    max_length=self.hugging_face_decoder_max_length,
+                )
+
             nbest_hyps = [Hypothesis(yseq=yseq[0])]
             logging.info(
                 "best hypo: "
