@@ -254,12 +254,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         ${python} -m espnet2.bin.spk_train \
             --collect_stats true \
+            --use_preprocessor false \
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,${_type} \
-            --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/wav.scp,speech,${_type} \
-            --valid_data_path_and_name_and_type ${_spk_valid_dir}/utt2spk,spk_labels,text \
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/valid.JOB.scp" \
+            --spk2utt ${_spk_train_dir}/spk2utt \
             --output_dir "${_logdir}/stats.JOB" \
             ${_opts} ${spk_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1;  }
 
@@ -309,6 +309,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --train_shape_file ${spk_stats_dir}/train/speech_shape \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/wav.scp,speech,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/utt2spk,spk_labels,text \
+            --spk2utt ${_spk_train_dir}/spk2utt \
             --fold_length ${fold_length} \
             --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
             --output_dir "${spk_exp}" \
