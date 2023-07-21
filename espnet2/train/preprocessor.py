@@ -1461,3 +1461,86 @@ class TSEPreprocessor(EnhPreprocessor):
         data = super()._speech_process(uid, data)
         data = self._speech_process(uid, data)
         return data
+
+
+class SpkPreprocessor(CommonPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        spk2utt: str,
+        target_duration: float,
+        sr: int = 16000,
+        num_eval: int = 10,
+    ):
+        super().__init__(train)
+        with open(spk2utt, "r") as f_s2u:
+            self.spk2utt = f_s2u.readlines()
+
+        self.nspk = len(self.spk2utt)
+        self.spk2label = None  # a dictionary that maps string speaker label to
+        # an integer
+        self.target_duration = int(target_duration * sr)
+        self.num_eval = num_eval
+        self._make_label_mapping()
+
+        print("n_spk: ", self.nspk)
+
+    def _make_label_mapping(
+        self,
+    ):
+        label_idx = 0
+        self.spk2label = {}
+        for spk in self.spk2utt:
+            spk = spk.strip().split(" ")[0]
+            self.spk2label[spk] = label_idx
+            label_idx += 1
+
+    def _speech_process(
+        self,
+        data: Dict[np.ndarray, str],
+    ):
+        audio = data["speech"]
+
+        # duplicate if utt is shorter than minimum required duration
+        if len(audio) < self.target_duration:
+            shortage = self.target_duration - len(audio) + 1
+            audio = np.pad(audio, (0, shortage), "wrap")
+
+        if self.train:
+            startframe = np.array(
+                [np.int64(random.random() * (len(audio) - self.target_duration))]
+            )
+        else:
+            startframe = np.linspace(
+                0, len(audio) - self.target_duration, num=self.num_eval
+            )
+
+        audios = []
+        for frame in startframe:
+            audios.append(audio[int(frame) : int(frame) + self.target_duration])
+        audios = np.stack(audios, axis=0)
+
+        data["speech"] = np.squeeze(audios)
+
+        return data
+
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        """
+        Make speaker labels into integers
+        """
+        int_label = self.spk2label[data["spk_labels"]]
+        data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
+
+        return data
+
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        assert check_argument_types()
+
+        data = self._text_process(data)
+        data = self._speech_process(data)
+
+        return data
