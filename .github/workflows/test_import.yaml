@@ -27,9 +27,6 @@ jobs:
       run: |
         sudo apt-get install -qq -y libsndfile1-dev
         python3 -m pip install --upgrade pip setuptools wheel
-    - name: Get PR labels
-        id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.9
     - name: Install espnet with the least requirement
       env:
         TH_VERSION: ${{ matrix.pytorch-version }}
