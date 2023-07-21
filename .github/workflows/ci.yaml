@@ -17,7 +17,8 @@ jobs:
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
-      - run: |
+      - id: step1
+        run: |
           if [ -z "$GITHUB_PR_LABEL_ESPNET1" ] && [ -z "$GITHUB_PR_LABEL_ESPNET2" ] && [ -n "$GITHUB_PR_LABEL_DOCKER" ]; then
             echo "is_docker=true" >> "$GITHUB_OUTPUT"
           else

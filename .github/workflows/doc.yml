@@ -17,7 +17,8 @@ jobs:
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
-      - run: |
+      - id: step1
+        run: |
           if [ -n "$GITHUB_PR_LABEL_DOCUMENTATION" ]; then
             echo "is_doc=true" >> "$GITHUB_OUTPUT"
           else
