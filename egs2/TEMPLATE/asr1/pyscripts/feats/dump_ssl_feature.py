@@ -37,7 +37,7 @@ def get_parser():
         "--in_filetype",
         type=str,
         default="sound",
-        choices=["mat", "hdf5", "sound.hdf5", "sound"],
+        choices=["mat", "hdf5", "sound.hdf5", "sound", "kaldi_ark"],
         help="Specify the file format for the rspecifier. "
         '"mat" is the matrix format in kaldi',
     )
@@ -50,7 +50,16 @@ def get_parser():
         '"npy" is the matrix format in kaldi',
     )
     parser.add_argument(
+        "--utt2num_samples",
+        type=str,
+        default=None,
+        help="Specify the utt2num_samples file.",
+    )
+    parser.add_argument(
         "--write_num_frames", type=str, help="Specify wspecifer for utt2num_frames"
+    )
+    parser.add_argument(
+        "--batch_bins", type=int, default=1, help="Number of sample points in a batch."
     )
     parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"
@@ -82,7 +91,9 @@ def main(args):
         rspecifier=args.rspecifier,
         out_filetype=args.out_filetype,
         wspecifier=args.wspecifier,
+        utt2num_samples=args.utt2num_samples,
         write_num_frames=args.write_num_frames,
+        batch_bins=args.batch_bins,
     )
 
 
