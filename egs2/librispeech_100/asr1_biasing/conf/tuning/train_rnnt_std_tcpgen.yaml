@@ -1,4 +1,4 @@
-# Trained with A40 (48 GB) x 4 GPUs.
+# Trained with A100 (80 GB) x 1 GPUs.
 encoder: conformer
 encoder_conf:
     output_size: 256
@@ -33,6 +33,14 @@ model_conf:
     ctc_weight: 0.0
     report_cer: False
     report_wer: False
+    # TCPGen for contextual biasing
+    biasinglist: local/rareword_f15.txt
+    bmaxlen: 500
+    bdrop: 0.0
+    battndim: 256
+    biasing: true
+    bsche: 30
+    deepbiasing: true
 
 frontend_conf:
     n_fft: 512
@@ -77,14 +85,3 @@ specaug_conf:
     - 0.
     - 0.05
     num_time_mask: 5
-
-# Biasing
-biasinglist: data/Blist/rareword_f15.txt
-bmaxlen: 500
-bdrop: 0.0
-battndim: 256
-biasing: true
-bsche: 30
-deepbiasing: true
-# gcn for using GCN structure, 6 is the number of layers
-# biasingGNN: gcn6

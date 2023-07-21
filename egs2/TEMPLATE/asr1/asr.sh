@@ -160,6 +160,9 @@ local_score_opts=          # The options given to local/score.sh.
 asr_speech_fold_length=800 # fold_length for speech data during ASR training.
 asr_text_fold_length=150   # fold_length for text data during ASR training.
 lm_fold_length=150         # fold_length for LM training.
+suffixbpe=
+# contextual biasing
+biasing=false
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -287,6 +290,7 @@ fi
 
 . ./path.sh
 . ./cmd.sh
+export PYTHONPATH="/home/gs534/rds/rds-t2-cs164-KQ4S3rlDzm8/gs534/opensource/espnet:$PYTHONPATH"
 
 
 # Check required arguments
@@ -381,7 +385,12 @@ if [ "${lang}" != noinfo ]; then
 else
     token_listdir=data/token_list
 fi
-bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
+if [ -z "${suffixbpe}" ]; then
+    bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
+else
+    usesuffixbpe=true
+    bpedir="${token_listdir}/bpe_${bpemode}${nbpe}${suffixbpe}"
+fi
 bpeprefix="${bpedir}"/bpe
 bpemodel="${bpeprefix}".model
 bpetoken_list="${bpedir}"/tokens.txt
@@ -485,6 +494,10 @@ if [ -z "${asr_stats_dir}" ]; then
     if [ -n "${speed_perturb_factors}" ]; then
         asr_stats_dir+="_sp"
     fi
+fi
+if [ -n "${suffixbpe}" ]; then
+    asr_stats_dir="${asr_stats_dir}suffix"
+    asr_tag+="_suffix"
 fi
 if [ -z "${lm_stats_dir}" ]; then
     if [ "${lang}" != noinfo ]; then
@@ -900,6 +913,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             --model_type="${bpemode}" \
             --model_prefix="${bpeprefix}" \
             --character_coverage=${bpe_char_cover} \
+            --treat_whitespace_as_suffix=${usesuffixbpe} \
             --input_sentence_size="${bpe_input_sentence_size}" \
             ${_opts_spm}
 
@@ -1517,6 +1531,11 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
+        if "${biasing}"; then
+            python local/get_perutt_blist.py data/${dset}
+            biasing_opts="--perutt_blist data/${dset}/perutt_blist.json"
+        fi
+
         _feats_type="$(<${_data}/feats_type)"
         _audio_format="$(cat ${_data}/audio_format 2>/dev/null || echo ${audio_format})"
         if [ "${_feats_type}" = raw ]; then
@@ -1562,7 +1581,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
                 --asr_train_config "${asr_exp}"/config.yaml \
                 --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
                 --output_dir "${_logdir}"/output.JOB \
-                ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
+                ${_opts} ${biasing_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
         # 3. Calculate and report RTF based on decoding logs
         if [ ${asr_task} == "asr" ] && [ -z ${inference_bin_tag} ]; then
@@ -1689,6 +1708,9 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
         done
     done
 
+    if "${biasing}"; then
+        local_score_opts="${inference_tag}"
+    fi
     [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${asr_exp}"
 
     # Show results in Markdown syntax

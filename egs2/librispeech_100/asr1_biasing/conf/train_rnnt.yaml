@@ -1,4 +1,4 @@
-# Trained with A40 (48 GB) x 4 GPUs.
+# Trained with A100 (80 GB) x 1 GPUs.
 encoder: conformer
 encoder_conf:
     output_size: 256
@@ -33,7 +33,7 @@ model_conf:
     ctc_weight: 0.0
     report_cer: False
     report_wer: False
-    # Biasing
+    # TCPGen for contextual Biasing
     # Change this to the path of your biasing list
     biasinglist: local/rareword_f15.txt
     bmaxlen: 500

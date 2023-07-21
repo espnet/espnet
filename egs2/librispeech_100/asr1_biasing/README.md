@@ -8,6 +8,10 @@
 - Git hash: `6f33b9d9a999d4cd7e9bc0dcfc0ba342bdff7c17`
   - Commit date: `Thu Jun 29 02:16:09 2023 +0100`
 
+- ASR Config: [conf/train_rnnt.yaml](conf/train_rnnt.yaml)
+- Params: 27.13 M
+- Model link: [https://huggingface.co/espnet/guangzhisun_librispeech100_asr_train_conformer_transducer_tcpgen500_deep_sche30_GCN6L_rep_suffix](https://huggingface.co/espnet/guangzhisun_librispeech100_asr_train_conformer_transducer_tcpgen500_deep_sche30_GCN6L_rep_suffix)
+
 ## exp/asr_train_conformer_transducer_tcpgen500_deep_sche30_GCN6L_rep_suffix
 ### WER
 
