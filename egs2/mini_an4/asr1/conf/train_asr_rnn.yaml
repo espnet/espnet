@@ -1,8 +1,9 @@
 optim: adadelta
 init: xavier_uniform
-max_epoch: 25
+max_epoch: 1
+num_iters_per_epoch: 2
 batch_type: folded
-batch_size: 30
+batch_size: 2
 optim_conf:
     lr: 1.0
     rho: 0.95
@@ -23,4 +24,10 @@ scheduler_conf:
     factor: 0.5
     patience: 1
 encoder: vgg_rnn
+encoder_conf:
+    num_layers: 1
+    hidden_size: 2
+    output_size: 2
 decoder: rnn
+docoder_conf:
+    hidden_size: 2
