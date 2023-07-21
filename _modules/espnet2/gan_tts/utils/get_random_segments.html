@@ -234,6 +234,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
     <span class="n">max_start_idx</span> <span class="o">=</span> <span class="n">x_lengths</span> <span class="o">-</span> <span class="n">segment_size</span>
+    <span class="n">max_start_idx</span><span class="p">[</span><span class="n">max_start_idx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">start_idxs</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">([</span><span class="n">b</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_start_idx</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span>
     <span class="p">)</span>
