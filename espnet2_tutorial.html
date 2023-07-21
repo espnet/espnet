@@ -77,7 +77,10 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#use-specified-experiment-directory-for-evaluation">Use specified experiment directory for evaluation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#evaluation-without-training-using-pretrained-model">Evaluation without training using pretrained model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#evaluation-without-training-using-pretrained-model">Evaluation without training using pretrained model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#evaluation-using-openai-whisper">Evaluation using OpenAI Whisper</a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#packing-and-sharing-your-trained-model">Packing and sharing your trained model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#usage-of-self-supervised-learning-representations-as-feature">Usage of Self-Supervised Learning Representations as feature</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#prerequisite">Prerequisite</a></li>
@@ -494,6 +497,45 @@ You can overwrite it by <code class="docutils literal notranslate"><span class="
 </div>
 <p>You need to fill <code class="docutils literal notranslate"><span class="pre">model_name</span></code> by yourself. You can search for pretrained models on Hugging Face using the tag <a class="reference external" href="https://huggingface.co/models?library=espnet">espnet</a></p>
 <p>(Deprecated: See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo)</p>
+<section id="evaluation-using-openai-whisper">
+<h3>Evaluation using OpenAI Whisper<a class="headerlink" href="#evaluation-using-openai-whisper" title="Permalink to this headline">¶</a></h3>
+<p>ESPnet2 provides a <a class="reference external" href="../egs2/TEMPLATE/asr1/scripts/utils/evaluate_asr.sh">script</a> to run inference and scoring using OpenAI’s Whisper. This can be used to evaluate speech generation models. Here is an example:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+<span class="c1"># Set bash to &#39;debug&#39; mode, it will exit on :</span>
+<span class="c1"># -e &#39;error&#39;, -u &#39;undefined variable&#39;, -o ... &#39;error in pipeline&#39;, -x &#39;print commands&#39;,</span>
+<span class="nb">set</span><span class="w"> </span>-e
+<span class="nb">set</span><span class="w"> </span>-u
+<span class="nb">set</span><span class="w"> </span>-o<span class="w"> </span>pipefail
+
+<span class="nv">whisper_tag</span><span class="o">=</span>medium<span class="w">    </span><span class="c1"># whisper model tag, e.g., small, medium, large, etc</span>
+<span class="nv">cleaner</span><span class="o">=</span>whisper_en
+<span class="nv">hyp_cleaner</span><span class="o">=</span>whisper_en
+<span class="nv">nj</span><span class="o">=</span><span class="m">1</span>
+<span class="nv">test_sets</span><span class="o">=</span><span class="s2">&quot;test/WSJ/test_eval92&quot;</span>
+<span class="c1"># decode_options is used in Whisper model&#39;s transcribe method</span>
+<span class="nv">decode_options</span><span class="o">=</span><span class="s2">&quot;{language: en, task: transcribe, temperature: 0, beam_size: 10, fp16: False}&quot;</span>
+
+<span class="k">for</span><span class="w"> </span>x<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="si">${</span><span class="nv">test_sets</span><span class="si">}</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<span class="w">    </span><span class="nv">wavscp</span><span class="o">=</span>dump/raw/<span class="si">${</span><span class="nv">x</span><span class="si">}</span>/wav.scp<span class="w">    </span><span class="c1"># path to wav.scp</span>
+<span class="w">    </span><span class="nv">outdir</span><span class="o">=</span>whisper-<span class="si">${</span><span class="nv">whisper_tag</span><span class="si">}</span>_outputs/<span class="si">${</span><span class="nv">x</span><span class="si">}</span><span class="w">  </span><span class="c1"># path to save output</span>
+<span class="w">    </span><span class="nv">gt_text</span><span class="o">=</span>dump/raw/<span class="si">${</span><span class="nv">x</span><span class="si">}</span>/text<span class="w">      </span><span class="c1"># path to groundtruth text file (for scoring only)</span>
+
+<span class="w">    </span>scripts/utils/evaluate_asr.sh<span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--whisper_tag<span class="w"> </span><span class="si">${</span><span class="nv">whisper_tag</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--nj<span class="w"> </span><span class="si">${</span><span class="nv">nj</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--gpu_inference<span class="w"> </span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--stage<span class="w"> </span><span class="m">2</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--stop_stage<span class="w"> </span><span class="m">3</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--cleaner<span class="w"> </span><span class="si">${</span><span class="nv">cleaner</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--hyp_cleaner<span class="w"> </span><span class="si">${</span><span class="nv">hyp_cleaner</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--decode_options<span class="w"> </span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">decode_options</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>--gt_text<span class="w"> </span><span class="si">${</span><span class="nv">gt_text</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span><span class="si">${</span><span class="nv">wavscp</span><span class="si">}</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span><span class="si">${</span><span class="nv">outdir</span><span class="si">}</span>
+<span class="k">done</span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="packing-and-sharing-your-trained-model">
 <h2>Packing and sharing your trained model<a class="headerlink" href="#packing-and-sharing-your-trained-model" title="Permalink to this headline">¶</a></h2>
