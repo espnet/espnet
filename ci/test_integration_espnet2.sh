@@ -52,6 +52,7 @@ echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_
 echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --use_streaming true --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
     --feats_normalize "utterance_mvn"  --python "${python}" \
+    --asr-tag "train_raw_bpe_streaming" \
     --asr-args "--model_conf extract_feats_in_collect_stats=false --encoder=contextual_block_transformer
                 --encoder_conf='{'block_size': 40, 'hop_size': 16, 'look_ahead': 16, 'output_size': 2, 'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
                 --decoder=transformer --decoder_conf='{'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'"
@@ -66,6 +67,7 @@ if [ "$(python3 -c "import torch; print(torch.cuda.is_available())")" == "True" 
     echo "==== Multi-Blank Transducer, feats_type=raw, token_types=bpe ==="
     ./run.sh --asr-tag "espnet_model_multi_blank_transducer" --ngpu 1 --stage 6 --stop-stage 13 --skip-upload false \
         --feats-type "raw" --token-type "bpe" --python "${python}" \
+        --asr-tag "train_multi_black_transducer" \
         --asr_args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 \
         --best_model_criterion '(valid, loss, min)' --model_conf transducer_multi_blank_durations=[2]" \
         --inference_asr_model "valid.loss.best.pth" --inference_config "conf/decode_multi_blank_transducer.yaml"
@@ -234,6 +236,7 @@ echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_
 echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --use_streaming true --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
     --feats_normalize "utterance_mvn" --python "${python}" \
+    --st-tag "train_streaming" \
     --st-args "--model_conf extract_feats_in_collect_stats=false
                --encoder=contextual_block_transformer
                --encoder_conf='{'block_size': 40, 'hop_size': 16, 'look_ahead': 16, 'output_size': 2, 'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
