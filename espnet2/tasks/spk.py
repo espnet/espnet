@@ -176,7 +176,7 @@ class SpeakerTask(AbsTask):
             "--target_duration",
             type=float,
             default=3.0,
-            help="Duration of samples in a minibatch",
+            help="Duration (in seconds) of samples in a minibatch",
         )
 
         group.add_argument(
@@ -187,7 +187,7 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
-            "--sr",
+            "--sample_rate",
             type=int,
             default=16000,
             help="Sampling rate",

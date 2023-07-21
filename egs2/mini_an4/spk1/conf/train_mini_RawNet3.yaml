@@ -17,8 +17,8 @@ projector_conf:
 
 preprocessor: spk
 preprocessor_conf:
-  target_duration: 3.0
-  sr: 16000
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
   num_eval: 1
 
 model_conf:
