@@ -22,7 +22,7 @@ jobs:
             echo "is_not_docker=true" >> "$GITHUB_ENV"
           fi
   linter_and_test:
-    if: ${{ env.is_not_docker }}
+    if: ${{ github.env.is_not_docker }}
     runs-on: ${{ matrix.os }}
     strategy:
       max-parallel: 20

@@ -23,7 +23,7 @@ jobs:
           fi
   linter_and_test:
     runs-on: ubuntu-latest
-    if: ${{ env.is_documentation }}
+    if: ${{ github.env.is_documentation }}
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v1
