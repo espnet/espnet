@@ -146,6 +146,12 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         echo "Extracting Musan noise augmentation data."
         tar -zxvf ${data_dir_prefix}/musan.tar.gz -C ${data_dir_prefix}
     fi
+
+    # make scp files
+    for x in music noise speech; do
+        find ${data_dir_prefix}/musan/${x} -iname "*.wav" > ${data_dir_prefix}/musan_${x}.scp
+    done
+    find ${data_dir_prefix}/RIRS_NOISES/simulated_rirs -iname "*.wav" > ${data_dir_prefix}/rirs.scp
     echo "Stage 3, DONE."
 fi
 
