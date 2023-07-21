@@ -15,8 +15,8 @@ if [ $# -ne 2 ]; then
   exit 1;
 fi
 
-if [[ ! " 1 6 " =~ " $track " ]]; then
-  echo "Error: \$track must be either 1 or 6: ${track}"
+if [[ ! " 1 2 6 " =~ " $track " ]]; then
+  echo "Error: \$track must be one of (1, 2, 6): ${track}"
   exit 1;
 fi
 
@@ -31,10 +31,16 @@ local=`pwd`/local
 utils=`pwd`/utils
 odir=`pwd`/data
 
-if $eval_flag; then
-list_set="tr05_simu_$enhan dt05_simu_$enhan et05_simu_$enhan"
+if [[ "$track" == "2" ]]; then
+  # no training data for 2-ch track; use training data in 6-ch track instead
+  list_set=""
 else
-list_set="tr05_simu_$enhan dt05_simu_$enhan"
+  list_set="tr05_simu_$enhan"
+fi
+if $eval_flag; then
+  list_set+=" dt05_simu_$enhan et05_simu_$enhan"
+else
+  list_set+=" dt05_simu_$enhan"
 fi
 
 cd $dir
@@ -64,6 +70,30 @@ if [[ "$track" == "1" ]]; then
     fi
     paste -d" " ${x}_wav.ids $x.flist | sort -k 1 > ${x}_wav.scp
     sed -E "s#${audio_dir}/isolated/(.*).wav#${audio_dir}/isolated_ext/\1.Clean.wav#g" ${x}_wav.scp > ${x}_spk1_wav.scp
+    sed -E "s#\.Clean\.wav#\.Noise\.wav#g" ${x}_spk1_wav.scp > ${x}_noise_wav.scp
+  done
+
+elif [[ "$track" == "2" ]]; then
+  # 2-ch track
+  if [ ! -f "${annotations}/dt05_simu_2ch_track.list" ]; then
+    echo "Error: No such file: ${annotations}/dt05_simu_2ch_track.list"
+    exit 1
+  fi
+  awk -v dir="${audio_dir}/isolated" '{ch1=dir "/" $1; ch2=dir "/" $2; print("sox -M " ch1 " " ch2 " -c 2 -t wav - |")}' ${annotations}/dt05_simu_2ch_track.list > dt05_simu_$enhan.flist
+  awk -v dir="${audio_dir}/isolated" '{print(dir "/" $1)}' ${annotations}/dt05_simu_2ch_track.list | awk -F'[/]' '{print $NF}'| sed -e 's/\.CH[0-9]\.wav/_SIMU/' > dt05_simu_${enhan}_wav.ids
+  if $eval_flag; then
+    if [ ! -f "${extra_annotations}/et05_simu_2ch_track.list" ]; then
+      echo "Error: No such file: ${extra_annotations}/et05_simu_2ch_track.list"
+      exit 1
+    fi
+    awk -v dir="${audio_dir}/isolated" '{ch1=dir "/" $1; ch2=dir "/" $2; print("sox -M " ch1 " " ch2 " -c 2 -t wav - |")}' ${extra_annotations}/et05_simu_2ch_track.list > et05_simu_$enhan.flist
+    awk -v dir="${audio_dir}/isolated" '{print(dir "/" $1)}' ${extra_annotations}/et05_simu_2ch_track.list | awk -F'[/]' '{print $NF}'| sed -e 's/\.CH[0-9]\.wav/_SIMU/' > et05_simu_${enhan}_wav.ids
+  fi
+
+  # make a scp file from file list
+  for x in $list_set; do
+    paste -d" " ${x}_wav.ids $x.flist | sort -k 1 > ${x}_wav.scp
+    sed -E "s#${audio_dir}/isolated/(\S+\.CH[0-9]).wav#${audio_dir}/isolated_ext/\1.Clean.wav#g" ${x}_wav.scp > ${x}_spk1_wav.scp
     sed -E "s#\.Clean\.wav#\.Noise\.wav#g" ${x}_spk1_wav.scp > ${x}_noise_wav.scp
   done
 
@@ -100,10 +130,12 @@ if [ ! -e dot_files.flist ]; then
   echo "Could not find $dir/dot_files.flist files, first run local/clean_wsj0_data_prep.sh";
   exit 1;
 fi
-cat tr05_simu_${enhan}_wav.scp | awk -F'[_]' '{print $2}' | tr '[A-Z]' '[a-z]' \
-    | $local/find_noisy_transcripts.pl dot_files.flist | cut -f 2- -d" " > tr05_simu_$enhan.txt
-cat tr05_simu_${enhan}_wav.scp | cut -f 1 -d" " > tr05_simu_$enhan.ids
-paste -d" " tr05_simu_$enhan.ids tr05_simu_$enhan.txt | sort -k 1 > tr05_simu_$enhan.trans1
+if [[ "$track" != "2" ]]; then
+  cat tr05_simu_${enhan}_wav.scp | awk -F'[_]' '{print $2}' | tr '[A-Z]' '[a-z]' \
+      | $local/find_noisy_transcripts.pl dot_files.flist | cut -f 2- -d" " > tr05_simu_$enhan.txt
+  cat tr05_simu_${enhan}_wav.scp | cut -f 1 -d" " > tr05_simu_$enhan.ids
+  paste -d" " tr05_simu_$enhan.ids tr05_simu_$enhan.txt | sort -k 1 > tr05_simu_$enhan.trans1
+fi
 # dt05 and et05 simulation data are generated from the CHiME4 booth recording
 # and we use CHiME4 dot files
 cat dt05_simu.dot | sed -e 's/(\(.*\))/\1/' | awk '{print $NF "_SIMU"}'> dt05_simu_$enhan.ids
