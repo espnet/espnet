@@ -26,8 +26,7 @@ jobs:
           fi
   linter_and_test:
     runs-on: ${{ matrix.os }}
-    needs: process_labels
-    if: needs.process_labels.outputs.is_docker == 'false'
+    if: github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:

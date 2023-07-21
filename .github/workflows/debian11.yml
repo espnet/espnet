@@ -11,6 +11,7 @@ on:
 jobs:
   test_debian11:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     container:
       image: debian:11
       env:

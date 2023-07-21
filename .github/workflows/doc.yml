@@ -26,8 +26,7 @@ jobs:
           fi
   linter_and_test:
     runs-on: ubuntu-latest
-    needs: get_labels
-    if: needs.get_labels.outputs.is_doc == 'true'
+    if: github.event.pull_request.draft == false
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v1
