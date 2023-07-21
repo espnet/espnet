@@ -1569,7 +1569,9 @@ class SpkPreprocessor(CommonPreprocessor):
                 [np.int64(random.random() * (len(audio) - self.target_duration))]
             )
 
-            data["speech"] = audio[int(startframe) : int(startframe) + self.target_duration]
+            data["speech"] = audio[
+                int(startframe) : int(startframe) + self.target_duration
+            ]
 
             if self.noise_apply_prob > 0 or rir_apply_prob > 0:
                 data["speech"] = self._apply_data_augmentation(data["speech"])
