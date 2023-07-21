@@ -594,6 +594,7 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [[:space:]]2[[:space:]] ]]; then
     if [ -n "${speed_perturb_factors}" ]; then
         log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
+
         for factor in ${speed_perturb_factors}; do
             if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                 scripts/utils/perturb_data_dir_speed.sh \
@@ -772,7 +773,7 @@ fi
 if [ -n "${speed_perturb_factors}" ]; then
     train_set="${train_set}_sp"
 fi
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then  
     if "${skip_train}"; then
         if "${eval_valid_set}"; then
             _dsets="${valid_set} ${test_sets}"
@@ -831,7 +832,6 @@ fi
 
 
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [[:space:]]7[[:space:]] ]]; then
-
     if "${token_joint}"; then
         log "Merge src and target data if joint BPE"
 
@@ -877,6 +877,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
 
         _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
+        tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
         # shellcheck disable=SC2002
         cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
 
