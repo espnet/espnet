@@ -1497,6 +1497,7 @@ class SpkPreprocessor(CommonPreprocessor):
         noise_apply_prob (float): Probability of applying noise.
         short_noise_thres (float): Threshold of short noise.
     """
+
     def __init__(
         self,
         train: bool,
