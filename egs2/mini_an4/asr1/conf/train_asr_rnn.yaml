@@ -29,5 +29,5 @@ encoder_conf:
     hidden_size: 2
     output_size: 2
 decoder: rnn
-docoder_conf:
+decoder_conf:
     hidden_size: 2
