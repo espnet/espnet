@@ -37,50 +37,48 @@ for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
         ./run.sh --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" \
-            --asr-args "--max_epoch=1 --decoder rnn" --lm-args "--max_epoch=1" --python "${python}"
+            --python "${python}"
     done
     echo "==== feats_type=raw_copy, token_types=bpe ==="
     cp -r dump/raw data/
     ./run.sh --ngpu 0 --stage 4 --stop-stage 13 --skip-upload false --feats-type "raw_copy" --token-type "${t2}" \
-        --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test \
-        --asr-args "--max_epoch=1 --decoder rnn" --lm-args "--max_epoch=1" --python "${python}"
+        --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test --python "${python}"
 done
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --decoder=rnn"
+    --feats_normalize "utterance_mvn" --python "${python}" \
+    --asr-args "--model_conf extract_feats_in_collect_stats=false"
 
 echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --use_streaming true --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-    --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-    --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --encoder=contextual_block_transformer --decoder=transformer
-                --encoder_conf block_size=40 --encoder_conf hop_size=16 --encoder_conf look_ahead=16"
+    --feats_normalize "utterance_mvn"  --python "${python}" \
+    --asr-args "--model_conf extract_feats_in_collect_stats=false --encoder=contextual_block_transformer
+                --encoder_conf='{'block_size': 40, 'hop_size': 16, 'look_ahead': 16, 'output_size': 2, 'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
+                --decoder=transformer --decoder_conf='{'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'"
 
 echo "==== Transducer, feats_type=raw, token_types=bpe ==="
 ./run.sh --asr-tag "espnet_model_transducer" --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false \
-    --feats-type "raw" --token-type "bpe" --lm-args "--max_epoch=1" --python "${python}" \
-    --asr-args "--max_epoch=1 --decoder transducer --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=30 \
-    --best_model_criterion '(valid, loss, min)'" --inference_asr_model "valid.loss.best.pth" --inference_args "--beam_size 2"
+    --feats-type "raw" --token-type "bpe" --python "${python}" \
+    --asr-args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 \
+    --best_model_criterion '(valid, loss, min)'" --inference_asr_model "valid.loss.best.pth"
 
 if [ "$(python3 -c "import torch; print(torch.cuda.is_available())")" == "True" ]; then
     echo "==== Multi-Blank Transducer, feats_type=raw, token_types=bpe ==="
     ./run.sh --asr-tag "espnet_model_multi_blank_transducer" --ngpu 1 --stage 6 --stop-stage 13 --skip-upload false \
-        --feats-type "raw" --token-type "bpe" --lm-args "--max_epoch=1" --python "${python}" \
-        --asr_args "--max_epoch=1 --decoder transducer --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=30 \
+        --feats-type "raw" --token-type "bpe" --python "${python}" \
+        --asr_args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 \
         --best_model_criterion '(valid, loss, min)' --model_conf transducer_multi_blank_durations=[2]" \
         --inference_asr_model "valid.loss.best.pth" --inference_config "conf/decode_multi_blank_transducer.yaml"
 fi
 
 if python3 -c "import k2" &> /dev/null; then
     echo "==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-    ./run.sh --num_paths 500 --nll_batch_size 20 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-        --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-        --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --decoder=rnn"
+    ./run.sh --num_paths 20 --nll_batch_size 4 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
+        --feats_normalize "utterance_mvn" --python "${python}" --asr-args "--model_conf extract_feats_in_collect_stats=false"
 
     echo "==== use_k2, num_paths == nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
-    ./run.sh --num_paths 20 --nll_batch_size 20 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-       --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" \
-       --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --decoder=rnn"
+    ./run.sh --num_paths 4 --nll_batch_size 4 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
+       --feats_normalize "utterance_mvn" --python "${python}" --asr-args "--model_conf extract_feats_in_collect_stats=false"
 fi
 
 if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
@@ -91,18 +89,18 @@ if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
 
         echo "==== [Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
         ./run.sh --asr_config "" --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
-            --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
-            --asr-tag "${asr_tag}_conformer" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
-            --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
-            --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30"
+            --feats_normalize "utterance_mvn" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
+            --asr-tag "${asr_tag}_conformer" --asr-args "--model_conf extract_feats_in_collect_stats=false \
+            --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 2, 'linear_size': 4, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
+            --decoder_conf='{'embed_size': 4, 'hidden_size': 4}' --joint_network_conf joint_space_size=4"
 
         echo "==== [Streaming Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
         ./run.sh --asr_config "" --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
-            --feats_normalize "utterance_mvn" --lm-args "--max_epoch=1" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
-            --asr-tag "${asr_tag}_conformer_streaming" --asr-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 \
+            --feats_normalize "utterance_mvn" --python "${python}" --inference_asr_model "valid.loss.best.pth" \
+            --asr-tag "${asr_tag}_conformer_streaming" --asr-args "--model_conf extract_feats_in_collect_stats=false \
             --encoder_conf main_conf='{'dynamic_chunk_training': True}' \
-            --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
-            --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30 " \
+            --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 2, 'linear_size': 4, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
+            --decoder_conf='{'embed_size': 4, 'hidden_size': 4}' --joint_network_conf joint_space_size=4 " \
             --inference-args "--streaming true --decoding_window 160 --left_context 2"
     done
 fi
