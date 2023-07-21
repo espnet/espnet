@@ -60,6 +60,7 @@ lm_data_url=https://dl.fbaipublicfiles.com/mls/mls_lm_${download_id}.tar.gz
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Download Data to ${MLS}"
 
+    mkdir -p ${MLS}
     local/download_and_untar.sh ${MLS} ${data_url} mls_${download_id}.tar.gz
     local/download_and_untar.sh ${MLS} ${lm_data_url} mls_lm_${download_id}.tar.gz
     # Optional: mls corpus is large. You might want to remove them after processing
