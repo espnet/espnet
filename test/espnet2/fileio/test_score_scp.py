@@ -12,12 +12,13 @@ from espnet2.fileio.score_scp import (
     SingingScoreReader,
     SingingScoreWriter,
     XMLReader,
+    XMLWriter,
 )
 
 
 def test_XMLReader(tmp_path: Path):
     m = m21.stream.Stream()
-    m.insert(m21.tempo.MetronomeMark(number=120))
+    m.insert(m21.tempo.MetronomeMark(number=60))
 
     n = m21.note.Rest()
     n.offset = 0
@@ -33,19 +34,61 @@ def test_XMLReader(tmp_path: Path):
     n = m21.note.Note(21)
     n.lyric = ""
     n.offset = 3
-    n.duration = m21.duration.Duration(2)
+    n.duration = m21.duration.Duration(1)
     m.insert(n)
 
     n = m21.note.Note(22)
+    n.lyric = "ー"
+    n.offset = 4
+    n.duration = m21.duration.Duration(1)
+    m.insert(n)
+
+    n = m21.note.Note(23)
     n.lyric = None
     n.offset = 5
     n.duration = m21.duration.Duration(2)
     m.insert(n)
 
+    n = m21.note.Note(24)
+    n.lyric = "b"
+    n.offset = 7
+    n.duration = m21.duration.Duration(1)
+    n.articulations.append(m21.articulations.BreathMark())
+    m.insert(n)
+
+    n = m21.chord.Chord([24, 25])
+    n.lyric = "c"
+    n.offset = 8
+    n.duration = m21.duration.Duration(1)
+    m.insert(n)
+
+    n = m21.note.Note(25)
+    n.lyric = "br"
+    n.offset = 9
+    n.duration = m21.duration.Duration(1)
+    m.insert(n)
+
+    n = m21.note.Rest()
+    n.offset = 10
+    n.duration = m21.duration.Duration(1)
+    m.insert(n)
+
+    n = m21.note.Note(25)
+    n.lyric = "br"
+    n.offset = 11
+    n.duration = m21.duration.Duration(1)
+    m.insert(n)
+
+    n = m21.note.Note(26)
+    n.lyric = "d"
+    n.offset = 12
+    n.duration = m21.duration.Duration(1)
+    m.insert(n)
+
     xml_path = tmp_path / "abc.xml"
     m.write("xml", fp=xml_path)
 
-    p = tmp_path / "dummy.scp"
+    p = tmp_path / "dummy3.scp"
     with p.open("w") as f:
         f.write(f"abc {xml_path}\n")
 
@@ -53,12 +96,45 @@ def test_XMLReader(tmp_path: Path):
     val = reader["abc"]
 
     assert len(val) == 2
-    assert val[0] == 120
+    assert val[0] == 60
     notes_list = [
-        NOTE("P", 0, 0, 0.5),
-        NOTE("a", 20, 0.5, 1.5),
-        NOTE("—", 21, 1.5, 2.5),
-        NOTE("—", 22, 2.5, 3.5),
+        NOTE("P", 0, 0, 1),
+        NOTE("a", 20, 1, 3),
+        NOTE("—", 21, 3, 4),
+        NOTE("—", 22, 4, 5),
+        NOTE("—", 23, 5, 7),
+        NOTE("b", 24, 7, 8),
+        NOTE("B", 0, 8, 8),
+        NOTE("c", 25, 8, 9),
+        NOTE("P", 0, 9, 12),
+        NOTE("d", 26, 12, 13),
+    ]
+    for i in range(len(val[1])):
+        assert val[1][i].st == notes_list[i].st
+        assert val[1][i].et == notes_list[i].et
+        assert val[1][i].lyric == notes_list[i].lyric
+        assert val[1][i].midi == notes_list[i].midi
+
+
+def test_XMLWriter(tmp_path: Path):
+    lyrics_seq = ["P", "a", "—", "b"]
+    notes_seq = [0, 20, 21, 22]
+    segs_seq = [(0, 1), (1, 2), (2, 3), (3, 3.1)]
+    tempo = 60
+    val = lyrics_seq, notes_seq, segs_seq, tempo
+    p = tmp_path / "dummy4.scp"
+    with XMLWriter(tmp_path, p) as writer:
+        writer["abc"] = val
+
+    reader = XMLReader(p)
+    val = reader["abc"]
+    assert len(val) == 2
+    assert val[0] == 60
+    notes_list = [
+        NOTE("P", 0, 0, 1),
+        NOTE("a", 20, 1, 2),
+        NOTE("—", 21, 2, 3),
+        NOTE("b", 22, 3, 3.125),
     ]
     for i in range(len(val[1])):
         assert val[1][i].st == notes_list[i].st
@@ -95,7 +171,7 @@ def test_MIDReader(tmp_path: Path):
     mid_path = tmp_path / "abc.mid"
     mido_obj.dump(mid_path)
 
-    p = tmp_path / "dummy.scp"
+    p = tmp_path / "dummy0.scp"
     with p.open("w") as f:
         f.write(f"abc {mid_path}\n")
 

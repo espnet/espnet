@@ -14,9 +14,9 @@ svs: joint_score2wav                     # model architecture
 svs_conf:
   # score2mel related
   score2mel_type: xiaoice
-  score2mel_params:                       # keyword arguments for the selected model
+  score2mel_params:              # keyword arguments for the selected model
     midi_dim: 129                # midi embedding range (note number + silence)
-    tempo_dim: 500               # tempo embedding range
+    duration_dim: 500            # duration embedding range
     embed_dim: 384               # char or phn embedding range
     adim: 384
     aheads: 4

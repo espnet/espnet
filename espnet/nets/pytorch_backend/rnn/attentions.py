@@ -1789,3 +1789,178 @@ def att_to_numpy(att_ws, att):
         # att_ws => list of attentions
         att_ws = torch.stack(att_ws, dim=1).cpu().numpy()
     return att_ws
+
+
+def _apply_dynamic_filter(p, last_attended_idx, backward_window=1, forward_window=3):
+    """Apply dynamic filter.
+
+    This function apply the dynamic filter
+    introduced in `Singing-Tacotron: Global Duration Control Attention and Dynamic
+    Filter for End-to-end Singing Voice Synthesis`_.
+
+    Args:
+        p (Tensor): probability before applying softmax (1, T).
+        last_attended_idx (int): The index of the inputs of the last attended [0, T].
+        backward_window (int, optional): Backward window size in dynamic filter.
+        forward_window (int, optional): Forward window size in dynamic filter.
+
+    Returns:
+        Tensor: Dynamic filtered probability (1, T).
+
+    .. _`Singing-Tacotron: Global Duration Control Attention and Dynamic
+    Filter for End-to-end Singing Voice Synthesis`:
+        https://arxiv.org/pdf/2202.07907v1.pdf
+
+    """
+
+    if p.size(0) != 1:
+        raise NotImplementedError("Batch dynamic filter is not yet supported.")
+    backward_idx = last_attended_idx - backward_window
+    forward_idx = last_attended_idx + forward_window
+    if backward_idx > 0:
+        p[:, :backward_idx] = 0
+    if forward_idx < p.size(1):
+        p[:, forward_idx:] = 0
+    return p
+
+
+class GDCAttLoc(torch.nn.Module):
+    """Global duration control attention module.
+    Reference: Singing-Tacotron: Global Duration Control Attention and Dynamic
+    Filter for End-to-end Singing Voice Synthesis
+    (https://arxiv.org/abs/2202.07907)
+    :param int eprojs: # projection-units of encoder
+    :param int dunits: # units of decoder
+    :param int att_dim: attention dimension
+    :param int aconv_chans: # channels of attention convolution
+    :param int aconv_filts: filter size of attention convolution
+    :param bool han_mode: flag to swith on mode of hierarchical attention
+        and not store pre_compute_enc_h
+    """
+
+    def __init__(
+        self, eprojs, dunits, att_dim, aconv_chans, aconv_filts, han_mode=False
+    ):
+        super(GDCAttLoc, self).__init__()
+        self.pt_zero_linear = torch.nn.Linear(att_dim, 1)
+        self.mlp_enc = torch.nn.Linear(eprojs, att_dim)
+        self.mlp_dec = torch.nn.Linear(dunits, att_dim, bias=False)
+        self.mlp_att = torch.nn.Linear(aconv_chans, att_dim, bias=False)
+        self.loc_conv = torch.nn.Conv2d(
+            1,
+            aconv_chans,
+            (1, 2 * aconv_filts + 1),
+            padding=(0, aconv_filts),
+            bias=False,
+        )
+        self.gvec = torch.nn.Linear(att_dim, 1)
+
+        self.dunits = dunits
+        self.eprojs = eprojs
+        self.att_dim = att_dim
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.mask = None
+        self.han_mode = han_mode
+
+    def reset(self):
+        """reset states"""
+        self.h_length = None
+        self.enc_h = None
+        self.pre_compute_enc_h = None
+        self.mask = None
+
+    def forward(
+        self,
+        enc_hs_pad,
+        enc_hs_len,
+        trans_token,
+        dec_z,
+        att_prev,
+        scaling=1.0,
+        last_attended_idx=None,
+        backward_window=1,
+        forward_window=3,
+    ):
+        """Calcualte AttLoc forward propagation.
+        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
+        :param list enc_hs_len: padded encoder hidden state length (B)
+        :param torch.Tensor trans_token: Global transition token
+            for duration (B x T_max x 1)
+        :param torch.Tensor dec_z: decoder hidden state (B x D_dec)
+        :param torch.Tensor att_prev: previous attention weight (B x T_max)
+        :param float scaling: scaling parameter before applying softmax
+        :param torch.Tensor forward_window: forward window size
+            when constraining attention
+        :param int last_attended_idx: index of the inputs of the last attended
+        :param int backward_window: backward window size in attention constraint
+        :param int forward_window: forward window size in attetion constraint
+        :return: attention weighted encoder state (B, D_enc)
+        :rtype: torch.Tensor
+        :return: previous attention weights (B x T_max)
+        :rtype: torch.Tensor
+        """
+        batch = len(enc_hs_pad)
+        # pre-compute all h outside the decoder loop
+        if self.pre_compute_enc_h is None or self.han_mode:
+            self.enc_h = enc_hs_pad  # utt x frame x hdim
+            self.h_length = self.enc_h.size(1)
+            # utt x frame x att_dim
+            self.pre_compute_enc_h = self.mlp_enc(self.enc_h)
+
+        if dec_z is None:
+            dec_z = enc_hs_pad.new_zeros(batch, self.dunits)
+        else:
+            dec_z = dec_z.view(batch, self.dunits)
+
+        # initialize attention weight with uniform dist.
+        if att_prev is None:
+            att_prev = enc_hs_pad.new_zeros(*enc_hs_pad.size()[:2])
+            att_prev[:, 0] = 1.0
+
+        # att_prev: utt x frame -> utt x 1 x 1 x frame
+        # -> utt x att_conv_chans x 1 x frame
+        att_conv = self.loc_conv(att_prev.view(batch, 1, 1, self.h_length))
+        # att_conv: utt x att_conv_chans x 1 x frame -> utt x frame x att_conv_chans
+        att_conv = att_conv.squeeze(2).transpose(1, 2)
+        # att_conv: utt x frame x att_conv_chans -> utt x frame x att_dim
+        att_conv = self.mlp_att(att_conv)
+
+        # dec_z_tiled: utt x frame x att_dim
+        dec_z_tiled = self.mlp_dec(dec_z).view(batch, 1, self.att_dim)
+
+        # dot with gvec
+        # utt x frame x att_dim -> utt x frame
+        e = self.gvec(
+            torch.tanh(att_conv + self.pre_compute_enc_h + dec_z_tiled)
+        ).squeeze(2)
+
+        # NOTE: consider zero padding when compute w.
+        if self.mask is None:
+            self.mask = to_device(enc_hs_pad, make_pad_mask(enc_hs_len))
+        e.masked_fill_(self.mask, -float("inf"))
+
+        w = F.softmax(scaling * e, dim=1)
+
+        # dynamic filter
+        if last_attended_idx is not None:
+            att_prev = _apply_dynamic_filter(
+                att_prev, last_attended_idx, backward_window, forward_window
+            )
+
+        # GDCA attention
+        att_prev_shift = F.pad(att_prev, (1, 0))[:, :-1]
+        trans_token = trans_token.squeeze(-1)
+        trans_token_shift = F.pad(trans_token, (1, 0))[:, :-1]
+        w = ((1 - trans_token_shift) * att_prev_shift + trans_token * att_prev) * w
+
+        # NOTE: clamp is needed to avoid nan gradient
+        w = F.normalize(torch.clamp(w, 1e-6), p=1, dim=1)
+
+        # weighted sum over flames
+        # utt x hdim
+        # NOTE use bmm instead of sum(*)
+        c = torch.sum(self.enc_h * w.view(batch, self.h_length, 1), dim=1)
+
+        return c, w

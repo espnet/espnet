@@ -71,6 +71,7 @@ LJSPEECH=downloads
 MUSAN=
 MUST_C=downloads
 NSC=
+NIT_SONG070=
 JMD=downloads
 JSSS=downloads
 JSUT=downloads
@@ -177,13 +178,14 @@ CATSLU=downloads
 ELRA_E0024=
 ELRA_S0272=
 ELRA_S0371=
-M4SINGER=downloads/m4singer
+M4SINGER=
 ONIKU=
 PJS=
 AMEBOSHI=
 ITAKO=
 NATSUME=
 KIRITAN=
+NAMINE=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

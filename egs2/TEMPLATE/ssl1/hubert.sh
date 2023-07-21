@@ -529,7 +529,7 @@ if ! "${skip_train}"; then
                     ${python} -m espnet2.bin.split_scps \
                               --scps \
                               "${_ssl_train_dir}/${_scp}" \
-                              "${_ssl_train_dir}/text" \
+                              "${_ssl_train_dir}/text.km.${km_tag}" \
                               "${ssl_stats_dir}/train/speech_shape" \
                               "${ssl_stats_dir}/train/text_shape.${token_type}" \
                               --num_splits "${num_splits_ssl}" \
