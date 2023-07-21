@@ -3,11 +3,6 @@ Source code from:
 https://github.com/clovaai/voxceleb_trainer/blob/master/tuneThreshold.py
 """
 
-import glob
-import os
-import pdb
-import sys
-import time
 from operator import itemgetter
 
 import numpy

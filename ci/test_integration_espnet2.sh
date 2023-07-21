@@ -260,6 +260,7 @@ cd ./egs2/mini_an4/spk1
 gen_dummy_coverage
 echo "==== [ESPnet2] SPK ==="
 ./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --spk_args "--max_epoch=1" --python "${python}"
+./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --spk_args "--max_epoch=1" --python "${python}" --enh_config conf/train_mini_RawNet3_dataaug.yaml
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"

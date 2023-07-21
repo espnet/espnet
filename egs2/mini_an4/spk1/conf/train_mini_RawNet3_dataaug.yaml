@@ -19,15 +19,22 @@ preprocessor: spk
 preprocessor_conf:
   target_duration: 3.0  # seconds
   sample_rate: 16000
-  num_eval: 2
+  num_eval: 1
+  rir_scp: dump/raw/train_nodev/rirs.scp
+  rir_apply_prob: 1.0
+  noise_info:
+    - [0.4, "dump/raw/train_nodev/noises.scp", [1, 1], [0, 10]]
+    - [0.5, "dump/raw/train_nodev/noises.scp", [1, 2], [10, 20]]
+  noise_apply_prob: 1.0
+  short_noise_thres: 0.5
 
 model_conf:
   extract_feats_in_collect_stats: false
 
 loss: aamsoftmax
 loss_conf:
-  nout: 16
-  nclasses: 108
+  nOut: 16
+  nClasses: 108
   margin: 0.3
   scale: 15
 

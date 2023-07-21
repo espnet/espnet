@@ -1476,6 +1476,27 @@ class TSEPreprocessor(EnhPreprocessor):
 
 
 class SpkPreprocessor(CommonPreprocessor):
+    """Preprocessor for Speaker tasks.
+
+    Args:
+        train (bool): Whether to use in training mode.
+        spk2utt (str): Path to the `spk2utt` file.
+        target_duration (float): Target duration in seconds.
+        sample_rate (int): Sampling rate.
+        num_eval (int): Number of utterances to be used for evaluation.
+        rir_scp (str): Path to the RIR scp file.
+        rir_apply_prob (float): Probability of applying RIR.
+        noise_info (List[Tuple[float, str, Tuple[int, int], Tuple[float, float]]]):
+            List of tuples of noise information. Each tuple represents a noise type.
+            Each tuple consists of `(prob, noise_scp, num_to_mix, db_range)`.
+                - `prob` (float) is the probability of applying the noise type.
+                - `noise_scp` (str) is the path to the noise scp file.
+                - `num_to_mix` (Tuple[int, int]) is the range of the number of noises
+                    to be mixed.
+                - `db_range` (Tuple[float, float]) is the range of noise levels in dB.
+        noise_apply_prob (float): Probability of applying noise.
+        short_noise_thres (float): Threshold of short noise.
+    """
     def __init__(
         self,
         train: bool,
