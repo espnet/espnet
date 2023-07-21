@@ -1571,7 +1571,7 @@ class SpkPreprocessor(CommonPreprocessor):
 
             data["speech"] = audio[int(startframe) : int(startframe) + self.target_duration]
 
-            if self.noise_apply_prob > 0:
+            if self.noise_apply_prob > 0 or rir_apply_prob > 0:
                 data["speech"] = self._apply_data_augmentation(data["speech"])
         else:
             audio = data["speech"]
@@ -1616,7 +1616,7 @@ class SpkPreprocessor(CommonPreprocessor):
         power = (speech[detect_non_silence(speech)] ** 2).mean()
 
         if self.rirs is not None and self.rir_apply_prob >= np.random.random():
-            speech = self._convolve_rir(speech, power, self.rirs)
+            speech, _ = self._convolve_rir(speech, power, self.rirs)
 
         if self.noises and self.noise_apply_prob >= np.random.random():
             idx = random.choices(
