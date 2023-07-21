@@ -11,31 +11,14 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-if [ ! -z "${GITHUB_PR_LABEL_ASR}" ]; then
-    log is "${GITHUB_PR_LABEL_ASR}"
+if [ -z "${GITHUB_PR_LABEL_ESPNET1:-}" ] && [ -z "${GITHUB_PR_LABEL_ESPNET2:-}" ]; then
+    # If not Label tag ESPNET 1 or ESPNET 2 but Docker, then skip all tests.
+    if [ -n "${GITHUB_PR_LABEL_DOCKER:-}" ]; then
+        log Only Docker related modifications. Skipping tests.
+        exit 0
+    fi
 fi
 
-if [ ! -z "${GITHUB_PR_LABEL_CI}" ]; then
-    log is "${GITHUB_PR_LABEL_CI}"
-fi
-
-if [ ! -z "${GITHUB_PR_LABEL_INSTALLATION}" ]; then
-    log is "${GITHUB_PR_LABEL_INSTALLATION}"
-fi
-
-if [ ! -z "${GITHUB_PR_LABEL_ESPNET1}" ]; then
-    log is "${GITHUB_PR_LABEL_ESPNET1}"
-fi
-
-if [ ! -z "${GITHUB_PR_LABEL_ESPNET2}" ]; then
-    log is "${GITHUB_PR_LABEL_ESPNET2}"
-fi
-
-if [ ! -z "${GITHUB_PR_LABEL_README}" ]; then
-    log is "${GITHUB_PR_LABEL_README}"
-fi
-# TODO(Nelson): This break is intentional to test the labels. Will be removed after check.
-exit 1
 (
     set -euo pipefail
     cd tools

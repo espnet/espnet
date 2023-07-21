@@ -14,6 +14,23 @@ gen_dummy_coverage(){
     touch empty.py; ${python} empty.py
 }
 
+log() {
+    local fname=${BASH_SOURCE[1]##*/}
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
+}
+
+if [ -z "${GITHUB_PR_LABEL_ESPNET1:-}" ] && [ -z "${GITHUB_PR_LABEL_ESPNET2:-}" ]; then
+    # If not Label tag ESPNET 1 or ESPNET 2 but Docker, then skip all tests.
+    if [ -n "${GITHUB_PR_LABEL_DOCKER:-}" ]; then
+        log Only Docker related modifications. Skipping tests.
+        exit 0
+    fi
+fi
+
+if [ -z "${GITHUB_PR_LABEL_ESPNET2:-}" ]; then
+    log This PR does not involve ESPnet2 fixes. Skipping...
+fi
+
 #### Make sure chainer-independent ####
 python3 -m pip uninstall -y chainer
 

@@ -63,6 +63,7 @@ jobs:
         with:
           flags: test_python
       - name: coverage erase
+        continue-on-error: true
         run: |
           source tools/activate_python.sh
           coverage erase
@@ -77,6 +78,7 @@ jobs:
         with:
           flags: test_utils
       - name: coverage erase
+        continue-on-error: true
         run: |
           source tools/activate_python.sh
           coverage erase
@@ -87,6 +89,7 @@ jobs:
         with:
           flags: test_integration_espnet1
       - name: coverage erase
+        continue-on-error: true
         run: |
           source tools/activate_python.sh
           coverage erase
