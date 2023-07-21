@@ -192,8 +192,7 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
     cd ./egs2/mini_an4/ssl1
     gen_dummy_coverage
     echo "==== [ESPnet2] SSL1/HUBERT ==="
-    ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip_upload_hf false \
-        --hubert-args "--max_epoch=1" --python "${python}"
+    ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip_upload_hf false --python "${python}"
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"
