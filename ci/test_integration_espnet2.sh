@@ -133,7 +133,7 @@ cd "${cwd}"
 cd ./egs2/mini_an4/tts1
 gen_dummy_coverage
 echo "==== [ESPnet2] TTS ==="
-./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip-upload false  --train-args "--max_epoch 1" --python "${python}"
+./run.sh --ngpu 0 --stage 1 --stop-stage 8 --skip-upload false --python "${python}"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 
@@ -143,7 +143,7 @@ rm -rf exp dump data
 #   See also: https://github.com/pytorch/pytorch/issues/42446
 if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) > L("1.6")' &> /dev/null; then
     ./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inference_model latest.pth \
-        --ngpu 0 --stop-stage 8 --skip-upload false --train-args "--num_iters_per_epoch 1 --max_epoch 1" --python "${python}"
+        --ngpu 0 --stop-stage 8 --skip-upload false --train-config conf/train_vits.yaml --python "${python}"
     rm -rf exp dump data
 fi
 cd "${cwd}"
