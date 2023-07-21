@@ -179,8 +179,8 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     feats_types="raw"
     for t in ${feats_types}; do
         echo "==== feats_type=${t} ==="
-        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}"
-        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --enh-args "--max_epoch=1" --python "${python}" --local_data_opts "--random-enrollment true" --enh_config ./conf/train_random_enrollment.yaml
+        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}"
+        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" --local_data_opts "--random-enrollment true" --enh_config ./conf/train_random_enrollment.yaml
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data

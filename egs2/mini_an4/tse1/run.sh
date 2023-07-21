@@ -6,6 +6,8 @@ set -u
 set -o pipefail
 
 ./enh.sh \
+    --nj 2 \
+    --inference_nj 2 \
 	--is_tse_task true \
     --fs 16k \
     --lang en \
