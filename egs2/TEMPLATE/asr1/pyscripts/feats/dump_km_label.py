@@ -20,12 +20,12 @@ from ssl_feature_utils import (
     HubertFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
+    build_data_iterator,
     format_feature_conf_str,
 )
 
 from espnet2.utils.types import str2bool
 from espnet.utils.cli_readers import file_reader_helper
-from espnet.utils.cli_utils import is_scipy_wav_style
 from espnet.utils.cli_writers import file_writer_helper
 
 logging.basicConfig(
@@ -51,12 +51,19 @@ def get_parser():
     parser.add_argument("--use_gpu", type=str2bool, default=False)
     parser.add_argument("--online_feature_extract", type=str2bool, default=False)
     parser.add_argument("--feature_conf", type=str, default=None)
+    parser.add_argument("--batch_bins", type=int, default=1)
+    parser.add_argument(
+        "--utt2num_samples",
+        type=str,
+        default=None,
+        help="Specify the utt2num_samples file.",
+    )
 
     parser.add_argument(
         "--in_filetype",
         type=str,
         default="sound",
-        choices=["mat", "hdf5", "sound.hdf5", "sound"],
+        choices=["mat", "hdf5", "sound.hdf5", "sound", "kaldi_ark"],
         help="Specify the file format for the rspecifier. "
         '"mat" is the matrix format in kaldi',
     )
@@ -147,20 +154,24 @@ def dump_label(
             reader_conf["layer"] = int(reader_conf["layer"])
 
         reader = reader_class(**reader_conf)
+        iterator = build_data_iterator(
+            rspecifier,
+            in_filetype,
+            utt2num_samples=args.utt2num_samples,
+            batch_bins=kwargs.get("batch_bins", 1),
+        )
         with file_writer_helper(
             wspecifier,
             filetype=out_filetype,
         ) as writer:
-            for utt, mat in file_reader_helper(rspecifier, in_filetype):
-                if is_scipy_wav_style(mat):
-                    # If data is sound file, then got as Tuple[int, ndarray]
-                    rate, mat = mat
-                    mat = mat.astype(np.float64, order="C") / 32768.0
-                nsample = len(mat)
-                feat = reader.get_feats(mat, nsample).numpy()
+            for utt_ids, data in iterator:
+                feats, feats_lens = reader.get_feats(
+                    data["speech"], data["speech_lengths"]
+                )
 
-                lab = apply_kmeans(feat)
-                writer[utt] = lab
+                for idx, utt in enumerate(utt_ids):
+                    lab = apply_kmeans(feats[idx][: feats_lens[idx]].numpy())
+                    writer[utt] = lab
 
     logger.info("finished successfully")
 

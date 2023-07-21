@@ -1639,12 +1639,8 @@ class SpkPreprocessor(CommonPreprocessor):
         """
         Make speaker labels into integers
         """
-        if self.train:
-            int_label = self.spk2label[data["spk_labels"]]
-            data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
-
-        else:
-            data["spk_labels"] = np.asarray([int(data["spk_labels"])])
+        int_label = self.spk2label[data["spk_labels"]]
+        data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
 
         return data
 
