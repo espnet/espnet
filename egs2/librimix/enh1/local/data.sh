@@ -150,4 +150,46 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     done
 fi
 
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "stage 4: LibriMix Transcripts Files Prepration."
+
+    mkdir -p data/local
+    for dset in "train-clean-100" "train-clean-360" "dev-clean" "test-clean"; do
+        for reader_dir in $(find -L "${LIBRISPEECH}/${dset}" -mindepth 1 -maxdepth 1 -type d | sort); do
+            reader=$(basename "$reader_dir")
+            if ! [ $reader -eq $reader ]; then  # not integer.
+                log "Error: unexpected subdirectory name '$reader'"
+                exit 1
+            fi
+
+            for chapter_dir in $(find -L ${reader_dir}/ -mindepth 1 -maxdepth 1 -type d | sort); do
+                chapter=$(basename "$chapter_dir")
+                if ! [ "$chapter" -eq "$chapter" ]; then
+                    log "Error: unexpected chapter-subdirectory name '$chapter'"
+                    exit 1
+                fi
+
+                chapter_trans=${chapter_dir}/${reader}-${chapter}.trans.txt
+                [ ! -f  $chapter_trans ] && log "Error: expected file $chapter_trans to exist" && exit 1
+                cat "${chapter_trans}"
+            done
+        done > data/local/${dset}.txt
+    done
+    cat data/local/train-clean-100.txt data/local/train-clean-360.txt > data/local/train_clean_460.txt
+
+    for dset in "dev" "test" "train" "train-100" "train-360"; do
+        if [[ " ${dset} " =~ train* ]]; then
+            src_ls_dset_txt="train_clean_460.txt"
+        else
+            src_ls_dset_txt="${dset}-clean.txt"
+        fi
+
+        for i in $(seq ${num_spk}); do
+            awk -v idx=${i} '(FILENAME==ARGV[1]) {text[$1]=$0} (FILENAME==ARGV[2]) {split($1, lst, "_"); uttname=lst[idx]; print($1, text[uttname])}' \
+                data/local/${src_ls_dset_txt} data/${dset}/wav.scp | \
+                cut -d" " -f1,3- > data/${dset}/text_spk${i}
+        done
+    done
+fi
+
 log "Successfully finished. [elapsed=${SECONDS}s]"
