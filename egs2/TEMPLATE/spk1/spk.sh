@@ -207,8 +207,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # Train can be either multi-column data or not, but valid/test always require multi-column trial
         for dset in ${_dsets}; do
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
-            cp data/${dset}/trial.scp "${data_feats}/${dset}"
-            cp data/${dset}/trial2.scp "${data_feats}/${dset}"
             cp data/${dset}/trial_label "${data_feats}/${dset}"
 
             # shellcheck disable=SC2086

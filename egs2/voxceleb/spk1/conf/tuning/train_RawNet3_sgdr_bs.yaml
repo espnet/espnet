@@ -28,8 +28,8 @@ model_conf:
 
 loss: aamsoftmax
 loss_conf:
-  nOut: 256
-  nClasses: 7205
+  nout: 256
+  nclasses: 7205
   margin: 0.3
   scale: 30
 

@@ -21,24 +21,24 @@ class AAMSoftmax(AbsLoss):
     vision and pattern recognition. 2019.
 
     args:
-        nOut    : dimensionality of speaker embedding
-        nClaases: number of speakers in the training set
+        nout    : dimensionality of speaker embedding
+        nclaases: number of speakers in the training set
         margin  : margin value of AAMSoftmax
         scale   : scale value of AAMSoftmax
     """
 
     def __init__(
-        self, nOut, nClasses, margin=0.3, scale=15, easy_margin=False, **kwargs
+        self, nout, nclasses, margin=0.3, scale=15, easy_margin=False, **kwargs
     ):
-        super().__init__(nOut)
+        super().__init__(nout)
 
         self.test_normalize = True
 
         self.m = margin
         self.s = scale
-        self.in_feats = nOut
+        self.in_feats = nout
         self.weight = torch.nn.Parameter(
-            torch.FloatTensor(nClasses, nOut), requires_grad=True
+            torch.FloatTensor(nclasses, nout), requires_grad=True
         )
         self.ce = nn.CrossEntropyLoss()
         nn.init.xavier_normal_(self.weight, gain=1)
