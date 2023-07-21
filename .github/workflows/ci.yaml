@@ -43,7 +43,7 @@ jobs:
           sudo apt-get install -qq -y cmake libsndfile1-dev bc sox
       - name: Get PR labels
         id: pr-labels
-        uses: joerick/pr-labels-action@v1.0.8
+        uses: joerick/pr-labels-action@v1.0.9
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}

@@ -11,27 +11,27 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-if [ -n "${GITHUB_PR_LABEL_ASR}" ]; then
+if [ ! -z "${GITHUB_PR_LABEL_ASR}" ]; then
     log is "${GITHUB_PR_LABEL_ASR}"
 fi
 
-if [ -n "${GITHUB_PR_LABEL_CI}" ]; then
+if [ ! -z "${GITHUB_PR_LABEL_CI}" ]; then
     log is "${GITHUB_PR_LABEL_CI}"
 fi
 
-if [ -n "${GITHUB_PR_LABEL_INSTALLATION}" ]; then
+if [ ! -z "${GITHUB_PR_LABEL_INSTALLATION}" ]; then
     log is "${GITHUB_PR_LABEL_INSTALLATION}"
 fi
 
-if [ -n "${GITHUB_PR_LABEL_ESPNET1}" ]; then
+if [ ! -z "${GITHUB_PR_LABEL_ESPNET1}" ]; then
     log is "${GITHUB_PR_LABEL_ESPNET1}"
 fi
 
-if [ -n "${GITHUB_PR_LABEL_ESPNET2}" ]; then
+if [ ! -z "${GITHUB_PR_LABEL_ESPNET2}" ]; then
     log is "${GITHUB_PR_LABEL_ESPNET2}"
 fi
 
-if [ -n "${GITHUB_PR_LABEL_README}" ]; then
+if [ ! -z "${GITHUB_PR_LABEL_README}" ]; then
     log is "${GITHUB_PR_LABEL_README}"
 fi
 # TODO(Nelson): This break is intentional to test the labels. Will be removed after check.
