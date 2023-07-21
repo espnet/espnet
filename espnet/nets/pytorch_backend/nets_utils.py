@@ -149,7 +149,25 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     """
     if length_dim == 0:
         raise ValueError("length_dim cannot be 0: {}".format(length_dim))
+    
+    # If the input dimension is 2 or 3, then we use Wenet based implementation for tracable modeling.
+    # otherwise we use the traditional implementation for research use.
+    if isinstance(lengths, list):
+        logging.warn("Using make_pad_mask with a list of lengths is not tracable. " +
+                     "If you try to trace this function with type(lengths) == list, " +
+                     "please change the type of lengths to torch.LongTensor.")
 
+    if (
+        (xs is None or xs.dim() in (2, 3))
+        and length_dim <= 2
+        and not isinstance(lengths, list)
+    ):
+        return _make_pad_mask_traceable(lengths, xs, length_dim, maxlen)
+    else:
+        return _make_pad_mask(lengths, xs, length_dim, maxlen)
+
+
+def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     if not isinstance(lengths, list):
         lengths = lengths.long().tolist()
 
@@ -160,8 +178,8 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
         else:
             maxlen = xs.size(length_dim)
     else:
-        assert xs is None
-        assert maxlen >= int(max(lengths))
+        assert xs is None, "When maxlen is specified, xs must also be specified."
+        assert maxlen >= int(max(lengths)), f"maxlen {maxlen} must be >= max(lengths) {max(lengths)}"
 
     seq_range = torch.arange(0, maxlen, dtype=torch.int64)
     seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
@@ -169,7 +187,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     mask = seq_range_expand >= seq_length_expand
 
     if xs is not None:
-        assert xs.size(0) == bs, (xs.size(0), bs)
+        assert xs.size(0) == bs, f"The size of x.size(0) {xs.size(0)} must match the batch size {bs}"
 
         if length_dim < 0:
             length_dim = xs.dim() + length_dim
@@ -179,6 +197,47 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
         )
         mask = mask[ind].expand_as(xs).to(xs.device)
     return mask
+
+
+def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
+    """
+    Make mask tensor containing indices of padded part.
+    This is a simplified implementation of make_pad_mask without the xs input
+    that supports JIT tracing for applications like exporting models to ONNX.
+    Dimension length of xs should be 2 or 3.
+    """
+    assert len(lengths.shape) == 1
+
+    if xs is None:
+        device = lengths.device
+    else:
+        device = xs.device
+
+    if xs is not None and len(xs.shape) == 3:
+        if length_dim == 1:
+            lengths = lengths.unsqueeze(1).expand(*xs.transpose(1, 2).shape[:2])
+        else:
+            # Then length_dim is 2 or -1.
+            lengths = lengths.unsqueeze(1).expand(*xs.shape[:2])
+
+    if maxlen is not None:
+        assert xs is None
+        assert maxlen >= lengths.max()
+    elif xs is not None:
+        maxlen = xs.size(length_dim)
+    else:
+        maxlen = lengths.max()
+    
+    # clip max(length) to maxlen
+    lengths = lengths.clamp(1, maxlen)
+
+    mask = torch.ones(maxlen, maxlen, dtype=torch.bool, device=device).triu(diagonal=1)
+    mask = mask[lengths - 1][..., :maxlen]
+
+    if length_dim == 1:
+        return mask.transpose(1, 2)
+    else:
+        return mask
 
 
 def make_non_pad_mask(lengths, xs=None, length_dim=-1):
