@@ -11,6 +11,7 @@ on:
 jobs:
   linter_and_test:
     runs-on: ${{ matrix.os }}
+    if: github.event.pull_request.draft == false
     strategy:
       max-parallel: 20
       matrix:
