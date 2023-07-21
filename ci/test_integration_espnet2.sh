@@ -248,7 +248,7 @@ cd "${cwd}"
 cd ./egs2/mini_an4/asr2
 gen_dummy_coverage
 echo "==== [ESPnet2] ASR2 ==="
-./run.sh --ngpu 0 --stage 1 --stop-stage 15 --skip-upload false --use-lm false --asr-args "--max_epoch 1" --python "${python}"
+./run.sh --ngpu 0 --stage 1 --stop-stage 15 --skip-upload false --use-lm false --python "${python}"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
