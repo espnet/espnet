@@ -1,10 +1,9 @@
-# Copyright 2023 Tianzi Wang
+# Copyright 2023
 # Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0
 
-# Thanks to Abdelrahman Mohamed and Wei-Ning Hsu's help in this implementation,
-# Their origial Hubert work is in:
-#     Paper: https://arxiv.org/pdf/2106.07447.pdf
-#     Code in Fairseq: https://github.com/pytorch/fairseq/tree/master/examples/hubert
+# The original AVHubert work is in:
+#     Paper: https://arxiv.org/pdf/2201.02184.pdf
+#     Original code: https://github.com/facebookresearch/av_hubert
 
 
 """Encoder definition."""
@@ -126,10 +125,6 @@ class FairseqAVHubertEncoder(AbsEncoder):
 
         self.freeze_finetune_updates = freeze_finetune_updates
         self.register_buffer("num_updates", torch.LongTensor([0]))
-
-        import pdb
-
-        pdb.set_trace()
 
     def output_size(self) -> int:
         return self._output_size
