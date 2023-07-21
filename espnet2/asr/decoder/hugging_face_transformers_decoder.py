@@ -39,7 +39,6 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
         causal_lm: bool = False,
         prefix: str = "",
         postfix: str = "",
-        soft_prefix: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -55,9 +54,25 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
 
         if self.causal_lm:
             model = AutoModelForCausalLM.from_pretrained(model_name_or_path)
-            self.decoder = model.transformer
-            self.decoder_word_embeddings = self.decoder.word_embeddings
-            self.decoder_pad_token_id = self.decoder.config.pad_token_id
+
+            if hasattr(model, "transformer"):
+                self.decoder = model.transformer
+            elif hasattr(model, "gpt_neox"):
+                self.decoder = model.gpt_neox
+            else:
+                raise Exception("Can not find the transformer attribute")
+
+            if hasattr(self.decoder, "word_embeddings"):
+                self.decoder_word_embeddings = self.decoder.word_embeddings
+            elif hasattr(self.decoder, "embed_in"):
+                self.decoder_word_embeddings = self.decoder.embed_in
+            else:
+                raise Exception("Can not find the word embeddings attribute")
+
+            if self.decoder.config.pad_token_id is not None:
+                self.decoder_pad_token_id = self.decoder.config.pad_token_id
+            else:
+                self.decoder_pad_token_id = 1
         else:
             model = AutoModelForSeq2SeqLM.from_pretrained(model_name_or_path)
 
@@ -68,7 +83,13 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
 
         model.resize_token_embeddings(vocab_size)
 
-        self.lm_head = model.lm_head
+        if hasattr(model, "lm_head"):
+            self.lm_head = model.lm_head
+        elif hasattr(model, "embed_out"):
+            self.lm_head = model.embed_out
+        else:
+            raise Exception("Can not find the LM head attribute")
+
         self.model_name_or_path = model_name_or_path
 
         self.decoder_pretrained_params = copy.deepcopy(self.decoder.state_dict())
@@ -84,17 +105,13 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
         tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
         self.tokenizer_padding_side = tokenizer.padding_side
 
-        self.prefix = torch.nn.Parameter(
-            self.decoder.word_embeddings(
-                tokenizer.encode(prefix, return_tensors="pt")
-            ).detach(),
-            requires_grad=soft_prefix,
-        )
-        self.postfix_tokens = tokenizer.encode(postfix, return_tensors="pt")
-        self.postfix = torch.nn.Parameter(
-            self.decoder.word_embeddings(self.postfix_tokens).detach(),
-            requires_grad=soft_prefix,
-        )
+        self.prefix = self.decoder_word_embeddings(
+            tokenizer.encode(prefix, return_tensors="pt")
+        ).detach()
+
+        self.postfix = self.decoder_word_embeddings(
+            tokenizer.encode(postfix, return_tensors="pt")
+        ).detach()
 
     def forward(
         self,
@@ -186,10 +203,12 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
 
         for i in range(len(hlens)):
             enc_out_element = [
-                self.prefix,
+                self.prefix.to(enc_out.device),
                 enc_out[i : i + 1, : hlens[i], :],
-                self.postfix,
-                self.decoder_word_embeddings(ys_in_pad[i : i + 1, 1 : ys_in_lens[i]]),
+                self.postfix.to(enc_out.device),
+                self.decoder_word_embeddings(
+                    ys_in_pad[i : i + 1, 1 : ys_in_lens[i]]
+                ).to(enc_out.device),
             ]
 
             padding = self.decoder_word_embeddings(
