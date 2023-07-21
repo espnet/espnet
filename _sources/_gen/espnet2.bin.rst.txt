@@ -114,6 +114,17 @@ espnet2.bin.asr_inference
     :show-inheritance:
 
 
+.. _espnet2.bin.spk_train:
+
+espnet2.bin.spk_train
+---------------------
+
+.. automodule:: espnet2.bin.spk_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.enh_scoring:
 
 espnet2.bin.enh_scoring

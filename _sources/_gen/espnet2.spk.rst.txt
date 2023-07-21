@@ -1,0 +1,170 @@
+
+espnet2.spk package
+===================
+
+
+
+.. _espnet2.spk.espnet_model:
+
+espnet2.spk.espnet_model
+------------------------
+
+.. automodule:: espnet2.spk.espnet_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.__init__:
+
+espnet2.spk.__init__
+--------------------
+
+.. automodule:: espnet2.spk.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.layers.RawNetBasicBlock:
+
+espnet2.spk.layers.RawNetBasicBlock
+-----------------------------------
+
+.. automodule:: espnet2.spk.layers.RawNetBasicBlock
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.layers.__init__:
+
+espnet2.spk.layers.__init__
+---------------------------
+
+.. automodule:: espnet2.spk.layers.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.encoder.rawnet3_encoder:
+
+espnet2.spk.encoder.rawnet3_encoder
+-----------------------------------
+
+.. automodule:: espnet2.spk.encoder.rawnet3_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.encoder.__init__:
+
+espnet2.spk.encoder.__init__
+----------------------------
+
+.. automodule:: espnet2.spk.encoder.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.loss.aamsoftmax:
+
+espnet2.spk.loss.aamsoftmax
+---------------------------
+
+.. automodule:: espnet2.spk.loss.aamsoftmax
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.loss.__init__:
+
+espnet2.spk.loss.__init__
+-------------------------
+
+.. automodule:: espnet2.spk.loss.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.loss.abs_loss:
+
+espnet2.spk.loss.abs_loss
+-------------------------
+
+.. automodule:: espnet2.spk.loss.abs_loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.pooling.chn_attn_stat_pooling:
+
+espnet2.spk.pooling.chn_attn_stat_pooling
+-----------------------------------------
+
+.. automodule:: espnet2.spk.pooling.chn_attn_stat_pooling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.pooling.__init__:
+
+espnet2.spk.pooling.__init__
+----------------------------
+
+.. automodule:: espnet2.spk.pooling.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.pooling.abs_pooling:
+
+espnet2.spk.pooling.abs_pooling
+-------------------------------
+
+.. automodule:: espnet2.spk.pooling.abs_pooling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.projector.__init__:
+
+espnet2.spk.projector.__init__
+------------------------------
+
+.. automodule:: espnet2.spk.projector.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.projector.rawnet3_projector:
+
+espnet2.spk.projector.rawnet3_projector
+---------------------------------------
+
+.. automodule:: espnet2.spk.projector.rawnet3_projector
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.spk.projector.abs_projector:
+
+espnet2.spk.projector.abs_projector
+-----------------------------------
+
+.. automodule:: espnet2.spk.projector.abs_projector
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

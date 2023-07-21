@@ -59,6 +59,17 @@ espnet2.tasks.diar
     :show-inheritance:
 
 
+.. _espnet2.tasks.spk:
+
+espnet2.tasks.spk
+-----------------
+
+.. automodule:: espnet2.tasks.spk
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.slu:
 
 espnet2.tasks.slu

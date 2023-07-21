@@ -128,6 +128,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.svs.html">espnet2.svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.spk.html">espnet2.spk package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -150,6 +151,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-mt-train-1">espnet2.bin.mt_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-lm-inference-1">espnet2.bin.lm_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference-1">espnet2.bin.asr_inference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-spk-train-1">espnet2.bin.spk_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-scoring-1">espnet2.bin.enh_scoring</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-pack-1">espnet2.bin.pack</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference-streaming-1">espnet2.bin.asr_inference_streaming</a></li>
@@ -557,6 +559,30 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 <dt id="espnet2.bin.asr_inference.main">
 <code class="sig-prename descclassname">espnet2.bin.asr_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/asr_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.asr_inference.main" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+</section>
+<section id="espnet2-bin-spk-train-1">
+<span id="espnet2-bin-spk-train"></span><h2>espnet2.bin.spk_train<a class="headerlink" href="#espnet2-bin-spk-train-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.spk_train"></span><dl class="function">
+<dt id="espnet2.bin.spk_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.spk_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/spk_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.spk_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.spk_train.main">
+<code class="sig-prename descclassname">espnet2.bin.spk_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/spk_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.spk_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="simple">
+<dt>Speaker embedding extractor training. Trained model can be used for</dt><dd><p>speaker verification, open set speaker identification, and also as
+embeddings for various other tasks including speaker diarization.</p>
+</dd>
+</dl>
+<p class="rubric">Example</p>
+<dl class="simple">
+<dt>% python spk_train.py –print_config –optim adadelta </dt><dd><p>&gt; conf/train_spk.yaml</p>
+</dd>
+</dl>
+<p>% python spk_train.py –config conf/train_diar.yaml</p>
+</dd></dl>
 
 </section>
 <section id="espnet2-bin-enh-scoring-1">

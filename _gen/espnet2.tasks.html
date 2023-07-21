@@ -128,6 +128,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.svs.html">espnet2.svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.fileio.html">espnet2.fileio package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.spk.html">espnet2.spk package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -144,6 +145,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-asvspoof-1">espnet2.tasks.asvspoof</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-hubert-1">espnet2.tasks.hubert</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-diar-1">espnet2.tasks.diar</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-spk-1">espnet2.tasks.spk</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-slu-1">espnet2.tasks.slu</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-mt-1">espnet2.tasks.mt</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-tasks-gan-tts-1">espnet2.tasks.gan_tts</a></li>
@@ -643,6 +645,93 @@ If your model is defined as following,</p>
 <dl class="attribute">
 <dt id="espnet2.tasks.diar.DiarizationTask.trainer">
 <code class="sig-name descname">trainer</code><a class="headerlink" href="#espnet2.tasks.diar.DiarizationTask.trainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>alias of <a class="reference internal" href="espnet2.train.html#espnet2.train.trainer.Trainer" title="espnet2.train.trainer.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.trainer.Trainer</span></code></a></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-tasks-spk-1">
+<span id="espnet2-tasks-spk"></span><h2>espnet2.tasks.spk<a class="headerlink" href="#espnet2-tasks-spk-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.tasks.spk"></span><dl class="class">
+<dt id="espnet2.tasks.spk.SpeakerTask">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.tasks.spk.</code><code class="sig-name descname">SpeakerTask</code><a class="reference internal" href="../_modules/espnet2/tasks/spk.html#SpeakerTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.tasks.abs_task.AbsTask" title="espnet2.tasks.abs_task.AbsTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.tasks.abs_task.AbsTask</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.tasks.spk.SpeakerTask.add_task_arguments">
+<em class="property">classmethod </em><code class="sig-name descname">add_task_arguments</code><span class="sig-paren">(</span><em class="sig-param">parser: argparse.ArgumentParser</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/tasks/spk.html#SpeakerTask.add_task_arguments"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask.add_task_arguments" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.spk.SpeakerTask.build_collate_fn">
+<em class="property">classmethod </em><code class="sig-name descname">build_collate_fn</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">train: bool</em><span class="sig-paren">)</span> &#x2192; Callable[[Collection[Tuple[str, Dict[str, numpy.ndarray]]]], Tuple[List[str], Dict[str, torch.Tensor]]]<a class="reference internal" href="../_modules/espnet2/tasks/spk.html#SpeakerTask.build_collate_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask.build_collate_fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return “collate_fn”, which is a callable object and given to DataLoader.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">torch.utils.data</span> <span class="kn">import</span> <span class="n">DataLoader</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">collate_fn</span><span class="o">=</span><span class="bp">cls</span><span class="o">.</span><span class="n">build_collate_fn</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="o">...</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In many cases, you can use our common collate_fn.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.spk.SpeakerTask.build_model">
+<em class="property">classmethod </em><code class="sig-name descname">build_model</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em><span class="sig-paren">)</span> &#x2192; espnet2.spk.espnet_model.ESPnetSpeakerModel<a class="reference internal" href="../_modules/espnet2/tasks/spk.html#SpeakerTask.build_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask.build_model" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.spk.SpeakerTask.build_preprocess_fn">
+<em class="property">classmethod </em><code class="sig-name descname">build_preprocess_fn</code><span class="sig-paren">(</span><em class="sig-param">args: argparse.Namespace</em>, <em class="sig-param">train: bool</em><span class="sig-paren">)</span> &#x2192; Optional[Callable[[str, Dict[str, numpy.array]], Dict[str, numpy.ndarray]]]<a class="reference internal" href="../_modules/espnet2/tasks/spk.html#SpeakerTask.build_preprocess_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask.build_preprocess_fn" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.spk.SpeakerTask.class_choices_list">
+<code class="sig-name descname">class_choices_list</code><em class="property"> = [&lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;, &lt;espnet2.train.class_choices.ClassChoices object&gt;]</em><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask.class_choices_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.spk.SpeakerTask.num_optimizers">
+<code class="sig-name descname">num_optimizers</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask.num_optimizers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.spk.SpeakerTask.optional_data_names">
+<em class="property">classmethod </em><code class="sig-name descname">optional_data_names</code><span class="sig-paren">(</span><em class="sig-param">train: bool = True</em>, <em class="sig-param">inference: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/tasks/spk.html#SpeakerTask.optional_data_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask.optional_data_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the optional names by Task</p>
+<p>This function is used by
+&gt;&gt;&gt; cls.check_task_requirements()
+If your model is defined as follows,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="k">pass</span>
+</pre></div>
+</div>
+<p>then “optional_data_names” should be as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">optional_data_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;opt&#39;</span><span class="p">,)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.tasks.spk.SpeakerTask.required_data_names">
+<em class="property">classmethod </em><code class="sig-name descname">required_data_names</code><span class="sig-paren">(</span><em class="sig-param">train: bool = True</em>, <em class="sig-param">inference: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[str, ...]<a class="reference internal" href="../_modules/espnet2/tasks/spk.html#SpeakerTask.required_data_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask.required_data_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Define the required names by Task</p>
+<p>This function is used by
+&gt;&gt;&gt; cls.check_task_requirements()
+If your model is defined as following,</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span> <span class="nc">Model</span><span class="p">(</span><span class="n">AbsESPnetModel</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">opt</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>  <span class="k">pass</span>
+</pre></div>
+</div>
+<p>then “required_data_names” should be as</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">required_data_names</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="s1">&#39;output&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.tasks.spk.SpeakerTask.trainer">
+<code class="sig-name descname">trainer</code><a class="headerlink" href="#espnet2.tasks.spk.SpeakerTask.trainer" title="Permalink to this definition">¶</a></dt>
 <dd><p>alias of <a class="reference internal" href="espnet2.train.html#espnet2.train.trainer.Trainer" title="espnet2.train.trainer.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.trainer.Trainer</span></code></a></p>
 </dd></dl>
 

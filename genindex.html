@@ -147,6 +147,7 @@
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.svs.html">espnet2.svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.spk.html">espnet2.spk package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -237,6 +238,8 @@
 <h2 id="A">A</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.loss.aamsoftmax.AAMSoftmax">AAMSoftmax (class in espnet2.spk.loss.aamsoftmax)</a>
+</li>
       <li><a href="_gen/espnet2.asvspoof.html#espnet2.asvspoof.loss.abs_loss.AbsASVSpoofLoss">AbsASVSpoofLoss (class in espnet2.asvspoof.loss.abs_loss)</a>
 </li>
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.attractor.abs_attractor.AbsAttractor">AbsAttractor (class in espnet2.diar.attractor.abs_attractor)</a>
@@ -293,11 +296,15 @@
 </li>
       <li><a href="_gen/espnet2.lm.html#espnet2.lm.abs_model.AbsLM">AbsLM (class in espnet2.lm.abs_model)</a>
 </li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.loss.abs_loss.AbsLoss">AbsLoss (class in espnet2.spk.loss.abs_loss)</a>
+</li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.wrappers.abs_wrapper.AbsLossWrapper">AbsLossWrapper (class in espnet2.enh.loss.wrappers.abs_wrapper)</a>
 </li>
       <li><a href="_gen/espnet2.diar.html#espnet2.diar.layers.abs_mask.AbsMask">AbsMask (class in espnet2.diar.layers.abs_mask)</a>
 </li>
       <li><a href="_gen/espnet2.layers.html#espnet2.layers.abs_normalize.AbsNormalize">AbsNormalize (class in espnet2.layers.abs_normalize)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.pooling.abs_pooling.AbsPooling">AbsPooling (class in espnet2.spk.pooling.abs_pooling)</a>
 </li>
       <li><a href="_gen/espnet2.slu.html#espnet2.slu.postdecoder.abs_postdecoder.AbsPostDecoder">AbsPostDecoder (class in espnet2.slu.postdecoder.abs_postdecoder)</a>
 </li>
@@ -306,6 +313,8 @@
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.preencoder.abs_preencoder.AbsPreEncoder">AbsPreEncoder (class in espnet2.asr.preencoder.abs_preencoder)</a>
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.preprocessor.AbsPreprocessor">AbsPreprocessor (class in espnet2.train.preprocessor)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.projector.abs_projector.AbsProjector">AbsProjector (class in espnet2.spk.projector.abs_projector)</a>
 </li>
       <li><a href="_gen/espnet2.samplers.html#espnet2.samplers.abs_sampler.AbsSampler">AbsSampler (class in espnet2.samplers.abs_sampler)</a>
 </li>
@@ -544,6 +553,8 @@
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.add_task_arguments">(espnet2.tasks.slu.SLUTask class method)</a>
 </li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask.add_task_arguments">(espnet2.tasks.spk.SpeakerTask class method)</a>
+</li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.st.STTask.add_task_arguments">(espnet2.tasks.st.STTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.svs.SVSTask.add_task_arguments">(espnet2.tasks.svs.SVSTask class method)</a>
@@ -563,8 +574,14 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.state_spaces.residual.Affine">Affine (class in espnet2.asr.state_spaces.residual)</a>
 </li>
-      <li><a href="_gen/espnet2.train.html#espnet2.train.reporter.aggregate">aggregate() (in module espnet2.train.reporter)</a>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.layers.RawNetBasicBlock.AFMS">AFMS (class in espnet2.spk.layers.RawNetBasicBlock)</a>
 </li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel.aggregate">aggregate() (espnet2.spk.espnet_model.ESPnetSpeakerModel method)</a>
+
+      <ul>
+        <li><a href="_gen/espnet2.train.html#espnet2.train.reporter.aggregate">(in module espnet2.train.reporter)</a>
+</li>
+      </ul></li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.aggregate_stats_dirs.aggregate_stats_dirs">aggregate_stats_dirs() (in module espnet2.bin.aggregate_stats_dirs)</a>
 </li>
       <li><a href="_gen/espnet.scheduler.html#espnet.scheduler.scheduler.CyclicCosineScheduler.alias">alias (espnet.scheduler.scheduler.CyclicCosineScheduler attribute)</a>
@@ -991,6 +1008,8 @@
       </ul></li>
       <li><a href="_gen/espnet2.uasr.html#espnet2.uasr.generator.conv_generator.ConvGenerator.bn_padded_data">bn_padded_data() (espnet2.uasr.generator.conv_generator.ConvGenerator method)</a>
 </li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.layers.RawNetBasicBlock.Bottle2neck">Bottle2neck (class in espnet2.spk.layers.RawNetBasicBlock)</a>
+</li>
       <li><a href="_gen/espnet.lm.html#espnet.lm.chainer_backend.lm.BPTTUpdater">BPTTUpdater (class in espnet.lm.chainer_backend.lm)</a>
 
       <ul>
@@ -1027,10 +1046,10 @@
 </li>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.building.build_branchformer_block">build_branchformer_block() (in module espnet2.asr_transducer.encoder.building)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_chunk_iter_factory">build_chunk_iter_factory() (espnet2.tasks.abs_task.AbsTask class method)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_collate_fn">build_collate_fn() (espnet2.tasks.abs_task.AbsTask class method)</a>
 
       <ul>
@@ -1057,6 +1076,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.lm.LMTask.build_collate_fn">(espnet2.tasks.lm.LMTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.mt.MTTask.build_collate_fn">(espnet2.tasks.mt.MTTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask.build_collate_fn">(espnet2.tasks.spk.SpeakerTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.st.STTask.build_collate_fn">(espnet2.tasks.st.STTask class method)</a>
 </li>
@@ -1136,6 +1157,8 @@
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.build_model">(espnet2.tasks.slu.SLUTask class method)</a>
 </li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask.build_model">(espnet2.tasks.spk.SpeakerTask class method)</a>
+</li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.st.STTask.build_model">(espnet2.tasks.st.STTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.svs.SVSTask.build_model">(espnet2.tasks.svs.SVSTask class method)</a>
@@ -1203,6 +1226,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.mt.MTTask.build_preprocess_fn">(espnet2.tasks.mt.MTTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.build_preprocess_fn">(espnet2.tasks.slu.SLUTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask.build_preprocess_fn">(espnet2.tasks.spk.SpeakerTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.st.STTask.build_preprocess_fn">(espnet2.tasks.st.STTask class method)</a>
 </li>
@@ -1405,6 +1430,8 @@
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.deterministic_embed_id.EmbedIDFunction.check_type_forward">check_type_forward() (espnet.nets.chainer_backend.deterministic_embed_id.EmbedIDFunction method)</a>
 </li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling">ChnAttnStatPooling (class in espnet2.spk.pooling.chn_attn_stat_pooling)</a>
+</li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.class_choices.ClassChoices.choices">choices() (espnet2.train.class_choices.ClassChoices method)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.asr_align.CTCSegmentation.choices_text_converter">choices_text_converter (espnet2.bin.asr_align.CTCSegmentation attribute)</a>
@@ -1469,6 +1496,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.mt.MTTask.class_choices_list">(espnet2.tasks.mt.MTTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.class_choices_list">(espnet2.tasks.slu.SLUTask attribute)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask.class_choices_list">(espnet2.tasks.spk.SpeakerTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.st.STTask.class_choices_list">(espnet2.tasks.st.STTask attribute)</a>
 </li>
@@ -1538,6 +1567,8 @@
 </li>
         <li><a href="_gen/espnet2.slu.html#espnet2.slu.espnet_model.ESPnetSLUModel.collect_feats">(espnet2.slu.espnet_model.ESPnetSLUModel method)</a>
 </li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel.collect_feats">(espnet2.spk.espnet_model.ESPnetSpeakerModel method)</a>
+</li>
         <li><a href="_gen/espnet2.st.html#espnet2.st.espnet_model.ESPnetSTModel.collect_feats">(espnet2.st.espnet_model.ESPnetSTModel method)</a>
 </li>
         <li><a href="_gen/espnet2.svs.html#espnet2.svs.espnet_model.ESPnetSVSModel.collect_feats">(espnet2.svs.espnet_model.ESPnetSVSModel method)</a>
@@ -1593,12 +1624,12 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_alphas_kernel">compute_alphas_kernel (in module espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.asr_transducer.html#espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention.compute_attention_score">compute_attention_score() (espnet2.asr_transducer.encoder.modules.attention.RelPositionMultiHeadedAttention method)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks.compute_aux_transducer_and_symm_kl_div_losses">compute_aux_transducer_and_symm_kl_div_losses() (espnet.nets.pytorch_backend.transducer.transducer_tasks.TransducerTasks method)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT.compute_betas_and_grads">compute_betas_and_grads() (espnet2.asr.transducer.rnnt_multi_blank.utils.cpu_utils.cpu_rnnt.CPURNNT method)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel.compute_betas_kernel">compute_betas_kernel (in module espnet2.asr.transducer.rnnt_multi_blank.utils.cuda_utils.gpu_rnnt_kernel)</a>
@@ -2426,6 +2457,8 @@
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_asr_transducer.E2E.encode_custom">encode_custom() (espnet.nets.pytorch_backend.e2e_asr_transducer.E2E method)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel.encode_diar">encode_diar() (espnet2.enh.espnet_enh_s2t_model.ESPnetEnhS2TModel method)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel.encode_frame">encode_frame() (espnet2.spk.espnet_model.ESPnetSpeakerModel method)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.wavenet.encode_mu_law">encode_mu_law() (in module espnet.nets.pytorch_backend.wavenet)</a>
 </li>
@@ -3285,8 +3318,6 @@
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_inference_streaming">espnet2.bin.asr_inference_streaming (module)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_train">espnet2.bin.asr_train (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.asr_transducer_inference">espnet2.bin.asr_transducer_inference (module)</a>
@@ -3305,6 +3336,8 @@
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.enh_inference_streaming">espnet2.bin.enh_inference_streaming (module)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.enh_s2t_train">espnet2.bin.enh_s2t_train (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.enh_scoring">espnet2.bin.enh_scoring (module)</a>
@@ -3340,6 +3373,8 @@
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.slu_inference">espnet2.bin.slu_inference (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.slu_train">espnet2.bin.slu_train (module)</a>
+</li>
+      <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.spk_train">espnet2.bin.spk_train (module)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#module-espnet2.bin.split_scps">espnet2.bin.split_scps (module)</a>
 </li>
@@ -3815,6 +3850,36 @@
 </li>
       <li><a href="_gen/espnet2.slu.html#module-espnet2.slu.postencoder.transformer_postencoder">espnet2.slu.postencoder.transformer_postencoder (module)</a>
 </li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.__init__">espnet2.spk.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.encoder.__init__">espnet2.spk.encoder.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.encoder.rawnet3_encoder">espnet2.spk.encoder.rawnet3_encoder (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.espnet_model">espnet2.spk.espnet_model (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.layers.__init__">espnet2.spk.layers.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.layers.RawNetBasicBlock">espnet2.spk.layers.RawNetBasicBlock (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.loss.__init__">espnet2.spk.loss.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.loss.aamsoftmax">espnet2.spk.loss.aamsoftmax (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.loss.abs_loss">espnet2.spk.loss.abs_loss (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.pooling.__init__">espnet2.spk.pooling.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.pooling.abs_pooling">espnet2.spk.pooling.abs_pooling (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.pooling.chn_attn_stat_pooling">espnet2.spk.pooling.chn_attn_stat_pooling (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.projector.__init__">espnet2.spk.projector.__init__ (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.projector.abs_projector">espnet2.spk.projector.abs_projector (module)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#module-espnet2.spk.projector.rawnet3_projector">espnet2.spk.projector.rawnet3_projector (module)</a>
+</li>
       <li><a href="_gen/espnet2.st.html#module-espnet2.st.__init__">espnet2.st.__init__ (module)</a>
 </li>
       <li><a href="_gen/espnet2.st.html#module-espnet2.st.espnet_model">espnet2.st.espnet_model (module)</a>
@@ -3878,6 +3943,8 @@
       <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.mt">espnet2.tasks.mt (module)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.slu">espnet2.tasks.slu (module)</a>
+</li>
+      <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.spk">espnet2.tasks.spk (module)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#module-espnet2.tasks.st">espnet2.tasks.st (module)</a>
 </li>
@@ -4121,6 +4188,8 @@
 </li>
       <li><a href="_gen/espnet2.slu.html#espnet2.slu.espnet_model.ESPnetSLUModel">ESPnetSLUModel (class in espnet2.slu.espnet_model)</a>
 </li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel">ESPnetSpeakerModel (class in espnet2.spk.espnet_model)</a>
+</li>
       <li><a href="_gen/espnet2.st.html#espnet2.st.espnet_model.ESPnetSTModel">ESPnetSTModel (class in espnet2.st.espnet_model)</a>
 </li>
       <li><a href="_gen/espnet2.svs.html#espnet2.svs.espnet_model.ESPnetSVSModel">ESPnetSVSModel (class in espnet2.svs.espnet_model)</a>
@@ -4236,6 +4305,8 @@
       <li><a href="_gen/espnet2.main_funcs.html#espnet2.main_funcs.pack_funcs.Archiver.extract">extract() (espnet2.main_funcs.pack_funcs.Archiver method)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.state_spaces.utils.extract_attrs_from_obj">extract_attrs_from_obj() (in module espnet2.asr.state_spaces.utils)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel.extract_feats">extract_feats() (espnet2.spk.espnet_model.ESPnetSpeakerModel method)</a>
 </li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.uasr_extract_feature.extract_feature">extract_feature() (in module espnet2.bin.uasr_extract_feature)</a>
 </li>
@@ -5420,6 +5491,28 @@
 </li>
         <li><a href="_gen/espnet2.slu.html#espnet2.slu.postencoder.transformer_postencoder.TransformerPostEncoder.forward">(espnet2.slu.postencoder.transformer_postencoder.TransformerPostEncoder method)</a>
 </li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.forward">(espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward">(espnet2.spk.espnet_model.ESPnetSpeakerModel method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.layers.RawNetBasicBlock.AFMS.forward">(espnet2.spk.layers.RawNetBasicBlock.AFMS method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.layers.RawNetBasicBlock.Bottle2neck.forward">(espnet2.spk.layers.RawNetBasicBlock.Bottle2neck method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.layers.RawNetBasicBlock.PreEmphasis.forward">(espnet2.spk.layers.RawNetBasicBlock.PreEmphasis method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.loss.aamsoftmax.AAMSoftmax.forward">(espnet2.spk.loss.aamsoftmax.AAMSoftmax method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.loss.abs_loss.AbsLoss.forward">(espnet2.spk.loss.abs_loss.AbsLoss method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.pooling.abs_pooling.AbsPooling.forward">(espnet2.spk.pooling.abs_pooling.AbsPooling method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling.forward">(espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.projector.abs_projector.AbsProjector.forward">(espnet2.spk.projector.abs_projector.AbsProjector method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.projector.rawnet3_projector.RawNet3Projector.forward">(espnet2.spk.projector.rawnet3_projector.RawNet3Projector method)</a>
+</li>
         <li><a href="_gen/espnet2.st.html#espnet2.st.espnet_model.ESPnetSTModel.forward">(espnet2.st.espnet_model.ESPnetSTModel method)</a>
 </li>
         <li><a href="_gen/espnet2.svs.html#espnet2.svs.abs_svs.AbsSVS.forward">(espnet2.svs.abs_svs.AbsSVS method)</a>
@@ -6101,6 +6194,8 @@
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.slu_inference.get_parser">(in module espnet2.bin.slu_inference)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.slu_train.get_parser">(in module espnet2.bin.slu_train)</a>
+</li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.spk_train.get_parser">(in module espnet2.bin.spk_train)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.split_scps.get_parser">(in module espnet2.bin.split_scps)</a>
 </li>
@@ -7224,6 +7319,8 @@
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.slu_train.main">(in module espnet2.bin.slu_train)</a>
 </li>
+        <li><a href="_gen/espnet2.bin.html#espnet2.bin.spk_train.main">(in module espnet2.bin.spk_train)</a>
+</li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.split_scps.main">(in module espnet2.bin.split_scps)</a>
 </li>
         <li><a href="_gen/espnet2.bin.html#espnet2.bin.st_inference.main">(in module espnet2.bin.st_inference)</a>
@@ -7579,14 +7676,14 @@
 </li>
       <li><a href="_gen/espnet2.fileio.html#espnet2.fileio.npy_scp.NpyScpWriter">NpyScpWriter (class in espnet2.fileio.npy_scp)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.beam_search_transducer.BeamSearchTransducer.nsc_beam_search">nsc_beam_search() (espnet.nets.beam_search_transducer.BeamSearchTransducer method)</a>
 
       <ul>
         <li><a href="_gen/espnet2.asr.html#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer.nsc_beam_search">(espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.decoder.null_decoder.NullDecoder">NullDecoder (class in espnet2.enh.decoder.null_decoder)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.encoder.null_encoder.NullEncoder">NullEncoder (class in espnet2.enh.encoder.null_encoder)</a>
@@ -7621,6 +7718,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.mt.MTTask.num_optimizers">(espnet2.tasks.mt.MTTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.num_optimizers">(espnet2.tasks.slu.SLUTask attribute)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask.num_optimizers">(espnet2.tasks.spk.SpeakerTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.st.STTask.num_optimizers">(espnet2.tasks.st.STTask attribute)</a>
 </li>
@@ -7744,6 +7843,8 @@
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.optional_data_names">(espnet2.tasks.slu.SLUTask class method)</a>
 </li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask.optional_data_names">(espnet2.tasks.spk.SpeakerTask class method)</a>
+</li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.st.STTask.optional_data_names">(espnet2.tasks.st.STTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.svs.SVSTask.optional_data_names">(espnet2.tasks.svs.SVSTask class method)</a>
@@ -7829,6 +7930,12 @@
         <li><a href="_gen/espnet2.slu.html#espnet2.slu.postencoder.conformer_postencoder.ConformerPostEncoder.output_size">(espnet2.slu.postencoder.conformer_postencoder.ConformerPostEncoder method)</a>
 </li>
         <li><a href="_gen/espnet2.slu.html#espnet2.slu.postencoder.transformer_postencoder.TransformerPostEncoder.output_size">(espnet2.slu.postencoder.transformer_postencoder.TransformerPostEncoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.output_size">(espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.projector.abs_projector.AbsProjector.output_size">(espnet2.spk.projector.abs_projector.AbsProjector method)</a>
+</li>
+        <li><a href="_gen/espnet2.spk.html#espnet2.spk.projector.rawnet3_projector.RawNet3Projector.output_size">(espnet2.spk.projector.rawnet3_projector.RawNet3Projector method)</a>
 </li>
         <li><a href="_gen/espnet2.svs.html#espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats.output_size">(espnet2.svs.feats_extract.score_feats_extract.FrameScoreFeats method)</a>
 </li>
@@ -7969,14 +8076,14 @@
       </ul></li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.PlotCTCReport">PlotCTCReport (class in espnet.asr.asr_utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.e2e_tts_transformer.TTSPlot.plotfn">plotfn() (espnet.nets.pytorch_backend.e2e_tts_transformer.TTSPlot method)</a>
 
       <ul>
         <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.plot.PlotAttentionReport.plotfn">(espnet.nets.pytorch_backend.transformer.plot.PlotAttentionReport method)</a>
 </li>
       </ul></li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.chainer_backend.transformer.embedding.PositionalEncoding">PositionalEncoding (class in espnet.nets.chainer_backend.transformer.embedding)</a>
 
       <ul>
@@ -8023,6 +8130,8 @@
         <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.dnn_wpe.DNN_WPE.predict_mask">(espnet2.enh.layers.dnn_wpe.DNN_WPE method)</a>
 </li>
       </ul></li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.layers.RawNetBasicBlock.PreEmphasis">PreEmphasis (class in espnet2.spk.layers.RawNetBasicBlock)</a>
+</li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.beam_search_transducer.BeamSearchTransducer.prefix_search">prefix_search() (espnet.nets.beam_search_transducer.BeamSearchTransducer method)</a>
 
       <ul>
@@ -8058,6 +8167,8 @@
       <li><a href="_gen/espnet2.tts.html#espnet2.tts.prodiff.prodiff.ProDiff">ProDiff (class in espnet2.tts.prodiff.prodiff)</a>
 </li>
       <li><a href="_gen/espnet2.tts.html#espnet2.tts.prodiff.loss.ProDiffLoss">ProDiffLoss (class in espnet2.tts.prodiff.loss)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel.project_spk_embd">project_spk_embd() (espnet2.spk.espnet_model.ESPnetSpeakerModel method)</a>
 </li>
       <li><a href="_gen/espnet2.gan_svs.html#espnet2.gan_svs.vits.modules.Projection">Projection (class in espnet2.gan_svs.vits.modules)</a>
 </li>
@@ -8104,6 +8215,10 @@
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.transformer.optimizer.NoamOpt.rate">rate() (espnet.nets.pytorch_backend.transformer.optimizer.NoamOpt method)</a>
 </li>
       <li><a href="_gen/espnet2.gan_tts.html#espnet2.gan_tts.vits.transform.rational_quadratic_spline">rational_quadratic_spline() (in module espnet2.gan_tts.vits.transform)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder">RawNet3Encoder (class in espnet2.spk.encoder.rawnet3_encoder)</a>
+</li>
+      <li><a href="_gen/espnet2.spk.html#espnet2.spk.projector.rawnet3_projector.RawNet3Projector">RawNet3Projector (class in espnet2.spk.projector.rawnet3_projector)</a>
 </li>
       <li><a href="_gen/espnet2.iterators.html#espnet2.iterators.sequence_iter_factory.RawSampler">RawSampler (class in espnet2.iterators.sequence_iter_factory)</a>
 </li>
@@ -8413,6 +8528,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.mt.MTTask.required_data_names">(espnet2.tasks.mt.MTTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.required_data_names">(espnet2.tasks.slu.SLUTask class method)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask.required_data_names">(espnet2.tasks.spk.SpeakerTask class method)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.st.STTask.required_data_names">(espnet2.tasks.st.STTask class method)</a>
 </li>
@@ -9049,10 +9166,10 @@
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.dprnn.SingleRNN">SingleRNN (class in espnet2.enh.layers.dprnn)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.SISNRLoss">SISNRLoss (class in espnet2.enh.loss.criterions.time_domain)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.utils.html#espnet2.utils.sized_dict.SizedDict">SizedDict (class in espnet2.utils.sized_dict)</a>
 </li>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.layers.skim.SkiM">SkiM (class in espnet2.enh.layers.skim)</a>
@@ -9125,6 +9242,8 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.preencoder.sinc.SpatialDropout">SpatialDropout (class in espnet2.asr.preencoder.sinc)</a>
 </li>
+      <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask">SpeakerTask (class in espnet2.tasks.spk)</a>
+</li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.spec_augment.spec_augment">spec_augment() (in module espnet.transform.spec_augment)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.specaug.specaug.SpecAug">SpecAug (class in espnet2.asr.specaug.specaug)</a>
@@ -9164,6 +9283,8 @@
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.asvspoof_inference.SpeechAntiSpoof">SpeechAntiSpoof (class in espnet2.bin.asvspoof_inference)</a>
 </li>
       <li><a href="_gen/espnet.transform.html#espnet.transform.perturb.SpeedPerturbation">SpeedPerturbation (class in espnet.transform.perturb)</a>
+</li>
+      <li><a href="_gen/espnet2.train.html#espnet2.train.preprocessor.SpkPreprocessor">SpkPreprocessor (class in espnet2.train.preprocessor)</a>
 </li>
       <li><a href="_gen/espnet2.text.html#espnet2.text.phoneme_tokenizer.split_by_space">split_by_space() (in module espnet2.text.phoneme_tokenizer)</a>
 </li>
@@ -9615,10 +9736,10 @@
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_load">torch_load() (in module espnet.asr.asr_utils)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_resume">torch_resume() (in module espnet.asr.asr_utils)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_save">torch_save() (in module espnet.asr.asr_utils)</a>
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_snapshot">torch_snapshot() (in module espnet.asr.asr_utils)</a>
@@ -9689,6 +9810,8 @@
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.mt.MTTask.trainer">(espnet2.tasks.mt.MTTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.slu.SLUTask.trainer">(espnet2.tasks.slu.SLUTask attribute)</a>
+</li>
+        <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.spk.SpeakerTask.trainer">(espnet2.tasks.spk.SpeakerTask attribute)</a>
 </li>
         <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.st.STTask.trainer">(espnet2.tasks.st.STTask attribute)</a>
 </li>
