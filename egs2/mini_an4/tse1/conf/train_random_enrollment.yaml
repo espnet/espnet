@@ -1,5 +1,6 @@
 optim: adam
-max_epoch: 10
+max_epoch: 1
+num_iters_per_epoch: 1
 iterator_type: chunk
 chunk_length: 5000
 # exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
@@ -18,27 +19,27 @@ load_all_speakers: false
 
 encoder: conv
 encoder_conf:
-    channel: 64
-    kernel_size: 16
+    channel: 2
+    kernel_size: 2
     stride: 8
 decoder: conv
 decoder_conf:
-    channel: 64
-    kernel_size: 16
+    channel: 2
+    kernel_size: 2
     stride: 8
 extractor: td_speakerbeam
 extractor_conf:
-    layer: 4
+    layer: 2
     stack: 2
-    bottleneck_dim: 8
-    hidden_dim: 16
-    skip_dim: 8
+    bottleneck_dim: 4
+    hidden_dim: 2
+    skip_dim: 2
     kernel: 3
     causal: false
     norm_type: gLN
     nonlinear: relu
     # enrollment related
-    i_adapt_layer: 3
+    i_adapt_layer: 1
     adapt_layer_type: mul
     adapt_enroll_dim: 8
 
