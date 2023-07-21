@@ -16,7 +16,7 @@ echo "==== ASR (backend=pytorch lm=RNNLM) ==="
 ./run.sh --python "${python}" --stage 3
 echo "==== ASR (backend=pytorch, lm=TransformerLM) ==="
 ./run.sh --python "${python}" --stage 3 --stop-stage 3 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
-# skip duplicated ASR training stage 4
+echo "==== ASR (backend=pytorch, lm=TransformerLM, api v2) ==="
 ./run.sh --python "${python}" --stage 5 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
 echo "==== ASR (backend=pytorch, dtype=float64) ==="
 ./run.sh --python "${python}" --stage 3 --train-config "$(change_yaml.py conf/train.yaml -a train-dtype=float64)" --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2 -a dtype=float64)"
@@ -24,6 +24,10 @@ echo "==== ASR (backend=pytorch, quantize-asr-model true, quantize-lm-model true
 ./run.sh --python "${python}" --stage 5 --decode-config "$(change_yaml.py conf/decode.yaml -a quantize-asr-model=true -a quantize-lm-model=true)"
 echo "==== ASR (backend=pytorch, quantize-asr-model true, quantize-lm-model true api v2) ==="
 ./run.sh --python "${python}" --stage 5 --decode-config "$(change_yaml.py conf/decode.yaml -a quantize-asr-model=true -a quantize-lm-model=true -a quantize-config=['Linear'] -a api=v2)"
+
+# this is used for the transfer learning
+echo "==== ASR (backend=pytorch, model=rnn-pure-ctc) ==="
+./run.sh --python "${python}" --stage 4 --train-config conf/train_pure_ctc.yaml --decode-config conf/decode_pure_ctc.yaml
 
 # test transformer recipe
 echo "=== ASR (backend=pytorch, model=transformer) ==="
@@ -41,7 +45,6 @@ echo "=== ASR (backend=pytorch, model=transformer-no-ctc) ==="
 echo "=== ASR (backend=pytorch num-encs 2, model=transformer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transformer.yaml \
         --decode-config conf/decode.yaml
-
 
 # test transducer recipe
 echo "=== ASR (backend=pytorch, model=rnnt) ==="
