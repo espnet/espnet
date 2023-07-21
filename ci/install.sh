@@ -15,6 +15,10 @@ if [ -n "${GITHUB_PR_LABEL_ASR}" ]; then
     log is "${GITHUB_PR_LABEL_ASR}"
 fi
 
+if [ -n "${GITHUB_PR_LABEL_CI}" ]; then
+    log is "${GITHUB_PR_LABEL_CI}"
+fi
+
 if [ -n "${GITHUB_PR_LABEL_INSTALLATION}" ]; then
     log is "${GITHUB_PR_LABEL_INSTALLATION}"
 fi
