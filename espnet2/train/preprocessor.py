@@ -1595,7 +1595,7 @@ class SpkPreprocessor(CommonPreprocessor):
                 int(startframe) : int(startframe) + self.target_duration
             ]
 
-            if self.noise_apply_prob > 0 or rir_apply_prob > 0:
+            if self.noise_apply_prob > 0 or self.rir_apply_prob > 0:
                 data["speech"] = self._apply_data_augmentation(data["speech"])
         else:
             audio = data["speech"]
