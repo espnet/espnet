@@ -1485,7 +1485,9 @@ class SpkPreprocessor(CommonPreprocessor):
         num_eval: int = 10,
         rir_scp: str = None,
         rir_apply_prob: float = 1.0,
-        noise_info: List[Tuple[float, str, Tuple[float, float]]] = None,
+        noise_info: List[
+            Tuple[float, str, Tuple[int, int], Tuple[float, float]]
+        ] = None,
         noise_apply_prob: float = 1.0,
         short_noise_thres: float = 0.5,
     ):
@@ -1507,13 +1509,17 @@ class SpkPreprocessor(CommonPreprocessor):
         self.noises = []
         self.noise_probs = []
         self.noise_db_ranges = []
+        self.noise_num_to_mix = []
         if noise_apply_prob > 0:
-            for prob, noise_scp, db_range in noise_info:
+            for prob, noise_scp, num_to_mix, db_range in noise_info:
                 if prob > 0:
                     assert len(db_range) == 2, db_range
                     assert db_range[0] <= db_range[1], db_range
+                    assert len(num_to_mix) == 2, num_to_mix
+                    assert num_to_mix[0] <= num_to_mix[1], num_to_mix
                     self.noise_probs.append(prob)
                     self.noise_db_ranges.append(tuple(db_range))
+                    self.noise_num_to_mix.append(num_to_mix)
                     noises = []
                     with open(noise_scp, "r", encoding="utf-8") as f:
                         for line in f:
@@ -1539,6 +1545,7 @@ class SpkPreprocessor(CommonPreprocessor):
             msg += f", noises.shapes={[len(n) for n in self.noises]}"
             msg += f", noise_probs={self.noise_probs}"
             msg += f", noise_db_ranges={self.noise_db_ranges}"
+            msg += f", noise_num_to_mix={self.noise_num_to_mix}"
         return msg + ")"
 
     def _make_label_mapping(self):
@@ -1615,13 +1622,19 @@ class SpkPreprocessor(CommonPreprocessor):
             idx = random.choices(
                 range(len(self.noises)), weights=self.noise_probs, k=1
             )[0]
-            speech, _ = self._add_noise(
-                speech,
-                power,
-                self.noises[idx],
-                self.noise_db_ranges[idx][0],
-                self.noise_db_ranges[idx][1],
-            )
+            low, high = self.noise_num_to_mix[idx]
+            if low == high:
+                num_to_mix = low
+            else:
+                num_to_mix = np.random.randint(low, high + 1)
+            for _ in range(num_to_mix):
+                speech, _ = self._add_noise(
+                    speech,
+                    power,
+                    self.noises[idx],
+                    self.noise_db_ranges[idx][0],
+                    self.noise_db_ranges[idx][1],
+                )
 
         speech = np.squeeze(speech.T, axis=1)
         ma = np.max(np.abs(speech))
