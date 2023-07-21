@@ -687,6 +687,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
         --other_sets "${test_sets} ${train_sp_sets}" \
         --datadir "${data_audio}" \
         --featdir "${data_extract}" \
+        --audio_format "${audio_format}" \
         --feature_type "${kmeans_feature_type}" \
         --layer "${layer}" \
         --feature_conf "${kmeans_feature_conf}" \
