@@ -9,22 +9,24 @@ on:
       - master
 
 jobs:
-  get_labels:
+  process_labels:
     runs-on: ubuntu-latest
+    outputs:
+      is_docker: ${{ steps.step1.outputs.is_docker }}
     steps:
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
       - run: |
           if [ -z "$GITHUB_PR_LABEL_ESPNET1" ] && [ -z "$GITHUB_PR_LABEL_ESPNET2" ] && [ -n "$GITHUB_PR_LABEL_DOCKER" ]; then
-            echo "is_not_docker=false" >> "$GITHUB_ENV"
+            echo "is_docker=true" >> "$GITHUB_OUTPUT"
           else
-            echo "is_not_docker=true" >> "$GITHUB_ENV"
+            echo "is_docker=false" >> "$GITHUB_OUTPUT"
           fi
   linter_and_test:
     runs-on: ${{ matrix.os }}
-    needs: get_labels
-    if: ${{ github.env.is_not_docker }}
+    needs: process_labels
+    if: needs.process_labels.outputs.is_docker == 'false'
     strategy:
       max-parallel: 20
       matrix:
