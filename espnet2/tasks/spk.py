@@ -201,6 +201,13 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
+            "--rir_scp",
+            type=str,
+            default="",
+            help="Directory of the rir data to be augmented",
+        )
+
+        group.add_argument(
             "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetSpeakerModel),
