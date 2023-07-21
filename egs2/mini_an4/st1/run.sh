@@ -10,6 +10,8 @@ tgt_case=lc.rm
 st_config=conf/train_st.yaml
 
 ./st.sh \
+    --nj 2 \
+    --inference_nj 2 \
     --src_lang en \
     --tgt_lang en \
     --src_token_type "bpe" \
@@ -23,6 +25,8 @@ st_config=conf/train_st.yaml
     --use_lm false \
     --token_joint false \
     --st_config "${st_config}" \
+    --lm_config conf/train_lm_rnn.yaml \
+    --inference_config conf/decode.yaml \
     --train_set "train_nodev" \
     --valid_set "train_dev" \
     --test_sets "train_dev test test_seg" \
