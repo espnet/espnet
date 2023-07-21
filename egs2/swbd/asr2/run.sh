@@ -44,9 +44,9 @@ tgt_case="ts"
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --use_lm false \
+    --score_opts "-s" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_sets}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
-    --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang} data/local/other_text/text" "$@"
+    --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$@"
