@@ -23,6 +23,7 @@ jobs:
           fi
   linter_and_test:
     runs-on: ubuntu-latest
+    needs: get_labels
     if: ${{ github.env.is_documentation }}
     steps:
       - uses: actions/checkout@master
