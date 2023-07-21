@@ -10,6 +10,7 @@ on:
 
 jobs:
   get_labels:
+    runs-on: ubuntu-latest
     steps:
       - name: Get PR labels
         id: pr-labels

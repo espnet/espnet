@@ -9,8 +9,21 @@ on:
       - master
 
 jobs:
+  get_labels:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
+      - run: |
+          if [ -n "$GITHUB_PR_LABEL_DOCUMENTATION" ]; then
+            echo "is_documentation=true" >> "$GITHUB_ENV"
+          else
+            echo "is_documentation=false" >> "$GITHUB_ENV"
+          fi
   linter_and_test:
     runs-on: ubuntu-latest
+    if: ${{ env.is_documentation }}
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v1
