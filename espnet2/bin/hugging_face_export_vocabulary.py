@@ -48,7 +48,7 @@ def export_vocabulary(
     vocab = tokenizer.get_vocab()
 
     for w in vocab:
-        if vocab[w] < tokenizer.vocab_size:# pythia tokenizer
+        if vocab[w] < tokenizer.vocab_size:  # pythia tokenizer
             words[vocab[w]] = w
 
     # Parse the values of --add_symbol
