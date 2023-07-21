@@ -80,9 +80,11 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
     for i in range(len(labels)):
         label = labels[i]
         # fix errors in dataset
+        # replace wrong phoneme with correct one
         if "itako30" in file_id and label.label_id == "o" and i == len(labels) - 2:
             label.label_id = "u"
         if label.label_id in sil:
+            # replace wrong phoneme with correct one
             if (
                 "itako25" in file_id
                 and i < len(labels) - 1
@@ -92,6 +94,7 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
                 segment.add(label.start, inter, "j")
                 segment.add(inter, label.end, "a")
                 continue
+            # remove rest
             if i < len(labels) - 1 and (
                 ("itako09" in file_id and labels[i + 4].label_id == "r")
                 or ("itako48" in file_id and labels[i + 4].label_id == "k")
@@ -102,6 +105,7 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
                 segments.extend(segment.split(threshold=threshold))
                 segment = SegInfo()
             continue
+        # add pause
         if "itako21" in file_id and (
             (label.label_id == "a" and labels[i - 1].label_id == "u")
             or (
@@ -117,6 +121,7 @@ def make_segment(file_id, labels, threshold=30, sil=["pau", "br", "sil"]):
         ):
             segments.extend(segment.split(threshold=threshold))
             segment = SegInfo()
+        # Add missing phoneme
         if (
             "itako27" in file_id
             and label.label_id == "i"

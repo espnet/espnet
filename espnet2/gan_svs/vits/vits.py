@@ -130,6 +130,7 @@ class VITS(AbsGANSVS):
             "use_weight_norm_in_flow": True,
             "use_only_mean_in_flow": True,
             "expand_f0_method": "repeat",
+            "use_phoneme_predictor": False,
         },
         # discriminator related
         discriminator_type: str = "hifigan_multi_scale_multi_period_discriminator",
@@ -281,7 +282,6 @@ class VITS(AbsGANSVS):
         lambda_phoneme: float = 1.0,
         lambda_c_yin: float = 45.0,
         cache_generator_outputs: bool = True,
-        use_phoneme_predictor: bool = False,
     ):
         """Initialize VITS module.
 
@@ -312,7 +312,6 @@ class VITS(AbsGANSVS):
             lambda_phoneme (float): Loss scaling coefficient for phoneme loss.
             lambda_c_yin (float): Loss scaling coefficient for yin loss.
             cache_generator_outputs (bool): Whether to cache generator outputs.
-            use_phoneme_predictor (bool): Whether to use phoneme predictor in the model.
 
         """
         assert check_argument_types()
@@ -328,7 +327,7 @@ class VITS(AbsGANSVS):
             generator_params.update(vocabs=idim, aux_channels=odim)
         self.generator_type = generator_type
         self.use_flow = True if generator_params["flow_flows"] > 0 else False
-        self.use_phoneme_predictor = use_phoneme_predictor
+        self.use_phoneme_predictor = generator_params["use_phoneme_predictor"]
         self.discriminator_type = discriminator_type
         if "avocodo" in discriminator_type:
             use_avocodo = True
@@ -725,18 +724,18 @@ class VITS(AbsGANSVS):
             loss = mel_loss + kl_loss + adv_loss + feat_match_loss
             if self.vocoder_generator_type == "visinger2":
                 ddsp_mel_loss = ddsp_mel_loss * self.lambda_mel
-                loss += ddsp_mel_loss
+                loss = loss + ddsp_mel_loss
             if self.generator_type == "visinger2":
                 loss_mel_am = self.mse_loss(feats * z_mask, predict_mel * z_mask)
-                loss += loss_mel_am
+                loss = loss + loss_mel_am
 
-            loss += pitch_loss
-            loss += phoneme_dur_loss
-            loss += score_dur_loss
+            loss = loss + pitch_loss
+            loss = loss + phoneme_dur_loss
+            loss = loss + score_dur_loss
             if self.use_phoneme_predictor:
-                loss += ctc_loss
+                loss = loss + ctc_loss
             if "pisinger" in self.generator_type:
-                loss += yin_dec_loss
+                loss = loss + yin_dec_loss
 
         stats = dict(
             generator_loss=loss.item(),

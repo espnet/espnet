@@ -10,6 +10,7 @@ AISHELL4=downloads
 ALFFA=downloads
 AMERICASNLP22=downloads
 AN4=downloads
+ASVTutorial=espnet_tutorial_asvspoof
 APHASIABANK=
 AUDIOSET=
 DIRHA_ENGLISH_PHDEV=
@@ -62,7 +63,7 @@ MAGICDATA=downloads
 MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
 MISP2021=
-MSUPERB=/ocean/projects/cis210027p/shared/corpora/MultilingualSUPERB
+MLSUPERB=
 L3DAS22=
 LIBRIMIX=downloads
 LIBRITTS=
@@ -181,6 +182,9 @@ ONIKU=
 PJS=
 AMEBOSHI=
 ITAKO=
+NATSUME=
+KIRITAN=
+NAMINE=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

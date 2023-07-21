@@ -332,9 +332,9 @@ class CommonPreprocessor(AbsPreprocessor):
             text = self.text_cleaner(text)
             tokens = self.tokenizer.text2tokens(text)
             text_ints = self.token_id_converter.tokens2ids(tokens)
-            if len(text_ints) > 100:
+            if len(text_ints) > 500:
                 logging.warning(
-                    "The length of the text output exceeds 100, "
+                    "The length of the text output exceeds 500, "
                     "which may cause OOM on the GPU."
                     "Please ensure that the data processing is correct and verify it."
                 )
@@ -555,6 +555,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         speech_volume_normalize: float = None,
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
+        tokenizer_encode_conf: List[Dict] = [dict(), dict()],
     ):
         # TODO(jiatong): sync with Kamo and Jing on interface for preprocessor
         super().__init__(
@@ -599,6 +600,9 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                         space_symbol=space_symbol,
                         non_linguistic_symbols=non_linguistic_symbols,
                         g2p_type=g2p_type,
+                        encode_kwargs=tokenizer_encode_conf[i]
+                        if i < len(tokenizer_encode_conf)
+                        else None,
                     )
                 )
                 self.token_id_converter.append(

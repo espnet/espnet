@@ -79,6 +79,8 @@ def asr_config_file(tmp_path: Path, token_list):
         "vgg_branchformer",
         "conv2d_conformer",
         "vgg_conformer",
+        "conv2d_ebranchformer",
+        "vgg_ebranchformer",
     ]
 )
 def asr_stream_config_file(request, tmp_path: Path, token_list):
@@ -90,7 +92,7 @@ def asr_stream_config_file(request, tmp_path: Path, token_list):
         "{'block_type': 'conv1d', 'kernel_size': 2, 'output_size': 2, "
         "'batch_norm': True, 'relu': True}], "
         "'main_conf': {'dynamic_chunk_training': True',"
-        "'short_chunk_size': 1, 'left_chunk_size': 1}}"
+        "'short_chunk_size': 1, 'num_left_chunks': 1}}"
     ) % (main_type)
 
     if request.param.startswith("vgg"):
@@ -173,22 +175,23 @@ def test_Speech2Text(use_lm, token_type, asr_config_file, lm_config_file):
 
 @pytest.mark.execution_timeout(10)
 @pytest.mark.parametrize(
-    "use_lm, token_type, beam_search_config, left_context, right_context",
+    "use_lm, token_type, beam_search_config, decoding_window, left_context",
     [
-        (False, "char", {"search_type": "default"}, 0, 0),
-        (True, "char", {"search_type": "default"}, 1, 1),
-        (False, "bpe", {"search_type": "default"}, 0, 0),
-        (False, None, {"search_type": "default"}, 1, 1),
-        (False, "char", {"search_type": "tsd"}, 1, 1),
-        (False, "char", {"search_type": "maes"}, 1, 1),
+        (False, "char", {"search_type": "default"}, 160, 0),
+        (True, "char", {"search_type": "default"}, 160, 1),
+        (False, "bpe", {"search_type": "default"}, 160, 0),
+        (False, None, {"search_type": "default"}, 160, 1),
+        (False, "char", {"search_type": "default"}, 320, 0),
+        (False, "char", {"search_type": "tsd"}, 160, 1),
+        (False, "char", {"search_type": "maes"}, 160, 1),
     ],
 )
 def test_streaming_Speech2Text(
     use_lm,
     token_type,
     beam_search_config,
+    decoding_window,
     left_context,
-    right_context,
     asr_stream_config_file,
     lm_config_file,
 ):
@@ -199,21 +202,28 @@ def test_streaming_Speech2Text(
         beam_search_config=beam_search_config,
         token_type=token_type,
         streaming=True,
-        chunk_size=1,
+        decoding_window=decoding_window,
         left_context=left_context,
-        right_context=right_context,
     )
 
     speech = np.random.randn(10000)
-    _steps = len(speech) // speech2text._raw_ctx
 
-    for i in range(_steps):
-        _end = (i + 1) * speech2text._raw_ctx
+    decoding_samples = speech2text.audio_processor.decoding_samples
+    decoding_steps = len(speech) // decoding_samples
 
-        speech2text.streaming_decode(
-            speech[i * speech2text._raw_ctx : _end], is_final=False
-        )
-    hyps = speech2text.streaming_decode(speech[_end : len(speech)], is_final=True)
+    for i in range(0, decoding_steps + 1, 1):
+        _start = i * decoding_samples
+
+        if i == decoding_steps:
+            hyps = speech2text.streaming_decode(
+                speech[i * decoding_samples : len(speech)], is_final=True
+            )
+        else:
+            speech2text.streaming_decode(
+                speech[(i * decoding_samples) : _start + decoding_samples - 1],
+                is_final=False,
+            )
+
     results = speech2text.hypotheses_to_results(hyps)
 
     for text, token, token_int, hyp in results:

@@ -11,9 +11,9 @@ This is a template of SVS recipe for ESPnet2.
     * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
     * [3\. Filtering](#3-filtering)
     * [4\. Token list generation](#4-token-list-generation)
-    * [5\. Statistics collection](#5-statistics-collection)
-    * [6\. Model training](#6-model-training)
-    * [7\. Model inference](#7-model-inference)
+    * [5\. SVS statistics collection](#5-svs-statistics-collection)
+    * [6\. SVS training](#6-svs-training)
+    * [7\. SVS inference](#7-svs-inference)
     * [8\. Objective evaluation](#8-objective-evaluation)
     * [9\. Model packing](#9-model-packing)
   * [How to run](#how-to-run)
@@ -21,11 +21,13 @@ This is a template of SVS recipe for ESPnet2.
     * [XiaoiceSing training](#xiaoicesing-training)
     * [Diffsinger training](#diffsinger-training)
     * [VISinger training](#visinger-training)
+    * [Singing Tacotron training](#singing-tacotron-training)
     * [Multi speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
     * [Multi language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
     * [Vocoder training](#vocoder-training)
     * [Evaluation](#evaluation)
   * [About data directory](#about-data-directory)
+  * [Score preparation](#score-preparation)
   * [Supported text frontend](#supported-text-frontend)
   * [Supported text cleaner](#supported-text-cleaner)
   * [Supported Models](#supported-models)
@@ -43,6 +45,7 @@ It calls `local/data.sh` to creates Kaldi-style data directories but with additi
 
 See also:
 - [About data directory](#about-data-directory)
+- [Score preparation](#score-preparation)
 
 ### 2. Wav dump / Embedding preparation
 
@@ -53,7 +56,7 @@ Else, if you specify `--feats_type fbank` option or `--feats_type stft` option, 
 Additionally, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
 Note that this processing assume that `utt2spk` or `utt2lang` are correctly created in stage 1, please be careful.
 
-### 3. Filtering (Removal of long / short data)
+### 3. Filtering
 
 Filtering stage.
 
@@ -76,7 +79,7 @@ See also:
 
 Data preparation will end in stage 4. You can skip data preparation (stage 1 ~ stage 4) via `--skip_data_prep` option.
 
-### 5. SVS Statistics collection
+### 5. SVS statistics collection
 
 Statistics calculation stage.
 It collects the shape information of the input and output and calculates statistics for feature normalization (mean and variance over training and validation sets).
@@ -280,39 +283,55 @@ $  --pretrained_model /exp/xiaoice-2-24-250k/500epoch.pth:svs:svs.fftsinger \
 ```
 
 
-### VISinger training
-The VITS config is hard coded for 22.05 khz or 44.1 khz and use different feature extraction method. (Note that you can use any feature extraction method but the default method is linear_spectrogram.) If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
+### VISinger (1+2) training
+The VISinger / VISinger 2 configs are hard coded for 22.05 khz or 44.1 khz and use different feature extraction method. (Note that you can use any feature extraction method but the default method is `fbank`.) If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
 
 First, check "fs" (Sampling Rate) and complete the data preparation:
 ```sh
 $ ./run.sh \
     --stage 1 \
     --stop_stage 4 \
-    --fs 22050 \
+    --fs 44100 \
 ```
 
-Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllabel level* in VISinger), "svs_task" (*gan_svs* in VISinger) and modify "vocoder_file" with your own vocoder path.
+Second, check "train_config" (default `conf/train.yaml`, you can also use `--train_config ./conf/tuning/train_visinger2.yaml` to train VISinger 2), "score_feats_extract" (*syllabel level* in VISinger), "svs_task" (*gan_svs* in VISinger).
 
 ```sh
 
-# Single speaker 22.05 khz case
+# Single speaker 44100 khz case
 ./run.sh \
     --stage 5 \
-    --fs 22050 \
-    --n_fft 1024 \
-    --n_shift 256 \
-    --win_length null \
+    --fs 44100 \
+    --n_fft 2048 \
+    --n_shift 512 \
+    --win_length 2048 \
     --svs_task gan_svs \
     --pitch_extract dio \
+    --feats_extract fbank \
+    --feats_normalize none \
     --score_feats_extract syllable_score_feats \
-    --train_config conf/tuning/train_vits.yaml \
+    --train_config ./conf/tuning/train_visinger.yaml \
     --inference_config conf/tuning/decode_vits.yaml \
     --inference_model latest.pth \
-    --write_collected_feats true \
-    --vocoder_file ${your vocoder path} \
+    --write_collected_feats true
 
 ```
 
+### Singing Tacotron training
+First, complete the data preparation:
+```sh
+$ ./run.sh \
+    --stage 1 \
+    --stop_stage 4 \
+```
+Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllabel level* in Singing Tacotron) and modify "vocoder_file" with your own vocoder path.
+```sh
+$ ./run.sh --stage 5 \
+    --train_config conf/tuning/train_singing_tacotron.yaml \
+    --inference_config conf/tuning/decode_singing_tacotron.yaml \
+    --score_feats_extract syllable_score_feats \
+    --vocoder_file ${your vocoder path} \
+```
 
 ### Multi-speaker model with speaker ID embedding training
 
@@ -397,6 +416,7 @@ We provide four objective evaluation metrics:
 - Logarithmic rooted mean square error of the fundamental frequency (log-F0 RMSE)
 - Semitone accuracy (Semitone ACC)
 - Voiced / unvoiced error rate (VUV_E)
+- Word/character error rate (WER/CER, optional executated by users)
 
 For MCD, we apply dynamic time-warping (DTW) to match the length difference between ground-truth singing and generated singing.
 
@@ -409,6 +429,33 @@ cd egs2/<recipe_name>/svs1
 ./pyscripts/utils/evaluate_*.py \
     exp/<model_dir_name>/<decode_dir_name>/eval/wav/gen_wavdir_or_wavscp.scp \
     dump/raw/eval/gt_wavdir_or_wavscp.scp
+
+# Evaluate CER
+./scripts/utils/evaluate_asr.sh \
+    --model_tag <asr_model_tag> \
+    --nj 1 \
+    --inference_args "--beam_size 10 --ctc_weight 0.4 --lm_weight 0.0" \
+    --gt_text "dump/raw/eval1/text" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+# Since ASR model does not use punctuation, it is better to remove punctuations if it contains
+./scripts/utils/remove_punctuation.pl < dump/raw/eval1/text > dump/raw/eval1/text.no_punc
+./scripts/utils/evaluate_asr.sh \
+    --model_tag <asr_model_tag> \
+    --nj 1 \
+    --inference_args "--beam_size 10 --ctc_weight 0.4 --lm_weight 0.0" \
+    --gt_text "dump/raw/eval1/text.no_punc" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+# You can also use openai whisper for evaluation
+./scripts/utils/evaluate_asr.sh \
+    --whisper_tag base \
+    --nj 1 \
+    --gt_text "dump/raw/eval1/text" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
 ```
 
 While these objective metrics can estimate the quality of synthesized singing, it is still difficult to fully determine human perceptual quality from these values, especially with high-fidelity generated singing.
@@ -550,6 +597,70 @@ utils/validate_data_dir.sh --no-feats data/dev
 utils/validate_data_dir.sh --no-feats data/test
 ```
 
+## Score preparation
+
+To prepara a new recipe, we first split songs into segments via `--silence` option if no official segmentation provided.
+
+Then, we transfer the raw data into `score.json`, where situations can be categorized into two cases depending on the annotation:
+
+#### Case 1: phoneme annotation and standardized score
+
+- If the phonemes and notes are aligned in time domain, convert the raw data directly. (eg. [Opencpop](https://github.com/espnet/espnet/tree/master/egs2/opencpop/svs1))
+
+- If the phoneme annotation are misaligned with notes in time domain, align phonemes (from `label`) and note-lyric pairs (from `musicXML`) through g2p. (eg. [Ofuton](https://github.com/espnet/espnet/tree/master/egs2/ofuton_p_utagoe_db/svs1))
+
+- We also offer some automatic fixes for missing silences in the dataset. During the stage1, when you encounter errors such as "Lyrics are longer than phones" or "Phones are longer than lyrics", the scripts will auto-generated the fixing code. You may need to put the code into the `get_error_dict` method in `egs2/[dataset name]/svs1/local/prep_segments.py`. Noted that depending on the suggested input_type, you may want to copy it into either the `hts` or `xml`'s error_dict. (For more information, please check [namine](https://github.com/espnet/espnet/tree/master/egs2/namine_ritsu_utagoe_db/svs1) or [natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1)
+
+Specially, the note-lyric pairs can be rebuilt through other melody files, like `MIDI`, if there's something wrong with the note duration. (eg. [Natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1))
+
+
+#### Case 2: phoneme annotation only
+
+ To be updated.
+
+### Problems you might meet
+
+During stage 1, which involves data preparation, you may encounter `ValueError` problems that typically indicate errors in the annotation. To address these issues, it is necessary to manually review the raw data in the corresponding sections and make the necessary corrections. While other toolkits and open-source codebases may not impose such requirements or checks, we have found that investing time to resolve these errors significantly enhances the quality of the singing voice synthesizer.
+
+Note that modifications can be made to the raw data locally or through the processing data flow at stage 1. For the convenience of open source, we recommend using the latter.
+- To make changes to the raw data, you can use toolkits like [music21](https://github.com/cuthbertLab/music21), [miditoolkit](https://github.com/YatingMusic/miditoolkit), or [MuseScore](https://github.com/musescore/MuseScore).
+- To process in the data flow, you can use score [readers and writers](https://github.com/espnet/espnet/tree/master/espnet2/fileio/score_scp.py) provided. Examples can be found in functioin `make_segment` from `egs2/{natsume, ameboshi, pjs}/svs1/local/{prep_segments.py, prep_segments_from_xml.py}/`.
+
+Below are some common errors to watch out for:
+
+#### 1. Wrong segmentation point
+* Add pauses or directly split between adjacent lyrics.
+* Remove pauses and assign the duration to correct phoneme.
+
+#### 2. Wrong lyric / midi annotation
+* Replace with correct one.
+* Add missing one and reassign adjacent duration.
+* Remove redundant one and reassign adjacent duration.
+
+#### 3. Different lyric-phoneme pairs against the given g2p
+* Use a `customed_dic` of syllable-phoneme pairs as following:
+    ```
+    # e.g.
+    # In Japanese dataset ofuton, the output of "ヴぁ" from pyopenjtalk is different from raw data "v a"
+    > pyopenjtalk.g2p("ヴぁ")
+    v u a
+    # Add the following lyric-phoneme pair to customed_dic
+    ヴぁ v_a
+    ```
+* Specify `--g2p none` and store the lyric-phoneme pairs into `score.json`, especially for polyphone problem in Mandarin.
+    ```
+    # e.g.
+    # In Mandarin dataset Opencpop, the pronounce the second "重" should be "chong".
+    > pypinyin.pinyin("情意深重爱恨两重", style=Style.NORMAL)
+    [['qing'], ['shen'], ['yi'], ['zhong'], ['ai'], ['hen'], ['liang'], ['zhong']]
+    ```
+#### 4. Special marks in MusicXML
+* Breath:
+  * `breath mark` in note.articulations: usually appears at the end of the sentence. In some situations, `breath mark` doesn't take effect in its belonging note. Please handle them under local/.
+  * `br` in note.lyric. (solved in XMLReader)
+  * Special note with a fixed special pitch. (solved in XMLReader)
+* Staccato: In some situations, there is a break when `staccato` occurs in note.articulations. We let users to decide whether to perform segmentation under local/.
+
 ## Supported text cleaner
 
 You can change via `--cleaner` option in `svs.sh`.
@@ -578,5 +689,7 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [Naive-RNN](https://arxiv.org/abs/2010.12024)
 - [XiaoiceSing](https://arxiv.org/abs/2006.06261)
 - [VISinger](https://arxiv.org/abs/2110.08813)
+- [VISinger 2](https://arxiv.org/abs/2211.02903)
+- [Singing Tacotron](https://arxiv.org/pdf/2202.07907v1.pdf)
 
 You can find example configs of the above models in [`egs/ofuton_p_utagoe_db/svs1/conf/tuning`](../../ofuton_p_utagoe_db/svs1/conf/tuning).

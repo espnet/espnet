@@ -103,7 +103,7 @@ if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
             --encoder_conf main_conf='{'dynamic_chunk_training': True}' \
             --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 30, 'linear_size': 30, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
             --decoder_conf='{'embed_size': 30, 'hidden_size': 30}' --joint_network_conf joint_space_size=30 " \
-            --inference-args "--streaming true --chunk_size 2 --left_context 2 --right_context 0"
+            --inference-args "--streaming true --decoding_window 160 --left_context 2"
     done
 fi
 
@@ -190,7 +190,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
 fi
 
 # [ESPnet2] test ssl1 recipe
-if python3 -c 'import fairseq; import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.12.0")' &> /dev/null; then
+if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) >= L("1.12.0")' &> /dev/null; then
     cd ./egs2/mini_an4/ssl1
     gen_dummy_coverage
     echo "==== [ESPnet2] SSL1/HUBERT ==="
@@ -242,6 +242,15 @@ echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_fe
     --st-args "--model_conf extract_feats_in_collect_stats=false --max_epoch=1 --encoder=contextual_block_transformer --decoder=transformer
                 --encoder_conf block_size=40 --encoder_conf hop_size=16 --encoder_conf look_ahead=16"
 
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
+
+# [ESPnet2] test asr2 recipe
+cd ./egs2/mini_an4/asr2
+gen_dummy_coverage
+echo "==== [ESPnet2] ASR2 ==="
+./run.sh --ngpu 0 --stage 1 --stop-stage 15 --skip-upload false --use-lm false --asr-args "--max_epoch 1" --python "${python}"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"

@@ -43,7 +43,7 @@ log "data preparation started"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage1: Download data to ${MLSUPERB}"
-    log "Not released yet"
+    log "Please use the download link in readme and set the MLSUPERB as its unzipped path."
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
