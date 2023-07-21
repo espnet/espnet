@@ -15,6 +15,7 @@ fi
 
 if [ -z "${GITHUB_PR_LABEL_ESPNET1:-}" ]; then
     log This PR does not involve ESPnet1 fixes. Skipping...
+    exit 0
 fi
 
 

@@ -29,6 +29,7 @@ fi
 
 if [ -z "${GITHUB_PR_LABEL_ESPNET2:-}" ]; then
     log This PR does not involve ESPnet2 fixes. Skipping...
+    exit 0
 fi
 
 #### Make sure chainer-independent ####
