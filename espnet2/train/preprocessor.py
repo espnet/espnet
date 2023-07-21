@@ -1562,14 +1562,10 @@ class SpkPreprocessor(CommonPreprocessor):
                 [np.int64(random.random() * (len(audio) - self.target_duration))]
             )
 
-            audios = []
-            for frame in startframe:
-                audios.append(audio[int(frame) : int(frame) + self.target_duration])
-            audios = np.stack(audios, axis=0)
+            data["speech"] = audio[int(startframe) : int(startframe) + self.target_duration]
 
-            data["speech"] = np.squeeze(audios)
-
-            data["speech"] = self._apply_data_augmentation(data["speech"])
+            if self.noise_apply_prob > 0:
+                data["speech"] = self._apply_data_augmentation(data["speech"])
         else:
             audio = data["speech"]
             audio2 = data["speech2"]
@@ -1639,8 +1635,11 @@ class SpkPreprocessor(CommonPreprocessor):
         """
         Make speaker labels into integers
         """
-        int_label = self.spk2label[data["spk_labels"]]
-        data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
+        if self.train:
+            int_label = self.spk2label[data["spk_labels"]]
+            data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
+        else:
+            data["spk_labels"] = np.asarray([int(data["spk_labels"])])
 
         return data
 
