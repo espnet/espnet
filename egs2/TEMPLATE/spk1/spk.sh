@@ -269,6 +269,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         _opts+="--config ${spk_config} "
     fi
 
+    _scp=wav.scp
     if [[ "${audio_format}" == *ark* ]]; then
         _type=kaldi_ark
     else
@@ -280,16 +281,16 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     _logdir="${spk_stats_dir}/logdir"
     mkdir -p "${_logdir}"
 
-    _nj=$(min "${nj}" "$(<${_spk_train_dir}/wav.scp wc -l)" "$(<${_spk_valid_dir}/trial.scp wc -l)")
+    _nj=$(min "${nj}" "$(<${_spk_train_dir}/${_scp} wc -l)" "$(<${_spk_valid_dir}/${_scp} wc -l)")
 
-    key_file="${_spk_train_dir}/wav.scp"
+    key_file="${_spk_train_dir}/${_scp}"
     split_scps=""
     for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/train.${n}.scp"
     done
     utils/split_scp.pl "${key_file}" ${split_scps}
 
-    key_file="${_spk_valid_dir}/trial.scp"
+    key_file="${_spk_valid_dir}/${_scp}"
     split_scps=""
     for n in $(seq "${_nj}"); do
         split_scps+=" ${_logdir}/valid.${n}.scp"
@@ -308,6 +309,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         ${python} -m espnet2.bin.spk_train \
             --use_preprocessor false \
             --collect_stats true \
+            --use_preprocessor false \
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,${_type} \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial.scp,speech,${_type} \
             --train_shape_file "${_logdir}/train.JOB.scp" \
@@ -361,9 +363,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,sound \
             --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
             --train_shape_file ${spk_stats_dir}/train/speech_shape \
-            --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial.scp,speech,sound \
-            --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial2.scp,speech2,sound \
-            --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial_label,spk_labels,text \
+            --valid_data_path_and_name_and_type ${_spk_valid_dir}/wav.scp,speech,sound \
+            --valid_data_path_and_name_and_type ${_spk_valid_dir}/utt2spk,spk_labels,text \
             --spk2utt ${_spk_train_dir}/spk2utt \
             --fold_length ${fold_length} \
             --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
