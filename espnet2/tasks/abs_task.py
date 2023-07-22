@@ -846,54 +846,6 @@ class AbsTask(ABC):
             "e.g., 'bias_weight_decay': False will set zero weight decay for bias "
             "params. See also espnet2.optimizers.optim_groups.configure_optimizer.",
         )
-        group.add_argument(
-            "--biasing",
-            type=str2bool,
-            default=False,
-            help="perform biasing",
-        )
-        group.add_argument(
-            "--deepbiasing",
-            type=str2bool,
-            default=False,
-            help="perform deep biasing",
-        )
-        group.add_argument(
-            "--biasinglist",
-            type=str,
-            default="",
-            help="Biasing list path",
-        )
-        group.add_argument(
-            "--battndim",
-            type=int,
-            default=256,
-            help="TCPGen attention dim",
-        )
-        group.add_argument(
-            "--biasingsche",
-            type=int,
-            default=0,
-            help="TCPGen starting epoch",
-        )
-        group.add_argument(
-            "--bmaxlen",
-            type=int,
-            default=100,
-            help="maximum biasing list size",
-        )
-        group.add_argument(
-            "--bdrop",
-            type=float,
-            default=0.0,
-            help="biasing list dropout probability",
-        )
-        group.add_argument(
-            "--biasingGNN",
-            type=str,
-            default="",
-            help="GNN to encode prefix tree of biasing list",
-        )
 
         for i in range(1, cls.num_optimizers + 1):
             suf = "" if i == 1 else str(i)

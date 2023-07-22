@@ -20,14 +20,14 @@ from espnet.nets.pytorch_backend.nets_utils import to_device
 class GCN(torch.nn.Module):
     def __init__(
         self,
-        embdim,
-        treehid,
-        nlayer,
-        dropout,
-        residual=False,
-        tied=False,
-        nhead=1,
-        edgedrop=0.0,
+        embdim: int,
+        treehid: int,
+        nlayer: int,
+        dropout: float,
+        residual: bool = False,
+        tied: bool = False,
+        nhead: int = 1,
+        edgedrop: float = 0.0,
     ):
         super(GCN, self).__init__()
         self.treehid = treehid

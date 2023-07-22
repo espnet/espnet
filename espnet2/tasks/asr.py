@@ -65,6 +65,7 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr.TCPGen_biasing_model import ESPnetTCPGenBiasingASRModel
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -122,6 +123,7 @@ model_choices = ClassChoices(
         espnet=ESPnetASRModel,
         maskctc=MaskCTCModel,
         pit_espnet=PITESPnetModel,
+        tcpgen_espnet=ESPnetTCPGenBiasingASRModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",

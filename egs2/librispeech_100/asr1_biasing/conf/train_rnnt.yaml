@@ -29,6 +29,7 @@ decoder_conf:
 joint_net_conf:
     joint_space_size: 320
 
+model: tcpgen_espnet
 model_conf:
     ctc_weight: 0.0
     report_cer: False
@@ -40,7 +41,7 @@ model_conf:
     bdrop: 0.0
     battndim: 256
     biasing: true
-    biasingsche: 0
+    biasingsche: 30
     deepbiasing: true
     # gcn for using GCN structure, 6 is the number of layers
     biasingGNN: gcn6

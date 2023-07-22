@@ -112,7 +112,10 @@ class BeamSearchTransducer:
         elif self.beam_size <= 1:
             self.search_algorithm = self.greedy_search
         elif search_type == "default":
-            self.search_algorithm = self.default_beam_search
+            if biasing:
+                self.search_algorithm = self.TCPGen_biasing_beam_search
+            else:
+                self.search_algorithm = self.default_beam_search
         elif search_type == "tsd":
             if isinstance(lm, TransformerLM):
                 raise NotImplementedError
@@ -194,8 +197,7 @@ class BeamSearchTransducer:
         """
         self.decoder.set_device(enc_out.device)
 
-        # Only supporting biasing in default_beam_search for now
-        if self.search_type == "default":
+        if self.biasing:
             nbest_hyps = self.search_algorithm(enc_out, lextree=lextree)
         else:
             nbest_hyps = self.search_algorithm(enc_out)
@@ -291,7 +293,108 @@ class BeamSearchTransducer:
 
         return [hyp]
 
-    def default_beam_search(
+    def default_beam_search(self, enc_out: torch.Tensor) -> List[Hypothesis]:
+        """Beam search implementation.
+
+        Modified from https://arxiv.org/pdf/1211.3711.pdf
+
+        Args:
+            enc_out: Encoder output sequence. (T, D)
+
+        Returns:
+            nbest_hyps: N-best hypothesis.
+
+        """
+        beam = min(self.beam_size, self.vocab_size)
+        beam_k = min(beam, (self.vocab_size - 1))
+
+        dec_state = self.decoder.init_state(1)
+
+        kept_hyps = [Hypothesis(score=0.0, yseq=[self.blank_id], dec_state=dec_state)]
+        cache = {}
+        cache_lm = {}
+
+        for enc_out_t in enc_out:
+            hyps = kept_hyps
+            kept_hyps = []
+
+            if self.token_list is not None:
+                logging.debug(
+                    "\n"
+                    + "\n".join(
+                        [
+                            "hypo: "
+                            + "".join([self.token_list[x] for x in hyp.yseq[1:]])
+                            + f", score: {round(float(hyp.score), 2)}"
+                            for hyp in sorted(hyps, key=lambda x: x.score, reverse=True)
+                        ]
+                    )
+                )
+
+            while True:
+                max_hyp = max(hyps, key=lambda x: x.score)
+                hyps.remove(max_hyp)
+
+                dec_out, state, lm_tokens = self.decoder.score(max_hyp, cache)
+
+                logp = torch.log_softmax(
+                    self.joint_network(enc_out_t, dec_out),
+                    dim=-1,
+                )
+                top_k = logp[1:].topk(beam_k, dim=-1)
+
+                kept_hyps.append(
+                    Hypothesis(
+                        score=(max_hyp.score + float(logp[0:1])),
+                        yseq=max_hyp.yseq[:],
+                        dec_state=max_hyp.dec_state,
+                        lm_state=max_hyp.lm_state,
+                    )
+                )
+
+                if self.use_lm:
+                    if tuple(max_hyp.yseq) not in cache_lm:
+                        lm_scores, lm_state = self.lm.score(
+                            torch.LongTensor(
+                                [self.sos] + max_hyp.yseq[1:],
+                                device=self.decoder.device,
+                            ),
+                            max_hyp.lm_state,
+                            None,
+                        )
+                        cache_lm[tuple(max_hyp.yseq)] = (lm_scores, lm_state)
+                    else:
+                        lm_scores, lm_state = cache_lm[tuple(max_hyp.yseq)]
+                else:
+                    lm_state = max_hyp.lm_state
+
+                for logp, k in zip(*top_k):
+                    score = max_hyp.score + float(logp)
+
+                    if self.use_lm:
+                        score += self.lm_weight * lm_scores[k + 1]
+
+                    hyps.append(
+                        Hypothesis(
+                            score=score,
+                            yseq=max_hyp.yseq[:] + [int(k + 1)],
+                            dec_state=state,
+                            lm_state=lm_state,
+                        )
+                    )
+
+                hyps_max = float(max(hyps, key=lambda x: x.score).score)
+                kept_most_prob = sorted(
+                    [hyp for hyp in kept_hyps if hyp.score > hyps_max],
+                    key=lambda x: x.score,
+                )
+                if len(kept_most_prob) >= beam:
+                    kept_hyps = kept_most_prob
+                    break
+
+        return self.sort_nbest(kept_hyps)
+
+    def TCPGen_biasing_beam_search(
         self, enc_out: torch.Tensor, lextree: list = None
     ) -> List[Hypothesis]:
         """Beam search implementation.
@@ -300,6 +403,7 @@ class BeamSearchTransducer:
 
         Args:
             enc_out: Encoder output sequence. (T, D)
+            lextree: prefix tree structure of biasing list
 
         Returns:
             nbest_hyps: N-best hypothesis.
