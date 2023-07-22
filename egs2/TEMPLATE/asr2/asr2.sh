@@ -57,6 +57,8 @@ fs=16k               # Sampling rate.
 
 # Kmeans related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
+upstream=                   #  The specific upstream source, e.g., s3prl, hf_hubert_custom, etc.
+upstream_path_or_url=       # The path or url of the upstream models
 kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
 portion=0.1
 nclusters=2000              # The number of clusters for discrete tokenss
@@ -431,8 +433,13 @@ if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
 else
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
-    # TODO(simpleoier): to support features beyond s3prl
-    s3prl_conf="{upstream=${kmeans_feature_type}}"
+    
+    if [ $upstream == "s3prl" ]; then
+        s3prl_conf="{upstream=${kmeans_feature_type}}"
+    else
+        s3prl_conf="{upstream=${upstream},path_or_url=${upstream_path_or_url}}"
+    fi
+
     kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
 fi
 km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters

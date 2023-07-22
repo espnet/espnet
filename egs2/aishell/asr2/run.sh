@@ -6,7 +6,11 @@ set -u
 set -o pipefail
 
 
-kmeans_feature="wavlm_large/21"  # use model_type/layer_index
+kmeans_feature="xls_r_300m/21"  # use model_type/layer_index
+# the specific upstream source, e.g., s3prl, hf_hubert_custom, etc.
+# see more in here: https://s3prl.github.io/s3prl/tutorial/upstream_collection.html
+upstream="s3prl"
+path_or_url= # the path or url for upstream, leave it empty when it upstream is s3prl
 nclusters=2000
 
 src_lang=$(echo "${kmeans_feature}_km${nclusters}" | tr "/" "_")
@@ -27,10 +31,9 @@ src_case="rm"
 tgt_case="ts"
 
 ./asr2.sh \
-    --stage 14 --stop_stage 15 \
+    --kmeans_opts "--batch_bins 4800000 --nj 4" \
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
-    --use_lm false \
     --ngpu 1 \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
@@ -42,6 +45,7 @@ tgt_case="ts"
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
+    --use_lm false \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
