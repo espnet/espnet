@@ -99,7 +99,7 @@ class RotaryPositionalEmbedding(torch.nn.Module):
             key: Rotated key tensor. (B, num_heads, length, size)
 
         """
-        length = query.size(1)
+        length = query.size(2)
 
         if self.max_len is None or length != self.max_len:
             self.set_cos_sin_cache(length, query.device)

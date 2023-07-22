@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Optional, Union
 from espnet2.asr_transducer.activation import get_activation
 from espnet2.asr_transducer.encoder.blocks.branchformer import Branchformer
 from espnet2.asr_transducer.encoder.blocks.conformer import Conformer
+from espnet2.asr_transducer.encoder.blocks.conretformer import ConRetformer
 from espnet2.asr_transducer.encoder.blocks.conv1d import Conv1d
 from espnet2.asr_transducer.encoder.blocks.conv_input import ConvInput
 from espnet2.asr_transducer.encoder.blocks.ebranchformer import EBranchformer
@@ -120,7 +121,7 @@ def build_positional_encoding(
         : Positional encoding module.
 
     """
-    if encoder_first_block["block_type"] == "ebranchretformer":
+    if encoder_first_block["block_type"] in ["conretformer", "ebranchretformer"]:
         return lambda x: None
 
     return RelPositionalEncoding(
@@ -264,6 +265,69 @@ def build_conformer_block(
     return lambda: Conformer(
         hidden_size,
         RelPositionMultiHeadedAttention(*mult_att_args),
+        PositionwiseFeedForward(*pos_wise_args),
+        PositionwiseFeedForward(*pos_wise_args),
+        ConformerConvolution(*conv_mod_args),
+        norm_class=norm_class,
+        norm_args=norm_args,
+        dropout_rate=configuration.get("dropout_rate", 0.0),
+    )
+
+
+def build_conretformer_block(
+    configuration: List[Dict[str, Any]],
+    main_params: Dict[str, Any],
+) -> ConRetformer:
+    """Build Conformer block.
+
+    Args:
+        configuration: ConRetformer block configuration.
+        main_params: Encoder main parameters.
+
+    Returns:
+        : ConRetformer block function.
+
+    """
+    hidden_size = configuration["hidden_size"]
+    linear_size = configuration["linear_size"]
+
+    pos_wise_args = (
+        hidden_size,
+        linear_size,
+        configuration.get("pos_wise_dropout_rate", 0.0),
+        main_params["pos_wise_act"],
+    )
+
+    conv_mod_norm_args = {
+        "eps": configuration.get("conv_mod_norm_eps", 1e-05),
+        "momentum": configuration.get("conv_mod_norm_momentum", 0.1),
+    }
+
+    conv_mod_args = (
+        hidden_size,
+        configuration["conv_mod_kernel_size"],
+        main_params["conv_mod_act"],
+        conv_mod_norm_args,
+        main_params["dynamic_chunk_training"],
+    )
+
+    multi_scale_ret_args = (
+        hidden_size,
+        configuration.get("heads", 4),
+        get_activation("swish"),
+        configuration.get("ret_decay_length", 768),
+        configuration.get("ret_dropout_rate", 0.0),
+    )
+
+    norm_class, norm_args = get_normalization(
+        main_params["norm_type"],
+        eps=configuration.get("norm_eps"),
+        partial=configuration.get("norm_partial"),
+    )
+
+    return lambda: ConRetformer(
+        hidden_size,
+        MultiScaleRetention(*multi_scale_ret_args),
         PositionwiseFeedForward(*pos_wise_args),
         PositionwiseFeedForward(*pos_wise_args),
         ConformerConvolution(*conv_mod_args),
@@ -488,6 +552,8 @@ def build_body_blocks(
             module = build_branchformer_block(c, main_params)
         elif block_type == "conformer":
             module = build_conformer_block(c, main_params)
+        elif block_type == "conretformer":
+            module = build_conretformer_block(c, main_params)
         elif block_type == "conv1d":
             module = build_conv1d_block(c, main_params["dynamic_chunk_training"])
         elif block_type == "ebranchformer":

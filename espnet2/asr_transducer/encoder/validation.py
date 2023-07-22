@@ -4,6 +4,14 @@ from typing import Any, Dict, List, Tuple
 
 from espnet2.asr_transducer.utils import get_convinput_module_parameters
 
+_allowed_block_types = [
+    "branchformer",
+    "conformer",
+    "conretformer",
+    "ebranchformer",
+    "ebranchretformer",
+]
+
 
 def validate_block_arguments(
     configuration: Dict[str, Any],
@@ -29,7 +37,7 @@ def validate_block_arguments(
             "Block %d in encoder doesn't have a type assigned. " % block_id
         )
 
-    if block_type in ["branchformer", "conformer", "ebranchformer", "ebranchretformer"]:
+    if block_type in _allowed_block_types:
         if configuration.get("linear_size") is None:
             raise ValueError(
                 "Missing 'linear_size' argument for X-former block (ID: %d)" % block_id
@@ -80,15 +88,8 @@ def validate_input_block(
     """
     vgg_like = configuration.get("vgg_like", False)
     next_block_type = body_first_conf.get("block_type")
-    allowed_next_block_type = [
-        "branchformer",
-        "conformer",
-        "conv1d",
-        "ebranchformer",
-        "ebranchretformer",
-    ]
 
-    if next_block_type is None or (next_block_type not in allowed_next_block_type):
+    if next_block_type is None or (next_block_type not in _allowed_block_types):
         return -1
 
     if configuration.get("subsampling_factor") is None:
