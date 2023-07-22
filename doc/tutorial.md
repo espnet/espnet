@@ -64,7 +64,7 @@ Decoding for each mode can be done using the following decoding configurations:
   # hybrid CTC/attention (default)
   ctc-weight: 0.3
   beam-size: 10
-  
+
   # CTC
   ctc-weight: 1.0
   ## for best path decoding
@@ -72,7 +72,7 @@ Decoding for each mode can be done using the following decoding configurations:
   ## for prefix search decoding w/ beam search
   api: v2
   beam-size: 10
-  
+
   # attention
   ctc-weight: 0.0
   beam-size: 10
@@ -85,11 +85,11 @@ Decoding for each mode can be done using the following decoding configurations:
   # hybrid CTC/attention (default)
   ctc_weight: 0.3
   beam_size: 10
-  
+
   # CTC
   ctc_weight: 1.0
   beam_size: 10
-  
+
   # attention
   ctc_weight: 0.0
   beam_size: 10
