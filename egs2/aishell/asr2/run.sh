@@ -27,7 +27,7 @@ src_case="rm"
 tgt_case="ts"
 
 ./asr2.sh \
-    --stage 7 --stop_stage 13 \
+    --stage 14 --stop_stage 15 \
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
     --use_lm false \
@@ -46,4 +46,5 @@ tgt_case="ts"
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
+    --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
     --lm_train_text "data/${train_set}/text" "$@"

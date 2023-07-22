@@ -877,7 +877,6 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
 
         _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
-        tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
         # shellcheck disable=SC2002
         cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
 
