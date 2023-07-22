@@ -39,8 +39,6 @@ def main(args):
     cmd_list = []
     for r, ds, fs in os.walk(root_dir):
         for f in fs:
-            # print("="*10)
-            # print(r, f) # debug
             if os.path.splitext(f)[1] != ".txt":
                 continue
             if f[0] in [".", "_"]:
@@ -57,9 +55,7 @@ def main(args):
                 f" -i $(youtube-dl -g https://www.youtube.com/watch?v={yt_link}"
                 f" -x --audio-format best --audio-quality 0) -ac 1 -ar 16000 {out_dir}"
             )
-            # print(cmd) # debug
-            cmd_list.append(cmd)  # debug
-            # subprocess.run([cmd], shell=True)
+            cmd_list.append(cmd)
 
     n_cmd = len(cmd_list)
     proc_list = []

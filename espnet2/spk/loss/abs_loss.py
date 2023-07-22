@@ -9,7 +9,7 @@ import torch.nn as nn
 
 
 class AbsLoss(nn.Module):
-    def __init__(self, nOut: int, **kwargs):
+    def __init__(self, nout: int, **kwargs):
         super().__init__()
 
     @abstractmethod

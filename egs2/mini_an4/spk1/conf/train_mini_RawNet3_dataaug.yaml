@@ -19,9 +19,14 @@ preprocessor: spk
 preprocessor_conf:
   target_duration: 3.0  # seconds
   sample_rate: 16000
-  num_eval: 2
-  rir_apply_prob: 0.0
-  noise_apply_prob: 0.0
+  num_eval: 1
+  rir_scp: data/train_nodev/rirs.scp
+  rir_apply_prob: 1.0
+  noise_info:
+    - [0.4, "data/train_nodev/noises.scp", [1, 1], [0, 10]]
+    - [0.5, "data/train_nodev/noises.scp", [1, 2], [10, 20]]
+  noise_apply_prob: 1.0
+  short_noise_thres: 0.5
 
 model_conf:
   extract_feats_in_collect_stats: false
