@@ -60,46 +60,55 @@ model_conf:
 Decoding for each mode can be done using the following decoding configurations:
 
 - espnet1
-```sh
-# hybrid CTC/attention (default)
-ctc-weight: 0.3
-beam-size: 10
-
-# CTC
-ctc-weight: 1.0
-## for best path decoding
-api: v1 # default setting (can be omitted)
-## for prefix search decoding w/ beam search
-api: v2
-beam-size: 10
-
-# attention
-ctc-weight: 0.0
-beam-size: 10
-maxlenratio: 0.8
-minlenratio: 0.3
-```
+  ```sh
+  # hybrid CTC/attention (default)
+  ctc-weight: 0.3
+  beam-size: 10
+  
+  # CTC
+  ctc-weight: 1.0
+  ## for best path decoding
+  api: v1 # default setting (can be omitted)
+  ## for prefix search decoding w/ beam search
+  api: v2
+  beam-size: 10
+  
+  # attention
+  ctc-weight: 0.0
+  beam-size: 10
+  maxlenratio: 0.8
+  minlenratio: 0.3
+  ```
 
 - espnet2
-```sh
-# hybrid CTC/attention (default)
-ctc_weight: 0.3
-beam_size: 10
+  ```sh
+  # hybrid CTC/attention (default)
+  ctc_weight: 0.3
+  beam_size: 10
+  
+  # CTC
+  ctc_weight: 1.0
+  beam_size: 10
+  
+  # attention
+  ctc_weight: 0.0
+  beam_size: 10
+  maxlenratio: 0.8
+  minlenratio: 0.3
+  ```
 
-# CTC
-ctc_weight: 1.0
-beam_size: 10
-
-# attention
-ctc_weight: 0.0
-beam_size: 10
-maxlenratio: 0.8
-minlenratio: 0.3
-```
-
-- The CTC mode does not compute the validation accuracy, and the optimum model is selected with its loss value
-(i.e., `$ ./run.sh --recog_model model.loss.best`).
-- The CTC decoding adopts the best path decoding by default, which simply outputs the most probable label at every time step. The prefix search decoding with beam search is also supported in [beam search API v2](https://espnet.github.io/espnet/apis/espnet_bin.html?highlight=api#asr-recog-py).
-- The pure attention mode requires setting the maximum and minimum hypothesis length (`--maxlenratio` and `--minlenratio`), appropriately. In general, if you have more insertion errors, you can decrease the `maxlenratio` value, while if you have more deletion errors you can increase the `minlenratio` value. Note that the optimum values depend on the ratio of the input frame and output label lengths, which is changed for each language and each BPE unit.
+- The CTC mode does not compute the validation accuracy, and the optimum model is selected with its loss value, e.g.,
+  - espnet1
+    ```sh
+    best_model_criterion:
+    -   - valid
+        - cer_ctc
+        - min
+    ```
+  - espnet2
+    ```sh
+    ./run.sh --recog_model model.loss.best
+    ```
+- The pure attention mode requires setting the maximum and minimum hypothesis length (`--maxlenratio` and `--minlenratio`) appropriately. In general, if you have more insertion errors, you can decrease the `maxlenratio` value, while if you have more deletion errors, you can increase the `minlenratio` value. Note that the optimum values depend on the ratio of the input frame and output label lengths, which are changed for each language and each BPE unit.
 - Negative `maxlenratio` can be used to set the constant maximum hypothesis length independently from the number of input frames. If `maxlenratio` is set to `-1`, the decoding will always stop after the first output, which can be used to emulate the utterance classification tasks. This is suitable for some spoken language understanding and speaker identification tasks.
 - About the effectiveness of hybrid CTC/attention during training and recognition, see [2] and [3]. For example, hybrid CTC/attention is not sensitive to the above maximum and minimum hypothesis heuristics.
