@@ -1,0 +1,48 @@
+# This is a debug config for CI
+
+# minibatch related
+batch_type: folded
+batch_size: 2
+accum_grad: 1
+max_epoch: 1
+num_iters_per_epoch: 1
+num_att_plot: 0
+
+# network architecture
+enh_encoder: conv
+enh_encoder_conf:
+    channel: 2
+    kernel_size: 2
+    stride: 20
+enh_decoder: conv
+enh_decoder_conf:
+    channel: 2
+    kernel_size: 2
+    stride: 20
+enh_separator: tcn
+enh_separator_conf:
+    num_spk: 1
+    layer: 2
+    stack: 1
+    bottleneck_dim: 2
+    hidden_dim: 4
+    kernel: 3
+    causal: False
+    norm_type: "gLN"
+    nonlinear: relu
+
+# encoder related
+asr_encoder: transformer
+asr_encoder_conf:
+    output_size: 2
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 2
+
+# decoder related
+asr_decoder: transformer
+asr_decoder_conf:
+    input_layer: embed
+    attention_heads: 2
+    linear_units: 2
+    num_blocks: 1

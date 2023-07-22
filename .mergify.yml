@@ -97,7 +97,7 @@ pull_request_rules:
         add: ["Documentation"]
   - name: "auto add label=CI"
     conditions:
-      - files~=^(.circleci/|ci/|.github/|.travis.yml)
+      - files~=^(ci/|.github/)
     actions:
       label:
         add: ["CI"]
