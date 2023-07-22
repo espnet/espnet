@@ -231,7 +231,7 @@ e.g.
     ```sh
     cd <espnet-root>/tools
     bash -c ". activate_python.sh; conda install -c anaconda cmake"
-    ```  
+    ```
 
 ### Check installation
 You can check whether your installation is successfully finished by
