@@ -5,10 +5,11 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 
-if [ -z "${GITHUB_PR_LABEL_ESPNET1:-}" ]; then
-    log This PR does not involve ESPnet1 fixes. Skipping...
-    exit 0
-fi
+# How to use PR Labels:
+# if [ -z "${GITHUB_PR_LABEL_ESPNET1:-}" ]; then
+#     log This PR does not involve ESPnet1 fixes. Skipping...
+#     exit 0
+# fi
 
 python="coverage run --append"
 
