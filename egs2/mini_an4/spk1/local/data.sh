@@ -58,7 +58,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     done
 
     # make a dev set
-    utils/subset_data_dir.sh --first data/train 1 data/${train_dev}
+    utils/subset_data_dir.sh --first data/train 2 data/${train_dev}
     n=$(($(wc -l < data/train/text) - 1))
     utils/subset_data_dir.sh --last data/train ${n} data/${train_set}
 
@@ -76,6 +76,11 @@ EOF
         cp data/${x}/wav.scp data/${x}/spk1.scp
         cp data/${x}/wav.scp data/${x}/spk2.scp
         awk '{print $1 " 1ch_16k"}' data/${x}/wav.scp > data/${x}/utt2category
+    done
+
+    # for spk task validation
+    for x in test test_seg ${train_set} ${train_dev}; do
+        python local/make_trial.py data/${x}/wav.scp data/${x}
     done
 
     find downloads/noise/ -iname "*.wav" | awk '{print "noise" NR " " $1}' > data/${train_set}/noises.scp
