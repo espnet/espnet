@@ -1,0 +1,96 @@
+# Trained with A100 (40 GB) x 1 GPUs for Kmeans1K+nbpe5K. It takes 32 minutes per epoch.
+# BPE-Dropout (https://github.com/google/sentencepiece#subword-regularization-and-bpe-dropout)
+src_tokenizer_encode_conf:
+    enable_sampling: true    # If set to true, bpe-dropout is used.
+    alpha: 0.4
+    nbest_size: -1
+
+frontend: embed     # embedding + positional encoding
+frontend_conf:
+    embed_dim: 512
+    positional_dropout_rate: 0.1
+    
+specaug: specaug
+specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: false
+    freq_mask_width_range:
+    - 0
+    - 10
+    num_freq_mask: 0
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 10
+
+
+batch_type: numel
+batch_bins: 280000000
+accum_grad: 10
+
+max_epoch: 50
+patience: none
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+log_interval: 5000
+use_amp: true
+num_att_plot: 1
+log_interval: 1000
+
+
+encoder: conformer
+encoder_conf:
+    output_size: 512
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    normalize_before: true
+    macaron_style: true
+    pos_enc_layer_type: "rel_pos"
+    selfattention_layer_type: "fnet_selfattn"
+    activation_type: "swish"
+    use_cnn_module:  true
+    cnn_module_kernel: 31
+    
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 512
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+model: discrete_asr
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    share_decoder_input_output_embed: false
+    share_encoder_decoder_input_embed: false
+
+optim: adam
+optim_conf:
+    lr: 0.004
+
+scheduler: warmuplr
+scheduler_conf:
+        warmup_steps: 15000
+
+ctc_conf:
+        ignore_nan_grad: true
+
+
+unused_parameters: True
