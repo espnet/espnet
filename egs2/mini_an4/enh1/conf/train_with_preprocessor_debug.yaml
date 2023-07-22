@@ -1,3 +1,25 @@
+# This is a debug config for CI
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    hop_length: 128
+
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    hop_length: 128
+
+separator: rnn
+separator_conf:
+    rnn_type: blstm
+    num_spk: 1
+    nonlinear: relu
+    layer: 1
+    unit: 2
+    dropout: 0.2
+
+preprocessor: enh
+
 # preprocessor config
 speech_volume_normalize: "0.5_1.0"
 rir_scp: dump/raw/train_nodev/rirs.scp
@@ -15,25 +37,6 @@ categories:
 - 1ch_16k
 - 2ch_16k
 
-encoder: stft
-encoder_conf:
-    n_fft: 512
-    hop_length: 128
-decoder: stft
-decoder_conf:
-    n_fft: 512
-    hop_length: 128
-separator: rnn
-separator_conf:
-    rnn_type: blstm
-    num_spk: 1
-    nonlinear: relu
-    layer: 1
-    unit: 128
-    dropout: 0.2
-
-preprocessor: enh
-
 criterions:
   # The first criterion
   - name: mse
@@ -45,3 +48,8 @@ criterions:
     wrapper: fixed_order
     wrapper_conf:
       weight: 1.0
+
+max_epoch: 1
+num_iters_per_epoch: 1
+batch_type: folded
+batch_size: 2

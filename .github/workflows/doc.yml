@@ -9,9 +9,27 @@ on:
       - master
 
 jobs:
+  get_labels:
+    runs-on: ubuntu-latest
+    outputs:
+      is_doc: ${{ steps.step1.outputs.is_doc }}
+    steps:
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
+      - id: step1
+        run: |
+          if [ -n "$GITHUB_PR_LABEL_DOCUMENTATION" ]; then
+            echo "is_doc=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_doc=false" >> "$GITHUB_OUTPUT"
+          fi
   linter_and_test:
     runs-on: ubuntu-latest
-    if: github.event.pull_request.draft == false
+    needs: get_labels
+    if: |
+      github.event.pull_request.draft == false &&
+      needs.get_labels.outputs.is_doc == 'true'
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v1

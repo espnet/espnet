@@ -5,7 +5,6 @@ import evaluate
 import numpy as np
 import sys
 
-
 ref_file = sys.argv[1]
 hyp_file = sys.argv[2]
 
