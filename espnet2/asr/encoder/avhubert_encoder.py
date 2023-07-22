@@ -14,7 +14,7 @@ import math
 import os
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
@@ -131,7 +131,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
 
     def forward(
         self,
-        xs_pad: torch.Tensor,
+        xs_pad: Dict[str, torch.Tensor],
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
@@ -143,7 +143,13 @@ class FairseqAVHubertEncoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        masks = make_pad_mask(ilens).to(xs_pad.device)
+        if 'video' in xs_pad:
+            masks = make_pad_mask(ilens).to(xs_pad['video'].device)
+        elif 'audio' in xs_pad:
+            masks = make_pad_mask(ilens).to(xs_pad['audio'].device)
+        else:
+            ValueError(f"Input should have video or audio")
+
         ft = self.freeze_finetune_updates <= self.num_updates
 
         if self.num_updates <= self.freeze_finetune_updates:
@@ -154,7 +160,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
         else:
             self.num_updates += 1
         with torch.no_grad() if not ft else contextlib.nullcontext():
-            enc_outputs = self.encoders.forward_avsr(
+            enc_outputs = self.encoders.extract_finetune(
                 xs_pad,
                 padding_mask=masks,
             )
@@ -566,6 +572,14 @@ class AVHubertModel(nn.Module):
     def extract_finetune(
         self, source, padding_mask=None, mask=False, ret_conv=False, output_layer=None
     ):
+        """Forward AVHubert Pretrain Encoder.
+        Args:
+            source['audio']: input tensor (B, L, F)
+            source['video']: input tensor (B, 1, L, W, H)
+            padding_mask: input tensor (B, L)
+        Returns:
+            encoded tensor and mask
+        """
         src_audio, src_video = source["audio"], source["video"]
 
         if src_audio is not None and src_video is None:
@@ -654,8 +668,9 @@ class AVHubertModel(nn.Module):
 
         return features
 
-    def forward_avsr(self, source, padding_mask=None, output_layer=None):
+    def forward_transformer(self, source, padding_mask=None, output_layer=None):
         """Forward AVHubert Pretrain Encoder (without frontend).
+        Assume the source is already fused feature.
         Args:
             source: input tensor (B, L, D*2)
             padding_mask: input tensor (B, L)
