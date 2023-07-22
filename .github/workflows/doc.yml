@@ -29,7 +29,7 @@ jobs:
     needs: get_labels
     if: |
       github.event.pull_request.draft == false &&
-      needs.get_labels.outputs.is_doc == true
+      needs.get_labels.outputs.is_doc == 'true'
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v1
