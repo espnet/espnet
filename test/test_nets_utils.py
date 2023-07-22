@@ -8,28 +8,28 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 test_cases = [
     # lengths, xs, length_dim, maxlen
-    {'lengths': [3]},
-    {'lengths': [3], 'length_dim': 1},
-    {'lengths': [3], 'length_dim':2},
-    {'lengths': [3], 'length_dim': 1, 'maxlen': 3},
-    {'lengths': [3], 'length_dim': 1, 'maxlen': 5},
-    {'lengths': [5, 2, 3]},
-    {'lengths': [5, 2, 3], 'length_dim': 1},
-    {'lengths': [5, 2, 3], 'length_dim': 2},
-    {'lengths': [5, 2, 3], 'maxlen': 5},
-    {'lengths': [5, 2, 3], 'maxlen': 8},
-    {'lengths': [5, 2, 3], 'xs': torch.ones(3, 2, 4)},
-    {'lengths': [5, 2, 3], 'xs': torch.ones(3, 2, 4), 'length_dim': 1},
-    {'lengths': [5, 2, 3], 'xs': torch.ones(3, 6, 6), 'length_dim': 1},
-    {'lengths': [5, 2, 3], 'xs': torch.ones(3, 6, 6), 'length_dim': 2},
+    {"lengths": [3]},
+    {"lengths": [3], "length_dim": 1},
+    {"lengths": [3], "length_dim": 2},
+    {"lengths": [3], "length_dim": 1, "maxlen": 3},
+    {"lengths": [3], "length_dim": 1, "maxlen": 5},
+    {"lengths": [5, 2, 3]},
+    {"lengths": [5, 2, 3], "length_dim": 1},
+    {"lengths": [5, 2, 3], "length_dim": 2},
+    {"lengths": [5, 2, 3], "maxlen": 5},
+    {"lengths": [5, 2, 3], "maxlen": 8},
+    {"lengths": [5, 2, 3], "xs": torch.ones(3, 2, 4)},
+    {"lengths": [5, 2, 3], "xs": torch.ones(3, 2, 4), "length_dim": 1},
+    {"lengths": [5, 2, 3], "xs": torch.ones(3, 6, 6), "length_dim": 1},
+    {"lengths": [5, 2, 3], "xs": torch.ones(3, 6, 6), "length_dim": 2},
 ]
 
 
 @pytest.mark.parametrize("test_case", test_cases)
 def test_make_pad_mask(test_case):
-    """Test if onnx-convertible make_pad_mask works correctly. """
+    """Test if onnx-convertible make_pad_mask works correctly."""
     _tc = test_case.copy()
-    lengths = _tc.pop('lengths')
+    lengths = _tc.pop("lengths")
     non_traceable_result = make_pad_mask(lengths, **_tc)
     traceable_result = make_pad_mask(torch.LongTensor(lengths), **_tc)
     assert (traceable_result == non_traceable_result).all()
@@ -52,24 +52,24 @@ class MakePadMaskTest(torch.nn.Module):
     def __init__(self, input_names):
         super(MakePadMaskTest, self).__init__()
         self.input_names = input_names
-    
+
     def forward(self, *args):
-        if self.input_names == ('lengths',):
+        if self.input_names == ("lengths",):
             return self.forward_lengths(*args)
-        elif self.input_names == ('lengths','length_dim'):
+        elif self.input_names == ("lengths", "length_dim"):
             return self.forward_dim(*args)
-        elif self.input_names == ('lengths', 'maxlen'):
+        elif self.input_names == ("lengths", "maxlen"):
             return self.forward_max(*args)
-        elif self.input_names == ('lengths','length_dim','maxlen'):
+        elif self.input_names == ("lengths", "length_dim", "maxlen"):
             return self.forward_dim_max(*args)
-        elif self.input_names == ('lengths', 'xs'):
+        elif self.input_names == ("lengths", "xs"):
             return self.forward_xs(*args)
-        elif self.input_names == ('lengths', 'xs', 'length_dim'):
+        elif self.input_names == ("lengths", "xs", "length_dim"):
             return self.forward_xs_dim(*args)
-            
+
     def forward_lengths(self, lengths):
         return make_pad_mask(lengths)
-    
+
     def forward_dim(self, lengths, length_dim):
         return make_pad_mask(lengths, length_dim=length_dim)
 
@@ -78,42 +78,42 @@ class MakePadMaskTest(torch.nn.Module):
 
     def forward_dim_max(self, lengths, length_dim, maxlen):
         return make_pad_mask(lengths, length_dim=length_dim, maxlen=maxlen)
-    
+
     def forward_xs(self, lengths, xs):
         return make_pad_mask(lengths, xs=xs)
 
     def forward_xs_dim(self, lengths, xs, length_dim):
         return make_pad_mask(lengths, xs=xs, length_dim=length_dim)
-    
+
 
 def get_args(tc):
     args = []
     input_names = []
     kwargs_trace = {}
     kwargs_non = {}
-    lengths = tc.pop('lengths')
+    lengths = tc.pop("lengths")
     args.append(torch.LongTensor(lengths))
-    input_names.append('lengths')
+    input_names.append("lengths")
 
-    xs = tc.pop('xs', None)
+    xs = tc.pop("xs", None)
     if xs is not None:
         args.append(xs)
-        input_names.append('xs')
-        kwargs_trace['xs'] = xs
-        kwargs_non['xs'] = xs
-    
-    ld = tc.pop('length_dim', None)
+        input_names.append("xs")
+        kwargs_trace["xs"] = xs
+        kwargs_non["xs"] = xs
+
+    ld = tc.pop("length_dim", None)
     if ld is not None:
         args.append(torch.LongTensor([ld]))
-        input_names.append('length_dim')
-        kwargs_trace['length_dim'] = torch.LongTensor([ld])
-        kwargs_non['length_dim'] = ld
-    
-    ml = tc.pop('maxlen', None)
+        input_names.append("length_dim")
+        kwargs_trace["length_dim"] = torch.LongTensor([ld])
+        kwargs_non["length_dim"] = ld
+
+    ml = tc.pop("maxlen", None)
     if ml is not None:
         args.append(torch.LongTensor([ml]))
-        input_names.append('maxlen')
-        kwargs_trace['maxlen'] = torch.LongTensor([ml])
-        kwargs_non['maxlen'] = ml
+        input_names.append("maxlen")
+        kwargs_trace["maxlen"] = torch.LongTensor([ml])
+        kwargs_non["maxlen"] = ml
 
     return tuple(args), tuple(input_names), kwargs_trace, kwargs_non
