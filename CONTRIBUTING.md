@@ -33,7 +33,7 @@ may refer to [port-kaldi-recipe](https://github.com/espnet/espnet/wiki/How-to-po
 and other existing recipes for new additions. For the Kaldi-style recipe architecture, please refer to
 [Prepare-Kaldi-Style-Directory](https://kaldi-asr.org/doc/data_prep.html).
 
-For each recipe, we ask you to report the following: experiments results and environnement, model information.
+For each recipe, we ask you to report the following: experimental results and environnement, model information.
 For reproducibility, a link to upload the pre-trained model may also be added. All this information should be written
 in a markdown file called `RESULTS.md` and put at the recipe root. You can refer to
 [tedlium2-example](https://github.com/espnet/espnet/blob/master/egs/tedlium2/asr1/RESULTS.md) for an example.
@@ -65,7 +65,7 @@ To port models from zenodo using Hugging Face hub,
 2. Request to be added to espnet organisation - https://huggingface.co/espnet
 3. Go to `egs2/RECIPE/*` and run `./scripts/utils/upload_models_to_hub.sh "ZENODO_MODEL_NAME"`
 
-To upload models using Huggingface-cli follow the following steps:
+To upload models using Huggingface-cli conduct the following steps:
 You can also refer to https://huggingface.co/docs/transformers/model_sharing
 1. Create a Hugging Face account - https://huggingface.co/
 2. Request to be added to espnet organisation - https://huggingface.co/espnet
@@ -89,21 +89,20 @@ unaware which files/directories are shared. Noted that in espnet2, some of them 
 and `decode.yaml` and put in `conf/`. Additional or variant configurations should be put in `conf/tuning/` and named accordingly
 to its differences.
 - If a recipe for a new corpus is proposed, you should add its name and information to:
-https://github.com/espnet/espnet/blob/master/egs/README.md if it's a ESPnet1 recipe,
-or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's a ESPnet2 recipe.
+https://github.com/espnet/espnet/blob/master/egs/README.md if it's an ESPnet1 recipe,
+or https://github.com/espnet/espnet/blob/master/egs2/README.md + `db.sh` if it's an ESPnet2 recipe.
 
 #### 1.3.4 Checklist before you submit the recipe-based PR
 
 - [ ] be careful about the name for the recipe. It is recommended to follow naming conventions of the other recipes
-- [ ] common/shared files are linked with **soft link** (see Section 1.3.3)
-- [ ] modified or new python scripts should be passed through **latest** black formatting (by using python package black). The command to be executed could be `black espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/*/pyscripts tools/*.py ci/*.py`
-- [ ] modified or new python scripts should be passed through **latest** isort formatting (by using python package isort). The command to be executed could be `isort espnet espnet2 test utils setup.py egs*/*/*/local egs2/TEMPLATE/*/pyscripts tools/*.py ci/*.py`
+- [ ] common/shared files are linked with **symbolic link** (see Section 1.3.3)
 - [ ] cluster settings should be set as **default** (e.g., cmd.sh conf/slurm.conf conf/queue.conf conf/pbs.conf)
-- [ ] update `egs/README.md` or `egs2/README.md` with corresponding recipes
-- [ ] add corresponding entry in `egs2/TEMPLATE/db.sh` for a new corpus
+- [ ] update `egs/README.md` or `egs2/README.md` with the corresponding recipes
+- [ ] add the corresponding entry in `egs2/TEMPLATE/db.sh` for a new corpus
 - [ ] try to **simplify** the model configurations. We recommend to have only the best configuration for the start of a recipe. Please also follow the default rule defined in Section 1.3.3
-- [ ] large meta-information for a corpus should be maintained elsewhere other than in the recipe itself
-- [ ] recommend to also include results and pre-trained model with the recipe
+- [ ] large meta-information (e.g., the keyword list) for a corpus should be maintained elsewhere other than in the recipe itself
+- [ ] recommend to also include results and pre-trained models with the recipe
+- Note that we recommend the users to use the latest `black` and `isort` formattings. However, these formattings are automatically performed by `pre-commit.ci` and are no longer a requirement.
 
 ## 2 Pull Request
 If your proposed feature or bugfix is ready, please open a Pull Request (PR) at https://github.com/espnet/espnet
@@ -114,16 +113,9 @@ or use the Pull Request button in your forked repo. If you're not familiar with 
 
 ## 3 Version policy and development branches
 
-We basically develop in the `master` branch.
+1. After v10.6, we moved our version policy with the year and date-based specifiers, e.g., v.202204 means April 2022.
 
-1. We will keep the first version digit `0` until we have some super major changes in the project organization level.
-
-2. The second version digit will be updated when we have major updates, including new functions and refactoring, and
-   their related bug fix and recipe changes.
-   This version update will be done roughly every half year so far (but it depends on the development plan).
-
-3. The third version digit will be updated when we fix serious bugs or accumulate some minor changes, including
-   recipe related changes periodically (every two months or so).
+2. The version number will be updated when we regularly (e.g., every two months or so) or we have significant changes.
 
 ## 4 Unit testing
 
@@ -133,10 +125,11 @@ $ cd <espnet_root>
 $ . ./tools/activate_python.sh
 $ pip install -e ".[test]"
 ```
+In order to thoroughly test various units, it is necessary to install several modules and tools. We suggest that you review the contents of [install.sh](https://github.com/espnet/espnet/blob/master/ci/install.sh), as it includes all the modules and libraries required for the CI check.
 
 ### 4.1 Python
 
-Then you can run the entire test suite using [flake8](http://flake8.pycqa.org/en/latest/), [autopep8](https://github.com/hhatto/autopep8), [black](https://github.com/psf/black), [isort](https://github.com/PyCQA/isort) and [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
+Then, you can run the entire test suite using [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
 ``` console
 ./ci/test_python.sh
 ```
@@ -145,18 +138,13 @@ Followings are some useful tips when you are using pytest:
 have the format `def test_yyy(...)`.  [Pytest](https://docs.pytest.org/en/latest/) will automatically find and test them.
 - We recommend adding several small test files instead of grouping them in one big file (e.g.: `test_e2e_xxx.py`).
 Technically, a test file should only cover methods from one file (e.g.: `test_transformer_utils.py` to test `transformer_utils.py`).
-- To monitor test coverage and avoid the overlapping test, we recommend using  `pytest --cov-report term-missing <test_file|dir>`
+- To monitor the test coverage and avoid the overlapping test, we recommend using  `pytest --cov-report term-missing <test_file|dir>`
 to highlight covered and missed lines. For more details, please refer to [coverage-test](https://pytest-cov.readthedocs.io/en/latest/readme.html).
-- We limited test running time to 2.0 seconds (see: [pytest-timeouts](https://pypi.org/project/pytest-timeouts/)). As such,
-we recommend using small model parameters and avoiding dynamic imports, file access, and unnecessary loops. If a unit test needs
-more running time, you can annotate your test with `@pytest.mark.execution_timeout(sec)`.
+- We limit test running time to 2.0 seconds (see: [pytest-timeouts](https://pypi.org/project/pytest-timeouts/)) for each trial. As such, we recommend using small model parameters and avoiding dynamic imports, file access, and unnecessary loops.
+If a unit test needs more running time, you can annotate your test with `@pytest.mark.execution_timeout(sec)`.
 - For test initialization (parameters, modules, etc), you can use pytest fixtures. Refer to  [pytest fixtures](https://docs.pytest.org/en/latest/fixture.html#using-fixtures-from-classes-modules-or-projects) for more information.
 
 In addition, please follow the [PEP 8 convention](https://peps.python.org/pep-0008/) for the coding style and [Google's convention for docstrings](https://google.github.io/styleguide/pyguide.html#383-functions-and-methods).
-Below are some specific points that should be taken care of in particular:
-- [import ordering](https://peps.python.org/pep-0008/#imports)
-- Avoid writing python2-style code. For example, `super().__init__()` is preferred over `super(CLASS_NAME, self).__init()__`.
-
 
 ### 4.2 Bash scripts
 

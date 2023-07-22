@@ -11,6 +11,7 @@ on:
 jobs:
   test_centos7:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     container:
       image: centos:7
       env:
@@ -38,6 +39,9 @@ jobs:
           yum-config-manager --enable rhel-server-rhscl-7-rpms
           yum install -y devtoolset-7-gcc-c++ devtoolset-7-make sox ncurses-devel libtool automake autoconf
           localedef -f UTF-8 -i en_US en_US
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
       - name: install espnet
         run: |
           # NOTE(karita) this line exited 1

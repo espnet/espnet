@@ -11,6 +11,7 @@ on:
 jobs:
   test_debian11:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     container:
       image: debian:11
       env:
@@ -32,6 +33,9 @@ jobs:
             build-essential git unzip bzip2 wget curl bc locales make sox \
             libncurses5-dev automake libtool pkg-config
           localedef -f UTF-8 -i en_US en_US
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
       - name: install espnet
         run: ./ci/install.sh
       - name: test shell
