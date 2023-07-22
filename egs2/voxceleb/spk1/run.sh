@@ -6,7 +6,7 @@ set -o pipefail
 
 spk_config=conf/train_RawNet3.yaml
 
-train_set="voxceleb2_dev"
+train_set="voxceleb12_devs"
 valid_set="voxceleb1_test"
 test_sets="voxceleb1_test"
 
