@@ -41,7 +41,6 @@ if torch.distributed.is_available():
     from torch.distributed import ReduceOp
 
 
-
 class SpkTrainer(Trainer):
     """
     Trainer.
