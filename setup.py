@@ -87,6 +87,7 @@ requirements = {
         "fairscale",
         "transformers",
         "gtn==0.0.0",
+        "evaluate"
     ],
     "setup": [
         "pytest-runner",

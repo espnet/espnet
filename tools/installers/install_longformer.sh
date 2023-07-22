@@ -53,8 +53,6 @@ else
 
     if $(pt_plus 1.8.0); then
         python -m pip install git+https://github.com/roshansh-cmu/longformer.git
-        python -m pip install datasets bert-score
-        python -m pip install git+https://github.com/Maluuba/nlg-eval.git@master
     else
         echo "[WARNING] Longformer requires pytorch>=1.8.*"
     fi
