@@ -149,13 +149,15 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     """
     if length_dim == 0:
         raise ValueError("length_dim cannot be 0: {}".format(length_dim))
-    
+
     # If the input dimension is 2 or 3, then we use Wenet based implementation for tracable modeling.
     # otherwise we use the traditional implementation for research use.
     if isinstance(lengths, list):
-        logging.warn("Using make_pad_mask with a list of lengths is not tracable. " +
-                     "If you try to trace this function with type(lengths) == list, " +
-                     "please change the type of lengths to torch.LongTensor.")
+        logging.warn(
+            "Using make_pad_mask with a list of lengths is not tracable. "
+            + "If you try to trace this function with type(lengths) == list, "
+            + "please change the type of lengths to torch.LongTensor."
+        )
 
     if (
         (xs is None or xs.dim() in (2, 3))
@@ -187,7 +189,9 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     mask = seq_range_expand >= seq_length_expand
 
     if xs is not None:
-        assert xs.size(0) == bs, f"The size of x.size(0) {xs.size(0)} must match the batch size {bs}"
+        assert (
+            xs.size(0) == bs
+        ), f"The size of x.size(0) {xs.size(0)} must match the batch size {bs}"
 
         if length_dim < 0:
             length_dim = xs.dim() + length_dim
@@ -232,7 +236,7 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
         maxlen = xs.shape[length_dim]
     else:
         maxlen = lengths.max()
-    
+
     # clip max(length) to maxlen
     lengths = torch.clamp(lengths, max=maxlen)
 
