@@ -144,7 +144,7 @@ cd "${cwd}"
 cd ./egs2/mini_an4/tts1
 gen_dummy_coverage
 echo "==== [ESPnet2] TTS ==="
-# ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --skip-upload false --python "${python}"
+./run.sh --ngpu 0 --stage 1 --stop-stage 7 --skip-upload false --python "${python}"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 
@@ -271,6 +271,7 @@ cd ./egs2/mini_an4/spk1
 gen_dummy_coverage
 echo "==== [ESPnet2] SPK ==="
 ./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --python "${python}"
+./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_dataaug_debug.yaml
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
