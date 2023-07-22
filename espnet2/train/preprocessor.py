@@ -1677,7 +1677,7 @@ class SpkPreprocessor(CommonPreprocessor):
             # noise: (Nmic, Time)
             noise = noise[None, :]
 
-            noise_power = np.mean(noise ** 2)
+            noise_power = np.mean(noise**2)
             noise_db = 10 * np.log10(noise_power + 1e-4)
             scale = np.sqrt(10 ** ((speech_db - noise_db - noise_snr) / 10))
 
@@ -1708,11 +1708,11 @@ class SpkPreprocessor(CommonPreprocessor):
             noiselist = []
             for _ in range(num_to_mix):
                 noise = self._load_noise(
-                    speech, # original speech
-                    speech_db, # db of speech
-                    self.noises[idx], # a list of a type of noise
-                    self.noise_db_ranges[idx][0], # min db
-                    self.noise_db_ranges[idx][1], # max db
+                    speech,  # original speech
+                    speech_db,  # db of speech
+                    self.noises[idx],  # a list of a type of noise
+                    self.noise_db_ranges[idx][0],  # min db
+                    self.noise_db_ranges[idx][1],  # max db
                 )
                 noiselist.append(noise)
             noise = np.sum(np.concatenate(noiselist, axis=0), axis=0, keepdims=True)
