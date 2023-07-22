@@ -152,11 +152,13 @@ class SpkTrainer(Trainer):
             reporter.register(stats=dict(eer=1.0, mindcf=1.0))
             return
 
+        # predictions, ground truth, and the false acceptance rates to calculate
         results = tuneThresholdfromScore(scores, labels, [1, 0.1])
         eer = results[1]
         fnrs, fprs, thresholds = ComputeErrorRates(scores, labels)
+
+        # p_target, c_miss, and c_falsealarm in NIST minDCF calculation
         p_trg, c_miss, c_fa = 0.05, 1, 1
         mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
-        print("eer", eer, "mindcf", mindcf)
 
         reporter.register(stats=dict(eer=eer, mindcf=mindcf))
