@@ -3,6 +3,7 @@ on: [push]
 jobs:
   paper:
     runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
     name: Paper Draft
     steps:
       - name: Checkout

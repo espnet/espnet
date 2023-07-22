@@ -28,6 +28,7 @@ src_case="rm"
 tgt_case="ts"
 
 ./asr2.sh \
+    --kmeans_opts "--batch_bins 4800000" \
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
     --ngpu 2 \
