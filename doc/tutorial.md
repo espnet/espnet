@@ -34,7 +34,7 @@ Each mode can be trained by specifying `mtlalpha` (espnet1) `ctc_weight` (espnet
 - espnet1
 ```sh
 # hybrid CTC/attention (default)
-mtlalpha: 0.3 
+mtlalpha: 0.3
 
 # CTC
 mtlalpha: 1.0
