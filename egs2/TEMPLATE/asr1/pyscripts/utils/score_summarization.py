@@ -1,6 +1,6 @@
 #! /bin/python
 
-# This script is used to score summarization outputs using the HuggingFace's evaluate library
+# Score summarization outputs using the HuggingFace's evaluate library
 import evaluate
 import numpy as np
 import sys
@@ -26,10 +26,6 @@ labels = [ref_dict[k] for k, _ in hyp_dict.items()]
 decoded_preds = [v for k, v in hyp_dict.items()]
 
 
-print(
-    "The scoring script for summarization has changed from NLG-Eval to HuggingFace's evaluate library for ROUGE and METEOR. Please take appropriate care in comparing metrics"
-)
-
 summ_metrics = evaluate.combine(["rouge", "meteor"])
 
 bertscore_metric = evaluate.load("bertscore")
@@ -46,6 +42,7 @@ bertscore_result = bertscore_metric.compute(
     lang="en",
 )
 
-print(
-    f"RESULT {result['rouge1']*100} {result['rouge2']**100} {result['rougeL']*100} {result['meteor']*100.0} {np.mean(bertscore_result['precision'])*100}"
-)
+rouge = f"{result['rouge1']*100} {result['rouge2']**100} {result['rougeL']*100}"
+mtr = f"{result['meteor']*100}"
+brtsc = f"{np.mean(bertscore_result['precision'])*100}"
+print(f"RESULT {rouge} {mtr} {brtsc}")
