@@ -433,7 +433,7 @@ if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
 else
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
-    
+
     if [ $upstream == "s3prl" ]; then
         s3prl_conf="{upstream=${kmeans_feature_type}}"
     else

@@ -433,7 +433,7 @@ if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
 else
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
-    
+
     if [ $upstream == "s3prl" ]; then
         s3prl_conf="{upstream=${kmeans_feature_type}}"
     else
@@ -779,7 +779,7 @@ fi
 if [ -n "${speed_perturb_factors}" ]; then
     train_set="${train_set}_sp"
 fi
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then  
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
     if "${skip_train}"; then
         if "${eval_valid_set}"; then
             _dsets="${valid_set} ${test_sets}"
