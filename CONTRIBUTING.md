@@ -188,7 +188,7 @@ To execute **act**:
 
 2. Install Github CLI. The [instructions](https://github.com/cli/cli#installation) will change depending on your OS. For Linux, you can use the official sources to install the corresponding [package](https://github.com/cli/cli/blob/trunk/docs/install_linux.md#official-sources).
 
-3. Finally, install **act** through [package managers](https://github.com/nektos/act#installation-through-package-managers) or using the [Github CLI](https://github.com/nektos/act#installation-as-github-cli-extension). For Linux, you can use the commad: `gh extension install https://github.com/nektos/gh-act` 
+3. Finally, install **act** through [package managers](https://github.com/nektos/act#installation-through-package-managers) or using the [Github CLI](https://github.com/nektos/act#installation-as-github-cli-extension). For Linux, you can use the commad: `gh extension install https://github.com/nektos/gh-act`
 
 ### 5.2.2 Usage
 
@@ -212,7 +212,7 @@ gh act -W <workflowID>
 gh act -W .github/workflows/<filename>.yml
 ```
 
-List the available jobID/workflowID with: `gh act -l`. 
+List the available jobID/workflowID with: `gh act -l`.
 You can get the list of workflow files from `ls .github/workflows`.
 
 ## 6 Writing new tools
