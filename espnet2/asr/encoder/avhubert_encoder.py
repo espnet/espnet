@@ -137,7 +137,8 @@ class FairseqAVHubertEncoder(AbsEncoder):
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward AVHubert Encoder.
         Args:
-            xs_pad: input tensor (B, L, D)
+            xs_pad[video]: input tensor (B, 1, L, H, W)
+            xs_pad[audio]: input tensor (B, D, L)
             ilens: input length (B)
             prev_states: Not to be used now.
         Returns:
@@ -574,8 +575,8 @@ class AVHubertModel(nn.Module):
     ):
         """Forward AVHubert Pretrain Encoder.
         Args:
-            source['audio']: input tensor (B, L, F)
-            source['video']: input tensor (B, 1, L, W, H)
+            source['video']: input tensor (B, 1, L, H, W)
+            source['audio']: input tensor (B, F, L)
             padding_mask: input tensor (B, L)
         Returns:
             encoded tensor and mask
