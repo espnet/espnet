@@ -1,19 +1,21 @@
-
+# This is a debug config for CI
 encoder: stft
 encoder_conf:
     n_fft: 512
     hop_length: 128
+
 decoder: stft
 decoder_conf:
     n_fft: 512
     hop_length: 128
+
 separator: rnn
 separator_conf:
     rnn_type: blstm
     num_spk: 1
     nonlinear: relu
     layer: 1
-    unit: 128
+    unit: 2
     dropout: 0.2
 
 criterions:
@@ -27,3 +29,8 @@ criterions:
     wrapper: fixed_order
     wrapper_conf:
       weight: 1.0
+
+max_epoch: 1
+num_iters_per_epoch: 1
+batch_type: folded
+batch_size: 2

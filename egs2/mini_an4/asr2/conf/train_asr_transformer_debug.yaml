@@ -1,7 +1,9 @@
+# This is a debug config for CI
 batch_type: folded
-batch_size: 32
-accum_grad: 8
-max_epoch: 10
+batch_size: 2
+accum_grad: 1
+max_epoch: 1
+num_iters_per_epoch: 1
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform
@@ -24,9 +26,9 @@ frontend_conf:
 
 encoder: transformer
 encoder_conf:
-    output_size: 32
+    output_size: 2
     attention_heads: 2
-    linear_units: 64
+    linear_units: 2
     num_blocks: 2
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
@@ -37,7 +39,7 @@ encoder_conf:
 decoder: transformer
 decoder_conf:
     attention_heads: 2
-    linear_units: 64
+    linear_units: 2
     num_blocks: 2
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
