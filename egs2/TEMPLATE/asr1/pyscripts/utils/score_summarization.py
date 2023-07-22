@@ -1,9 +1,10 @@
 #! /bin/python
 
 # Score summarization outputs using the HuggingFace's evaluate library
+import sys
+
 import evaluate
 import numpy as np
-import sys
 
 ref_file = sys.argv[1]
 hyp_file = sys.argv[2]
