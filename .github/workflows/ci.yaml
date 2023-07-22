@@ -98,6 +98,7 @@ jobs:
 
   linter_and_test_espnet2:
     runs-on: ${{ matrix.os }}
+    needs: process_labels
     if: |
       github.event.pull_request.draft == false &&
       needs.process_labels.outputs.is_docker == 'false'
@@ -191,6 +192,7 @@ jobs:
 
   test_configuration_espnet2:
     runs-on: ${{ matrix.os }}
+    needs: process_labels
     if: |
       github.event.pull_request.draft == false &&
       needs.process_labels.outputs.is_docker == 'false'
