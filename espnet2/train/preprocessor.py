@@ -1630,17 +1630,69 @@ class SpkPreprocessor(CommonPreprocessor):
 
         return data
 
+    def _convolve_rir(self, speech, rirs):
+        rir_path = np.random.choice(rirs)
+        rir = None
+        if rir_path is not None:
+            rir, _ = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
+
+            # rir: (Nmic, Time)
+            rir = rir.T
+
+            # normalize rir
+            rir = rir / np.sqrt(np.sum(rir**2))
+
+            # speech: (Nmic, Time)
+            # Note that this operation doesn't change the signal length
+            speech = scipy.signal.convolve(speech, rir, mode="full")[
+                :, : speech.shape[1]
+            ]
+        return speech, rir
+
+    def _load_noise(self, speech, speech_db, noises, noise_db_low, noise_db_high):
+        nsamples = speech.shape[1]
+        noise_path = np.random.choice(noises)
+        noise = None
+        if noise_path is not None:
+            noise_snr = np.random.uniform(noise_db_low, noise_db_high)
+            with soundfile.SoundFile(noise_path) as f:
+                if f.frames == nsamples:
+                    noise = f.read(dtype=np.float64)
+                elif f.frames < nsamples:
+                    # noise: (Time,)
+                    noise = f.read(dtype=np.float64)
+                    # Repeat noise
+                    noise = np.pad(
+                        noise,
+                        (0, nsamples - f.frames),
+                        mode="wrap",
+                    )
+                else:
+                    offset = np.random.randint(0, f.frames - nsamples)
+                    f.seek(offset)
+                    # noise: (Time,)
+                    noise = f.read(nsamples, dtype=np.float64)
+                    if len(noise) != nsamples:
+                        raise RuntimeError(f"Something wrong: {noise_path}")
+            # noise: (Nmic, Time)
+            noise = noise[None, :]
+
+            noise_power = np.mean(noise ** 2)
+            noise_db = 10 * np.log10(noise_power + 1e-4)
+            scale = np.sqrt(10 ** ((speech_db - noise_db - noise_snr) / 10))
+
+            noise = noise * scale
+        return noise
+
     def _apply_data_augmentation(self, speech):
         # speech: (Nmic, Time)
         if speech.ndim == 1:
             speech = speech[None, :]
         else:
             speech = speech.T
-        # Calc power on non silence region
-        power = (speech[detect_non_silence(speech)] ** 2).mean()
 
         if self.rirs is not None and self.rir_apply_prob >= np.random.random():
-            speech, _ = self._convolve_rir(speech, power, self.rirs)
+            speech, _ = self._convolve_rir(speech, self.rirs)
 
         if self.noises and self.noise_apply_prob >= np.random.random():
             idx = random.choices(
@@ -1651,19 +1703,22 @@ class SpkPreprocessor(CommonPreprocessor):
                 num_to_mix = low
             else:
                 num_to_mix = np.random.randint(low, high + 1)
-            for _ in range(num_to_mix):
-                speech, _ = self._add_noise(
-                    speech,
-                    power,
-                    self.noises[idx],
-                    self.noise_db_ranges[idx][0],
-                    self.noise_db_ranges[idx][1],
-                )
 
-        speech = np.squeeze(speech.T, axis=1)
-        ma = np.max(np.abs(speech))
-        if ma > 1.0:
-            speech /= ma
+            speech_db = 10 * np.log10(np.mean(speech**2) + 1e-4)
+            noiselist = []
+            for _ in range(num_to_mix):
+                noise = self._load_noise(
+                    speech, # original speech
+                    speech_db, # db of speech
+                    self.noises[idx], # a list of a type of noise
+                    self.noise_db_ranges[idx][0], # min db
+                    self.noise_db_ranges[idx][1], # max db
+                )
+                noiselist.append(noise)
+            noise = np.sum(np.concatenate(noiselist, axis=0), axis=0, keepdims=True)
+            speech = audio + noise
+
+        speech = np.squeeze(speech, axis=0)
         return speech
 
     def _text_process(
