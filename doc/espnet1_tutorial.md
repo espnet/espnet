@@ -1,6 +1,6 @@
 ## Usage
 
-If you're a new user, we suggest checking out the ESPnet2 tutorial
+If you're a new user, we suggest checking out the 
 [ESPnet2 tutorial](./espnet2_tutorial.md) as ESPnet1 is an older implementation.
 The majority of the development has now shifted to ESPnet2.
 Please be aware that certain information in this document may be outdated due to this shift.
