@@ -6,7 +6,6 @@ source tools/activate_python.sh
 PYTHONPATH="${PYTHONPATH:-}:$(pwd)/tools/s3prl"
 export PYTHONPATH
 python="coverage run --append"
-cwd=$(pwd)
 
 gen_dummy_coverage(){
     # To avoid a problem when parallel running for `coverage run`.
