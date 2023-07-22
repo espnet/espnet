@@ -5,11 +5,6 @@
 
 set -euo pipefail
 
-log() {
-    local fname=${BASH_SOURCE[1]##*/}
-    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
-}
-
 exclude="egs2/TEMPLATE/asr1/utils,egs2/TEMPLATE/asr1/steps,egs2/TEMPLATE/tts1/sid,doc,tools,bats-core"
 
 # flake8
