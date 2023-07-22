@@ -179,7 +179,7 @@ cd egs/mini_an4/your_task
 ## 6 Writing new tools
 
 You can place your new tools under
-- `espnet/bin`: heavy and large (e.g., neural network related) core tools.
+- `espnet/bin` or `espnet2/bin`: heavy and large (e.g., neural network related) core tools.
 - `utils`: lightweight, self-contained python/bash scripts.
 
 For `utils` scripts, do not forget to add help messages and test scripts under `test_utils`.
@@ -216,30 +216,15 @@ To generate a doc, support `--help` to show its usage. If you use Kaldi's `utils
 
 See [doc](doc/README.md).
 
-## 8 Adding pre-trained models
+## 8 On CI failure
 
-Pack your trained models using `utils/pack_model.sh` and upload it [here](https://drive.google.com/open?id=1k9RRyc06Zl0mM2A7mi-hxNiNMFb_YzTF) (You require permission).
-Add the shared link to `utils/recog_wav.sh` or `utils/synth_wav.sh` as follows:
-```sh
-    "tedlium.demo") share_url="https://drive.google.com/open?id=1UqIY6WJMZ4sxNxSugUqp3mrGb3j6h7xe" ;;
-```
-The model name is arbitrary for now.
-
-
-## 9 On CI failure
-
-### 9.1 Travis CI and Github Actions
+### Github Actions
 
 1. read the log from PR checks > details
 
-### 9.2 Circle CI
+<img width="725" alt="image" src="https://github.com/espnet/espnet/assets/11741550/e8e45c87-75e4-4489-a816-5c645b30fa0f">
 
-1. read the log from PR checks > details
-2. turn on Rerun workflow > Rerun job with SSH
-3. open your local terminal and `ssh -p xxx xxx` (check circle ci log for the exact address)
-4. try anything you can to pass the CI
-
-### 9.3 Codecov
+### 8.2 Codecov
 
 1. write more tests to increase coverage
 2. explain to reviewers why you can't increase coverage
