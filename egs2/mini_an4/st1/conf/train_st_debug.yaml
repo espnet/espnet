@@ -11,13 +11,13 @@ encoder_conf:
     hidden_size: 2
     output_size: 2
 decoder: rnn
-docoder_conf:
+decoder_conf:
     hidden_size: 2
 extra_asr_decoder: rnn
-extra_asr_docoder_conf:
+extra_asr_decoder_conf:
     hidden_size: 2
 extra_mt_decoder: rnn
-extra_mt_docoder_conf:
+extra_mt_decoder_conf:
     hidden_size: 2
 max_epoch: 1
 num_iters_per_epoch: 1

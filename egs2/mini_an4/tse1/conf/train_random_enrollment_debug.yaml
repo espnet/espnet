@@ -15,7 +15,7 @@ extractor: td_speakerbeam
 extractor_conf:
     layer: 2
     stack: 2
-    bottleneck_dim: 4
+    bottleneck_dim: 2
     hidden_dim: 2
     skip_dim: 2
     kernel: 3
@@ -25,7 +25,7 @@ extractor_conf:
     # enrollment related
     i_adapt_layer: 1
     adapt_layer_type: mul
-    adapt_enroll_dim: 8
+    adapt_enroll_dim: 2
 
 criterions:
   # The first criterion

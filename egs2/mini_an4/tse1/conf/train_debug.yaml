@@ -25,7 +25,7 @@ extractor_conf:
     # enrollment related
     i_adapt_layer: 1
     adapt_layer_type: mul
-    adapt_enroll_dim: 8
+    adapt_enroll_dim: 2
 
 optim: adam
 
