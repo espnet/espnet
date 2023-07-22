@@ -54,13 +54,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
 
         if self.causal_lm:
             model = AutoModelForCausalLM.from_pretrained(model_name_or_path)
-
-            if hasattr(model, "transformer"):
-                self.decoder = model.transformer
-            elif hasattr(model, "gpt_neox"):
-                self.decoder = model.gpt_neox
-            else:
-                raise Exception("Can not find the transformer attribute")
+            self.decoder = get_hugging_face_model_network(model)
 
             if hasattr(self.decoder, "word_embeddings"):
                 self.decoder_word_embeddings = self.decoder.word_embeddings
@@ -83,12 +77,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
 
         model.resize_token_embeddings(vocab_size)
 
-        if hasattr(model, "lm_head"):
-            self.lm_head = model.lm_head
-        elif hasattr(model, "embed_out"):
-            self.lm_head = model.embed_out
-        else:
-            raise Exception("Can not find the LM head attribute")
+        self.lm_head = get_hugging_face_model_lm_head(model)
 
         self.model_name_or_path = model_name_or_path
 
@@ -237,3 +226,25 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
         args["return_dict"] = True
 
         return args, no_loss_lengths
+
+
+def get_hugging_face_model_network(model):
+    if hasattr(model, "transformer"):
+        network = model.transformer
+    elif hasattr(model, "gpt_neox"):
+        network = model.gpt_neox
+    else:
+        raise Exception("Can not find the network attribute")
+
+    return network
+
+
+def get_hugging_face_model_lm_head(model):
+    if hasattr(model, "lm_head"):
+        lm_head = model.lm_head
+    elif hasattr(model, "embed_out"):
+        lm_head = model.embed_out
+    else:
+        raise Exception("Can not find the LM head attribute")
+
+    return lm_head

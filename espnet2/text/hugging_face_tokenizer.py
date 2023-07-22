@@ -46,6 +46,10 @@ class HuggingFaceTokenizer(AbsTokenizer):
 
     def tokens2text(self, tokens: Iterable[str]) -> str:
         self._build_tokenizer()
-        return self.tokenizer.batch_decode(
-            [self.tokenizer.convert_tokens_to_ids(tokens)], skip_special_tokens=True
-        )[0]
+        return (
+            self.tokenizer.batch_decode(
+                [self.tokenizer.convert_tokens_to_ids(tokens)], skip_special_tokens=True
+            )[0]
+            .replace("\n", " ")
+            .strip()
+        )
