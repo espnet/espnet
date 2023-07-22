@@ -178,7 +178,7 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
         else:
             maxlen = xs.size(length_dim)
     else:
-        assert xs is None, "When maxlen is specified, xs must also be specified."
+        assert xs is None, "When maxlen is specified, xs must not be specified."
         assert maxlen >= int(max(lengths)), f"maxlen {maxlen} must be >= max(lengths) {max(lengths)}"
 
     seq_range = torch.arange(0, maxlen, dtype=torch.int64)
@@ -204,7 +204,8 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     Make mask tensor containing indices of padded part.
     This is a simplified implementation of make_pad_mask without the xs input
     that supports JIT tracing for applications like exporting models to ONNX.
-    Dimension length of xs should be 2 or 3.
+    Dimension length of xs should be 2 or 3
+    This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and select rows to create mask tensor.
     """
     assert len(lengths.shape) == 1
 
@@ -218,23 +219,27 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
             lengths = lengths.unsqueeze(1).expand(*xs.transpose(1, 2).shape[:2])
         else:
             # Then length_dim is 2 or -1.
+            if length_dim not in (-1, 2):
+                logging.warn(f"Invalid length_dim {length_dim}. " +
+                             "We set it to -1, which is the default value.")
+                length_dim = -1
             lengths = lengths.unsqueeze(1).expand(*xs.shape[:2])
 
     if maxlen is not None:
         assert xs is None
         assert maxlen >= lengths.max()
     elif xs is not None:
-        maxlen = xs.size(length_dim)
+        maxlen = xs.shape[length_dim]
     else:
         maxlen = lengths.max()
     
     # clip max(length) to maxlen
-    lengths = lengths.clamp(1, maxlen)
+    lengths = torch.clamp(lengths, max=maxlen)
 
     mask = torch.ones(maxlen, maxlen, dtype=torch.bool, device=device).triu(diagonal=1)
     mask = mask[lengths - 1][..., :maxlen]
 
-    if length_dim == 1:
+    if xs is not None and len(xs.shape) == 3 and length_dim == 1:
         return mask.transpose(1, 2)
     else:
         return mask
