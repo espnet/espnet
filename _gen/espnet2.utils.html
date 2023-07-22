@@ -138,6 +138,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.samplers.html">espnet2.samplers package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.utils package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-griffin-lim-1">espnet2.utils.griffin_lim</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-eer-1">espnet2.utils.eer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-types-1">espnet2.utils.types</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-kwargs2args-1">espnet2.utils.kwargs2args</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-utils-get-default-kwargs-1">espnet2.utils.get_default_kwargs</a></li>
@@ -267,6 +268,26 @@
 </dd>
 </dl>
 </dd></dl>
+
+</section>
+<section id="espnet2-utils-eer-1">
+<span id="espnet2-utils-eer"></span><h2>espnet2.utils.eer<a class="headerlink" href="#espnet2-utils-eer-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.utils.eer"></span><p>Source code from:
+<a class="reference external" href="https://github.com/clovaai/voxceleb_trainer/blob/master/tuneThreshold.py">https://github.com/clovaai/voxceleb_trainer/blob/master/tuneThreshold.py</a></p>
+<dl class="function">
+<dt id="espnet2.utils.eer.ComputeErrorRates">
+<code class="sig-prename descclassname">espnet2.utils.eer.</code><code class="sig-name descname">ComputeErrorRates</code><span class="sig-paren">(</span><em class="sig-param">scores</em>, <em class="sig-param">labels</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/utils/eer.html#ComputeErrorRates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.eer.ComputeErrorRates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.utils.eer.ComputeMinDcf">
+<code class="sig-prename descclassname">espnet2.utils.eer.</code><code class="sig-name descname">ComputeMinDcf</code><span class="sig-paren">(</span><em class="sig-param">fnrs</em>, <em class="sig-param">fprs</em>, <em class="sig-param">thresholds</em>, <em class="sig-param">p_target</em>, <em class="sig-param">c_miss</em>, <em class="sig-param">c_fa</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/utils/eer.html#ComputeMinDcf"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.eer.ComputeMinDcf" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.utils.eer.tuneThresholdfromScore">
+<code class="sig-prename descclassname">espnet2.utils.eer.</code><code class="sig-name descname">tuneThresholdfromScore</code><span class="sig-paren">(</span><em class="sig-param">scores</em>, <em class="sig-param">labels</em>, <em class="sig-param">target_fa</em>, <em class="sig-param">target_fr=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/utils/eer.html#tuneThresholdfromScore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.utils.eer.tuneThresholdfromScore" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="espnet2-utils-types-1">

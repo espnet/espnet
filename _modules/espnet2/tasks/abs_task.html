@@ -237,6 +237,9 @@
 <span class="kn">from</span> <span class="nn">espnet2.optimizers.sgd</span> <span class="kn">import</span> <span class="n">SGD</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.build_batch_sampler</span> <span class="kn">import</span> <span class="n">BATCH_TYPES</span><span class="p">,</span> <span class="n">build_batch_sampler</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.unsorted_batch_sampler</span> <span class="kn">import</span> <span class="n">UnsortedBatchSampler</span>
+<span class="kn">from</span> <span class="nn">espnet2.schedulers.cosine_anneal_warmup_restart</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">CosineAnnealingWarmupRestarts</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.noam_lr</span> <span class="kn">import</span> <span class="n">NoamLR</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_lr</span> <span class="kn">import</span> <span class="n">WarmupLR</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_reducelronplateau</span> <span class="kn">import</span> <span class="n">WarmupReduceLROnPlateau</span>
@@ -358,6 +361,7 @@
     <span class="n">cycliclr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CyclicLR</span><span class="p">,</span>
     <span class="n">onecyclelr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">OneCycleLR</span><span class="p">,</span>
     <span class="n">CosineAnnealingWarmRestarts</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CosineAnnealingWarmRestarts</span><span class="p">,</span>
+    <span class="n">CosineAnnealingWarmupRestarts</span><span class="o">=</span><span class="n">CosineAnnealingWarmupRestarts</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="c1"># To lower keys</span>
 <span class="n">optim_classes</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">optim_classes</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
@@ -928,6 +932,13 @@
             <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;descending&quot;</span><span class="p">,</span> <span class="s2">&quot;ascending&quot;</span><span class="p">],</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sort the samples in each mini-batches by the sample &quot;</span>
             <span class="s1">&#39;lengths. To enable this, &quot;shape_file&quot; must have the length information.&#39;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--shuffle_within_batch&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Shuffles wholes batches in sample-wise. Required for&quot;</span>
+            <span class="s2">&quot;Classification tasks normally.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--sort_batch&quot;</span><span class="p">,</span>
@@ -1804,6 +1815,7 @@
             <span class="n">seed</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
             <span class="n">num_iters_per_epoch</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">num_iters_per_epoch</span><span class="p">,</span>
             <span class="n">shuffle</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
+            <span class="n">shuffle_within_batch</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">shuffle_within_batch</span><span class="p">,</span>
             <span class="n">num_workers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_workers</span><span class="p">,</span>
             <span class="n">collate_fn</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">collate_fn</span><span class="p">,</span>
             <span class="n">pin_memory</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>

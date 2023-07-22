@@ -133,6 +133,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.train package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-train-spk-trainer-1">espnet2.train.spk_trainer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-train-abs-gan-espnet-model-1">espnet2.train.abs_gan_espnet_model</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-train-collate-fn-1">espnet2.train.collate_fn</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-train-dataset-1">espnet2.train.dataset</a></li>
@@ -203,6 +204,25 @@
              
   <section id="espnet2-train-package">
 <h1>espnet2.train package<a class="headerlink" href="#espnet2-train-package" title="Permalink to this headline">¶</a></h1>
+<section id="espnet2-train-spk-trainer-1">
+<span id="espnet2-train-spk-trainer"></span><h2>espnet2.train.spk_trainer<a class="headerlink" href="#espnet2-train-spk-trainer-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.train.spk_trainer"></span><p>Trainer module for speaker recognition.</p>
+<dl class="class">
+<dt id="espnet2.train.spk_trainer.SpkTrainer">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.spk_trainer.</code><code class="sig-name descname">SpkTrainer</code><a class="reference internal" href="../_modules/espnet2/train/spk_trainer.html#SpkTrainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.spk_trainer.SpkTrainer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.train.trainer.Trainer" title="espnet2.train.trainer.Trainer"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.trainer.Trainer</span></code></a></p>
+<p>Trainer.
+Designed for speaker recognition.
+Training will be done as closed set classification.
+Validation will be open set EER calculation.</p>
+<dl class="method">
+<dt id="espnet2.train.spk_trainer.SpkTrainer.validate_one_epoch">
+<em class="property">classmethod </em><code class="sig-name descname">validate_one_epoch</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, iterator: Iterable[Dict[str, torch.Tensor]], reporter: espnet2.train.reporter.SubReporter, options: espnet2.train.trainer.TrainerOptions, distributed_option: espnet2.train.distributed_utils.DistributedOption</em><span class="sig-paren">)</span> &#x2192; None<a class="reference internal" href="../_modules/espnet2/train/spk_trainer.html#SpkTrainer.validate_one_epoch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.spk_trainer.SpkTrainer.validate_one_epoch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-train-abs-gan-espnet-model-1">
 <span id="espnet2-train-abs-gan-espnet-model"></span><h2>espnet2.train.abs_gan_espnet_model<a class="headerlink" href="#espnet2-train-abs-gan-espnet-model-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.train.abs_gan_espnet_model"></span><p>ESPnetModel abstract class for GAN-based training.</p>
@@ -968,8 +988,39 @@ the real Rank is set as (nGPU * NodeID) + LOCAL_RANK in torch.distributed.</p>
 
 <dl class="class">
 <dt id="espnet2.train.preprocessor.SpkPreprocessor">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">SpkPreprocessor</code><span class="sig-paren">(</span><em class="sig-param">train: bool</em>, <em class="sig-param">spk2utt: str</em>, <em class="sig-param">target_duration: float</em>, <em class="sig-param">sr: int = 16000</em>, <em class="sig-param">num_eval: int = 10</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#SpkPreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.SpkPreprocessor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">SpkPreprocessor</code><span class="sig-paren">(</span><em class="sig-param">train: bool, spk2utt: str, target_duration: float, sample_rate: int = 16000, num_eval: int = 10, rir_scp: str = None, rir_apply_prob: float = 1.0, noise_info: List[Tuple[float, str, Tuple[int, int], Tuple[float, float]]] = None, noise_apply_prob: float = 1.0, short_noise_thres: float = 0.5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#SpkPreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.SpkPreprocessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.train.preprocessor.CommonPreprocessor" title="espnet2.train.preprocessor.CommonPreprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.preprocessor.CommonPreprocessor</span></code></a></p>
+<p>Preprocessor for Speaker tasks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train</strong> (<em>bool</em>) – Whether to use in training mode.</p></li>
+<li><p><strong>spk2utt</strong> (<em>str</em>) – Path to the <cite>spk2utt</cite> file.</p></li>
+<li><p><strong>target_duration</strong> (<em>float</em>) – Target duration in seconds.</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – Sampling rate.</p></li>
+<li><p><strong>num_eval</strong> (<em>int</em>) – Number of utterances to be used for evaluation.</p></li>
+<li><p><strong>rir_scp</strong> (<em>str</em>) – Path to the RIR scp file.</p></li>
+<li><p><strong>rir_apply_prob</strong> (<em>float</em>) – Probability of applying RIR.</p></li>
+<li><p><strong>noise_info</strong> (<em>List</em><em>[</em><em>Tuple</em><em>[</em><em>float</em><em>, </em><em>str</em><em>, </em><em>Tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>Tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em><em>]</em>) – <p>List of tuples of noise information. Each tuple represents a noise type.
+Each tuple consists of <cite>(prob, noise_scp, num_to_mix, db_range)</cite>.</p>
+<blockquote>
+<div><ul>
+<li><p><cite>prob</cite> (float) is the probability of applying the noise type.</p></li>
+<li><p><cite>noise_scp</cite> (str) is the path to the noise scp file.</p></li>
+<li><dl class="simple">
+<dt><cite>num_to_mix</cite> (Tuple[int, int]) is the range of the number of noises</dt><dd><p>to be mixed.</p>
+</dd>
+</dl>
+</li>
+<li><p><cite>db_range</cite> (Tuple[float, float]) is the range of noise levels in dB.</p></li>
+</ul>
+</div></blockquote>
+</p></li>
+<li><p><strong>noise_apply_prob</strong> (<em>float</em>) – Probability of applying noise.</p></li>
+<li><p><strong>short_noise_thres</strong> (<em>float</em>) – Threshold of short noise.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="class">

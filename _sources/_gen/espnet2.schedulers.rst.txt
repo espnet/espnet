@@ -15,6 +15,17 @@ espnet2.schedulers.noam_lr
     :show-inheritance:
 
 
+.. _espnet2.schedulers.cosine_anneal_warmup_restart:
+
+espnet2.schedulers.cosine_anneal_warmup_restart
+-----------------------------------------------
+
+.. automodule:: espnet2.schedulers.cosine_anneal_warmup_restart
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.schedulers.warmup_reducelronplateau:
 
 espnet2.schedulers.warmup_reducelronplateau

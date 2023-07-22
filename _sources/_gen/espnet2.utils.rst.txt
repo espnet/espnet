@@ -15,6 +15,17 @@ espnet2.utils.griffin_lim
     :show-inheritance:
 
 
+.. _espnet2.utils.eer:
+
+espnet2.utils.eer
+-----------------
+
+.. automodule:: espnet2.utils.eer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.utils.types:
 
 espnet2.utils.types

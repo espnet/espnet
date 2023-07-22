@@ -238,7 +238,7 @@
     <span class="n">CommonPreprocessor</span><span class="p">,</span>
     <span class="n">SpkPreprocessor</span><span class="p">,</span>
 <span class="p">)</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.trainer</span> <span class="kn">import</span> <span class="n">Trainer</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.spk_trainer</span> <span class="kn">import</span> <span class="n">SpkTrainer</span> <span class="k">as</span> <span class="n">Trainer</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.get_default_kwargs</span> <span class="kn">import</span> <span class="n">get_default_kwargs</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">int_or_none</span><span class="p">,</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str_or_none</span>
@@ -383,7 +383,7 @@
             <span class="s2">&quot;--target_duration&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Duration of samples in a minibatch&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Duration (in seconds) of samples in a minibatch&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -394,7 +394,7 @@
         <span class="p">)</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--sr&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;--sample_rate&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="mi">16000</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sampling rate&quot;</span><span class="p">,</span>
@@ -405,6 +405,13 @@
             <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of segments to make from one utterance in the inference phase&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--rir_scp&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Directory of the rir data to be augmented&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
@@ -459,7 +466,11 @@
     <span class="k">def</span> <span class="nf">optional_data_names</span><span class="p">(</span>
         <span class="bp">cls</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span> <span class="n">inference</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">]:</span>
-        <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;spk_labels&quot;</span><span class="p">,)</span>
+        <span class="c1"># When calculating EER, we need trials where each trial has two</span>
+        <span class="c1"># utterances. speech2 corresponds to the second utterance of each</span>
+        <span class="c1"># trial pair in the validation/inference phase.</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;speech2&quot;</span><span class="p">,</span> <span class="s2">&quot;trial&quot;</span><span class="p">,</span> <span class="s2">&quot;spk_labels&quot;</span><span class="p">)</span>
+
         <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 

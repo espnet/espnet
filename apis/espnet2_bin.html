@@ -504,6 +504,7 @@ Text converter related:
                     [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                     [--fold_length FOLD_LENGTH]
                     [--sort_in_batch {descending,ascending}]
+                    [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                     [--sort_batch {descending,ascending}]
                     [--multiple_iterator MULTIPLE_ITERATOR]
                     [--chunk_length CHUNK_LENGTH]
@@ -520,7 +521,7 @@ Text converter related:
                     [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
-                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                     [--scheduler_conf SCHEDULER_CONF]
                     [--token_list TOKEN_LIST]
                     [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -755,6 +756,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -906,7 +909,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -1166,6 +1169,7 @@ Text converter related:
                                [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                                [--fold_length FOLD_LENGTH]
                                [--sort_in_batch {descending,ascending}]
+                               [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                                [--sort_batch {descending,ascending}]
                                [--multiple_iterator MULTIPLE_ITERATOR]
                                [--chunk_length CHUNK_LENGTH]
@@ -1182,7 +1186,7 @@ Text converter related:
                                [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                                [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                                [--optim_conf OPTIM_CONF]
-                               [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                               [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                                [--scheduler_conf SCHEDULER_CONF]
                                [--token_list TOKEN_LIST]
                                [--input_size INPUT_SIZE] [--init INIT]
@@ -1406,6 +1410,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -1557,7 +1563,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -1762,6 +1768,7 @@ Enh + Diar related:
                      [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                      [--fold_length FOLD_LENGTH]
                      [--sort_in_batch {descending,ascending}]
+                     [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                      [--sort_batch {descending,ascending}]
                      [--multiple_iterator MULTIPLE_ITERATOR]
                      [--chunk_length CHUNK_LENGTH]
@@ -1778,7 +1785,7 @@ Enh + Diar related:
                      [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                      [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                      [--optim_conf OPTIM_CONF]
-                     [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                     [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                      [--scheduler_conf SCHEDULER_CONF] [--num_spk NUM_SPK]
                      [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                      [--input_size INPUT_SIZE] [--model_conf MODEL_CONF]
@@ -1992,6 +1999,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -2143,7 +2152,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -2410,6 +2419,7 @@ SeparateSpeech related:
                         [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                         [--fold_length FOLD_LENGTH]
                         [--sort_in_batch {descending,ascending}]
+                        [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                         [--sort_batch {descending,ascending}]
                         [--multiple_iterator MULTIPLE_ITERATOR]
                         [--chunk_length CHUNK_LENGTH]
@@ -2426,7 +2436,7 @@ SeparateSpeech related:
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--token_list TOKEN_LIST]
                         [--src_token_list SRC_TOKEN_LIST]
@@ -2695,6 +2705,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -2846,7 +2858,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -3114,6 +3126,7 @@ PESQ related:
                     [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                     [--fold_length FOLD_LENGTH]
                     [--sort_in_batch {descending,ascending}]
+                    [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                     [--sort_batch {descending,ascending}]
                     [--multiple_iterator MULTIPLE_ITERATOR]
                     [--chunk_length CHUNK_LENGTH]
@@ -3130,7 +3143,7 @@ PESQ related:
                     [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
-                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                     [--scheduler_conf SCHEDULER_CONF]
                     [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                     [--model_conf MODEL_CONF] [--criterions CRITERIONS]
@@ -3353,6 +3366,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -3504,7 +3519,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -3722,6 +3737,7 @@ SeparateSpeech related:
                         [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                         [--fold_length FOLD_LENGTH]
                         [--sort_in_batch {descending,ascending}]
+                        [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                         [--sort_batch {descending,ascending}]
                         [--multiple_iterator MULTIPLE_ITERATOR]
                         [--chunk_length CHUNK_LENGTH]
@@ -3738,7 +3754,7 @@ SeparateSpeech related:
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                         [--model_conf MODEL_CONF] [--criterions CRITERIONS]
@@ -3962,6 +3978,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -4113,7 +4131,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -4245,6 +4263,7 @@ Optimizer related:
                         [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                         [--fold_length FOLD_LENGTH]
                         [--sort_in_batch {descending,ascending}]
+                        [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                         [--sort_batch {descending,ascending}]
                         [--multiple_iterator MULTIPLE_ITERATOR]
                         [--chunk_length CHUNK_LENGTH]
@@ -4261,11 +4280,11 @@ Optimizer related:
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim2_conf OPTIM2_CONF]
-                        [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                         [--scheduler2_conf SCHEDULER2_CONF]
                         [--generator_first GENERATOR_FIRST]
                         [--token_list TOKEN_LIST] [--odim ODIM]
@@ -4500,6 +4519,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -4651,7 +4672,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -4659,7 +4680,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim2_conf OPTIM2_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler2_conf SCHEDULER2_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -4779,6 +4800,7 @@ Optimizer related:
                         [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                         [--fold_length FOLD_LENGTH]
                         [--sort_in_batch {descending,ascending}]
+                        [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                         [--sort_batch {descending,ascending}]
                         [--multiple_iterator MULTIPLE_ITERATOR]
                         [--chunk_length CHUNK_LENGTH]
@@ -4795,11 +4817,11 @@ Optimizer related:
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                         [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim_conf OPTIM_CONF]
-                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                         [--scheduler_conf SCHEDULER_CONF]
                         [--optim2 {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                         [--optim2_conf OPTIM2_CONF]
-                        [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                        [--scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                         [--scheduler2_conf SCHEDULER2_CONF]
                         [--generator_first GENERATOR_FIRST]
                         [--token_list TOKEN_LIST] [--odim ODIM]
@@ -5028,6 +5050,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -5179,7 +5203,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -5187,7 +5211,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim2_conf OPTIM2_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler2 {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler2_conf SCHEDULER2_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -5298,6 +5322,7 @@ Optimizer related:
                        [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                        [--fold_length FOLD_LENGTH]
                        [--sort_in_batch {descending,ascending}]
+                       [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                        [--sort_batch {descending,ascending}]
                        [--multiple_iterator MULTIPLE_ITERATOR]
                        [--chunk_length CHUNK_LENGTH]
@@ -5314,7 +5339,7 @@ Optimizer related:
                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                        [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                        [--optim_conf OPTIM_CONF]
-                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                       [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                        [--scheduler_conf SCHEDULER_CONF]
                        [--token_list TOKEN_LIST]
                        [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -5549,6 +5574,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -5700,7 +5727,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -5947,6 +5974,7 @@ The model configuration related:
                    [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                    [--fold_length FOLD_LENGTH]
                    [--sort_in_batch {descending,ascending}]
+                   [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                    [--sort_batch {descending,ascending}]
                    [--multiple_iterator MULTIPLE_ITERATOR]
                    [--chunk_length CHUNK_LENGTH]
@@ -5963,7 +5991,7 @@ The model configuration related:
                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                    [--optim_conf OPTIM_CONF]
-                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                    [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                    [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                    [--model_conf MODEL_CONF]
@@ -6176,6 +6204,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -6327,7 +6357,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -6506,6 +6536,7 @@ Text converter related:
                    [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                    [--fold_length FOLD_LENGTH]
                    [--sort_in_batch {descending,ascending}]
+                   [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                    [--sort_batch {descending,ascending}]
                    [--multiple_iterator MULTIPLE_ITERATOR]
                    [--chunk_length CHUNK_LENGTH]
@@ -6522,7 +6553,7 @@ Text converter related:
                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                    [--optim_conf OPTIM_CONF]
-                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                    [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                    [--src_token_list SRC_TOKEN_LIST]
                    [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -6754,6 +6785,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -6905,7 +6938,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -7035,6 +7068,7 @@ optional arguments:
                     [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                     [--fold_length FOLD_LENGTH]
                     [--sort_in_batch {descending,ascending}]
+                    [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                     [--sort_batch {descending,ascending}]
                     [--multiple_iterator MULTIPLE_ITERATOR]
                     [--chunk_length CHUNK_LENGTH]
@@ -7051,13 +7085,14 @@ optional arguments:
                     [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
-                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                     [--scheduler_conf SCHEDULER_CONF]
                     [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                     [--use_preprocessor USE_PREPROCESSOR]
                     [--input_size INPUT_SIZE]
                     [--target_duration TARGET_DURATION] [--spk2utt SPK2UTT]
-                    [--sr SR] [--num_eval NUM_EVAL] [--model_conf MODEL_CONF]
+                    [--sample_rate SAMPLE_RATE] [--num_eval NUM_EVAL]
+                    [--rir_scp RIR_SCP] [--model_conf MODEL_CONF]
                     [--frontend {default,sliding_window,raw,None}]
                     [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                     [--specaug_conf SPECAUG_CONF]
@@ -7266,6 +7301,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -7417,7 +7454,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -7431,10 +7468,12 @@ Optimizer related:
   --input_size INPUT_SIZE
                         The number of input dimension of the feature (default: None)
   --target_duration TARGET_DURATION
-                        Duration of samples in a minibatch (default: 3.0)
+                        Duration (in seconds) of samples in a minibatch (default: 3.0)
   --spk2utt SPK2UTT     Directory of spk2utt file to be used in label mapping (default: )
-  --sr SR               Sampling rate (default: 16000)
+  --sample_rate SAMPLE_RATE
+                        Sampling rate (default: 16000)
   --num_eval NUM_EVAL   Number of segments to make from one utterance in the inference phase (default: 10)
+  --rir_scp RIR_SCP     Directory of the rir data to be augmented (default: )
   --model_conf MODEL_CONF
                         The keyword arguments for model class. (default: {})
   --frontend {default,sliding_window,raw,None}
@@ -7646,6 +7685,7 @@ Text converter related:
                    [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                    [--fold_length FOLD_LENGTH]
                    [--sort_in_batch {descending,ascending}]
+                   [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                    [--sort_batch {descending,ascending}]
                    [--multiple_iterator MULTIPLE_ITERATOR]
                    [--chunk_length CHUNK_LENGTH]
@@ -7662,7 +7702,7 @@ Text converter related:
                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                    [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                    [--optim_conf OPTIM_CONF]
-                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                   [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                    [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                    [--src_token_list SRC_TOKEN_LIST]
                    [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
@@ -7895,6 +7935,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -8046,7 +8088,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})
@@ -8294,6 +8336,7 @@ Vocoder related:
                     [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
                     [--fold_length FOLD_LENGTH]
                     [--sort_in_batch {descending,ascending}]
+                    [--shuffle_within_batch SHUFFLE_WITHIN_BATCH]
                     [--sort_batch {descending,ascending}]
                     [--multiple_iterator MULTIPLE_ITERATOR]
                     [--chunk_length CHUNK_LENGTH]
@@ -8310,7 +8353,7 @@ Vocoder related:
                     [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
                     [--optim {adam,adamw,sgd,adadelta,adagrad,adamax,asgd,lbfgs,rmsprop,rprop,radam,accagd,adabound,adamod,diffgrad,lamb,novograd,pid,qhm,sgdw,yogi}]
                     [--optim_conf OPTIM_CONF]
-                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}]
+                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                     [--scheduler_conf SCHEDULER_CONF]
                     [--token_list TOKEN_LIST] [--odim ODIM]
                     [--model_conf MODEL_CONF]
@@ -8535,6 +8578,8 @@ Sequence iterator related:
   --fold_length FOLD_LENGTH
   --sort_in_batch {descending,ascending}
                         Sort the samples in each mini-batches by the sample lengths. To enable this, &quot;shape_file&quot; must have the length information. (default: descending)
+  --shuffle_within_batch SHUFFLE_WITHIN_BATCH
+                        Shuffles wholes batches in sample-wise. Required forClassification tasks normally. (default: False)
   --sort_batch {descending,ascending}
                         Sort mini-batches by the sample lengths (default: descending)
   --multiple_iterator MULTIPLE_ITERATOR
@@ -8686,7 +8731,7 @@ Optimizer related:
                         The optimizer type (default: adadelta)
   --optim_conf OPTIM_CONF
                         The keyword arguments for optimizer (default: {})
-  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,None}
+  --scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}
                         The lr scheduler type (default: None)
   --scheduler_conf SCHEDULER_CONF
                         The keyword arguments for lr scheduler (default: {})

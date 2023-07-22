@@ -149,6 +149,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.schedulers package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-noam-lr-1">espnet2.schedulers.noam_lr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-cosine-anneal-warmup-restart-1">espnet2.schedulers.cosine_anneal_warmup_restart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-reducelronplateau-1">espnet2.schedulers.warmup_reducelronplateau</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-init-1">espnet2.schedulers.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-step-lr-1">espnet2.schedulers.warmup_step_lr</a></li>
@@ -221,6 +222,38 @@ You need to change it if the model is changed.</p>
 <dl class="method">
 <dt id="espnet2.schedulers.noam_lr.NoamLR.lr_for_WarmupLR">
 <code class="sig-name descname">lr_for_WarmupLR</code><span class="sig-paren">(</span><em class="sig-param">lr: float</em><span class="sig-paren">)</span> &#x2192; float<a class="reference internal" href="../_modules/espnet2/schedulers/noam_lr.html#NoamLR.lr_for_WarmupLR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.noam_lr.NoamLR.lr_for_WarmupLR" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-schedulers-cosine-anneal-warmup-restart-1">
+<span id="espnet2-schedulers-cosine-anneal-warmup-restart"></span><h2>espnet2.schedulers.cosine_anneal_warmup_restart<a class="headerlink" href="#espnet2-schedulers-cosine-anneal-warmup-restart-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.schedulers.cosine_anneal_warmup_restart"></span><dl class="class">
+<dt id="espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.schedulers.cosine_anneal_warmup_restart.</code><code class="sig-name descname">CosineAnnealingWarmupRestarts</code><span class="sig-paren">(</span><em class="sig-param">optimizer: torch.optim.optimizer.Optimizer</em>, <em class="sig-param">first_cycle_steps: int</em>, <em class="sig-param">cycle_mult: float = 1.0</em>, <em class="sig-param">max_lr: float = 0.1</em>, <em class="sig-param">min_lr: float = 0.001</em>, <em class="sig-param">warmup_steps: int = 0</em>, <em class="sig-param">gamma: float = 1.0</em>, <em class="sig-param">last_epoch: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/cosine_anneal_warmup_restart.html#CosineAnnealingWarmupRestarts"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.lr_scheduler._LRScheduler</span></code>, <a class="reference internal" href="#espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler" title="espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler</span></code></a></p>
+<p>optimizer (Optimizer): Wrapped optimizer.
+first_cycle_steps (int): First cycle step size.
+cycle_mult(float): Cycle steps magnification. Default: -1.
+max_lr(float): First cycle’s max learning rate. Default: 0.1.
+min_lr(float): Min learning rate. Default: 0.001.
+warmup_steps(int): Linear warmup step size. Default: 0.
+gamma(float): Decrease rate of max learning rate by cycle. Default: 1.
+last_epoch (int): The index of last epoch. Default: -1.</p>
+<dl class="method">
+<dt id="espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts.get_lr">
+<code class="sig-name descname">get_lr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/cosine_anneal_warmup_restart.html#CosineAnnealingWarmupRestarts.get_lr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts.get_lr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts.init_lr">
+<code class="sig-name descname">init_lr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/cosine_anneal_warmup_restart.html#CosineAnnealingWarmupRestarts.init_lr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts.init_lr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts.step">
+<code class="sig-name descname">step</code><span class="sig-paren">(</span><em class="sig-param">epoch=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/cosine_anneal_warmup_restart.html#CosineAnnealingWarmupRestarts.step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.cosine_anneal_warmup_restart.CosineAnnealingWarmupRestarts.step" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

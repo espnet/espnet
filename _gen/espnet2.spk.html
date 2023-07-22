@@ -255,7 +255,7 @@ a ‘decoder’, depending on the extension for joint usage of different tasks
 
 <dl class="method">
 <dt id="espnet2.spk.espnet_model.ESPnetSpeakerModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">spk_labels: torch.Tensor</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/spk/espnet_model.html#ESPnetSpeakerModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">spk_labels: torch.Tensor</em>, <em class="sig-param">extract_embd: bool = False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/spk/espnet_model.html#ESPnetSpeakerModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Feed-forward through encoder layers and aggregate into utterance-level
 feature.</p>
 <dl class="field-list simple">
@@ -263,6 +263,8 @@ feature.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>speech</strong> – (Batch, samples)</p></li>
 <li><p><strong>speech_lengths</strong> – (Batch,)</p></li>
+<li><p><strong>extract_embd</strong> – a flag which doesn’t go through the classification
+head when set True</p></li>
 <li><p><strong>spk_labels</strong> – (Batch, )</p></li>
 </ul>
 </dd>
@@ -406,7 +408,7 @@ registered hooks while the latter silently ignores them.</p>
 <span id="espnet2-spk-loss-aamsoftmax"></span><h2>espnet2.spk.loss.aamsoftmax<a class="headerlink" href="#espnet2-spk-loss-aamsoftmax-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.loss.aamsoftmax"></span><dl class="class">
 <dt id="espnet2.spk.loss.aamsoftmax.AAMSoftmax">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.loss.aamsoftmax.</code><code class="sig-name descname">AAMSoftmax</code><span class="sig-paren">(</span><em class="sig-param">nOut</em>, <em class="sig-param">nClasses</em>, <em class="sig-param">margin=0.3</em>, <em class="sig-param">scale=15</em>, <em class="sig-param">easy_margin=False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/loss/aamsoftmax.html#AAMSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.loss.aamsoftmax.AAMSoftmax" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.loss.aamsoftmax.</code><code class="sig-name descname">AAMSoftmax</code><span class="sig-paren">(</span><em class="sig-param">nout</em>, <em class="sig-param">nclasses</em>, <em class="sig-param">margin=0.3</em>, <em class="sig-param">scale=15</em>, <em class="sig-param">easy_margin=False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/loss/aamsoftmax.html#AAMSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.loss.aamsoftmax.AAMSoftmax" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.spk.loss.abs_loss.AbsLoss" title="espnet2.spk.loss.abs_loss.AbsLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.spk.loss.abs_loss.AbsLoss</span></code></a></p>
 <p>Additive angular margin softmax.</p>
 <p>Paper: Deng, Jiankang, et al. “Arcface: Additive angular margin loss for
@@ -415,8 +417,8 @@ vision and pattern recognition. 2019.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>nOut</strong> – dimensionality of speaker embedding</p></li>
-<li><p><strong>nClaases</strong> – number of speakers in the training set</p></li>
+<li><p><strong>nout</strong> – dimensionality of speaker embedding</p></li>
+<li><p><strong>nclases</strong> – number of speakers in the training set</p></li>
 <li><p><strong>margin</strong> – margin value of AAMSoftmax</p></li>
 <li><p><strong>scale</strong> – scale value of AAMSoftmax</p></li>
 </ul>
@@ -446,7 +448,7 @@ registered hooks while the latter silently ignores them.</p>
 <span id="espnet2-spk-loss-abs-loss"></span><h2>espnet2.spk.loss.abs_loss<a class="headerlink" href="#espnet2-spk-loss-abs-loss-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.loss.abs_loss"></span><dl class="class">
 <dt id="espnet2.spk.loss.abs_loss.AbsLoss">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.loss.abs_loss.</code><code class="sig-name descname">AbsLoss</code><span class="sig-paren">(</span><em class="sig-param">nOut: int</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/loss/abs_loss.html#AbsLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.loss.abs_loss.AbsLoss" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.loss.abs_loss.</code><code class="sig-name descname">AbsLoss</code><span class="sig-paren">(</span><em class="sig-param">nout: int</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/loss/abs_loss.html#AbsLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.loss.abs_loss.AbsLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <dl class="method">
 <dt id="espnet2.spk.loss.abs_loss.AbsLoss.forward">

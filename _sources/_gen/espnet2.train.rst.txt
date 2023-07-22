@@ -4,6 +4,17 @@ espnet2.train package
 
 
 
+.. _espnet2.train.spk_trainer:
+
+espnet2.train.spk_trainer
+-------------------------
+
+.. automodule:: espnet2.train.spk_trainer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.train.abs_gan_espnet_model:
 
 espnet2.train.abs_gan_espnet_model
