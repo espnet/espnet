@@ -1,0 +1,29 @@
+# This is a debug config for CI
+encoder: vgg_rnn
+encoder_conf:
+    num_layers: 1
+    hidden_size: 2
+    output_size: 2
+
+decoder: rnn
+decoder_conf:
+    hidden_size: 2
+
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 1
+
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 1
+max_epoch: 1
+num_iters_per_epoch: 1
+batch_type: folded
+batch_size: 2

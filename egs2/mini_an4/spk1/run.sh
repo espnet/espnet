@@ -4,9 +4,11 @@ set -u
 set -o pipefail
 
 
-spk_config=conf/train_mini_RawNet3.yaml
+spk_config=conf/train_rawnet3_debug.yaml
 
 ./spk.sh \
+    --nj 2 \
+    --inference_nj 2 \
     --spk_config ${spk_config} \
     --train_set train_nodev \
     --valid_set train_dev \

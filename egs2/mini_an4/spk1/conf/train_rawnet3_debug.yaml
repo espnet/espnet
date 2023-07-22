@@ -1,20 +1,19 @@
-# RawNet3 reproduce recipe configuration.
+# This is a debug config for CI
 frontend: raw
 
 encoder: rawnet3
 encoder_conf:  # uncomment for customized arguments
   model_scale: 4
-  ndim: 64
+  ndim: 16
 
 pooling: chn_attn_stat
 pooling_conf:
-  input_size: 96
+  input_size: 24
 
 projector: rawnet3
 projector_conf:
-  input_size: 192
-  output_size: 16
-
+  input_size: 48
+  output_size: 8
 
 preprocessor: spk
 preprocessor_conf:
@@ -24,9 +23,12 @@ preprocessor_conf:
 
 loss: aamsoftmax
 loss_conf:
-  nOut: 16
-  nClasses: 108
+  nOut: 8
+  nClasses: 10
   margin: 0.3
   scale: 15
 
 optim: adam
+
+max_epoch: 1
+num_iters_per_epoch: 1

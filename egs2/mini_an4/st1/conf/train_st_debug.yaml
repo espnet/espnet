@@ -1,3 +1,4 @@
+# This is a debug config for CI
 model_conf:
     asr_weight: 0.3
     mt_weight: 0.0
@@ -19,6 +20,6 @@ extra_mt_decoder: rnn
 extra_mt_docoder_conf:
     hidden_size: 2
 max_epoch: 1
-num_iters_per_epoch: 2
+num_iters_per_epoch: 1
 batch_type: folded
 batch_size: 2

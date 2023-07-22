@@ -9,7 +9,7 @@ set -o pipefail
     --nj 2 \
     --inference_nj 2 \
     --lang en \
-    --train_config conf/train_tacotron2.yaml \
+    --train_config conf/train_tacotron2_debug.yaml \
     --train_set train_nodev \
     --valid_set train_dev \
     --test_sets "train_dev test test_seg" \
