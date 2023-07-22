@@ -13,12 +13,11 @@ log() {
 SECONDS=0
 
 help_message=$(cat << EOF
-Usage: $0 [--use_hq <true/false>] [--sample_rate <44.1k>] [--num_dev <int>] [--nchannels <1/2>]
+Usage: $0 [--use_hq <true/false>] [--sample_rate <44.1k>] [--nchannels <1/2>]
   optional argument:
     [--use_hq]: whether to download (uncompressed) high-quality audios (Default: false)
         Note: Samples in musdb18hq and musdb18 have slightly different durations.
     [--sample_rate]: sampling rate of the data (Default: 44.1k)
-    [--num_dev]: number of samples in the dev set (Default: 16)
     [--nchannels]: number of channels of the data (Default: 2)
 EOF
 )
@@ -28,8 +27,23 @@ EOF
 
 use_hq=false
 sample_rate=44.1k
-num_dev=16
 nchannels=2
+dev_names=(
+    "Actions - One Minute Smile"
+    "Clara Berry And Wooldog - Waltz For My Victims"
+    "Johnny Lokke - Promises & Lies"
+    "Patrick Talbot - A Reason To Leave"
+    "Triviul - Angelsaint"
+    "Alexander Ross - Goodbye Bolero"
+    "Fergessen - Nos Palpitants"
+    "Leaf - Summerghost"
+    "Skelpolu - Human Mistakes"
+    "Young Griffo - Pennies"
+    "ANiMAL - Rockshow"
+    "James May - On The Line"
+    "Meaxic - Take A Step"
+    "Traffic Experiment - Sirens"
+)
 
 stage=0
 stop_stage=100
@@ -142,11 +156,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     mv "${cdir}/data/train_${sample_rate}" "${cdir}/data/train_all"
-    utils/subset_data_dir.sh --last "${cdir}/data/train_all" "${num_dev}" "${cdir}/data/dev_${sample_rate}"
-    utils/subset_data_dir.sh --first "${cdir}/data/train_all" "$((100 - ${num_dev}))" "${cdir}/data/train_${sample_rate}"
-    for n in $(seq 4); do
-        utils/filter_scp.pl ${cdir}/data/dev_${sample_rate}/utt2spk <${cdir}/data/train_all/spk${n}.scp > ${cdir}/data/dev_${sample_rate}/spk${n}.scp
-        utils/filter_scp.pl ${cdir}/data/train_${sample_rate}/utt2spk <${cdir}/data/train_all/spk${n}.scp > ${cdir}/data/train_${sample_rate}/spk${n}.scp
+    mkdir -p "${cdir}/data/train_${sample_rate}" "${cdir}/data/dev_${sample_rate}"
+    grep -F -f <(printf '%s\n' "${dev_names[@]}") "${cdir}/data/train_all/wav.scp" > "${cdir}/data/dev_${sample_rate}/wav.scp"
+    grep -v -F -f <(printf '%s\n' "${dev_names[@]}") "${cdir}/data/train_all/wav.scp" > "${cdir}/data/train_${sample_rate}/wav.scp"
+    for x in train dev; do
+        utils/filter_scp.pl ${cdir}/data/${x}_${sample_rate}/wav.scp <${cdir}/data/train_all/utt2spk > ${cdir}/data/${x}_${sample_rate}/utt2spk
+        utils/filter_scp.pl ${cdir}/data/${x}_${sample_rate}/utt2spk <${cdir}/data/train_all/wav.scp > ${cdir}/data/${x}_${sample_rate}/wav.scp
+        utils/utt2spk_to_spk2utt.pl "${cdir}/data/${x}_${sample_rate}/utt2spk" > "${cdir}/data/${x}_${sample_rate}/spk2utt"
+        for n in $(seq 4); do
+            utils/filter_scp.pl ${cdir}/data/${x}_${sample_rate}/utt2spk <${cdir}/data/train_all/spk${n}.scp > ${cdir}/data/${x}_${sample_rate}/spk${n}.scp
+        done
     done
 
     for x in train dev test; do
