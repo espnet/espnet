@@ -12,7 +12,7 @@ jobs:
   get_labels:
     runs-on: ubuntu-latest
     outputs:
-      is_doc: ${{ steps.step1.outputs.is_doc }}
+      is_doc: ${{ steps.check-labels.outputs.is_doc }}
     steps:
       - name: Get PR labels
         id: pr-labels
