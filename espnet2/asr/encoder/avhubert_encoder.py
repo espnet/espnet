@@ -143,10 +143,10 @@ class FairseqAVHubertEncoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        if 'video' in xs_pad:
-            masks = make_pad_mask(ilens).to(xs_pad['video'].device)
-        elif 'audio' in xs_pad:
-            masks = make_pad_mask(ilens).to(xs_pad['audio'].device)
+        if "video" in xs_pad:
+            masks = make_pad_mask(ilens).to(xs_pad["video"].device)
+        elif "audio" in xs_pad:
+            masks = make_pad_mask(ilens).to(xs_pad["audio"].device)
         else:
             ValueError(f"Input should have video or audio")
 
