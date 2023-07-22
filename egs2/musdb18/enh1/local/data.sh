@@ -142,8 +142,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     done
 
     mv "${cdir}/data/train_${sample_rate}" "${cdir}/data/train_all"
-    utils/subset_data_dir.sh --first "${cdir}/data/train_all" "${num_dev}" "${cdir}/data/dev_${sample_rate}"
-    utils/subset_data_dir.sh --last "${cdir}/data/train_all" "$((100 - ${num_dev}))" "${cdir}/data/train_${sample_rate}"
+    utils/subset_data_dir.sh --last "${cdir}/data/train_all" "${num_dev}" "${cdir}/data/dev_${sample_rate}"
+    utils/subset_data_dir.sh --first "${cdir}/data/train_all" "$((100 - ${num_dev}))" "${cdir}/data/train_${sample_rate}"
     for n in $(seq 4); do
         utils/filter_scp.pl ${cdir}/data/dev_${sample_rate}/utt2spk <${cdir}/data/train_all/spk${n}.scp > ${cdir}/data/dev_${sample_rate}/spk${n}.scp
         utils/filter_scp.pl ${cdir}/data/train_${sample_rate}/utt2spk <${cdir}/data/train_all/spk${n}.scp > ${cdir}/data/train_${sample_rate}/spk${n}.scp
