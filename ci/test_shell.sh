@@ -7,7 +7,9 @@ fi
 PATH=$(pwd)/bats-core/bin:$(pwd)/shellcheck-stable:$PATH
 if ! [ -x "$(command -v bats)" ]; then
     echo "=== install bats ==="
-    git clone https://github.com/bats-core/bats-core.git
+    git clone https://github.com/bats-core/bats-core.git test_utils
+    git clone https://github.com/bats-core/bats-support.git test_utils
+    git clone https://github.com/bats-core/bats-assert.git test_utils
 fi
 if ! [ -x "$(command -v shellcheck)" ]; then
     echo "=== install shellcheck ==="

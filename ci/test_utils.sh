@@ -5,7 +5,9 @@ echo "=== run integration tests at test_utils ==="
 PATH=$(pwd)/bats-core/bin:$PATH
 if ! [ -x "$(command -v bats)" ]; then
     echo "=== install bats ==="
-    git clone https://github.com/bats-core/bats-core.git
+    git clone https://github.com/bats-core/bats-core.git test_utils
+    git clone https://github.com/bats-core/bats-support.git test_utils
+    git clone https://github.com/bats-core/bats-assert.git test_utils
 fi
 bats test_utils/integration_test_*.bats
 
