@@ -49,7 +49,7 @@ class Encoder(torch.nn.Module):
         main_params = build_main_parameters(**main_conf)
 
         self.embed = build_input_block(input_size, input_conf)
-        self.pos_enc = build_positional_encoding(embed_size, main_params)
+        self.pos_enc = build_positional_encoding(embed_size, main_params, body_conf[0])
         self.encoders = build_body_blocks(body_conf, main_params, output_size)
 
         self.output_size = output_size

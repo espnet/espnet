@@ -29,7 +29,7 @@ def validate_block_arguments(
             "Block %d in encoder doesn't have a type assigned. " % block_id
         )
 
-    if block_type in ["branchformer", "conformer", "ebranchformer"]:
+    if block_type in ["branchformer", "conformer", "ebranchformer", "ebranchretformer"]:
         if configuration.get("linear_size") is None:
             raise ValueError(
                 "Missing 'linear_size' argument for X-former block (ID: %d)" % block_id
@@ -80,7 +80,13 @@ def validate_input_block(
     """
     vgg_like = configuration.get("vgg_like", False)
     next_block_type = body_first_conf.get("block_type")
-    allowed_next_block_type = ["branchformer", "conformer", "conv1d", "ebranchformer"]
+    allowed_next_block_type = [
+        "branchformer",
+        "conformer",
+        "conv1d",
+        "ebranchformer",
+        "ebranchretformer",
+    ]
 
     if next_block_type is None or (next_block_type not in allowed_next_block_type):
         return -1

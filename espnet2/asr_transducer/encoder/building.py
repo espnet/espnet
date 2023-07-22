@@ -8,6 +8,7 @@ from espnet2.asr_transducer.encoder.blocks.conformer import Conformer
 from espnet2.asr_transducer.encoder.blocks.conv1d import Conv1d
 from espnet2.asr_transducer.encoder.blocks.conv_input import ConvInput
 from espnet2.asr_transducer.encoder.blocks.ebranchformer import EBranchformer
+from espnet2.asr_transducer.encoder.blocks.ebranchretformer import EBranchRetformer
 from espnet2.asr_transducer.encoder.modules.attention import (  # noqa: H301
     RelPositionMultiHeadedAttention,
 )
@@ -17,6 +18,9 @@ from espnet2.asr_transducer.encoder.modules.convolution import (  # noqa: H301
     DepthwiseConvolution,
 )
 from espnet2.asr_transducer.encoder.modules.multi_blocks import MultiBlocks
+from espnet2.asr_transducer.encoder.modules.multi_scale_retention import (  # noqa: H301
+    MultiScaleRetention,
+)
 from espnet2.asr_transducer.encoder.modules.positional_encoding import (  # noqa: H301
     RelPositionalEncoding,
 )
@@ -102,7 +106,9 @@ def build_main_parameters(
 
 
 def build_positional_encoding(
-    block_size: int, configuration: Dict[str, Any]
+    block_size: int,
+    configuration: Dict[str, Any],
+    encoder_first_block: Dict[str, Any],
 ) -> RelPositionalEncoding:
     """Build positional encoding block.
 
@@ -114,6 +120,9 @@ def build_positional_encoding(
         : Positional encoding module.
 
     """
+    if encoder_first_block["block_type"] == "ebranchretformer":
+        return lambda x: None
+
     return RelPositionalEncoding(
         block_size,
         configuration.get("pos_enc_dropout_rate", 0.0),
@@ -368,6 +377,83 @@ def build_ebranchformer_block(
     )
 
 
+def build_ebranchretformer_block(
+    configuration: List[Dict[str, Any]],
+    main_params: Dict[str, Any],
+) -> EBranchRetformer:
+    """Build E-BranchRetformer block.
+
+    Args:
+        configuration: E-BranchRetformer block configuration.
+        main_params: Encoder main parameters.
+
+    Returns:
+        : E-BranchRetformer block function.
+
+    """
+    hidden_size = configuration["hidden_size"]
+    linear_size = configuration["linear_size"]
+
+    dropout_rate = configuration.get("dropout_rate", 0.0)
+
+    pos_wise_args = (
+        hidden_size,
+        linear_size,
+        configuration.get("pos_wise_dropout_rate", 0.0),
+        main_params["pos_wise_act"],
+    )
+
+    conv_mod_norm_class, conv_mod_norm_args = get_normalization(
+        main_params["conv_mod_norm_type"],
+        eps=configuration.get("conv_mod_norm_eps"),
+        partial=configuration.get("conv_mod_norm_partial"),
+    )
+
+    conv_mod_args = (
+        linear_size,
+        configuration["conv_mod_kernel_size"],
+        conv_mod_norm_class,
+        conv_mod_norm_args,
+        dropout_rate,
+        main_params["dynamic_chunk_training"],
+    )
+
+    multi_scale_ret_args = (
+        hidden_size,
+        configuration.get("heads", 4),
+        get_activation("swish"),
+        configuration.get("ret_decay_length", 768),
+        configuration.get("ret_dropout_rate", 0.0),
+    )
+
+    depthwise_conv_args = (
+        hidden_size,
+        configuration.get(
+            "depth_conv_kernel_size", configuration["conv_mod_kernel_size"]
+        ),
+        main_params["dynamic_chunk_training"],
+    )
+
+    norm_class, norm_args = get_normalization(
+        main_params["norm_type"],
+        eps=configuration.get("norm_eps"),
+        partial=configuration.get("norm_partial"),
+    )
+
+    return lambda: EBranchRetformer(
+        hidden_size,
+        linear_size,
+        MultiScaleRetention(*multi_scale_ret_args),
+        PositionwiseFeedForward(*pos_wise_args),
+        PositionwiseFeedForward(*pos_wise_args),
+        ConvolutionalSpatialGatingUnit(*conv_mod_args),
+        DepthwiseConvolution(*depthwise_conv_args),
+        norm_class=norm_class,
+        norm_args=norm_args,
+        dropout_rate=dropout_rate,
+    )
+
+
 def build_body_blocks(
     configuration: List[Dict[str, Any]],
     main_params: Dict[str, Any],
@@ -406,6 +492,8 @@ def build_body_blocks(
             module = build_conv1d_block(c, main_params["dynamic_chunk_training"])
         elif block_type == "ebranchformer":
             module = build_ebranchformer_block(c, main_params)
+        elif block_type == "ebranchretformer":
+            module = build_ebranchretformer_block(c, main_params)
         else:
             raise NotImplementedError
 
