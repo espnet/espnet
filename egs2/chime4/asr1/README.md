@@ -41,7 +41,7 @@
 - pytorch version: `pytorch 1.13.1`
 - Git hash: `d7172fcb7181ffdcca9c0061400254b63e37bf21`
   - Commit date: `Sat Jul 15 15:01:30 2023 +0900`
-- Pretrained URL: TODO
+- Pretrained URL: [espnet/yoshiki_chime4_whisper_medium_finetuning](https://huggingface.co/espnet/yoshiki_chime4_whisper_medium_finetuning)
 
 ### WER
 
