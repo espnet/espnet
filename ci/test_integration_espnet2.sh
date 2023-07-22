@@ -255,6 +255,16 @@ echo "==== [ESPnet2] ASR2 ==="
 rm -rf exp dump data
 cd "${cwd}"
 
+# [ESPnet2] test spk1 recipe
+cd ./egs2/mini_an4/spk1
+gen_dummy_coverage
+echo "==== [ESPnet2] SPK ==="
+./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --spk_args "--max_epoch=1" --python "${python}"
+./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --spk_args "--max_epoch=1" --python "${python}" --spk_config conf/train_mini_RawNet3_dataaug.yaml
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
+
 # [ESPnet2] Validate configuration files
 echo "<blank>" > dummy_token_list
 echo "==== [ESPnet2] Validation configuration files ==="
