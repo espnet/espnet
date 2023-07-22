@@ -56,6 +56,7 @@ def scoring(
     inf_scp: List[str],
     ref_channel: int,
     flexible_numspk: bool,
+    is_tse: bool,
     use_dnsmos: bool,
     dnsmos_args: Dict,
     use_pesq: bool,
@@ -192,7 +193,9 @@ def scoring(
                 else:
                     num_spk = ref.shape[0]
 
-            sdr, sir, sar, perm = bss_eval_sources(ref, inf, compute_permutation=True)
+            sdr, sir, sar, perm = bss_eval_sources(
+                ref, inf, compute_permutation=not is_tse
+            )
 
             for i in range(num_spk):
                 stoi_score = stoi(ref[i], inf[int(perm[i])], fs_sig=sample_rate)
@@ -296,6 +299,7 @@ def get_parser():
     group.add_argument("--key_file", type=str)
     group.add_argument("--ref_channel", type=int, default=0)
     group.add_argument("--flexible_numspk", type=str2bool, default=False)
+    group.add_argument("--is_tse", type=str2bool, default=False)
 
     group = parser.add_argument_group("DNSMOS related")
     group.add_argument("--use_dnsmos", type=str2bool, default=False)
