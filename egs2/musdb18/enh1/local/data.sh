@@ -46,13 +46,6 @@ if [ -z "${MUSDB18}" ]; then
     exit 1
 fi
 
-if [ "${sample_rate}" = "44.1k" ]; then
-    sample_rate_int="44100"
-else
-    log "Unsupported sampling rate: ${sample_rate}"
-    exit 1
-fi
-
 if [ $nchannels -eq 1 ]; then
     log "Use single channel audios"
 elif [ $nchannels -eq 1 ]; then
