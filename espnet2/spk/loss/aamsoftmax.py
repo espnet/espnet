@@ -22,7 +22,7 @@ class AAMSoftmax(AbsLoss):
 
     args:
         nout    : dimensionality of speaker embedding
-        nclaases: number of speakers in the training set
+        nclases: number of speakers in the training set
         margin  : margin value of AAMSoftmax
         scale   : scale value of AAMSoftmax
     """
