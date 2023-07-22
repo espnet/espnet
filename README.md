@@ -272,9 +272,6 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 
 - (ESPnet2) Once installed, run `wandb login` and set `--use_wandb true` to enable tracking runs using W&B.
 
-## Usage
-See [Usage](https://espnet.github.io/espnet/tutorial.html).
-
 ## Docker Container
 
 go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
@@ -282,10 +279,6 @@ go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espn
 ## Contribution
 Thank you for taking the time for ESPnet! Any contributions to ESPnet are welcome, and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
 If it's your first ESPnet contribution,  please follow the [contribution guide](CONTRIBUTING.md).
-
-## Results and demo
-
-You can find useful tutorials and demos in [Interspeech 2019 Tutorial](https://github.com/espnet/interspeech2019-tutorial)
 
 ### ASR results
 
