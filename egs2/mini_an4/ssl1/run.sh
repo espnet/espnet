@@ -20,8 +20,8 @@ layer_iter1="6"
 train_set="train_nodev"
 valid_set="train_dev"
 
-train_config_iter0=conf/train_ssl_torchaudiohubert_base_pretrain_it0.yaml
-train_config_iter1=conf/train_ssl_torchaudiohubert_base_pretrain_it1.yaml
+train_config_iter0=conf/train_ssl_torchaudiohubert_base_pretrain_it0_debug.yaml
+train_config_iter1=conf/train_ssl_torchaudiohubert_base_pretrain_it1_debug.yaml
 
 ./hubert.sh \
     --train_start_iter "${train_start_iter}"\

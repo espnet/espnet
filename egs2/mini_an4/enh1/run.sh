@@ -11,9 +11,9 @@ set -o pipefail
     --fs 16k \
     --lang en \
     --ref-num 1 \
+    --enh_config ./conf/train_debug.yaml \
     --train_set train_nodev \
     --valid_set train_dev \
     --test_sets "train_dev test" \
-    --enh_config ./conf/train.yaml \
     --inference_model "valid.loss.best.pth" \
     "$@"

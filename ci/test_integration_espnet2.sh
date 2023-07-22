@@ -70,7 +70,7 @@ if [ "$(python3 -c "import torch; print(torch.cuda.is_available())")" == "True" 
         --asr-tag "train_multi_black_transducer" \
         --asr_args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 \
         --best_model_criterion '(valid, loss, min)' --model_conf transducer_multi_blank_durations=[2]" \
-        --inference_asr_model "valid.loss.best.pth" --inference_config "conf/decode_multi_blank_transducer.yaml"
+        --inference_asr_model "valid.loss.best.pth" --inference_config "conf/decode_multi_blank_transducer_debug.yaml"
 fi
 
 if python3 -c "import k2" &> /dev/null; then
@@ -145,7 +145,7 @@ rm -rf exp dump data
 #   See also: https://github.com/pytorch/pytorch/issues/42446
 if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) > L("1.6")' &> /dev/null; then
     ./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inference_model latest.pth \
-        --ngpu 0 --stop-stage 8 --skip-upload false --train-config conf/train_vits.yaml --python "${python}"
+        --ngpu 0 --stop-stage 8 --skip-upload false --train-config conf/train_vits_debug.yaml --python "${python}"
     rm -rf exp dump data
 fi
 cd "${cwd}"
@@ -159,8 +159,10 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     feats_types="raw"
     for t in ${feats_types}; do
         echo "==== feats_type=${t} with preprocessor ==="
-        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" --extra_wav_list "rirs.scp noises.scp" --enh_config ./conf/train_with_preprocessor.yaml
-        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" --enh_config conf/train_with_dynamic_mixing.yaml --ref-num 2
+        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
+            --extra_wav_list "rirs.scp noises.scp" --enh_config ./conf/train_with_preprocessor_debug.yaml
+        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
+            --enh_config conf/train_with_dynamic_mixing_debug.yaml --ref-num 2
     done
     rm data/**/utt2category 2>/dev/null || true
     rm -r dump
@@ -182,7 +184,8 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     for t in ${feats_types}; do
         echo "==== feats_type=${t} ==="
         ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}"
-        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" --local_data_opts "--random-enrollment true" --enh_config ./conf/train_random_enrollment.yaml
+        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
+            --local_data_opts "--random-enrollment true" --enh_config ./conf/train_random_enrollment_debug.yaml
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
@@ -236,12 +239,7 @@ echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_
 echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --use_streaming true --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
     --feats_normalize "utterance_mvn" --python "${python}" \
-    --st-tag "train_streaming" \
-    --st-args "--model_conf extract_feats_in_collect_stats=false
-               --encoder=contextual_block_transformer
-               --encoder_conf='{'block_size': 40, 'hop_size': 16, 'look_ahead': 16, 'output_size': 2, 'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
-               --decoder=transformer
-               --decoder_conf='{'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'"
+    --st-config conf/train_st_streaming_debug.yaml --st-args "--model_conf extract_feats_in_collect_stats=false"
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
@@ -261,7 +259,7 @@ cd ./egs2/mini_an4/spk1
 gen_dummy_coverage
 echo "==== [ESPnet2] SPK ==="
 ./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --spk_args "--max_epoch=1" --python "${python}"
-./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --spk_args "--max_epoch=1" --python "${python}" --spk_config conf/train_mini_RawNet3_dataaug.yaml
+./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --spk_args "--max_epoch=1" --python "${python}" --spk_config conf/train_rawnet3_dataaug_debug.yaml
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"

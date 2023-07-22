@@ -1,3 +1,4 @@
+# This is a debug config for CI
 batch_type: folded
 batch_size: 2
 accum_grad: 1
