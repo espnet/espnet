@@ -60,9 +60,9 @@ def build_main_parameters(
         short_chunk_threshold: Threshold for dynamic chunk selection.
         short_chunk_size: Minimum number of frames during dynamic chunk training.
         num_left_chunks: Number of left chunks the attention module can see.
-                           (null or negative value means full context)
-        **activations_parameters: Parameters of the activation functions.
-                                    (See espnet2/asr_transducer/activation.py)
+                         (null or negative value means full context)
+        **activation_parameters: Parameters of the activation functions.
+                                 (See espnet2/asr_transducer/activation.py)
 
     Returns:
         : Main encoder parameters
