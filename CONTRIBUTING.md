@@ -173,7 +173,6 @@ cd egs/mini_an4/your_task
 ### 5.1 Configuration files
 
 - [setup.cfg](setup.cfg) configures pytest, black and flake8.
-- [.travis.yml](.travis.yml) configures Travis-CI (unittests, doc deploy).
 - [.circleci/config.yml](.circleci/config.yml) configures Circle-CI (unittests, integration tests).
 - [.github/workflows](.github/workflows/) configures Github Actions (unittests, integration tests).
 - [codecov.yml](codecov.yml) configures CodeCov (code coverage).
