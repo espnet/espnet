@@ -1,10 +1,10 @@
 #! /bin/python
 
 # This script is used to score summarization outputs using the HuggingFace's evaluate library
-import evaluate
-import numpy as np
 import sys
 
+import evaluate
+import numpy as np
 
 ref_file = sys.argv[1]
 hyp_file = sys.argv[2]
