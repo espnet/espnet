@@ -131,7 +131,8 @@ In order to thoroughly test various units, it is necessary to install several mo
 
 Then, you can run the entire test suite using [pytest](https://docs.pytest.org/en/latest/) with [coverage](https://pytest-cov.readthedocs.io/en/latest/reporting.html) by
 ``` console
-./ci/test_python.sh
+./ci/test_python_espnet1.sh
+./ci/test_python_espnet2.sh
 ```
 The followings are some useful tips when you are using `pytest`:
 - New test file should be put under `test/` directory and named `test_xxx.py`. Each method in the test file should
@@ -153,7 +154,8 @@ You can also test the scripts in `utils` with [bats-core](https://github.com/bat
 To test:
 
 ``` console
-./ci/test_shell.sh
+./ci/test_shell_espnet1.sh
+./ci/test_shell_espnet2.sh
 ```
 
 ## 5 Integration testing
