@@ -60,6 +60,8 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
                 self.decoder_word_embeddings = self.decoder.word_embeddings
             elif hasattr(self.decoder, "embed_in"):
                 self.decoder_word_embeddings = self.decoder.embed_in
+            elif hasattr(self.decoder, "embed_tokens"):
+                self.decoder_word_embeddings = self.decoder.embed_tokens
             else:
                 raise Exception("Can not find the word embeddings attribute")
 
@@ -233,6 +235,8 @@ def get_hugging_face_model_network(model):
         network = model.transformer
     elif hasattr(model, "gpt_neox"):
         network = model.gpt_neox
+    elif hasattr(model, "model"):
+        network = model.model
     else:
         raise Exception("Can not find the network attribute")
 
