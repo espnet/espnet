@@ -91,3 +91,4 @@ tools/ice-g2p*
 tools/fairseq*
 tools/featbin*
 tools/miniconda
+tools/ffmpeg-*-static
