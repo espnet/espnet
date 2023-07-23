@@ -65,10 +65,24 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
             else:
                 raise Exception("Can not find the word embeddings attribute")
 
-            if self.decoder.config.pad_token_id is not None:
+            if (
+                self.decoder.config.pad_token_id is not None
+                and self.decoder.config.pad_token_id != -1
+            ):
                 self.decoder_pad_token_id = self.decoder.config.pad_token_id
             else:
                 self.decoder_pad_token_id = 1
+
+            tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
+            self.tokenizer_padding_side = tokenizer.padding_side
+
+            self.prefix = self.decoder_word_embeddings(
+                tokenizer.encode(prefix, return_tensors="pt").long()
+            ).detach()
+
+            self.postfix = self.decoder_word_embeddings(
+                tokenizer.encode(postfix, return_tensors="pt").long()
+            ).detach()
         else:
             model = AutoModelForSeq2SeqLM.from_pretrained(model_name_or_path)
 
@@ -92,17 +106,6 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
             )
         else:
             self.linear_in = torch.nn.Identity()
-
-        tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
-        self.tokenizer_padding_side = tokenizer.padding_side
-
-        self.prefix = self.decoder_word_embeddings(
-            tokenizer.encode(prefix, return_tensors="pt")
-        ).detach()
-
-        self.postfix = self.decoder_word_embeddings(
-            tokenizer.encode(postfix, return_tensors="pt")
-        ).detach()
 
     def forward(
         self,
