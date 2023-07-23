@@ -20,7 +20,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Usage" href="tutorial.html" />
+    <link rel="next" title="Common usages" href="tutorial.html" />
     <link rel="prev" title="ESPnet: end-to-end speech processing toolkit" href="index.html" /> 
 </head>
 
@@ -57,10 +57,14 @@
 <li class="toctree-l2"><a class="reference internal" href="#check-installation">Check installation</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Common usages</a></li>
 <li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using job scheduling system</a></li>
 <li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
 <li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet1:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="espnet1_tutorial.html">Usage</a></li>
 </ul>
 <p><span class="caption-text">ESPnet2:</span></p>
 <ul>
@@ -200,9 +204,9 @@
 <h2>Requirements<a class="headerlink" href="#requirements" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
 <li><p>Python 3.7+</p></li>
-<li><p>gcc 4.9+ for PyTorch1.4.0+</p></li>
+<li><p>gcc 4.9+ for PyTorch1.10.2+</p></li>
 </ul>
-<p>(If you’ll use anaconda environment at installation step2,
+<p>(If you’ll use an anaconda environment at the installation step2,
 the following packages are installed using conda, so you can skip them.)</p>
 <ul>
 <li><p>cmake3 for some extensions</p>
@@ -249,8 +253,8 @@ to prepare the appropriate environments.</p>
 <section id="step-1-optional-install-kaldi">
 <h2>Step 1) [Optional] Install Kaldi<a class="headerlink" href="#step-1-optional-install-kaldi" title="Permalink to this headline">¶</a></h2>
 <ul class="simple">
-<li><p>If you’ll use ESPnet1 (under egs/): You need to compile Kaldi.</p></li>
-<li><p>If you’ll use ESPnet2 (under egs2/): You can skip installation of Kaldi.</p></li>
+<li><p>If you use ESPnet1 (under egs/), you must compile Kaldi.</p></li>
+<li><p>If you use ESPnet2 (under egs2/), You can skip the installation of Kaldi.</p></li>
 </ul>
 <details><summary>Click to compile Kaldi...</summary><div><p>Related links:</p>
 <ul class="simple">
@@ -307,7 +311,7 @@ $<span class="w"> </span>sudo<span class="w"> </span>apt-get<span class="w"> </s
 </li>
 <li><p>Compile Kaldi &amp; install</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;kaldi-root&gt;/src
-<span class="c1"># [By default MKL is used] ESPnet uses only feature extractor, so you can disable CUDA</span>
+<span class="c1"># [By default MKL is used] ESPnet uses only a feature extractor, so you can disable CUDA</span>
 $<span class="w"> </span>./configure<span class="w"> </span>--use-cuda<span class="o">=</span>no
 <span class="c1"># [With OpenBLAS]</span>
 <span class="c1"># $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no</span>
@@ -322,7 +326,7 @@ $<span class="w"> </span>make<span class="w"> </span>-j<span class="w"> </span>c
 </div></details></section>
 <section id="step-2-installation-espnet">
 <h2>Step 2) Installation ESPnet<a class="headerlink" href="#step-2-installation-espnet" title="Permalink to this headline">¶</a></h2>
-<div align="left"><img src="image/environment_structure.png" width="700"/></div><ol>
+<ol>
 <li><p>Git clone ESPnet</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;any-place&gt;
 $<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/espnet/espnet
@@ -330,14 +334,14 @@ $<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span
 </div>
 </li>
 <li><p>[Optional] Put compiled Kaldi under espnet/tools</p>
-<p>If you have compiled Kaldi at Step1, put it under <code class="docutils literal notranslate"><span class="pre">tools</span></code>.</p>
+<p>If you have compiled Kaldi at Step 1, put it under <code class="docutils literal notranslate"><span class="pre">tools</span></code>.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
 $<span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>&lt;kaldi-root&gt;<span class="w"> </span>.
 </pre></div>
 </div>
 </li>
 <li><p>Setup Python environment</p>
-<p>You have to create <code class="docutils literal notranslate"><span class="pre">&lt;espnet-root&gt;/tools/activate_python.sh</span></code> to specify the Python interpreter used in espnet recipes.
+<p>You must create <code class="docutils literal notranslate"><span class="pre">&lt;espnet-root&gt;/tools/activate_python.sh</span></code> to specify the Python interpreter used in espnet recipes.
 (To understand how ESPnet specifies Python, see <a class="reference external" href="https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/path.sh">path.sh</a> for example.)</p>
 <p>We also have some scripts to generate <code class="docutils literal notranslate"><span class="pre">tools/activate_python.sh</span></code>.</p>
 <ul>
@@ -349,7 +353,7 @@ $<span class="w"> </span>./setup_anaconda.sh<span class="w"> </span>miniconda<sp
 </pre></div>
 </div>
 <p>This script tries to create a new miniconda if the output directory doesn’t exist.
-If you already have conda and you’ll use it then,</p>
+If you already have conda and you’ll use it, then,</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
 $<span class="w"> </span><span class="nv">CONDA_ROOT</span><span class="o">=</span><span class="si">${${</span><span class="nv">CONDA_PREFIX</span><span class="si">}</span><span class="p">/../..  # CONDA_PREFIX is an environment variable set by </span><span class="si">${</span><span class="nv">CONDA_ROOT</span><span class="si">}</span><span class="p">/etc/profile.d/conda.sh</span>
 $<span class="p"> ./setup_anaconda.sh </span><span class="si">${</span><span class="nv">CONDA_ROOT</span><span class="si">}</span><span class="p"> [conda-env-name] [python-version]</span>
@@ -358,7 +362,7 @@ $<span class="p"> ./setup_anaconda.sh </span><span class="si">${</span><span cla
 </pre></div>
 </div>
 </li>
-<li><p>Option B) Setup venv from system Python</p>
+<li><p>Option B) Setup venv from the system Python</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
 $<span class="w"> </span>./setup_venv.sh<span class="w"> </span><span class="k">$(</span><span class="nb">command</span><span class="w"> </span>-v<span class="w"> </span>python3<span class="k">)</span>
 </pre></div>
@@ -370,8 +374,8 @@ $<span class="w"> </span>./setup_python.sh<span class="w"> </span><span class="k
 </pre></div>
 </div>
 </li>
-<li><p>Option D) Without setting Python environment</p>
-<p><code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">C</span></code> and <code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">D</span></code> are almost same. This option might be suitable for Google colab.</p>
+<li><p>Option D) Without setting the Python environment</p>
+<p><code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">C</span></code> and <code class="docutils literal notranslate"><span class="pre">Option</span> <span class="pre">D</span></code> are almost the same. This option might be suitable for Google colab.</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
 $<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>activate_python.sh<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>touch<span class="w"> </span>activate_python.sh
 </pre></div>
@@ -384,8 +388,8 @@ $<span class="w"> </span>rm<span class="w"> </span>-f<span class="w"> </span>act
 $<span class="w"> </span>make
 </pre></div>
 </div>
-<p>The Makefile tries to install ESPnet and all dependencies including PyTorch.
-You can also specify PyTorch version, for example:</p>
+<p>The Makefile tries to install ESPnet and all dependencies, including PyTorch.
+You can also specify the PyTorch version, for example:</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
 $<span class="w"> </span>make<span class="w"> </span><span class="nv">TH_VERSION</span><span class="o">=</span><span class="m">1</span>.10.1
 </pre></div>
@@ -406,8 +410,8 @@ $<span class="w"> </span>make<span class="w"> </span><span class="nv">CPU_ONLY</
 </section>
 <section id="step-3-optional-custom-tool-installation">
 <h2>Step 3) [Optional] Custom tool installation<a class="headerlink" href="#step-3-optional-custom-tool-installation" title="Permalink to this headline">¶</a></h2>
-<p>Some packages used only for specific tasks, e.g. Transducer ASR, Japanese TTS, or etc. are not installed by default,
-so if you meet some installation error when running these recipe, you need to install them optionally.</p>
+<p>Some packages used only for specific tasks, e.g., Transducer ASR, Japanese TTS, etc. are not installed by default,
+so if you meet some installation error when running these recipes, you need to install them optionally.</p>
 <p>e.g.</p>
 <ul>
 <li><p>To install Warp Transducer</p>
@@ -423,9 +427,15 @@ bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. a
 </pre></div>
 </div>
 </li>
-<li><p>To install a module using pip: e.g. to intstall ipython</p>
+<li><p>To install a module using pip: e.g. to install ipython</p>
 <div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
 bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. activate_python.sh; pip install ipython&quot;</span>
+</pre></div>
+</div>
+<p>In addition to the python libraries, you can also install several non-python libraries in the conda
+environment, e.g.,</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>&lt;espnet-root&gt;/tools
+bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. activate_python.sh; conda install -c anaconda cmake&quot;</span>
 </pre></div>
 </div>
 </li>
@@ -447,7 +457,7 @@ bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;. .
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="ESPnet: end-to-end speech processing toolkit" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="tutorial.html" class="btn btn-neutral float-right" title="Usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="tutorial.html" class="btn btn-neutral float-right" title="Common usages" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Usage &mdash; ESPnet 202304 documentation</title><link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="ESPnet2" href="espnet2_tutorial.html" />
+    <link rel="prev" title="Docker" href="docker.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202304
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Common usages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parallelization.html">Using job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet1:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Usage</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#directory-structure">Directory structure</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#execution-of-example-scripts">Execution of example scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logging">Logging</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#change-options-in-run-sh">Change options in run.sh</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#use-of-gpu">Use of GPU</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet1-transducer">ESPnet1 Transducer</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#architecture">Architecture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#multi-task-learning">Multi-task learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inference">Inference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#additional-notes">Additional notes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#changing-the-training-configuration">Changing the training configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-set-minibatch">How to set minibatch</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#how-to-use-finetuning">How to use finetuning</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#transfer-learning">Transfer learning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#freezing">Freezing</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#important-notes">Important notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#chainer-and-pytorch-backends">Chainer and Pytorch backends</a></li>
+</ul>
+</li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="notebook/DataPreparation_CMU_11492_692_Spring2023(Assignment0).html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/DataPreparation_CMU_11492_692_Spring2023(Assignment0).html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/SpeechEnhancement_CMU_11492_692_Spring2023(Assignment7).html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/SpeechEnhancement_CMU_11492_692_Spring2023(Assignment7).html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/SpokenLanguageUnderstanding_CMU_11492_692_Spring2023(Assignment6).html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/TextToSpeech_CMU_11492_692_Spring2023(Assignment8).html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.spk.html">espnet2.spk package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.diar.html">espnet2.diar package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Usage</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/espnet1_tutorial.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="usage">
+<h1>Usage<a class="headerlink" href="#usage" title="Permalink to this headline">¶</a></h1>
+<p>If you’re a new user, we suggest checking out the
+<a class="reference internal" href="espnet2_tutorial.html"><span class="doc">ESPnet2 tutorial</span></a> as ESPnet1 is an older implementation.
+The majority of the development has now shifted to ESPnet2.
+Please be aware that certain information in this document may be outdated due to this shift.</p>
+<section id="directory-structure">
+<h2>Directory structure<a class="headerlink" href="#directory-structure" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">espnet</span><span class="o">/</span>              <span class="c1"># Python modules</span>
+<span class="n">utils</span><span class="o">/</span>               <span class="c1"># Utility scripts of ESPnet</span>
+<span class="n">test</span><span class="o">/</span>                <span class="c1"># Unit test</span>
+<span class="n">test_utils</span><span class="o">/</span>          <span class="c1"># Unit test for executable scripts</span>
+<span class="n">egs</span><span class="o">/</span>                 <span class="c1"># The complete recipe for each corpora</span>
+    <span class="n">an4</span><span class="o">/</span>             <span class="c1"># AN4 is tiny corpus and can be obtained freely, so it might be suitable for tutorial</span>
+      <span class="n">asr1</span><span class="o">/</span>          <span class="c1"># ASR recipe</span>
+          <span class="o">-</span> <span class="n">run</span><span class="o">.</span><span class="n">sh</span>   <span class="c1"># Executable script</span>
+          <span class="o">-</span> <span class="n">cmd</span><span class="o">.</span><span class="n">sh</span>   <span class="c1"># To select the backend for job scheduler</span>
+          <span class="o">-</span> <span class="n">path</span><span class="o">.</span><span class="n">sh</span>  <span class="c1"># Setup script for environment variables</span>
+          <span class="o">-</span> <span class="n">conf</span><span class="o">/</span>    <span class="c1"># Containing Configuration files</span>
+          <span class="o">-</span> <span class="n">steps</span><span class="o">/</span>   <span class="c1"># The steps scripts from Kaldi</span>
+          <span class="o">-</span> <span class="n">utils</span><span class="o">/</span>   <span class="c1"># The utils scripts from Kaldi</span>
+      <span class="n">tts1</span><span class="o">/</span>          <span class="c1"># TTS recipe</span>
+    <span class="o">...</span>
+</pre></div>
+</div>
+</section>
+<section id="execution-of-example-scripts">
+<h2>Execution of example scripts<a class="headerlink" href="#execution-of-example-scripts" title="Permalink to this headline">¶</a></h2>
+<p>Move to an example directory under the <code class="docutils literal notranslate"><span class="pre">egs</span></code> directory.
+We prepare several major ASR benchmarks including WSJ, CHiME-4, and TED.
+The following directory is an example of performing ASR experiment with the CMU Census Database (AN4) recipe.</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>egs/an4/asr1
+</pre></div>
+</div>
+<p>Once move to the directory, then, execute the following main script with a <strong>chainer</strong> backend:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>./run.sh<span class="w"> </span>--backend<span class="w"> </span>chainer
+</pre></div>
+</div>
+<p>or execute the following main script with a <strong>pytorch</strong> backend:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>./run.sh<span class="w"> </span>--backend<span class="w"> </span>pytorch
+</pre></div>
+</div>
+<p>With this main script, you can perform a full procedure of ASR experiments including</p>
+<ul class="simple">
+<li><p>Data download</p></li>
+<li><p><a class="reference external" href="http://kaldi-asr.org/doc/data_prep.html">Data preparation</a> (Kaldi style)</p></li>
+<li><p><a class="reference external" href="http://kaldi-asr.org/doc/feat.html">Feature extraction</a> (Kaldi style)</p></li>
+<li><p>Dictionary and JSON format data preparation</p></li>
+<li><p>Training based on <a class="reference external" href="https://chainer.org/">chainer</a> or <a class="reference external" href="http://pytorch.org/">pytorch</a>.</p></li>
+<li><p>Recognition and scoring</p></li>
+</ul>
+</section>
+<section id="logging">
+<h2>Logging<a class="headerlink" href="#logging" title="Permalink to this headline">¶</a></h2>
+<p>The training progress (loss and accuracy for training and validation data) can be monitored with the following command</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tail<span class="w"> </span>-f<span class="w"> </span>exp/<span class="si">${</span><span class="nv">expdir</span><span class="si">}</span>/train.log
+</pre></div>
+</div>
+<p>When we use <code class="docutils literal notranslate"><span class="pre">./run.sh</span> <span class="pre">--verbose</span> <span class="pre">0</span></code> (<code class="docutils literal notranslate"><span class="pre">--verbose</span> <span class="pre">0</span></code> is default in most recipes), it gives you the following information</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">epoch</span>       <span class="n">iteration</span>   <span class="n">main</span><span class="o">/</span><span class="n">loss</span>   <span class="n">main</span><span class="o">/</span><span class="n">loss_ctc</span>  <span class="n">main</span><span class="o">/</span><span class="n">loss_att</span>  <span class="n">validation</span><span class="o">/</span><span class="n">main</span><span class="o">/</span><span class="n">loss</span>  <span class="n">validation</span><span class="o">/</span><span class="n">main</span><span class="o">/</span><span class="n">loss_ctc</span>  <span class="n">validation</span><span class="o">/</span><span class="n">main</span><span class="o">/</span><span class="n">loss_att</span>  <span class="n">main</span><span class="o">/</span><span class="n">acc</span>    <span class="n">validation</span><span class="o">/</span><span class="n">main</span><span class="o">/</span><span class="n">acc</span>  <span class="n">elapsed_time</span>  <span class="n">eps</span>
+<span class="p">:</span>
+<span class="p">:</span>
+<span class="mi">6</span>           <span class="mi">89700</span>       <span class="mf">63.7861</span>     <span class="mf">83.8041</span>        <span class="mf">43.768</span>                                                                                   <span class="mf">0.731425</span>                         <span class="mi">136184</span>        <span class="mf">1e-08</span>
+<span class="mi">6</span>           <span class="mi">89800</span>       <span class="mf">71.5186</span>     <span class="mf">93.9897</span>        <span class="mf">49.0475</span>                                                                                  <span class="mf">0.72843</span>                          <span class="mi">136320</span>        <span class="mf">1e-08</span>
+<span class="mi">6</span>           <span class="mi">89900</span>       <span class="mf">72.1616</span>     <span class="mf">94.3773</span>        <span class="mf">49.9459</span>                                                                                  <span class="mf">0.730052</span>                         <span class="mi">136473</span>        <span class="mf">1e-08</span>
+<span class="mi">7</span>           <span class="mi">90000</span>       <span class="mf">64.2985</span>     <span class="mf">84.4583</span>        <span class="mf">44.1386</span>        <span class="mf">72.506</span>                <span class="mf">94.9823</span>                   <span class="mf">50.0296</span>                   <span class="mf">0.740617</span>    <span class="mf">0.72476</span>              <span class="mi">137936</span>        <span class="mf">1e-08</span>
+<span class="mi">7</span>           <span class="mi">90100</span>       <span class="mf">81.6931</span>     <span class="mf">106.74</span>         <span class="mf">56.6462</span>                                                                                  <span class="mf">0.733486</span>                         <span class="mi">138049</span>        <span class="mf">1e-08</span>
+<span class="mi">7</span>           <span class="mi">90200</span>       <span class="mf">74.6084</span>     <span class="mf">97.5268</span>        <span class="mf">51.6901</span>                                                                                  <span class="mf">0.731593</span>                         <span class="mi">138175</span>        <span class="mf">1e-08</span>
+     <span class="n">total</span> <span class="p">[</span><span class="c1">#################.................................] 35.54%</span>
+<span class="n">this</span> <span class="n">epoch</span> <span class="p">[</span><span class="c1">#####.............................................] 10.84%</span>
+     <span class="mi">91300</span> <span class="nb">iter</span><span class="p">,</span> <span class="mi">7</span> <span class="n">epoch</span> <span class="o">/</span> <span class="mi">20</span> <span class="n">epochs</span>
+   <span class="mf">0.71428</span> <span class="n">iters</span><span class="o">/</span><span class="n">sec</span><span class="o">.</span> <span class="n">Estimated</span> <span class="n">time</span> <span class="n">to</span> <span class="n">finish</span><span class="p">:</span> <span class="mi">2</span> <span class="n">days</span><span class="p">,</span> <span class="mi">16</span><span class="p">:</span><span class="mi">23</span><span class="p">:</span><span class="mf">34.613215</span><span class="o">.</span>
+</pre></div>
+</div>
+<p>Note that the an4 recipe uses <code class="docutils literal notranslate"><span class="pre">--verbose</span> <span class="pre">1</span></code> as default since this recipe is often used for a debugging purpose.</p>
+<p>In addition <a class="reference external" href="https://www.tensorflow.org/guide/summaries_and_tensorboard">Tensorboard</a> events are automatically logged in the <code class="docutils literal notranslate"><span class="pre">tensorboard/${expname}</span></code> folder. Therefore, when you install Tensorboard, you can easily compare several experiments by using</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>tensorboard<span class="w"> </span>--logdir<span class="w"> </span>tensorboard
+</pre></div>
+</div>
+<p>and connecting to the given address (default : localhost:6006). This will provide the following information:
+<img alt="2018-12-18_19h49_48" src="https://user-images.githubusercontent.com/14289171/50175839-2491e280-02fe-11e9-8dfc-de303804034d.png" />
+Note that we would not include the installation of Tensorboard to simplify our installation process. Please install it manually (<code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tensorflow;</span> <span class="pre">pip</span> <span class="pre">install</span> <span class="pre">tensorboard</span></code>) when you want to use Tensorboard.</p>
+</section>
+<section id="change-options-in-run-sh">
+<h2>Change options in run.sh<a class="headerlink" href="#change-options-in-run-sh" title="Permalink to this headline">¶</a></h2>
+<p>We rely on <a class="reference external" href="https://github.com/kaldi-asr/kaldi/blob/master/egs/wsj/s5/utils/parse_options.sh">utils/parse_options.sh</a> to paser command line arguments in shell script and it’s used in run.sh:</p>
+<p>e.g. If the script has <code class="docutils literal notranslate"><span class="pre">ngpu</span></code> option</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="ch">#!/usr/bin/env bash</span>
+<span class="c1"># run.sh</span>
+<span class="nv">ngpu</span><span class="o">=</span><span class="m">1</span>
+.<span class="w"> </span>utils/parse_options.sh
+<span class="nb">echo</span><span class="w"> </span><span class="si">${</span><span class="nv">ngpu</span><span class="si">}</span>
+</pre></div>
+</div>
+<p>Then you can change the value as following:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">2</span>
+<span class="nb">echo</span><span class="w"> </span><span class="m">2</span>
+</pre></div>
+</div>
+</section>
+<section id="use-of-gpu">
+<h2>Use of GPU<a class="headerlink" href="#use-of-gpu" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><p>Training:
+If you want to use GPUs in your experiment, please set <code class="docutils literal notranslate"><span class="pre">--ngpu</span></code> option in <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> appropriately, e.g.,</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="w">  </span><span class="c1"># use single gpu</span>
+<span class="w">  </span>$<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">1</span>
+
+<span class="w">  </span><span class="c1"># use multi-gpu</span>
+<span class="w">  </span>$<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">3</span>
+
+<span class="w">  </span><span class="c1"># if you want to specify gpus, set CUDA_VISIBLE_DEVICES as follows</span>
+<span class="w">  </span><span class="c1"># (Note that if you use slurm, this specification is not needed)</span>
+<span class="w">  </span>$<span class="w"> </span><span class="nv">CUDA_VISIBLE_DEVICES</span><span class="o">=</span><span class="m">0</span>,1,2<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">3</span>
+
+<span class="w">  </span><span class="c1"># use cpu</span>
+<span class="w">  </span>$<span class="w"> </span>./run.sh<span class="w"> </span>--ngpu<span class="w"> </span><span class="m">0</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Default setup uses a single GPU (<code class="docutils literal notranslate"><span class="pre">--ngpu</span> <span class="pre">1</span></code>).</p></li>
+</ul>
+</li>
+<li><p>ASR decoding:
+ESPnet also supports the GPU-based decoding for fast recognition.</p>
+<ul>
+<li><p>Please manually remove the following lines in <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1">#### use CPU for decoding</span>
+<span class="nv">ngpu</span><span class="o">=</span><span class="m">0</span>
+</pre></div>
+</div>
+</li>
+<li><p>Set 1 or more values for <code class="docutils literal notranslate"><span class="pre">--batchsize</span></code> option in <code class="docutils literal notranslate"><span class="pre">asr_recog.py</span></code> to enable GPU decoding</p></li>
+<li><p>And execute the script (e.g., <code class="docutils literal notranslate"><span class="pre">run.sh</span> <span class="pre">--stage</span> <span class="pre">5</span> <span class="pre">--ngpu</span> <span class="pre">1</span></code>)</p></li>
+<li><p>You’ll achieve significant speed improvement by using the GPU decoding</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="espnet1-transducer">
+<h2>ESPnet1 Transducer<a class="headerlink" href="#espnet1-transducer" title="Permalink to this headline">¶</a></h2>
+<p><em><strong>Important: If you encounter any issue related to Transducer loss, please open an issue in <a class="reference external" href="https://github.com/b-flo/warp-transducer">our fork of warp-transducer</a>.</strong></em></p>
+<p>ESPnet supports models trained with Transducer loss, aka Transducer models. To train such model, the following should be set in the training config:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">criterion</span><span class="p">:</span> <span class="n">loss</span>
+<span class="n">model</span><span class="o">-</span><span class="n">module</span><span class="p">:</span> <span class="s2">&quot;espnet.nets.pytorch_backend.e2e_asr_transducer:E2E&quot;</span>
+</pre></div>
+</div>
+<section id="architecture">
+<h3>Architecture<a class="headerlink" href="#architecture" title="Permalink to this headline">¶</a></h3>
+<p>Several Transducer architectures are currently available in ESPnet:</p>
+<ul class="simple">
+<li><p>RNN-Transducer (default, e.g.: <code class="docutils literal notranslate"><span class="pre">etype:</span> <span class="pre">blstm</span></code> with <code class="docutils literal notranslate"><span class="pre">dtype:</span> <span class="pre">lstm</span></code>)</p></li>
+<li><p>Custom-Transducer (e.g.: <code class="docutils literal notranslate"><span class="pre">etype:</span> <span class="pre">custom</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype:</span> <span class="pre">custom</span></code>)</p></li>
+<li><p>Mixed Custom/RNN-Transducer (e.g: <code class="docutils literal notranslate"><span class="pre">etype:</span> <span class="pre">custom</span></code> with <code class="docutils literal notranslate"><span class="pre">dtype:</span> <span class="pre">lstm</span></code>)</p></li>
+</ul>
+<p>The architecture specification is separated for the encoder and decoder part, and defined by the user through, respectively, <code class="docutils literal notranslate"><span class="pre">etype</span></code> and <code class="docutils literal notranslate"><span class="pre">dtype</span></code> in the training config. If <code class="docutils literal notranslate"><span class="pre">custom</span></code> is specified for either, a customizable architecture will be used for the corresponding part. Otherwise, an RNN-based architecture will be selected.</p>
+<p>Here, the <em>custom</em> architecture is a unique feature of the Transducer model in ESPnet. It was made available to add some flexibility in the architecture definition and ease the reproduction of some SOTA Transducer models mixing  different layers types or parameters within the same model part (encoder or decoder). As such, the architecture definition is different compared to the RNN architecture :</p>
+<ol>
+<li><p>Each block (or layer) of the custom architecture should be specified individually through <code class="docutils literal notranslate"><span class="pre">enc-block-arch</span></code> or/and <code class="docutils literal notranslate"><span class="pre">dec-block-arch</span></code> parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="c1"># e.g: Conv-Transformer encoder</span>
+ <span class="n">etype</span><span class="p">:</span> <span class="n">custom</span>
+ <span class="n">enc</span><span class="o">-</span><span class="n">block</span><span class="o">-</span><span class="n">arch</span><span class="p">:</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">conv1d</span>
+           <span class="n">idim</span><span class="p">:</span> <span class="mi">80</span>
+           <span class="n">odim</span><span class="p">:</span> <span class="mi">32</span>
+           <span class="n">kernel_size</span><span class="p">:</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">7</span><span class="p">]</span>
+           <span class="n">stride</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">conv1d</span>
+           <span class="n">idim</span><span class="p">:</span> <span class="mi">32</span>
+           <span class="n">odim</span><span class="p">:</span> <span class="mi">32</span>
+           <span class="n">kernel_size</span><span class="p">:</span> <span class="mi">3</span>
+           <span class="n">stride</span><span class="p">:</span> <span class="mi">2</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">conv1d</span>
+           <span class="n">idim</span><span class="p">:</span> <span class="mi">32</span>
+           <span class="n">odim</span><span class="p">:</span> <span class="mi">384</span>
+           <span class="n">kernel_size</span><span class="p">:</span> <span class="mi">3</span>
+           <span class="n">stride</span><span class="p">:</span> <span class="mi">1</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">transformer</span>
+           <span class="n">d_hidden</span><span class="p">:</span> <span class="mi">384</span>
+           <span class="n">d_ff</span><span class="p">:</span> <span class="mi">1536</span>
+           <span class="n">heads</span><span class="p">:</span> <span class="mi">4</span>
+</pre></div>
+</div>
+</li>
+<li><p>Different block types are allowed for the custom encoder (<code class="docutils literal notranslate"><span class="pre">tdnn</span></code>, <code class="docutils literal notranslate"><span class="pre">conformer</span></code> or <code class="docutils literal notranslate"><span class="pre">transformer</span></code>) and the custom decoder (<code class="docutils literal notranslate"><span class="pre">causal-conv1d</span></code> or <code class="docutils literal notranslate"><span class="pre">transformer</span></code>). Each one has a set of mandatory and optional parameters :</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="c1"># 1D convolution (TDNN) block</span>
+ <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">conv1d</span>
+   <span class="n">idim</span><span class="p">:</span> <span class="p">[</span><span class="n">Input</span> <span class="n">dimension</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">odim</span><span class="p">:</span> <span class="p">[</span><span class="n">Output</span> <span class="n">dimension</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">kernel_size</span><span class="p">:</span> <span class="p">[</span><span class="n">Size</span> <span class="n">of</span> <span class="n">the</span> <span class="n">context</span> <span class="n">window</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span> <span class="ow">or</span> <span class="nb">tuple</span><span class="p">)]</span>
+   <span class="n">stride</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Stride</span> <span class="n">of</span> <span class="n">the</span> <span class="n">sliding</span> <span class="n">blocks</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span> <span class="ow">or</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)]</span>
+   <span class="n">dilation</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Parameter</span> <span class="n">to</span> <span class="n">control</span> <span class="n">the</span> <span class="n">stride</span> <span class="n">of</span> <span class="n">elements</span> <span class="n">within</span> <span class="n">the</span> <span class="n">neighborhood</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span> <span class="ow">or</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)]</span>
+   <span class="n">groups</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">blocked</span> <span class="n">connections</span> <span class="kn">from</span> <span class="nn">input</span> <span class="n">channels</span> <span class="n">to</span> <span class="n">output</span> <span class="n">channels</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+   <span class="n">bias</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">add</span> <span class="n">a</span> <span class="n">learnable</span> <span class="n">bias</span> <span class="n">to</span> <span class="n">the</span> <span class="n">output</span><span class="o">.</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)]</span>
+   <span class="n">use</span><span class="o">-</span><span class="n">relu</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">use</span> <span class="n">a</span> <span class="n">ReLU</span> <span class="n">activation</span> <span class="n">after</span> <span class="n">convolution</span><span class="o">.</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)]</span>
+   <span class="n">use</span><span class="o">-</span><span class="n">batchnorm</span><span class="p">:</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">use</span> <span class="n">batch</span> <span class="n">normalization</span> <span class="n">after</span> <span class="n">convolution</span><span class="o">.</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)]</span>
+   <span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">TDNN</span> <span class="n">block</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+
+ <span class="c1"># Transformer</span>
+ <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">transformer</span>
+   <span class="n">d_hidden</span><span class="p">:</span> <span class="p">[</span><span class="n">Input</span><span class="o">/</span><span class="n">output</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">Transformer</span> <span class="n">block</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">d_ff</span><span class="p">:</span> <span class="p">[</span><span class="n">Hidden</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Feed</span><span class="o">-</span><span class="n">forward</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">heads</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">heads</span> <span class="ow">in</span> <span class="n">multi</span><span class="o">-</span><span class="n">head</span> <span class="n">attention</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">Transformer</span> <span class="n">block</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+   <span class="n">pos</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">positional</span> <span class="n">encoding</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+   <span class="n">att</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">attention</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+
+ <span class="c1"># Conformer</span>
+ <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">conformer</span>
+   <span class="n">d_hidden</span><span class="p">:</span> <span class="p">[</span><span class="n">Input</span><span class="o">/</span><span class="n">output</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">Conformer</span> <span class="n">block</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">d_ff</span><span class="p">:</span> <span class="p">[</span><span class="n">Hidden</span> <span class="n">dimension</span> <span class="n">of</span> <span class="n">the</span> <span class="n">Feed</span><span class="o">-</span><span class="n">forward</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">heads</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">heads</span> <span class="ow">in</span> <span class="n">multi</span><span class="o">-</span><span class="n">head</span> <span class="n">attention</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">macaron_style</span><span class="p">:</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">use</span> <span class="n">macaron</span> <span class="n">style</span><span class="o">.</span> <span class="p">(</span><span class="nb">bool</span><span class="p">)]</span>
+   <span class="n">use_conv_mod</span><span class="p">:</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">use</span> <span class="n">convolutional</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">bool</span><span class="p">)]</span>
+   <span class="n">conv_mod_kernel</span> <span class="p">(</span><span class="n">required</span> <span class="k">if</span> <span class="n">use_conv_mod</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">kernel</span> <span class="ow">in</span> <span class="n">convolutional</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">Transformer</span> <span class="n">block</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+   <span class="n">pos</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">positional</span> <span class="n">encoding</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+   <span class="n">att</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">attention</span> <span class="n">module</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+
+ <span class="c1"># Causal Conv1d</span>
+ <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">causal</span><span class="o">-</span><span class="n">conv1d</span>
+   <span class="n">idim</span><span class="p">:</span> <span class="p">[</span><span class="n">Input</span> <span class="n">dimension</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">odim</span><span class="p">:</span> <span class="p">[</span><span class="n">Output</span> <span class="n">dimension</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">kernel_size</span><span class="p">:</span> <span class="p">[</span><span class="n">Size</span> <span class="n">of</span> <span class="n">the</span> <span class="n">context</span> <span class="n">window</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+   <span class="n">stride</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Stride</span> <span class="n">of</span> <span class="n">the</span> <span class="n">sliding</span> <span class="n">blocks</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)]</span>
+   <span class="n">dilation</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Parameter</span> <span class="n">to</span> <span class="n">control</span> <span class="n">the</span> <span class="n">stride</span> <span class="n">of</span> <span class="n">elements</span> <span class="n">within</span> <span class="n">the</span> <span class="n">neighborhood</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)]</span>
+   <span class="n">groups</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">blocked</span> <span class="n">connections</span> <span class="kn">from</span> <span class="nn">input</span> <span class="n">channels</span> <span class="n">to</span> <span class="n">output</span> <span class="n">channels</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">1</span><span class="p">)</span>
+   <span class="n">bias</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">add</span> <span class="n">a</span> <span class="n">learnable</span> <span class="n">bias</span> <span class="n">to</span> <span class="n">the</span> <span class="n">output</span><span class="o">.</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)]</span>
+   <span class="n">use</span><span class="o">-</span><span class="n">relu</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">use</span> <span class="n">a</span> <span class="n">ReLU</span> <span class="n">activation</span> <span class="n">after</span> <span class="n">convolution</span><span class="o">.</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)]</span>
+   <span class="n">use</span><span class="o">-</span><span class="n">batchnorm</span><span class="p">:</span> <span class="p">[</span><span class="n">Whether</span> <span class="n">to</span> <span class="n">use</span> <span class="n">batch</span> <span class="n">normalization</span> <span class="n">after</span> <span class="n">convolution</span><span class="o">.</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)]</span>
+   <span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span><span class="o">-</span><span class="n">rate</span> <span class="k">for</span> <span class="n">TDNN</span> <span class="n">block</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+</pre></div>
+</div>
+</li>
+<li><p>The defined architecture can be repeated by specifying the total number of blocks/layers in the architecture through <code class="docutils literal notranslate"><span class="pre">enc-block-repeat</span></code> or/and <code class="docutils literal notranslate"><span class="pre">dec-block-repeat</span></code> parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span> <span class="c1"># e.g.: 2x (Causal-Conv1d + Transformer) decoder</span>
+ <span class="n">dtype</span><span class="p">:</span> <span class="n">transformer</span>
+ <span class="n">dec</span><span class="o">-</span><span class="n">block</span><span class="o">-</span><span class="n">arch</span><span class="p">:</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">causal</span><span class="o">-</span><span class="n">conv1d</span>
+           <span class="n">idim</span><span class="p">:</span> <span class="mi">256</span>
+           <span class="n">odim</span><span class="p">:</span> <span class="mi">256</span>
+           <span class="n">kernel_size</span><span class="p">:</span> <span class="mi">5</span>
+         <span class="o">-</span> <span class="nb">type</span><span class="p">:</span> <span class="n">transformer</span>
+           <span class="n">d_hidden</span><span class="p">:</span> <span class="mi">256</span>
+           <span class="n">d_ff</span><span class="p">:</span> <span class="mi">256</span>
+           <span class="n">heads</span><span class="p">:</span> <span class="mi">4</span>
+           <span class="n">dropout</span><span class="o">-</span><span class="n">rate</span><span class="p">:</span> <span class="mf">0.1</span>
+           <span class="n">att</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span><span class="p">:</span> <span class="mf">0.4</span>
+ <span class="n">dec</span><span class="o">-</span><span class="n">block</span><span class="o">-</span><span class="n">repeat</span><span class="p">:</span> <span class="mi">2</span>
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="multi-task-learning">
+<h3>Multi-task learning<a class="headerlink" href="#multi-task-learning" title="Permalink to this headline">¶</a></h3>
+<p>We also support multi-task learning with various auxiliary losses, such as: CTC, cross-entropy w/ label-smoothing (LM loss), auxiliary Transducer, and symmetric KL divergence.
+The four losses can be simultaneously trained with main Transducer loss to jointly optimize the total loss defined as:</p>
+<p><img alt="augmented Transducer training" src="http://www.sciweavers.org/tex2img.php?eq=%5Cmathcal%7BL%7D_%7Btot%7D%20%3D%20%5Clambda_%7B1%7D%5Cmathcal%7BL%7D_%7B1%7D%20%2B%20%5Clambda_%7B2%7D%5Cmathcal%7BL%7D_%7B2%7D%20%2B%20%5Clambda_%7B3%7D%5Cmathcal%7BL%7D_%7B3%7D%20%2B%20%5Clambda_%7B4%7D%20%5Cmathcal%7BL%7D_%7B4%7D%20%2B%20%5Clambda_%7B5%7D%20%5Cmathcal%7BL%7D_%7B5%7D&amp;bc=White&amp;fc=Black&amp;im=jpg&amp;fs=12&amp;ff=arev&amp;edit=" /></p>
+<p>where the losses are respectively, in order: The main Transducer loss, the CTC loss, the auxiliary Transducer loss, the symmetric KL divergence loss, and the LM loss. Lambda values define their respective contribution to the overall loss. Additionally, each loss can be independently selected or omitted depending on the task.</p>
+<p>Each loss can be defined in the training config alongside its specific options, such as follow:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="c1"># Transducer loss (L1)</span>
+    <span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span><span class="p">:</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">main</span> <span class="n">Transducer</span> <span class="n">loss</span> <span class="p">(</span><span class="nb">float</span><span class="p">)]</span>
+
+    <span class="c1"># CTC loss (L2)</span>
+    <span class="n">use</span><span class="o">-</span><span class="n">ctc</span><span class="o">-</span><span class="n">loss</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="n">ctc</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">CTC</span> <span class="n">loss</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">)]</span>
+    <span class="n">ctc</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Dropout</span> <span class="n">rate</span> <span class="k">for</span> <span class="n">encoder</span> <span class="n">output</span> <span class="n">representation</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+
+    <span class="c1"># Auxiliary Transducer loss (L3)</span>
+    <span class="n">use</span><span class="o">-</span><span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">auxiliary</span> <span class="n">Transducer</span> <span class="n">loss</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.4</span><span class="p">)]</span>
+    <span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">enc</span><span class="o">-</span><span class="n">output</span><span class="o">-</span><span class="n">layers</span> <span class="p">(</span><span class="n">required</span> <span class="k">if</span> <span class="n">use</span><span class="o">-</span><span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span> <span class="p">[</span><span class="n">List</span> <span class="n">of</span> <span class="n">intermediate</span> <span class="n">encoder</span> <span class="n">layer</span> <span class="n">IDs</span> <span class="n">to</span> <span class="n">compute</span> <span class="n">auxiliary</span> <span class="n">Transducer</span> <span class="n">loss</span><span class="p">(</span><span class="n">es</span><span class="p">)</span><span class="o">.</span> <span class="p">(</span><span class="nb">list</span><span class="p">)]</span>
+    <span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">mlp</span><span class="o">-</span><span class="n">dim</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Hidden</span> <span class="n">dimension</span> <span class="k">for</span> <span class="n">the</span> <span class="n">MLP</span> <span class="n">network</span><span class="o">.</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mi">320</span><span class="p">)]</span>
+    <span class="n">aux</span><span class="o">-</span><span class="n">transducer</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">mlp</span><span class="o">-</span><span class="n">dropout</span><span class="o">-</span><span class="n">rate</span><span class="p">:</span> <span class="p">[</span><span class="n">Dropout</span> <span class="n">rate</span> <span class="k">for</span> <span class="n">the</span> <span class="n">MLP</span> <span class="n">network</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+
+    <span class="c1"># Symmetric KL divergence loss (L4)</span>
+    <span class="c1"># Note: It can be only used in addition to the auxiliary Transducer loss.</span>
+    <span class="n">use</span><span class="o">-</span><span class="n">symm</span><span class="o">-</span><span class="n">kl</span><span class="o">-</span><span class="n">div</span><span class="o">-</span><span class="n">loss</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="n">symm</span><span class="o">-</span><span class="n">kl</span><span class="o">-</span><span class="n">div</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">symmetric</span> <span class="n">KL</span> <span class="n">divergence</span> <span class="n">loss</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">)]</span>
+
+    <span class="c1"># LM loss (L5)</span>
+    <span class="n">use</span><span class="o">-</span><span class="n">lm</span><span class="o">-</span><span class="n">loss</span><span class="p">:</span> <span class="kc">True</span>
+    <span class="n">lm</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">weight</span> <span class="p">(</span><span class="n">optional</span><span class="p">):</span> <span class="p">[</span><span class="n">Weight</span> <span class="n">of</span> <span class="n">the</span> <span class="n">LM</span> <span class="n">loss</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.2</span><span class="p">)]</span>
+    <span class="n">lm</span><span class="o">-</span><span class="n">loss</span><span class="o">-</span><span class="n">smoothing</span><span class="o">-</span><span class="n">rate</span><span class="p">:</span> <span class="p">[</span><span class="n">Smoothing</span> <span class="n">rate</span> <span class="k">for</span> <span class="n">LM</span> <span class="n">loss</span><span class="o">.</span> <span class="n">If</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">label</span> <span class="n">smoothing</span> <span class="ow">is</span> <span class="n">enabled</span><span class="o">.</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)]</span>
+</pre></div>
+</div>
+</section>
+<section id="inference">
+<h3>Inference<a class="headerlink" href="#inference" title="Permalink to this headline">¶</a></h3>
+<p>Various decoding algorithms are also available for Transducer by setting <code class="docutils literal notranslate"><span class="pre">beam-size</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type</span></code> parameters in decode config.</p>
+<ul class="simple">
+<li><p>Greedy search  constrained to one emission by timestep (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">1</span></code>).</p></li>
+<li><p>Beam search algorithm without prefix search (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">default</span></code>).</p></li>
+<li><p>Time Synchronous Decoding <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9053040">[Saon et al., 2020]</a> (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">tsd</span></code>).</p></li>
+<li><p>Alignment-Length Synchronous Decoding <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9053040">[Saon et al., 2020]</a> (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">alsd</span></code>).</p></li>
+<li><p>N-step Constrained beam search modified from <a class="reference external" href="https://arxiv.org/abs/2002.03577">[Kim et al., 2020]</a> (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">default</span></code>).</p></li>
+<li><p>modified Adaptive Expansion Search, based on <a class="reference external" href="https://ieeexplore.ieee.org/abstract/document/9250505">[Kim et al., 2021]</a> and NSC (<code class="docutils literal notranslate"><span class="pre">beam-size:</span> <span class="pre">&gt;1</span></code> and <code class="docutils literal notranslate"><span class="pre">search-type:</span> <span class="pre">maes</span></code>).</p></li>
+</ul>
+<p>The algorithms share two parameters to control beam size (<code class="docutils literal notranslate"><span class="pre">beam-size</span></code>) and final hypotheses normalization (<code class="docutils literal notranslate"><span class="pre">score-norm-transducer</span></code>). The specific parameters for each algorithm are:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>    <span class="c1"># Default beam search</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">default</span>
+
+    <span class="c1"># Time-synchronous decoding</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">tsd</span>
+    <span class="nb">max</span><span class="o">-</span><span class="n">sym</span><span class="o">-</span><span class="n">exp</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">symbol</span> <span class="n">expansions</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+
+    <span class="c1"># Alignement-length decoding</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">alsd</span>
+    <span class="n">u</span><span class="o">-</span><span class="nb">max</span><span class="p">:</span> <span class="p">[</span><span class="n">Maximum</span> <span class="n">output</span> <span class="n">sequence</span> <span class="n">length</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+
+    <span class="c1"># N-step Constrained beam search</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">nsc</span>
+    <span class="n">nstep</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">expansion</span> <span class="n">steps</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+           <span class="c1"># nstep = max-sym-exp + 1 (blank)</span>
+    <span class="n">prefix</span><span class="o">-</span><span class="n">alpha</span><span class="p">:</span> <span class="p">[</span><span class="n">Maximum</span> <span class="n">prefix</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">prefix</span> <span class="n">search</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+
+    <span class="c1"># modified Adaptive Expansion Search</span>
+    <span class="n">search</span><span class="o">-</span><span class="nb">type</span><span class="p">:</span> <span class="n">maes</span>
+    <span class="n">nstep</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">maximum</span> <span class="n">expansion</span> <span class="n">steps</span> <span class="n">at</span> <span class="n">each</span> <span class="n">time</span> <span class="n">step</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">)]</span>
+    <span class="n">prefix</span><span class="o">-</span><span class="n">alpha</span><span class="p">:</span> <span class="p">[</span><span class="n">Maximum</span> <span class="n">prefix</span> <span class="n">length</span> <span class="ow">in</span> <span class="n">prefix</span> <span class="n">search</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+    <span class="n">expansion</span><span class="o">-</span><span class="n">gamma</span><span class="p">:</span> <span class="p">[</span><span class="n">Number</span> <span class="n">of</span> <span class="n">additional</span> <span class="n">candidates</span> <span class="ow">in</span> <span class="n">expanded</span> <span class="n">hypotheses</span> <span class="n">selection</span> <span class="p">(</span><span class="nb">int</span><span class="p">)]</span>
+    <span class="n">expansion</span><span class="o">-</span><span class="n">beta</span><span class="p">:</span> <span class="p">[</span><span class="n">Allowed</span> <span class="n">logp</span> <span class="n">difference</span> <span class="k">for</span> <span class="n">prune</span><span class="o">-</span><span class="n">by</span><span class="o">-</span><span class="n">value</span> <span class="n">method</span> <span class="p">(</span><span class="nb">float</span><span class="p">,</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>Except for the default algorithm, the described parameters are used to control the performance and decoding speed. The optimal values for each parameter are task-dependent; a high value will typically increase decoding time to focus on performance while a low value will improve decoding time at the expense of performance.</p>
+</section>
+<section id="additional-notes">
+<h3>Additional notes<a class="headerlink" href="#additional-notes" title="Permalink to this headline">¶</a></h3>
+<ul class="simple">
+<li><p>Similarly to training with CTC, Transducer does not output the validation accuracy. Thus, the optimum model is selected with its loss value (i.e., –recog_model model.loss.best).</p></li>
+<li><p>There are several differences between MTL and Transducer training/decoding options. The users should refer to <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/e2e_asr_transducer.py</span></code> for an overview and <code class="docutils literal notranslate"><span class="pre">espnet/espnet/nets/pytorch_backend/transducer/arguments</span></code> for all possible arguments.</p></li>
+<li><p>FastEmit regularization <a class="reference external" href="https://arxiv.org/pdf/2010.11148">[Yu et al., 2021]</a> is available through <code class="docutils literal notranslate"><span class="pre">--fastemit-lambda</span></code> training parameter (default = 0.0).</p></li>
+<li><p>RNN-decoder pre-initialization using an LM is supported. Note that regular decoder keys are expected. The LM state dict keys (<code class="docutils literal notranslate"><span class="pre">predictor.*</span></code>) will be renamed according to AM state dict keys (<code class="docutils literal notranslate"><span class="pre">dec.*</span></code>).</p></li>
+<li><p>Transformer-decoder pre-initialization using a Transformer LM is not supported yet.</p></li>
+</ul>
+</section>
+</section>
+<section id="changing-the-training-configuration">
+<h2>Changing the training configuration<a class="headerlink" href="#changing-the-training-configuration" title="Permalink to this headline">¶</a></h2>
+<p>The default configurations for training and decoding are written in <code class="docutils literal notranslate"><span class="pre">conf/train.yaml</span></code> and <code class="docutils literal notranslate"><span class="pre">conf/decode.yaml</span></code> respectively.  It can be overwritten by specific arguments: e.g.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g.</span>
+asr_train.py<span class="w"> </span>--config<span class="w"> </span>conf/train.yaml<span class="w"> </span>--batch-size<span class="w"> </span><span class="m">24</span>
+<span class="c1"># e.g.--config2 and --config3 are also provided and the latter option can overwrite the former.</span>
+asr_train.py<span class="w"> </span>--config<span class="w"> </span>conf/train.yaml<span class="w"> </span>--config2<span class="w"> </span>conf/new.yaml
+</pre></div>
+</div>
+<p>In this way, you need to edit <code class="docutils literal notranslate"><span class="pre">run.sh</span></code> and it might be inconvenient sometimes.
+Instead of giving arguments directly, we recommend you to modify the yaml file and give it to <code class="docutils literal notranslate"><span class="pre">run.sh</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g.</span>
+./run.sh<span class="w"> </span>--train-config<span class="w"> </span>conf/train_modified.yaml
+<span class="c1"># e.g.</span>
+./run.sh<span class="w"> </span>--train-config<span class="w"> </span>conf/train_modified.yaml<span class="w"> </span>--decode-config<span class="w"> </span>conf/decode_modified.yaml
+</pre></div>
+</div>
+<p>We also provide a utility to generate a yaml file from the input yaml file:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># e.g. You can give any parameters as &#39;-a key=value&#39; and &#39;-a&#39; is repeatable.</span>
+<span class="c1">#      This generates new file at &#39;conf/train_batch-size24_epochs10.yaml&#39;</span>
+./run.sh<span class="w"> </span>--train-config<span class="w"> </span><span class="k">$(</span>change_yaml.py<span class="w"> </span>conf/train.yaml<span class="w"> </span>-a<span class="w"> </span>batch-size<span class="o">=</span><span class="m">24</span><span class="w"> </span>-a<span class="w"> </span><span class="nv">epochs</span><span class="o">=</span><span class="m">10</span><span class="k">)</span>
+<span class="c1"># e.g. &#39;-o&#39; option specifies the output file name instead of auto named file.</span>
+./run.sh<span class="w"> </span>--train-config<span class="w"> </span><span class="k">$(</span>change_yaml.py<span class="w"> </span>conf/train.yaml<span class="w"> </span>-o<span class="w"> </span>conf/train2.yaml<span class="w"> </span>-a<span class="w"> </span>batch-size<span class="o">=</span><span class="m">24</span><span class="k">)</span>
+</pre></div>
+</div>
+</section>
+<section id="how-to-set-minibatch">
+<h2>How to set minibatch<a class="headerlink" href="#how-to-set-minibatch" title="Permalink to this headline">¶</a></h2>
+<p>From espnet v0.4.0, we have three options in <code class="docutils literal notranslate"><span class="pre">--batch-count</span></code> to specify minibatch size (see <code class="docutils literal notranslate"><span class="pre">espnet.utils.batchfy</span></code> for implementation);</p>
+<ol>
+<li><p><code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">seq</span> <span class="pre">--batch-seqs</span> <span class="pre">32</span> <span class="pre">--batch-seq-maxlen-in</span> <span class="pre">800</span> <span class="pre">--batch-seq-maxlen-out</span> <span class="pre">150</span></code>.</p>
+<p>This option is compatible to the old setting before v0.4.0. This counts the minibatch size as the number of sequences and reduces the size when the maximum length of the input or output sequences is greater than 800 or 150, respectively.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">bin</span> <span class="pre">--batch-bins</span> <span class="pre">100000</span></code>.</p>
+<p>This creates the minibatch that has the maximum number of bins under 100 in the padded input/output minibatch tensor  (i.e., <code class="docutils literal notranslate"><span class="pre">max(ilen)</span> <span class="pre">*</span> <span class="pre">idim</span> <span class="pre">+</span> <span class="pre">max(olen)</span> <span class="pre">*</span> <span class="pre">odim</span></code>).
+Basically, this option makes training iteration faster than <code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">seq</span></code>. If you already has the best <code class="docutils literal notranslate"><span class="pre">--batch-seqs</span> <span class="pre">x</span></code> config, try <code class="docutils literal notranslate"><span class="pre">--batch-bins</span> <span class="pre">$((x</span> <span class="pre">*</span> <span class="pre">(mean(ilen)</span> <span class="pre">*</span> <span class="pre">idim</span> <span class="pre">+</span> <span class="pre">mean(olen)</span> <span class="pre">*</span> <span class="pre">odim)))</span></code>.</p>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">frame</span> <span class="pre">--batch-frames-in</span> <span class="pre">800</span> <span class="pre">--batch-frames-out</span> <span class="pre">100</span> <span class="pre">--batch-frames-inout</span> <span class="pre">900</span></code>.</p>
+<p>This creates the minibatch that has the maximum number of input, output and input+output frames under 800, 100 and 900, respectively. You can set one of <code class="docutils literal notranslate"><span class="pre">--batch-frames-xxx</span></code> partially. Like <code class="docutils literal notranslate"><span class="pre">--batch-bins</span></code>, this option makes training iteration faster than <code class="docutils literal notranslate"><span class="pre">--batch-count</span> <span class="pre">seq</span></code>. If you already has the best <code class="docutils literal notranslate"><span class="pre">--batch-seqs</span> <span class="pre">x</span></code> config, try <code class="docutils literal notranslate"><span class="pre">--batch-frames-in</span> <span class="pre">$((x</span> <span class="pre">*</span> <span class="pre">(mean(ilen)</span> <span class="pre">*</span> <span class="pre">idim))</span> <span class="pre">--batch-frames-out</span> <span class="pre">$((x</span> <span class="pre">*</span> <span class="pre">mean(olen)</span> <span class="pre">*</span> <span class="pre">odim))</span></code>.</p>
+</li>
+</ol>
+</section>
+<section id="how-to-use-finetuning">
+<h2>How to use finetuning<a class="headerlink" href="#how-to-use-finetuning" title="Permalink to this headline">¶</a></h2>
+<p>ESPnet currently supports two finetuning operations: transfer learning and freezing.
+We expect the user to define the following options in its main training config (e.g.: conf/train*.yaml). If needed, they can be directly passed to <code class="docutils literal notranslate"><span class="pre">(asr|tts|vc)_train.py</span></code> by adding the prefix <code class="docutils literal notranslate"><span class="pre">--</span></code> to the options.</p>
+<section id="transfer-learning">
+<h3>Transfer learning<a class="headerlink" href="#transfer-learning" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p>Transfer learning option is split between encoder initialization (<code class="docutils literal notranslate"><span class="pre">enc-init</span></code>) and decoder initialization (<code class="docutils literal notranslate"><span class="pre">dec-init</span></code>). However, the same model can be specified for both options.</p></li>
+<li><p>Each option takes a snapshot path (e.g.: <code class="docutils literal notranslate"><span class="pre">[espnet_model_path]/results/snapshot.ep.1</span></code>) or model path (e.g.: <code class="docutils literal notranslate"><span class="pre">[espnet_model_path]/results/model.loss.best</span></code>) as argument.</p></li>
+<li><p>Additionally, a list of encoder and decoder modules (separated by a comma) can also be specified to control the modules to transfer with the options <code class="docutils literal notranslate"><span class="pre">enc-init-mods</span></code> and <code class="docutils literal notranslate"><span class="pre">dec-init-mods</span></code>.</p></li>
+<li><p>For each specified module, we only expect a partial match with the start of the target model module name. Thus, multiple modules can be specified with the same key if they share a common prefix.</p>
+<blockquote>
+<div><p>Mandatory: <code class="docutils literal notranslate"><span class="pre">enc-init:</span> <span class="pre">/home/usr/espnet/egs/vivos/asr1/exp/train_nodev_pytorch_train/results/model.loss.best</span></code> -&gt; specify a pre-trained model on VIVOS for transfer learning.
+&gt; Example 1: <code class="docutils literal notranslate"><span class="pre">enc-init-mods:</span> <span class="pre">'enc.'</span></code> -&gt; transfer all encoder parameters.
+&gt; Example 2: <code class="docutils literal notranslate"><span class="pre">enc-init-mods:</span> <span class="pre">'enc.embed.,enc.0.'</span></code> -&gt; transfer encoder embedding layer and first layer parameters.</p>
+</div></blockquote>
+</li>
+</ul>
+</section>
+<section id="freezing">
+<h3>Freezing<a class="headerlink" href="#freezing" title="Permalink to this headline">¶</a></h3>
+<ul>
+<li><p>Freezing option can be enabled with <code class="docutils literal notranslate"><span class="pre">freeze-mods</span></code>, (<code class="docutils literal notranslate"><span class="pre">freeze_param</span></code> in espnet2).</p></li>
+<li><p>The option take a list of model modules (separated by a comma) as argument. As previously, we do not expect a complete match for the specified modules.</p>
+<blockquote>
+<div><p>Example 1: <code class="docutils literal notranslate"><span class="pre">freeze-mods:</span> <span class="pre">'enc.embed.'</span></code> -&gt; freeze encoder embedding layer parameters.
+Example 2: <code class="docutils literal notranslate"><span class="pre">freeze-mods:</span> <span class="pre">'dec.embed,dec.0.'</span></code> -&gt; freeze decoder embedding layer and first layer parameters.
+Example 3 (espnet2): <code class="docutils literal notranslate"><span class="pre">freeze_param:</span> <span class="pre">'encoder.embed'</span></code> -&gt; freeze encoder embedding layer parameters.</p>
+</div></blockquote>
+</li>
+</ul>
+</section>
+</section>
+<section id="important-notes">
+<h2>Important notes<a class="headerlink" href="#important-notes" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Given a pre-trained source model, the modules specified for transfer learning are expected to have the same parameters (i.e.: layers and units) as the target model modules.</p></li>
+<li><p>We also support initialization with a pre-trained RNN LM for the RNN-Transducer decoder.</p></li>
+<li><p>RNN models use different key names for encoder and decoder parts compared to Transformer, Conformer or Custom models:</p>
+<ul>
+<li><p>RNN model use <code class="docutils literal notranslate"><span class="pre">enc.</span></code> for encoder part and <code class="docutils literal notranslate"><span class="pre">dec.</span></code> for decoder part.</p></li>
+<li><p>Transformer/Conformer/Custom model use <code class="docutils literal notranslate"><span class="pre">encoder.</span></code> for encoder part and <code class="docutils literal notranslate"><span class="pre">decoder.</span></code> for decoder part.</p></li>
+</ul>
+</li>
+</ul>
+</section>
+<section id="chainer-and-pytorch-backends">
+<h2>Chainer and Pytorch backends<a class="headerlink" href="#chainer-and-pytorch-backends" title="Permalink to this headline">¶</a></h2>
+<table border="1" class="docutils">
+<thead>
+<tr>
+<th></th>
+<th style="text-align: center;">Chainer</th>
+<th style="text-align: center;">Pytorch</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Performance</td>
+<td style="text-align: center;">◎</td>
+<td style="text-align: center;">◎</td>
+</tr>
+<tr>
+<td>Speed</td>
+<td style="text-align: center;">○</td>
+<td style="text-align: center;">◎</td>
+</tr>
+<tr>
+<td>Multi-GPU</td>
+<td style="text-align: center;">supported</td>
+<td style="text-align: center;">supported</td>
+</tr>
+<tr>
+<td>VGG-like encoder</td>
+<td style="text-align: center;">supported</td>
+<td style="text-align: center;">supported</td>
+</tr>
+<tr>
+<td>Transformer</td>
+<td style="text-align: center;">supported</td>
+<td style="text-align: center;">supported</td>
+</tr>
+<tr>
+<td>RNNLM integration</td>
+<td style="text-align: center;">supported</td>
+<td style="text-align: center;">supported</td>
+</tr>
+<tr>
+<td>#Attention types</td>
+<td style="text-align: center;">3 (no attention, dot, location)</td>
+<td style="text-align: center;">12 including variants of multihead</td>
+</tr>
+<tr>
+<td>TTS recipe support</td>
+<td style="text-align: center;">no support</td>
+<td style="text-align: center;">supported</td>
+</tr>
+</tbody>
+</table></section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="docker.html" class="btn btn-neutral float-left" title="Docker" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="espnet2_tutorial.html" class="btn btn-neutral float-right" title="ESPnet2" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
