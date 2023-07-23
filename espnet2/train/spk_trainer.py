@@ -72,41 +72,59 @@ class SpkTrainer(Trainer):
 
         scores = []
         labels = []
+        spk_embd_dic = {}
+        bs = 0
+        start_time = time.time()
+
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
+
+        # fill dictionary with speech samples
+        utt_id_list = []
+        speech_list = []
         for utt_id, batch in iterator:
+            bs = max(bs, len(utt_id))
             assert isinstance(batch, dict), type(batch)
+            for _utt_id, _speech, _speech2 in zip(utt_id, batch["speech"], batch["speech2"]):
+                _utt_id_1, _utt_id_2 = _utt_id.split("*")
+                if _utt_id_1 not in utt_id_list:
+                    utt_id_list.append(_utt_id_1)
+                    speech_list.append(_speech)
+                if _utt_id_2 not in utt_id_list:
+                    utt_id_list.append(_utt_id_2)
+                    speech_list.append(_speech2)
+
+        # extract speaker embeddings.
+        n_utt = len(utt_id_list)
+        for ii in range(0, n_utt, bs):
+            _utt_ids = utt_id_list[ii:ii+bs]
+            _speechs = speech_list[ii:ii+bs]
+            _speechs = torch.stack(_speechs, dim=0)
+            org_shape = (_speechs.size(0), _speechs.size(1))
+            _speechs = _speechs.flatten(0,1)
+            _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
+
+            spk_embds = model(
+                speech=_speechs, spk_labels=None, extract_embd=True
+            )
+            spk_embds = F.normalize(spk_embds, p=2, dim=1)
+            spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
+
+            for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
+                spk_embd_dic[_utt_id] = _spk_embd
+
+        # calculate similarity scores
+        for utt_id, _ in iterator:
+
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
                     break
 
-            batch["utt_id"] = utt_id
-
-            batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
-            if no_forward_run:
-                continue
-
-            org_shape = (batch["speech"].size(0), batch["speech"].size(1))
-            batch["speech"] = batch["speech"].flatten(0, 1)
-            batch["speech2"] = batch["speech2"].flatten(0, 1)
-
-            speech_embds = model(
-                speech=batch["speech"], spk_labels=None, extract_embd=True
-            )
-            speech2_embds = model(
-                speech=batch["speech2"], spk_labels=None, extract_embd=True
-            )
-
-            speech_embds = F.normalize(speech_embds, p=2, dim=1)
-            speech2_embds = F.normalize(speech2_embds, p=2, dim=1)
-
-            speech_embds = speech_embds.view(org_shape[0], org_shape[1], -1)
-            speech2_embds = speech2_embds.view(org_shape[0], org_shape[1], -1)
-
-            for i in range(speech_embds.size(0)):
-                score = torch.cdist(speech_embds[i], speech2_embds[i])
+            for _utt_id in utt_id:
+                _utt_id_1, _utt_id_2 = _utt_id.split("*")
+                score = torch.cdist(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2])
                 score = -1.0 * torch.mean(score)
                 scores.append(score.view(1))  # 0-dim to 1-dim tensor for cat
             labels.append(batch["spk_labels"])
@@ -162,3 +180,5 @@ class SpkTrainer(Trainer):
         mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
 
         reporter.register(stats=dict(eer=eer, mindcf=mindcf))
+        val_duration = time.time() - start_time
+        logging.info(f"valid duration: {val_duartion}")
