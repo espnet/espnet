@@ -32,7 +32,7 @@
 |decode_asr_lm_lm_train_lm_transformer_en_char_valid.loss.ave_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|126812|94.4|2.8|2.8|1.5|7.2|66.1|
 
 
-## Whisper [medium_finetuning](conf/tuning/train_asr_whisper_full_warmup1500.yaml)
+## Whisper [medium_finetuning](conf/tuning/train_asr_whisper_full_warmup1500.yaml) without LM
 
 ## Environments
 - date: `Fri Jul 21 12:47:17 JST 2023`
@@ -42,6 +42,9 @@
 - Git hash: `d7172fcb7181ffdcca9c0061400254b63e37bf21`
   - Commit date: `Sat Jul 15 15:01:30 2023 +0900`
 - Pretrained URL: [espnet/yoshiki_chime4_whisper_medium_finetuning](https://huggingface.co/espnet/yoshiki_chime4_whisper_medium_finetuning)
+
+- token_type: whisper_multilingual
+- cleaner: whisper_en
 
 ### WER
 

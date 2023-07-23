@@ -1,6 +1,6 @@
 # RESULTS
 
-## Whisper [medium_finetuning](conf/tuning/train_asr_whisper_full_warmup3000.yaml)
+## Whisper [medium_finetuning](conf/tuning/train_asr_whisper_full_warmup3000.yaml) without LM
 
 ## Environments
 - date: `Fri Jul 21 12:47:17 JST 2023`
@@ -10,6 +10,9 @@
 - Git hash: `d7172fcb7181ffdcca9c0061400254b63e37bf21`
   - Commit date: `Sat Jul 15 15:01:30 2023 +0900`
 - Pretrained URL: [espnet/yoshiki_wsj_whisper_medium_finetuning](https://huggingface.co/espnet/yoshiki_wsj_whisper_medium_finetuning)
+
+- token_type: whisper_multilingual
+- cleaner: whisper_en
 
 ### WER
 
