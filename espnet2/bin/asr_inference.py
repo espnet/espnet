@@ -331,9 +331,12 @@ class Speech2Text:
             bpemodel = asr_train_args.bpemodel
 
         # for the Whisper model, get the tokenizer language
-        tokenizer_language = asr_train_args.preprocessor_conf.get(
-            "tokenizer_language", "en"
-        )
+        if "whisper" in token_type:
+            tokenizer_language = asr_train_args.preprocessor_conf.get(
+                "tokenizer_language", "en"
+            )
+        else:
+            tokenizer_language = None
 
         if token_type is None:
             tokenizer = None
