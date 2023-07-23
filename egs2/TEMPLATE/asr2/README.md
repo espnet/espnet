@@ -162,7 +162,7 @@ Upload the trained model to Hugging Face for sharing. Additional information at 
 
 ## Tips for asr2 experiments
 * **Kmeans is important**
-   * SSL model choice can affect the performance a lot, e.g. wavlm models may not work for non-English data, 
+   * SSL model choice can affect the performance a lot, e.g. wavlm models may not work for non-English data,
    * Layer selection is also important: different layers retain different information. For example, based the training criterion, the 24-th layer of HuBERT_large is trying to match the information from HuBERT_base layer 9. If you didn't have experience, please refer to the Fig. 4 of this [CCA paper](https://arxiv.org/pdf/2211.03929.pdf), which is usually helpful.
    * Number of kmeans clusters also affect the variance in pronunciation, etc.
    * Please check the kmeans labels in `dump/extracted/{kmeans_feat_type}/layer{layer}/{dset}/pseudo_label_km{ncluseters}.txt`. In my experience, a good km result for ASR should have an obvious pattern of repeatitions, e.g. mhubert_base model on covost2  (Spanish speech)

@@ -11,11 +11,11 @@ import argparse
 import logging
 import os
 import sys
-import tqdm
 
 import joblib
 import numpy as np
 import torch
+import tqdm
 from ssl_feature_utils import (
     ESPnetHubertFeatureReader,
     HubertFeatureReader,

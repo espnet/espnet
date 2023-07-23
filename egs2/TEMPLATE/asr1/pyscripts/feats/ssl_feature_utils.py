@@ -3,13 +3,13 @@ import logging
 import os
 import re
 import sys
-import tqdm
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import soundfile as sf
 import torch
 import torchaudio
+import tqdm
 
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory

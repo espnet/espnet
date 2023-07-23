@@ -696,7 +696,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 echo "${audio_format}" > "${data_audio}/${dset}/audio_format"
             fi
         done
-    
+
     elif  [ "${speech_feats_type}" = "extracted" ]; then
         log "Stage 3: ${speech_feats_type} extract: data/ -> ${data_audio}"
         # Assumming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
