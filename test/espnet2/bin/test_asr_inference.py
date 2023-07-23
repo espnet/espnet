@@ -313,7 +313,7 @@ def test_Speech2Text_hugging_face_causal_lm(
     asr_train_config = file.read()
     asr_train_config = yaml.full_load(asr_train_config)
     asr_train_config["token_type"] = "hugging_face"
-    asr_train_config["bpemodel"] = "Muennighoff/bloom-tiny-random"
+    asr_train_config["bpemodel"] = model_name_or_path
     asr_train_config["token_list"] = str(token_list_hugging_face)
     asr_train_config["model_conf"]["ignore_id"] = 1
     asr_train_config["model_conf"]["sym_blank"] = "<pad>"
