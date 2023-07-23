@@ -12,10 +12,10 @@ setup() {
 }
 
 @test "simple_dict.sh: check various dict_init edge cases" {
-    run bash -c "source $utils/simple_dict.sh; dict_init good_argument"    
+    run bash -c "source $utils/simple_dict.sh; dict_init good_argument"
     assert_success
 
-    run bash -c "source $utils/simple_dict.sh; dict_init bad number_of_arguments"    
+    run bash -c "source $utils/simple_dict.sh; dict_init bad number_of_arguments"
     assert_failure
 
     run bash -c "source $utils/simple_dict.sh; dict_init bad/argument"
