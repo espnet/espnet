@@ -1,4 +1,4 @@
-name: Windows
+name: ci on macos
 
 on:
   push:
@@ -9,16 +9,14 @@ on:
       - master
 
 jobs:
-  test_windows:
-    runs-on: Windows-latest
+  check_installable_on_macos:
+    runs-on: macOS-latest
     if: github.event.pull_request.draft == false
     strategy:
       matrix:
         python-version: ["3.10"]
         pytorch-version: [1.13.1]
-    defaults:
-      run:
-        shell: bash
+        use-conda: [true, false]
     steps:
       - uses: actions/checkout@master
       - uses: actions/cache@v3
@@ -29,9 +27,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: 'x64'
-      - name: install dependencies
-        run: |
-          choco install -y wget
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
@@ -40,6 +35,12 @@ jobs:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
           TH_VERSION: ${{ matrix.pytorch-version }}
           CHAINER_VERSION: 6.0.0
-          USE_CONDA: false
+          USE_CONDA: ${{ matrix.use-conda }}
+          # FIXME(kamo): clang is used by default, but I don't know how to use "-fopenmp" with clang
+          WITH_OMP: OFF
+          # NOTE(kamo): If it's hard to build with clang, please consider using gcc
+          # However, I couldn't build pysptk with gcc on MacOS
+          # CC: /usr/local/bin/gcc-11
+          # CXX: /usr/local/bin/g++-11
         run: |
           ./ci/install.sh
