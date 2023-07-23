@@ -48,7 +48,7 @@ separator_conf:
 
 criterions:
   # The first criterion
-  - name: mr_l1_tfd 
+  - name: mr_l1_tfd
     conf:
       window_sz: [512, 1024, 1536, 2048]
       hop_sz: null
