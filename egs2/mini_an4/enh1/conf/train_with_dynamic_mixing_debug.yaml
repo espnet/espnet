@@ -1,0 +1,49 @@
+# This is a debug config for CI
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    hop_length: 128
+
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    hop_length: 128
+
+separator: rnn
+separator_conf:
+    rnn_type: blstm
+    num_spk: 2
+    nonlinear: relu
+    layer: 1
+    unit: 2
+    dropout: 0.2
+
+# dynamic_mixing related
+# dynamic_mixing_gain_db:
+# The maximum random gain (in dB) for each source before the mixing.
+# The gain (in dB) of each source is unifromly sampled in
+# [-dynamic_mixing_gain_db, dynamic_mixing_gain_db]
+preprocessor: dynamic_mixing
+preprocessor_conf:
+    ref_num: 2
+    dynamic_mixing_gain_db: 2.0
+    source_scp_name: "spk1.scp"
+    mixture_source_name: "speech_mix"
+    categories: ["1ch_16k", "2ch_16k"]
+
+criterions:
+  # The first criterion
+  - name: mse
+    conf:
+      compute_on_mask: True
+      mask_type: PSM^2
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
+
+max_epoch: 1
+num_iters_per_epoch: 1
+batch_type: folded
+batch_size: 2

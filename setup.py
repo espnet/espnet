@@ -41,6 +41,8 @@ requirements = {
         "ci_sdr",
         "pytorch_wpe",
         "fast-bss-eval==0.1.3",
+        # SPK
+        "asteroid_filterbanks==0.4.0",
         # UASR
         "editdistance",
         # fix CI error due to the use of deprecated functions
@@ -85,6 +87,7 @@ requirements = {
         "fairscale",
         "transformers",
         "gtn==0.0.0",
+        "evaluate",
     ],
     "setup": [
         "pytest-runner",
