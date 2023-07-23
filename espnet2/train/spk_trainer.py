@@ -189,10 +189,10 @@ class SpkTrainer(Trainer):
                 scores_nontrg.append(_s)
             else:
                 raise ValueError(f"{_l}, {type(_l)}")
-        trg_mean = torch.mean(scores_trg)
-        trg_std = torch.std(scores_trg)
-        nontrg_mean = torch.mean(scores_nontrg)
-        nontrg_std = torch.std(scores_nontrg)
+        trg_mean = np.mean(scores_trg)
+        trg_std = np.std(scores_trg)
+        nontrg_mean = np.std(scores_nontrg)
+        nontrg_std = np.std(scores_nontrg)
 
         # exception for collect_stats.
         if len(scores) == 1:
