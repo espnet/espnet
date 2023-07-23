@@ -184,11 +184,11 @@ You can test if your PR complies with the integrations test before pushing a new
 
 To execute **act**:
 
-1. You first need to install [Docker](https://docs.docker.com/engine/install/) in your local PC. Do not forget to login into docker using `docker login`.
+1. You first need to install [Docker](https://docs.docker.com/engine/install/) on your local PC. Do not forget to login into docker using `docker login`.
 
 2. Install Github CLI. The [instructions](https://github.com/cli/cli#installation) will change depending on your OS. For Linux, you can use the official sources to install the corresponding [package](https://github.com/cli/cli/blob/trunk/docs/install_linux.md#official-sources).
 
-3. Finally, install **act** through [package managers](https://github.com/nektos/act#installation-through-package-managers) or using the [Github CLI](https://github.com/nektos/act#installation-as-github-cli-extension). For Linux, you can use the commad: `gh extension install https://github.com/nektos/gh-act`
+3. Finally, install **act** through [package managers](https://github.com/nektos/act#installation-through-package-managers) or using the [Github CLI](https://github.com/nektos/act#installation-as-github-cli-extension). For Linux, you can use the command: `gh extension install https://github.com/nektos/gh-act`
 
 ### 5.2.2 Usage
 
@@ -199,7 +199,7 @@ cd <root_dir_espnet_clone>  # go to the root directory of your clone
 gh act
 ```
 
-The program will start running all the CI test that will run in the Github Action server.
+The program will start running all the CI tests that will run in the GitHub Action server.
 
 For specific jobs/workflow, you can use:
 
