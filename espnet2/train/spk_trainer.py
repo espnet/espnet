@@ -114,8 +114,12 @@ class SpkTrainer(Trainer):
             for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
                 spk_embd_dic[_utt_id] = _spk_embd
 
+        del utt_id_list
+        del speech_list
+
         # calculate similarity scores
-        for utt_id, _ in iterator:
+        for utt_id, batch in iterator:
+            batch["spk_labels"] = to_device(batch["spk_labels"], "cuda" if ngpu > 0 else "cpu")
 
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
@@ -181,4 +185,4 @@ class SpkTrainer(Trainer):
 
         reporter.register(stats=dict(eer=eer, mindcf=mindcf))
         val_duration = time.time() - start_time
-        logging.info(f"valid duration: {val_duartion}")
+        logging.info(f"valid duration: {val_duration}")
