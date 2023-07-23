@@ -1,9 +1,7 @@
 import pytest
 import torch
 
-from espnet2.asr.postencoder.length_adaptor_postencoder import (
-    LengthAdaptorPostEncoder,
-)
+from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPostEncoder
 
 
 @pytest.mark.parametrize("odim", [200, 400])
