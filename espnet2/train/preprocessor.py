@@ -1704,6 +1704,7 @@ class SpkPreprocessor(CommonPreprocessor):
             else:
                 num_to_mix = np.random.randint(low, high + 1)
 
+            # add eps of 1e-4 to avoid negative value before log
             speech_db = 10 * np.log10(np.mean(speech**2) + 1e-4)
             noiselist = []
             for _ in range(num_to_mix):
