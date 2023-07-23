@@ -1,9 +1,10 @@
-import os
+#! /bin/python
+
+# Score summarization outputs using the HuggingFace's evaluate library
 import sys
 
+import evaluate
 import numpy as np
-from datasets import load_metric
-from nlgeval import NLGEval, compute_metrics
 
 ref_file = sys.argv[1]
 hyp_file = sys.argv[2]
@@ -24,26 +25,24 @@ keys = [k for k, v in hyp_dict.items()]
 labels = [ref_dict[k] for k, _ in hyp_dict.items()]
 decoded_preds = [v for k, v in hyp_dict.items()]
 
-metric = load_metric("bertscore")
-result_bert = metric.compute(
+
+summ_metrics = evaluate.combine(["rouge", "meteor"])
+
+bertscore_metric = evaluate.load("bertscore")
+
+
+result = summ_metrics.compute(
+    predictions=decoded_preds,
+    references=labels,
+)
+
+bertscore_result = bertscore_metric.compute(
     predictions=decoded_preds,
     references=labels,
     lang="en",
 )
 
-
-nlg = NLGEval()  # loads the models
-print("Key", "\t", "METEOR", "\t", "ROUGE-L")
-for key, ref, hyp in zip(keys, labels, decoded_preds):
-    metrics_dict = nlg.compute_individual_metrics([ref], hyp)
-    print(key, "\t", metrics_dict["METEOR"], "\t", metrics_dict["ROUGE_L"])
-refs = [[x] for x in labels]
-metrics_dict = nlg.compute_metrics(ref_list=[labels], hyp_list=decoded_preds)
-metric = load_metric("rouge")
-result = metric.compute(predictions=decoded_preds, references=labels)
-result = {key: value.mid.fmeasure * 100 for key, value in result.items()}
-
-print(
-    f"RESULT {result['rouge1']} {result['rouge2']} {result['rougeL']} \
-    {metrics_dict['METEOR']*100.0} {100*np.mean(result_bert['precision'])}"
-)
+rouge = f"{result['rouge1']*100} {result['rouge2']**100} {result['rougeL']*100}"
+mtr = f"{result['meteor']*100}"
+brtsc = f"{np.mean(bertscore_result['precision'])*100}"
+print(f"RESULT {rouge} {mtr} {brtsc}")
