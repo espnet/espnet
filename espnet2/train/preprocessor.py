@@ -1716,7 +1716,7 @@ class SpkPreprocessor(CommonPreprocessor):
                 )
                 noiselist.append(noise)
             noise = np.sum(np.concatenate(noiselist, axis=0), axis=0, keepdims=True)
-            speech = audio + noise
+            speech = speech + noise
 
         speech = np.squeeze(speech, axis=0)
         return speech
