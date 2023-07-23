@@ -125,7 +125,9 @@ class SpkTrainer(Trainer):
 
         # calculate similarity scores
         for utt_id, batch in iterator:
-            batch["spk_labels"] = to_device(batch["spk_labels"], "cuda" if ngpu > 0 else "cpu")
+            batch["spk_labels"] = to_device(
+                batch["spk_labels"], "cuda" if ngpu > 0 else "cpu"
+            )
 
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)

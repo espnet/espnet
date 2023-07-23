@@ -1,4 +1,4 @@
-name: centos7
+name: ci on centos7
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  test_centos7:
+  unit_test_espnet1_and_espnet2_on_centos7:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     container:
