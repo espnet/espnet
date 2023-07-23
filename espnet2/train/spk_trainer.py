@@ -1,8 +1,15 @@
-"""Trainer module for speaker recognition."""
+"""
+Trainer module for speaker recognition.
+In speaker recognition (embedding extractor training/inference),
+calculating validation loss in closed set is not informative since
+generalization in unseen utterances from known speakers are good in most cases.
+Thus, we measure open set equal error rate (EER) using unknown speakers by
+overriding validate_one_epoch.
+"""
+
 import argparse
 import dataclasses
 import logging
-import time
 from contextlib import contextmanager
 from dataclasses import is_dataclass
 from pathlib import Path
@@ -74,7 +81,6 @@ class SpkTrainer(Trainer):
         labels = []
         spk_embd_dic = {}
         bs = 0
-        start_time = time.time()
 
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
@@ -140,6 +146,7 @@ class SpkTrainer(Trainer):
 
         scores = torch.cat(scores).type(torch.float32)
         labels = torch.cat(labels).type(torch.int32).flatten()
+
         if distributed:
             # get the number of trials assigned on each GPU
             length = to_device(
@@ -169,6 +176,22 @@ class SpkTrainer(Trainer):
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
 
+        #calculate statistics in target and nontarget classes.
+        n_trials = len(scores)
+        scores_trg = []
+        scores_nontrg = []
+        for _s, _l in zip(scores, labels):
+            if _l == 1:
+                scores_trg.append(_s)
+            elif _l == 0 :
+                scores_nontrg.append(_s)
+            else:
+                raise ValueError(f"{_l}, {type(_l)}")
+        trg_mean = torch.mean(scores_trg)
+        trg_std = torch.std(scores_trg)
+        nontrg_mean = torch.mean(scores_nontrg)
+        nontrg_std = torch.std(scores_nontrg)
+
         # exception for collect_stats.
         if len(scores) == 1:
             reporter.register(stats=dict(eer=1.0, mindcf=1.0))
@@ -183,6 +206,12 @@ class SpkTrainer(Trainer):
         p_trg, c_miss, c_fa = 0.05, 1, 1
         mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
 
-        reporter.register(stats=dict(eer=eer, mindcf=mindcf))
-        val_duration = time.time() - start_time
-        logging.info(f"valid duration: {val_duration}")
+        reporter.register(stats=dict(
+            eer=eer,
+            mindcf=mindcf,
+            n_trials=n_trials,
+            trg_mean=trg_mean,
+            trg_std=trg_std,
+            nontrg_mean=nontrg_mean,
+            nontrg_std=nontrg_std,
+        ))
