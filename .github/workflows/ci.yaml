@@ -61,7 +61,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
@@ -140,7 +140,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
       - name: Get PR labels
         id: pr-labels
         uses: joerick/pr-labels-action@v1.0.9
@@ -224,7 +224,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           # NOTE(kamo): g++-7 doesn't exist in ubuntu-latest
-          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox
+          sudo apt-get install -qq -y cmake libsndfile1-dev bc sox ffmpeg
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
