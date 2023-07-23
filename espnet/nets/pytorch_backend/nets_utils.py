@@ -181,7 +181,9 @@ def _make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
             maxlen = xs.size(length_dim)
     else:
         assert xs is None, "When maxlen is specified, xs must not be specified."
-        assert maxlen >= int(max(lengths)), f"maxlen {maxlen} must be >= max(lengths) {max(lengths)}"
+        assert maxlen >= int(
+            max(lengths)
+        ), f"maxlen {maxlen} must be >= max(lengths) {max(lengths)}"
 
     seq_range = torch.arange(0, maxlen, dtype=torch.int64)
     seq_range_expand = seq_range.unsqueeze(0).expand(bs, maxlen)
@@ -224,8 +226,9 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
         else:
             # Then length_dim is 2 or -1.
             if length_dim not in (-1, 2):
-                logging.warn(f"Invalid length_dim {length_dim}. " +
-                             "We set it to -1, which is the default value.")
+                logging.warn(
+                    f"Invalid length_dim {length_dim}. We set it to -1, which is the default value."
+                )
                 length_dim = -1
             lengths = lengths.unsqueeze(1).expand(*xs.shape[:2])
 
@@ -240,13 +243,20 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     # clip max(length) to maxlen
     lengths = torch.clamp(lengths, max=maxlen)
 
-    mask = torch.ones(maxlen, maxlen, dtype=torch.bool, device=device).triu(diagonal=1)
+    mask = torch.ones(maxlen + 1, maxlen + 1, dtype=torch.bool, device=device)
+    mask = triu_onnx(mask)[1:, :-1]  # onnx cannot handle diagonal argument.
     mask = mask[lengths - 1][..., :maxlen]
 
     if xs is not None and len(xs.shape) == 3 and length_dim == 1:
         return mask.transpose(1, 2)
     else:
         return mask
+
+
+def triu_onnx(x):
+    arange = torch.arange(x.size(0), device=x.device)
+    mask = arange.unsqueeze(-1).expand(-1, x.size(0)) <= arange
+    return x * mask
 
 
 def make_non_pad_mask(lengths, xs=None, length_dim=-1):
