@@ -150,7 +150,8 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     if length_dim == 0:
         raise ValueError("length_dim cannot be 0: {}".format(length_dim))
 
-    # If the input dimension is 2 or 3, then we use Wenet based implementation for tracable modeling.
+    # If the input dimension is 2 or 3,
+    # then we use ESPnet-ONNX based implementation for tracable modeling.
     # otherwise we use the traditional implementation for research use.
     if isinstance(lengths, list):
         logging.warn(
@@ -211,7 +212,8 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     This is a simplified implementation of make_pad_mask without the xs input
     that supports JIT tracing for applications like exporting models to ONNX.
     Dimension length of xs should be 2 or 3
-    This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and select rows to create mask tensor.
+    This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and 
+    select rows to create mask tensor.
     """
     assert len(lengths.shape) == 1
 
