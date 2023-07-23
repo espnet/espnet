@@ -86,7 +86,9 @@ class SpkTrainer(Trainer):
         for utt_id, batch in iterator:
             bs = max(bs, len(utt_id))
             assert isinstance(batch, dict), type(batch)
-            for _utt_id, _speech, _speech2 in zip(utt_id, batch["speech"], batch["speech2"]):
+            for _utt_id, _speech, _speech2 in zip(
+                utt_id, batch["speech"], batch["speech2"]
+            ):
                 _utt_id_1, _utt_id_2 = _utt_id.split("*")
                 if _utt_id_1 not in utt_id_list:
                     utt_id_list.append(_utt_id_1)
@@ -98,16 +100,14 @@ class SpkTrainer(Trainer):
         # extract speaker embeddings.
         n_utt = len(utt_id_list)
         for ii in range(0, n_utt, bs):
-            _utt_ids = utt_id_list[ii:ii+bs]
-            _speechs = speech_list[ii:ii+bs]
+            _utt_ids = utt_id_list[ii : ii + bs]
+            _speechs = speech_list[ii : ii + bs]
             _speechs = torch.stack(_speechs, dim=0)
             org_shape = (_speechs.size(0), _speechs.size(1))
-            _speechs = _speechs.flatten(0,1)
+            _speechs = _speechs.flatten(0, 1)
             _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
 
-            spk_embds = model(
-                speech=_speechs, spk_labels=None, extract_embd=True
-            )
+            spk_embds = model(speech=_speechs, spk_labels=None, extract_embd=True)
             spk_embds = F.normalize(spk_embds, p=2, dim=1)
             spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
@@ -116,7 +116,6 @@ class SpkTrainer(Trainer):
 
         # calculate similarity scores
         for utt_id, _ in iterator:
-
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
