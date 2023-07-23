@@ -178,14 +178,14 @@ class SpkTrainer(Trainer):
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
 
-        #calculate statistics in target and nontarget classes.
+        # calculate statistics in target and nontarget classes.
         n_trials = len(scores)
         scores_trg = []
         scores_nontrg = []
         for _s, _l in zip(scores, labels):
             if _l == 1:
                 scores_trg.append(_s)
-            elif _l == 0 :
+            elif _l == 0:
                 scores_nontrg.append(_s)
             else:
                 raise ValueError(f"{_l}, {type(_l)}")
@@ -208,12 +208,14 @@ class SpkTrainer(Trainer):
         p_trg, c_miss, c_fa = 0.05, 1, 1
         mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
 
-        reporter.register(stats=dict(
-            eer=eer,
-            mindcf=mindcf,
-            n_trials=n_trials,
-            trg_mean=trg_mean,
-            trg_std=trg_std,
-            nontrg_mean=nontrg_mean,
-            nontrg_std=nontrg_std,
-        ))
+        reporter.register(
+            stats=dict(
+                eer=eer,
+                mindcf=mindcf,
+                n_trials=n_trials,
+                trg_mean=trg_mean,
+                trg_std=trg_std,
+                nontrg_mean=nontrg_mean,
+                nontrg_std=nontrg_std,
+            )
+        )
