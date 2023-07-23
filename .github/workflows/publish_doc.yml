@@ -1,4 +1,4 @@
-name: doc
+name: publish doc
 
 on:
   push:
@@ -26,7 +26,7 @@ jobs:
             echo "is_doc=false" >> "$GITHUB_OUTPUT"
           fi
 
-  linter_and_test:
+  generate_and_deplay_doc:
     runs-on: ubuntu-latest
     needs: get_labels
     if: |

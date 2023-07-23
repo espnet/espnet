@@ -1,0 +1,29 @@
+name: cancel workflows
+on:
+  workflow_run:
+    workflows:
+      - "ci on ubuntu"
+      - "ci on centos7"
+      - "ci on debian11"
+      - "ci on macos"
+      - "ci on windows"
+      - "publish doc"
+      - "publish paper pdf"
+      # TODO(kan-bayashi): Remove the following items once all PR used new workflow files
+      - "CI"
+      - "centos7"
+      - "debian11"
+      - "doc"
+      - "MacOS"
+      - "Windows"
+      - "Test import espnet"
+      - "Check kaldi scripts"
+    types:
+      - requested
+jobs:
+  cancel:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: styfle/cancel-workflow-action@0.11.0
+      with:
+        workflow_id: ${{ github.event.workflow.id }}
