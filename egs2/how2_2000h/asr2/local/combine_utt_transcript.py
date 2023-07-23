@@ -1,6 +1,5 @@
 import os
 
-
 for dname in ["tr_2000h_utt", "cv05_utt", "dev5_test_utt"]:
     with open(os.path.join("data", dname, "text"), "r") as f, open(
         os.path.join("data", dname, "segments"), "r"

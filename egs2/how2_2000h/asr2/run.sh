@@ -58,4 +58,3 @@ tgt_case="ts"
     --test_sets "${test_sets}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$@"
-
