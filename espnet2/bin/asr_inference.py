@@ -986,7 +986,10 @@ def get_parser():
     group.add_argument("--streaming", type=str2bool, default=False)
     group.add_argument("--hugging_face_decoder", type=str2bool, default=False)
     group.add_argument(
-        "--hugging_face_decoder_conf", type=NestedDictAction, default=None
+        "--hugging_face_decoder_conf",
+        type=NestedDictAction,
+        default=dict(),
+        help="Custom kwargs for the HF .generate()",
     )
 
     group.add_argument(
