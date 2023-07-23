@@ -32,6 +32,9 @@ jobs:
       - name: install dependencies
         run: |
           choco install -y wget
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
       - name: install espnet
         env:
           ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
