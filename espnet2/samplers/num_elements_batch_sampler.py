@@ -3,7 +3,7 @@ from typing import Iterator, List, Tuple, Union
 import numpy as np
 from typeguard import check_argument_types
 
-from espnet2.fileio.read_text import load_num_sequence_text
+from espnet2.fileio.read_text import load_num_sequence_text, read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
 
@@ -17,6 +17,7 @@ class NumElementsBatchSampler(AbsSampler):
         sort_batch: str = "ascending",
         drop_last: bool = False,
         padding: bool = True,
+        utt2category_file: str = None,
     ):
         assert check_argument_types()
         assert batch_bins > 0
@@ -61,76 +62,98 @@ class NumElementsBatchSampler(AbsSampler):
         else:
             feat_dims = None
 
+        category2utt = {}
+        if utt2category_file is not None:
+            utt2category = read_2columns_text(utt2category_file)
+            if set(utt2category) != set(first_utt2shape):
+                raise RuntimeError(
+                    "keys are mismatched between "
+                    f"{utt2category_file} != {shape_files[0]}"
+                )
+            for k in keys:
+                category2utt.setdefault(utt2category[k], []).append(k)
+        else:
+            category2utt["default_category"] = keys
+
         # Decide batch-sizes
         batch_sizes = []
-        current_batch_keys = []
-        for key in keys:
-            current_batch_keys.append(key)
-            # shape: (Length, dim1, dim2, ...)
-            if padding:
-                for d, s in zip(utt2shapes, shape_files):
-                    if tuple(d[key][1:]) != tuple(d[keys[0]][1:]):
-                        raise RuntimeError(
-                            "If padding=True, the "
-                            f"feature dimension must be unified: {s}",
-                        )
-                bins = sum(
-                    len(current_batch_keys) * sh[key][0] * d
-                    for sh, d in zip(utt2shapes, feat_dims)
-                )
+        for ctgy, ctgy_keys in category2utt.items():
+            current_batch_sizes = []
+            current_batch_keys = []
+            for key in ctgy_keys:
+                current_batch_keys.append(key)
+                # shape: (Length, dim1, dim2, ...)
+                if padding:
+                    for d, s in zip(utt2shapes, shape_files):
+                        if tuple(d[key][1:]) != tuple(d[keys[0]][1:]):
+                            raise RuntimeError(
+                                "If padding=True, the "
+                                f"feature dimension must be unified: {s}",
+                            )
+                    bins = sum(
+                        len(current_batch_keys) * sh[key][0] * d
+                        for sh, d in zip(utt2shapes, feat_dims)
+                    )
+                else:
+                    bins = sum(
+                        np.prod(d[k]) for k in current_batch_keys for d in utt2shapes
+                    )
+
+                if bins > batch_bins and len(current_batch_keys) >= min_batch_size:
+                    current_batch_sizes.append(len(current_batch_keys))
+                    current_batch_keys = []
             else:
-                bins = sum(
-                    np.prod(d[k]) for k in current_batch_keys for d in utt2shapes
-                )
+                if len(current_batch_keys) != 0 and (
+                    not self.drop_last or len(current_batch_sizes) == 0
+                ):
+                    current_batch_sizes.append(len(current_batch_keys))
 
-            if bins > batch_bins and len(current_batch_keys) >= min_batch_size:
-                batch_sizes.append(len(current_batch_keys))
-                current_batch_keys = []
-        else:
-            if len(current_batch_keys) != 0 and (
-                not self.drop_last or len(batch_sizes) == 0
+            if len(current_batch_sizes) == 0:
+                # Maybe we can't reach here
+                raise RuntimeError("0 batches")
+
+            # If the last batch-size is smaller than minimum batch_size,
+            # the samples are redistributed to the other mini-batches
+            if (
+                len(current_batch_sizes) > 1
+                and current_batch_sizes[-1] < min_batch_size
             ):
-                batch_sizes.append(len(current_batch_keys))
+                for i in range(current_batch_sizes.pop(-1)):
+                    current_batch_sizes[-(i % len(current_batch_sizes)) - 1] += 1
 
-        if len(batch_sizes) == 0:
-            # Maybe we can't reach here
-            raise RuntimeError("0 batches")
-
-        # If the last batch-size is smaller than minimum batch_size,
-        # the samples are redistributed to the other mini-batches
-        if len(batch_sizes) > 1 and batch_sizes[-1] < min_batch_size:
-            for i in range(batch_sizes.pop(-1)):
-                batch_sizes[-(i % len(batch_sizes)) - 1] += 1
-
-        if not self.drop_last:
-            # Bug check
-            assert sum(batch_sizes) == len(keys), f"{sum(batch_sizes)} != {len(keys)}"
+            if not self.drop_last:
+                # Bug check
+                assert sum(current_batch_sizes) == len(
+                    ctgy_keys
+                ), f"{ctgy}: {sum(current_batch_sizes)} != {len(ctgy_keys)}"
+            batch_sizes += current_batch_sizes
 
         # Set mini-batch
         self.batch_list = []
         iter_bs = iter(batch_sizes)
         bs = next(iter_bs)
         minibatch_keys = []
-        for key in keys:
-            minibatch_keys.append(key)
-            if len(minibatch_keys) == bs:
-                if sort_in_batch == "descending":
-                    minibatch_keys.reverse()
-                elif sort_in_batch == "ascending":
-                    # Key are already sorted in ascending
-                    pass
-                else:
-                    raise ValueError(
-                        "sort_in_batch must be ascending"
-                        f" or descending: {sort_in_batch}"
-                    )
+        for ctgy, ctgy_keys in category2utt.items():
+            for key in ctgy_keys:
+                minibatch_keys.append(key)
+                if len(minibatch_keys) == bs:
+                    if sort_in_batch == "descending":
+                        minibatch_keys.reverse()
+                    elif sort_in_batch == "ascending":
+                        # Key are already sorted in ascending
+                        pass
+                    else:
+                        raise ValueError(
+                            "sort_in_batch must be ascending"
+                            f" or descending: {sort_in_batch}"
+                        )
 
-                self.batch_list.append(tuple(minibatch_keys))
-                minibatch_keys = []
-                try:
-                    bs = next(iter_bs)
-                except StopIteration:
-                    break
+                    self.batch_list.append(tuple(minibatch_keys))
+                    minibatch_keys = []
+                    try:
+                        bs = next(iter_bs)
+                    except StopIteration:
+                        break
 
         if sort_batch == "ascending":
             pass

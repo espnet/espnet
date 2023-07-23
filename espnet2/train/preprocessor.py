@@ -556,6 +556,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
         tokenizer_encode_conf: List[Dict] = [dict(), dict()],
+        not_available_symbol: str = None,
     ):
         # TODO(jiatong): sync with Kamo and Jing on interface for preprocessor
         super().__init__(
@@ -618,6 +619,12 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         self.text_cleaner = TextCleaner(text_cleaner)
         self.text_name = text_name  # override the text_name from CommonPreprocessor
 
+        # not_available_symbol is a special symbol as a placeholder in the text. e.g.
+        #      "utt_id <na>" an item in the text input
+        # Then such samples will not have the corresponding text signals.
+        # The resulting tensor would be processed as torch.longtensor([-1])
+        self.not_available_symbol = not_available_symbol
+
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
@@ -626,8 +633,14 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
             if text_name in data and self.tokenizer[i] is not None:
                 text = data[text_name]
                 text = self.text_cleaner(text)
-                tokens = self.tokenizer[i].text2tokens(text)
-                text_ints = self.token_id_converter[i].tokens2ids(tokens)
+                if (
+                    getattr(self, "not_available_symbol", None) is not None
+                    and self.not_available_symbol in text
+                ):
+                    text_ints = np.array([-1], dtype=np.int64)
+                else:
+                    tokens = self.tokenizer[i].text2tokens(text)
+                    text_ints = self.token_id_converter[i].tokens2ids(tokens)
                 data[text_name] = np.array(text_ints, dtype=np.int64)
         assert check_return_type(data)
         return data

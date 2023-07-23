@@ -45,7 +45,7 @@ from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
+from espnet2.train.preprocessor import AbsPreprocessor, MutliTokenizerCommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -123,6 +123,14 @@ model_choices = ClassChoices(
     type_check=AbsESPnetModel,
     default="mt",
 )
+preprocessor_choices = ClassChoices(
+    "preprocessor",
+    classes=dict(
+        default=MutliTokenizerCommonPreprocessor,
+    ),
+    type_check=AbsPreprocessor,
+    default="default",
+)
 
 
 class MTTask(AbsTask):
@@ -145,6 +153,8 @@ class MTTask(AbsTask):
         decoder_choices,
         # --model and --model_conf
         model_choices,
+        # --preprocessor and --preprocessor_conf
+        preprocessor_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -164,6 +174,12 @@ class MTTask(AbsTask):
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token (for target language)",
+        )
+        group.add_argument(
+            "--ctc_token_list",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token (for CTC target language)",
         )
         group.add_argument(
             "--src_token_list",
@@ -214,6 +230,14 @@ class MTTask(AbsTask):
             help="The target text will be tokenized " "in the specified level token",
         )
         group.add_argument(
+            "--ctc_token_type",
+            type=str,
+            default=None,
+            choices=["bpe", "char", "word", "phn"],
+            help="The CTC target text will be tokenized "
+            "in the specified level token",
+        )
+        group.add_argument(
             "--src_token_type",
             type=str,
             default="bpe",
@@ -225,6 +249,12 @@ class MTTask(AbsTask):
             type=str_or_none,
             default=None,
             help="The model file of sentencepiece (for target language)",
+        )
+        group.add_argument(
+            "--ctc_bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece (for CTC target language)",
         )
         group.add_argument(
             "--src_bpemodel",
@@ -259,6 +289,13 @@ class MTTask(AbsTask):
             "e.g. BPE dropout: enable_sampling=True, alpha=0.1, nbest_size=-1",
         )
         parser.add_argument(
+            "--ctc_tokenizer_encode_conf",
+            type=dict,
+            default=None,
+            help="CTC tokenization encoder conf, "
+            "e.g. BPE dropout: enable_sampling=True, alpha=0.1, nbest_size=-1",
+        )
+        parser.add_argument(
             "--src_tokenizer_encode_conf",
             type=dict,
             default=None,
@@ -288,21 +325,55 @@ class MTTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
+            try:
+                _ = getattr(args, "preprocessor")
+            except AttributeError:
+                setattr(args, "preprocessor", "default")
+                setattr(args, "preprocessor_conf", dict())
+            except Exception as e:
+                raise e
+
+            (
+                _other_token_type,
+                _other_token_list,
+                _other_bpemodel,
+                _other_text_name,
+                _other_tokenizer_encode_conf,
+            ) = (
+                [],
+                [],
+                [],
+                [],
+                [],
+            )
+
+            # Whether to use CTC (e.g. MT may not use)
+            if getattr(args, "ctc_token_type", None) is not None:
+                _other_token_type += [args.ctc_token_type]
+                _other_token_list += [args.ctc_token_list]
+                _other_bpemodel += [args.ctc_bpemodel]
+                _other_text_name += ["text_ctc"]
+                _other_tokenizer_encode_conf += (
+                    [args.ctc_tokenizer_encode_conf] if train else [dict()]
+                )
+
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
-                token_type=[args.token_type, args.src_token_type],
-                token_list=[args.token_list, args.src_token_list],
-                bpemodel=[args.bpemodel, args.src_bpemodel],
+                token_type=[args.token_type, args.src_token_type] + _other_token_type,
+                token_list=[args.token_list, args.src_token_list] + _other_token_list,
+                bpemodel=[args.bpemodel, args.src_bpemodel] + _other_bpemodel,
+                text_name=["text", "src_text"] + _other_text_name,
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
-                text_name=["text", "src_text"],
                 tokenizer_encode_conf=[
                     args.tokenizer_encode_conf,
                     args.src_tokenizer_encode_conf,
                 ]
+                + _other_tokenizer_encode_conf
                 if train
-                else [dict(), dict()],
+                else [dict(), dict()] + _other_tokenizer_encode_conf,
+                **args.preprocessor_conf,
             )
         else:
             retval = None
@@ -325,7 +396,7 @@ class MTTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ()
+            retval = ("text_ctc",)
         else:
             retval = ()
         assert check_return_type(retval)

@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import sys
+import tqdm
 from typing import List, Optional, Tuple, Union
 
 import numpy as np
@@ -73,7 +74,7 @@ def dump_feature(
     wspecifier: str,
     utt2num_samples: Optional[str] = None,
     batch_bins: Optional[int] = None,
-    write_num_frames: bool = None,
+    write_num_frames: str = None,
 ):
     assert os.path.exists(utt2num_samples), f"{utt2num_samples} does not exist."
 
@@ -83,11 +84,12 @@ def dump_feature(
         wspecifier,
         filetype=out_filetype,
         write_num_frames=write_num_frames,
-    ) as writer:
+    ) as writer, tqdm.tqdm(total=len(iterator)) as pbar:
         for utt_ids, data in iterator:
             feats, feats_lens = reader.get_feats(data["speech"], data["speech_lengths"])
             for idx, utt in enumerate(utt_ids):
                 writer[utt] = feats[idx][: feats_lens[idx]].numpy()
+            pbar.update(1)
     logger.info("finished successfully")
 
 

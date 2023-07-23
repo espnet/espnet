@@ -143,6 +143,7 @@ def build_batch_sampler(
             drop_last=drop_last,
             padding=padding,
             min_batch_size=min_batch_size,
+            utt2category_file=utt2category_file,
         )
 
     elif type == "length":

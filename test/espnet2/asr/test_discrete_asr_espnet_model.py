@@ -31,7 +31,7 @@ def test_discrete_asr_espnet_model(input_layer_type):
     model = ESPnetDiscreteASRModel(
         vocab_size,
         src_vocab_size=src_vocab_size,
-        token_list=["<blank>", "<unk>", "a", "i", "<eos>"],
+        token_list=["<blank>", "<unk>", "a", "i", "<sos/eos>"],
         frontend=frontend,
         specaug=None,
         preencoder=None,
@@ -39,13 +39,20 @@ def test_discrete_asr_espnet_model(input_layer_type):
         postencoder=None,
         decoder=decoder,
         ctc=ctc,
+        report_cer=True,
+        report_wer=True,
+        loss_att_tasks=["asr", "st"],
+        loss_att_weights=dict(asr=1.0, st=1.0),
     )
 
     inputs = dict(
+        utt_id=["uttid1_asr", "uttid2_st"],
         src_text=torch.randint(0, 3, [2, 10], dtype=torch.long),
         src_text_lengths=torch.tensor([10, 8], dtype=torch.long),
         text=torch.randint(2, 4, [2, 4], dtype=torch.long),
         text_lengths=torch.tensor([4, 3], dtype=torch.long),
+        text_ctc=torch.randint(2, 4, [2, 4], dtype=torch.long),
+        text_ctc_lengths=torch.tensor([4, 3], dtype=torch.long),
     )
     loss, *_ = model(**inputs)
     loss.backward()

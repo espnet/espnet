@@ -11,6 +11,7 @@ import argparse
 import logging
 import os
 import sys
+import tqdm
 
 import joblib
 import numpy as np
@@ -76,6 +77,9 @@ def get_parser():
         '"mat" is the matrix format in kaldi',
     )
     parser.add_argument(
+        "--write_num_frames", type=str, help="Specify wspecifer for utt2num_frames"
+    )
+    parser.add_argument(
         "rspecifier", type=str, help="Read specifier for feats. e.g. ark:some.ark"
     )
     parser.add_argument(
@@ -114,13 +118,14 @@ class ApplyKmeans(object):
 
 
 def dump_label(
-    rspecifier,
-    in_filetype,
-    wspecifier,
-    out_filetype,
-    km_path,
-    use_gpu,
-    online_feature_extract,
+    rspecifier: str,
+    in_filetype: str,
+    wspecifier: str,
+    out_filetype: str,
+    km_path: str,
+    use_gpu: bool = None,
+    online_feature_extract: bool = None,
+    write_num_frames: str = None,
     **kwargs
 ):
     if online_feature_extract:
@@ -134,13 +139,24 @@ def dump_label(
 
     if not online_feature_extract:
         # dumped ssl feature in kaldi ark format
+        iterator = build_data_iterator(
+            rspecifier,
+            in_filetype,
+            utt2num_samples=args.utt2num_samples,
+            batch_bins=kwargs.get("batch_bins", 1),
+        )
         with file_writer_helper(
             wspecifier,
             filetype=out_filetype,
-        ) as writer:
-            for utt, feat in file_reader_helper(rspecifier, in_filetype):
-                lab = apply_kmeans(feat)
-                writer[utt] = lab
+            write_num_frames=write_num_frames,
+        ) as writer, tqdm.tqdm(total=len(iterator)) as pbar:
+            for utt_ids, data in iterator:
+                for idx, utt in enumerate(utt_ids):
+                    lab = apply_kmeans(
+                        data["speech"][idx][: data["speech_lengths"][idx]].numpy()
+                    )
+                    writer[utt] = lab
+                pbar.update(1)
     else:
         assert feature_conf["type"] in feature_reader_choice
         reader_class = feature_reader_choice[feature_conf["type"]]
@@ -163,7 +179,8 @@ def dump_label(
         with file_writer_helper(
             wspecifier,
             filetype=out_filetype,
-        ) as writer:
+            write_num_frames=write_num_frames,
+        ) as writer, tqdm.tqdm(total=len(iterator)) as pbar:
             for utt_ids, data in iterator:
                 feats, feats_lens = reader.get_feats(
                     data["speech"], data["speech_lengths"]
@@ -172,6 +189,7 @@ def dump_label(
                 for idx, utt in enumerate(utt_ids):
                     lab = apply_kmeans(feats[idx][: feats_lens[idx]].numpy())
                     writer[utt] = lab
+                pbar.update(1)
 
     logger.info("finished successfully")
 

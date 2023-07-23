@@ -72,9 +72,9 @@ if [[ ${is_exist} == false ]]; then
 fi
 
 if [ ${is_low_resource} = true ]; then
-    speed_perturb_factors="0.9 1.0 1.1"
-else
     speed_perturb_factors="0.8 0.9 1.0 1.1 1.2"
+else
+    speed_perturb_factors="0.9 1.0 1.1"
 fi
 
 if [ ${src_lang} == ja ] || [ ${src_lang} == zh-CN ]; then

@@ -14,6 +14,9 @@ SECONDS=0
 stage=1
 stop_stage=100
 
+src_lang="en"
+tgt_lang="en"
+
 an4_root=./downloads/an4
 
 log "$0 $*"
@@ -78,8 +81,8 @@ EOF
 fi
 
 for x in test test_seg ${train_set} ${train_dev}; do
-	cp data/${x}/text data/${x}/text.lc.rm.en
-	cp data/${x}/text data/${x}/text.tc.en
+	cp data/${x}/text data/${x}/text.lc.rm.${src_lang}
+	cp data/${x}/text data/${x}/text.tc.${tgt_lang}
 done
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

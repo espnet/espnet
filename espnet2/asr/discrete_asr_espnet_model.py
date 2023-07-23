@@ -49,14 +49,21 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
         report_bleu: bool = True,
+        report_cer: bool = True,
+        report_wer: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        sym_sos: str = "<sos/eos>",
+        sym_eos: str = "<sos/eos>",
         extract_feats_in_collect_stats: bool = True,
         share_decoder_input_output_embed: bool = False,
         share_encoder_decoder_input_embed: bool = False,
+        loss_att_tasks: List[str] = [],
+        loss_att_weights: Dict[str, float] = {},
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
+        assert 0.0 <= interctc_weight < 1.0, interctc_weight
 
         super().__init__(
             vocab_size=vocab_size,
@@ -79,18 +86,23 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
             share_encoder_decoder_input_embed=share_encoder_decoder_input_embed,
         )
 
-        self.specaug = specaug
         # note that eos is the same as sos (equivalent ID)
         self.blank_id = 0
+        self.sos = token_list.index(sym_sos)
+        self.eos = token_list.index(sym_eos)
         self.ctc_weight = ctc_weight
         self.interctc_weight = interctc_weight
+
+        self.specaug = specaug
 
         if ctc_weight == 0.0:
             self.ctc = None
         else:
             self.ctc = ctc
-        if report_bleu:
-            self.error_calculator = ASRErrorCalculator(
+
+        self.asr_error_calculator = None
+        if report_cer and report_wer:
+            self.asr_error_calculator = ASRErrorCalculator(
                 token_list, sym_space, sym_blank, True, True
             )
 
@@ -100,6 +112,13 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
             self.encoder.conditioning_layer = torch.nn.Linear(
                 vocab_size, self.encoder.output_size()
             )
+
+        self.loss_att_tasks = loss_att_tasks
+        if loss_att_weights != {}:
+            self.loss_att_weights = loss_att_weights
+        else:
+            self.loss_att_weights = dict((task, 1.0) for task in loss_att_tasks)
+        assert set(self.loss_att_weights) == set(self.loss_att_weights.keys())
 
     def forward(
         self,
@@ -126,12 +145,26 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
             == src_text.shape[0]
             == src_text_lengths.shape[0]
         ), (text.shape, text_lengths.shape, src_text.shape, src_text_lengths.shape)
-
         batch_size = src_text.shape[0]
 
         # for data-parallel
         text = text[:, : text_lengths.max()]
         src_text = src_text[:, : src_text_lengths.max()]
+
+        if "text_ctc" in kwargs:
+            if bool(torch.any(kwargs["text_ctc"].detach().cpu() > 0)):
+                text_ctc = kwargs["text_ctc"]
+                text_ctc_lengths = kwargs["text_ctc_lengths"]
+                assert text_ctc_lengths.dim() == 1, text_ctc_lengths.shape
+                assert (
+                    text_ctc.shape[0] == text_ctc_lengths.shape[0] == text.shape[0]
+                ), (text_ctc.shape, text_ctc_lengths.shape, text.shape)
+
+                text_ctc = text_ctc[:, : text_ctc_lengths.max()]
+            else:
+                text_ctc = None
+        else:
+            text_ctc, text_ctc_lengths = text, text_lengths
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(src_text, src_text_lengths)
@@ -142,24 +175,28 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         loss_ctc, cer_ctc = None, None
         stats = dict()
 
-        # 1. CTC branch
-        if self.ctc_weight != 0.0:
+        # 1a. CTC branch
+        if self.ctc_weight != 0.0 and text_ctc is not None:
             loss_ctc, cer_ctc = self._calc_ctc_loss(
-                encoder_out, encoder_out_lens, text, text_lengths
+                encoder_out, encoder_out_lens, text_ctc, text_ctc_lengths
             )
 
-            # Collect CTC branch stats
-            stats["loss_ctc"] = loss_ctc.detach() if loss_ctc is not None else None
-            stats["cer_ctc"] = cer_ctc
+        # Collect CTC branch stats
+        stats["loss_ctc"] = loss_ctc.detach() if loss_ctc is not None else None
+        stats["cer_ctc"] = cer_ctc
 
-        # Intermediate CTC (optional)
+        # 1b. Intermediate CTC (optional)
         loss_interctc = 0.0
-        if self.interctc_weight != 0.0 and intermediate_outs is not None:
+        if (
+            self.interctc_weight != 0.0
+            and intermediate_outs is not None
+            and text_ctc is not None
+        ):
             for layer_idx, intermediate_out in intermediate_outs:
                 # we assume intermediate_out has the same length & padding
                 # as those of encoder_out
                 loss_ic, cer_ic = self._calc_ctc_loss(
-                    intermediate_out, encoder_out_lens, text, text_lengths
+                    intermediate_out, encoder_out_lens, text_ctc, text_ctc_lengths
                 )
                 loss_interctc = loss_interctc + loss_ic
 
@@ -176,21 +213,44 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
                 1 - self.interctc_weight
             ) * loss_ctc + self.interctc_weight * loss_interctc
 
-        # 2a. Attention-decoder branch (MT)
-        loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
-            encoder_out, encoder_out_lens, text, text_lengths
+        # TODO(simploier): remove the requirement of task_id as the utt_id suffix
+        task_id = kwargs["utt_id"][0].split("_")[-1]
+        task_id = task_id if task_id in self.loss_att_tasks else None
+
+        # 2a. Attention-decoder branch
+        loss_att, acc_att, cer_att, wer_att, bleu_att = self._calc_att_loss(
+            encoder_out, encoder_out_lens, text, text_lengths, task_id
         )
 
+        # 2b. Task-specific Attention-decoder loss scale
+        if task_id is not None:
+            for t_id in self.loss_att_tasks:
+                if task_id == t_id:
+                    loss_att *= self.loss_att_weights[t_id]
+                    stats[f"acc_{t_id}"] = acc_att
+                    stats[f"loss_att_{t_id}"] = (
+                        loss_att.detach() if loss_att is not None else None
+                    )
+                else:
+                    # append None to the stats item list
+                    stats[f"acc_{t_id}"] = None
+                    stats[f"loss_att_{t_id}"] = None
+
         # 3. Loss computation
-        if self.ctc_weight > 0.0:
+        if self.ctc_weight > 0.0 and loss_ctc is not None:
             loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
         else:
             loss = loss_att
 
         stats["loss_att"] = loss_att.detach() if loss_att is not None else None
-        stats["acc"] = acc_att
-        stats["cer"] = cer_att
-        stats["wer"] = wer_att
+        stats["acc"] = (
+            acc_att
+            if task_id not in self.loss_att_tasks or self.loss_att_weights[t_id] > 0
+            else None
+        )
+        stats["cer"] = cer_att if task_id not in ["mt", "st"] else None
+        stats["wer"] = wer_att if task_id not in ["mt", "st"] else None
+        stats["bleu"] = bleu_att if task_id in ["mt", "st"] else None
 
         stats["loss"] = loss.detach()
 
@@ -260,6 +320,7 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
         ys_pad_lens: torch.Tensor,
+        task_id: str = None,
     ):
         ys_in_pad, ys_out_pad = add_sos_eos(ys_pad, self.sos, self.eos, self.ignore_id)
         ys_in_lens = ys_pad_lens + 1
@@ -278,13 +339,15 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         )
 
         # Compute cer/wer using attention-decoder
-        if self.training or self.error_calculator is None:
-            cer_att, wer_att = None, None
-        else:
+        cer_att, wer_att, bleu_att = None, None, None
+        if not self.training:
             ys_hat = decoder_out.argmax(dim=-1)
-            cer_att, wer_att = self.error_calculator(ys_hat.cpu(), ys_pad.cpu())
+            if task_id in [None, "asr"] and self.asr_error_calculator is not None:
+                cer_att, wer_att = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu())
+            elif task_id in [None, "mt", "st"] and self.mt_error_calculator is not None:
+                bleu_att = self.mt_error_calculator(ys_hat.cpu(), ys_pad.cpu())
 
-        return loss_att, acc_att, cer_att, wer_att
+        return loss_att, acc_att, cer_att, wer_att, bleu_att
 
     def _calc_ctc_loss(
         self,
@@ -298,7 +361,7 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
 
         # Calc CER using CTC
         cer_ctc = None
-        if not self.training and self.error_calculator is not None:
+        if not self.training and self.asr_error_calculator is not None:
             ys_hat = self.ctc.argmax(encoder_out).data
-            cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+            cer_ctc = self.asr_error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
         return loss_ctc, cer_ctc

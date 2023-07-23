@@ -26,6 +26,8 @@ The difference from ASR1 is that discrete tokens are used as input instead of co
     * [16\-18\. (Optional) Pack results for upload](#16-18-optional-pack-results-for-upload)
   * [How to run](#how-to-run)
     * [LibriSpeech training](#librispeech-training)
+  * [How to create asr2 recipes from asr1](#how-to-create)
+  * [Tips for asr2 experiments](#asr2-tips)
   * [Related works](#related-works)
 
 ## Recipe flow
@@ -140,30 +142,61 @@ See also:
 
 Upload the trained model to Hugging Face for sharing. Additional information at [Docs](https://espnet.github.io/espnet/espnet2_tutorial.html#packing-and-sharing-your-trained-model).
 
-## How to run
-
-### LibriSpeech Training
-Here, we show the procedure to run the recipe using `egs2/librispeech/asr2`.
-
-Move on the recipe directory.
-```sh
-$ cd egs2/librispeech/asr2
+## How to create asr2 recipes from asr1
+```
+1. mkdir egs2/<recipe name>/asr2
+2. cd egs2/<recipe name>/asr2
+3. ../../TEMPLATE/asr2/setup.sh . # create the default files
+4. cd local
+5. ln -s ../../asr1/local/* .     # add symlinks for data preparation files in asr1 except for path.sh
+6. cd ../
+7. cp ../../librispeech/asr2/run.sh .         # copy run.sh
+8. cp ../../librispeech/asr2/conf/tuning/train_discrete_asr_e_branchformer1.yaml conf/ # copy training conf
+9. cp ../../librispeech/asr2/conf/decode_ctc0.3.yaml conf/     # copy confs
+10. EDIT run.sh by checking ../asr1/run.sh
+  a. We may skip an LM by adding an option `--use_lm false`
+  b. change language-relatedd setting (e.g., tgt_lang, tgt_nbpe (e.g., change to char for CKJ))
+  c. training, dev, and test sets
+  d. config files
 ```
 
-Modify `LIBRISPEECH` variable in `db.sh` if you want to change the download directory.
-```sh
-$ vim db.sh
-```
+## Tips for asr2 experiments
+* **Kmeans is important**
+   * SSL model choice can affect the performance a lot, e.g. wavlm models may not work for non-English data, 
+   * Layer selection is also important: different layers retain different information. For example, based the training criterion, the 24-th layer of HuBERT_large is trying to match the information from HuBERT_base layer 9. If you didn't have experience, please refer to the Fig. 4 of this [CCA paper](https://arxiv.org/pdf/2211.03929.pdf), which is usually helpful.
+   * Number of kmeans clusters also affect the variance in pronunciation, etc.
+   * Please check the kmeans labels in `dump/extracted/{kmeans_feat_type}/layer{layer}/{dset}/pseudo_label_km{ncluseters}.txt`. In my experience, a good km result for ASR should have an obvious pattern of repeatitions, e.g. mhubert_base model on covost2  (Spanish speech)
+      ```
+      00252a1e8f956757a1fef398e3fa3c659425c690b493b2517498a4df162536d629dad2372d963e9381c81c3567b04256896841d533f581ae8a6d55dfdc141306-common_voice_es_19679587 210 210 937 565 713 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 453 115 277 277 521 798 306 306 937 417 306 306 306 306 306 306 306 306 306 713 417 306 306 958 306 306 306 53 53 53 942 942 942 713 942 942 942 328 700 700 623 623 938 938 333 983 983 597 597 709 709 23 238 238 557 148 832 832 784 784 784 784 784 916 93 233 948 62 220 220 220 220 534 302 368 661 280 529 24 24 435 21 540 540 997 997 87 87 50 994 211 671 638 362 788 788 520 230 11 268 575 5 5 5 717 919 478 721 566 922 654 654 654 654 625 756 756 76 76 250 17 17 410 219 599 599 599 599 304 304 570 248 12 409 385 160 547 175 20 824 581 213 773 975 875 733 431 431 508 508 648 88 660 660 660 896 896 544 410 410 399 373 869 103 758 867 33 319 168 852 852 555 555 207 454 454 33 93 233 948 948 62 269 442 442 302 302 493 280 84 758 758 758 867 33 874 750 750 750 473 681 609 173 173 683 959 959 970 352 352 352 129 8 876 222 381 181 694 967 919 919 840 840 260 260 260 129 598 598 613 613 613 965 965 965 743 743 620 141 60 60 714 67 67 67 359 359 359 208 546 307 359 307 307 307 307 277 277 277 453 115 307 713 48 277 115 115 115 423 423 423 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 798 16 277 277 277 995 19 19 19 19 19 19 19 19 19 19 19 19 19 19 452 19 19 452 452 452 452 452 452 452 452 452 452 452 452 452 452 322 322'
+      ```
+      The following is a bad example, wavlm_large on covost2 (Spanish speech)
+      ```
+      00252a1e8f956757a1fef398e3fa3c659425c690b493b2517498a4df162536d629dad2372d963e9381c81c3567b04256896841d533f581ae8a6d55dfdc141306-common_voice_es_19679587 109 12 429 682 682 886 288 143 97 331 97 143 97 228 143 919 628 919 628 191 790 552 790 810 790 810 790 435 810 435 378 432 432 949 435 435 949 949 188 188 188 188 790 188 188 22 22 952 188 188 22 710 51 22 783 188 331 278 51 810 278 142 59 278 437 754 952 14 764 764 437 351 985 204 284 467 503 338 755 755 855 855 849 749 344 344 669 705 705 642 927 927 927 889 45 987 597 182 36 787 212 410 967 183 183 840 428 428 259 295 517 452 452 806 644 644 776 67 364 648 423 27 417 174 601 765 484 186 943 468 738 354 209 44 912 930 930 930 442 442 651 7 7 7 383 139 218 311 311 771 814 166 166 345 471 608 377 377 245 292 575 504 730 58 656 627 75 580 762 972 120 146 146 931 716 686 776 67 491 828 828 881 741 312 879 879 280 280 146 146 73 709 729 11 469 11 966 945 433 153 582 123 900 619 100 100 100 889 987 153 167 366 451 359 169 169 913 121 482 482 482 11 664 224 89 550 153 858 124 858 212 789 667 523 523 932 25 409 386 61 992 482 482 759 924 620 516 347 805 901 317 317 518 852 852 66 66 781 904 807 356 368 368 409 409 63 63 20 863 998 13 303 13 13 385 811 458 811 71 71 439 756 821 71 439 378 370 835 370 439 130 439 475 475 439 130 939 34 939 949 835 835 949 835 949 835 435 949 435 435 435 435 949 435 435 810 435 949 949 331 435 435 435 949 949 390 435 737 358 378 378 949 949 949 390 949 949 234 949 234 234 65 90 234 350 390 90 390 350 350 350 350 43 350 331 43 126 126 131 804 572 376 159 862 862
+      ```
 
-Modify `cmd.sh` and `conf/*.conf` if you want to use job scheduler.
-See the detail in [using job scheduling system](https://espnet.github.io/espnet/parallelization.html).
-```sh
-$ vim cmd.sh
-```
-
-Run `run.sh`, which conducts all of the stages explained above.
-```sh
-$ ./run.sh
+* Subword modeling (BPE) vocab_size is also important, for both source and target data. Very large vocab size results in data sparseness.
+* Try to monitor the sequence length, I list some commands used here:
+  * Original wavform length
+    ```
+    <dump/audio_raw/{train_set}/utt2num_samples awk '{total+=$2}END{print(total/NR)}'
+    ```
+  * Pseudo-label length
+    ```
+    <dump/extracted/{ssl_feat_type}/layer{layer}/{train_set}/pseudo_labels_km{nclusters}.txt awk '{total+=NF-1}END{print(total/NR)}'
+    ```
+  * Discrete token length after de-duplication
+    ```
+    <dump/raw/${train_set}/text.rm.${src_lang} awk '{total+=length($2)}END{print(total/NR)}'
+    ```
+  * Discrete token length after BPE
+    ```
+    <exp/{asr_stats_dir}/train/src_text_shape.bpe awk '{split($2, lst, ","); total+=lst[1]}END{print(total/NR)}'
+    ```
+  * ASR transcription length after BPE
+    ```
+    <exp/{asr_stats_dir}/train/text_shape.bpe awk '{split($2, lst, ","); total+=lst[1]}END{print(total/NR)}'
+    ```
+* During training, please observe the accuracy on the valid set. Usually it would reach >80% within 10 epochs. But it also depends on the data and optimization hyper-parameters.
 ```
 
 ## Related works

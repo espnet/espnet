@@ -8,6 +8,7 @@ set -o pipefail
 ./asr2.sh \
     --kmeans_feature "mfcc" \
     --nclusters "10" \
+    --kmeans_opts "--nj 1" \
     --use_lm false \
     --src_lang "mfcc_km10" \
     --src_token_type "char" \

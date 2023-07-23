@@ -49,15 +49,16 @@ local_data_opts= # The options given to local/data.sh.
 speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
 
 # Feature extraction related
-feats_type=raw       # Feature type (raw).
-audio_format=flac    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
+speech_feats_type=raw  # Speech feature type (raw or extracted).
+feats_type=raw         # Feature type (raw).
+audio_format=flac      # Audio format: wav, flac, wav.ark, flac.ark (only in speech_feats_type=raw).
+fs=16k                 # Sampling rate.
 multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
 multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
-fs=16k               # Sampling rate.
 
 # Kmeans related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
-kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
+kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. extracted mfcc, hubert_large/21, wavlm_large/21)
 portion=0.1
 nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
@@ -156,6 +157,8 @@ score_opts=                # The options given to sclite scoring
 local_score_opts=          # The options given to local/score.sh.
 asr_text_fold_length=150   # fold_length for text data during ASR training.
 lm_fold_length=150         # fold_length for LM training.
+min_speech_token_len=4     # Minimum duration in second.
+max_speech_token_len=1500  # Maximum duration in second.
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -187,9 +190,10 @@ Options:
     --speed_perturb_factors # speed perturbation factors, e.g. "0.9 1.0 1.1" (separated by space, default="${speed_perturb_factors}").
 
     # Feature extraction related
-    --feats_type       # Feature type (raw, default="${feats_type}").
-    --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw or raw_copy, default="${audio_format}").
-    --fs               # Sampling rate (default="${fs}").
+    --speech_feats_type  # Speech feature type (raw, default="${speech_feats_type}").
+    --feats_type         # Feature type (raw, default="${feats_type}").
+    --audio_format       # Audio format: wav, flac, wav.ark, flac.ark  (only in speech_feats_type=raw or raw_copy, default="${audio_format}").
+    --fs                 # Sampling rate (default="${fs}").
 
     # Kmeans related
     --kmeans_opts       # The options given to kmeans step (default="${kmeans_opts}").
@@ -272,6 +276,8 @@ Options:
     --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
     --asr_text_fold_length   # fold_length for text data during ASR training (default="${asr_text_fold_length}").
     --lm_fold_length         # fold_length for LM training (default="${lm_fold_length}").
+    --min_speech_token_len   # minimum length for speech token text, (default="${min_speech_token_len}").
+    --max_speech_token_len   # maximum length for speech token text, (default="${max_speech_token_len}").
 EOF
 )
 
@@ -323,9 +329,17 @@ for dset in ${test_sets}; do
 done
 test_sets=${_test_sets}
 
-# Check feature type
-if [ "${feats_type}" = raw ]; then
+# Check speech_feature and feature type
+if [ "${speech_feats_type}" = raw ]; then
     data_audio=${dumpdir}/audio_raw
+elif [ "${speech_feats_type}" == extracted ]; then
+    data_feats=${dumpdir}/audio_extracted
+else
+    log "${help_message}"
+    log "Error: not supported: --speech_feats_type ${speech_feats_type}"
+    exit 2
+fi
+if [ "${feats_type}" = raw ]; then
     data_extract=${dumpdir}/extracted
     data_feats=${dumpdir}/"${feats_type}"
 else
@@ -424,16 +438,28 @@ else
     lm_token_type="${tgt_token_type}"
 fi
 
-if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
-    kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
+if [ ${speech_feats_type} = "raw" ]; then
+    if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
+        kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
+        layer=
+        kmeans_feature_conf="{type=mfcc}"
+    else
+        kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
+        layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
+        # TODO(simpleoier): to support features beyond s3prl
+        s3prl_conf="{upstream=${kmeans_feature_type}}"
+        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
+    fi
+elif [ ${speech_feats_type} = "extracted" ]; then
+    log "Overwrite kmeans_feature as 'extracted' according to speech_feats_type."
+    kmeans_feature="extracted"
+    kmeans_feature_type="extracted"
     layer=
-    kmeans_feature_conf="{type=mfcc}"
+    kmeans_feature_conf="{type=extracted}"
 else
-    kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
-    layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
-    # TODO(simpleoier): to support features beyond s3prl
-    s3prl_conf="{upstream=${kmeans_feature_type}}"
-    kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
+    log "${help_message}"
+    log "Error: not supported: --speech_feats_type ${speech_feats_type}"
+    exit 2
 fi
 km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
 
@@ -597,7 +623,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
         for factor in ${speed_perturb_factors}; do
             if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                 scripts/utils/perturb_data_dir_speed.sh \
-                    ${ref_text_files_str:+--utt_extra_files "${ref_text_files_str}"} \
+                    ${utt_extra_files:+--utt_extra_files "${utt_extra_files}"} \
                     "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
                 _dirs+="data/${train_set}_sp${factor} "
             else
@@ -606,7 +632,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
             fi
         done
         utils/combine_data.sh \
-            ${ref_text_files_str:+--extra_files "${ref_text_files_str}"} \
+            ${utt_extra_files:+--extra_files "${utt_extra_files}"} \
             "data/${train_set}_sp" ${_dirs}
     else
         log "Skip stage 2: Speed perturbation"
@@ -633,7 +659,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
     else
         _dsets="${train_set} ${train_sp_sets} ${valid_set} ${test_sets}"
     fi
-    if [ "${feats_type}" = raw ]; then
+    if [ "${speech_feats_type}" = raw ]; then
         log "Stage 3: Format wav.scp: data/ -> ${data_audio}"
 
         # ====== Recreating "wav.scp" ======
@@ -663,15 +689,50 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 --multi-columns-output "${multi_columns_output_wav_scp}" \
                 "data/${dset}/wav.scp" "${data_audio}/${dset}"
 
-            echo "${feats_type}" > "${data_audio}/${dset}/feats_type"
+            echo "${speech_feats_type}" > "${data_audio}/${dset}/feats_type"
             if "${multi_columns_output_wav_scp}"; then
                 echo "multi_${audio_format}" > "${data_audio}/${dset}/audio_format"
             else
                 echo "${audio_format}" > "${data_audio}/${dset}/audio_format"
             fi
         done
+    
+    elif  [ "${speech_feats_type}" = "extracted" ]; then
+        log "Stage 3: ${speech_feats_type} extract: data/ -> ${data_audio}"
+        # Assumming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
+
+        for dset in ${_dsets}; do
+            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
+                _suf="/org"
+            else
+                _suf=""
+            fi
+            # Generate dummy wav.scp to avoid error by copy_data_dir.sh
+            if [ ! -f data/"${dset}"/wav.scp ]; then
+                if [ ! -f data/"${dset}"/segments ]; then
+                    <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
+                else
+                    <data/"${dset}"/segments awk ' { print($2,"<DUMMY>") }' > data/"${dset}"/wav.scp
+                fi
+            fi
+            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_audio}${_suf}/${dset}"
+
+            # Derive the the frame length and feature dimension
+            _nj=$(min "${nj}" "$(<"${data_audio}${_suf}/${dset}/utt2spk" wc -l)")
+            scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
+                "${data_audio}${_suf}/${dset}/feats.scp" "${data_audio}${_suf}/${dset}/feats_shape"
+            # Generate number of frames to */utt2num_sample (used in stage 4)
+            <"${data_audio}${_suf}/${dset}/feats_shape" \
+                awk '{split($2, lst, ","); print($1, lst[1])}' > "${data_audio}${_suf}/${dset}/utt2num_samples"
+
+            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_audio}${_suf}/${dset}/feats.scp |" - | \
+                awk '{ print $2 }' | cut -d, -f2 > "${data_audio}${_suf}/${dset}/feats_dim"
+
+            echo "${speech_feats_type}" > "${data_audio}${_suf}/${dset}/feats_type"
+        done
+
     else
-        log "Error: not supported: --feats_type ${feats_type}"
+        log "Error: not supported: --speech_feats_type ${speech_feats_type}"
         exit 2
     fi
 fi
@@ -753,6 +814,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
     for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
         cp data/${dset}/text data/${dset}/text.${tgt_case}.${tgt_lang}
+        cp ${data_extract}/${kmeans_feature_type}/${_suf}${dset}/utt2num_frames_km${nclusters} data/${dset}/utt2num_frames.${src_lang}
     done
 
     if [ -n "${speed_perturb_factors}" ]; then
@@ -763,7 +825,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
             fi
         done
         utils/combine_data.sh \
-            --extra_files "feats.scp utt2num_frames text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
+            --extra_files "feats.scp utt2num_frames.${src_lang} text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
             "data/${train_set}_sp" ${_dirs}
     fi
 fi
@@ -793,7 +855,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             fi
             mkdir -p "${data_feats}${_suf}/${dset}"
 
-            for extra_file in ${utt_extra_files}; do
+            for extra_file in ${utt_extra_files} "utt2num_frames.${src_lang}"; do
                 # with regex to suuport multi-references
                 for single_file in data/"${dset}"/*; do
                     base=$(basename "${single_file}")
@@ -817,12 +879,33 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
         # Copy data dir
         mkdir -p "${data_feats}/${dset}"
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-
         for utt_extra_file in ${utt_extra_files}; do
             cp "${data_feats}/org/${dset}/${utt_extra_file}" "${data_feats}/${dset}"
         done
-        # TODO: Maybe Remove empty text
-        # TODO: Add other data cleaning -- currently being done as part of data.sh
+
+        # Remove short or long input text
+        <"${data_feats}/org/${dset}/utt2num_frames.${src_lang}" \
+            awk -v min_length="${min_speech_token_len}" -v max_length="${max_speech_token_len}" \
+                '{ if ($2 > min_length && $2 < max_length) print($0); }' \
+                >"${data_feats}/${dset}/utt2num_frames.${src_lang}"
+        utils/filter_scp.pl \
+            "${data_feats}/${dset}/utt2num_frames.${src_lang}" \
+            "${data_feats}/${dset}/utt2spk" > "${data_feats}/${dset}/utt2spk.tmp"
+        mv ${data_feats}/${dset}/utt2spk.tmp ${data_feats}/${dset}/utt2spk
+
+        # Remove empty text
+        <"${data_feats}/org/${dset}/text.${tgt_case}.${tgt_lang}" \
+            awk ' { if ( NF != 1 ) print($0); } ' > "${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}"
+        utils/filter_scp.pl \
+            "${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}" \
+            ${data_feats}/${dset}/utt2spk \
+            > ${data_feats}/${dset}/utt2spk.tmp
+        mv ${data_feats}/${dset}/utt2spk.tmp ${data_feats}/${dset}/utt2spk
+
+        # fix_data_dir.sh leaves only utts which exist in all files
+        utils/fix_data_dir.sh \
+            --utt_extra_files "text.${src_case}.${src_lang} text.${tgt_case}.${tgt_lang}" \
+            "${data_feats}/${dset}"
     done
 
     # shellcheck disable=SC2002
