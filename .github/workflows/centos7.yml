@@ -51,8 +51,10 @@ jobs:
       - name: test shell
         run: |
           PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
-          ./ci/test_shell.sh
+          ./ci/test_shell_espnet1.sh
+          ./ci/test_shell_espnet2.sh
       - name: test python
         run: |
           PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
-          ./ci/test_python.sh
+          ./ci/test_python_espnet1.sh
+          ./ci/test_python_espnet2.sh
