@@ -212,7 +212,7 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     This is a simplified implementation of make_pad_mask without the xs input
     that supports JIT tracing for applications like exporting models to ONNX.
     Dimension length of xs should be 2 or 3
-    This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and 
+    This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and
     select rows to create mask tensor.
     """
     assert len(lengths.shape) == 1
