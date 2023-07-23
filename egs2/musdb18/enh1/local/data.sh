@@ -62,7 +62,7 @@ fi
 
 if [ $nchannels -eq 1 ]; then
     log "Use single channel audios"
-elif [ $nchannels -eq 1 ]; then
+elif [ $nchannels -eq 2 ]; then
     log "Use stereo audios"
 else
     log "Unsupported number of channels: ${nchannels}"

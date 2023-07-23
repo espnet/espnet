@@ -5,9 +5,10 @@ set -e
 set -u
 set -o pipefail
 
-sample_rate=44.1k
-use_hq=false    # true to download wav format; false to download mp4 format
-nchannels=1     # number of channels of the data (1 or 2)
+num_train=20000
+num_dev=5000
+num_eval=3000
+sample_rate=16k
 
 
 train_set="train_${sample_rate}"
@@ -20,10 +21,9 @@ test_sets="test_${sample_rate} "
     --test_sets "${test_sets}" \
     --fs "${sample_rate}" \
     --audio_format wav \
-    --max_wav_duration 1000 \
     --ref_num 4 \
     --lang en \
     --ngpu 1 \
-    --local_data_opts "--sample_rate ${sample_rate} --use_hq ${use_hq} --nchannels ${nchannels}" \
+    --local_data_opts "--sample_rate ${sample_rate} --num_train ${num_train} --num_dev ${num_dev} --num_eval ${num_eval}" \
     --enh_config conf/tuning/train_enh_conv_tasnet.yaml \
     "$@"

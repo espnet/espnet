@@ -2,22 +2,19 @@ optim: adam
 init: xavier_uniform
 max_epoch: 100
 batch_type: folded
-batch_size: 8
+batch_size: 4
 iterator_type: chunk
 chunk_length: 176400    # 4s in 44100 Hz
 num_workers: 4
 optim_conf:
     lr: 1.0e-03
     eps: 1.0e-08
-    weight_decay: 0
+    weight_decay: 1.0e-05
 patience: 4
 val_scheduler_criterion:
 - valid
 - loss
 best_model_criterion:
--   - valid
-    - snr
-    - max
 -   - valid
     - loss
     - min
@@ -51,9 +48,12 @@ separator_conf:
 
 criterions:
   # The first criterion
-  - name: snr
+  - name: mr_l1_tfd 
     conf:
-      eps: 1.0e-7
+      window_sz: [512, 1024, 1536, 2048]
+      hop_sz: null
+      eps: 1.0e-8
+      time_domain_weight: 0.5
     wrapper: fixed_order
     wrapper_conf:
       weight: 1.0
