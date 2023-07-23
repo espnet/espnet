@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  check_installable:
+  check_installable_on_macos:
     runs-on: macOS-latest
     if: github.event.pull_request.draft == false
     strategy:
