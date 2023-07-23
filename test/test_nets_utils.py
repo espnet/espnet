@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-import torch
 import pytest
+import torch
 
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-
 
 test_cases = [
     # lengths, xs, length_dim, maxlen
