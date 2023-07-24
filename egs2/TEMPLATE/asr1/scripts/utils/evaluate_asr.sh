@@ -44,7 +44,7 @@ whisper_dir=""
 inference_config=""
 inference_args=""
 ## change the language id according to your dataset
-decode_options="{task: transcribe; language: en}"
+decode_options="{task: transcribe, language: en, beam_size: 1}"
 
 # Scoring related configuration
 bpemodel=""
@@ -64,9 +64,6 @@ Options:
     --inference_nj   # Number of parallel jobs in inference (default="${inference_nj}").
     --gpu_inference  # Whether to use gpu in the inference (default="${gpu_inference}").
     --fs             # Sampling rate for ASR model inputs (default="${fs}").
-
-    # Input data related configuration
-    --lang           # The language type of the dataset (default="${lang}").
 
     # Model related configuration
     --model_tag       # Model tag or url available in espnet_model_zoo (default="${model_tag}")
@@ -100,8 +97,8 @@ Examples:
     $0 --asr_model_file /path/to/model.pth --stop-stage 3 --gt_text /path/to/text wav.scp asr_results
 
     # Use whisper model and perform inference and scoring
-    $0 --whisper_tag small --whisper_dir /path/to/download --lang en --stop-stage 3 \
-        --gt_text /path/to/text wav.scp asr_results
+    $0 --whisper_tag small --whisper_dir /path/to/download --decode_options "{task: transcribe; language: en}" \
+        --stop-stage 3 --gt_text /path/to/text wav.scp asr_results
 
 EOF
 )
