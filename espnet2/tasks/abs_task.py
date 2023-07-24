@@ -1569,6 +1569,20 @@ class AbsTask(ABC):
             logging.warning("Reading " + utt2category_file)
         else:
             utt2category_file = None
+
+        if Path(
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "category2utt"
+        ).exists():
+            category2utt_file = str(
+                Path(
+                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                    "category2utt",
+                )
+            )
+            logging.warning("Reading " + category2utt_file)
+        else:
+            category2utt_file = None
+
         batch_sampler = build_batch_sampler(
             type=iter_options.batch_type,
             shape_files=iter_options.shape_files,
@@ -1582,6 +1596,7 @@ class AbsTask(ABC):
             if iter_options.distributed
             else 1,
             utt2category_file=utt2category_file,
+            category2utt_file=category2utt_file,
         )
 
         batches = list(batch_sampler)
