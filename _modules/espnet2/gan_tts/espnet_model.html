@@ -266,6 +266,15 @@
             <span class="n">tts</span><span class="p">,</span> <span class="s2">&quot;discriminator&quot;</span>
         <span class="p">),</span> <span class="s2">&quot;discriminator module must be registered as tts.discriminator&quot;</span>
 
+        <span class="k">if</span> <span class="n">feats_extract</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">tts</span><span class="o">.</span><span class="n">generator</span><span class="p">,</span> <span class="s2">&quot;vocoder&quot;</span><span class="p">):</span>
+                <span class="n">upsample_factor</span> <span class="o">=</span> <span class="n">tts</span><span class="o">.</span><span class="n">generator</span><span class="p">[</span><span class="s2">&quot;vocoder&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">upsample_factor</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">upsample_factor</span> <span class="o">=</span> <span class="n">tts</span><span class="o">.</span><span class="n">generator</span><span class="o">.</span><span class="n">upsample_factor</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">feats_extract</span><span class="o">.</span><span class="n">get_parameters</span><span class="p">()[</span><span class="s2">&quot;n_shift&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">upsample_factor</span>
+            <span class="p">),</span> <span class="s2">&quot;n_shift must be equal to upsample_factor&quot;</span>
+
 <div class="viewcode-block" id="ESPnetGANTTSModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.espnet_model.ESPnetGANTTSModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">text</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>

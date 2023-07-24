@@ -219,7 +219,6 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
-<span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">betabinom</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.fastspeech.duration_predictor</span> <span class="kn">import</span> <span class="p">(</span>  <span class="c1"># noqa: H301</span>
@@ -319,16 +318,9 @@
 <div class="viewcode-block" id="ForwardSumLoss"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.loss.ForwardSumLoss">[docs]</a><span class="k">class</span> <span class="nc">ForwardSumLoss</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Forwardsum loss described at https://openreview.net/forum?id=0NQwnnwAORi&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cache_prior</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize forwardsum loss module.</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            cache_prior (bool): Whether to cache beta-binomial prior</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize forwardsum loss module.&quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cache_prior</span> <span class="o">=</span> <span class="n">cache_prior</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span> <span class="o">=</span> <span class="p">{}</span>
 
 <div class="viewcode-block" id="ForwardSumLoss.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.gan_tts.html#espnet2.gan_tts.jets.loss.ForwardSumLoss.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -352,11 +344,6 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">B</span> <span class="o">=</span> <span class="n">log_p_attn</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-        <span class="c1"># add beta-binomial prior</span>
-        <span class="n">bb_prior</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_generate_prior</span><span class="p">(</span><span class="n">ilens</span><span class="p">,</span> <span class="n">olens</span><span class="p">)</span>
-        <span class="n">bb_prior</span> <span class="o">=</span> <span class="n">bb_prior</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">log_p_attn</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">log_p_attn</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">log_p_attn</span> <span class="o">=</span> <span class="n">log_p_attn</span> <span class="o">+</span> <span class="n">bb_prior</span>
-
         <span class="c1"># a row must be added to the attention matrix to account for</span>
         <span class="c1">#    blank token of CTC loss</span>
         <span class="c1"># (B,T_feats,T_text+1)</span>
@@ -372,6 +359,7 @@
             <span class="p">]</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span>
                 <span class="mi">1</span>
             <span class="p">)</span>  <span class="c1"># (T_feats,1,T_text+1)</span>
+            <span class="n">cur_log_p_attn_pd</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">cur_log_p_attn_pd</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">loss</span> <span class="o">+=</span> <span class="n">F</span><span class="o">.</span><span class="n">ctc_loss</span><span class="p">(</span>
                 <span class="n">log_probs</span><span class="o">=</span><span class="n">cur_log_p_attn_pd</span><span class="p">,</span>
                 <span class="n">targets</span><span class="o">=</span><span class="n">target_seq</span><span class="p">,</span>
@@ -380,47 +368,7 @@
                 <span class="n">zero_infinity</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">B</span>
-        <span class="k">return</span> <span class="n">loss</span></div>
-
-    <span class="k">def</span> <span class="nf">_generate_prior</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Generate alignment prior formulated as beta-binomial distribution</span>
-
-<span class="sd">        Args:</span>
-<span class="sd">            text_lengths (Tensor): Batch of the lengths of each input (B,).</span>
-<span class="sd">            feats_lengths (Tensor): Batch of the lengths of each target (B,).</span>
-<span class="sd">            w (float): Scaling factor; lower -&gt; wider the width.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            Tensor: Batched 2d static prior matrix (B, T_feats, T_text).</span>
-
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">B</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">text_lengths</span><span class="p">)</span>
-        <span class="n">T_text</span> <span class="o">=</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-        <span class="n">T_feats</span> <span class="o">=</span> <span class="n">feats_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
-
-        <span class="n">bb_prior</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="n">B</span><span class="p">,</span> <span class="n">T_feats</span><span class="p">,</span> <span class="n">T_text</span><span class="p">),</span> <span class="n">fill_value</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)</span>
-        <span class="k">for</span> <span class="n">bidx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">B</span><span class="p">):</span>
-            <span class="n">T</span> <span class="o">=</span> <span class="n">feats_lengths</span><span class="p">[</span><span class="n">bidx</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-            <span class="n">N</span> <span class="o">=</span> <span class="n">text_lengths</span><span class="p">[</span><span class="n">bidx</span><span class="p">]</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-
-            <span class="n">key</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">T</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;,&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_prior</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
-                <span class="n">prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">alpha</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">T</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>  <span class="c1"># (T,)</span>
-                <span class="n">beta</span> <span class="o">=</span> <span class="n">w</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">T</span> <span class="o">-</span> <span class="n">t</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">alpha</span><span class="p">])</span>
-                <span class="n">k</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">N</span><span class="p">)</span>
-                <span class="n">batched_k</span> <span class="o">=</span> <span class="n">k</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>  <span class="c1"># (N,1)</span>
-                <span class="n">prob</span> <span class="o">=</span> <span class="n">betabinom</span><span class="o">.</span><span class="n">logpmf</span><span class="p">(</span><span class="n">batched_k</span><span class="p">,</span> <span class="n">N</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">beta</span><span class="p">)</span>  <span class="c1"># (N,T)</span>
-
-            <span class="c1"># store cache</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache_prior</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_cache</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">prob</span>
-
-            <span class="n">prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">prob</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># -&gt; (T,N)</span>
-            <span class="n">bb_prior</span><span class="p">[</span><span class="n">bidx</span><span class="p">,</span> <span class="p">:</span><span class="n">T</span><span class="p">,</span> <span class="p">:</span><span class="n">N</span><span class="p">]</span> <span class="o">=</span> <span class="n">prob</span>
-
-        <span class="k">return</span> <span class="n">bb_prior</span></div>
+        <span class="k">return</span> <span class="n">loss</span></div></div>
 </pre></div>
 
            </div>

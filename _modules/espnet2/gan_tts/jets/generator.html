@@ -788,7 +788,13 @@
 
         <span class="c1"># forward alignment module and obtain duration, averaged pitch, energy</span>
         <span class="n">h_masks</span> <span class="o">=</span> <span class="n">make_pad_mask</span><span class="p">(</span><span class="n">text_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
-        <span class="n">log_p_attn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alignment_module</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">feats</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>
+        <span class="n">log_p_attn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alignment_module</span><span class="p">(</span>
+            <span class="n">hs</span><span class="p">,</span>
+            <span class="n">feats</span><span class="p">,</span>
+            <span class="n">text_lengths</span><span class="p">,</span>
+            <span class="n">feats_lengths</span><span class="p">,</span>
+            <span class="n">h_masks</span><span class="p">,</span>
+        <span class="p">)</span>
         <span class="n">ds</span><span class="p">,</span> <span class="n">bin_loss</span> <span class="o">=</span> <span class="n">viterbi_decode</span><span class="p">(</span><span class="n">log_p_attn</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
         <span class="n">ps</span> <span class="o">=</span> <span class="n">average_by_duration</span><span class="p">(</span>
             <span class="n">ds</span><span class="p">,</span> <span class="n">pitch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">feats_lengths</span>
@@ -900,7 +906,13 @@
         <span class="n">h_masks</span> <span class="o">=</span> <span class="n">make_pad_mask</span><span class="p">(</span><span class="n">text_lengths</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">use_teacher_forcing</span><span class="p">:</span>
             <span class="c1"># forward alignment module and obtain duration, averaged pitch, energy</span>
-            <span class="n">log_p_attn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alignment_module</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">feats</span><span class="p">,</span> <span class="n">h_masks</span><span class="p">)</span>
+            <span class="n">log_p_attn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">alignment_module</span><span class="p">(</span>
+                <span class="n">hs</span><span class="p">,</span>
+                <span class="n">feats</span><span class="p">,</span>
+                <span class="n">text_lengths</span><span class="p">,</span>
+                <span class="n">feats_lengths</span><span class="p">,</span>
+                <span class="n">h_masks</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="n">d_outs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">viterbi_decode</span><span class="p">(</span><span class="n">log_p_attn</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
             <span class="n">p_outs</span> <span class="o">=</span> <span class="n">average_by_duration</span><span class="p">(</span>
                 <span class="n">d_outs</span><span class="p">,</span> <span class="n">pitch</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">feats_lengths</span>

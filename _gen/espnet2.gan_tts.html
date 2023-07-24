@@ -1117,19 +1117,31 @@ If set to true, it will be applied to all of the conv layers.</p></li>
 <span id="espnet2-gan-tts-jets-alignments"></span><h2>espnet2.gan_tts.jets.alignments<a class="headerlink" href="#espnet2-gan-tts-jets-alignments-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.gan_tts.jets.alignments"></span><dl class="class">
 <dt id="espnet2.gan_tts.jets.alignments.AlignmentModule">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.jets.alignments.</code><code class="sig-name descname">AlignmentModule</code><span class="sig-paren">(</span><em class="sig-param">adim</em>, <em class="sig-param">odim</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/jets/alignments.html#AlignmentModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.jets.alignments.AlignmentModule" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.jets.alignments.</code><code class="sig-name descname">AlignmentModule</code><span class="sig-paren">(</span><em class="sig-param">adim</em>, <em class="sig-param">odim</em>, <em class="sig-param">cache_prior=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/jets/alignments.html#AlignmentModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.jets.alignments.AlignmentModule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Alignment Learning Framework proposed for parallel TTS models in:</p>
 <p><a class="reference external" href="https://arxiv.org/abs/2108.10447">https://arxiv.org/abs/2108.10447</a></p>
+<p>Initialize AlignmentModule.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>adim</strong> (<em>int</em>) – Dimension of attention.</p></li>
+<li><p><strong>odim</strong> (<em>int</em>) – Dimension of feats.</p></li>
+<li><p><strong>cache_prior</strong> (<em>bool</em>) – Whether to cache beta-binomial prior.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="method">
 <dt id="espnet2.gan_tts.jets.alignments.AlignmentModule.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text</em>, <em class="sig-param">feats</em>, <em class="sig-param">x_masks=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/jets/alignments.html#AlignmentModule.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.jets.alignments.AlignmentModule.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text</em>, <em class="sig-param">feats</em>, <em class="sig-param">text_lengths</em>, <em class="sig-param">feats_lengths</em>, <em class="sig-param">x_masks=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/jets/alignments.html#AlignmentModule.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.jets.alignments.AlignmentModule.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate alignment loss.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>text</strong> (<em>Tensor</em>) – Batched text embedding (B, T_text, adim).</p></li>
 <li><p><strong>feats</strong> (<em>Tensor</em>) – Batched acoustic feature (B, T_feats, odim).</p></li>
+<li><p><strong>text_lengths</strong> (<em>Tensor</em>) – Text length tensor (B,).</p></li>
+<li><p><strong>feats_lengths</strong> (<em>Tensor</em>) – Feature length tensor (B,).</p></li>
 <li><p><strong>x_masks</strong> (<em>Tensor</em>) – Mask tensor (B, T_text).</p></li>
 </ul>
 </dd>
@@ -1422,15 +1434,10 @@ Tensor: Duration tensor (B, T_text).</p>
 <span class="target" id="module-espnet2.gan_tts.jets.loss"></span><p>JETS related loss module for ESPnet2.</p>
 <dl class="class">
 <dt id="espnet2.gan_tts.jets.loss.ForwardSumLoss">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.jets.loss.</code><code class="sig-name descname">ForwardSumLoss</code><span class="sig-paren">(</span><em class="sig-param">cache_prior: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/gan_tts/jets/loss.html#ForwardSumLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.jets.loss.ForwardSumLoss" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.gan_tts.jets.loss.</code><code class="sig-name descname">ForwardSumLoss</code><a class="reference internal" href="../_modules/espnet2/gan_tts/jets/loss.html#ForwardSumLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.jets.loss.ForwardSumLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Forwardsum loss described at <a class="reference external" href="https://openreview.net/forum?id=0NQwnnwAORi">https://openreview.net/forum?id=0NQwnnwAORi</a></p>
 <p>Initialize forwardsum loss module.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>cache_prior</strong> (<em>bool</em>) – Whether to cache beta-binomial prior</p>
-</dd>
-</dl>
 <dl class="method">
 <dt id="espnet2.gan_tts.jets.loss.ForwardSumLoss.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">log_p_attn: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">olens: torch.Tensor</em>, <em class="sig-param">blank_prob: float = 0.36787944117144233</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/gan_tts/jets/loss.html#ForwardSumLoss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.gan_tts.jets.loss.ForwardSumLoss.forward" title="Permalink to this definition">¶</a></dt>
