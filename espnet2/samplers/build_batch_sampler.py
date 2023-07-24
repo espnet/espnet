@@ -3,6 +3,7 @@ from typing import List, Sequence, Tuple, Union
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.samplers.abs_sampler import AbsSampler
+from espnet2.samplers.catbel_sampler import CategoryBalancedBatchSampler
 from espnet2.samplers.folded_batch_sampler import FoldedBatchSampler
 from espnet2.samplers.length_batch_sampler import LengthBatchSampler
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
@@ -66,6 +67,23 @@ BATCH_TYPES = dict(
     "    utterance_id_a 1000,80\n"
     "    utterance_id_b 1453,80\n"
     "    utterance_id_c 1241,80\n",
+    catbal="CategoryBalancedBatchSampler is a sampler for classification tasks "
+    "where each sample belongs to one of the predefined classes (e.g., "
+    "speaker identification, language identification, anti-spoofing). "
+    "The samples within each minibatch is kept to include as diverse number "
+    "of classes as possible. That is, if the batch_size is smaller than the "
+    "number of classes, all samples within a minibatch belongs to different "
+    "class. Length information is not required for this sampler."
+    "'key_file' is just a text file which describes each sample name."
+    "\n\n"
+    "    utterance_id_a\n"
+    "    utterance_id_b\n"
+    "    utterance_id_c\n"
+    "\n"
+    "The fist column is referred, so 'shape file' can be used, too.\n\n"
+    "    utterance_id_a 100,80\n"
+    "    utterance_id_b 400,80\n"
+    "    utterance_id_c 512,80\n",
 )
 
 
@@ -85,8 +103,8 @@ def build_batch_sampler(
     """Helper function to instantiate BatchSampler.
 
     Args:
-        type: mini-batch type. "unsorted", "sorted", "folded", "numel", or, "length"
-        batch_size: The mini-batch size. Used for "unsorted", "sorted", "folded" mode
+        type: mini-batch type. "unsorted", "sorted", "folded", "numel", "length", or "catbel"
+        batch_size: The mini-batch size. Used for "unsorted", "sorted", "folded", "catbel" mode
         batch_bins: Used for "numel" model
         shape_files: Text files describing the length and dimension
             of each features. e.g. uttA 1330,80
@@ -154,6 +172,16 @@ def build_batch_sampler(
             drop_last=drop_last,
             padding=padding,
             min_batch_size=min_batch_size,
+        )
+
+    elif type == "catbel":
+        retval = CategoryBalancedBatchSampler(
+            batch_size=batch_size,
+            sort_in_batch=sort_in_batch,
+            sort_batch=sort_batch,
+            drop_last=drop_last,
+            min_batch_size=min_batch_size,
+            utt2category_file=utt2category_file, # actually category2utt is fed.
         )
 
     else:
