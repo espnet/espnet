@@ -186,6 +186,7 @@ ITAKO=
 NATSUME=
 KIRITAN=
 NAMINE=
+GRAMVAANI=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
