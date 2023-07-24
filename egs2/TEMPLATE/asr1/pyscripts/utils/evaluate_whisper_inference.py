@@ -3,17 +3,19 @@ import argparse
 import logging
 import os
 import sys
-from typing import Optional, Union
+from distutils.version import LooseVersion
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import torch
 import whisper
 from typeguard import check_argument_types
 
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
-from espnet2.utils.types import str2bool, str_or_none
+from espnet2.utils.nested_dict_action import NestedDictAction
+from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -24,8 +26,6 @@ class Speech2Text:
         self,
         model_tag: str = "base",
         model_dir: str = "./models",
-        language: str = "en",
-        beam_size: int = 1,
         device: str = "cpu",
     ):
         assert check_argument_types()
@@ -33,14 +33,9 @@ class Speech2Text:
         self.model = whisper.load_model(
             name=model_tag, download_root=model_dir, device=device
         )
-        self.options = dict(
-            task="transcribe",
-            language=language,
-            beam_size=beam_size,
-        )
 
     @torch.no_grad()
-    def __call__(self, speech: str) -> Optional[str]:
+    def __call__(self, speech: str, **decode_options) -> Optional[str]:
         """Inference
 
         Args:
@@ -52,7 +47,7 @@ class Speech2Text:
         assert check_argument_types()
 
         # Input as audio signal
-        result = self.model.transcribe(speech, **self.options)
+        result = self.model.transcribe(speech, **decode_options)
 
         return result["text"]
 
@@ -65,10 +60,10 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: str,
     key_file: Optional[str],
-    language: Optional[str],
     model_tag: Optional[str],
     model_dir: Optional[str],
     allow_variable_data_keys: bool,
+    decode_options: Dict,
 ):
     assert check_argument_types()
     if ngpu > 1:
@@ -88,20 +83,15 @@ def inference(
     set_all_random_seed(seed)
 
     # 2. Build speech2text
-    language = LANGUAGES_CODE_MAPPING.get(language)
-    if language is None:
-        raise ValueError("language unsupported for Whisper model")
-
     speech2text = Speech2Text(
         model_tag=model_tag,
         model_dir=model_dir,
-        language=language,
         device=device,
     )
 
     # 3. Build data-iterator
     info_list = []
-    wavscp = open(data_path_and_name_and_type, "r", encoding="utf-8")
+    wavscp = open(key_file, "r", encoding="utf-8")
     for line in wavscp.readlines():
         info_list.append(line.split(maxsplit=1))
 
@@ -110,7 +100,7 @@ def inference(
     with DatadirWriter(output_dir) as writer:
         for key, audio_file in info_list:
             # N-best list of (text, token, token_int, hyp_object)
-            results = speech2text(os.path.abspath(audio_file.strip()))
+            results = speech2text(os.path.abspath(audio_file.strip()), **decode_options)
 
             # Normal ASR
             ibest_writer = writer[f"1best_recog"]
@@ -158,12 +148,6 @@ def get_parser():
     )
     group.add_argument("--key_file", type=str_or_none)
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
-    group.add_argument(
-        "--language",
-        type=str,
-        default="en",
-        help="The language type of the input dataset.",
-    )
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
@@ -186,6 +170,14 @@ def get_parser():
         type=str_or_none,
         default="./models",
         help="The directory to download whisper models.",
+    )
+
+    group = parser.add_argument_group("Decoding options related")
+    group.add_argument(
+        "--decode_options",
+        action=NestedDictAction,
+        default=dict(),
+        help="Decode options for whisper transcribe.",
     )
     return parser
 
