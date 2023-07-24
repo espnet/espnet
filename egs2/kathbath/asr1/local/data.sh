@@ -47,7 +47,7 @@ download_data="${KATHBATH}"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${KATHBATH}/download_done" ]; then
         echo "stage 1: Data Download to ${LIBRISPEECH}"
-        
+
         for data_url in $noisy_test_known_data_url $noisy_test_unknown_data_url $transcript_noisy_url; do
             if ! wget -P $download_data --no-check-certificate $data_url; then
                 echo "$0: error executing wget $data_url"
@@ -85,8 +85,8 @@ mkdir -p data
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "data/dataprep_done" ]; then
         log "stage 2: Data Preparation"
-        
-       
+
+
         for lang in $download_data/"kb_data_clean_m4a"/* ; do
             log "Processing $lang"
             for split in $lang/* ; do
@@ -98,10 +98,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 do
                 ffmpeg -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$f$ext" && rm "$f" && mv "$f$ext" "$f" &
                 done
-                
+
             done
         done
-        
+
 
         # touch "data/dataprep_done"
     else
