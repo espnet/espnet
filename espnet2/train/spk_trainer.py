@@ -1,8 +1,15 @@
-"""Trainer module for speaker recognition."""
+"""
+Trainer module for speaker recognition.
+In speaker recognition (embedding extractor training/inference),
+calculating validation loss in closed set is not informative since
+generalization in unseen utterances from known speakers are good in most cases.
+Thus, we measure open set equal error rate (EER) using unknown speakers by
+overriding validate_one_epoch.
+"""
+
 import argparse
 import dataclasses
 import logging
-import time
 from contextlib import contextmanager
 from dataclasses import is_dataclass
 from pathlib import Path
@@ -72,41 +79,64 @@ class SpkTrainer(Trainer):
 
         scores = []
         labels = []
+        spk_embd_dic = {}
+        bs = 0
+
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
         iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
+
+        # fill dictionary with speech samples
+        utt_id_list = []
+        speech_list = []
         for utt_id, batch in iterator:
+            bs = max(bs, len(utt_id))
             assert isinstance(batch, dict), type(batch)
+            for _utt_id, _speech, _speech2 in zip(
+                utt_id, batch["speech"], batch["speech2"]
+            ):
+                _utt_id_1, _utt_id_2 = _utt_id.split("*")
+                if _utt_id_1 not in utt_id_list:
+                    utt_id_list.append(_utt_id_1)
+                    speech_list.append(_speech)
+                if _utt_id_2 not in utt_id_list:
+                    utt_id_list.append(_utt_id_2)
+                    speech_list.append(_speech2)
+
+        # extract speaker embeddings.
+        n_utt = len(utt_id_list)
+        for ii in range(0, n_utt, bs):
+            _utt_ids = utt_id_list[ii : ii + bs]
+            _speechs = speech_list[ii : ii + bs]
+            _speechs = torch.stack(_speechs, dim=0)
+            org_shape = (_speechs.size(0), _speechs.size(1))
+            _speechs = _speechs.flatten(0, 1)
+            _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
+
+            spk_embds = model(speech=_speechs, spk_labels=None, extract_embd=True)
+            spk_embds = F.normalize(spk_embds, p=2, dim=1)
+            spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
+
+            for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
+                spk_embd_dic[_utt_id] = _spk_embd
+
+        del utt_id_list
+        del speech_list
+
+        # calculate similarity scores
+        for utt_id, batch in iterator:
+            batch["spk_labels"] = to_device(
+                batch["spk_labels"], "cuda" if ngpu > 0 else "cpu"
+            )
+
             if distributed:
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
                 if iterator_stop > 0:
                     break
 
-            batch["utt_id"] = utt_id
-
-            batch = to_device(batch, "cuda" if ngpu > 0 else "cpu")
-            if no_forward_run:
-                continue
-
-            org_shape = (batch["speech"].size(0), batch["speech"].size(1))
-            batch["speech"] = batch["speech"].flatten(0, 1)
-            batch["speech2"] = batch["speech2"].flatten(0, 1)
-
-            speech_embds = model(
-                speech=batch["speech"], spk_labels=None, extract_embd=True
-            )
-            speech2_embds = model(
-                speech=batch["speech2"], spk_labels=None, extract_embd=True
-            )
-
-            speech_embds = F.normalize(speech_embds, p=2, dim=1)
-            speech2_embds = F.normalize(speech2_embds, p=2, dim=1)
-
-            speech_embds = speech_embds.view(org_shape[0], org_shape[1], -1)
-            speech2_embds = speech2_embds.view(org_shape[0], org_shape[1], -1)
-
-            for i in range(speech_embds.size(0)):
-                score = torch.cdist(speech_embds[i], speech2_embds[i])
+            for _utt_id in utt_id:
+                _utt_id_1, _utt_id_2 = _utt_id.split("*")
+                score = torch.cdist(spk_embd_dic[_utt_id_1], spk_embd_dic[_utt_id_2])
                 score = -1.0 * torch.mean(score)
                 scores.append(score.view(1))  # 0-dim to 1-dim tensor for cat
             labels.append(batch["spk_labels"])
@@ -118,6 +148,7 @@ class SpkTrainer(Trainer):
 
         scores = torch.cat(scores).type(torch.float32)
         labels = torch.cat(labels).type(torch.int32).flatten()
+
         if distributed:
             # get the number of trials assigned on each GPU
             length = to_device(
@@ -147,6 +178,22 @@ class SpkTrainer(Trainer):
         scores = scores.detach().cpu().numpy()
         labels = labels.detach().cpu().numpy()
 
+        # calculate statistics in target and nontarget classes.
+        n_trials = len(scores)
+        scores_trg = []
+        scores_nontrg = []
+        for _s, _l in zip(scores, labels):
+            if _l == 1:
+                scores_trg.append(_s)
+            elif _l == 0:
+                scores_nontrg.append(_s)
+            else:
+                raise ValueError(f"{_l}, {type(_l)}")
+        trg_mean = np.mean(scores_trg)
+        trg_std = np.std(scores_trg)
+        nontrg_mean = np.std(scores_nontrg)
+        nontrg_std = np.std(scores_nontrg)
+
         # exception for collect_stats.
         if len(scores) == 1:
             reporter.register(stats=dict(eer=1.0, mindcf=1.0))
@@ -161,4 +208,14 @@ class SpkTrainer(Trainer):
         p_trg, c_miss, c_fa = 0.05, 1, 1
         mindcf, _ = ComputeMinDcf(fnrs, fprs, thresholds, p_trg, c_miss, c_fa)
 
-        reporter.register(stats=dict(eer=eer, mindcf=mindcf))
+        reporter.register(
+            stats=dict(
+                eer=eer,
+                mindcf=mindcf,
+                n_trials=n_trials,
+                trg_mean=trg_mean,
+                trg_std=trg_std,
+                nontrg_mean=nontrg_mean,
+                nontrg_std=nontrg_std,
+            )
+        )
