@@ -123,7 +123,10 @@ def test_CommonCollateFn_repr(float_pad_value, int_pad_value, not_sequence):
 
 
 @pytest.mark.parametrize(
-    "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop, kernel_size, stride, sample_rate",
+    (
+        "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop, "
+        "kernel_size, stride, sample_rate"
+    ),
     [
         (0.0, -1, (), 1, True, False, 25, 20, 16),
         (3.0, 2, ("a",), 1, False, False, 25, 20, 16),
@@ -228,7 +231,10 @@ def test_HuBERT_(
 
 
 @pytest.mark.parametrize(
-    "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop, kernel_size, stride, sample_rate",
+    (
+        "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop, "
+        "kernel_size, stride, sample_rate"
+    ),
     [
         (0.0, -1, (), 1, True, False, 25, 20, 16),
         (3.0, 2, ("a",), 1, False, False, 80, 40, 16),
