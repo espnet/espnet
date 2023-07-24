@@ -16,7 +16,7 @@ scheduler_conf:
     patience: 1
 
 use_preprocessor: true
-preprocessor: 
+preprocessor: default
 preprocessor_conf:
     fs: 16000
     data_aug_effects:   # no need to set the "sample_rate" argument for each effect here
