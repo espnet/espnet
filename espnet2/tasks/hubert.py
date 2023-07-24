@@ -287,25 +287,23 @@ class HubertTask(AbsTask):
             stride=args.collate_fn_conf["stride"],
             sample_rate=args.collate_fn_conf["sample_rate"],
         )
-    
+
     @classmethod
-    def update_collate_info(
-        cls, args: argparse.Namespace
-    ) -> None:
+    def update_collate_info(cls, args: argparse.Namespace) -> None:
         assert check_argument_types()
-        
+
         fs = args.frontend_conf.get("fs", None)
         # to conduct collate, fs must be included in frontend_conf
         assert fs is not None, "sample rate is necessary to update collate fn"
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
         sample_rate = fs / 1000
-        
+
         if args.encoder_conf.get("extractor_conv_layer_config", None) is None:
             # corresponding to default conv extractor
             # reer to https://github.com/espnet/espnet/blob/master/espnet2/asr/encoder/hubert_encoder.py
-            reception_field = 400 
-            stride_field = 320 
+            reception_field = 400
+            stride_field = 320
         else:
             stride_field, reception_field = 1, 1
             for conv_config in args.encoder_conf["extractor_conv_layer_config"][::-1]:
@@ -436,7 +434,6 @@ class HubertTask(AbsTask):
 
         # collate arguments prepare (process reception field)
         cls.update_collate_info(args)
-        
 
         # 8. Build model
         try:
