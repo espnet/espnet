@@ -300,6 +300,12 @@ class AbsTask(ABC):
             help="The verbose level of logging",
         )
         group.add_argument(
+            "--drop_last_iter",
+            type=str2bool,
+            default=False,
+            help="Exclude the minibatch with leftovers.",
+        )
+        group.add_argument(
             "--dry_run",
             type=str2bool,
             default=False,
@@ -675,7 +681,7 @@ class AbsTask(ABC):
             type=int,
             default=20,
             help="The mini-batch size used for training. Used if batch_type='unsorted',"
-            " 'sorted', or 'folded'.",
+            " 'sorted', or 'folded', or 'catbel'.",
         )
         group.add_argument(
             "--valid_batch_size",
@@ -1571,7 +1577,7 @@ class AbsTask(ABC):
             batch_bins=iter_options.batch_bins,
             sort_in_batch=args.sort_in_batch,
             sort_batch=args.sort_batch,
-            drop_last=False,
+            drop_last=args.drop_last_iter,
             min_batch_size=torch.distributed.get_world_size()
             if iter_options.distributed
             else 1,
