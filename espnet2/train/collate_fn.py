@@ -51,9 +51,9 @@ class HuBERTCollateFn(CommonCollateFn):
         rand_crop: bool = True,
         crop_audio: bool = True,
         not_sequence: Collection[str] = (),
-        kernel_size: int = 25,
-        stride: int = 20,
-        sample_rate: int = 16,
+        kernel_size: float = 25,
+        stride: float = 20,
+        sample_rate: float = 16,
     ):
         assert check_argument_types()
         super().__init__(

@@ -33,7 +33,7 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
             Valid values are "group_norm" or "layer_norm".
         extractor_conv_layer_config: Configuration of convolution layers in feature
             extractor. List of convolution configuration,
-            i.e. [(output_channel, kernel_size, stride), ...]
+            i.e. [[output_channel, kernel_size, stride], ...]
         extractor_conv_bias: Whether to include bias term to each convolution
             operation.
         encoder_embed_dim: The dimension of embedding in encoder.
@@ -89,14 +89,14 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         self,
         input_size: int = None,
         extractor_mode: str = "group_norm",
-        extractor_conv_layer_config: Optional[List[Tuple[int, int, int]]] = [
-            (512, 10, 5),
-            (512, 3, 2),
-            (512, 3, 2),
-            (512, 3, 2),
-            (512, 3, 2),
-            (512, 2, 2),
-            (512, 2, 2),
+        extractor_conv_layer_config: Optional[List[List[int]]] = [
+            [512, 10, 5],
+            [512, 3, 2],
+            [512, 3, 2],
+            [512, 3, 2],
+            [512, 3, 2],
+            [512, 2, 2],
+            [512, 2, 2],
         ],
         extractor_conv_bias: bool = False,
         encoder_embed_dim: int = 768,

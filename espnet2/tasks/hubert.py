@@ -9,6 +9,7 @@ import argparse
 import logging
 from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
+import humanfriendly
 import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
@@ -282,10 +283,40 @@ class HubertTask(AbsTask):
             pad=args.collate_fn_conf.get("pad", False),
             rand_crop=args.collate_fn_conf.get("rand_crop", True),
             crop_audio=not args.collect_stats,
-            kernel_size=args.collate_fn_conf.get("kernel_size", 25),
-            stride=args.collate_fn_conf.get("stride", 20),
-            sample_rate=args.collate_fn_conf.get("sample_rate", 16),
+            kernel_size=args.collate_fn_conf["kernel_size"],
+            stride=args.collate_fn_conf["stride"],
+            sample_rate=args.collate_fn_conf["sample_rate"],
         )
+    
+    @classmethod
+    def update_collate_info(
+        cls, args: argparse.Namespace
+    ) -> None:
+        assert check_argument_types()
+        
+        fs = args.frontend_conf.get("fs", None)
+        # to conduct collate, fs must be included in frontend_conf
+        assert fs is not None, "sample rate is necessary to update collate fn"
+        if isinstance(fs, str):
+            fs = humanfriendly.parse_size(fs)
+        sample_rate = fs / 1000
+        
+        logging.info(args.encoder_conf)
+        if args.encoder_conf.get("extractor_conv_layer_config", None) is None:
+            # corresponding to default conv extractor
+            # reer to https://github.com/espnet/espnet/blob/master/espnet2/asr/encoder/hubert_encoder.py
+            reception_field = 400 
+            stride_field = 320 
+        else:
+            stride_field, reception_field = 1, 1
+            for conv_config in args.encoder_conf["extractor_conv_layer_config"][::-1]:
+                _, kernel, stride = conv_config
+                stride_field *= stride
+                reception_field = stride * (reception_field - 1) + kernel
+        args.collate_fn_conf["kernel_size"] = reception_field / sample_rate
+        args.collate_fn_conf["stride"] = stride_field / sample_rate
+        args.collate_fn_conf["sample_rate"] = sample_rate
+        logging.info(args.collate_fn_conf)
 
     @classmethod
     def build_preprocess_fn(
@@ -370,7 +401,7 @@ class HubertTask(AbsTask):
         else:
             # Give features from data-loader
             args.frontend = None
-            args.frontend_conf = {}
+            args.frontend_conf = {**args.frontend_conf}
             frontend = None
             input_size = args.input_size
 
@@ -404,6 +435,10 @@ class HubertTask(AbsTask):
             num_classes=args.num_classes,
             **args.encoder_conf,
         )
+
+        # collate arguments prepare (process reception field)
+        cls.update_collate_info(args)
+        
 
         # 8. Build model
         try:
