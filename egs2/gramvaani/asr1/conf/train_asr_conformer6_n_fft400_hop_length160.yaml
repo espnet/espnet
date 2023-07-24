@@ -54,5 +54,3 @@ scheduler_conf:
 frontend_conf:
   n_fft: 400
   hop_length: 160
-
-

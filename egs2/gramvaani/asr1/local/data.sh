@@ -67,9 +67,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         cat data/test/mp3.scp | sed "s:./:"$download_data/GV_Eval_3h"/:" > data/temp ; mv data/temp data/test/mp3.scp
         cat data/dev/mp3.scp | sed "s:./:"$download_data/GV_Dev_5h"/:" > data/temp ; mv data/temp data/dev/mp3.scp
         cat data/train100/mp3.scp | sed "s:./:"$download_data/GV_Train_100h"/:" > data/temp ; mv data/temp data/train100/mp3.scp
-        
+
         for x in train100 dev test; do
-            
+
             fname="data/"$x/"text"
             python3 local/clean_text.py $fname
             cat data/"$x"/text | cut -d' ' -f1 > data/clean_ids
@@ -87,10 +87,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 path=`echo $line | cut -d' ' -f2`
                 id=`echo $line | cut -d' ' -f1`
                 savename=$savefolder"/"$id".wav"
-                sox $path -c 1 $savename rate 16000 
+                sox $path -c 1 $savename rate 16000
                 echo $id$" "$savename >> $savepath
                 done < "data/"$x/"mp3.scp"
-            
+
             utils/utt2spk_to_spk2utt.pl <"data/"$x/"utt2spk" >"data/"$x/"spk2utt"
             utils/fix_data_dir.sh "data/"$x
 
