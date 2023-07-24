@@ -18,6 +18,7 @@ def worker_init_fn(worker_id, base_seed=0):
     random.seed(seed)
     np.random.seed(seed)
 
+
 class RawSampler(AbsSampler):
     def __init__(self, batches):
         self.batches = batches

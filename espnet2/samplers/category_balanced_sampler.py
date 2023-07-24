@@ -13,17 +13,18 @@
 #     utterance_id_b 400,80\n"
 #     utterance_id_c 512,80\n",
 import random
-
-from typing import Iterator, List, Sequence, Tuple, Union
 from collections import Counter
+from typing import Iterator, List, Sequence, Tuple, Union
 
 from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import load_num_sequence_text, read_2columns_text
 from espnet2.samplers.abs_sampler import AbsSampler
 
+
 def round_down(num, divisor):
-        return num - (num%divisor)
+    return num - (num % divisor)
+
 
 class CategoryBalancedSampler(AbsSampler):
     def __init__(
@@ -56,7 +57,7 @@ class CategoryBalancedSampler(AbsSampler):
 
         flattened_cats = []
         for cat in categories:
-            flattened_cats.extend([cat]*len(category2utt[cat]))
+            flattened_cats.extend([cat] * len(category2utt[cat]))
             random.shuffle(category2utt[cat])
 
         rand_idx = random.shuffle(list(range(len(flattened_cats))))
