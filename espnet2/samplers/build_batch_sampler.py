@@ -3,7 +3,7 @@ from typing import List, Sequence, Tuple, Union
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.samplers.abs_sampler import AbsSampler
-from espnet2.samplers.catbel_sampler import CategoryBalancedBatchSampler
+from espnet2.samplers.category_balanced_sampler import CategoryBalancedBatchSampler
 from espnet2.samplers.folded_batch_sampler import FoldedBatchSampler
 from espnet2.samplers.length_batch_sampler import LengthBatchSampler
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
