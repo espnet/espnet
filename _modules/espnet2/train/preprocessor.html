@@ -1841,17 +1841,69 @@
 
         <span class="k">return</span> <span class="n">data</span>
 
+    <span class="k">def</span> <span class="nf">_convolve_rir</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="n">rirs</span><span class="p">):</span>
+        <span class="n">rir_path</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">rirs</span><span class="p">)</span>
+        <span class="n">rir</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">rir_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">rir</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">rir_path</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">,</span> <span class="n">always_2d</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+            <span class="c1"># rir: (Nmic, Time)</span>
+            <span class="n">rir</span> <span class="o">=</span> <span class="n">rir</span><span class="o">.</span><span class="n">T</span>
+
+            <span class="c1"># normalize rir</span>
+            <span class="n">rir</span> <span class="o">=</span> <span class="n">rir</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">rir</span><span class="o">**</span><span class="mi">2</span><span class="p">))</span>
+
+            <span class="c1"># speech: (Nmic, Time)</span>
+            <span class="c1"># Note that this operation doesn&#39;t change the signal length</span>
+            <span class="n">speech</span> <span class="o">=</span> <span class="n">scipy</span><span class="o">.</span><span class="n">signal</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">rir</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="p">:</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="p">]</span>
+        <span class="k">return</span> <span class="n">speech</span><span class="p">,</span> <span class="n">rir</span>
+
+    <span class="k">def</span> <span class="nf">_load_noise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_db</span><span class="p">,</span> <span class="n">noises</span><span class="p">,</span> <span class="n">noise_db_low</span><span class="p">,</span> <span class="n">noise_db_high</span><span class="p">):</span>
+        <span class="n">nsamples</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">noise_path</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span><span class="n">noises</span><span class="p">)</span>
+        <span class="n">noise</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">noise_path</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">noise_snr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">noise_db_low</span><span class="p">,</span> <span class="n">noise_db_high</span><span class="p">)</span>
+            <span class="k">with</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">SoundFile</span><span class="p">(</span><span class="n">noise_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">frames</span> <span class="o">==</span> <span class="n">nsamples</span><span class="p">:</span>
+                    <span class="n">noise</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                <span class="k">elif</span> <span class="n">f</span><span class="o">.</span><span class="n">frames</span> <span class="o">&lt;</span> <span class="n">nsamples</span><span class="p">:</span>
+                    <span class="c1"># noise: (Time,)</span>
+                    <span class="n">noise</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                    <span class="c1"># Repeat noise</span>
+                    <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                        <span class="n">noise</span><span class="p">,</span>
+                        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">nsamples</span> <span class="o">-</span> <span class="n">f</span><span class="o">.</span><span class="n">frames</span><span class="p">),</span>
+                        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;wrap&quot;</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">offset</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">f</span><span class="o">.</span><span class="n">frames</span> <span class="o">-</span> <span class="n">nsamples</span><span class="p">)</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">seek</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                    <span class="c1"># noise: (Time,)</span>
+                    <span class="n">noise</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="n">nsamples</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span> <span class="o">!=</span> <span class="n">nsamples</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Something wrong: </span><span class="si">{</span><span class="n">noise_path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># noise: (Nmic, Time)</span>
+            <span class="n">noise</span> <span class="o">=</span> <span class="n">noise</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+
+            <span class="n">noise_power</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">noise</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">noise_db</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">noise_power</span> <span class="o">+</span> <span class="mf">1e-4</span><span class="p">)</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">10</span> <span class="o">**</span> <span class="p">((</span><span class="n">speech_db</span> <span class="o">-</span> <span class="n">noise_db</span> <span class="o">-</span> <span class="n">noise_snr</span><span class="p">)</span> <span class="o">/</span> <span class="mi">10</span><span class="p">))</span>
+
+            <span class="n">noise</span> <span class="o">=</span> <span class="n">noise</span> <span class="o">*</span> <span class="n">scale</span>
+        <span class="k">return</span> <span class="n">noise</span>
+
     <span class="k">def</span> <span class="nf">_apply_data_augmentation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">):</span>
         <span class="c1"># speech: (Nmic, Time)</span>
         <span class="k">if</span> <span class="n">speech</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">T</span>
-        <span class="c1"># Calc power on non silence region</span>
-        <span class="n">power</span> <span class="o">=</span> <span class="p">(</span><span class="n">speech</span><span class="p">[</span><span class="n">detect_non_silence</span><span class="p">(</span><span class="n">speech</span><span class="p">)]</span> <span class="o">**</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">mean</span><span class="p">()</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rirs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rir_apply_prob</span> <span class="o">&gt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">():</span>
-            <span class="n">speech</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convolve_rir</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">power</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rirs</span><span class="p">)</span>
+            <span class="n">speech</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_convolve_rir</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rirs</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noises</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise_apply_prob</span> <span class="o">&gt;=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">():</span>
             <span class="n">idx</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choices</span><span class="p">(</span>
@@ -1862,19 +1914,23 @@
                 <span class="n">num_to_mix</span> <span class="o">=</span> <span class="n">low</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">num_to_mix</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_to_mix</span><span class="p">):</span>
-                <span class="n">speech</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_add_noise</span><span class="p">(</span>
-                    <span class="n">speech</span><span class="p">,</span>
-                    <span class="n">power</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">noises</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">noise_db_ranges</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">noise_db_ranges</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
-                <span class="p">)</span>
 
-        <span class="n">speech</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">speech</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">ma</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
-            <span class="n">speech</span> <span class="o">/=</span> <span class="n">ma</span>
+            <span class="c1"># add eps of 1e-4 to avoid negative value before log</span>
+            <span class="n">speech_db</span> <span class="o">=</span> <span class="mi">10</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log10</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">speech</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="mf">1e-4</span><span class="p">)</span>
+            <span class="n">noiselist</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_to_mix</span><span class="p">):</span>
+                <span class="n">noise</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_load_noise</span><span class="p">(</span>
+                    <span class="n">speech</span><span class="p">,</span>  <span class="c1"># original speech</span>
+                    <span class="n">speech_db</span><span class="p">,</span>  <span class="c1"># db of speech</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">noises</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span>  <span class="c1"># a list of a type of noise</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">noise_db_ranges</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span>  <span class="c1"># min db</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">noise_db_ranges</span><span class="p">[</span><span class="n">idx</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>  <span class="c1"># max db</span>
+                <span class="p">)</span>
+                <span class="n">noiselist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">noise</span><span class="p">)</span>
+            <span class="n">noise</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">noiselist</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span> <span class="o">+</span> <span class="n">noise</span>
+
+        <span class="n">speech</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">speech</span>
 
     <span class="k">def</span> <span class="nf">_text_process</span><span class="p">(</span>
