@@ -2,6 +2,16 @@
 # each minibatch. If the batch_size is smaller than the number of classes,
 # all samples in the minibatch will belong to different classes.
 # Cross-checked with https://github.com/clovaai/voxceleb_trainer/blob/master/DatasetLoader.py
+# 'key_file' is just a text file which describes each sample name."
+# \n\n"
+#     utterance_id_a\n"
+#     utterance_id_b\n"
+#     utterance_id_c\n"
+# \n"
+# The fist column is referred, so 'shape file' can be used, too.\n\n"
+#     utterance_id_a 100,80\n"
+#     utterance_id_b 400,80\n"
+#     utterance_id_c 512,80\n",
 import random
 
 from typing import Iterator, List, Sequence, Tuple, Union
