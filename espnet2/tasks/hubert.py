@@ -276,25 +276,9 @@ class HubertTask(AbsTask):
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         assert check_argument_types()
-        return HuBERTCollateFn(
-            float_pad_value=0.0,
-            int_pad_value=-1,
-            label_downsampling=args.collate_fn_conf.get("label_downsampling", 1),
-            pad=args.collate_fn_conf.get("pad", False),
-            rand_crop=args.collate_fn_conf.get("rand_crop", True),
-            crop_audio=not args.collect_stats,
-            kernel_size=args.collate_fn_conf["kernel_size"],
-            stride=args.collate_fn_conf["stride"],
-            sample_rate=args.collate_fn_conf["sample_rate"],
-        )
 
-    @classmethod
-    def update_collate_info(cls, args: argparse.Namespace) -> None:
-        assert check_argument_types()
-
-        fs = args.frontend_conf.get("fs", None)
-        # to conduct collate, fs must be included in frontend_conf
-        assert fs is not None, "sample rate is necessary to update collate fn"
+        # default sampling rate is 16000
+        fs = args.frontend_conf.get("fs", 16000)
         if isinstance(fs, str):
             fs = humanfriendly.parse_size(fs)
         sample_rate = fs / 1000
@@ -310,9 +294,20 @@ class HubertTask(AbsTask):
                 _, kernel, stride = conv_config
                 stride_field *= stride
                 reception_field = stride * (reception_field - 1) + kernel
-        args.collate_fn_conf["kernel_size"] = reception_field / sample_rate
-        args.collate_fn_conf["stride"] = stride_field / sample_rate
-        args.collate_fn_conf["sample_rate"] = sample_rate
+
+        window_size = reception_field / sample_rate
+        window_shift = stride_field / sample_rate
+        return HuBERTCollateFn(
+            float_pad_value=0.0,
+            int_pad_value=-1,
+            label_downsampling=args.collate_fn_conf.get("label_downsampling", 1),
+            pad=args.collate_fn_conf.get("pad", False),
+            rand_crop=args.collate_fn_conf.get("rand_crop", True),
+            crop_audio=not args.collect_stats,
+            window_size=window_size,
+            window_shift=window_shift,
+            sample_rate=sample_rate,
+        )
 
     @classmethod
     def build_preprocess_fn(
@@ -431,9 +426,6 @@ class HubertTask(AbsTask):
             num_classes=args.num_classes,
             **args.encoder_conf,
         )
-
-        # collate arguments prepare (process reception field)
-        cls.update_collate_info(args)
 
         # 8. Build model
         try:
