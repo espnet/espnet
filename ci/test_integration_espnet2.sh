@@ -52,7 +52,7 @@ echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_
 
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn, with data augmentation ==="
 ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-    --asr_config "train_asr_rnn_data_aug_debug" \
+    --asr_config "conf/train_asr_rnn_data_aug_debug.yaml" \
     --feats_normalize "utterance_mvn" --python "${python}" \
     --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
 
