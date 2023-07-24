@@ -37,18 +37,18 @@ use_lm=true
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --use_lm ${use_lm} --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" --python "${python}"
+        ./run.sh --use_lm ${use_lm} --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --token-type "${t2}" --python "${python}" --asr-args "--num_workers 0"
     done
     use_lm=false
     echo "==== feats_type=raw_copy, token_types=bpe ==="
     cp -r dump/raw data/
     ./run.sh --use_lm ${use_lm} --ngpu 0 --stage 4 --stop-stage 13 --skip-upload false --feats-type "raw_copy" --token-type "${t2}" \
-        --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test --python "${python}"
+        --train_set raw/train_nodev --valid_set raw/train_dev --test_sets raw/test --python "${python}" --asr-args "--num_workers 0"
 done
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
     --feats_normalize "utterance_mvn" --python "${python}" \
-    --asr-args "--model_conf extract_feats_in_collect_stats=false"
+    --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
 
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn, with data augmentation ==="
 ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
@@ -63,12 +63,12 @@ echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_fe
     --asr-args "--model_conf extract_feats_in_collect_stats=false --encoder=contextual_block_transformer
                 --encoder_conf='{'block_size': 40, 'hop_size': 16, 'look_ahead': 16, 'output_size': 2, 'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
                 --decoder=transformer --decoder_conf='{'attention_heads': 2, 'linear_units': 2, 'num_blocks': 1}'
-                --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded"
+                --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0"
 
 echo "==== Transducer, feats_type=raw, token_types=bpe ==="
 ./run.sh --asr-tag "espnet_model_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false \
     --feats-type "raw" --token-type "bpe" --python "${python}" \
-    --asr-args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 \
+    --asr-args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 --num_workers 0 \
     --best_model_criterion '(valid, loss, min)'" --inference_asr_model "valid.loss.best.pth"
 
 if [ "$(python3 -c "import torch; print(torch.cuda.is_available())")" == "True" ]; then
@@ -78,18 +78,18 @@ if [ "$(python3 -c "import torch; print(torch.cuda.is_available())")" == "True" 
         --asr-tag "train_multi_black_transducer" \
         --asr_args "--decoder transducer --decoder_conf hidden_size=2 --model_conf ctc_weight=0.0 --joint_net_conf joint_space_size=2 \
                     --best_model_criterion '(valid, loss, min)' --model_conf transducer_multi_blank_durations=[2] \
-                    --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded" \
+                    --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0" \
         --inference_asr_model "valid.loss.best.pth" --inference_config "conf/decode_multi_blank_transducer_debug.yaml"
 fi
 
 if python3 -c "import k2" &> /dev/null; then
     echo "==== use_k2, num_paths > nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
     ./run.sh --num_paths 4 --nll_batch_size 2 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-        --feats_normalize "utterance_mvn" --python "${python}" --asr-args "--model_conf extract_feats_in_collect_stats=false"
+        --feats_normalize "utterance_mvn" --python "${python}" --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
 
     echo "==== use_k2, num_paths == nll_batch_size, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
     ./run.sh --num_paths 2 --nll_batch_size 2 --use_k2 true --ngpu 0 --stage 12 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
-       --feats_normalize "utterance_mvn" --python "${python}" --asr-args "--model_conf extract_feats_in_collect_stats=false"
+       --feats_normalize "utterance_mvn" --python "${python}" --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
 fi
 
 if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
@@ -105,7 +105,7 @@ if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
             --asr-args "--model_conf extract_feats_in_collect_stats=false \
                         --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 2, 'linear_size': 4, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
                         --decoder_conf='{'embed_size': 4, 'hidden_size': 4}' --joint_network_conf joint_space_size=4 \
-                        --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded"
+                        --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0"
 
         echo "==== [Streaming Conformer-RNN-T] feats_type=raw, token_types=${t}, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
         ./run.sh --asr_config "" --asr_task "asr_transducer" --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type ${t} \
@@ -115,7 +115,7 @@ if python3 -c "from warprnnt_pytorch import RNNTLoss" &> /dev/null; then
                         --encoder_conf main_conf='{'dynamic_chunk_training': True}' \
                         --encoder_conf body_conf='[{'block_type': 'conformer', 'hidden_size': 2, 'linear_size': 4, 'heads': 2, 'conv_mod_kernel_size': 3}]' \
                         --decoder_conf='{'embed_size': 4, 'hidden_size': 4}' --joint_network_conf joint_space_size=4 \
-                        --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded" \
+                        --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0" \
             --inference-args "--streaming true --decoding_window 160 --left_context 2"
     done
 fi
@@ -139,7 +139,7 @@ done
                 --decoder rnn \
                 --model pit_espnet --model_conf '{'num_inf': 2, 'num_ref': 2}' \
                 --preprocessor multi --preprocessor_conf text_name='['text', 'text_spk2']' \
-                --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded" \
+                --max_epoch 1 --num_iters_per_epoch 1 --batch_size 2 --batch_type folded --num_workers 0" \
     --inference-args "--multi_asr true"
 
 # Remove generated files in order to reduce the disk usage
@@ -150,7 +150,7 @@ cd "${cwd}"
 cd ./egs2/mini_an4/tts1
 gen_dummy_coverage
 echo "==== [ESPnet2] TTS ==="
-./run.sh --ngpu 0 --stage 1 --stop-stage 7 --skip-upload false --python "${python}"
+./run.sh --ngpu 0 --stage 1 --stop-stage 7 --skip-upload false --python "${python}" --train-args "--num_workers 0"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 
@@ -161,7 +161,7 @@ rm -rf exp dump data
 if python3 -c 'import torch as t; from packaging.version import parse as L; assert L(t.__version__) > L("1.6")' &> /dev/null; then
     ./run.sh --fs 22050 --tts_task gan_tts --feats_extract linear_spectrogram --feats_normalize none --inference_model latest.pth \
         --ngpu 0 --stop-stage 7 --skip-upload false --python "${python}" \
-        --train-config "" --train-args "--max_epoch 1 --num_iters_per_epoch 1 --batch_size 1 --batch_type folded"
+        --train-config "" --train-args "--max_epoch 1 --num_iters_per_epoch 1 --batch_size 1 --batch_type folded --num_workers 0"
     rm -rf exp dump data
 fi
 cd "${cwd}"
@@ -186,7 +186,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     rm -r dump
     for t in ${feats_types}; do
         echo "==== feats_type=${t} without preprocessor ==="
-        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}"
+        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" --enh-args "--num_workers 0"
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
@@ -201,9 +201,9 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     feats_types="raw"
     for t in ${feats_types}; do
         echo "==== feats_type=${t} ==="
-        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}"
+        ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" --enh-args "--num_workers 0"
         ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
-            --local_data_opts "--random-enrollment true" --enh_config ./conf/train_random_enrollment_debug.yaml
+            --local_data_opts "--random-enrollment true" --enh_config ./conf/train_random_enrollment_debug.yaml --enh-args "--num_workers 0"
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
@@ -215,7 +215,7 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
     cd ./egs2/mini_an4/ssl1
     gen_dummy_coverage
     echo "==== [ESPnet2] SSL1/HUBERT ==="
-    ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip_upload_hf false --python "${python}"
+    ./run.sh --ngpu 0 --stage 1 --stop-stage 7 --feats-type "raw" --token_type "word" --skip_upload_hf false --python "${python}" --hubert-args "--num_workers 0"
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"
@@ -226,7 +226,7 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     cd ./egs2/mini_an4/enh_asr1
     gen_dummy_coverage
     echo "==== [ESPnet2] ENH_ASR ==="
-    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--enh_separator_conf num_spk=1" --python "${python}"
+    ./run.sh --ngpu 0 --stage 0 --stop-stage 15 --skip-upload_hf false --feats-type "raw" --spk-num 1 --enh_asr_args "--enh_separator_conf num_spk=1 --num_workers 0" --python "${python}"
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data
     cd "${cwd}"
@@ -248,18 +248,18 @@ use_lm=true
 for t in ${feats_types}; do
     for t2 in ${token_types}; do
         echo "==== feats_type=${t}, token_types=${t2} ==="
-        ./run.sh --use_lm ${use_lm} --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --tgt_token_type "${t2}" --src_token_type "${t2}" --python "${python}"
+        ./run.sh --use_lm ${use_lm} --ngpu 0 --stage 6 --stop-stage 13 --skip-upload false --feats-type "${t}" --tgt_token_type "${t2}" --src_token_type "${t2}" --python "${python}" --st-args "--num_workers 0"
     done
     use_lm=false
 done
 echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
-    --feats_normalize "utterance_mvn" --python "${python}" --st-args "--model_conf extract_feats_in_collect_stats=false"
+    --feats_normalize "utterance_mvn" --python "${python}" --st-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
 
 echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --use_streaming true --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --tgt_token_type "bpe" --src_token_type "bpe" \
     --feats_normalize "utterance_mvn" --python "${python}" \
-    --st-config conf/train_st_streaming_debug.yaml --st-args "--model_conf extract_feats_in_collect_stats=false"
+    --st-config conf/train_st_streaming_debug.yaml --st-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
 
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
@@ -269,7 +269,7 @@ cd "${cwd}"
 cd ./egs2/mini_an4/asr2
 gen_dummy_coverage
 echo "==== [ESPnet2] ASR2 ==="
-./run.sh --ngpu 0 --stage 1 --stop-stage 15 --skip-upload false --use-lm false --python "${python}"
+./run.sh --ngpu 0 --stage 1 --stop-stage 15 --skip-upload false --use-lm false --python "${python}" --asr-args "--num_workers 0"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
@@ -278,8 +278,8 @@ cd "${cwd}"
 cd ./egs2/mini_an4/spk1
 gen_dummy_coverage
 echo "==== [ESPnet2] SPK ==="
-./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --python "${python}"
-./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_dataaug_debug.yaml
+./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --python "${python}" --spk-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_dataaug_debug.yaml --spk-args "--num_workers 0"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
