@@ -301,7 +301,6 @@ class HubertTask(AbsTask):
             fs = humanfriendly.parse_size(fs)
         sample_rate = fs / 1000
         
-        logging.info(args.encoder_conf)
         if args.encoder_conf.get("extractor_conv_layer_config", None) is None:
             # corresponding to default conv extractor
             # reer to https://github.com/espnet/espnet/blob/master/espnet2/asr/encoder/hubert_encoder.py
@@ -316,7 +315,6 @@ class HubertTask(AbsTask):
         args.collate_fn_conf["kernel_size"] = reception_field / sample_rate
         args.collate_fn_conf["stride"] = stride_field / sample_rate
         args.collate_fn_conf["sample_rate"] = sample_rate
-        logging.info(args.collate_fn_conf)
 
     @classmethod
     def build_preprocess_fn(
