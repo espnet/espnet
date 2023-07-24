@@ -463,7 +463,9 @@ class EnhS2TTask(AbsTask):
                     noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
                     noise_db_range=getattr(args, "noise_db_range", "13_15"),
                     short_noise_thres=getattr(args, "short_noise_thres", 0.5),
-                    speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
+                    speech_volume_normalize=getattr(
+                        args, "speech_volume_normalize", None
+                    ),
                     speech_name="speech",
                     text_name=["text", "src_text"],
                     **args.preprocessor_conf,
