@@ -55,6 +55,15 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             tts, "discriminator"
         ), "discriminator module must be registered as tts.discriminator"
 
+        if feats_extract is not None:
+            if hasattr(tts.generator, "vocoder"):
+                upsample_factor = tts.generator["vocoder"].upsample_factor
+            else:
+                upsample_factor = tts.generator.upsample_factor
+            assert (
+                feats_extract.get_parameters()["n_shift"] == upsample_factor
+            ), "n_shift must be equal to upsample_factor"
+
     def forward(
         self,
         text: torch.Tensor,
