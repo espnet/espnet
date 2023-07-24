@@ -301,7 +301,7 @@ class HubertTask(AbsTask):
 
         if args.encoder_conf.get("extractor_conv_layer_config", None) is None:
             # corresponding to default conv extractor
-            # reer to https://github.com/espnet/espnet/blob/master/espnet2/asr/encoder/hubert_encoder.py
+            # refer to espnet2/asr/encoder/hubert_encoder.py
             reception_field = 400
             stride_field = 320
         else:
