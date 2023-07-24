@@ -10,6 +10,7 @@ LANGUAGES_CODE_MAPPING = {
     "cs": "czech",
     "cy": "welsh",
     "de": "german",
+    "en": "english",
     "eu": "basque",
     "es": "spanish",
     "fa": "persian",
@@ -47,23 +48,24 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
 
         self.model = model_type
 
-        language = LANGUAGES_CODE_MAPPING.get(language)
-        if language is None:
+        self.language = LANGUAGES_CODE_MAPPING.get(language)
+        if self.language is None:
             raise ValueError("language unsupported for Whisper model")
 
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-        # TODO(Shih-Lun): should support feeding in
-        #                  different languages (default is en)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=language
+                multilingual=True, language=self.language
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(model="{self.model}")'
+        return (
+            f"{self.__class__.__name__}(model_type={self.model}, "
+            f"language={self.language})"
+        )
 
     def text2tokens(self, line: str) -> List[str]:
         return self.tokenizer.tokenizer.tokenize(line, add_special_tokens=False)
