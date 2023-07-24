@@ -269,6 +269,7 @@ class TargetSpeakerExtractionTask(AbsTask):
             force_single_channel=getattr(args, "force_single_channel", False),
             channel_reordering=getattr(args, "channel_reordering", False),
             categories=getattr(args, "categories", None),
+            **args.preprocessor_conf,
         )
         assert check_return_type(retval)
         return retval

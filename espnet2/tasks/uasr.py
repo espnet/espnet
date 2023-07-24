@@ -242,6 +242,7 @@ class UASRTask(AbsTask):
                 bpemodel=args.bpemodel,
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
+                **args.preprocessor_conf,
             )
         else:
             retval = None

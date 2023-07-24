@@ -396,6 +396,7 @@ class EnhancementTask(AbsTask):
                     ),
                     utt2spk=getattr(args, "utt2spk", None),
                     categories=args.preprocessor_conf.get("categories", None),
+                    **args.preprocessor_conf,
                 )
             elif args.preprocessor == "enh":
                 retval = preprocessor_choices.get_class(args.preprocessor)(
@@ -417,6 +418,7 @@ class EnhancementTask(AbsTask):
                     force_single_channel=getattr(args, "force_single_channel", False),
                     channel_reordering=getattr(args, "channel_reordering", False),
                     categories=getattr(args, "categories", None),
+                    **args.preprocessor_conf,
                 )
             else:
                 raise ValueError(
