@@ -6,8 +6,8 @@ from pathlib import Path
 
 from typeguard import check_argument_types
 
-from espnet.utils.cli_utils import get_commandline_args
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
+from espnet.utils.cli_utils import get_commandline_args
 
 
 def export_vocabulary(output: str, whisper_model: str, language: str, log_level: str):
