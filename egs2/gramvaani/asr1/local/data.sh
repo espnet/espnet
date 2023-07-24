@@ -87,7 +87,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 path=`echo $line | cut -d' ' -f2`
                 id=`echo $line | cut -d' ' -f1`
                 savename=$savefolder"/"$id".wav"
-                echo $savename
                 sox $path -c 1 $savename rate 16000 
                 echo $id$" "$savename >> $savepath
                 done < "data/"$x/"mp3.scp"
