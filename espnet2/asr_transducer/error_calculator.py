@@ -18,6 +18,7 @@ class ErrorCalculator:
         token_list: List of token units.
         sym_space: Space symbol.
         sym_blank: Blank symbol.
+        nstep: Maximum number of symbol expansions at each time step w/ mAES.
         report_cer: Whether to compute CER.
         report_wer: Whether to compute WER.
 
@@ -30,17 +31,31 @@ class ErrorCalculator:
         token_list: List[int],
         sym_space: str,
         sym_blank: str,
+        nstep: int = 2,
         report_cer: bool = False,
         report_wer: bool = False,
     ) -> None:
         """Construct an ErrorCalculatorTransducer object."""
         super().__init__()
 
+        # (b-flo): Since the commit #8c9c851 we rely on the mAES algorithm for
+        # validation instead of the default algorithm.
+        #
+        # With the addition of k2 pruned transducer loss, the number of emitted symbols
+        # at each timestep can be restricted during training. Performing an unrestricted
+        # (/ unconstrained) decoding without regard to the training conditions can lead
+        # to huge performance degradation. It won't be an issue with mAES and the user
+        # can now control the number of emitted symbols during validation.
+        #
+        # Also, under certain conditions, using the default algorithm can lead to a long
+        # decoding procedure due to the loop break condition. Other algorithms,
+        # such as mAES, won't be impacted by that.
         self.beam_search = BeamSearchTransducer(
             decoder=decoder,
             joint_network=joint_network,
-            beam_size=1,
-            search_type="default",
+            beam_size=2,
+            search_type="maes",
+            nstep=nstep,
             score_norm=False,
         )
 

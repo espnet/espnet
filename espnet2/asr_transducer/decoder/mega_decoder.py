@@ -264,7 +264,9 @@ class MEGADecoder(AbsDecoder):
             states:
 
         """
-        labels = torch.LongTensor([[h.yseq[-1]] for h in hyps], device=self.device)
+        labels = torch.tensor(
+            [[h.yseq[-1]] for h in hyps], dtype=torch.long, device=self.device
+        )
         states = self.create_batch_states([h.dec_state for h in hyps])
 
         out, states = self.inference(labels, states=states)

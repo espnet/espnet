@@ -1,5 +1,34 @@
 # RESULTS
 
+## Whisper [medium_finetuning](conf/tuning/train_asr_whisper_full_warmup3000.yaml) without LM
+
+## Environments
+- date: `Fri Jul 21 12:47:17 JST 2023`
+- python version: `3.10.10 (main, Mar 21 2023, 18:45:11) [GCC 11.2.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `d7172fcb7181ffdcca9c0061400254b63e37bf21`
+  - Commit date: `Sat Jul 15 15:01:30 2023 +0900`
+- Pretrained URL: [espnet/yoshiki_wsj_whisper_medium_finetuning](https://huggingface.co/espnet/yoshiki_wsj_whisper_medium_finetuning)
+
+- token_type: whisper_multilingual
+- cleaner: whisper_en
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_dev93|503|8132|97.7|2.0|0.4|0.3|2.6|24.9|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_eval92|333|5564|98.5|1.4|0.1|0.2|1.7|19.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_dev93|503|46683|99.4|0.3|0.3|0.2|0.8|24.9|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_eval92|333|32096|99.6|0.2|0.2|0.2|0.6|19.5|
+
+
 ## Self-supervised learning features [HuBERT_large_ll60k, Conformer, utt_mvn](conf/tuning/train_asr_conformer_s3prlfrontend_hubert.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer.yaml)
 
 ### Environments
