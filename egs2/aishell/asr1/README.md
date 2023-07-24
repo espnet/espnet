@@ -52,8 +52,10 @@
 ## Results
 
 - ASR config: [conf/tuning/train_asr_whisper_medium_finetune.yaml](conf/tuning/train_asr_whisper_medium_finetune.yaml)
-- #Params: 762.32 M
-- Model link:
+- Decode config: [conf/tuning/decode_asr_whisper_noctc_beam10.yaml](conf/tuning/decode_asr_whisper_noctc_beam10.yaml)
+- Pretrained Model:
+  - #Params: 762.32 M
+  - Link: [https://huggingface.co/espnet/pengcheng_aishell_asr_train_asr_whisper_medium_finetune_raw_zh_whisper_multilingual_sp](https://huggingface.co/espnet/pengcheng_aishell_asr_train_asr_whisper_medium_finetune_raw_zh_whisper_multilingual_sp) (Note that the model size is very large, ~3GB.)
 
 ### CER
 

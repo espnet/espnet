@@ -7,6 +7,7 @@ from pathlib import Path
 from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 
 
 def export_vocabulary(output: str, whisper_model: str, language: str, log_level: str):
@@ -32,6 +33,10 @@ def export_vocabulary(output: str, whisper_model: str, language: str, log_level:
         p = Path(output)
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
+
+    language = LANGUAGES_CODE_MAPPING.get(language)
+    if language is None:
+        raise ValueError("language unsupported for Whisper model")
 
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)

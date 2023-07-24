@@ -4,6 +4,32 @@ from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
+LANGUAGES_CODE_MAPPING = {
+    "noinfo": "english",  # default, English
+    "ca": "catalan",
+    "cs": "czech",
+    "cy": "welsh",
+    "de": "german",
+    "eu": "basque",
+    "es": "spanish",
+    "fa": "persian",
+    "fr": "french",
+    "it": "italian",
+    "ja": "japanese",
+    "jpn": "japanese",
+    "ko": "korean",
+    "kr": "korean",
+    "nl": "dutch",
+    "pl": "polish",
+    "pt": "portuguese",
+    "ru": "russian",
+    "tt": "tatar",
+    "zh": "chinese",
+    "zh-TW": "chinese",
+    "zh-CN": "chinese",
+    "zh-HK": "chinese",
+}
+
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
     def __init__(self, model_type: str, language: str = "en"):
@@ -20,6 +46,11 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
             raise e
 
         self.model = model_type
+
+        language = LANGUAGES_CODE_MAPPING.get(language)
+        if language is None:
+            raise ValueError("language unsupported for Whisper model")
+
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
         # TODO(Shih-Lun): should support feeding in

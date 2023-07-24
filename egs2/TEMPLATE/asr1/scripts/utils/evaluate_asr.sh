@@ -29,14 +29,19 @@ SECONDS=0
 stage=1
 stop_stage=2
 nj=8
+inference_nj=8
 gpu_inference=false
 fs=16000
+
+# Input data related configuration
+lang=en  # language type of the dataset, like "en", "zh", etc.
 
 # Model related configuration
 model_tag=""
 asr_model_file=""
 lm_file=""
 whisper_tag=""
+whisper_dir=""
 
 # Inference option related configuration
 inference_config=""
@@ -56,8 +61,12 @@ Options:
     --stage          # Processes starts from the specified stage (default="${stage}").
     --stop_stage     # Processes is stopped at the specified stage (default="${stop_stage}").
     --nj             # Number of parallel jobs (default="${nj}").
+    --inference_nj   # Number of parallel jobs in inference (default="${inference_nj}").
     --gpu_inference  # Whether to use gpu in the inference (default="${gpu_inference}").
     --fs             # Sampling rate for ASR model inputs (default="${fs}").
+
+    # Input data related configuration
+    --lang           # The language type of the dataset (default="${lang}").
 
     # Model related configuration
     --model_tag       # Model tag or url available in espnet_model_zoo (default="${model_tag}")
@@ -65,6 +74,7 @@ Options:
     --asr_model_file  # ASR model file path in local (default="${asr_model_file}").
     --lm_file         # LM model file path in local (default="${lm_file}").
     --whisper_tag     # Whisper model tag for evaluation with Whisper (default="${whisper_tag}").
+    --whisper_dir     # Whisper model directory to download (default="${whisper_dir}").
 
     # Inference related configuration
     --inference_config  # ASR inference configuration file (default="${inference_config}").
@@ -82,13 +92,14 @@ Examples:
     $0 --model_tag <model_tag> wav.scp asr_outputs
 
     # Use pretrained model and perform inference and scoring
-    $0 --model_tag <model_tag> --stop-stage 2 --gt_text /path/to/text wav.scp asr_results
+    $0 --model_tag <model_tag> --stop-stage 3 --gt_text /path/to/text wav.scp asr_results
 
     # Use local model and perform inference and scoring
-    $0 --asr_model_file /path/to/model.pth --stop-stage 2 --gt_text /path/to/text wav.scp asr_results
+    $0 --asr_model_file /path/to/model.pth --stop-stage 3 --gt_text /path/to/text wav.scp asr_results
 
     # Use whisper model and perform inference and scoring
-    $0 --whisper_tag small --stop-stage 2 --gt_text /path/to/text wav.scp asr_results
+    $0 --whisper_tag small --whisper_dir /path/to/download --lang en --stop-stage 3 \
+        --gt_text /path/to/text wav.scp asr_results
 
 EOF
 )
@@ -115,8 +126,8 @@ if [ -z "${gt_text}" ] && [ "${stop_stage}" -ge 3 ]; then
     log "--gt_text must be provided if perform scoring."
     exit 1
 fi
-if [ -z "${model_tag}" ] && [ -z "${asr_model_file}" ]; then
-    log "Either --model_tag or --asr_model_file must be provided."
+if [ -z "${model_tag}" ] && [ -z "${asr_model_file}" ] && [ -z "${whisper_tag}" ]; then
+    log "Either --model_tag or --asr_model_file or --whisper_tag must be provided."
     exit 1
 fi
 
@@ -124,6 +135,7 @@ if ${gpu_inference}; then
     # shellcheck disable=SC2154
     _cmd="${cuda_cmd}"
     _ngpu=1
+    inference_nj=1
 else
     # shellcheck disable=SC2154
     _cmd="${decode_cmd}"
@@ -169,7 +181,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # 1. Split the key file
     key_file=${wavscp}
     split_scps=""
-    _nj=$(min "${nj}" "$(wc -l < "${key_file}")")
+    _nj=$(min "${inference_nj}" "$(wc -l < "${key_file}")")
     for n in $(seq "${_nj}"); do
         split_scps+=" ${logdir}/keys.${n}.scp"
     done
@@ -180,13 +192,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "Decoding started... log: '${logdir}/asr_inference.*.log'"
 
     if [ -n "${whisper_tag}" ]; then
+        if [ -z "${whisper_dir}" ]; then
+            whisper_dir=${outdir}/models
+        fi
         # shellcheck disable=SC2046,SC2086
         ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${logdir}"/asr_inference.JOB.log \
             python3 pyscripts/utils/evaluate_whisper_inference.py \
                 --ngpu "${_ngpu}" \
                 --data_path_and_name_and_type "${wavscp}" \
                 --key_file "${logdir}"/keys.JOB.scp \
+                --language "${lang}" \
                 --model_tag ${whisper_tag} \
+                --model_dir ${whisper_dir} \
                 --output_dir "${logdir}"/output.JOB || { cat $(grep -l -i error "${logdir}"/asr_inference.*.log) ; exit 1; }
     else
         # shellcheck disable=SC2046,SC2086
