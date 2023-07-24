@@ -362,6 +362,7 @@ class BeamSearchTransducer:
                     [hyp for hyp in kept_hyps if hyp.score > hyps_max],
                     key=lambda x: x.score,
                 )
+
                 if len(kept_most_prob) >= self.beam_size:
                     kept_hyps = kept_most_prob
                     break

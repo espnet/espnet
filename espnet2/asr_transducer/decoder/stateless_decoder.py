@@ -105,7 +105,9 @@ class StatelessDecoder(AbsDecoder):
             states: Decoder hidden states. None
 
         """
-        labels = torch.LongTensor([[h.yseq[-1]] for h in hyps], device=self.device)
+        labels = torch.tensor(
+            [[h.yseq[-1]] for h in hyps], dtype=torch.long, device=self.device
+        )
         embed = self.embed(labels)
 
         return embed.squeeze(1), None

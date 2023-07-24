@@ -30,6 +30,9 @@ from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES, build_batch_sampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+from espnet2.schedulers.cosine_anneal_warmup_restart import (
+    CosineAnnealingWarmupRestarts,
+)
 from espnet2.schedulers.noam_lr import NoamLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
@@ -151,6 +154,7 @@ scheduler_classes = dict(
     cycliclr=torch.optim.lr_scheduler.CyclicLR,
     onecyclelr=torch.optim.lr_scheduler.OneCycleLR,
     CosineAnnealingWarmRestarts=torch.optim.lr_scheduler.CosineAnnealingWarmRestarts,
+    CosineAnnealingWarmupRestarts=CosineAnnealingWarmupRestarts,
 )
 # To lower keys
 optim_classes = {k.lower(): v for k, v in optim_classes.items()}
@@ -721,6 +725,13 @@ class AbsTask(ABC):
             choices=["descending", "ascending"],
             help="Sort the samples in each mini-batches by the sample "
             'lengths. To enable this, "shape_file" must have the length information.',
+        )
+        group.add_argument(
+            "--shuffle_within_batch",
+            type=str2bool,
+            default=False,
+            help="Shuffles wholes batches in sample-wise. Required for"
+            "Classification tasks normally.",
         )
         group.add_argument(
             "--sort_batch",
@@ -1597,6 +1608,7 @@ class AbsTask(ABC):
             seed=args.seed,
             num_iters_per_epoch=iter_options.num_iters_per_epoch,
             shuffle=iter_options.train,
+            shuffle_within_batch=args.shuffle_within_batch,
             num_workers=args.num_workers,
             collate_fn=iter_options.collate_fn,
             pin_memory=args.ngpu > 0,

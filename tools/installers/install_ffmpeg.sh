@@ -12,6 +12,11 @@ unamem="$(uname -m)"
 dirname=ffmpeg-release
 rm -rf ${dirname}
 
+if [ -x "$(command -v ffmpeg)" ]; then
+    echo "ffmpeg is already installed in system"
+    exit 0
+fi
+
 if [[ ${unames} =~ Linux ]]; then
     if [ "${unamem}" = x86_64 ]; then
         unamem=amd64

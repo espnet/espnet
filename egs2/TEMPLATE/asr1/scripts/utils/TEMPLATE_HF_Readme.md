@@ -108,7 +108,7 @@ $(if [ "${espnet_task}" == "SVS" ]; then
   pages={4277--4281},
   doi={10.21437/Interspeech.2022-10039}
 }';
-f)
+fi)
 \`\`\`
 
 or arXiv:
