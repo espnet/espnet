@@ -74,7 +74,6 @@ class CategoryBalancedSampler(AbsSampler):
             # don't allow more number of samples that belong to each category
             # then n_utt_per_category_in_batch
             if current_batch_stats[flattened_cats[idx]] >= n_utt_per_category_in_batch:
-                tmp_cnt += 1
                 continue
 
             current_batch.append(category2utt[flattened_cats[idx]].pop())
