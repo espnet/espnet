@@ -6,22 +6,6 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
-from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H301
-    HuggingFaceTransformersDecoder,
-)
-from espnet2.asr.decoder.mlm_decoder import MLMDecoder
-from espnet2.asr.decoder.rnn_decoder import RNNDecoder
-from espnet2.asr.decoder.s4_decoder import S4Decoder
-from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
-from espnet2.asr.decoder.transformer_decoder import (
-    DynamicConvolution2DTransformerDecoder,
-    DynamicConvolutionTransformerDecoder,
-    LightweightConvolution2DTransformerDecoder,
-    LightweightConvolutionTransformerDecoder,
-    TransformerDecoder,
-)
-from espnet2.asr.decoder.whisper_decoder import OpenAIWhisperDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -53,12 +37,7 @@ from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.whisper import WhisperFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
-from espnet2.asr.maskctc_model import MaskCTCModel
-from espnet2.asr.pit_espnet_model import ESPnetASRModel as PITESPnetModel
-from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
-from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
-    HuggingFaceTransformersPostEncoder,
-)
+
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -115,26 +94,7 @@ normalize_choices = ClassChoices(
     default="utterance_mvn",
     optional=True,
 )
-model_choices = ClassChoices(
-    "model",
-    classes=dict(
-        espnet=ESPnetAAIModel,
-        maskctc=MaskCTCModel,
-        pit_espnet=PITESPnetModel,
-    ),
-    type_check=AbsESPnetModel,
-    default="espnet",
-)
-preencoder_choices = ClassChoices(
-    name="preencoder",
-    classes=dict(
-        sinc=LightweightSincConvs,
-        linear=LinearProjection,
-    ),
-    type_check=AbsPreEncoder,
-    default=None,
-    optional=True,
-)
+
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
@@ -156,34 +116,6 @@ encoder_choices = ClassChoices(
     ),
     type_check=AbsEncoder,
     default="rnn",
-)
-postencoder_choices = ClassChoices(
-    name="postencoder",
-    classes=dict(
-        hugging_face_transformers=HuggingFaceTransformersPostEncoder,
-    ),
-    type_check=AbsPostEncoder,
-    default=None,
-    optional=True,
-)
-decoder_choices = ClassChoices(
-    "decoder",
-    classes=dict(
-        transformer=TransformerDecoder,
-        lightweight_conv=LightweightConvolutionTransformerDecoder,
-        lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
-        dynamic_conv=DynamicConvolutionTransformerDecoder,
-        dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
-        rnn=RNNDecoder,
-        transducer=TransducerDecoder,
-        mlm=MLMDecoder,
-        whisper=OpenAIWhisperDecoder,
-        hugging_face_transformers=HuggingFaceTransformersDecoder,
-        s4=S4Decoder,
-    ),
-    type_check=AbsDecoder,
-    default=None,
-    optional=True,
 )
 preprocessor_choices = ClassChoices(
     "preprocessor",
@@ -208,17 +140,9 @@ class AAITask(AbsTask):
         specaug_choices,
         # --normalize and --normalize_conf
         normalize_choices,
-        # --model and --model_conf
-        model_choices,
         # --preencoder and --preencoder_conf
-        preencoder_choices,
-        # --encoder and --encoder_conf
         encoder_choices,
         # --postencoder and --postencoder_conf
-        postencoder_choices,
-        # --decoder and --decoder_conf
-        decoder_choices,
-        # --preprocessor and --preprocessor_conf
         preprocessor_choices,
     ]
 
@@ -231,8 +155,13 @@ class AAITask(AbsTask):
 
         # NOTE(kamo): add_arguments(..., required=True) can't be used
         # to provide --print_config mode. Instead of it, do as
-        required = parser.get_default("required")
-
+        group.add_argument(
+            "--ema",
+            type=int_or_none,
+            default=None,
+            help="The number of input dimension of the feature",
+        )
+        
         group.add_argument(
             "--init",
             type=lambda x: str_or_none(x.lower()),
@@ -256,12 +185,12 @@ class AAITask(AbsTask):
         )
 
         group.add_argument(
-            "--joint_net_conf",
+            "--model_conf",
             action=NestedDictAction,
-            default=None,
-            help="The keyword arguments for joint network class.",
+            default=get_default_kwargs(ESPnetAAIModel),
+            help="The keyword arguments for model class.",
         )
-
+        
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
             "--use_preprocessor",
@@ -269,53 +198,8 @@ class AAITask(AbsTask):
             default=True,
             help="Apply preprocessing to data or not",
         )
-        group.add_argument(
-            "--token_type",
-            type=str,
-            default="bpe",
-            choices=[
-                "bpe",
-                "char",
-                "word",
-                "phn",
-                "hugging_face",
-                "whisper_en",
-                "whisper_multilingual",
-            ],
-            help="The text will be tokenized " "in the specified level token",
-        )
-        group.add_argument(
-            "--bpemodel",
-            type=str_or_none,
-            default=None,
-            help="The model file of sentencepiece",
-        )
-        parser.add_argument(
-            "--non_linguistic_symbols",
-            type=str_or_none,
-            help="non_linguistic_symbols file path",
-        )
-        group.add_argument(
-            "--cleaner",
-            type=str_or_none,
-            choices=[
-                None,
-                "tacotron",
-                "jaconv",
-                "vietnamese",
-                "whisper_en",
-                "whisper_basic",
-            ],
-            default=None,
-            help="Apply text cleaning",
-        )
-        group.add_argument(
-            "--g2p",
-            type=str_or_none,
-            choices=g2p_choices,
-            default=None,
-            help="Specify g2p method if --token_type=phn",
-        )
+
+
         group.add_argument(
             "--speech_volume_normalize",
             type=float_or_none,
@@ -433,12 +317,7 @@ class AAITask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        MAX_REFERENCE_NUM = 4
-
-        retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
-        retval = tuple(retval)
-
-        logging.info(f"Optional Data Names: {retval }")
+        retval = tuple()
         assert check_return_type(retval)
         return retval
 
@@ -475,13 +354,7 @@ class AAITask(AbsTask):
 
         # 4. Pre-encoder input block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
-        if getattr(args, "preencoder", None) is not None:
-            preencoder_class = preencoder_choices.get_class(args.preencoder)
-            preencoder = preencoder_class(**args.preencoder_conf)
-            input_size = preencoder.output_size()
-        else:
-            preencoder = None
-
+   
         # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
@@ -489,46 +362,16 @@ class AAITask(AbsTask):
         # 5. Post-encoder block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
         encoder_output_size = encoder.output_size()
-        if getattr(args, "postencoder", None) is not None:
-            postencoder_class = postencoder_choices.get_class(args.postencoder)
-            postencoder = postencoder_class(
-                input_size=encoder_output_size, **args.postencoder_conf
-            )
-            encoder_output_size = postencoder.output_size()
-        else:
-            postencoder = None
-
-        # 5. Decoder
-        if getattr(args, "decoder", None) is not None:
-            decoder_class = decoder_choices.get_class(args.decoder)
-
-            decoder = decoder_class(
-                encoder_output_size=encoder_output_size,
-                **args.decoder_conf,
-            )
-            joint_network = None
-        else:
-            decoder = None
-            joint_network = None
+ 
 
         # 6. CTC
 
         # 7. Build model
-        try:
-            model_class = model_choices.get_class(args.model)
-        except AttributeError:
-            model_class = model_choices.get_class("espnet")
-        model = model_class(
-            vocab_size=0,
-            token_list=[],
+        model = ESPnetAAIModel(
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
-            preencoder=preencoder,
             encoder=encoder,
-            postencoder=postencoder,
-            decoder=decoder,
-            joint_network=joint_network,
             **args.model_conf,
         )
 

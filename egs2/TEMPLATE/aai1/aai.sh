@@ -713,12 +713,12 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     #       but it's used only for deciding the sample ids.
 
     _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},speech,${_type} "
+    _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},ema,${_type} "
     _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_scp},speech,${_type} "
+    _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_scp},ema,${_type} "
     # shellcheck disable=SC2068
-    for i in ${!ref_text_files[@]}; do
-        _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-        _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-    done
+
+    echo $_opts
 
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -795,61 +795,15 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         _opts+="--normalize=global_mvn --normalize_conf stats_file=${aai_stats_dir}/train/feats_stats.npz "
     fi
 
-    if [ "${num_splits_aai}" -gt 1 ]; then
-        # If you met a memory error when parsing text files, this option may help you.
-        # The corpus is split into subsets and each subset is used for training one by one in order,
-        # so the memory footprint can be limited to the memory required for each dataset.
+    
+    _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},speech,${_type} "
+    _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},ema,${_type} "
+    _opts+="--train_shape_file ${aai_stats_dir}/train/speech_shape "
 
-        _split_dir="${aai_stats_dir}/splits${num_splits_aai}"
-        if [ ! -f "${_split_dir}/.done" ]; then
-            rm -f "${_split_dir}/.done"
-            ${python} -m espnet2.bin.split_scps \
-              --scps \
-                  "${_aai_train_dir}/${_scp}" \
-                  "${_aai_train_dir}/text" \
-                  "${aai_stats_dir}/train/speech_shape" \
-                  "${aai_stats_dir}/train/text_shape.${token_type}" \
-              --num_splits "${num_splits_aai}" \
-              --output_dir "${_split_dir}"
-            touch "${_split_dir}/.done"
-        else
-            log "${_split_dir}/.done exists. Spliting is skipped"
-        fi
+    _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_scp},speech,${_type} "
+    _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_scp},ema,${_type} "
+    _opts+="--valid_shape_file ${aai_stats_dir}/train/speech_shape "
 
-        _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-        _opts+="--train_shape_file ${_split_dir}/speech_shape "
-        # shellcheck disable=SC2068
-        for i in ${!ref_text_names[@]}; do
-            _opts+="--fold_length ${aai_text_fold_length} "
-            _opts+="--train_data_path_and_name_and_type ${_split_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-            _opts+="--train_shape_file ${_split_dir}/${ref_text_names[$i]}_shape.${token_type} "
-        done
-        _opts+="--multiple_iterator true "
-
-    else
-        _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},speech,${_type} "
-        _opts+="--train_shape_file ${aai_stats_dir}/train/speech_shape "
-
-        read -r -a aux_list <<< "$auxiliary_data_tags"
-        if [ ${#aux_list[@]} != 0 ]; then
-            _opts+="--allow_variable_data_keys True "
-            for aux_dset in "${aux_list[@]}"; do
-                 _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${aux_dset},text,text "
-            done
-        fi
-        # shellcheck disable=SC2068
-        for i in ${!ref_text_names[@]}; do
-            _opts+="--fold_length ${aai_text_fold_length} "
-            _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-            _opts+="--train_shape_file ${aai_stats_dir}/train/${ref_text_names[$i]}_shape.${token_type} "
-        done
-    fi
-
-    # shellcheck disable=SC2068
-    for i in ${!ref_text_names[@]}; do
-        _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
-        _opts+="--valid_shape_file ${aai_stats_dir}/valid/${ref_text_names[$i]}_shape.${token_type} "
-    done
 
     log "Generate '${aai_exp}/run.sh'. You can resume the process from stage 11 using this script"
     mkdir -p "${aai_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${aai_exp}/run.sh"; chmod +x "${aai_exp}/run.sh"
@@ -873,14 +827,6 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         --multiprocessing_distributed true -- \
         ${python} -m espnet2.bin.${aai_task}_train \
             --use_preprocessor true \
-            --bpemodel "${bpemodel}" \
-            --token_type "${token_type}" \
-            --token_list "${token_list}" \
-            --non_linguistic_symbols "${nlsyms_txt}" \
-            --cleaner "${cleaner}" \
-            --g2p "${g2p}" \
-            --valid_data_path_and_name_and_type "${_aai_valid_dir}/${_scp},speech,${_type}" \
-            --valid_shape_file "${aai_stats_dir}/valid/speech_shape" \
             --resume true \
             ${pretrained_model:+--init_param $pretrained_model} \
             --ignore_init_mismatch ${ignore_init_mismatch} \
