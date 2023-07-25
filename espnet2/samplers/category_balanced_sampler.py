@@ -32,10 +32,12 @@ class CategoryBalancedSampler(AbsSampler):
         batch_size: int,
         min_batch_size: int = 1,
         drop_last: bool = False,
-        category2uttt_file: str = None,
+        category2utt_file: str = None,
+        epoch: int = 1,
     ):
         assert check_argument_types()
         assert batch_size > 0
+        random.seed(epoch)
 
         self.batch_size = batch_size
         self.min_batch_size = min_batch_size
@@ -45,10 +47,10 @@ class CategoryBalancedSampler(AbsSampler):
 
         # dictionary with categories as keys and corresponding utterances
         # as values
-        category2utt = read_2columns_test(category2utt_file)
+        category2utt = read_2columns_text(category2utt_file)
 
         categories = list(category2utt.keys())
-        categories.sort()
+        random.shuffle(categories)
 
         if len(categories) >= self.batch_size:
             n_utt_per_category_in_batch = 1
@@ -57,29 +59,32 @@ class CategoryBalancedSampler(AbsSampler):
 
         flattened_cats = []
         for cat in categories:
+            category2utt[cat] = category2utt[cat].split(" ")
             flattened_cats.extend([cat] * len(category2utt[cat]))
             random.shuffle(category2utt[cat])
 
-        rand_idx = random.shuffle(list(range(len(flattened_cats))))
+        rand_idx = list(range(len(flattened_cats)))
+        random.shuffle(rand_idx)
 
         self.batch_list = []
         current_batch = []
         current_batch_stats = Counter()
         # make minibatches
-        for cat in flattened_cats:
+        for idx in rand_idx:
             # don't allow more number of samples that belong to each category
             # then n_utt_per_category_in_batch
-            if current_batch_stats[cat] >= n_utt_per_category_in_batch:
+            if current_batch_stats[flattened_cats[idx]] >= n_utt_per_category_in_batch:
+                tmp_cnt += 1
                 continue
 
-            current_batch.append(category2utt[cat].pop())
-            current_batch_stats[cat] += 1
+            current_batch.append(category2utt[flattened_cats[idx]].pop())
+            current_batch_stats[flattened_cats[idx]] += 1
 
             # append batch to batch list
             if len(current_batch) == self.batch_size:
                 self.batch_list.append(current_batch)
                 current_batch = []
-                current_batch_cats = Counter()
+                current_batch_stats = Counter()
 
     def __repr__(self):
         return (
