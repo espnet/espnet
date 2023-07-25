@@ -9,7 +9,7 @@ from typeguard import check_argument_types
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def export_vocabulary(output: str, whisper_model: str, log_level: str):
+def export_vocabulary(output: str, whisper_model: str, log_level: str, sot_asr:bool):
     try:
         import whisper.tokenizer
     except Exception as e:
@@ -54,8 +54,13 @@ def export_vocabulary(output: str, whisper_model: str, log_level: str):
     # NOTE (Shih-Lun): extra tokens (for timestamped ASR) not
     #                  stored in the wrapped tokenizer
     full_vocab_size = 51865 if whisper_model == "whisper_multilingual" else 51864
+
     for i in range(full_vocab_size - vocab_size):
         fout.write("()" + "\n")
+
+    if sot_asr:
+        full_vocab_size += 1
+        fout.write("<sc>" + "\n")
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -79,6 +84,13 @@ def get_parser() -> argparse.ArgumentParser:
         type=str,
         required=True,
         help="Whisper model type",
+    )
+
+    parser.add_argument(
+        "--sot_asr",
+        type=bool,
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
     )
 
     return parser

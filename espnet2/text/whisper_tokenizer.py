@@ -1,3 +1,4 @@
+import copy
 from typing import Iterable, List
 
 from typeguard import check_argument_types
@@ -6,7 +7,7 @@ from espnet2.text.abs_tokenizer import AbsTokenizer
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
-    def __init__(self, model_type: str):
+    def __init__(self, model_type: str, sot:bool=False):
         assert check_argument_types()
 
         try:
@@ -30,6 +31,14 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)
+        
+        self.tokenizer = copy.deepcopy(self.tokenizer)
+        timestamps = [f'<|{i*30/1500:.2f}|>' for i in range(0, 1501)]
+        sc = ['<sc>'] if sot else []
+        special_tokens = self.tokenizer.tokenizer.additional_special_tokens + timestamps + sc
+        self.tokenizer.tokenizer.add_special_tokens(
+            dict(additional_special_tokens=special_tokens)
+        )
 
     def __repr__(self):
         return f'{self.__class__.__name__}(model="{self.model}")'

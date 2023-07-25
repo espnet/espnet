@@ -14,6 +14,7 @@ from typeguard import check_argument_types, check_return_type
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 
 
@@ -501,6 +502,13 @@ class CommonPreprocessor_multi(CommonPreprocessor):
             assert (
                 len(self.text_name) == 1
             ), "SOT model with speaker_change_symbol only support single text input."
+
+            if bpemodel in ["whisper_en", "whisper_multilingual"]:
+                self.tokenizer = OpenAIWhisperTokenizer(bpemodel, sot=True)
+                self.token_id_converter = OpenAIWhisperTokenIDConverter(
+                    model_type=bpemodel, sot=True
+                )
+
 
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
