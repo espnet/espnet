@@ -34,6 +34,7 @@ class CategoryBalancedSampler(AbsSampler):
         drop_last: bool = False,
         category2utt_file: str = None,
         epoch: int = 1,
+        **kwargs,
     ):
         assert check_argument_types()
         assert batch_size > 0

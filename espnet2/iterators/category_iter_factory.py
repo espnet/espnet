@@ -1,9 +1,11 @@
 import itertools
+import logging
 import random
 from functools import partial
 from typing import Any, Sequence, Union
 
 import numpy as np
+import torch
 from torch.utils.data import DataLoader
 from typeguard import check_argument_types
 
@@ -79,8 +81,26 @@ class CategoryIterFactory(AbsIterFactory):
 
         # rebuild sampler
         if epoch > 1:
-            sampler_args["epoch"] = epoch
-            self.sampler = CategoryBalancedSampler(**self.sampler_args)
+            self.sampler_args["epoch"] = epoch
+            batch_sampler = CategoryBalancedSampler(**self.sampler_args)
+            batches = list(batch_sampler)
+
+            if self.sampler_args["num_batches"] is not None:
+                batches = batches[: self.sampler_args.num_batches]
+
+            bs_list = [len(batch) for batch in batches]
+
+            if self.sampler_args["distributed"]:
+                world_size = torch.distributed.get_world_size()
+                rank = torch.distributed.get_rank()
+                for batch in batches:
+                    if len(batch) < world_size:
+                        raise RuntimeError(
+                            f"The batch-size must be equal or more than world_size: "
+                            f"{len(batch)} < {world_size}"
+                        )
+                batches = [batch[rank::world_size] for batch in batches]
+            self.sampler = RawSampler(batches)
 
         if self.num_iters_per_epoch is not None:
             N = len(self.sampler)
