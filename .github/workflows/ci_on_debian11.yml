@@ -1,4 +1,4 @@
-name: debian11
+name: ci on debian11
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  test_debian11:
+  unit_test_espnet1_and_espnet2_on_debian11:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     container:
