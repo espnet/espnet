@@ -224,17 +224,6 @@ espnet2.asr_transducer.encoder.modules.positional_encoding
     :show-inheritance:
 
 
-.. _espnet2.asr_transducer.encoder.modules.normalization:
-
-espnet2.asr_transducer.encoder.modules.normalization
-----------------------------------------------------
-
-.. automodule:: espnet2.asr_transducer.encoder.modules.normalization
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.asr_transducer.encoder.modules.convolution:
 
 espnet2.asr_transducer.encoder.modules.convolution

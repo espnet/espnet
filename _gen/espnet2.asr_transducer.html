@@ -155,7 +155,6 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-encoder-blocks-init-1">espnet2.asr_transducer.encoder.blocks.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-encoder-modules-multi-blocks-1">espnet2.asr_transducer.encoder.modules.multi_blocks</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-encoder-modules-positional-encoding-1">espnet2.asr_transducer.encoder.modules.positional_encoding</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-encoder-modules-normalization-1">espnet2.asr_transducer.encoder.modules.normalization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-encoder-modules-convolution-1">espnet2.asr_transducer.encoder.modules.convolution</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-encoder-modules-attention-1">espnet2.asr_transducer.encoder.modules.attention</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-encoder-modules-init-1">espnet2.asr_transducer.encoder.modules.__init__</a></li>
@@ -1310,7 +1309,7 @@ module can see in current chunk.</p></li>
 <li><p><strong>short_chunk_size</strong> – Minimum number of frames during dynamic chunk training.</p></li>
 <li><p><strong>num_left_chunks</strong> – Number of left chunks the attention module can see.
 (null or negative value means full context)</p></li>
-<li><p><strong>**activations_parameters</strong> – Parameters of the activation functions.
+<li><p><strong>**activation_parameters</strong> – Parameters of the activation functions.
 (See espnet2/asr_transducer/activation.py)</p></li>
 </ul>
 </dd>
@@ -1996,126 +1995,6 @@ in current chunk.</p></li>
 </dl>
 </dd></dl>
 
-</dd></dl>
-
-</section>
-<section id="espnet2-asr-transducer-encoder-modules-normalization-1">
-<span id="espnet2-asr-transducer-encoder-modules-normalization"></span><h2>espnet2.asr_transducer.encoder.modules.normalization<a class="headerlink" href="#espnet2-asr-transducer-encoder-modules-normalization-1" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.asr_transducer.encoder.modules.normalization"></span><p>Normalization modules for X-former blocks.</p>
-<dl class="class">
-<dt id="espnet2.asr_transducer.encoder.modules.normalization.BasicNorm">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr_transducer.encoder.modules.normalization.</code><code class="sig-name descname">BasicNorm</code><span class="sig-paren">(</span><em class="sig-param">normalized_shape: int</em>, <em class="sig-param">eps: float = 0.25</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr_transducer/encoder/modules/normalization.html#BasicNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.encoder.modules.normalization.BasicNorm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>BasicNorm module definition.</p>
-<p>Reference: <a class="reference external" href="https://github.com/k2-fsa/icefall/pull/288">https://github.com/k2-fsa/icefall/pull/288</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>normalized_shape</strong> – Expected size.</p></li>
-<li><p><strong>eps</strong> – Value added to the denominator for numerical stability.</p></li>
-</ul>
-</dd>
-</dl>
-<p>Construct a BasicNorm object.</p>
-<dl class="method">
-<dt id="espnet2.asr_transducer.encoder.modules.normalization.BasicNorm.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/asr_transducer/encoder/modules/normalization.html#BasicNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.encoder.modules.normalization.BasicNorm.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute basic normalization.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>x</strong> – Input sequences. (B, T, D_hidden)</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Output sequences. (B, T, D_hidden)</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="espnet2.asr_transducer.encoder.modules.normalization.RMSNorm">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr_transducer.encoder.modules.normalization.</code><code class="sig-name descname">RMSNorm</code><span class="sig-paren">(</span><em class="sig-param">normalized_shape: int</em>, <em class="sig-param">eps: float = 1e-05</em>, <em class="sig-param">partial: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr_transducer/encoder/modules/normalization.html#RMSNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.encoder.modules.normalization.RMSNorm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>RMSNorm module definition.</p>
-<p>Reference: <a class="reference external" href="https://arxiv.org/pdf/1910.07467.pdf">https://arxiv.org/pdf/1910.07467.pdf</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>normalized_shape</strong> – Expected size.</p></li>
-<li><p><strong>eps</strong> – Value added to the denominator for numerical stability.</p></li>
-<li><p><strong>partial</strong> – Value defining the part of the input used for RMS stats.</p></li>
-</ul>
-</dd>
-</dl>
-<p>Construct a RMSNorm object.</p>
-<dl class="method">
-<dt id="espnet2.asr_transducer.encoder.modules.normalization.RMSNorm.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/asr_transducer/encoder/modules/normalization.html#RMSNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.encoder.modules.normalization.RMSNorm.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute RMS normalization.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>x</strong> – Input sequences. (B, T, D_hidden)</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Output sequences. (B, T, D_hidden)</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>x</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="espnet2.asr_transducer.encoder.modules.normalization.ScaleNorm">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr_transducer.encoder.modules.normalization.</code><code class="sig-name descname">ScaleNorm</code><span class="sig-paren">(</span><em class="sig-param">normalized_shape: int</em>, <em class="sig-param">eps: float = 1e-05</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr_transducer/encoder/modules/normalization.html#ScaleNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.encoder.modules.normalization.ScaleNorm" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>ScaleNorm module definition.</p>
-<p>Reference: <a class="reference external" href="https://arxiv.org/pdf/1910.05895.pdf">https://arxiv.org/pdf/1910.05895.pdf</a></p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>normalized_shape</strong> – Expected size.</p></li>
-<li><p><strong>eps</strong> – Value added to the denominator for numerical stability.</p></li>
-</ul>
-</dd>
-</dl>
-<p>Construct a ScaleNorm object.</p>
-<dl class="method">
-<dt id="espnet2.asr_transducer.encoder.modules.normalization.ScaleNorm.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/asr_transducer/encoder/modules/normalization.html#ScaleNorm.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.encoder.modules.normalization.ScaleNorm.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute scale normalization.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>x</strong> – Input sequences. (B, T, D_hidden)</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Output sequences. (B, T, D_hidden)</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="function">
-<dt id="espnet2.asr_transducer.encoder.modules.normalization.get_normalization">
-<code class="sig-prename descclassname">espnet2.asr_transducer.encoder.modules.normalization.</code><code class="sig-name descname">get_normalization</code><span class="sig-paren">(</span><em class="sig-param">normalization_type: str</em>, <em class="sig-param">eps: Optional[float] = None</em>, <em class="sig-param">partial: Optional[float] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.nn.modules.module.Module, Dict]<a class="reference internal" href="../_modules/espnet2/asr_transducer/encoder/modules/normalization.html#get_normalization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr_transducer.encoder.modules.normalization.get_normalization" title="Permalink to this definition">¶</a></dt>
-<dd><p>Get normalization module and arguments given parameters.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>normalization_type</strong> – Normalization module type.</p></li>
-<li><p><strong>eps</strong> – Value added to the denominator.</p></li>
-<li><p><strong>partial</strong> – Value defining the part of the input used for RMS stats (RMSNorm).</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>Normalization module class
-: Normalization module arguments</p>
-</dd>
-</dl>
 </dd></dl>
 
 </section>
