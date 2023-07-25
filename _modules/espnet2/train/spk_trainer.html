@@ -209,11 +209,18 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.train.spk_trainer</h1><div class="highlight"><pre>
-<span></span><span class="sd">&quot;&quot;&quot;Trainer module for speaker recognition.&quot;&quot;&quot;</span>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">Trainer module for speaker recognition.</span>
+<span class="sd">In speaker recognition (embedding extractor training/inference),</span>
+<span class="sd">calculating validation loss in closed set is not informative since</span>
+<span class="sd">generalization in unseen utterances from known speakers are good in most cases.</span>
+<span class="sd">Thus, we measure open set equal error rate (EER) using unknown speakers by</span>
+<span class="sd">overriding validate_one_epoch.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">dataclasses</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
 <span class="kn">from</span> <span class="nn">dataclasses</span> <span class="kn">import</span> <span class="n">is_dataclass</span>
 <span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
@@ -283,41 +290,64 @@
 
         <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">spk_embd_dic</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="mi">0</span>
+
         <span class="c1"># [For distributed] Because iteration counts are not always equals between</span>
         <span class="c1"># processes, send stop-flag to the other processes if iterator is finished</span>
         <span class="n">iterator_stop</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+        <span class="c1"># fill dictionary with speech samples</span>
+        <span class="n">utt_id_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">speech_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">for</span> <span class="n">utt_id</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+            <span class="n">bs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">utt_id</span><span class="p">))</span>
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">_utt_id</span><span class="p">,</span> <span class="n">_speech</span><span class="p">,</span> <span class="n">_speech2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">utt_id</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech2&quot;</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="n">_utt_id_1</span><span class="p">,</span> <span class="n">_utt_id_2</span> <span class="o">=</span> <span class="n">_utt_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">_utt_id_1</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">utt_id_list</span><span class="p">:</span>
+                    <span class="n">utt_id_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_utt_id_1</span><span class="p">)</span>
+                    <span class="n">speech_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_speech</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">_utt_id_2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">utt_id_list</span><span class="p">:</span>
+                    <span class="n">utt_id_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_utt_id_2</span><span class="p">)</span>
+                    <span class="n">speech_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_speech2</span><span class="p">)</span>
+
+        <span class="c1"># extract speaker embeddings.</span>
+        <span class="n">n_utt</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">utt_id_list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">ii</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">n_utt</span><span class="p">,</span> <span class="n">bs</span><span class="p">):</span>
+            <span class="n">_utt_ids</span> <span class="o">=</span> <span class="n">utt_id_list</span><span class="p">[</span><span class="n">ii</span> <span class="p">:</span> <span class="n">ii</span> <span class="o">+</span> <span class="n">bs</span><span class="p">]</span>
+            <span class="n">_speechs</span> <span class="o">=</span> <span class="n">speech_list</span><span class="p">[</span><span class="n">ii</span> <span class="p">:</span> <span class="n">ii</span> <span class="o">+</span> <span class="n">bs</span><span class="p">]</span>
+            <span class="n">_speechs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">_speechs</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">org_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">_speechs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">_speechs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">_speechs</span> <span class="o">=</span> <span class="n">_speechs</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">_speechs</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">_speechs</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+            <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">speech</span><span class="o">=</span><span class="n">_speechs</span><span class="p">,</span> <span class="n">spk_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extract_embd</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">spk_embds</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">spk_embds</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">org_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">org_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">_utt_id</span><span class="p">,</span> <span class="n">_spk_embd</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">_utt_ids</span><span class="p">,</span> <span class="n">spk_embds</span><span class="p">):</span>
+                <span class="n">spk_embd_dic</span><span class="p">[</span><span class="n">_utt_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">_spk_embd</span>
+
+        <span class="k">del</span> <span class="n">utt_id_list</span>
+        <span class="k">del</span> <span class="n">speech_list</span>
+
+        <span class="c1"># calculate similarity scores</span>
+        <span class="k">for</span> <span class="n">utt_id</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;spk_labels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span>
+                <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;spk_labels&quot;</span><span class="p">],</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+            <span class="p">)</span>
+
             <span class="k">if</span> <span class="n">distributed</span><span class="p">:</span>
                 <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">all_reduce</span><span class="p">(</span><span class="n">iterator_stop</span><span class="p">,</span> <span class="n">ReduceOp</span><span class="o">.</span><span class="n">SUM</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">iterator_stop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="k">break</span>
 
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;utt_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">utt_id</span>
-
-            <span class="n">batch</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">no_forward_run</span><span class="p">:</span>
-                <span class="k">continue</span>
-
-            <span class="n">org_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-            <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech2&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech2&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-
-            <span class="n">speech_embds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
-                <span class="n">speech</span><span class="o">=</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">],</span> <span class="n">spk_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extract_embd</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span>
-            <span class="n">speech2_embds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
-                <span class="n">speech</span><span class="o">=</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech2&quot;</span><span class="p">],</span> <span class="n">spk_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extract_embd</span><span class="o">=</span><span class="kc">True</span>
-            <span class="p">)</span>
-
-            <span class="n">speech_embds</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">speech_embds</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">speech2_embds</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">speech2_embds</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-
-            <span class="n">speech_embds</span> <span class="o">=</span> <span class="n">speech_embds</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">org_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">org_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">speech2_embds</span> <span class="o">=</span> <span class="n">speech2_embds</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">org_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">org_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">speech_embds</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
-                <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">speech_embds</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">speech2_embds</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">_utt_id</span> <span class="ow">in</span> <span class="n">utt_id</span><span class="p">:</span>
+                <span class="n">_utt_id_1</span><span class="p">,</span> <span class="n">_utt_id_2</span> <span class="o">=</span> <span class="n">_utt_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span>
+                <span class="n">score</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cdist</span><span class="p">(</span><span class="n">spk_embd_dic</span><span class="p">[</span><span class="n">_utt_id_1</span><span class="p">],</span> <span class="n">spk_embd_dic</span><span class="p">[</span><span class="n">_utt_id_2</span><span class="p">])</span>
                 <span class="n">score</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
                 <span class="n">scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>  <span class="c1"># 0-dim to 1-dim tensor for cat</span>
             <span class="n">labels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">batch</span><span class="p">[</span><span class="s2">&quot;spk_labels&quot;</span><span class="p">])</span>
@@ -329,6 +359,7 @@
 
         <span class="n">scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span><span class="o">.</span><span class="n">type</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="n">distributed</span><span class="p">:</span>
             <span class="c1"># get the number of trials assigned on each GPU</span>
             <span class="n">length</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span>
@@ -358,6 +389,22 @@
         <span class="n">scores</span> <span class="o">=</span> <span class="n">scores</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
 
+        <span class="c1"># calculate statistics in target and nontarget classes.</span>
+        <span class="n">n_trials</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
+        <span class="n">scores_trg</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">scores_nontrg</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">_s</span><span class="p">,</span> <span class="n">_l</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">labels</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">_l</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">scores_trg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_s</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">_l</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">scores_nontrg</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_s</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">_l</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">_l</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">trg_mean</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores_trg</span><span class="p">))</span>
+        <span class="n">trg_std</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">scores_trg</span><span class="p">))</span>
+        <span class="n">nontrg_mean</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">scores_nontrg</span><span class="p">))</span>
+        <span class="n">nontrg_std</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">scores_nontrg</span><span class="p">))</span>
+
         <span class="c1"># exception for collect_stats.</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="n">reporter</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">stats</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">eer</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">mindcf</span><span class="o">=</span><span class="mf">1.0</span><span class="p">))</span>
@@ -372,7 +419,17 @@
         <span class="n">p_trg</span><span class="p">,</span> <span class="n">c_miss</span><span class="p">,</span> <span class="n">c_fa</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
         <span class="n">mindcf</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ComputeMinDcf</span><span class="p">(</span><span class="n">fnrs</span><span class="p">,</span> <span class="n">fprs</span><span class="p">,</span> <span class="n">thresholds</span><span class="p">,</span> <span class="n">p_trg</span><span class="p">,</span> <span class="n">c_miss</span><span class="p">,</span> <span class="n">c_fa</span><span class="p">)</span>
 
-        <span class="n">reporter</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="n">stats</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">eer</span><span class="o">=</span><span class="n">eer</span><span class="p">,</span> <span class="n">mindcf</span><span class="o">=</span><span class="n">mindcf</span><span class="p">))</span></div></div>
+        <span class="n">reporter</span><span class="o">.</span><span class="n">register</span><span class="p">(</span>
+            <span class="n">stats</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+                <span class="n">eer</span><span class="o">=</span><span class="n">eer</span><span class="p">,</span>
+                <span class="n">mindcf</span><span class="o">=</span><span class="n">mindcf</span><span class="p">,</span>
+                <span class="n">n_trials</span><span class="o">=</span><span class="n">n_trials</span><span class="p">,</span>
+                <span class="n">trg_mean</span><span class="o">=</span><span class="n">trg_mean</span><span class="p">,</span>
+                <span class="n">trg_std</span><span class="o">=</span><span class="n">trg_std</span><span class="p">,</span>
+                <span class="n">nontrg_mean</span><span class="o">=</span><span class="n">nontrg_mean</span><span class="p">,</span>
+                <span class="n">nontrg_std</span><span class="o">=</span><span class="n">nontrg_std</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="p">)</span></div></div>
 </pre></div>
 
            </div>

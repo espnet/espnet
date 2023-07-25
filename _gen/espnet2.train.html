@@ -210,7 +210,12 @@
 <h1>espnet2.train package<a class="headerlink" href="#espnet2-train-package" title="Permalink to this headline">¶</a></h1>
 <section id="espnet2-train-spk-trainer-1">
 <span id="espnet2-train-spk-trainer"></span><h2>espnet2.train.spk_trainer<a class="headerlink" href="#espnet2-train-spk-trainer-1" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.train.spk_trainer"></span><p>Trainer module for speaker recognition.</p>
+<span class="target" id="module-espnet2.train.spk_trainer"></span><p>Trainer module for speaker recognition.
+In speaker recognition (embedding extractor training/inference),
+calculating validation loss in closed set is not informative since
+generalization in unseen utterances from known speakers are good in most cases.
+Thus, we measure open set equal error rate (EER) using unknown speakers by
+overriding validate_one_epoch.</p>
 <dl class="class">
 <dt id="espnet2.train.spk_trainer.SpkTrainer">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.spk_trainer.</code><code class="sig-name descname">SpkTrainer</code><a class="reference internal" href="../_modules/espnet2/train/spk_trainer.html#SpkTrainer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.spk_trainer.SpkTrainer" title="Permalink to this definition">¶</a></dt>
