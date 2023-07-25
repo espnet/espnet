@@ -1,7 +1,8 @@
 # Sampler that keeps equally distributed categories (i.e., classes) within
 # each minibatch. If the batch_size is smaller than the number of classes,
 # all samples in the minibatch will belong to different classes.
-# Cross-checked with https://github.com/clovaai/voxceleb_trainer/blob/master/DatasetLoader.py
+# Cross-checked with https://github.com/clovaai/voxceleb_trainer/blob/master/
+# DatasetLoader.py
 # 'key_file' is just a text file which describes each sample name."
 # \n\n"
 #     utterance_id_a\n"
