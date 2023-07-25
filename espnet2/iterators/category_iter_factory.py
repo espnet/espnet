@@ -67,7 +67,6 @@ class CategoryIterFactory(AbsIterFactory):
         self.num_iters_per_epoch = num_iters_per_epoch
         self.sampler_args = sampler_args
         self.shuffle = shuffle
-        self.shuffle_within_batch = shuffle_within_batch
         self.seed = seed
         self.num_workers = num_workers
         self.collate_fn = collate_fn
@@ -80,6 +79,7 @@ class CategoryIterFactory(AbsIterFactory):
 
         # rebuild sampler
         if epoch > 1:
+            sampler_args["epoch"] = epoch
             self.sampler = CategoryBalancedSampler(**self.sampler_args)
 
         if self.num_iters_per_epoch is not None:
