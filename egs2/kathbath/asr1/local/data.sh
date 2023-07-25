@@ -46,7 +46,7 @@ download_data="${KATHBATH}"
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${KATHBATH}/download_done" ]; then
-        echo "stage 1: Data Download to ${LIBRISPEECH}"
+        echo "stage 1: Data Download to ${KATHBATH}"
         for data_url in $noisy_test_known_data_url $noisy_test_unknown_data_url $transcript_noisy_url; do
             if ! wget -P $download_data --no-check-certificate $data_url; then
                 echo "$0: error executing wget $data_url"
