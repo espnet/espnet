@@ -83,7 +83,7 @@ class DataAugmentation:
         for effect in weighted_sample_without_replacement(
             self.effects, weights=self.effect_probs, k=apply_n
         ):
-            if isinstance(effect[0], list):
+            if isinstance(effect[1], list):
                 probs = [tup[0] for tup in effect]
                 _, eff, eff_args = weighted_sample_without_replacement(
                     effect, weights=probs, k=1

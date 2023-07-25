@@ -35,8 +35,8 @@ preprocessor_conf:
         - [0.1, "contrast", {"enhancement_amount": 75.0}]
         - [0.1, "highpass", {"cutoff_freq": 5000, "Q": 0.707}]
         - - 0.1
-          - [0.1, "clipping", {"min_quantile": 0.05, "max_quantile": 0.95}]
-          - [0.1, "corrupt_phase", {"scale": 0.1, "n_fft": 0.032, "hop_length": 0.008}]
+          - - [0.3, "clipping", {"min_quantile": 0.05, "max_quantile": 0.95}]
+            - [0.3, "corrupt_phase", {"scale": 0.1, "n_fft": 0.032, "hop_length": 0.008}]
     data_aug_num: [1, 4]
     data_aug_prob: 1.0
 
