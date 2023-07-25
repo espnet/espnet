@@ -41,18 +41,18 @@ num_workers: 2
 batch_type: numel
 batch_bins: 8000000
 accum_grad: 4
-max_epoch: 13
+max_epoch: 3
 patience: none
 init: none
 best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 5
+keep_nbest_models: 1
 
 optim: adam
 optim_conf:
-    lr: 0.0005
+    lr: 0.000001
     weight_decay: 0.000001
 scheduler: warmuplr
 scheduler_conf:
