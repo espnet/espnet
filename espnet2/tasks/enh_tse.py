@@ -332,7 +332,7 @@ class TargetSpeakerExtractionTask(AbsTask):
             extractor=extractor,
             decoder=decoder,
             loss_wrappers=loss_wrappers,
-            **args.model_conf
+            **args.model_conf,
         )
 
         # FIXME(kamo): Should be done in model?
