@@ -772,6 +772,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
     _audio_format="$(cat ${_aai_train_dir}/audio_format 2>/dev/null || echo ${audio_format})"
     if [ "${_feats_type}" = raw ]; then
         _scp=wav.scp
+        _ema=text
         # "sound" supports "wav", "flac", etc.
         if [[ "${_audio_format}" == *ark* ]]; then
             _type=kaldi_ark
@@ -797,11 +798,11 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
 
     
     _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},speech,${_type} "
-    _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},ema,${_type} "
+    _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_ema},ema,pth "
     _opts+="--train_shape_file ${aai_stats_dir}/train/speech_shape "
 
     _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_scp},speech,${_type} "
-    _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_scp},ema,${_type} "
+    _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_ema},ema,pth "
     _opts+="--valid_shape_file ${aai_stats_dir}/train/speech_shape "
 
 

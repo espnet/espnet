@@ -309,7 +309,6 @@ class AAITask(AbsTask):
         if not inference:
             retval = ("speech", "ema")
         else:
-            # Recognition mode
             retval = ("speech",)
         return retval
 
@@ -325,48 +324,32 @@ class AAITask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetAAIModel:
         assert check_argument_types()
 
-        # 1. frontend
         if args.input_size is None:
-            # Extract features in the model
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
             input_size = frontend.output_size()
         else:
-            # Give features from data-loader
             args.frontend = None
             args.frontend_conf = {}
             frontend = None
             input_size = args.input_size
 
-        # 2. Data augmentation for spectrogram
         if args.specaug is not None:
             specaug_class = specaug_choices.get_class(args.specaug)
             specaug = specaug_class(**args.specaug_conf)
         else:
             specaug = None
 
-        # 3. Normalization layer
         if args.normalize is not None:
             normalize_class = normalize_choices.get_class(args.normalize)
             normalize = normalize_class(**args.normalize_conf)
         else:
             normalize = None
 
-        # 4. Pre-encoder input block
-        # NOTE(kan-bayashi): Use getattr to keep the compatibility
-   
-        # 4. Encoder
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
-        # 5. Post-encoder block
-        # NOTE(kan-bayashi): Use getattr to keep the compatibility
-        encoder_output_size = encoder.output_size()
- 
 
-        # 6. CTC
-
-        # 7. Build model
         model = ESPnetAAIModel(
             frontend=frontend,
             specaug=specaug,
@@ -375,8 +358,6 @@ class AAITask(AbsTask):
             **args.model_conf,
         )
 
-        # FIXME(kamo): Should be done in model?
-        # 8. Initialize
         if args.init is not None:
             initialize(model, args.init)
 

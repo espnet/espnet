@@ -16,6 +16,7 @@ from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.fileio.npy_scp import NpyScpReader
+from espnet2.fileio.pth_scp import PthScpReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
     IntRandomGenerateDataset,
@@ -263,6 +264,15 @@ DATA_TYPES = {
         "   utterance_id_B /some/where/b.npy\n"
         "   ...",
     ),
+    "pth": dict(
+        func=PthScpReader,
+        kwargs=[],
+        help="Pth file format."
+        "\n\n"
+        "   utterance_id_A /some/where/a.pt\n"
+        "   utterance_id_B /some/where/b.pt\n"
+        "   ...",
+    ),
     "text_int": dict(
         func=functools.partial(load_num_sequence_text, loader_type="text_int"),
         kwargs=[],
@@ -445,7 +455,7 @@ class ESPnetDataset(AbsDataset):
 
         Args:
             path:  The file path
-            loader_type:  loader_type. sound, npy, text_int, text_float, etc
+            loader_type:  loader_type. sound, npy, pth, text_int, text_float, etc
         """
         for key, dic in DATA_TYPES.items():
             # e.g. loader_type="sound"

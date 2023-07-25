@@ -87,8 +87,6 @@ class ESPnetAAIModel(AbsESPnetModel):
         ), (speech.shape, speech_lengths.shape, ema.shape)
         batch_size = speech.shape[0]
 
-
-
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
         intermediate_outs = None
@@ -104,10 +102,10 @@ class ESPnetAAIModel(AbsESPnetModel):
         )
 
         stats["loss_aai"] = loss_mse.detach()
-        stats["cc_aai"] = cer_ctc
-        stats["loss"] = loss.detach()
+        stats["cc_aai"] = cc
+        stats["loss"] = loss_mse.detach()
 
-        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+        loss, stats, weight = force_gatherable((loss_mse, stats, batch_size), loss_mse.device)
         return loss, stats, weight
 
     def collect_feats(
@@ -138,7 +136,6 @@ class ESPnetAAIModel(AbsESPnetModel):
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)       
 
-        
         encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
         
 
@@ -154,7 +151,6 @@ class ESPnetAAIModel(AbsESPnetModel):
                 encoder_out.size(),
                 encoder_out_lens.max(),
             )
-
         return encoder_out, encoder_out_lens
 
     def _extract_feats(
@@ -181,13 +177,23 @@ class ESPnetAAIModel(AbsESPnetModel):
         encoder_out: torch.Tensor,
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
-    ):
+    ):  
+        lossfn = torch.nn.MSELoss(reduction="mean")
+        
+        lens = min(encoder_out.shape[1], ys_pad.shape[1])
+        encoder_out = encoder_out[:, :lens, :]
+        ys_pad = ys_pad[:, :lens, :]
+        encoder_out_lens = [min(x, lens) for x in encoder_out_lens]
         # Calc CTC loss
-        loss_ctc = self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
-
+        # loss_ctc = self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+        for i in range(encoder_out.shape[0]):
+            if i == 0:
+                loss = lossfn(encoder_out[i, :encoder_out_lens[i], :], ys_pad[i, :encoder_out_lens[i], :])
+            else:
+                loss = loss + lossfn(encoder_out[i, :encoder_out_lens[i], :], ys_pad[i, :encoder_out_lens[i], :])
         # Calc CER using CTC
-        cer_ctc = None
-        if not self.training and self.error_calculator is not None:
-            ys_hat = self.ctc.argmax(encoder_out).data
-            cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
-        return loss_ctc, cc
+        # cer_ctc = None
+        # if not self.training and self.error_calculator is not None:
+        #     ys_hat = self.ctc.argmax(encoder_out).data
+        #     cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
+        return loss, 0
