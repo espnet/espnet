@@ -8,6 +8,34 @@ from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.scorer_interface import BatchScorerInterface
 
 
+
+class ExpandedTokenEmbedding(torch.nn.Module):
+
+    def __init__(self, ori_emebedding, additional_size):
+        super().__init__()
+        self.ori_emb = ori_emebedding
+
+        orig_emb_std, orig_emb_mean = torch.std_mean(
+            ori_emebedding.weight
+        )
+        self.add_emb = torch.nn.Embedding(additional_size, ori_emebedding.embedding_dim)
+        torch.nn.init.normal_(
+            self.add_emb.weight,
+            orig_emb_mean.item(),
+            orig_emb_std.item(),
+        )
+        self.num_embeddings = ori_emebedding.num_embeddings + additional_size
+
+    @property
+    def weight(self):
+        return torch.cat([self.ori_emb.weight, self.add_emb.weight], dim=0)
+
+    def forward(self, input):
+        return torch.nn.functional.embedding(
+            input, self.weight, self.ori_emb.padding_idx, self.ori_emb.max_norm,
+            self.ori_emb.norm_type, self.ori_emb.scale_grad_by_freq, self.ori_emb.sparse)
+
+
 class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
     """Transformer-based Speech-to-Text Decoder from OpenAI's Whisper Model:
 
@@ -21,6 +49,7 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         dropout_rate: float = 0.0,
         whisper_model: str = "small",
         download_dir: str = None,
+        load_origin_token_embedding = False,
     ):
         try:
             import whisper
@@ -43,21 +72,31 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         # note that originally Whisper doesn't use dropouts
         self.dropout = torch.nn.Dropout(dropout_rate)
 
+        # load the original token_embeddings, if the vocabulary is expanded
+        self.load_origin_token_embedding = load_origin_token_embedding
+
         # vocab size mismatch -> reinitialize embedding
         # orig vocab size (multilingual): 51865
         # orig vocab size (english): 51864
         if vocab_size != self.decoders.token_embedding.num_embeddings:
-            orig_emb_std, orig_emb_mean = torch.std_mean(
-                self.decoders.token_embedding.weight
-            )
-            self.decoders.token_embedding = torch.nn.Embedding(
-                vocab_size, attention_dim
-            )
-            torch.nn.init.normal_(
-                self.decoders.token_embedding.weight,
-                orig_emb_mean.item(),
-                orig_emb_std.item(),
-            )
+            if self.load_origin_token_embedding:
+                assert vocab_size > self.decoders.token_embedding.num_embeddings, "expanded vocab_size should be larged than the origin"
+                self.decoders.token_embedding = ExpandedTokenEmbedding(
+                    self.decoders.token_embedding,
+                    vocab_size - self.decoders.token_embedding.num_embeddings,
+                )
+            else:
+                orig_emb_std, orig_emb_mean = torch.std_mean(
+                    self.decoders.token_embedding.weight
+                )
+                self.decoders.token_embedding = torch.nn.Embedding(
+                    vocab_size, attention_dim
+                )
+                torch.nn.init.normal_(
+                    self.decoders.token_embedding.weight,
+                    orig_emb_mean.item(),
+                    orig_emb_std.item(),
+                )
 
         self.decoders.train()
         del _model

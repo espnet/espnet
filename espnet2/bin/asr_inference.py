@@ -103,6 +103,7 @@ class Speech2Text:
         hugging_face_decoder_max_length: int = 256,
         time_sync: bool = False,
         multi_asr: bool = False,
+        sot_asr: bool = False,
     ):
         assert check_argument_types()
 
@@ -347,7 +348,7 @@ class Speech2Text:
         if bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
-            converter = OpenAIWhisperTokenIDConverter(model_type=bpemodel)
+            converter = OpenAIWhisperTokenIDConverter(model_type=bpemodel, sot=sot_asr)
             beam_search.set_hyp_primer(
                 list(converter.tokenizer.sot_sequence_including_notimestamps)
             )
@@ -607,6 +608,7 @@ def inference(
     hugging_face_decoder_max_length: int,
     time_sync: bool,
     multi_asr: bool,
+    sot_asr: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -659,6 +661,7 @@ def inference(
         hugging_face_decoder=hugging_face_decoder,
         hugging_face_decoder_max_length=hugging_face_decoder_max_length,
         time_sync=time_sync,
+        sot_asr=sot_asr
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -852,7 +855,12 @@ def get_parser():
         help="Whether we are using a monolithic multi-speaker ASR model "
         "(This flag should be False if a speech separation model is used before ASR)",
     )
-
+    group.add_argument(
+        "--sot_asr",
+        type=str2bool,
+        default=False,
+        help="Whether we are using a Serialized Output Training (SOT) ASR model "
+    )
     group = parser.add_argument_group("Quantization related")
     group.add_argument(
         "--quantize_asr_model",
