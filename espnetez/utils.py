@@ -1,8 +1,10 @@
+from argparse import Namespace
+
 import yaml
+
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.tts import TTSTask
-from argparse import Namespace
 
 TASK_CLASSES = dict(
     asr=ASRTask,
