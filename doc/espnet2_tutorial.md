@@ -254,6 +254,48 @@ You need to fill `model_name` by yourself. You can search for pretrained models 
 
 (Deprecated: See the following link about our pretrain models: https://github.com/espnet/espnet_model_zoo)
 
+
+### Evaluation using OpenAI Whisper
+
+ESPnet2 provides a [script](../egs2/TEMPLATE/asr1/scripts/utils/evaluate_asr.sh) to run inference and scoring using OpenAI's Whisper. This can be used to evaluate speech generation models. Here is an example:
+
+```bash
+#!/usr/bin/env bash
+# Set bash to 'debug' mode, it will exit on :
+# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+set -e
+set -u
+set -o pipefail
+
+whisper_tag=medium    # whisper model tag, e.g., small, medium, large, etc
+cleaner=whisper_en
+hyp_cleaner=whisper_en
+nj=1
+test_sets="test/WSJ/test_eval92"
+# decode_options is used in Whisper model's transcribe method
+decode_options="{language: en, task: transcribe, temperature: 0, beam_size: 10, fp16: False}"
+
+for x in ${test_sets}; do
+    wavscp=dump/raw/${x}/wav.scp    # path to wav.scp
+    outdir=whisper-${whisper_tag}_outputs/${x}  # path to save output
+    gt_text=dump/raw/${x}/text      # path to groundtruth text file (for scoring only)
+
+    scripts/utils/evaluate_asr.sh \
+        --whisper_tag ${whisper_tag} \
+        --nj ${nj} \
+        --gpu_inference true \
+        --stage 2 \
+        --stop_stage 3 \
+        --cleaner ${cleaner} \
+        --hyp_cleaner ${hyp_cleaner} \
+        --decode_options "${decode_options}" \
+        --gt_text ${gt_text} \
+        ${wavscp} \
+        ${outdir}
+done
+```
+
+
 ## Packing and sharing your trained model
 
 ESPnet encourages you to share your results using platforms like [Hugging Face](https://huggingface.co/) or [Zenodo](https://zenodo.org/) (This last will become deprecated.)

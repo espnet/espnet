@@ -4,7 +4,7 @@ max_epoch: 100
 batch_type: folded
 batch_size: 4
 iterator_type: chunk
-chunk_length: 24000
+chunk_length: 32000
 # exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
 # from the length consistency check in ChunkIterFactory
 chunk_excluded_key_prefixes:
@@ -23,7 +23,7 @@ val_scheduler_criterion:
 - loss
 best_model_criterion:
 -   - valid
-    - si_snr
+    - snr
     - max
 -   - valid
     - loss
@@ -40,7 +40,7 @@ model_conf:
     share_encoder: true  # this must be False if load_spk_embedding is True
 
 train_spk2enroll: null
-enroll_segment: 24000
+enroll_segment: 16000
 load_spk_embedding: false
 load_all_speakers: false
 

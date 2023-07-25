@@ -121,8 +121,8 @@ done
 # change to the original path
 cd ..
 
-awk '(ARGIND==1) {txt[$1]=$0} (ARGIND==2) {split($1, lst, "_"); if(FNR %2 != 0){utt1=lst[3];}else{utt1=lst[5];} text=txt[utt1]; print($1, text)}' tmp/si_tr_s.txt ${data}/${tr}/wav.scp | awk '{$2=""; print $0}' > ${data}/${tr}/text
-awk '(ARGIND==1) {txt[$1]=$0} (ARGIND==2) {split($1, lst, "_"); if(FNR %2 != 0){utt1=lst[3];}else{utt1=lst[5];} text=txt[utt1]; print($1, text)}' tmp/si_tr_s.txt ${data}/${cv}/wav.scp | awk '{$2=""; print $0}' > ${data}/${cv}/text
-awk '(ARGIND<=2) {txt[$1]=$0} (ARGIND==3) {split($1, lst, "_"); if(FNR %2 != 0){utt1=lst[3];}else{utt1=lst[5];} text=txt[utt1]; print($1, text)}' tmp/si_dt_05.txt tmp/si_et_05.txt ${data}/${tt}/wav.scp | awk '{$2=""; print $0}' > ${data}/${tt}/text
+awk '(ARGIND==1) {txt[$1]=$0} (ARGIND==2) {n=split($1, lst, "_"); if(substr(lst[n],0,3) == substr(lst[3],0,3)){utt1=lst[3];}else{utt1=lst[5];} text=txt[utt1]; print($1, text)}' tmp/si_tr_s.txt ${data}/${tr}/wav.scp | awk '{$2=""; print $0}' > ${data}/${tr}/text
+awk '(ARGIND==1) {txt[$1]=$0} (ARGIND==2) {n=split($1, lst, "_"); if(substr(lst[n],0,3) == substr(lst[3],0,3)){utt1=lst[3];}else{utt1=lst[5];} text=txt[utt1]; print($1, text)}' tmp/si_tr_s.txt ${data}/${cv}/wav.scp | awk '{$2=""; print $0}' > ${data}/${cv}/text
+awk '(ARGIND<=2) {txt[$1]=$0} (ARGIND==3) {n=split($1, lst, "_"); if(substr(lst[n],0,3) == substr(lst[3],0,3)){utt1=lst[3];}else{utt1=lst[5];} text=txt[utt1]; print($1, text)}' tmp/si_dt_05.txt tmp/si_et_05.txt ${data}/${tt}/wav.scp | awk '{$2=""; print $0}' > ${data}/${tt}/text
 
 rm -r tmp
