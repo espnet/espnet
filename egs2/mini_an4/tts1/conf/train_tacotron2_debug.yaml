@@ -1,0 +1,39 @@
+# This is a debug config for CI
+tts: tacotron2
+tts_conf:
+    embed_dim: 2
+    elayers: 1
+    eunits: 2
+    econv_layers: 1
+    econv_chans: 2
+    econv_filts: 3
+    atype: location
+    adim: 2
+    aconv_chans: 2
+    aconv_filts: 3
+    cumulate_att_w: true
+    dlayers: 1
+    dunits: 2
+    prenet_layers: 2
+    prenet_units: 2
+    postnet_layers: 2
+    postnet_chans: 2
+    postnet_filts: 3
+    output_activation: null
+    use_batch_norm: true
+    use_concate: true
+    use_residual: false
+    dropout_rate: 0.5
+    zoneout_rate: 0.1
+    reduction_factor: 1
+    spk_embed_dim: null
+    use_masking: true
+    bce_pos_weight: 5.0
+    use_guided_attn_loss: true
+    guided_attn_loss_sigma: 0.4
+    guided_attn_loss_lambda: 1.0
+
+num_iters_per_epoch: 1
+max_epoch: 1
+batch_type: folded
+batch_size: 2
