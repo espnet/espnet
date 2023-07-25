@@ -98,10 +98,14 @@ class SpkTrainer(Trainer):
                 _utt_id_1, _utt_id_2 = _utt_id.split("*")
                 if _utt_id_1 not in utt_id_list:
                     utt_id_list.append(_utt_id_1)
-                    speech_list.append(to_device(_speech, "cuda" if ngpu > 0 else "cpu"))
+                    speech_list.append(
+                        to_device(_speech, "cuda" if ngpu > 0 else "cpu")
+                    )
                 if _utt_id_2 not in utt_id_list:
                     utt_id_list.append(_utt_id_2)
-                    speech_list.append(to_device(_speech2, "cuda" if ngpu > 0 else "cpu"))
+                    speech_list.append(
+                        to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
+                    )
 
         # extract speaker embeddings.
         n_utt = len(utt_id_list)
