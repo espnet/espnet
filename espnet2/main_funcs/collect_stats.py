@@ -46,6 +46,8 @@ def collect_stats(
         sum_dict = defaultdict(lambda: 0)
         sq_dict = defaultdict(lambda: 0)
         count_dict = defaultdict(lambda: 0)
+        feats_min = torch.ones([80]) * 100
+        feats_max = torch.ones([80]) * -100
 
         with DatadirWriter(output_dir / mode) as datadir_writer:
             for iiter, (keys, batch) in enumerate(itr, 1):
@@ -78,6 +80,15 @@ def collect_stats(
 
                     # 3. Calculate sum and square sum
                     for key, v in data.items():
+                        # calc feats min and max [80]
+                        if key == "feats":
+                            feats_max = torch.max(
+                                torch.max(v.reshape(-1, 80), 0)[0], feats_max
+                            )
+                            feats_min = torch.min(
+                                torch.min(v.reshape(-1, 80), 0)[0], feats_min
+                            )
+
                         for i, (uttid, seq) in enumerate(zip(keys, v.cpu().numpy())):
                             # Truncate zero-padding region
                             if f"{key}_lengths" in data:
@@ -113,6 +124,13 @@ def collect_stats(
                 sum=sum_dict[key],
                 sum_square=sq_dict[key],
             )
+
+        # save feats_min and fetas_max for normalizing feats
+        np.savez(
+            output_dir / mode / "feats_minmax_stats.npz",
+            feats_min=feats_min.cpu().numpy(),
+            feats_max=feats_max.cpu().numpy(),
+        )
 
         # batch_keys and stats_keys are used by aggregate_stats_dirs.py
         with (output_dir / mode / "batch_keys").open("w", encoding="utf-8") as f:

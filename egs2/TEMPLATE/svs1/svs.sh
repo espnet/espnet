@@ -87,6 +87,7 @@ write_collected_feats=false # Whether to dump features in stats collection.
 svs_task=svs                # SVS task (svs or gan_svs)
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
+use_feats_minmax=false  # use feats_minmax_norm(diffsinger only)
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -839,6 +840,10 @@ if ! "${skip_train}"; then
         if [ -e "${svs_stats_dir}/train/ying_stats.npz" ]; then
             _opts+="--ying_extract_conf fs=${fs} "
             _opts+="--ying_extract_conf w_step=${n_shift} "
+        fi
+        # (for diffsinger)
+        if [ -e "${svs_stats_dir}/train/feats_minmax_stats.npz" ] && [ "${use_feats_minmax}" = true ]; then
+            _opts+="--feats_minmax_conf stats_file=${svs_stats_dir}/train/feats_minmax_stats.npz "
         fi
 
 

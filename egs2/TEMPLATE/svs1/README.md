@@ -19,7 +19,7 @@ This is a template of SVS recipe for ESPnet2.
   * [How to run](#how-to-run)
     * [Naive_RNN training](#naive_rnn-training)
     * [XiaoiceSing training](#xiaoicesing-training)
-    * [Diffsinger training](#diffsinger-training)
+    * [Diffsinger training[WIP]](#diffsinger-trainingwip)
     * [VISinger training](#visinger-training)
     * [Multi speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
     * [Multi language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
@@ -254,7 +254,7 @@ $ ./run.sh --stage 5 \
 ```
 
 
-### Diffsinger training
+### Diffsinger training[WIP]
 First, complete the data preparation:
 ```sh
 $ ./run.sh \
