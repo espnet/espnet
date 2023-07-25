@@ -382,7 +382,7 @@ class STTask(AbsTask):
                 speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
                 speech_name="speech",
                 text_name=["text", "src_text"],
-                **args.preprocessor_conf,
+                **getattr(args, "preprocessor_conf", {}),
             )
         else:
             retval = None

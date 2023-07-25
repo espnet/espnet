@@ -468,10 +468,12 @@ class EnhS2TTask(AbsTask):
                     ),
                     speech_name="speech",
                     text_name=["text", "src_text"],
-                    **args.preprocessor_conf,
+                    **getattr(args, "preprocessor_conf", {}),
                 )
             elif "diar" in args.subtask_series:
-                retval = CommonPreprocessor(train=train)
+                retval = CommonPreprocessor(
+                    train=train, **getattr(args, "preprocessor_conf", {})
+                )
             else:
                 retval = CommonPreprocessor_multi(
                     train=train,
@@ -482,7 +484,7 @@ class EnhS2TTask(AbsTask):
                     text_name=getattr(args, "text_name", ["text"]),
                     text_cleaner=args.cleaner,
                     g2p_type=args.g2p,
-                    **args.preprocessor_conf,
+                    **getattr(args, "preprocessor_conf", {}),
                 )
         else:
             retval = None

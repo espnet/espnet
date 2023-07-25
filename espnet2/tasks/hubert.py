@@ -306,7 +306,7 @@ class HubertTask(AbsTask):
                 noise_db_range=getattr(args, "noise_db_range", "13_15"),
                 short_noise_thres=getattr(args, "short_noise_thres", 0.5),
                 speech_volume_normalize=getattr(args, "rir_scp", None),
-                **args.preprocessor_conf,
+                **getattr(args, "preprocessor_conf", {}),
             )
         else:
             retval = None
