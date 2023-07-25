@@ -1,4 +1,4 @@
-name: centos7
+name: ci on centos7
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  test_centos7:
+  unit_test_espnet1_and_espnet2_on_centos7:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     container:
@@ -51,8 +51,10 @@ jobs:
       - name: test shell
         run: |
           PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
-          ./ci/test_shell.sh
+          ./ci/test_shell_espnet1.sh
+          ./ci/test_shell_espnet2.sh
       - name: test python
         run: |
           PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
-          ./ci/test_python.sh
+          ./ci/test_python_espnet1.sh
+          ./ci/test_python_espnet2.sh

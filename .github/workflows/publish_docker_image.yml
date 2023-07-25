@@ -1,4 +1,4 @@
-name: docker-builder
+name: publich docker image
 
 on:
   pull_request:

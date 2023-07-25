@@ -1,4 +1,4 @@
-name: debian11
+name: ci on debian11
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
       - master
 
 jobs:
-  test_debian11:
+  unit_test_espnet1_and_espnet2_on_debian11:
     runs-on: ubuntu-latest
     if: github.event.pull_request.draft == false
     container:
@@ -39,14 +39,10 @@ jobs:
       - name: install espnet
         run: ./ci/install.sh
       - name: test shell
-        run: ./ci/test_shell.sh
+        run: |
+          ./ci/test_shell_espnet1.sh
+          ./ci/test_shell_espnet2.sh
       - name: test python
-        run: ./ci/test_python.sh
-      - name: install kaldi
-        run: ./ci/install_kaldi.sh
-      - name: test utils
-        run: ./ci/test_utils.sh
-      - name: test espnet1 integration
-        run: ./ci/test_integration_espnet1.sh
-      - name: test espnet2 integration
-        run: ./ci/test_integration_espnet2.sh
+        run: |
+          ./ci/test_python_espnet1.sh
+          ./ci/test_python_espnet2.sh
