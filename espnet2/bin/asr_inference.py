@@ -661,7 +661,7 @@ def inference(
         hugging_face_decoder=hugging_face_decoder,
         hugging_face_decoder_max_length=hugging_face_decoder_max_length,
         time_sync=time_sync,
-        sot_asr=sot_asr
+        sot_asr=sot_asr,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -859,7 +859,7 @@ def get_parser():
         "--sot_asr",
         type=str2bool,
         default=False,
-        help="Whether we are using a Serialized Output Training (SOT) ASR model "
+        help="Whether we are using a Serialized Output Training (SOT) ASR model ",
     )
     group = parser.add_argument_group("Quantization related")
     group.add_argument(

@@ -8,16 +8,12 @@ from espnet2.asr.decoder.abs_decoder import AbsDecoder
 from espnet.nets.scorer_interface import BatchScorerInterface
 
 
-
 class ExpandedTokenEmbedding(torch.nn.Module):
-
     def __init__(self, ori_emebedding, additional_size):
         super().__init__()
         self.ori_emb = ori_emebedding
 
-        orig_emb_std, orig_emb_mean = torch.std_mean(
-            ori_emebedding.weight
-        )
+        orig_emb_std, orig_emb_mean = torch.std_mean(ori_emebedding.weight)
         self.add_emb = torch.nn.Embedding(additional_size, ori_emebedding.embedding_dim)
         torch.nn.init.normal_(
             self.add_emb.weight,
@@ -32,8 +28,14 @@ class ExpandedTokenEmbedding(torch.nn.Module):
 
     def forward(self, input):
         return torch.nn.functional.embedding(
-            input, self.weight, self.ori_emb.padding_idx, self.ori_emb.max_norm,
-            self.ori_emb.norm_type, self.ori_emb.scale_grad_by_freq, self.ori_emb.sparse)
+            input,
+            self.weight,
+            self.ori_emb.padding_idx,
+            self.ori_emb.max_norm,
+            self.ori_emb.norm_type,
+            self.ori_emb.scale_grad_by_freq,
+            self.ori_emb.sparse,
+        )
 
 
 class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
@@ -49,7 +51,7 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         dropout_rate: float = 0.0,
         whisper_model: str = "small",
         download_dir: str = None,
-        load_origin_token_embedding = False,
+        load_origin_token_embedding=False,
     ):
         try:
             import whisper
@@ -80,7 +82,9 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         # orig vocab size (english): 51864
         if vocab_size != self.decoders.token_embedding.num_embeddings:
             if self.load_origin_token_embedding:
-                assert vocab_size > self.decoders.token_embedding.num_embeddings, "expanded vocab_size should be larged than the origin"
+                assert (
+                    vocab_size > self.decoders.token_embedding.num_embeddings
+                ), "expanded vocab_size should be larged than the origin"
                 self.decoders.token_embedding = ExpandedTokenEmbedding(
                     self.decoders.token_embedding,
                     vocab_size - self.decoders.token_embedding.num_embeddings,
