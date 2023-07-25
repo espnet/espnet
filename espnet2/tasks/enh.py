@@ -396,11 +396,9 @@ class EnhancementTask(AbsTask):
                     ),
                     utt2spk=getattr(args, "utt2spk", None),
                     categories=args.preprocessor_conf.get("categories", None),
-                    **args.preprocessor_conf,
                 )
             elif args.preprocessor == "enh":
-                retval = preprocessor_choices.get_class(args.preprocessor)(
-                    train=train,
+                kwargs = dict(
                     # NOTE(kamo): Check attribute existence for backward compatibility
                     rir_scp=getattr(args, "rir_scp", None),
                     rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
@@ -418,7 +416,11 @@ class EnhancementTask(AbsTask):
                     force_single_channel=getattr(args, "force_single_channel", False),
                     channel_reordering=getattr(args, "channel_reordering", False),
                     categories=getattr(args, "categories", None),
-                    **args.preprocessor_conf,
+                )
+                kwargs.update(args.preprocessor_conf)
+                retval = preprocessor_choices.get_class(args.preprocessor)(
+                    train=train,
+                    **kwargs,
                 )
             else:
                 raise ValueError(

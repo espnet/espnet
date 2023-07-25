@@ -455,7 +455,7 @@ def clipping(
     Returns:
         ret (torch.Tensor): clipped signal (..., time)
     """
-    q = torch.FloatTensor([min_quantile, max_quantile])
+    q = waveform.new_tensor([min_quantile, max_quantile])
     min_, max_ = torch.quantile(waveform, q, dim=-1, keepdim=True)
     ret = torch.clamp(waveform, min_, max_)
     return ret

@@ -1174,7 +1174,7 @@ class EnhPreprocessor(CommonPreprocessor):
                     # Currently, we only apply data augmentation to the mixture.
                     # So, some effects should not be used for Enh, such as pitch_shift,
                     # speed_perturb, time_stretch, polarity_inverse, reverse, etc.
-                    speech_mix = self.data_aug(speech_mix, self.sample_rate)
+                    speech_mix = self.data_aug(speech_mix.squeeze(0), self.sample_rate)
 
             speech_mix = speech_mix.T
             data[self.speech_name] = speech_mix
