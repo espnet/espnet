@@ -1517,7 +1517,7 @@ class AbsTask(ABC):
         e.g. If The number of mini-batches equals to 4, the following two are same:
 
         - 1 epoch without "--num_iters_per_epoch"
-        - 4 epoch with "--num_iters_per_epoch" == 4
+        - 4 epoch with "--num_iters_per_epoch" == 1
 
         """
         assert check_argument_types()
@@ -1670,7 +1670,9 @@ class AbsTask(ABC):
             logging.warning("Reading " + category2utt_file)
         else:
             category2utt_file = None
-            raise ValueError("category2utt mandatory for category iterator, but not found")
+            raise ValueError(
+                "category2utt mandatory for category iterator, but not found"
+            )
 
         sampler_args = dict(
             batch_size=iter_options.batch_size,
