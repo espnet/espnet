@@ -51,6 +51,9 @@ class HuBERTCollateFn(CommonCollateFn):
         rand_crop: bool = True,
         crop_audio: bool = True,
         not_sequence: Collection[str] = (),
+        window_size: float = 25,
+        window_shift: float = 20,
+        sample_rate: float = 16,
     ):
         assert check_argument_types()
         super().__init__(
@@ -65,6 +68,9 @@ class HuBERTCollateFn(CommonCollateFn):
         self.rand_crop = rand_crop
         self.crop_audio = crop_audio
         self.not_sequence = set(not_sequence)
+        self.window_size = window_size
+        self.window_shift = window_shift
+        self.sample_rate = sample_rate
 
     def __repr__(self):
         return (
@@ -96,7 +102,14 @@ class HuBERTCollateFn(CommonCollateFn):
                 label = label[:: self.label_downsampling]
             if self.crop_audio:
                 waveform, label, length = _crop_audio_label(
-                    waveform, label, length, num_frames, self.rand_crop
+                    waveform,
+                    label,
+                    length,
+                    num_frames,
+                    self.rand_crop,
+                    self.window_size,
+                    self.window_shift,
+                    self.sample_rate,
                 )
             new_data.append((uid, dict(speech=waveform, text=label)))
 
@@ -114,6 +127,9 @@ def _crop_audio_label(
     length: torch.Tensor,
     num_frames: int,
     rand_crop: bool,
+    window_size: int = 25,
+    window_shift: int = 20,
+    sample_rate: int = 16,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Collate the audio and label at the same time.
 
@@ -125,6 +141,11 @@ def _crop_audio_label(
         rand_crop (bool): if ``rand_crop`` is True, the starting index of the
             waveform and label is random if the length is longer than the minimum
             length in the mini-batch.
+        window_size (int): reception field of conv feature extractor (in ms).
+            In default, calculated by [400 (samples) / 16 (sample_rate)].
+        window_shift (int): the stride of conv feature extractor (in ms).
+            In default, calculated by [320 (samples) / 16 (sample_rate)].
+        sample_rate (int): number of samples in audio signal per millisecond.
 
     Returns:
         (Tuple(Tensor, Tensor, Tensor)): Returns the Tensors for the waveform,
@@ -132,9 +153,6 @@ def _crop_audio_label(
 
     """
 
-    kernel_size = 25
-    stride = 20
-    sample_rate = 16  # 16 per millisecond
     frame_offset = 0
     if waveform.size > num_frames and rand_crop:
         diff = waveform.size - num_frames
@@ -142,12 +160,16 @@ def _crop_audio_label(
     elif waveform.size < num_frames:
         num_frames = waveform.size
     label_offset = max(
-        math.floor((frame_offset - kernel_size * sample_rate) / (stride * sample_rate))
+        math.floor(
+            (frame_offset - window_size * sample_rate) / (window_shift * sample_rate)
+        )
         + 1,
         0,
     )
     num_label = (
-        math.floor((num_frames - kernel_size * sample_rate) / (stride * sample_rate))
+        math.floor(
+            (num_frames - window_size * sample_rate) / (window_shift * sample_rate)
+        )
         + 1
     )
     waveform = waveform[frame_offset : frame_offset + num_frames]

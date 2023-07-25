@@ -22,7 +22,7 @@ def test_Encoder_forward_backward(finetuning, eval, freeze_encoder_updates):
 
     encoder = TorchAudioHuBERTPretrainEncoder(
         20,
-        extractor_conv_layer_config=[(3, 3, 2)],
+        extractor_conv_layer_config=[[3, 3, 2]],
         encoder_pos_conv_kernel=16,
         encoder_pos_conv_groups=4,
         encoder_embed_dim=4,
