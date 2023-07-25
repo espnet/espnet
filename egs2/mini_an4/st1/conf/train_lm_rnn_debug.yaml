@@ -1,0 +1,19 @@
+# This is a debug config for CI
+lm_conf:
+    nlayers: 1
+    unit: 2
+
+optim: adam
+optim_conf:
+    lr: 0.001
+
+patience: 1
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+batch_type: folded
+batch_size: 2
+max_epoch: 1
+num_iters_per_epoch: 1

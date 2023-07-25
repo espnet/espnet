@@ -2,7 +2,7 @@
 # is truely end-to-end text-to-waveform model. To run
 # this config, you need to specify "--tts_task gan_tts"
 # option for tts.sh at least and use 24000 hz audio as
-# the training data (mainly tested on LJspeech).
+# the training data (mainly tested on KSS).
 # This configuration tested on 4 GPUs (V100) with 32GB GPU
 # memory. It takes around 2 weeks to finish the training
 # but 100k iters model should generate reasonable results.
@@ -74,7 +74,7 @@ tts_conf:
         generator_nonlinear_activation_params:
             negative_slope: 0.1
         generator_use_weight_norm: true
-        segment_size: 64                             # segment size for random windowed discriminator
+        segment_size: 32                             # segment size for random windowed discriminator
 
     # discriminator related
     discriminator_type: hifigan_multi_scale_multi_period_discriminator
@@ -140,7 +140,7 @@ tts_conf:
     lambda_mel: 45.0                     # loss scaling coefficient for Mel loss
     lambda_feat_match: 2.0               # loss scaling coefficient for feat match loss
     lambda_var: 1.0
-    lambda_align: 2.0
+    lambda_align: 1.0
     # others
     sampling_rate: 24000                 # needed in the inference for saving wav
     cache_generator_outputs: true        # whether to cache generator outputs in the training
@@ -188,7 +188,7 @@ generator_first: true # whether to start updating generator first
 num_iters_per_epoch: 1000 # number of iterations per epoch
 max_epoch: 1000           # number of epochs
 accum_grad: 1             # gradient accumulation
-batch_bins: 2000000       # batch bins (feats_type=raw)
+batch_bins: 4500000       # batch bins (feats_type=raw)
 batch_type: numel         # how to make batch
 grad_clip: -1             # gradient clipping norm
 grad_noise: false         # whether to use gradient noise injection
