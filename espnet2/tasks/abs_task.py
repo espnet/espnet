@@ -316,8 +316,15 @@ class AbsTask(ABC):
         group.add_argument(
             "--iterator_type",
             type=str,
-            choices=["sequence", "chunk", "task", "none"],
+            choices=["sequence", "category", "chunk", "task", "none"],
             default="sequence",
+            help="Specify iterator type",
+        )
+        group.add_argument(
+            "--valid_iterator_type",
+            type=str,
+            choices=["sequence", "category", "chunk", "task", "none"],
+            default=None,
             help="Specify iterator type",
         )
 
@@ -1521,32 +1528,37 @@ class AbsTask(ABC):
             for k, v in kwargs.items():
                 setattr(iter_options, k, v)
 
-        if args.iterator_type == "sequence":
+        if mode == "valid" and args.valid_iterator_type is not None:
+            iterator_type = args.valid_iterator_type
+        else:
+            iterator_type = args.iterator_type
+
+        if iterator_type == "sequence":
             return cls.build_sequence_iter_factory(
                 args=args,
                 iter_options=iter_options,
                 mode=mode,
             )
-        elif args.iterator_type == "category":
+        elif iterator_type == "category":
             return cls.build_category_iter_factory(
                 args=args,
                 iter_options=iter_options,
                 mode=mode,
             )
-        elif args.iterator_type == "chunk":
+        elif iterator_type == "chunk":
             return cls.build_chunk_iter_factory(
                 args=args,
                 iter_options=iter_options,
                 mode=mode,
             )
-        elif args.iterator_type == "task":
+        elif iterator_type == "task":
             return cls.build_task_iter_factory(
                 args=args,
                 iter_options=iter_options,
                 mode=mode,
             )
         else:
-            raise RuntimeError(f"Not supported: iterator_type={args.iterator_type}")
+            raise RuntimeError(f"Not supported: iterator_type={iterator_type}")
 
     @classmethod
     def build_sequence_iter_factory(
@@ -1667,6 +1679,7 @@ class AbsTask(ABC):
             else 1,
             drop_last=args.drop_last_iter,
             category2utt_file=category2utt_file,
+            epoch=1,
         )
         batch_sampler = CategoryBalancedSampler(**sampler_args)
 
@@ -1700,7 +1713,7 @@ class AbsTask(ABC):
             batches=batches,
             seed=args.seed,
             num_iters_per_epoch=iter_options.num_iters_per_epoch,
-            sampler_args=sampler_args
+            sampler_args=sampler_args,
             shuffle=iter_options.train,
             num_workers=args.num_workers,
             collate_fn=iter_options.collate_fn,
