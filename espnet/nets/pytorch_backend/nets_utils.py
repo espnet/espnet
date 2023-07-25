@@ -163,7 +163,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     if (
         (xs is None or xs.dim() in (2, 3))
         and length_dim <= 2
-        and not isinstance(lengths, list)
+        and (not isinstance(lengths, list) and lengths.dim() == 1)
     ):
         return _make_pad_mask_traceable(lengths, xs, length_dim, maxlen)
     else:
@@ -212,10 +212,9 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
     This is a simplified implementation of make_pad_mask without the xs input
     that supports JIT tracing for applications like exporting models to ONNX.
     Dimension length of xs should be 2 or 3
-    This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and 
+    This function will create torch.ones(maxlen, maxlen).triu(diagonal=1) and
     select rows to create mask tensor.
     """
-    assert len(lengths.shape) == 1
 
     if xs is None:
         device = lengths.device
@@ -244,7 +243,7 @@ def _make_pad_mask_traceable(lengths, xs, length_dim, maxlen=None):
         maxlen = lengths.max()
 
     # clip max(length) to maxlen
-    lengths = torch.clamp(lengths, max=maxlen)
+    lengths = torch.clamp(lengths, max=maxlen).type(torch.long)
 
     mask = torch.ones(maxlen + 1, maxlen + 1, dtype=torch.bool, device=device)
     mask = triu_onnx(mask)[1:, :-1]  # onnx cannot handle diagonal argument.
