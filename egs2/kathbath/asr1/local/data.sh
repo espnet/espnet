@@ -47,7 +47,6 @@ download_data="${KATHBATH}"
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${KATHBATH}/download_done" ]; then
         echo "stage 1: Data Download to ${LIBRISPEECH}"
-        
         for data_url in $noisy_test_known_data_url $noisy_test_unknown_data_url $transcript_noisy_url; do
             if ! wget -P $download_data --no-check-certificate $data_url; then
                 echo "$0: error executing wget $data_url"
@@ -60,7 +59,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             fi
             rm $download_data/$fname
         done
-
         for data_url in $clean_test_known_data_url $clean_test_unknown_data_url $train_data_url $valid_data_url $transcript_clean_url; do
             if ! wget -P $download_data --no-check-certificate $data_url; then
                 echo "$0: error executing wget $data_url"
@@ -73,8 +71,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             fi
             rm $download_data/$fname
         done
-
-
     touch "${KATHBATH}/download_done"
     else
         log "stage 1: "${KATHBATH}/download_done" is already existing. Skip data downloading"
@@ -85,25 +81,63 @@ mkdir -p data
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "data/dataprep_done" ]; then
         log "stage 2: Data Preparation"
-        
-       
         for lang in $download_data/"kb_data_clean_m4a"/* ; do
             log "Processing $lang"
             for split in $lang/* ; do
-
-                #https://github.com/AI4Bharat/IndicWav2Vec/blob/main/data_prep_scripts/ft_scripts/normalize_sr.sh
                 path=$split/"audio"
-                ext="wav"
-                for f in $(find "$path" -type f -name "*$ext")
-                do
-                ffmpeg -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$f$ext" && rm "$f" && mv "$f$ext" "$f" &
+                savepath=$split/"audio_16k"
+                mkdir -p $savepath
+                for f in $(find "$path" -type f -name "*.m4a"); do
+                    fname=$savepath/$(basename -- "$f" | cut -d'.' -f1).wav
+                    ffmpeg -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname"  #make faster
                 done
-                
+            done
+            ln=$(basename $lang)
+            mkdir -p data/"$ln"
+            for split in $lang/* ; do
+                splitname=$(basename $split)
+                mkdir -p data/"$ln"/"$splitname"
+                find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; cat data/"$ln"/"$splitname"/wavs | rev | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
+                paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp 
+                paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
+                cat "$split"/"transcription_n2w.txt" | sed "s/.m4a//g" > data/"$ln"/"$splitname"/text
+                utils/utt2spk_to_spk2utt.pl data/"$ln"/"$splitname"/utt2spk > data/"$ln"/"$splitname"/spk2utt
+                utils/fix_data_dir.sh data/"$ln"/"$splitname"
+                rm data/"$ln"/"$splitname"/wavs data/"$ln"/"$splitname"/uttids
+            done
+
+        done
+
+        for lang in $download_data/"kb_data_noisy_m4a"/* ; do
+            log "Processing $lang"
+            for split in $lang/* ; do
+                log $split
+                path=$split/"audio"
+                savepath=$split/"audio_16k"
+                mkdir -p $savepath
+                for f in $(find "$path" -type f -name "*.m4a"); do
+                    fname=$savepath/$(basename -- "$f" | cut -d'.' -f1).wav
+                    ffmpeg -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname"
+                done
+            done
+            ln=$(basename $lang)
+            mkdir -p data/"$ln"
+            for split in $lang/* ; do
+                splitname=$(basename $split)"_noisy"
+                if [ "$splitname" == "valid_noisy" ]; then
+                    continue    
+                fi
+                mkdir -p data/"$ln"/"$splitname"
+                find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; cat data/"$ln"/"$splitname"/wavs | rev | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
+                paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp 
+                paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
+                cat "$split"/"transcription_n2w.txt" | sed "s/.m4a//g" > data/"$ln"/"$splitname"/text
+                utils/utt2spk_to_spk2utt.pl data/"$ln"/"$splitname"/utt2spk > data/"$ln"/"$splitname"/spk2utt
+                utils/fix_data_dir.sh data/"$ln"/"$splitname"
+                rm data/"$ln"/"$splitname"/wavs data/"$ln"/"$splitname"/uttids
             done
         done
-        
-
-        # touch "data/dataprep_done"
+        touch "data/dataprep_done"
     else
         log "stage 2: "data/dataprep_done" is complete"
     fi
