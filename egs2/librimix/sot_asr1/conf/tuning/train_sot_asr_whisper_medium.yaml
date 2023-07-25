@@ -1,0 +1,61 @@
+normalize: null
+
+freeze_param: [
+    "decoder.decoders.token_embedding.ori_emb"
+]
+
+encoder: whisper
+encoder_conf:
+    whisper_model: medium
+    dropout_rate: 0.0
+    use_specaug: false
+
+decoder: whisper
+decoder_conf:
+    whisper_model: medium
+    dropout_rate: 0.0
+    load_origin_token_embedding: true
+
+model_conf:
+    ctc_weight: 0.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    sym_sos: "<|startoftranscript|>"
+    sym_eos: "<|endoftext|>"
+    # do_pad_trim: true         # should be set when doing zero-shot inference
+
+
+frontend: null
+input_size: 1                   # to prevent build_model() from complaining
+
+
+# preprocessor related
+preprocessor: multi
+preprocessor_conf:
+    speaker_change_symbol:
+        - "<sc>"
+
+# minibatch related
+use_amp: true
+num_workers: 2
+batch_type: numel
+batch_bins: 8000000
+accum_grad: 4
+max_epoch: 13
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 5
+
+optim: adam
+optim_conf:
+    lr: 0.0005
+    weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 20000
+
+specaug: null
