@@ -1670,7 +1670,9 @@ class AbsTask(ABC):
             logging.warning("Reading " + category2utt_file)
         else:
             category2utt_file = None
-            raise ValueError("category2utt mandatory for category iterator, but not found")
+            raise ValueError(
+                "category2utt mandatory for category iterator, but not found"
+            )
 
         sampler_args = dict(
             batch_size=iter_options.batch_size,
