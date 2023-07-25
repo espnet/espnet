@@ -220,6 +220,7 @@
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
+<span class="kn">import</span> <span class="nn">humanfriendly</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
@@ -486,6 +487,27 @@
         <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
     <span class="p">]:</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="c1"># default sampling rate is 16000</span>
+        <span class="n">fs</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">frontend_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;fs&quot;</span><span class="p">,</span> <span class="mi">16000</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fs</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">fs</span> <span class="o">=</span> <span class="n">humanfriendly</span><span class="o">.</span><span class="n">parse_size</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span>
+        <span class="n">sample_rate</span> <span class="o">=</span> <span class="n">fs</span> <span class="o">/</span> <span class="mi">1000</span>
+
+        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">encoder_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;extractor_conv_layer_config&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="c1"># corresponding to default conv extractor</span>
+            <span class="c1"># refer to espnet2/asr/encoder/hubert_encoder.py</span>
+            <span class="n">reception_field</span> <span class="o">=</span> <span class="mi">400</span>
+            <span class="n">stride_field</span> <span class="o">=</span> <span class="mi">320</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">stride_field</span><span class="p">,</span> <span class="n">reception_field</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">conv_config</span> <span class="ow">in</span> <span class="n">args</span><span class="o">.</span><span class="n">encoder_conf</span><span class="p">[</span><span class="s2">&quot;extractor_conv_layer_config&quot;</span><span class="p">][::</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">stride</span> <span class="o">=</span> <span class="n">conv_config</span>
+                <span class="n">stride_field</span> <span class="o">*=</span> <span class="n">stride</span>
+                <span class="n">reception_field</span> <span class="o">=</span> <span class="n">stride</span> <span class="o">*</span> <span class="p">(</span><span class="n">reception_field</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">kernel</span>
+
+        <span class="n">window_size</span> <span class="o">=</span> <span class="n">reception_field</span> <span class="o">/</span> <span class="n">sample_rate</span>
+        <span class="n">window_shift</span> <span class="o">=</span> <span class="n">stride_field</span> <span class="o">/</span> <span class="n">sample_rate</span>
         <span class="k">return</span> <span class="n">HuBERTCollateFn</span><span class="p">(</span>
             <span class="n">float_pad_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
             <span class="n">int_pad_value</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
@@ -493,6 +515,9 @@
             <span class="n">pad</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">collate_fn_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;pad&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
             <span class="n">rand_crop</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">collate_fn_conf</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;rand_crop&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">),</span>
             <span class="n">crop_audio</span><span class="o">=</span><span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">collect_stats</span><span class="p">,</span>
+            <span class="n">window_size</span><span class="o">=</span><span class="n">window_size</span><span class="p">,</span>
+            <span class="n">window_shift</span><span class="o">=</span><span class="n">window_shift</span><span class="p">,</span>
+            <span class="n">sample_rate</span><span class="o">=</span><span class="n">sample_rate</span><span class="p">,</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="HubertTask.build_preprocess_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.hubert.HubertTask.build_preprocess_fn">[docs]</a>    <span class="nd">@classmethod</span>
@@ -578,7 +603,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="c1"># Give features from data-loader</span>
             <span class="n">args</span><span class="o">.</span><span class="n">frontend</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="n">args</span><span class="o">.</span><span class="n">frontend_conf</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">frontend_conf</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">frontend_conf</span><span class="p">}</span>
             <span class="n">frontend</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">input_size</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">input_size</span>
 

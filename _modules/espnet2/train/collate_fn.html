@@ -262,6 +262,9 @@
         <span class="n">rand_crop</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">crop_audio</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">not_sequence</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(),</span>
+        <span class="n">window_size</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span>
+        <span class="n">window_shift</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+        <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
@@ -276,6 +279,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">rand_crop</span> <span class="o">=</span> <span class="n">rand_crop</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">crop_audio</span> <span class="o">=</span> <span class="n">crop_audio</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">not_sequence</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">not_sequence</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span> <span class="o">=</span> <span class="n">window_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span> <span class="o">=</span> <span class="n">window_shift</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="n">sample_rate</span>
 
     <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="p">(</span>
@@ -307,7 +313,14 @@
                 <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[::</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_downsampling</span><span class="p">]</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">crop_audio</span><span class="p">:</span>
                 <span class="n">waveform</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">length</span> <span class="o">=</span> <span class="n">_crop_audio_label</span><span class="p">(</span>
-                    <span class="n">waveform</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">num_frames</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">rand_crop</span>
+                    <span class="n">waveform</span><span class="p">,</span>
+                    <span class="n">label</span><span class="p">,</span>
+                    <span class="n">length</span><span class="p">,</span>
+                    <span class="n">num_frames</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">rand_crop</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">window_size</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">window_shift</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="n">new_data</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">uid</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">speech</span><span class="o">=</span><span class="n">waveform</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="n">label</span><span class="p">)))</span>
 
@@ -325,6 +338,9 @@
     <span class="n">length</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
     <span class="n">num_frames</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">rand_crop</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">window_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">25</span><span class="p">,</span>
+    <span class="n">window_shift</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">20</span><span class="p">,</span>
+    <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
 <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Collate the audio and label at the same time.</span>
 
@@ -336,6 +352,11 @@
 <span class="sd">        rand_crop (bool): if ``rand_crop`` is True, the starting index of the</span>
 <span class="sd">            waveform and label is random if the length is longer than the minimum</span>
 <span class="sd">            length in the mini-batch.</span>
+<span class="sd">        window_size (int): reception field of conv feature extractor (in ms).</span>
+<span class="sd">            In default, calculated by [400 (samples) / 16 (sample_rate)].</span>
+<span class="sd">        window_shift (int): the stride of conv feature extractor (in ms).</span>
+<span class="sd">            In default, calculated by [320 (samples) / 16 (sample_rate)].</span>
+<span class="sd">        sample_rate (int): number of samples in audio signal per millisecond.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        (Tuple(Tensor, Tensor, Tensor)): Returns the Tensors for the waveform,</span>
@@ -343,9 +364,6 @@
 
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="n">kernel_size</span> <span class="o">=</span> <span class="mi">25</span>
-    <span class="n">stride</span> <span class="o">=</span> <span class="mi">20</span>
-    <span class="n">sample_rate</span> <span class="o">=</span> <span class="mi">16</span>  <span class="c1"># 16 per millisecond</span>
     <span class="n">frame_offset</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">if</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="n">num_frames</span> <span class="ow">and</span> <span class="n">rand_crop</span><span class="p">:</span>
         <span class="n">diff</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span> <span class="o">-</span> <span class="n">num_frames</span>
@@ -353,12 +371,16 @@
     <span class="k">elif</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span> <span class="o">&lt;</span> <span class="n">num_frames</span><span class="p">:</span>
         <span class="n">num_frames</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">size</span>
     <span class="n">label_offset</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-        <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="n">frame_offset</span> <span class="o">-</span> <span class="n">kernel_size</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">stride</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">))</span>
+        <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">frame_offset</span> <span class="o">-</span> <span class="n">window_size</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">window_shift</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
         <span class="mi">0</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">num_label</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">((</span><span class="n">num_frames</span> <span class="o">-</span> <span class="n">kernel_size</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">stride</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">))</span>
+        <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span>
+            <span class="p">(</span><span class="n">num_frames</span> <span class="o">-</span> <span class="n">window_size</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">window_shift</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">)</span>
+        <span class="p">)</span>
         <span class="o">+</span> <span class="mi">1</span>
     <span class="p">)</span>
     <span class="n">waveform</span> <span class="o">=</span> <span class="n">waveform</span><span class="p">[</span><span class="n">frame_offset</span> <span class="p">:</span> <span class="n">frame_offset</span> <span class="o">+</span> <span class="n">num_frames</span><span class="p">]</span>
