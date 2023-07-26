@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
-from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
+from espnet2.asr.transducer.beam_search_transducer_streaming import BeamSearchTransducer
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
