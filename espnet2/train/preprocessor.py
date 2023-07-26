@@ -240,6 +240,9 @@ class CommonPreprocessor(AbsPreprocessor):
         if rir_path is not None:
             rir, fs = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
             if tgt_fs and fs != tgt_fs:
+                logging.warning(
+                    f"Resampling RIR to match the sampling rate ({fs} -> {tgt_fs} Hz)"
+                )
                 rir = librosa.resample(
                     rir, orig_sr=fs, target_sr=tgt_fs, res_type="kaiser_fast"
                 )
@@ -309,6 +312,9 @@ class CommonPreprocessor(AbsPreprocessor):
             # noise: (Nmic, Time)
             noise = noise.T
             if tgt_fs and fs != tgt_fs:
+                logging.warning(
+                    f"Resampling noise to match the sampling rate ({fs} -> {tgt_fs} Hz)"
+                )
                 noise = librosa.resample(
                     noise, orig_sr=fs, target_sr=tgt_fs, res_type="kaiser_fast"
                 )

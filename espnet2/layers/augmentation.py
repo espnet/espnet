@@ -393,6 +393,7 @@ def codecs(
     Returns:
         ret (torch.Tensor): compressed signal (..., time)
     """
+    raise NotImplementedError
     ret = torchaudio.functional.apply_codec(
         waveform.unsqueeze(0),
         sample_rate,
@@ -484,10 +485,10 @@ def corrupt_phase(
         waveform (torch.Tensor): audio signal (..., time)
         sample_rate (int): sampling rate in Hz
         scale (float): scale factor for the phase noise
-        n_fft (int): length of FFT (in second)
-        win_length (int or None): The window length (in second) used for STFT
+        n_fft (float): length of FFT (in second)
+        win_length (float or None): The window length (in second) used for STFT
             If None, it is treated as equal to n_fft
-        hop_length (int): The hop size (in second) used for STFT
+        hop_length (float): The hop size (in second) used for STFT
         window (str or None): The windowing function applied to the signal after
             padding with zeros
 
