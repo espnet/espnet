@@ -48,8 +48,8 @@ def test_reload_pretrained_parameters():
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
-        "HuggingFaceH4/tiny-random-LlamaForCausalLM",  # tokenizer.padding_side=="left"
-        "Muennighoff/bloom-tiny-random",  # tokenizer.padding_side=="right"
+        "akreal/tiny-random-LlamaForCausalLM",  # tokenizer.padding_side=="left"
+        "akreal/tiny-random-BloomForCausalLM",  # tokenizer.padding_side=="right"
     ],
 )
 @pytest.mark.parametrize("prefix", ["prefix", ""])
