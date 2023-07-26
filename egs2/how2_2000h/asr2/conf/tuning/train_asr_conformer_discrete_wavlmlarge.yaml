@@ -28,8 +28,9 @@ specaug_conf:
 
 
 batch_type: numel
-batch_bins: 280000000
-accum_grad: 10
+#batch_bins: 340000000
+batch_bins: 370000000
+accum_grad: 1
 
 max_epoch: 50
 patience: none
@@ -45,7 +46,7 @@ num_att_plot: 1
 log_interval: 1000
 
 
-encoder: conformer
+encoder: fnet_conformer
 encoder_conf:
     output_size: 512
     attention_heads: 8
@@ -57,6 +58,7 @@ encoder_conf:
     input_layer: conv2d
     normalize_before: true
     macaron_style: true
+    rel_pos_type: latest
     pos_enc_layer_type: "rel_pos"
     selfattention_layer_type: "fnet_selfattn"
     activation_type: "swish"
