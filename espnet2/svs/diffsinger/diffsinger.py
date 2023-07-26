@@ -3,7 +3,7 @@
 import logging
 import random
 from functools import partial
-from typing import Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
@@ -62,12 +62,31 @@ def linear_beta_schedule(timesteps, max_beta):
 class DiffSinger(AbsSVS):
     def __init__(
         self,
+        
         idim: int,
         odim: int,
-        midi_dim: int = 129,
-        tempo_dim: int = 500,
-        embed_dim: int = 256,
-        adim: int = 384,
+        fftsinger_params: Dict[str, Any] = {
+            "midi_dim": 129,
+            "tempo_dim": 500,
+            "embed_dim": 256,
+            "adim": 384,
+            "aheads": 4,
+            "elayers": 6,
+            "eunits": 1536,
+            "dlayers": 6,
+            "dunits": 1536,
+            "postnet_layers": 5,
+            "postnet_chans": 512,
+            "postnet_filts": 5,
+            "postnet_dropout_rate": 0.5,
+            "use_batch_norm": True,
+            "encoder_normalize_before": True,
+            "decoder_normalize_before": True,
+            "encoder_concat_after": False,
+            "decoder_concat_after": False,
+            "feats_minmax": None,
+        },
+        
         aheads: int = 4,
         elayers: int = 6,
         eunits: int = 1536,
@@ -105,6 +124,7 @@ class DiffSinger(AbsSVS):
         use_masking: bool = False,
         use_weighted_masking: bool = False,
         loss_type: str = "L1",
+        
     ) -> None:
         super().__init__()
 
