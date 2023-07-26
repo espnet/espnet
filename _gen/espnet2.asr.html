@@ -142,6 +142,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-transformer-encoder-1">espnet2.asr.encoder.transformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-abs-encoder-1">espnet2.asr.encoder.abs_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-vgg-rnn-encoder-1">espnet2.asr.encoder.vgg_rnn_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-hugging-face-transformers-encoder-1">espnet2.asr.encoder.hugging_face_transformers_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-hubert-encoder-1">espnet2.asr.encoder.hubert_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-wav2vec2-encoder-1">espnet2.asr.encoder.wav2vec2_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-transformer-encoder-multispkr-1">espnet2.asr.encoder.transformer_encoder_multispkr</a></li>
@@ -156,6 +157,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-postencoder-abs-postencoder-1">espnet2.asr.postencoder.abs_postencoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-postencoder-hugging-face-transformers-postencoder-1">espnet2.asr.postencoder.hugging_face_transformers_postencoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-postencoder-init-1">espnet2.asr.postencoder.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-postencoder-length-adaptor-postencoder-1">espnet2.asr.postencoder.length_adaptor_postencoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-preencoder-abs-preencoder-1">espnet2.asr.preencoder.abs_preencoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-preencoder-sinc-1">espnet2.asr.preencoder.sinc</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-preencoder-linear-1">espnet2.asr.preencoder.linear</a></li>
@@ -185,6 +187,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-abs-decoder-1">espnet2.asr.decoder.abs_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-hugging-face-transformers-decoder-1">espnet2.asr.decoder.hugging_face_transformers_decoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-decoder-init-1">espnet2.asr.decoder.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-beam-search-transducer-streaming-1">espnet2.asr.transducer.beam_search_transducer_streaming</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-error-calculator-1">espnet2.asr.transducer.error_calculator</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-beam-search-transducer-1">espnet2.asr.transducer.beam_search_transducer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-transducer-init-1">espnet2.asr.transducer.__init__</a></li>
@@ -917,6 +920,35 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.asr.encoder.vgg_rnn_encoder.VGGRNNEncoder.output_size">
 <code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/vgg_rnn_encoder.html#VGGRNNEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.vgg_rnn_encoder.VGGRNNEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-asr-encoder-hugging-face-transformers-encoder-1">
+<span id="espnet2-asr-encoder-hugging-face-transformers-encoder"></span><h2>espnet2.asr.encoder.hugging_face_transformers_encoder<a class="headerlink" href="#espnet2-asr-encoder-hugging-face-transformers-encoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.encoder.hugging_face_transformers_encoder"></span><p>Hugging Face Transformers PostEncoder.</p>
+<dl class="class">
+<dt id="espnet2.asr.encoder.hugging_face_transformers_encoder.HuggingFaceTransformersEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.hugging_face_transformers_encoder.</code><code class="sig-name descname">HuggingFaceTransformersEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">model_name_or_path: str</em>, <em class="sig-param">lang_token_id: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/hugging_face_transformers_encoder.html#HuggingFaceTransformersEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.hugging_face_transformers_encoder.HuggingFaceTransformersEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>Hugging Face Transformers PostEncoder.</p>
+<p>Initialize the module.</p>
+<dl class="method">
+<dt id="espnet2.asr.encoder.hugging_face_transformers_encoder.HuggingFaceTransformersEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/encoder/hugging_face_transformers_encoder.html#HuggingFaceTransformersEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.hugging_face_transformers_encoder.HuggingFaceTransformersEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.hugging_face_transformers_encoder.HuggingFaceTransformersEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/hugging_face_transformers_encoder.html#HuggingFaceTransformersEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.hugging_face_transformers_encoder.HuggingFaceTransformersEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the output size.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.hugging_face_transformers_encoder.HuggingFaceTransformersEncoder.reload_pretrained_parameters">
+<code class="sig-name descname">reload_pretrained_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/hugging_face_transformers_encoder.html#HuggingFaceTransformersEncoder.reload_pretrained_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.hugging_face_transformers_encoder.HuggingFaceTransformersEncoder.reload_pretrained_parameters" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -1686,7 +1718,7 @@ torch.Tensor: Mask tensor (#batch, time).</p>
 <span class="target" id="module-espnet2.asr.encoder.conformer_encoder"></span><p>Conformer encoder definition.</p>
 <dl class="class">
 <dt id="espnet2.asr.encoder.conformer_encoder.ConformerEncoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.conformer_encoder.</code><code class="sig-name descname">ConformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: str = 'conv2d'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">macaron_style: bool = False</em>, <em class="sig-param">rel_pos_type: str = 'legacy'</em>, <em class="sig-param">pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">selfattention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">use_cnn_module: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">cnn_module_kernel: int = 31</em>, <em class="sig-param">padding_idx: int = -1</em>, <em class="sig-param">interctc_layer_idx: List[int] = []</em>, <em class="sig-param">interctc_use_conditioning: bool = False</em>, <em class="sig-param">stochastic_depth_rate: Union[float</em>, <em class="sig-param">List[float]] = 0.0</em>, <em class="sig-param">layer_drop_rate: float = 0.0</em>, <em class="sig-param">max_pos_emb_len: int = 5000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/conformer_encoder.html#ConformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.conformer_encoder.ConformerEncoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.conformer_encoder.</code><code class="sig-name descname">ConformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: Optional[str] = 'conv2d'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">macaron_style: bool = False</em>, <em class="sig-param">rel_pos_type: str = 'legacy'</em>, <em class="sig-param">pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">selfattention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">use_cnn_module: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">cnn_module_kernel: int = 31</em>, <em class="sig-param">padding_idx: int = -1</em>, <em class="sig-param">interctc_layer_idx: List[int] = []</em>, <em class="sig-param">interctc_use_conditioning: bool = False</em>, <em class="sig-param">stochastic_depth_rate: Union[float</em>, <em class="sig-param">List[float]] = 0.0</em>, <em class="sig-param">layer_drop_rate: float = 0.0</em>, <em class="sig-param">max_pos_emb_len: int = 5000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/conformer_encoder.html#ConformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.conformer_encoder.ConformerEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
 <p>Conformer encoder module.</p>
 <dl class="field-list simple">
@@ -1920,6 +1952,30 @@ registered hooks while the latter silently ignores them.</p>
 <section id="espnet2-asr-postencoder-init-1">
 <span id="espnet2-asr-postencoder-init"></span><h2>espnet2.asr.postencoder.__init__<a class="headerlink" href="#espnet2-asr-postencoder-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.postencoder.__init__"></span></section>
+<section id="espnet2-asr-postencoder-length-adaptor-postencoder-1">
+<span id="espnet2-asr-postencoder-length-adaptor-postencoder"></span><h2>espnet2.asr.postencoder.length_adaptor_postencoder<a class="headerlink" href="#espnet2-asr-postencoder-length-adaptor-postencoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.postencoder.length_adaptor_postencoder"></span><p>Length adaptor PostEncoder.</p>
+<dl class="class">
+<dt id="espnet2.asr.postencoder.length_adaptor_postencoder.LengthAdaptorPostEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.postencoder.length_adaptor_postencoder.</code><code class="sig-name descname">LengthAdaptorPostEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">length_adaptor_n_layers: int = 0</em>, <em class="sig-param">input_layer: Optional[str] = None</em>, <em class="sig-param">output_size: Optional[int] = None</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">return_int_enc: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/postencoder/length_adaptor_postencoder.html#LengthAdaptorPostEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.postencoder.length_adaptor_postencoder.LengthAdaptorPostEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder" title="espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder</span></code></a></p>
+<p>Hugging Face Transformers PostEncoder.</p>
+<p>Initialize the module.</p>
+<dl class="method">
+<dt id="espnet2.asr.postencoder.length_adaptor_postencoder.LengthAdaptorPostEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/postencoder/length_adaptor_postencoder.html#LengthAdaptorPostEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.postencoder.length_adaptor_postencoder.LengthAdaptorPostEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.postencoder.length_adaptor_postencoder.LengthAdaptorPostEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/postencoder/length_adaptor_postencoder.html#LengthAdaptorPostEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.postencoder.length_adaptor_postencoder.LengthAdaptorPostEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the output size.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-preencoder-abs-preencoder-1">
 <span id="espnet2-asr-preencoder-abs-preencoder"></span><h2>espnet2.asr.preencoder.abs_preencoder<a class="headerlink" href="#espnet2-asr-preencoder-abs-preencoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.preencoder.abs_preencoder"></span><dl class="class">
@@ -3666,7 +3722,7 @@ i.e. x -&gt; x + att(x)</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.batch_score">
-<code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">ys: torch.Tensor, states: List[Any], xs: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[Any]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.batch_score" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">ys: torch.Tensor, states: List[Any], xs: torch.Tensor, return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[Any]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.batch_score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score new token batch.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -3692,7 +3748,7 @@ and next state list for ys.</p>
 
 <dl class="method">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs_pad: torch.Tensor</em>, <em class="sig-param">hlens: torch.Tensor</em>, <em class="sig-param">ys_in_pad: torch.Tensor</em>, <em class="sig-param">ys_in_lens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs_pad: torch.Tensor</em>, <em class="sig-param">hlens: torch.Tensor</em>, <em class="sig-param">ys_in_pad: torch.Tensor</em>, <em class="sig-param">ys_in_lens: torch.Tensor</em>, <em class="sig-param">return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward decoder.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -3703,6 +3759,8 @@ and next state list for ys.</p>
 if input_layer == “embed”
 input tensor (batch, maxlen_out, #mels) in the other cases</p></li>
 <li><p><strong>ys_in_lens</strong> – (batch)</p></li>
+<li><p><strong>return_hs</strong> – dec hidden state corresponding to ys,
+used for searchable hidden ints</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -3722,7 +3780,7 @@ input tensor (batch, maxlen_out, #mels) in the other cases</p></li>
 
 <dl class="method">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward_one_step">
-<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em>, <em class="sig-param">return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward one step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -3733,6 +3791,8 @@ dtype=torch.uint8 in PyTorch 1.2-
 dtype=torch.bool in PyTorch 1.2+ (include 1.2)</p></li>
 <li><p><strong>memory</strong> – encoded memory, float32  (batch, maxlen_in, feat)</p></li>
 <li><p><strong>cache</strong> – cached output list of (batch, max_time_out-1, size)</p></li>
+<li><p><strong>return_hs</strong> – dec hidden state corresponding to ys,
+used for searchable hidden ints</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -3747,7 +3807,7 @@ y.shape` is (batch, maxlen_out, token)</p>
 
 <dl class="method">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.score">
-<code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">ys</em>, <em class="sig-param">state</em>, <em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.score" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">ys</em>, <em class="sig-param">state</em>, <em class="sig-param">x</em>, <em class="sig-param">return_hs=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.score" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score.</p>
 </dd></dl>
 
@@ -3781,6 +3841,104 @@ y.shape` is (batch, maxlen_out, token)</p>
 <dt id="espnet2.asr.decoder.transformer_decoder.TransformerDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.transformer_decoder.</code><code class="sig-name descname">TransformerDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">self_attention_dropout_rate: float = 0.0</em>, <em class="sig-param">src_attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: str = 'embed'</em>, <em class="sig-param">use_output_layer: bool = True</em>, <em class="sig-param">pos_enc_class=&lt;class 'espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding'&gt;</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">layer_drop_rate: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#TransformerDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.TransformerDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder" title="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.transformer_decoder.</code><code class="sig-name descname">TransformerMDDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">self_attention_dropout_rate: float = 0.0</em>, <em class="sig-param">src_attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: str = 'embed'</em>, <em class="sig-param">use_output_layer: bool = True</em>, <em class="sig-param">pos_enc_class=&lt;class 'espnet.nets.pytorch_backend.transformer.embedding.PositionalEncoding'&gt;</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">concat_after: bool = False</em>, <em class="sig-param">use_speech_attn: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#TransformerMDDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder" title="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.batch_score">
+<code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">ys: torch.Tensor, states: List[Any], xs: torch.Tensor, speech: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[Any]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#TransformerMDDecoder.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.batch_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Score new token batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ys</strong> (<em>torch.Tensor</em>) – torch.int64 prefix tokens (n_batch, ylen).</p></li>
+<li><p><strong>states</strong> (<em>List</em><em>[</em><em>Any</em><em>]</em>) – Scorer states for prefix tokens.</p></li>
+<li><p><strong>xs</strong> (<em>torch.Tensor</em>) – The encoder feature that generates ys (n_batch, xlen, n_feat).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of</dt><dd><p>batchfied scores for next token with shape of <cite>(n_batch, n_vocab)</cite>
+and next state list for ys.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, List[Any]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs_pad: torch.Tensor</em>, <em class="sig-param">hlens: torch.Tensor</em>, <em class="sig-param">ys_in_pad: torch.Tensor</em>, <em class="sig-param">ys_in_lens: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">speech_lens: torch.Tensor = None</em>, <em class="sig-param">return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#TransformerMDDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward decoder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>hs_pad</strong> – encoded memory, float32  (batch, maxlen_in, feat)</p></li>
+<li><p><strong>hlens</strong> – (batch)</p></li>
+<li><p><strong>ys_in_pad</strong> – input token ids, int64 (batch, maxlen_out)
+if input_layer == “embed”
+input tensor (batch, maxlen_out, #mels) in the other cases</p></li>
+<li><p><strong>ys_in_lens</strong> – (batch)</p></li>
+<li><p><strong>return_hs</strong> – dec hidden state corresponding to ys,
+used for searchable hidden ints</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><p>tuple containing:</p>
+<dl class="simple">
+<dt>x: decoded token score before softmax (batch, maxlen_out, token)</dt><dd><p>if use_output_layer is True,</p>
+</dd>
+</dl>
+<p>olens: (batch, )</p>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>(tuple)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.forward_one_step">
+<code class="sig-name descname">forward_one_step</code><span class="sig-paren">(</span><em class="sig-param">tgt: torch.Tensor</em>, <em class="sig-param">tgt_mask: torch.Tensor</em>, <em class="sig-param">memory: torch.Tensor</em>, <em class="sig-param">speech: torch.Tensor = None</em>, <em class="sig-param">cache: List[torch.Tensor] = None</em>, <em class="sig-param">return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#TransformerMDDecoder.forward_one_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.forward_one_step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward one step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tgt</strong> – input token ids, int64 (batch, maxlen_out)</p></li>
+<li><p><strong>tgt_mask</strong> – input token mask,  (batch, maxlen_out)
+dtype=torch.uint8 in PyTorch 1.2-
+dtype=torch.bool in PyTorch 1.2+ (include 1.2)</p></li>
+<li><p><strong>memory</strong> – encoded memory, float32  (batch, maxlen_in, feat)</p></li>
+<li><p><strong>speech</strong> – encoded speech, float32  (batch, maxlen_in, feat)</p></li>
+<li><p><strong>cache</strong> – cached output list of (batch, max_time_out-1, size)</p></li>
+<li><p><strong>return_hs</strong> – dec hidden state corresponding to ys,
+used for searchable hidden ints</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>NN output value and cache per <cite>self.decoders</cite>.
+y.shape` is (batch, maxlen_out, token)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>y, cache</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.score">
+<code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">ys</em>, <em class="sig-param">state</em>, <em class="sig-param">x</em>, <em class="sig-param">speech=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#TransformerMDDecoder.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Score.</p>
+</dd></dl>
+
 </dd></dl>
 
 </section>
@@ -4328,7 +4486,7 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="class">
 <dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.hugging_face_transformers_decoder.</code><code class="sig-name descname">HuggingFaceTransformersDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">model_name_or_path: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="espnet2.asr.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.abs_decoder.AbsDecoder</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="espnet2.asr.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.abs_decoder.AbsDecoder</span></code></a>, <a class="reference internal" href="espnet.nets.html#espnet.nets.scorer_interface.BatchScorerInterface" title="espnet.nets.scorer_interface.BatchScorerInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.scorer_interface.BatchScorerInterface</span></code></a></p>
 <p>Hugging Face Transformers Decoder.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -4338,6 +4496,32 @@ registered hooks while the latter silently ignores them.</p>
 </ul>
 </dd>
 </dl>
+<dl class="method">
+<dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.batch_score">
+<code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">ys: torch.Tensor, states: List[Any], xs: torch.Tensor, speech: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[Any]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.batch_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Score new token batch (required).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ys</strong> (<em>torch.Tensor</em>) – torch.int64 prefix tokens (n_batch, ylen).</p></li>
+<li><p><strong>states</strong> (<em>List</em><em>[</em><em>Any</em><em>]</em>) – Scorer states for prefix tokens.</p></li>
+<li><p><strong>xs</strong> (<em>torch.Tensor</em>) – The encoder feature that generates ys (n_batch, xlen, n_feat).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of</dt><dd><p>batchfied scores for next token with shape of <cite>(n_batch, n_vocab)</cite>
+and next state list for ys.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, List[Any]]</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="method">
 <dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs_pad: torch.Tensor</em>, <em class="sig-param">hlens: torch.Tensor</em>, <em class="sig-param">ys_in_pad: torch.Tensor</em>, <em class="sig-param">ys_in_lens: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.forward" title="Permalink to this definition">¶</a></dt>
@@ -4371,12 +4555,238 @@ registered hooks while the latter silently ignores them.</p>
 <code class="sig-name descname">reload_pretrained_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder.reload_pretrained_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.reload_pretrained_parameters" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="method">
+<dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.score">
+<code class="sig-name descname">score</code><span class="sig-paren">(</span><em class="sig-param">ys</em>, <em class="sig-param">state</em>, <em class="sig-param">x</em>, <em class="sig-param">speech=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder.score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Score new token (required).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>y</strong> (<em>torch.Tensor</em>) – 1D torch.int64 prefix tokens.</p></li>
+<li><p><strong>state</strong> – Scorer state for prefix tokens</p></li>
+<li><p><strong>x</strong> (<em>torch.Tensor</em>) – The encoder feature that generates ys.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>Tuple of</dt><dd><p>scores for next token that has a shape of <cite>(n_vocab)</cite>
+and next state for ys</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[torch.Tensor, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </section>
 <section id="espnet2-asr-decoder-init-1">
 <span id="espnet2-asr-decoder-init"></span><h2>espnet2.asr.decoder.__init__<a class="headerlink" href="#espnet2-asr-decoder-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.decoder.__init__"></span></section>
+<section id="espnet2-asr-transducer-beam-search-transducer-streaming-1">
+<span id="espnet2-asr-transducer-beam-search-transducer-streaming"></span><h2>espnet2.asr.transducer.beam_search_transducer_streaming<a class="headerlink" href="#espnet2-asr-transducer-beam-search-transducer-streaming-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.transducer.beam_search_transducer_streaming"></span><p>Search algorithms for Transducer models.</p>
+<dl class="class">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.beam_search_transducer_streaming.</code><code class="sig-name descname">BeamSearchTransducerStreaming</code><span class="sig-paren">(</span><em class="sig-param">decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">joint_network: espnet2.asr_transducer.joint_network.JointNetwork</em>, <em class="sig-param">beam_size: int</em>, <em class="sig-param">lm: torch.nn.modules.module.Module = None</em>, <em class="sig-param">lm_weight: float = 0.1</em>, <em class="sig-param">search_type: str = 'default'</em>, <em class="sig-param">max_sym_exp: int = 2</em>, <em class="sig-param">u_max: int = 50</em>, <em class="sig-param">nstep: int = 1</em>, <em class="sig-param">prefix_alpha: int = 1</em>, <em class="sig-param">expansion_gamma: int = 2.3</em>, <em class="sig-param">expansion_beta: int = 2</em>, <em class="sig-param">score_norm: bool = True</em>, <em class="sig-param">score_norm_during: bool = False</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">penalty: float = 0.0</em>, <em class="sig-param">token_list: Optional[List[str]] = None</em>, <em class="sig-param">hold_n: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Beam search implementation for Transducer.</p>
+<p>Initialize Transducer search module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>decoder</strong> – Decoder module.</p></li>
+<li><p><strong>joint_network</strong> – Joint network module.</p></li>
+<li><p><strong>beam_size</strong> – Beam size.</p></li>
+<li><p><strong>lm</strong> – LM class.</p></li>
+<li><p><strong>lm_weight</strong> – LM weight for soft fusion.</p></li>
+<li><p><strong>search_type</strong> – Search algorithm to use during inference.</p></li>
+<li><p><strong>max_sym_exp</strong> – Number of maximum symbol expansions at each time step. (TSD)</p></li>
+<li><p><strong>u_max</strong> – Maximum output sequence length. (ALSD)</p></li>
+<li><p><strong>nstep</strong> – Number of maximum expansion steps at each time step. (NSC/mAES)</p></li>
+<li><p><strong>prefix_alpha</strong> – Maximum prefix length in prefix search. (NSC/mAES)</p></li>
+<li><p><strong>expansion_beta</strong> – Number of additional candidates for expanded hypotheses selection. (mAES)</p></li>
+<li><p><strong>expansion_gamma</strong> – Allowed logp difference for prune-by-value method. (mAES)</p></li>
+<li><p><strong>score_norm</strong> – Normalize final scores by length. (“default”)</p></li>
+<li><p><strong>score_norm_during</strong> – Normalize scores by length during search. (default, TSD, ALSD)</p></li>
+<li><p><strong>nbest</strong> – Number of final hypothesis.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.align_length_sync_decoding">
+<code class="sig-name descname">align_length_sync_decoding</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis]<a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming.align_length_sync_decoding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.align_length_sync_decoding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alignment-length synchronous beam search implementation.</p>
+<p>Based on <a class="reference external" href="https://ieeexplore.ieee.org/document/9053040">https://ieeexplore.ieee.org/document/9053040</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>h</strong> – Encoder output sequences. (T, D)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>N-best hypothesis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nbest_hyps</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.default_beam_search">
+<code class="sig-name descname">default_beam_search</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis]<a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming.default_beam_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.default_beam_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Beam search implementation.</p>
+<p>Modified from <a class="reference external" href="https://arxiv.org/pdf/1211.3711.pdf">https://arxiv.org/pdf/1211.3711.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>enc_out</strong> – Encoder output sequence. (T, D)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>N-best hypothesis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nbest_hyps</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.greedy_search">
+<code class="sig-name descname">greedy_search</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis]<a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming.greedy_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.greedy_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Greedy search implementation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>enc_out</strong> – Encoder output sequence. (T, D_enc)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>1-best hypotheses.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>hyp</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.modified_adaptive_expansion_search">
+<code class="sig-name descname">modified_adaptive_expansion_search</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis]<a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming.modified_adaptive_expansion_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.modified_adaptive_expansion_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>It’s the modified Adaptive Expansion Search (mAES) implementation.</p>
+<p>Based on/modified from <a class="reference external" href="https://ieeexplore.ieee.org/document/9250505">https://ieeexplore.ieee.org/document/9250505</a> and NSC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>enc_out</strong> – Encoder output sequence. (T, D_enc)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>N-best hypothesis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nbest_hyps</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.nsc_beam_search">
+<code class="sig-name descname">nsc_beam_search</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis]<a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming.nsc_beam_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.nsc_beam_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>N-step constrained beam search implementation.</p>
+<p>Based on/Modified from <a class="reference external" href="https://arxiv.org/pdf/2002.03577.pdf">https://arxiv.org/pdf/2002.03577.pdf</a>.
+Please reference ESPnet (b-flo, PR #2444) for any usage outside ESPnet
+until further modifications.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>enc_out</strong> – Encoder output sequence. (T, D_enc)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>N-best hypothesis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nbest_hyps</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.prefix_search">
+<code class="sig-name descname">prefix_search</code><span class="sig-paren">(</span><em class="sig-param">hyps: List[espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis], enc_out_t: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis]<a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming.prefix_search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.prefix_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prefix search for NSC and mAES strategies.</p>
+<p>Based on <a class="reference external" href="https://arxiv.org/pdf/1211.3711.pdf">https://arxiv.org/pdf/1211.3711.pdf</a></p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.reset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.sort_nbest">
+<code class="sig-name descname">sort_nbest</code><span class="sig-paren">(</span><em class="sig-param">hyps: Union[List[espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis], List[espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis]]</em><span class="sig-paren">)</span> &#x2192; Union[List[espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis], List[espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis]]<a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming.sort_nbest"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.sort_nbest" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sort hypotheses by score or score given sequence length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>hyps</strong> – Hypothesis.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Sorted hypothesis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>hyps</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.time_sync_decoding">
+<code class="sig-name descname">time_sync_decoding</code><span class="sig-paren">(</span><em class="sig-param">enc_out: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis]<a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#BeamSearchTransducerStreaming.time_sync_decoding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.BeamSearchTransducerStreaming.time_sync_decoding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time synchronous beam search implementation.</p>
+<p>Based on <a class="reference external" href="https://ieeexplore.ieee.org/document/9053040">https://ieeexplore.ieee.org/document/9053040</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>enc_out</strong> – Encoder output sequence. (T, D)</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>N-best hypothesis.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>nbest_hyps</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.beam_search_transducer_streaming.</code><code class="sig-name descname">ExtendedHypothesis</code><span class="sig-paren">(</span><em class="sig-param">score: float, yseq: List[int], dec_state: Union[Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]], torch.Tensor], lm_state: Union[Dict[str, Any], List[Any]] = None, dec_out: List[torch.Tensor] = None, lm_scores: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#ExtendedHypothesis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis" title="espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis</span></code></a></p>
+<p>Extended hypothesis definition for NSC beam search and mAES.</p>
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis.dec_out">
+<code class="sig-name descname">dec_out</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis.dec_out" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis.lm_scores">
+<code class="sig-name descname">lm_scores</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.ExtendedHypothesis.lm_scores" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.beam_search_transducer_streaming.</code><code class="sig-name descname">Hypothesis</code><span class="sig-paren">(</span><em class="sig-param">score: float, yseq: List[int], dec_state: Union[Tuple[torch.Tensor, Optional[torch.Tensor]], List[Optional[torch.Tensor]], torch.Tensor], lm_state: Union[Dict[str, Any], List[Any]] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer_streaming.html#Hypothesis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Default hypothesis definition for Transducer search algorithms.</p>
+<dl class="attribute">
+<dt id="espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis.lm_state">
+<code class="sig-name descname">lm_state</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer_streaming.Hypothesis.lm_state" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-transducer-error-calculator-1">
 <span id="espnet2-asr-transducer-error-calculator"></span><h2>espnet2.asr.transducer.error_calculator<a class="headerlink" href="#espnet2-asr-transducer-error-calculator-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.transducer.error_calculator"></span><p>Error Calculator module for Transducer.</p>
@@ -4461,7 +4871,7 @@ char_target: Target character sequences. (B, ?)</p>
 <span class="target" id="module-espnet2.asr.transducer.beam_search_transducer"></span><p>Search algorithms for Transducer models.</p>
 <dl class="class">
 <dt id="espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.beam_search_transducer.</code><code class="sig-name descname">BeamSearchTransducer</code><span class="sig-paren">(</span><em class="sig-param">decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">joint_network: espnet2.asr_transducer.joint_network.JointNetwork</em>, <em class="sig-param">beam_size: int</em>, <em class="sig-param">lm: torch.nn.modules.module.Module = None</em>, <em class="sig-param">lm_weight: float = 0.1</em>, <em class="sig-param">search_type: str = 'default'</em>, <em class="sig-param">max_sym_exp: int = 2</em>, <em class="sig-param">u_max: int = 50</em>, <em class="sig-param">nstep: int = 1</em>, <em class="sig-param">prefix_alpha: int = 1</em>, <em class="sig-param">expansion_gamma: int = 2.3</em>, <em class="sig-param">expansion_beta: int = 2</em>, <em class="sig-param">multi_blank_durations: List[int] = []</em>, <em class="sig-param">multi_blank_indices: List[int] = []</em>, <em class="sig-param">score_norm: bool = True</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">token_list: Optional[List[str]] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer.html#BeamSearchTransducer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.transducer.beam_search_transducer.</code><code class="sig-name descname">BeamSearchTransducer</code><span class="sig-paren">(</span><em class="sig-param">decoder: espnet2.asr.decoder.abs_decoder.AbsDecoder</em>, <em class="sig-param">joint_network: espnet2.asr_transducer.joint_network.JointNetwork</em>, <em class="sig-param">beam_size: int</em>, <em class="sig-param">lm: torch.nn.modules.module.Module = None</em>, <em class="sig-param">lm_weight: float = 0.1</em>, <em class="sig-param">search_type: str = 'default'</em>, <em class="sig-param">max_sym_exp: int = 2</em>, <em class="sig-param">u_max: int = 50</em>, <em class="sig-param">nstep: int = 1</em>, <em class="sig-param">prefix_alpha: int = 1</em>, <em class="sig-param">expansion_gamma: int = 2.3</em>, <em class="sig-param">expansion_beta: int = 2</em>, <em class="sig-param">multi_blank_durations: List[int] = []</em>, <em class="sig-param">multi_blank_indices: List[int] = []</em>, <em class="sig-param">score_norm: bool = True</em>, <em class="sig-param">score_norm_during: bool = False</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">token_list: Optional[List[str]] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/transducer/beam_search_transducer.html#BeamSearchTransducer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.transducer.beam_search_transducer.BeamSearchTransducer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Beam search implementation for Transducer.</p>
 <p>Initialize Transducer search module.</p>
@@ -4483,6 +4893,7 @@ char_target: Target character sequences. (B, ?)</p>
 <li><p><strong>multi_blank_durations</strong> – The duration of each blank token. (MBG)</p></li>
 <li><p><strong>multi_blank_indices</strong> – The index of each blank token in token_list. (MBG)</p></li>
 <li><p><strong>score_norm</strong> – Normalize final scores by length. (“default”)</p></li>
+<li><p><strong>score_norm_during</strong> – Normalize scores by length during search. (default, TSD, ALSD)</p></li>
 <li><p><strong>nbest</strong> – Number of final hypothesis.</p></li>
 </ul>
 </dd>

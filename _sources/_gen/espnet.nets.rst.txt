@@ -48,6 +48,17 @@ espnet.nets.scorer_interface
     :show-inheritance:
 
 
+.. _espnet.nets.beam_search_timesync_streaming:
+
+espnet.nets.beam_search_timesync_streaming
+------------------------------------------
+
+.. automodule:: espnet.nets.beam_search_timesync_streaming
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.nets.lm_interface:
 
 espnet.nets.lm_interface

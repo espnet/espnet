@@ -2488,15 +2488,15 @@ SeparateSpeech related:
                         [--asr_decoder_conf ASR_DECODER_CONF]
                         [--st_preencoder {sinc,linear,None}]
                         [--st_preencoder_conf ST_PREENCODER_CONF]
-                        [--st_encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}]
+                        [--st_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer}]
                         [--st_encoder_conf ST_ENCODER_CONF]
-                        [--st_postencoder {hugging_face_transformers,None}]
+                        [--st_postencoder {hugging_face_transformers,length_adaptor,None}]
                         [--st_postencoder_conf ST_POSTENCODER_CONF]
-                        [--st_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                        [--st_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,hugging_face_transformers}]
                         [--st_decoder_conf ST_DECODER_CONF]
-                        [--st_extra_asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                        [--st_extra_asr_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}]
                         [--st_extra_asr_decoder_conf ST_EXTRA_ASR_DECODER_CONF]
-                        [--st_extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                        [--st_extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}]
                         [--st_extra_mt_decoder_conf ST_EXTRA_MT_DECODER_CONF]
                         [--diar_frontend {default,sliding_window,s3prl,None}]
                         [--diar_frontend_conf DIAR_FRONTEND_CONF]
@@ -2964,24 +2964,24 @@ Optimizer related:
                         The st_preencoder type (default: None)
   --st_preencoder_conf ST_PREENCODER_CONF
                         The keyword arguments for st_preencoder (default: {})
-  --st_encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}
+  --st_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer}
                         The st_encoder type (default: rnn)
   --st_encoder_conf ST_ENCODER_CONF
                         The keyword arguments for st_encoder (default: {})
-  --st_postencoder {hugging_face_transformers,None}
+  --st_postencoder {hugging_face_transformers,length_adaptor,None}
                         The st_postencoder type (default: None)
   --st_postencoder_conf ST_POSTENCODER_CONF
                         The keyword arguments for st_postencoder (default: {})
-  --st_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
+  --st_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,hugging_face_transformers}
                         The st_decoder type (default: rnn)
   --st_decoder_conf ST_DECODER_CONF
                         The keyword arguments for st_decoder (default: {})
-  --st_extra_asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
-                        The st_extra_asr_decoder type (default: rnn)
+  --st_extra_asr_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}
+                        The st_extra_asr_decoder type (default: None)
   --st_extra_asr_decoder_conf ST_EXTRA_ASR_DECODER_CONF
                         The keyword arguments for st_extra_asr_decoder (default: {})
-  --st_extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
-                        The st_extra_mt_decoder type (default: rnn)
+  --st_extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}
+                        The st_extra_mt_decoder type (default: None)
   --st_extra_mt_decoder_conf ST_EXTRA_MT_DECODER_CONF
                         The keyword arguments for st_extra_mt_decoder (default: {})
   --diar_frontend {default,sliding_window,s3prl,None}
@@ -7552,15 +7552,35 @@ usage: st_inference.py [-h] [--config CONFIG]
                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                        [--st_train_config ST_TRAIN_CONFIG]
                        [--st_model_file ST_MODEL_FILE]
-                       [--lm_train_config LM_TRAIN_CONFIG] [--lm_file LM_FILE]
+                       [--lm_train_config LM_TRAIN_CONFIG]
+                       [--src_lm_train_config SRC_LM_TRAIN_CONFIG]
+                       [--lm_file LM_FILE] [--src_lm_file SRC_LM_FILE]
                        [--word_lm_train_config WORD_LM_TRAIN_CONFIG]
-                       [--word_lm_file WORD_LM_FILE] [--ngram_file NGRAM_FILE]
+                       [--src_word_lm_train_config SRC_WORD_LM_TRAIN_CONFIG]
+                       [--word_lm_file WORD_LM_FILE]
+                       [--src_word_lm_file SRC_WORD_LM_FILE]
+                       [--ngram_file NGRAM_FILE]
+                       [--src_ngram_file SRC_NGRAM_FILE]
                        [--model_tag MODEL_TAG] [--enh_s2t_task ENH_S2T_TASK]
                        [--batch_size BATCH_SIZE] [--nbest NBEST]
-                       [--beam_size BEAM_SIZE] [--penalty PENALTY]
-                       [--maxlenratio MAXLENRATIO] [--minlenratio MINLENRATIO]
-                       [--lm_weight LM_WEIGHT] [--ngram_weight NGRAM_WEIGHT]
-                       [--token_type {char,bpe,None}] [--bpemodel BPEMODEL]
+                       [--asr_nbest ASR_NBEST] [--beam_size BEAM_SIZE]
+                       [--asr_beam_size ASR_BEAM_SIZE] [--penalty PENALTY]
+                       [--asr_penalty ASR_PENALTY] [--maxlenratio MAXLENRATIO]
+                       [--asr_maxlenratio ASR_MAXLENRATIO]
+                       [--minlenratio MINLENRATIO]
+                       [--asr_minlenratio ASR_MINLENRATIO]
+                       [--lm_weight LM_WEIGHT] [--asr_lm_weight ASR_LM_WEIGHT]
+                       [--ngram_weight NGRAM_WEIGHT]
+                       [--asr_ngram_weight ASR_NGRAM_WEIGHT]
+                       [--ctc_weight CTC_WEIGHT]
+                       [--asr_ctc_weight ASR_CTC_WEIGHT]
+                       [--transducer_conf TRANSDUCER_CONF]
+                       [--token_type {char,bpe,None}]
+                       [--src_token_type {char,bpe,None}]
+                       [--bpemodel BPEMODEL] [--src_bpemodel SRC_BPEMODEL]
+                       [--ctc_greedy CTC_GREEDY]
+                       [--hugging_face_decoder HUGGING_FACE_DECODER]
+                       [--hugging_face_decoder_max_length HUGGING_FACE_DECODER_MAX_LENGTH]
 
 ST Decoding
 
@@ -7588,12 +7608,22 @@ The model configuration related:
                         ST model parameter file (default: None)
   --lm_train_config LM_TRAIN_CONFIG
                         LM training configuration (default: None)
+  --src_lm_train_config SRC_LM_TRAIN_CONFIG
+                        LM training configuration (default: None)
   --lm_file LM_FILE     LM parameter file (default: None)
+  --src_lm_file SRC_LM_FILE
+                        LM parameter file (default: None)
   --word_lm_train_config WORD_LM_TRAIN_CONFIG
+                        Word LM training configuration (default: None)
+  --src_word_lm_train_config SRC_WORD_LM_TRAIN_CONFIG
                         Word LM training configuration (default: None)
   --word_lm_file WORD_LM_FILE
                         Word LM parameter file (default: None)
+  --src_word_lm_file SRC_WORD_LM_FILE
+                        Word LM parameter file (default: None)
   --ngram_file NGRAM_FILE
+                        N-gram parameter file (default: None)
+  --src_ngram_file SRC_NGRAM_FILE
                         N-gram parameter file (default: None)
   --model_tag MODEL_TAG
                         Pretrained model tag. If specify this option,
@@ -7606,10 +7636,23 @@ Beam-search related:
   --batch_size BATCH_SIZE
                         The batch size for inference (default: 1)
   --nbest NBEST         Output N-best hypotheses (default: 1)
+  --asr_nbest ASR_NBEST
+                        Output N-best hypotheses (default: 1)
   --beam_size BEAM_SIZE
                         Beam size (default: 20)
+  --asr_beam_size ASR_BEAM_SIZE
+                        Beam size (default: 20)
   --penalty PENALTY     Insertion penalty (default: 0.0)
+  --asr_penalty ASR_PENALTY
+                        Insertion penalty (default: 0.0)
   --maxlenratio MAXLENRATIO
+                        Input length ratio to obtain max output length. If
+                        maxlenratio=0.0 (default), it uses a end-detect
+                        function to automatically find maximum hypothesis
+                        lengths.If maxlenratio&lt;0.0, its absolute value is
+                        interpretedas a constant max output length (default:
+                        0.0)
+  --asr_maxlenratio ASR_MAXLENRATIO
                         Input length ratio to obtain max output length. If
                         maxlenratio=0.0 (default), it uses a end-detect
                         function to automatically find maximum hypothesis
@@ -7619,17 +7662,40 @@ Beam-search related:
   --minlenratio MINLENRATIO
                         Input length ratio to obtain min output length
                         (default: 0.0)
+  --asr_minlenratio ASR_MINLENRATIO
+                        Input length ratio to obtain min output length
+                        (default: 0.0)
   --lm_weight LM_WEIGHT
+                        RNNLM weight (default: 1.0)
+  --asr_lm_weight ASR_LM_WEIGHT
                         RNNLM weight (default: 1.0)
   --ngram_weight NGRAM_WEIGHT
                         ngram weight (default: 0.9)
+  --asr_ngram_weight ASR_NGRAM_WEIGHT
+                        ngram weight (default: 0.9)
+  --ctc_weight CTC_WEIGHT
+                        ST CTC weight (default: 0.0)
+  --asr_ctc_weight ASR_CTC_WEIGHT
+                        ASR CTC weight (default: 0.3)
+  --transducer_conf TRANSDUCER_CONF
+                        The keyword arguments for transducer beam search.
+                        (default: None)
 
 Text converter related:
   --token_type {char,bpe,None}
                         The token type for ST model. If not given, refers from
                         the training args (default: None)
+  --src_token_type {char,bpe,None}
+                        The token type for ST model. If not given, refers from
+                        the training args (default: None)
   --bpemodel BPEMODEL   The model path of sentencepiece. If not given, refers
                         from the training args (default: None)
+  --src_bpemodel SRC_BPEMODEL
+                        The model path of sentencepiece. If not given, refers
+                        from the training args (default: None)
+  --ctc_greedy CTC_GREEDY
+  --hugging_face_decoder HUGGING_FACE_DECODER
+  --hugging_face_decoder_max_length HUGGING_FACE_DECODER_MAX_LENGTH
 </pre></div>
 </div>
 </section>
@@ -7711,9 +7777,10 @@ Text converter related:
                    [--src_token_list SRC_TOKEN_LIST]
                    [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
                    [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
+                   [--st_joint_net_conf ST_JOINT_NET_CONF]
                    [--model_conf MODEL_CONF]
                    [--use_preprocessor USE_PREPROCESSOR]
-                   [--token_type {bpe,char,word,phn}]
+                   [--token_type {bpe,char,word,phn,hugging_face}]
                    [--src_token_type {bpe,char,word,phn,none}]
                    [--bpemodel BPEMODEL] [--src_bpemodel SRC_BPEMODEL]
                    [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
@@ -7725,6 +7792,7 @@ Text converter related:
                    [--noise_apply_prob NOISE_APPLY_PROB]
                    [--noise_db_range NOISE_DB_RANGE]
                    [--short_noise_thres SHORT_NOISE_THRES]
+                   [--ctc_sample_rate CTC_SAMPLE_RATE]
                    [--frontend {default,sliding_window,s3prl}]
                    [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                    [--specaug_conf SPECAUG_CONF]
@@ -7732,16 +7800,22 @@ Text converter related:
                    [--normalize_conf NORMALIZE_CONF]
                    [--preencoder {sinc,linear,None}]
                    [--preencoder_conf PREENCODER_CONF]
-                   [--encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}]
+                   [--encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer}]
                    [--encoder_conf ENCODER_CONF]
-                   [--postencoder {hugging_face_transformers,None}]
+                   [--postencoder {hugging_face_transformers,length_adaptor,None}]
                    [--postencoder_conf POSTENCODER_CONF]
-                   [--decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                   [--decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,hugging_face_transformers}]
                    [--decoder_conf DECODER_CONF]
-                   [--extra_asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                   [--extra_asr_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}]
                    [--extra_asr_decoder_conf EXTRA_ASR_DECODER_CONF]
-                   [--extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}]
+                   [--extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}]
                    [--extra_mt_decoder_conf EXTRA_MT_DECODER_CONF]
+                   [--md_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,branchformer,e_branchformer,None}]
+                   [--md_encoder_conf MD_ENCODER_CONF]
+                   [--hier_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,branchformer,e_branchformer,None}]
+                   [--hier_encoder_conf HIER_ENCODER_CONF]
+                   [--extra_mt_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,branchformer,e_branchformer,hugging_face_transformers,None}]
+                   [--extra_mt_encoder_conf EXTRA_MT_ENCODER_CONF]
 
 base parser
 
@@ -8108,14 +8182,16 @@ Optimizer related:
   --input_size INPUT_SIZE
                         The number of input dimension of the feature (default: None)
   --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True})
+  --st_joint_net_conf ST_JOINT_NET_CONF
+                        The keyword arguments for joint network class. (default: None)
   --model_conf MODEL_CONF
-                        The keyword arguments for model class. (default: {&#39;asr_weight&#39;: 0.0, &#39;mt_weight&#39;: 0.0, &#39;mtlalpha&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;report_bleu&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True})
+                        The keyword arguments for model class. (default: {&#39;asr_weight&#39;: 0.0, &#39;mt_weight&#39;: 0.0, &#39;mtlalpha&#39;: 0.0, &#39;st_mtlalpha&#39;: 0.0, &#39;ignore_id&#39;: -1, &#39;tgt_ignore_id&#39;: -1, &#39;lsm_weight&#39;: 0.0, &#39;length_normalized_loss&#39;: False, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;report_bleu&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;tgt_sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;tgt_sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True, &#39;ctc_sample_rate&#39;: 0.0, &#39;tgt_sym_sos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;tgt_sym_eos&#39;: &#39;&lt;sos/eos&gt;&#39;, &#39;lang_token_id&#39;: -1})
 
   Preprocess related
 
   --use_preprocessor USE_PREPROCESSOR
                         Apply preprocessing to data or not (default: True)
-  --token_type {bpe,char,word,phn}
+  --token_type {bpe,char,word,phn,hugging_face}
                         The target text will be tokenized in the specified level token (default: bpe)
   --src_token_type {bpe,char,word,phn,none}
                         The source text will be tokenized in the specified level token (default: bpe)
@@ -8141,6 +8217,8 @@ Optimizer related:
                         The range of noise decibel level. (default: 13_15)
   --short_noise_thres SHORT_NOISE_THRES
                         If len(noise) / len(speech) is smaller than this threshold during dynamic mixing, a warning will be displayed. (default: 0.5)
+  --ctc_sample_rate CTC_SAMPLE_RATE
+                        Sample greedy CTC output as AR decoder target. (default: 0.0)
   --frontend {default,sliding_window,s3prl}
                         The frontend type (default: default)
   --frontend_conf FRONTEND_CONF
@@ -8157,26 +8235,38 @@ Optimizer related:
                         The preencoder type (default: None)
   --preencoder_conf PREENCODER_CONF
                         The keyword arguments for preencoder (default: {})
-  --encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain}
+  --encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer}
                         The encoder type (default: rnn)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
-  --postencoder {hugging_face_transformers,None}
+  --postencoder {hugging_face_transformers,length_adaptor,None}
                         The postencoder type (default: None)
   --postencoder_conf POSTENCODER_CONF
                         The keyword arguments for postencoder (default: {})
-  --decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
+  --decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,hugging_face_transformers}
                         The decoder type (default: rnn)
   --decoder_conf DECODER_CONF
                         The keyword arguments for decoder (default: {})
-  --extra_asr_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
-                        The extra_asr_decoder type (default: rnn)
+  --extra_asr_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}
+                        The extra_asr_decoder type (default: None)
   --extra_asr_decoder_conf EXTRA_ASR_DECODER_CONF
                         The keyword arguments for extra_asr_decoder (default: {})
-  --extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn}
-                        The extra_mt_decoder type (default: rnn)
+  --extra_mt_decoder {transformer,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}
+                        The extra_mt_decoder type (default: None)
   --extra_mt_decoder_conf EXTRA_MT_DECODER_CONF
                         The keyword arguments for extra_mt_decoder (default: {})
+  --md_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,branchformer,e_branchformer,None}
+                        The md_encoder type (default: None)
+  --md_encoder_conf MD_ENCODER_CONF
+                        The keyword arguments for md_encoder (default: {})
+  --hier_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,branchformer,e_branchformer,None}
+                        The hier_encoder type (default: None)
+  --hier_encoder_conf HIER_ENCODER_CONF
+                        The keyword arguments for hier_encoder (default: {})
+  --extra_mt_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,branchformer,e_branchformer,hugging_face_transformers,None}
+                        The extra_mt_encoder type (default: None)
+  --extra_mt_encoder_conf EXTRA_MT_ENCODER_CONF
+                        The keyword arguments for extra_mt_encoder (default: {})
 /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe &#39;nopython&#39; keyword argument was not supplied to the &#39;numba.jit&#39; decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
   def backtrace(trace: np.ndarray):
 </pre></div>

@@ -712,7 +712,8 @@
             <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
                 <span class="n">xs_pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
-            <span class="k">return</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="k">return</span> <span class="n">xs_pad</span><span class="p">,</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="n">bsize</span><span class="p">),</span> <span class="kc">None</span>
+            <span class="c1"># return xs_pad, None, None</span>
 
         <span class="c1"># start block processing</span>
         <span class="n">xs_chunk</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span>
@@ -798,7 +799,12 @@
                 <span class="s2">&quot;past_encoder_ctx&quot;</span><span class="p">:</span> <span class="n">past_encoder_ctx</span><span class="p">,</span>
             <span class="p">}</span>
 
-        <span class="k">return</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">next_states</span></div></div>
+        <span class="k">return</span> <span class="p">(</span>
+            <span class="n">ys_pad</span><span class="p">,</span>
+            <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">y_length</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">ys_pad</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="n">next_states</span><span class="p">,</span>
+        <span class="p">)</span></div></div>
+        <span class="c1"># return ys_pad, None, next_states</span>
 </pre></div>
 
            </div>

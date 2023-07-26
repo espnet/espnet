@@ -523,7 +523,9 @@
             <span class="p">)</span>
         <span class="k">elif</span> <span class="n">input_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">input_size</span> <span class="o">==</span> <span class="n">output_size</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">embed</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
+                    <span class="n">pos_enc_class</span><span class="p">(</span><span class="n">output_size</span><span class="p">,</span> <span class="n">positional_dropout_rate</span><span class="p">,</span> <span class="n">max_pos_emb_len</span><span class="p">)</span>
+                <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">embed</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span><span class="n">input_size</span><span class="p">,</span> <span class="n">output_size</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>

@@ -210,11 +210,14 @@
              
   <h1>Source code for espnet2.st.espnet_model</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">random</span>
 <span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">packaging.version</span> <span class="kn">import</span> <span class="n">parse</span> <span class="k">as</span> <span class="n">V</span>
+<span class="kn">from</span> <span class="nn">torch.nn.utils.rnn</span> <span class="kn">import</span> <span class="n">pad_sequence</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.ctc</span> <span class="kn">import</span> <span class="n">CTC</span>
@@ -224,6 +227,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.abs_postencoder</span> <span class="kn">import</span> <span class="n">AbsPostEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.abs_preencoder</span> <span class="kn">import</span> <span class="n">AbsPreEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.specaug.abs_specaug</span> <span class="kn">import</span> <span class="n">AbsSpecAug</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr_transducer.utils</span> <span class="kn">import</span> <span class="n">get_transducer_task_io</span>
 <span class="kn">from</span> <span class="nn">espnet2.layers.abs_normalize</span> <span class="kn">import</span> <span class="n">AbsNormalize</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">force_gatherable</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
@@ -256,17 +260,24 @@
         <span class="n">normalize</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsNormalize</span><span class="p">],</span>
         <span class="n">preencoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsPreEncoder</span><span class="p">],</span>
         <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
+        <span class="n">hier_encoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsEncoder</span><span class="p">],</span>
+        <span class="n">md_encoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsEncoder</span><span class="p">],</span>
+        <span class="n">extra_mt_encoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsEncoder</span><span class="p">],</span>
         <span class="n">postencoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsPostEncoder</span><span class="p">],</span>
         <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
         <span class="n">extra_asr_decoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsDecoder</span><span class="p">],</span>
         <span class="n">extra_mt_decoder</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsDecoder</span><span class="p">],</span>
         <span class="n">ctc</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CTC</span><span class="p">],</span>
+        <span class="n">st_ctc</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">CTC</span><span class="p">],</span>
+        <span class="n">st_joint_network</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">],</span>
         <span class="n">src_vocab_size</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
         <span class="n">src_token_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]],</span>
         <span class="n">asr_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">mt_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">mtlalpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">st_mtlalpha</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">tgt_ignore_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">lsm_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">length_normalized_loss</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">report_cer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
@@ -274,7 +285,13 @@
         <span class="n">report_bleu</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">sym_space</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
         <span class="n">sym_blank</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;blank&gt;&quot;</span><span class="p">,</span>
+        <span class="n">tgt_sym_space</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
+        <span class="n">tgt_sym_blank</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;blank&gt;&quot;</span><span class="p">,</span>
         <span class="n">extract_feats_in_collect_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">ctc_sample_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">tgt_sym_sos</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;sos/eos&gt;&quot;</span><span class="p">,</span>
+        <span class="n">tgt_sym_eos</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;sos/eos&gt;&quot;</span><span class="p">,</span>
+        <span class="n">lang_token_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">assert</span> <span class="mf">0.0</span> <span class="o">&lt;=</span> <span class="n">asr_weight</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s2">&quot;asr_weight should be [0.0, 1.0)&quot;</span>
@@ -283,34 +300,65 @@
 
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="c1"># note that eos is the same as sos (equivalent ID)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">tgt_sym_sos</span> <span class="ow">in</span> <span class="n">token_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">tgt_sym_sos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="n">tgt_sym_eos</span> <span class="ow">in</span> <span class="n">token_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">tgt_sym_eos</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">src_sos</span> <span class="o">=</span> <span class="n">src_vocab_size</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">src_vocab_size</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">src_eos</span> <span class="o">=</span> <span class="n">src_vocab_size</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">src_vocab_size</span> <span class="k">else</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">src_vocab_size</span> <span class="o">=</span> <span class="n">src_vocab_size</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span> <span class="o">=</span> <span class="n">ignore_id</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tgt_ignore_id</span> <span class="o">=</span> <span class="n">tgt_ignore_id</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">asr_weight</span> <span class="o">=</span> <span class="n">asr_weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mt_weight</span> <span class="o">=</span> <span class="n">mt_weight</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">=</span> <span class="n">mtlalpha</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">st_mtlalpha</span> <span class="o">=</span> <span class="n">st_mtlalpha</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">src_token_list</span> <span class="o">=</span> <span class="n">src_token_list</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctc_sample_rate</span> <span class="o">=</span> <span class="n">ctc_sample_rate</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span> <span class="o">=</span> <span class="n">frontend</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">specaug</span> <span class="o">=</span> <span class="n">specaug</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">normalize</span> <span class="o">=</span> <span class="n">normalize</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">preencoder</span> <span class="o">=</span> <span class="n">preencoder</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span> <span class="o">=</span> <span class="n">postencoder</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hier_encoder</span> <span class="o">=</span> <span class="n">hier_encoder</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">encoder</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">decoder</span>  <span class="c1"># TODO(jiatong): directly implement multi-decoder structure at here</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_mtlalpha</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
+        <span class="k">elif</span> <span class="n">decoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s2">&quot;Not using decoder because &quot;</span>
+                <span class="s2">&quot;st_mtlalpha is set as </span><span class="si">{}</span><span class="s2"> (== 1.00)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">st_mtlalpha</span><span class="p">),</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">md_encoder</span> <span class="o">=</span> <span class="n">md_encoder</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">criterion_st</span> <span class="o">=</span> <span class="n">LabelSmoothingLoss</span><span class="p">(</span>
-            <span class="n">size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
-            <span class="n">padding_idx</span><span class="o">=</span><span class="n">ignore_id</span><span class="p">,</span>
-            <span class="n">smoothing</span><span class="o">=</span><span class="n">lsm_weight</span><span class="p">,</span>
-            <span class="n">normalize_length</span><span class="o">=</span><span class="n">length_normalized_loss</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">st_use_transducer_decoder</span> <span class="o">=</span> <span class="n">st_joint_network</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_use_transducer_decoder</span><span class="p">:</span>
+            <span class="kn">from</span> <span class="nn">warprnnt_pytorch</span> <span class="kn">import</span> <span class="n">RNNTLoss</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">st_joint_network</span> <span class="o">=</span> <span class="n">st_joint_network</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">tgt_sym_blank</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">st_criterion_transducer</span> <span class="o">=</span> <span class="n">RNNTLoss</span><span class="p">(</span>
+                <span class="n">blank</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span>
+                <span class="n">fastemit_lambda</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">criterion_st</span> <span class="o">=</span> <span class="n">LabelSmoothingLoss</span><span class="p">(</span>
+                <span class="n">size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+                <span class="n">padding_idx</span><span class="o">=</span><span class="n">tgt_ignore_id</span><span class="p">,</span>
+                <span class="n">smoothing</span><span class="o">=</span><span class="n">lsm_weight</span><span class="p">,</span>
+                <span class="n">normalize_length</span><span class="o">=</span><span class="n">length_normalized_loss</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_mtlalpha</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">st_ctc</span> <span class="o">=</span> <span class="n">st_ctc</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">criterion_asr</span> <span class="o">=</span> <span class="n">LabelSmoothingLoss</span><span class="p">(</span>
             <span class="n">size</span><span class="o">=</span><span class="n">src_vocab_size</span><span class="p">,</span>
@@ -335,8 +383,10 @@
                 <span class="p">)</span>
 
         <span class="c1"># submodule for MT task</span>
+        <span class="c1"># TODO(brian): this should be deprecated</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mt_weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">extra_mt_decoder</span> <span class="o">=</span> <span class="n">extra_mt_decoder</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">extra_mt_encoder</span> <span class="o">=</span> <span class="n">extra_mt_encoder</span>
         <span class="k">elif</span> <span class="n">extra_mt_decoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
                 <span class="s2">&quot;Not using extra_mt_decoder because &quot;</span>
@@ -346,7 +396,7 @@
         <span class="c1"># MT error calculator</span>
         <span class="k">if</span> <span class="n">report_bleu</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mt_error_calculator</span> <span class="o">=</span> <span class="n">MTErrorCalculator</span><span class="p">(</span>
-                <span class="n">token_list</span><span class="p">,</span> <span class="n">sym_space</span><span class="p">,</span> <span class="n">sym_blank</span><span class="p">,</span> <span class="n">report_bleu</span>
+                <span class="n">token_list</span><span class="p">,</span> <span class="n">tgt_sym_space</span><span class="p">,</span> <span class="n">tgt_sym_blank</span><span class="p">,</span> <span class="n">report_bleu</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">mt_error_calculator</span> <span class="o">=</span> <span class="kc">None</span>
@@ -364,7 +414,18 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">extract_feats_in_collect_stats</span> <span class="o">=</span> <span class="n">extract_feats_in_collect_stats</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_multidecoder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">md_encoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;decoder&quot;</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_speech_attn</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="s2">&quot;use_speech_attn&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">use_speech_attn</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="c1"># TODO(jiatong): add multilingual related functions</span>
+
+        <span class="k">if</span> <span class="n">lang_token_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lang_token_id</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="n">lang_token_id</span><span class="p">]])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lang_token_id</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="ESPnetSTModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.st.html#espnet2.st.espnet_model.ESPnetSTModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -407,54 +468,171 @@
 
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
+        <span class="n">text</span><span class="p">[</span><span class="n">text</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tgt_ignore_id</span>
+
         <span class="c1"># for data-parallel</span>
         <span class="n">text</span> <span class="o">=</span> <span class="n">text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
         <span class="k">if</span> <span class="n">src_text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">src_text</span> <span class="o">=</span> <span class="n">src_text</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">src_text_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
 
+        <span class="c1"># lang id for mbart</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;lang_token_id&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">lang_token_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">text</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span>
+                <span class="p">[</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">lang_token_id</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">text</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">text</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">text_lengths</span> <span class="o">+=</span> <span class="mi">1</span>
+
         <span class="c1"># 1. Encoder</span>
-        <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hier_encoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">or</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span><span class="o">.</span><span class="n">return_int_enc</span>
+        <span class="p">):</span>
+            <span class="p">(</span>
+                <span class="n">st_encoder_out</span><span class="p">,</span>
+                <span class="n">st_encoder_out_lens</span><span class="p">,</span>
+                <span class="n">asr_encoder_out</span><span class="p">,</span>
+                <span class="n">asr_encoder_out_lens</span><span class="p">,</span>
+            <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">,</span> <span class="n">return_int_enc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">st_encoder_out</span><span class="p">,</span> <span class="n">st_encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)</span>
+            <span class="n">asr_encoder_out</span><span class="p">,</span> <span class="n">asr_encoder_out_lens</span> <span class="o">=</span> <span class="n">st_encoder_out</span><span class="p">,</span> <span class="n">st_encoder_out_lens</span>
 
-        <span class="c1"># 2a. Attention-decoder branch (ST)</span>
-        <span class="n">loss_st_att</span><span class="p">,</span> <span class="n">acc_st_att</span><span class="p">,</span> <span class="n">bleu_st_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mt_att_loss</span><span class="p">(</span>
-            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">st</span><span class="o">=</span><span class="kc">True</span>
-        <span class="p">)</span>
-
-        <span class="c1"># 2b. CTC branch</span>
+        <span class="c1"># 2a. CTC branch</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">src_text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s2">&quot;missing source text for asr sub-task of ST&quot;</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_weight</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">loss_asr_ctc</span><span class="p">,</span> <span class="n">cer_asr_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_ctc_loss</span><span class="p">(</span>
-                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">src_text</span><span class="p">,</span> <span class="n">src_text_lengths</span>
+            <span class="n">loss_asr_ctc</span><span class="p">,</span> <span class="n">cer_asr_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_asr_ctc_loss</span><span class="p">(</span>
+                <span class="n">asr_encoder_out</span><span class="p">,</span> <span class="n">asr_encoder_out_lens</span><span class="p">,</span> <span class="n">src_text</span><span class="p">,</span> <span class="n">src_text_lengths</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">loss_asr_ctc</span><span class="p">,</span> <span class="n">cer_asr_ctc</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">loss_asr_ctc</span><span class="p">,</span> <span class="n">cer_asr_ctc</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span>
 
-        <span class="c1"># 2c. Attention-decoder branch (extra ASR)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_mtlalpha</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span><span class="o">.</span><span class="n">return_int_enc</span><span class="p">:</span>
+                <span class="c1"># run ST CTC without post-encoder downsampling (no hier enc)</span>
+                <span class="n">loss_st_ctc</span><span class="p">,</span> <span class="n">bleu_st_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mt_ctc_loss</span><span class="p">(</span>
+                    <span class="n">asr_encoder_out</span><span class="p">,</span> <span class="n">asr_encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">loss_st_ctc</span><span class="p">,</span> <span class="n">bleu_st_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mt_ctc_loss</span><span class="p">(</span>
+                    <span class="n">st_encoder_out</span><span class="p">,</span> <span class="n">st_encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span>
+                <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss_st_ctc</span><span class="p">,</span> <span class="n">bleu_st_ctc</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1"># 2b. Attention-decoder branch (extra ASR)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_weight</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
             <span class="p">(</span>
                 <span class="n">loss_asr_att</span><span class="p">,</span>
                 <span class="n">acc_asr_att</span><span class="p">,</span>
                 <span class="n">cer_asr_att</span><span class="p">,</span>
                 <span class="n">wer_asr_att</span><span class="p">,</span>
+                <span class="n">hs_dec_asr</span><span class="p">,</span>
             <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_asr_att_loss</span><span class="p">(</span>
-                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">src_text</span><span class="p">,</span> <span class="n">src_text_lengths</span>
+                <span class="n">asr_encoder_out</span><span class="p">,</span>
+                <span class="n">asr_encoder_out_lens</span><span class="p">,</span>
+                <span class="n">src_text</span><span class="p">,</span>
+                <span class="n">src_text_lengths</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">use_multidecoder</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">loss_asr_att</span><span class="p">,</span> <span class="n">acc_asr_att</span><span class="p">,</span> <span class="n">cer_asr_att</span><span class="p">,</span> <span class="n">wer_asr_att</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">loss_asr_att</span><span class="p">,</span> <span class="n">acc_asr_att</span><span class="p">,</span> <span class="n">cer_asr_att</span><span class="p">,</span> <span class="n">wer_asr_att</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
 
-        <span class="c1"># 2d. Attention-decoder branch (extra MT)</span>
+        <span class="c1"># 2c. Attention-decoder branch (extra MT)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">mt_weight</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">loss_mt_att</span><span class="p">,</span> <span class="n">acc_mt_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mt_att_loss</span><span class="p">(</span>
-                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">text</span><span class="p">,</span> <span class="n">text_lengths</span><span class="p">,</span> <span class="n">st</span><span class="o">=</span><span class="kc">False</span>
+            <span class="n">mt_encoder_out</span><span class="p">,</span> <span class="n">mt_encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_mt_encoder</span><span class="p">(</span>
+                <span class="n">src_text</span><span class="p">,</span> <span class="n">src_text_lengths</span>
             <span class="p">)</span>
+            <span class="n">loss_mt_att</span><span class="p">,</span> <span class="n">acc_mt_att</span><span class="p">,</span> <span class="n">bleu_mt_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mt_att_loss</span><span class="p">(</span>
+                <span class="n">mt_encoder_out</span><span class="p">,</span>
+                <span class="n">mt_encoder_out_lens</span><span class="p">,</span>
+                <span class="n">text</span><span class="p">,</span>
+                <span class="n">text_lengths</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="kc">None</span><span class="p">,</span>
+                <span class="n">st</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>  <span class="c1"># uses same decoder as ST</span>
+            <span class="p">)</span>
+            <span class="c1"># loss_mt_att, acc_mt_att = self._calc_mt_att_loss(</span>
+            <span class="c1">#     st_encoder_out, st_encoder_out_lens, text, text_lengths, st=False</span>
+            <span class="c1"># )</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">loss_mt_att</span><span class="p">,</span> <span class="n">acc_mt_att</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="kc">None</span>
+            <span class="n">loss_mt_att</span><span class="p">,</span> <span class="n">acc_mt_att</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span>
+
+        <span class="c1"># 2d. Multi-Decoder encoder</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speech_attn</span><span class="p">:</span>
+            <span class="n">speech_out</span> <span class="o">=</span> <span class="n">st_encoder_out</span>
+            <span class="n">speech_lens</span> <span class="o">=</span> <span class="n">st_encoder_out_lens</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">speech_out</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">speech_lens</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_multidecoder</span><span class="p">:</span>
+            <span class="n">dec_asr_lengths</span> <span class="o">=</span> <span class="n">src_text_lengths</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="n">st_encoder_out</span><span class="p">,</span> <span class="n">st_encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">md_encoder</span><span class="p">(</span>
+                <span class="n">hs_dec_asr</span><span class="p">,</span> <span class="n">dec_asr_lengths</span>
+            <span class="p">)</span>
+
+        <span class="n">st_ctc_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_mtlalpha</span>
+        <span class="k">if</span> <span class="n">st_ctc_weight</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_use_transducer_decoder</span><span class="p">:</span>
+                <span class="c1"># 2e. Transducer decoder branch</span>
+                <span class="p">(</span>
+                    <span class="n">loss_st_trans</span><span class="p">,</span>
+                    <span class="n">_</span><span class="p">,</span>
+                    <span class="n">_</span><span class="p">,</span>
+                <span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_st_transducer_loss</span><span class="p">(</span>
+                    <span class="n">st_encoder_out</span><span class="p">,</span>
+                    <span class="n">st_encoder_out_lens</span><span class="p">,</span>
+                    <span class="n">text</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">st_ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+                    <span class="n">loss_st</span> <span class="o">=</span> <span class="n">loss_st_ctc</span>
+                <span class="k">elif</span> <span class="n">st_ctc_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                    <span class="n">loss_st</span> <span class="o">=</span> <span class="n">loss_st_trans</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">loss_st</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">st_ctc_weight</span> <span class="o">*</span> <span class="n">loss_st_ctc</span>
+                        <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">st_ctc_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_st_trans</span>
+                    <span class="p">)</span>
+                <span class="n">loss_st_att</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">acc_st_att</span> <span class="o">=</span> <span class="kc">None</span>
+                <span class="n">bleu_st_att</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># 2e. Attention-decoder branch (ST)</span>
+                <span class="n">loss_st_att</span><span class="p">,</span> <span class="n">acc_st_att</span><span class="p">,</span> <span class="n">bleu_st_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calc_mt_att_loss</span><span class="p">(</span>
+                    <span class="n">st_encoder_out</span><span class="p">,</span>
+                    <span class="n">st_encoder_out_lens</span><span class="p">,</span>
+                    <span class="n">text</span><span class="p">,</span>
+                    <span class="n">text_lengths</span><span class="p">,</span>
+                    <span class="n">speech_out</span><span class="p">,</span>
+                    <span class="n">speech_lens</span><span class="p">,</span>
+                    <span class="n">st</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">st_ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+                    <span class="n">loss_st</span> <span class="o">=</span> <span class="n">loss_st_ctc</span>
+                <span class="k">elif</span> <span class="n">st_ctc_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+                    <span class="n">loss_st</span> <span class="o">=</span> <span class="n">loss_st_att</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">loss_st</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">st_ctc_weight</span> <span class="o">*</span> <span class="n">loss_st_ctc</span> <span class="o">+</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">st_ctc_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">loss_st_att</span>
+                    <span class="p">)</span>
+                <span class="n">loss_st_trans</span> <span class="o">=</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">loss_st</span> <span class="o">=</span> <span class="n">loss_st_ctc</span>
+            <span class="n">loss_st_att</span> <span class="o">=</span> <span class="mf">0.0</span>
+            <span class="n">acc_st_att</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">bleu_st_att</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">loss_st_trans</span> <span class="o">=</span> <span class="mf">0.0</span>
 
         <span class="c1"># 3. Loss computation</span>
         <span class="n">asr_ctc_weight</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mtlalpha</span>
-        <span class="n">loss_st</span> <span class="o">=</span> <span class="n">loss_st_att</span>
+
         <span class="k">if</span> <span class="n">asr_ctc_weight</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
             <span class="n">loss_asr</span> <span class="o">=</span> <span class="n">loss_asr_ctc</span>
         <span class="k">elif</span> <span class="n">asr_ctc_weight</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
@@ -472,10 +650,17 @@
 
         <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
-            <span class="n">loss_asr</span><span class="o">=</span><span class="n">loss_asr</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_asr</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">}</span>
-            <span class="k">else</span> <span class="n">loss_asr</span><span class="p">,</span>
+            <span class="n">loss_asr</span><span class="o">=</span><span class="n">loss_asr</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_asr</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span> <span class="k">else</span> <span class="n">loss_asr</span><span class="p">,</span>
             <span class="n">loss_mt</span><span class="o">=</span><span class="n">loss_mt</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_mt</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span> <span class="k">else</span> <span class="n">loss_mt</span><span class="p">,</span>
+            <span class="n">loss_st_ctc</span><span class="o">=</span><span class="n">loss_st_ctc</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_st_ctc</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span>
+            <span class="k">else</span> <span class="n">loss_st_ctc</span><span class="p">,</span>
+            <span class="n">loss_st_trans</span><span class="o">=</span><span class="n">loss_st_trans</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_st_trans</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span>
+            <span class="k">else</span> <span class="n">loss_st_trans</span><span class="p">,</span>
+            <span class="n">loss_st_att</span><span class="o">=</span><span class="n">loss_st_att</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_st_att</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span>
+            <span class="k">else</span> <span class="n">loss_st_att</span><span class="p">,</span>
             <span class="n">loss_st</span><span class="o">=</span><span class="n">loss_st</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
             <span class="n">acc_asr</span><span class="o">=</span><span class="n">acc_asr_att</span><span class="p">,</span>
             <span class="n">acc_mt</span><span class="o">=</span><span class="n">acc_mt_att</span><span class="p">,</span>
@@ -484,6 +669,7 @@
             <span class="n">cer</span><span class="o">=</span><span class="n">cer_asr_att</span><span class="p">,</span>
             <span class="n">wer</span><span class="o">=</span><span class="n">wer_asr_att</span><span class="p">,</span>
             <span class="n">bleu</span><span class="o">=</span><span class="n">bleu_st_att</span><span class="p">,</span>
+            <span class="n">bleu_ctc</span><span class="o">=</span><span class="n">bleu_st_ctc</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># force_gatherable: to-device and to-tensor if scalar for DataParallel</span>
@@ -504,7 +690,10 @@
         <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;feats&quot;</span><span class="p">:</span> <span class="n">feats</span><span class="p">,</span> <span class="s2">&quot;feats_lengths&quot;</span><span class="p">:</span> <span class="n">feats_lengths</span><span class="p">}</span></div>
 
 <div class="viewcode-block" id="ESPnetSTModel.encode"><a class="viewcode-back" href="../../../_gen/espnet2.st.html#espnet2.st.espnet_model.ESPnetSTModel.encode">[docs]</a>    <span class="k">def</span> <span class="nf">encode</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech_lengths</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">return_int_enc</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Frontend + Encoder. Note that this method is used by st_inference.py</span>
 
@@ -533,6 +722,14 @@
         <span class="c1"># -&gt; encoder_out: (Batch, Length2, Dim2)</span>
         <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">return_int_enc</span><span class="p">:</span>
+            <span class="n">int_encoder_out</span><span class="p">,</span> <span class="n">int_encoder_out_lens</span> <span class="o">=</span> <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hier_encoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hier_encoder</span><span class="p">(</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span>
+            <span class="p">)</span>
+
         <span class="c1"># Post-encoder, e.g. NLU</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">postencoder</span><span class="p">(</span>
@@ -548,6 +745,8 @@
             <span class="n">encoder_out_lens</span><span class="o">.</span><span class="n">max</span><span class="p">(),</span>
         <span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">return_int_enc</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">int_encoder_out</span><span class="p">,</span> <span class="n">int_encoder_out_lens</span>
         <span class="k">return</span> <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span></div>
 
     <span class="k">def</span> <span class="nf">_extract_feats</span><span class="p">(</span>
@@ -575,18 +774,31 @@
         <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
+        <span class="n">speech_lens</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
         <span class="n">st</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
     <span class="p">):</span>
-        <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span><span class="n">ys_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">)</span>
+        <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span>
+            <span class="n">ys_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tgt_ignore_id</span>
+        <span class="p">)</span>
         <span class="n">ys_in_lens</span> <span class="o">=</span> <span class="n">ys_pad_lens</span> <span class="o">+</span> <span class="mi">1</span>
-
         <span class="c1"># 1. Forward decoder</span>
         <span class="k">if</span> <span class="n">st</span><span class="p">:</span>
-            <span class="n">decoder_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span>
-                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_in_lens</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speech_attn</span><span class="p">:</span>
+                <span class="n">decoder_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span>
+                    <span class="n">encoder_out</span><span class="p">,</span>
+                    <span class="n">encoder_out_lens</span><span class="p">,</span>
+                    <span class="n">ys_in_pad</span><span class="p">,</span>
+                    <span class="n">ys_in_lens</span><span class="p">,</span>
+                    <span class="n">speech</span><span class="p">,</span>
+                    <span class="n">speech_lens</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">decoder_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span>
+                    <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_in_lens</span>
+                <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">decoder_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_mt_decoder</span><span class="p">(</span>
+            <span class="n">decoder_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span>
                 <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_in_lens</span>
             <span class="p">)</span>
 
@@ -595,7 +807,7 @@
         <span class="n">acc_att</span> <span class="o">=</span> <span class="n">th_accuracy</span><span class="p">(</span>
             <span class="n">decoder_out</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">),</span>
             <span class="n">ys_out_pad</span><span class="p">,</span>
-            <span class="n">ignore_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span><span class="p">,</span>
+            <span class="n">ignore_label</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tgt_ignore_id</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="c1"># Compute cer/wer using attention-decoder</span>
@@ -613,16 +825,45 @@
         <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">return_hs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
+        <span class="c1"># Use CTC output as AR decoder target; useful for multi-decoder training</span>
+        <span class="n">skip_loss</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_sample_rate</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_sample_rate</span><span class="p">:</span>
+                <span class="n">ys_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+                <span class="n">ys_hat</span> <span class="o">=</span> <span class="p">[[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">ys</span><span class="p">)]</span> <span class="k">for</span> <span class="n">ys</span> <span class="ow">in</span> <span class="n">ys_hat</span><span class="p">]</span>
+                <span class="n">ys_hat</span> <span class="o">=</span> <span class="p">[[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ys</span><span class="p">)]</span> <span class="k">for</span> <span class="n">ys</span> <span class="ow">in</span> <span class="n">ys_hat</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ys</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ys_hat</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">ys_hat</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ys_pad</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">x</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">ys_pad_lens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+                    <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">ys_hat</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">encoder_out</span><span class="o">.</span><span class="n">device</span>
+                <span class="p">)</span>
+                <span class="n">ys_pad</span> <span class="o">=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">encoder_out</span><span class="o">.</span><span class="n">device</span><span class="p">)</span> <span class="k">for</span> <span class="n">ys</span> <span class="ow">in</span> <span class="n">ys_pad</span><span class="p">]</span>
+                <span class="n">ys_pad</span> <span class="o">=</span> <span class="n">pad_sequence</span><span class="p">(</span><span class="n">ys_pad</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+                <span class="c1"># skip the loss</span>
+                <span class="n">skip_loss</span> <span class="o">=</span> <span class="kc">True</span>
+
         <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_out_pad</span> <span class="o">=</span> <span class="n">add_sos_eos</span><span class="p">(</span>
             <span class="n">ys_pad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_sos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">src_eos</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_id</span>
         <span class="p">)</span>
         <span class="n">ys_in_lens</span> <span class="o">=</span> <span class="n">ys_pad_lens</span> <span class="o">+</span> <span class="mi">1</span>
 
         <span class="c1"># 1. Forward decoder</span>
-        <span class="n">decoder_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_asr_decoder</span><span class="p">(</span>
-            <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_in_lens</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="n">decoder_out</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">hs_dec_asr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_asr_decoder</span><span class="p">(</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_in_lens</span><span class="p">,</span> <span class="n">return_hs</span><span class="o">=</span><span class="kc">True</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hs_dec_asr</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">decoder_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">extra_asr_decoder</span><span class="p">(</span>
+                <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_in_lens</span>
+            <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">skip_loss</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">hs_dec_asr</span>
 
         <span class="c1"># 2. Compute attention loss</span>
         <span class="n">loss_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">criterion_asr</span><span class="p">(</span><span class="n">decoder_out</span><span class="p">,</span> <span class="n">ys_out_pad</span><span class="p">)</span>
@@ -639,9 +880,9 @@
             <span class="n">ys_hat</span> <span class="o">=</span> <span class="n">decoder_out</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_error_calculator</span><span class="p">(</span><span class="n">ys_hat</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">cpu</span><span class="p">())</span>
 
-        <span class="k">return</span> <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att</span><span class="p">,</span> <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span>
+        <span class="k">return</span> <span class="n">loss_att</span><span class="p">,</span> <span class="n">acc_att</span><span class="p">,</span> <span class="n">cer_att</span><span class="p">,</span> <span class="n">wer_att</span><span class="p">,</span> <span class="n">hs_dec_asr</span>
 
-    <span class="k">def</span> <span class="nf">_calc_ctc_loss</span><span class="p">(</span>
+    <span class="k">def</span> <span class="nf">_calc_asr_ctc_loss</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
@@ -656,7 +897,69 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_error_calculator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">ys_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
             <span class="n">cer_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_error_calculator</span><span class="p">(</span><span class="n">ys_hat</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">is_ctc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span></div>
+        <span class="k">return</span> <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">cer_ctc</span>
+
+    <span class="k">def</span> <span class="nf">_calc_mt_ctc_loss</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ys_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ys_pad_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="c1"># Calc CTC loss</span>
+        <span class="n">loss_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_ctc</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">ys_pad_lens</span><span class="p">)</span>
+
+        <span class="c1"># Calc CER using CTC</span>
+        <span class="n">bleu_ctc</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">mt_error_calculator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">ys_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_ctc</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
+            <span class="n">bleu_ctc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">mt_error_calculator</span><span class="p">(</span><span class="n">ys_hat</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">ys_pad</span><span class="o">.</span><span class="n">cpu</span><span class="p">(),</span> <span class="n">is_ctc</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">loss_ctc</span><span class="p">,</span> <span class="n">bleu_ctc</span>
+
+    <span class="k">def</span> <span class="nf">_calc_st_transducer_loss</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">encoder_out</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">encoder_out_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Compute Transducer loss.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            encoder_out: Encoder output sequences. (B, T, D_enc)</span>
+<span class="sd">            encoder_out_lens: Encoder output sequences lengths. (B,)</span>
+<span class="sd">            labels: Label ID sequences. (B, L)</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">            loss_transducer: Transducer loss value.</span>
+<span class="sd">            cer_transducer: Character error rate for Transducer.</span>
+<span class="sd">            wer_transducer: Word Error Rate for Transducer.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">decoder_in</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">t_len</span><span class="p">,</span> <span class="n">u_len</span> <span class="o">=</span> <span class="n">get_transducer_task_io</span><span class="p">(</span>
+            <span class="n">labels</span><span class="p">,</span>
+            <span class="n">encoder_out_lens</span><span class="p">,</span>
+            <span class="n">ignore_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">tgt_ignore_id</span><span class="p">,</span>
+            <span class="n">blank_id</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">set_device</span><span class="p">(</span><span class="n">encoder_out</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="n">decoder_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">decoder_in</span><span class="p">)</span>
+
+        <span class="n">joint_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_joint_network</span><span class="p">(</span>
+            <span class="n">encoder_out</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">decoder_out</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">loss_transducer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">st_criterion_transducer</span><span class="p">(</span>
+            <span class="n">joint_out</span><span class="p">,</span>
+            <span class="n">target</span><span class="p">,</span>
+            <span class="n">t_len</span><span class="p">,</span>
+            <span class="n">u_len</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
+        <span class="c1"># TODO(brian): add error_calculator_trans</span>
+
+        <span class="k">return</span> <span class="n">loss_transducer</span><span class="p">,</span> <span class="n">cer_transducer</span><span class="p">,</span> <span class="n">wer_transducer</span></div>
 </pre></div>
 
            </div>

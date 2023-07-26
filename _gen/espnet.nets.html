@@ -122,6 +122,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-beam-search-timesync-1">espnet.nets.beam_search_timesync</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-e2e-mt-common-1">espnet.nets.e2e_mt_common</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-scorer-interface-1">espnet.nets.scorer_interface</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet-nets-beam-search-timesync-streaming-1">espnet.nets.beam_search_timesync_streaming</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-lm-interface-1">espnet.nets.lm_interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-tts-interface-1">espnet.nets.tts_interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet-nets-asr-interface-1">espnet.nets.asr_interface</a></li>
@@ -578,6 +579,24 @@ pre_beam is used to select candidates from vocab to extend hypotheses</p></li>
 </dl>
 <p>Construct an ErrorCalculator object.</p>
 <dl class="method">
+<dt id="espnet.nets.e2e_mt_common.ErrorCalculator.calculate_bleu_ctc">
+<code class="sig-name descname">calculate_bleu_ctc</code><span class="sig-paren">(</span><em class="sig-param">ys_hat</em>, <em class="sig-param">ys_pad</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/e2e_mt_common.html#ErrorCalculator.calculate_bleu_ctc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.e2e_mt_common.ErrorCalculator.calculate_bleu_ctc" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate sentence-level BLEU score for CTC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ys_hat</strong> (<em>torch.Tensor</em>) – prediction (batch, seqlen)</p></li>
+<li><p><strong>ys_pad</strong> (<em>torch.Tensor</em>) – reference (batch, seqlen)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>corpus-level BLEU score</p>
+</dd>
+</dl>
+<p>:rtype float</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="espnet.nets.e2e_mt_common.ErrorCalculator.calculate_corpus_bleu">
 <code class="sig-name descname">calculate_corpus_bleu</code><span class="sig-paren">(</span><em class="sig-param">ys_hat</em>, <em class="sig-param">ys_pad</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/e2e_mt_common.html#ErrorCalculator.calculate_corpus_bleu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.e2e_mt_common.ErrorCalculator.calculate_corpus_bleu" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate corpus-level BLEU score in a mini-batch.</p>
@@ -828,6 +847,83 @@ and next state for ys</p>
 </dl>
 </dd></dl>
 
+</dd></dl>
+
+</section>
+<section id="espnet-nets-beam-search-timesync-streaming-1">
+<span id="espnet-nets-beam-search-timesync-streaming"></span><h2>espnet.nets.beam_search_timesync_streaming<a class="headerlink" href="#espnet-nets-beam-search-timesync-streaming-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet.nets.beam_search_timesync_streaming"></span><p>Time Synchronous One-Pass Beam Search.</p>
+<p>Implements joint CTC/attention decoding where
+hypotheses are expanded along the time (input) axis,
+as described in <a class="reference external" href="https://arxiv.org/abs/2210.05200">https://arxiv.org/abs/2210.05200</a>.
+Supports CPU and GPU inference.
+References: <a class="reference external" href="https://arxiv.org/abs/1408.2873">https://arxiv.org/abs/1408.2873</a> for CTC beam search
+Author: Brian Yan</p>
+<dl class="class">
+<dt id="espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search_timesync_streaming.</code><code class="sig-name descname">BeamSearchTimeSyncStreaming</code><span class="sig-paren">(</span><em class="sig-param">sos: int, beam_size: int, scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], token_list=&lt;class 'dict'&gt;, pre_beam_ratio: float = 1.5, blank: int = 0, hold_n: int = 0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search_timesync_streaming.html#BeamSearchTimeSyncStreaming"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Time synchronous beam search algorithm.</p>
+<p>Initialize beam search.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>beam_size</strong> – num hyps</p></li>
+<li><p><strong>sos</strong> – sos index</p></li>
+<li><p><strong>ctc</strong> – CTC module</p></li>
+<li><p><strong>pre_beam_ratio</strong> – pre_beam_ratio * beam_size = pre_beam
+pre_beam is used to select candidates from vocab to extend hypotheses</p></li>
+<li><p><strong>decoder</strong> – decoder ScorerInterface</p></li>
+<li><p><strong>ctc_weight</strong> – ctc_weight</p></li>
+<li><p><strong>blank</strong> – blank index</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.cached_score">
+<code class="sig-name descname">cached_score</code><span class="sig-paren">(</span><em class="sig-param">h: Tuple[int], cache: dict, scorer: espnet.nets.scorer_interface.ScorerInterface, recompute_cache: bool = False</em><span class="sig-paren">)</span> &#x2192; Any<a class="reference internal" href="../_modules/espnet/nets/beam_search_timesync_streaming.html#BeamSearchTimeSyncStreaming.cached_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.cached_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Retrieve decoder/LM scores which may be cached.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">maxlenratio: float = 0.0</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">start_idx: int = 0</em>, <em class="sig-param">is_final: bool = False</em>, <em class="sig-param">incremental_decode: bool = False</em><span class="sig-paren">)</span> &#x2192; List[espnet.nets.beam_search.Hypothesis]<a class="reference internal" href="../_modules/espnet/nets/beam_search_timesync_streaming.html#BeamSearchTimeSyncStreaming.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform beam search.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>enc_output</strong> (<em>torch.Tensor</em>) – </p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list[Hypothesis]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.joint_score">
+<code class="sig-name descname">joint_score</code><span class="sig-paren">(</span><em class="sig-param">hyps: Any</em>, <em class="sig-param">ctc_score_dp: Any</em>, <em class="sig-param">recompute_cache: bool = False</em><span class="sig-paren">)</span> &#x2192; Any<a class="reference internal" href="../_modules/espnet/nets/beam_search_timesync_streaming.html#BeamSearchTimeSyncStreaming.joint_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.joint_score" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate joint score for hyps.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.reset">
+<code class="sig-name descname">reset</code><span class="sig-paren">(</span><em class="sig-param">enc_output: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search_timesync_streaming.html#BeamSearchTimeSyncStreaming.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.reset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reset object for a new utterance.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.time_step">
+<code class="sig-name descname">time_step</code><span class="sig-paren">(</span><em class="sig-param">p_ctc: Any</em>, <em class="sig-param">ctc_score_dp: Any</em>, <em class="sig-param">hyps: Any</em>, <em class="sig-param">recompute_cache: bool = False</em><span class="sig-paren">)</span> &#x2192; Any<a class="reference internal" href="../_modules/espnet/nets/beam_search_timesync_streaming.html#BeamSearchTimeSyncStreaming.time_step"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_timesync_streaming.BeamSearchTimeSyncStreaming.time_step" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute a single time step.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet.nets.beam_search_timesync_streaming.CacheItem">
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search_timesync_streaming.</code><code class="sig-name descname">CacheItem</code><span class="sig-paren">(</span><em class="sig-param">state: Any</em>, <em class="sig-param">scores: Any</em>, <em class="sig-param">log_sum: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search_timesync_streaming.html#CacheItem"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search_timesync_streaming.CacheItem" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>For caching attentional decoder and LM states.</p>
 </dd></dl>
 
 </section>
@@ -1541,7 +1637,7 @@ lm_tokens: Label ID for LM.</p>
 <span class="target" id="module-espnet.nets.beam_search"></span><p>Beam search module.</p>
 <dl class="class">
 <dt id="espnet.nets.beam_search.BeamSearch">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search.</code><code class="sig-name descname">BeamSearch</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None, hyp_primer: List[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search.</code><code class="sig-name descname">BeamSearch</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None, return_hs: bool = False, hyp_primer: List[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Beam search implementation.</p>
 <p>Initialize beam search.</p>
@@ -1608,7 +1704,7 @@ Their shapes are <cite>(self.beam_size,)</cite></p>
 
 <dl class="method">
 <dt id="espnet.nets.beam_search.BeamSearch.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">maxlenratio: float = 0.0</em>, <em class="sig-param">minlenratio: float = 0.0</em><span class="sig-paren">)</span> &#x2192; List[espnet.nets.beam_search.Hypothesis]<a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">maxlenratio: float = 0.0</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">pre_x: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; List[espnet.nets.beam_search.Hypothesis]<a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform beam search.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1619,9 +1715,10 @@ If maxlenratio=0.0 (default), it uses a end-detect function
 to automatically find maximum hypothesis lengths
 If maxlenratio&lt;0.0, its absolute value is interpreted
 as a constant max output length.</p></li>
-<li><p><strong>minlenratio</strong> (<em>float</em>) – Input length ratio to obtain min output length.
-If minlenratio&lt;0.0, its absolute value is interpreted
-as a constant min output length.</p></li>
+<li><p><strong>minlenratio</strong> (<em>float</em>) – Input length ratio to obtain min output length.</p></li>
+<li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
+Sequential attn computes attn first on pre_x then on x,
+thereby attending to two sources in sequence.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1729,13 +1826,16 @@ Its values are states of the scorers.</p>
 
 <dl class="method">
 <dt id="espnet.nets.beam_search.BeamSearch.score_full">
-<code class="sig-name descname">score_full</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet.nets.beam_search.Hypothesis</em>, <em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, torch.Tensor], Dict[str, Any]]<a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch.score_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch.score_full" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">score_full</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet.nets.beam_search.Hypothesis</em>, <em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">pre_x: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, torch.Tensor], Dict[str, Any]]<a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch.score_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch.score_full" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score new hypothesis by <cite>self.full_scorers</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.transducer_decoder_interface.Hypothesis" title="espnet.nets.transducer_decoder_interface.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
+<li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
+Sequential attn computes attn first on pre_x then on x,
+thereby attending to two sources in sequence.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1784,13 +1884,16 @@ and state values of <cite>self.part_scorers</cite></p>
 
 <dl class="method">
 <dt id="espnet.nets.beam_search.BeamSearch.search">
-<code class="sig-name descname">search</code><span class="sig-paren">(</span><em class="sig-param">running_hyps: List[espnet.nets.beam_search.Hypothesis], x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; List[espnet.nets.beam_search.Hypothesis]<a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch.search" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">search</code><span class="sig-paren">(</span><em class="sig-param">running_hyps: List[espnet.nets.beam_search.Hypothesis], x: torch.Tensor, pre_x: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; List[espnet.nets.beam_search.Hypothesis]<a class="reference internal" href="../_modules/espnet/nets/beam_search.html#BeamSearch.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.BeamSearch.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Search new tokens for running hypotheses and encoded speech x.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>running_hyps</strong> (<em>List</em><em>[</em><a class="reference internal" href="#espnet.nets.transducer_decoder_interface.Hypothesis" title="espnet.nets.transducer_decoder_interface.Hypothesis"><em>Hypothesis</em></a><em>]</em>) – Running hypotheses on beam</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Encoded speech feature (T, D)</p></li>
+<li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
+Sequential attn computes attn first on pre_x then on x,
+thereby attending to two sources in sequence.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1816,11 +1919,17 @@ and state values of <cite>self.part_scorers</cite></p>
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.beam_search.</code><code class="sig-name descname">Hypothesis</code><a class="reference internal" href="../_modules/espnet/nets/beam_search.html#Hypothesis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.Hypothesis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
 <p>Hypothesis data type.</p>
-<p>Create new instance of Hypothesis(yseq, score, scores, states)</p>
+<p>Create new instance of Hypothesis(yseq, score, scores, states, hs)</p>
 <dl class="method">
 <dt id="espnet.nets.beam_search.Hypothesis.asdict">
 <code class="sig-name descname">asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; dict<a class="reference internal" href="../_modules/espnet/nets/beam_search.html#Hypothesis.asdict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.beam_search.Hypothesis.asdict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert data to JSON-friendly dict.</p>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="espnet.nets.beam_search.Hypothesis.hs">
+<code class="sig-name descname">hs</code><a class="headerlink" href="#espnet.nets.beam_search.Hypothesis.hs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 4</p>
 </dd></dl>
 
 <dl class="attribute">
@@ -2139,7 +2248,7 @@ and recognition when performing multi-task learning with the ASR task.</p>
 <span class="target" id="module-espnet.nets.batch_beam_search_online_sim"></span><p>Parallel beam search module for online simulation.</p>
 <dl class="class">
 <dt id="espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search_online_sim.</code><code class="sig-name descname">BatchBeamSearchOnlineSim</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None, hyp_primer: List[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online_sim.html#BatchBeamSearchOnlineSim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search_online_sim.</code><code class="sig-name descname">BatchBeamSearchOnlineSim</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None, return_hs: bool = False, hyp_primer: List[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online_sim.html#BatchBeamSearchOnlineSim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online_sim.BatchBeamSearchOnlineSim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet.nets.batch_beam_search.BatchBeamSearch" title="espnet.nets.batch_beam_search.BatchBeamSearch"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.batch_beam_search.BatchBeamSearch</span></code></a></p>
 <p>Online beam search implementation.</p>
 <p>This simulates streaming decoding.
@@ -2264,7 +2373,7 @@ to automatically find maximum hypothesis lengths</p></li>
 <span class="target" id="module-espnet.nets.batch_beam_search_online"></span><p>Parallel beam search module for online simulation.</p>
 <dl class="class">
 <dt id="espnet.nets.batch_beam_search_online.BatchBeamSearchOnline">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search_online.</code><code class="sig-name descname">BatchBeamSearchOnline</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">block_size=40</em>, <em class="sig-param">hop_size=16</em>, <em class="sig-param">look_ahead=16</em>, <em class="sig-param">disable_repetition_detection=False</em>, <em class="sig-param">encoded_feat_length_limit=0</em>, <em class="sig-param">decoder_text_length_limit=0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online.html#BatchBeamSearchOnline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search_online.</code><code class="sig-name descname">BatchBeamSearchOnline</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">block_size=40</em>, <em class="sig-param">hop_size=16</em>, <em class="sig-param">look_ahead=16</em>, <em class="sig-param">disable_repetition_detection=False</em>, <em class="sig-param">encoded_feat_length_limit=0</em>, <em class="sig-param">decoder_text_length_limit=0</em>, <em class="sig-param">incremental_decode=False</em>, <em class="sig-param">time_sync=False</em>, <em class="sig-param">ctc=None</em>, <em class="sig-param">hold_n=0</em>, <em class="sig-param">transducer_conf=None</em>, <em class="sig-param">joint_network=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online.html#BatchBeamSearchOnline"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet.nets.batch_beam_search.BatchBeamSearch" title="espnet.nets.batch_beam_search.BatchBeamSearch"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.batch_beam_search.BatchBeamSearch</span></code></a></p>
 <p>Online beam search implementation.</p>
 <p>This simulates streaming decoding.
@@ -2331,6 +2440,12 @@ to automatically find maximum hypothesis lengths</p></li>
 </dd></dl>
 
 <dl class="method">
+<dt id="espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.process_one_block_time_sync">
+<code class="sig-name descname">process_one_block_time_sync</code><span class="sig-paren">(</span><em class="sig-param">h</em>, <em class="sig-param">is_final</em>, <em class="sig-param">maxlen</em>, <em class="sig-param">maxlenratio</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online.html#BatchBeamSearchOnline.process_one_block_time_sync"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.process_one_block_time_sync" title="Permalink to this definition">¶</a></dt>
+<dd><p>Recognize one block w/ time sync.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.reset">
 <code class="sig-name descname">reset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online.html#BatchBeamSearchOnline.reset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.reset" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reset parameters.</p>
@@ -2338,7 +2453,7 @@ to automatically find maximum hypothesis lengths</p></li>
 
 <dl class="method">
 <dt id="espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.score_full">
-<code class="sig-name descname">score_full</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet.nets.batch_beam_search.BatchHypothesis</em>, <em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, torch.Tensor], Dict[str, Any]]<a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online.html#BatchBeamSearchOnline.score_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.score_full" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">score_full</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet.nets.batch_beam_search.BatchHypothesis</em>, <em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">pre_x: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, torch.Tensor], Dict[str, Any]]<a class="reference internal" href="../_modules/espnet/nets/batch_beam_search_online.html#BatchBeamSearchOnline.score_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.score_full" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score new hypothesis by <cite>self.full_scorers</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2449,7 +2564,7 @@ Speech Recognition,” In INTERSPEECH (pp. 3825-3829), 2019.</p>
 <span class="target" id="module-espnet.nets.batch_beam_search"></span><p>Parallel beam search module.</p>
 <dl class="class">
 <dt id="espnet.nets.batch_beam_search.BatchBeamSearch">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search.</code><code class="sig-name descname">BatchBeamSearch</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None, hyp_primer: List[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search.</code><code class="sig-name descname">BatchBeamSearch</code><span class="sig-paren">(</span><em class="sig-param">scorers: Dict[str, espnet.nets.scorer_interface.ScorerInterface], weights: Dict[str, float], beam_size: int, vocab_size: int, sos: int, eos: int, token_list: List[str] = None, pre_beam_ratio: float = 1.5, pre_beam_score_key: str = None, return_hs: bool = False, hyp_primer: List[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet.nets.beam_search.BeamSearch" title="espnet.nets.beam_search.BeamSearch"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.beam_search.BeamSearch</span></code></a></p>
 <p>Batch beam search implementation.</p>
 <p>Initialize beam search.</p>
@@ -2570,13 +2685,16 @@ Its values are states of the scorers.</p>
 
 <dl class="method">
 <dt id="espnet.nets.batch_beam_search.BatchBeamSearch.score_full">
-<code class="sig-name descname">score_full</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet.nets.batch_beam_search.BatchHypothesis</em>, <em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, torch.Tensor], Dict[str, Any]]<a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch.score_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch.score_full" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">score_full</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet.nets.batch_beam_search.BatchHypothesis</em>, <em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">pre_x: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, torch.Tensor], Dict[str, Any]]<a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch.score_full"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch.score_full" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score new hypothesis by <cite>self.full_scorers</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.transducer_decoder_interface.Hypothesis" title="espnet.nets.transducer_decoder_interface.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
+<li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
+Sequential attn computes attn first on pre_x then on x,
+thereby attending to two sources in sequence.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2597,7 +2715,7 @@ and state values of <cite>self.full_scorers</cite></p>
 
 <dl class="method">
 <dt id="espnet.nets.batch_beam_search.BatchBeamSearch.score_partial">
-<code class="sig-name descname">score_partial</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet.nets.batch_beam_search.BatchHypothesis</em>, <em class="sig-param">ids: torch.Tensor</em>, <em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, torch.Tensor], Dict[str, Any]]<a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch.score_partial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch.score_partial" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">score_partial</code><span class="sig-paren">(</span><em class="sig-param">hyp: espnet.nets.batch_beam_search.BatchHypothesis</em>, <em class="sig-param">ids: torch.Tensor</em>, <em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">pre_x: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[Dict[str, torch.Tensor], Dict[str, Any]]<a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch.score_partial"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch.score_partial" title="Permalink to this definition">¶</a></dt>
 <dd><p>Score new hypothesis by <cite>self.full_scorers</cite>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -2605,6 +2723,9 @@ and state values of <cite>self.full_scorers</cite></p>
 <li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.transducer_decoder_interface.Hypothesis" title="espnet.nets.transducer_decoder_interface.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
 <li><p><strong>ids</strong> (<em>torch.Tensor</em>) – 2D tensor of new partial tokens to score</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
+<li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
+Sequential attn computes attn first on pre_x then on x,
+thereby attending to two sources in sequence.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2625,13 +2746,14 @@ and state values of <cite>self.full_scorers</cite></p>
 
 <dl class="method">
 <dt id="espnet.nets.batch_beam_search.BatchBeamSearch.search">
-<code class="sig-name descname">search</code><span class="sig-paren">(</span><em class="sig-param">running_hyps: espnet.nets.batch_beam_search.BatchHypothesis</em>, <em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; espnet.nets.batch_beam_search.BatchHypothesis<a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch.search" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">search</code><span class="sig-paren">(</span><em class="sig-param">running_hyps: espnet.nets.batch_beam_search.BatchHypothesis</em>, <em class="sig-param">x: torch.Tensor</em>, <em class="sig-param">pre_x: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; espnet.nets.batch_beam_search.BatchHypothesis<a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchBeamSearch.search"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchBeamSearch.search" title="Permalink to this definition">¶</a></dt>
 <dd><p>Search new tokens for running hypotheses and encoded speech x.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>running_hyps</strong> (<a class="reference internal" href="#espnet.nets.batch_beam_search.BatchHypothesis" title="espnet.nets.batch_beam_search.BatchHypothesis"><em>BatchHypothesis</em></a>) – Running hypotheses on beam</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Encoded speech feature (T, D)</p></li>
+<li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attention (T, D)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2656,7 +2778,13 @@ and state values of <cite>self.full_scorers</cite></p>
 <em class="property">class </em><code class="sig-prename descclassname">espnet.nets.batch_beam_search.</code><code class="sig-name descname">BatchHypothesis</code><a class="reference internal" href="../_modules/espnet/nets/batch_beam_search.html#BatchHypothesis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchHypothesis" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></p>
 <p>Batchfied/Vectorized hypothesis data type.</p>
-<p>Create new instance of BatchHypothesis(yseq, score, length, scores, states)</p>
+<p>Create new instance of BatchHypothesis(yseq, score, length, scores, states, hs)</p>
+<dl class="attribute">
+<dt id="espnet.nets.batch_beam_search.BatchHypothesis.hs">
+<code class="sig-name descname">hs</code><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchHypothesis.hs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Alias for field number 5</p>
+</dd></dl>
+
 <dl class="attribute">
 <dt id="espnet.nets.batch_beam_search.BatchHypothesis.length">
 <code class="sig-name descname">length</code><a class="headerlink" href="#espnet.nets.batch_beam_search.BatchHypothesis.length" title="Permalink to this definition">¶</a></dt>
@@ -11000,7 +11128,7 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 <span class="target" id="module-espnet.nets.pytorch_backend.transformer.decoder_layer"></span><p>Decoder self-attention layer definition.</p>
 <dl class="class">
 <dt id="espnet.nets.pytorch_backend.transformer.decoder_layer.DecoderLayer">
-<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.decoder_layer.</code><code class="sig-name descname">DecoderLayer</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">self_attn</em>, <em class="sig-param">src_attn</em>, <em class="sig-param">feed_forward</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/decoder_layer.html#DecoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.decoder_layer.DecoderLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet.nets.pytorch_backend.transformer.decoder_layer.</code><code class="sig-name descname">DecoderLayer</code><span class="sig-paren">(</span><em class="sig-param">size</em>, <em class="sig-param">self_attn</em>, <em class="sig-param">src_attn</em>, <em class="sig-param">feed_forward</em>, <em class="sig-param">dropout_rate</em>, <em class="sig-param">normalize_before=True</em>, <em class="sig-param">concat_after=False</em>, <em class="sig-param">sequential_attn=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/decoder_layer.html#DecoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.decoder_layer.DecoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <p>Single decoder layer module.</p>
 <dl class="field-list simple">
@@ -11020,13 +11148,15 @@ can be used as the argument.</p></li>
 if True, additional linear will be applied.
 i.e. x -&gt; x + linear(concat(x, att(x)))
 if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
+<li><p><strong>sequential_attn</strong> (<em>bool</em>) – computes attn first on pre_x then on x,
+thereby attending to two sources in sequence.</p></li>
 </ul>
 </dd>
 </dl>
 <p>Construct an DecoderLayer object.</p>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.transformer.decoder_layer.DecoderLayer.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">tgt</em>, <em class="sig-param">tgt_mask</em>, <em class="sig-param">memory</em>, <em class="sig-param">memory_mask</em>, <em class="sig-param">cache=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/decoder_layer.html#DecoderLayer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.decoder_layer.DecoderLayer.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">tgt</em>, <em class="sig-param">tgt_mask</em>, <em class="sig-param">memory</em>, <em class="sig-param">memory_mask</em>, <em class="sig-param">cache=None</em>, <em class="sig-param">pre_memory=None</em>, <em class="sig-param">pre_memory_mask=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/transformer/decoder_layer.html#DecoderLayer.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.transformer.decoder_layer.DecoderLayer.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute decoded features.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -11037,6 +11167,8 @@ if False, no additional linear will be applied. i.e. x -&gt; x + att(x)</p></li>
 <li><p><strong>memory_mask</strong> (<em>torch.Tensor</em>) – Encoded memory mask (#batch, maxlen_in).</p></li>
 <li><p><strong>cache</strong> (<em>List</em><em>[</em><em>torch.Tensor</em><em>]</em>) – List of cached tensors.
 Each tensor shape should be (#batch, maxlen_out - 1, size).</p></li>
+<li><p><strong>pre_memory</strong> (<em>torch.Tensor</em>) – Encoded memory (#batch, maxlen_in, size).</p></li>
+<li><p><strong>pre_memory_mask</strong> (<em>torch.Tensor</em>) – Encoded memory mask (#batch, maxlen_in).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

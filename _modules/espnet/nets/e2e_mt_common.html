@@ -217,6 +217,8 @@
 
 <span class="sd">&quot;&quot;&quot;Common functions for ST and MT.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
+
 <span class="kn">import</span> <span class="nn">nltk</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
@@ -239,12 +241,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">space</span> <span class="o">=</span> <span class="n">sym_space</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">=</span> <span class="n">sym_pad</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">report_bleu</span> <span class="o">=</span> <span class="n">report_bleu</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">idx_blank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">space</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">idx_space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">idx_space</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">is_ctc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate corpus-level BLEU score.</span>
 
 <span class="sd">        :param torch.Tensor ys_hat: prediction (batch, seqlen)</span>
@@ -253,7 +256,9 @@
 <span class="sd">        :rtype float</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">bleu</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_bleu</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">is_ctc</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_bleu_ctc</span><span class="p">(</span><span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">report_bleu</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">bleu</span>
 
         <span class="n">bleu</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_corpus_bleu</span><span class="p">(</span><span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">)</span>
@@ -282,7 +287,39 @@
             <span class="n">seqs_hat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_hat_text</span><span class="p">)</span>
             <span class="n">seqs_true</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_true_text</span><span class="p">)</span>
         <span class="n">bleu</span> <span class="o">=</span> <span class="n">nltk</span><span class="o">.</span><span class="n">bleu_score</span><span class="o">.</span><span class="n">corpus_bleu</span><span class="p">([[</span><span class="n">ref</span><span class="p">]</span> <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">seqs_true</span><span class="p">],</span> <span class="n">seqs_hat</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">bleu</span> <span class="o">*</span> <span class="mi">100</span></div></div>
+        <span class="k">return</span> <span class="n">bleu</span> <span class="o">*</span> <span class="mi">100</span></div>
+
+<div class="viewcode-block" id="ErrorCalculator.calculate_bleu_ctc"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.e2e_mt_common.ErrorCalculator.calculate_bleu_ctc">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_bleu_ctc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate sentence-level BLEU score for CTC.</span>
+
+<span class="sd">        :param torch.Tensor ys_hat: prediction (batch, seqlen)</span>
+<span class="sd">        :param torch.Tensor ys_pad: reference (batch, seqlen)</span>
+<span class="sd">        :return: corpus-level BLEU score</span>
+<span class="sd">        :rtype float</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">seqs_hat</span><span class="p">,</span> <span class="n">seqs_true</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ys_hat</span><span class="p">):</span>
+            <span class="n">y_hat</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">groupby</span><span class="p">(</span><span class="n">y</span><span class="p">)]</span>
+            <span class="n">y_true</span> <span class="o">=</span> <span class="n">ys_pad</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">seq_hat</span><span class="p">,</span> <span class="n">seq_true</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">y_hat</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_blank</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_space</span><span class="p">:</span>
+                    <span class="n">seq_hat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)])</span>
+
+            <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="n">y_true</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">idx</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_blank</span> <span class="ow">and</span> <span class="n">idx</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">idx_space</span><span class="p">:</span>
+                    <span class="n">seq_true</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">idx</span><span class="p">)])</span>
+
+            <span class="n">seq_hat_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seq_hat</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+            <span class="n">seq_hat_text</span> <span class="o">=</span> <span class="n">seq_hat_text</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">seq_true_text</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">seq_true</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="p">)</span>
+            <span class="n">seqs_hat</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_hat_text</span><span class="p">)</span>
+            <span class="n">seqs_true</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">seq_true_text</span><span class="p">)</span>
+
+        <span class="n">bleu</span> <span class="o">=</span> <span class="n">nltk</span><span class="o">.</span><span class="n">bleu_score</span><span class="o">.</span><span class="n">corpus_bleu</span><span class="p">([[</span><span class="n">ref</span><span class="p">]</span> <span class="k">for</span> <span class="n">ref</span> <span class="ow">in</span> <span class="n">seqs_true</span><span class="p">],</span> <span class="n">seqs_hat</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bleu</span></div></div>
 </pre></div>
 
            </div>

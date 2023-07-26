@@ -231,6 +231,7 @@
     <span class="n">length</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([])</span>  <span class="c1"># (batch,)</span>
     <span class="n">scores</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># values: (batch,)</span>
     <span class="n">states</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="n">hs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># (batch, maxlen, adim)</span>
 
     <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a batch size.&quot;&quot;&quot;</span>
@@ -244,6 +245,12 @@
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Convert list to batch.&quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">hyps</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">BatchHypothesis</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_hs</span><span class="p">:</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="p">[</span><span class="n">h</span><span class="o">.</span><span class="n">hs</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="p">[]</span>
+
         <span class="k">return</span> <span class="n">BatchHypothesis</span><span class="p">(</span>
             <span class="n">yseq</span><span class="o">=</span><span class="n">pad_sequence</span><span class="p">(</span>
                 <span class="p">[</span><span class="n">h</span><span class="o">.</span><span class="n">yseq</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">],</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">padding_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">eos</span>
@@ -252,9 +259,15 @@
             <span class="n">score</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">score</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">]),</span>
             <span class="n">scores</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="p">},</span>
             <span class="n">states</span><span class="o">=</span><span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">[</span><span class="n">h</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="p">},</span>
+            <span class="n">hs</span><span class="o">=</span><span class="n">hs</span><span class="p">,</span>
         <span class="p">)</span></div>
 
     <span class="k">def</span> <span class="nf">_batch_select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">BatchHypothesis</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_hs</span><span class="p">:</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="p">[</span><span class="n">hyps</span><span class="o">.</span><span class="n">hs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">hs</span> <span class="o">=</span> <span class="p">[]</span>
+
         <span class="k">return</span> <span class="n">BatchHypothesis</span><span class="p">(</span>
             <span class="n">yseq</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="n">ids</span><span class="p">],</span>
             <span class="n">score</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">score</span><span class="p">[</span><span class="n">ids</span><span class="p">],</span>
@@ -264,6 +277,7 @@
                 <span class="n">k</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">select_state</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">ids</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">hyps</span><span class="o">.</span><span class="n">states</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
             <span class="p">},</span>
+            <span class="n">hs</span><span class="o">=</span><span class="n">hs</span><span class="p">,</span>
         <span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_select</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Hypothesis</span><span class="p">:</span>
@@ -274,6 +288,7 @@
             <span class="n">states</span><span class="o">=</span><span class="p">{</span>
                 <span class="n">k</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">select_state</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">hyps</span><span class="o">.</span><span class="n">states</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
             <span class="p">},</span>
+            <span class="n">hs</span><span class="o">=</span><span class="n">hyps</span><span class="o">.</span><span class="n">hs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_hs</span> <span class="k">else</span> <span class="p">[],</span>
         <span class="p">)</span>
 
 <div class="viewcode-block" id="BatchBeamSearch.unbatchfy"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchBeamSearch.unbatchfy">[docs]</a>    <span class="k">def</span> <span class="nf">unbatchfy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_hyps</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Hypothesis</span><span class="p">]:</span>
@@ -287,6 +302,7 @@
                     <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">select_state</span><span class="p">(</span><span class="n">batch_hyps</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
                     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                 <span class="p">},</span>
+                <span class="n">hs</span><span class="o">=</span><span class="n">batch_hyps</span><span class="o">.</span><span class="n">hs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_hs</span> <span class="k">else</span> <span class="p">[],</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">batch_hyps</span><span class="o">.</span><span class="n">length</span><span class="p">))</span>
         <span class="p">]</span></div>
@@ -345,19 +361,26 @@
                     <span class="n">score</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                     <span class="n">scores</span><span class="o">=</span><span class="n">init_scores</span><span class="p">,</span>
                     <span class="n">states</span><span class="o">=</span><span class="n">init_states</span><span class="p">,</span>
+                    <span class="n">hs</span><span class="o">=</span><span class="p">[],</span>
                     <span class="n">yseq</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">primer</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
                 <span class="p">)</span>
             <span class="p">]</span>
         <span class="p">)</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearch.score_full"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchBeamSearch.score_full">[docs]</a>    <span class="k">def</span> <span class="nf">score_full</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hyp</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">pre_x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.full_scorers`.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            hyp (Hypothesis): Hypothesis with prefix tokens to score</span>
 <span class="sd">            x (torch.Tensor): Corresponding input feature</span>
+<span class="sd">            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)</span>
+<span class="sd">                Sequential attn computes attn first on pre_x then on x,</span>
+<span class="sd">                thereby attending to two sources in sequence.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of</span>
@@ -370,11 +393,25 @@
         <span class="n">scores</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="n">states</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_scorers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">batch_score</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">x</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;decoder&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_hs</span><span class="p">:</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">hs</span><span class="p">,</span> <span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">batch_score</span><span class="p">(</span>
+                    <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="n">return_hs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">return_hs</span>
+                <span class="p">)</span>
+            <span class="k">elif</span> <span class="s2">&quot;decoder&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="ow">and</span> <span class="n">pre_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">batch_score</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">x</span><span class="p">,</span> <span class="n">pre_x</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">batch_score</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_hs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">hs</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">states</span>
         <span class="k">return</span> <span class="n">scores</span><span class="p">,</span> <span class="n">states</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearch.score_partial"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchBeamSearch.score_partial">[docs]</a>    <span class="k">def</span> <span class="nf">score_partial</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span> <span class="n">ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hyp</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span>
+        <span class="n">ids</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">pre_x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.full_scorers`.</span>
 
@@ -382,6 +419,9 @@
 <span class="sd">            hyp (Hypothesis): Hypothesis with prefix tokens to score</span>
 <span class="sd">            ids (torch.Tensor): 2D tensor of new partial tokens to score</span>
 <span class="sd">            x (torch.Tensor): Corresponding input feature</span>
+<span class="sd">            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)</span>
+<span class="sd">                Sequential attn computes attn first on pre_x then on x,</span>
+<span class="sd">                thereby attending to two sources in sequence.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of</span>
@@ -394,9 +434,14 @@
         <span class="n">scores</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="n">states</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_scorers</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-            <span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">batch_score_partial</span><span class="p">(</span>
-                <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">x</span>
-            <span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;ctc&quot;</span> <span class="ow">in</span> <span class="n">k</span> <span class="ow">and</span> <span class="n">pre_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">batch_score_partial</span><span class="p">(</span>
+                    <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">pre_x</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">d</span><span class="o">.</span><span class="n">batch_score_partial</span><span class="p">(</span>
+                    <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">hyp</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">x</span>
+                <span class="p">)</span>
         <span class="k">return</span> <span class="n">scores</span><span class="p">,</span> <span class="n">states</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearch.merge_states"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchBeamSearch.merge_states">[docs]</a>    <span class="k">def</span> <span class="nf">merge_states</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">part_states</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">part_idx</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
@@ -420,12 +465,18 @@
             <span class="n">new_states</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
         <span class="k">return</span> <span class="n">new_states</span></div>
 
-<div class="viewcode-block" id="BatchBeamSearch.search"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchBeamSearch.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">running_hyps</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BatchHypothesis</span><span class="p">:</span>
+<div class="viewcode-block" id="BatchBeamSearch.search"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchBeamSearch.search">[docs]</a>    <span class="k">def</span> <span class="nf">search</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">running_hyps</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">pre_x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">BatchHypothesis</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Search new tokens for running hypotheses and encoded speech x.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            running_hyps (BatchHypothesis): Running hypotheses on beam</span>
 <span class="sd">            x (torch.Tensor): Encoded speech feature (T, D)</span>
+<span class="sd">            pre_x (torch.Tensor): Encoded speech feature for sequential attention (T, D)</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            BatchHypothesis: Best sorted hypotheses</span>
@@ -437,7 +488,23 @@
         <span class="n">weighted_scores</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
             <span class="n">n_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_vocab</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span>
         <span class="p">)</span>
-        <span class="n">scores</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_full</span><span class="p">(</span><span class="n">running_hyps</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_hs</span><span class="p">:</span>
+            <span class="n">hs</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_full</span><span class="p">(</span>
+                <span class="n">running_hyps</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+                <span class="n">pre_x</span><span class="o">=</span><span class="n">pre_x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">pre_x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">pre_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">scores</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_full</span><span class="p">(</span>
+                <span class="n">running_hyps</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
+                <span class="n">pre_x</span><span class="o">=</span><span class="n">pre_x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">pre_x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">pre_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">)</span>
+
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_scorers</span><span class="p">:</span>
             <span class="n">weighted_scores</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">scores</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
         <span class="c1"># partial scoring</span>
@@ -451,7 +518,7 @@
         <span class="c1"># NOTE(takaaki-hori): Unlike BeamSearch, we assume that score_partial returns</span>
         <span class="c1"># full-size score matrices, which has non-zero scores for part_ids and zeros</span>
         <span class="c1"># for others.</span>
-        <span class="n">part_scores</span><span class="p">,</span> <span class="n">part_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_partial</span><span class="p">(</span><span class="n">running_hyps</span><span class="p">,</span> <span class="n">part_ids</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">part_scores</span><span class="p">,</span> <span class="n">part_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_partial</span><span class="p">(</span><span class="n">running_hyps</span><span class="p">,</span> <span class="n">part_ids</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">pre_x</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">part_scorers</span><span class="p">:</span>
             <span class="n">weighted_scores</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">*</span> <span class="n">part_scores</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
         <span class="c1"># add previous hyp scores</span>
@@ -471,6 +538,10 @@
             <span class="n">part_new_token_id</span><span class="p">,</span>
         <span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">batch_beam</span><span class="p">(</span><span class="n">weighted_scores</span><span class="p">,</span> <span class="n">part_ids</span><span class="p">)):</span>
             <span class="n">prev_hyp</span> <span class="o">=</span> <span class="n">prev_hyps</span><span class="p">[</span><span class="n">full_prev_hyp_id</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">return_hs</span><span class="p">:</span>
+                <span class="n">new_hs</span> <span class="o">=</span> <span class="n">prev_hyp</span><span class="o">.</span><span class="n">hs</span> <span class="o">+</span> <span class="p">[</span><span class="n">hs</span><span class="p">[</span><span class="n">full_prev_hyp_id</span><span class="p">]</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">new_hs</span> <span class="o">=</span> <span class="p">[]</span>
             <span class="n">best_hyps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                 <span class="n">Hypothesis</span><span class="p">(</span>
                     <span class="n">score</span><span class="o">=</span><span class="n">weighted_scores</span><span class="p">[</span><span class="n">full_prev_hyp_id</span><span class="p">,</span> <span class="n">full_new_token_id</span><span class="p">],</span>
@@ -495,6 +566,7 @@
                         <span class="p">},</span>
                         <span class="n">part_new_token_id</span><span class="p">,</span>
                     <span class="p">),</span>
+                    <span class="n">hs</span><span class="o">=</span><span class="n">new_hs</span><span class="p">,</span>
                 <span class="p">)</span>
             <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">batchfy</span><span class="p">(</span><span class="n">best_hyps</span><span class="p">)</span></div>

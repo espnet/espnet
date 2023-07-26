@@ -297,6 +297,7 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span> <span class="o">=</span> <span class="kc">None</span>
 
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_size_bf_softmax</span> <span class="o">=</span> <span class="n">attention_dim</span>
         <span class="c1"># Must set by the inheritance</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoders</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -306,6 +307,7 @@
         <span class="n">hlens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_in_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">ys_in_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">return_hs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward decoder.</span>
 
@@ -317,6 +319,8 @@
 <span class="sd">                if input_layer == &quot;embed&quot;</span>
 <span class="sd">                input tensor (batch, maxlen_out, #mels) in the other cases</span>
 <span class="sd">            ys_in_lens: (batch)</span>
+<span class="sd">            return_hs: dec hidden state corresponding to ys,</span>
+<span class="sd">                used for searchable hidden ints</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            (tuple): tuple containing:</span>
 
@@ -349,10 +353,15 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
             <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="n">hs_asr</span> <span class="o">=</span> <span class="n">x</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
         <span class="n">olens</span> <span class="o">=</span> <span class="n">tgt_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">hs_asr</span>
         <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">olens</span></div>
 
 <div class="viewcode-block" id="BaseTransformerDecoder.forward_one_step"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward_one_step">[docs]</a>    <span class="k">def</span> <span class="nf">forward_one_step</span><span class="p">(</span>
@@ -361,6 +370,7 @@
         <span class="n">tgt_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">memory</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">cache</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">return_hs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward one step.</span>
 
@@ -371,6 +381,8 @@
 <span class="sd">                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)</span>
 <span class="sd">            memory: encoded memory, float32  (batch, maxlen_in, feat)</span>
 <span class="sd">            cache: cached output list of (batch, max_time_out-1, size)</span>
+<span class="sd">            return_hs: dec hidden state corresponding to ys,</span>
+<span class="sd">                used for searchable hidden ints</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            y, cache: NN output value and cache per `self.decoders`.</span>
 <span class="sd">            y.shape` is (batch, maxlen_out, token)</span>
@@ -389,21 +401,43 @@
             <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="n">h_asr</span> <span class="o">=</span> <span class="n">y</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">h_asr</span><span class="p">,</span> <span class="n">new_cache</span>
         <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">new_cache</span></div>
 
-<div class="viewcode-block" id="BaseTransformerDecoder.score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTransformerDecoder.score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">return_hs</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Score.&quot;&quot;&quot;</span>
         <span class="n">ys_mask</span> <span class="o">=</span> <span class="n">subsequent_mask</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">logp</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_one_step</span><span class="p">(</span>
-            <span class="n">ys</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">ys_mask</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">cache</span><span class="o">=</span><span class="n">state</span>
-        <span class="p">)</span>
-        <span class="k">return</span> <span class="n">logp</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">state</span></div>
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="n">logp</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_one_step</span><span class="p">(</span>
+                <span class="n">ys</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="n">ys_mask</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="n">cache</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
+                <span class="n">return_hs</span><span class="o">=</span><span class="n">return_hs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">logp</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">hs</span><span class="p">,</span> <span class="n">state</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logp</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_one_step</span><span class="p">(</span>
+                <span class="n">ys</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="n">ys_mask</span><span class="p">,</span>
+                <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                <span class="n">cache</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
+                <span class="n">return_hs</span><span class="o">=</span><span class="n">return_hs</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">logp</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">state</span></div>
 
 <div class="viewcode-block" id="BaseTransformerDecoder.batch_score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.batch_score">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+        <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">return_hs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token batch.</span>
 
@@ -412,6 +446,7 @@
 <span class="sd">            states (List[Any]): Scorer states for prefix tokens.</span>
 <span class="sd">            xs (torch.Tensor):</span>
 <span class="sd">                The encoder feature that generates ys (n_batch, xlen, n_feat).</span>
+
 
 <span class="sd">        Returns:</span>
 <span class="sd">            tuple[torch.Tensor, List[Any]]: Tuple of</span>
@@ -433,10 +468,20 @@
 
         <span class="c1"># batch decoding</span>
         <span class="n">ys_mask</span> <span class="o">=</span> <span class="n">subsequent_mask</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">xs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-        <span class="n">logp</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_one_step</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">ys_mask</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">batch_state</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="n">logp</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_one_step</span><span class="p">(</span>
+                <span class="n">ys</span><span class="p">,</span> <span class="n">ys_mask</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">batch_state</span><span class="p">,</span> <span class="n">return_hs</span><span class="o">=</span><span class="n">return_hs</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logp</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_one_step</span><span class="p">(</span>
+                <span class="n">ys</span><span class="p">,</span> <span class="n">ys_mask</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">batch_state</span><span class="p">,</span> <span class="n">return_hs</span><span class="o">=</span><span class="n">return_hs</span>
+            <span class="p">)</span>
 
         <span class="c1"># transpose state of [layer, batch] into [batch, layer]</span>
         <span class="n">state_list</span> <span class="o">=</span> <span class="p">[[</span><span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">b</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)]</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_batch</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">logp</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">state_list</span>
         <span class="k">return</span> <span class="n">logp</span><span class="p">,</span> <span class="n">state_list</span></div></div>
 
 
@@ -737,6 +782,243 @@
                 <span class="n">concat_after</span><span class="p">,</span>
             <span class="p">),</span>
         <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TransformerMDDecoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder">[docs]</a><span class="k">class</span> <span class="nc">TransformerMDDecoder</span><span class="p">(</span><span class="n">BaseTransformerDecoder</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">encoder_output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">attention_heads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="n">linear_units</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">,</span>
+        <span class="n">num_blocks</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">positional_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="n">self_attention_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">src_attention_dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">input_layer</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;embed&quot;</span><span class="p">,</span>
+        <span class="n">use_output_layer</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">PositionalEncoding</span><span class="p">,</span>
+        <span class="n">normalize_before</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">concat_after</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_speech_attn</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span>
+            <span class="n">encoder_output_size</span><span class="o">=</span><span class="n">encoder_output_size</span><span class="p">,</span>
+            <span class="n">dropout_rate</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
+            <span class="n">positional_dropout_rate</span><span class="o">=</span><span class="n">positional_dropout_rate</span><span class="p">,</span>
+            <span class="n">input_layer</span><span class="o">=</span><span class="n">input_layer</span><span class="p">,</span>
+            <span class="n">use_output_layer</span><span class="o">=</span><span class="n">use_output_layer</span><span class="p">,</span>
+            <span class="n">pos_enc_class</span><span class="o">=</span><span class="n">pos_enc_class</span><span class="p">,</span>
+            <span class="n">normalize_before</span><span class="o">=</span><span class="n">normalize_before</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">attention_dim</span> <span class="o">=</span> <span class="n">encoder_output_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">decoders</span> <span class="o">=</span> <span class="n">repeat</span><span class="p">(</span>
+            <span class="n">num_blocks</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">lnum</span><span class="p">:</span> <span class="n">DecoderLayer</span><span class="p">(</span>
+                <span class="n">attention_dim</span><span class="p">,</span>
+                <span class="n">MultiHeadedAttention</span><span class="p">(</span>
+                    <span class="n">attention_heads</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="n">self_attention_dropout_rate</span>
+                <span class="p">),</span>
+                <span class="n">MultiHeadedAttention</span><span class="p">(</span>
+                    <span class="n">attention_heads</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="n">src_attention_dropout_rate</span>
+                <span class="p">),</span>
+                <span class="n">PositionwiseFeedForward</span><span class="p">(</span><span class="n">attention_dim</span><span class="p">,</span> <span class="n">linear_units</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">),</span>
+                <span class="n">dropout_rate</span><span class="p">,</span>
+                <span class="n">normalize_before</span><span class="p">,</span>
+                <span class="n">concat_after</span><span class="p">,</span>
+                <span class="n">MultiHeadedAttention</span><span class="p">(</span>
+                    <span class="n">attention_heads</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="n">src_attention_dropout_rate</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">use_speech_attn</span>
+                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_speech_attn</span> <span class="o">=</span> <span class="n">use_speech_attn</span>
+
+<div class="viewcode-block" id="TransformerMDDecoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">hs_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">hlens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ys_in_pad</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">ys_in_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">speech_lens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">return_hs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward decoder.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            hs_pad: encoded memory, float32  (batch, maxlen_in, feat)</span>
+<span class="sd">            hlens: (batch)</span>
+<span class="sd">            ys_in_pad:</span>
+<span class="sd">                input token ids, int64 (batch, maxlen_out)</span>
+<span class="sd">                if input_layer == &quot;embed&quot;</span>
+<span class="sd">                input tensor (batch, maxlen_out, #mels) in the other cases</span>
+<span class="sd">            ys_in_lens: (batch)</span>
+<span class="sd">            return_hs: dec hidden state corresponding to ys,</span>
+<span class="sd">                used for searchable hidden ints</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            (tuple): tuple containing:</span>
+
+<span class="sd">            x: decoded token score before softmax (batch, maxlen_out, token)</span>
+<span class="sd">                if use_output_layer is True,</span>
+<span class="sd">            olens: (batch, )</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tgt</span> <span class="o">=</span> <span class="n">ys_in_pad</span>
+        <span class="c1"># tgt_mask: (B, 1, L)</span>
+        <span class="n">tgt_mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">ys_in_lens</span><span class="p">)[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">tgt</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="c1"># m: (1, L, L)</span>
+        <span class="n">m</span> <span class="o">=</span> <span class="n">subsequent_mask</span><span class="p">(</span><span class="n">tgt_mask</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">tgt_mask</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="c1"># tgt_mask: (B, L, L)</span>
+        <span class="n">tgt_mask</span> <span class="o">=</span> <span class="n">tgt_mask</span> <span class="o">&amp;</span> <span class="n">m</span>
+
+        <span class="n">memory</span> <span class="o">=</span> <span class="n">hs_pad</span>
+        <span class="n">memory_mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">hlens</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">memory</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)))[:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+            <span class="n">memory</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">speech</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">speech_mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">speech_lens</span><span class="p">,</span> <span class="n">maxlen</span><span class="o">=</span><span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)))[</span>
+                <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">speech_mask</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">tgt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speech_attn</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">memory_mask</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoders</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">memory_mask</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_mask</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">memory_mask</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoders</span><span class="p">(</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">memory_mask</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+                <span class="n">hs_asr</span> <span class="o">=</span> <span class="n">x</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="n">olens</span> <span class="o">=</span> <span class="n">tgt_mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">olens</span><span class="p">,</span> <span class="n">hs_asr</span>
+
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">olens</span></div>
+
+<div class="viewcode-block" id="TransformerMDDecoder.forward_one_step"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.forward_one_step">[docs]</a>    <span class="k">def</span> <span class="nf">forward_one_step</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">tgt</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">tgt_mask</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">memory</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">cache</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">return_hs</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward one step.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            tgt: input token ids, int64 (batch, maxlen_out)</span>
+<span class="sd">            tgt_mask: input token mask,  (batch, maxlen_out)</span>
+<span class="sd">                      dtype=torch.uint8 in PyTorch 1.2-</span>
+<span class="sd">                      dtype=torch.bool in PyTorch 1.2+ (include 1.2)</span>
+<span class="sd">            memory: encoded memory, float32  (batch, maxlen_in, feat)</span>
+<span class="sd">            speech: encoded speech, float32  (batch, maxlen_in, feat)</span>
+<span class="sd">            cache: cached output list of (batch, max_time_out-1, size)</span>
+<span class="sd">            return_hs: dec hidden state corresponding to ys,</span>
+<span class="sd">                used for searchable hidden ints</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            y, cache: NN output value and cache per `self.decoders`.</span>
+<span class="sd">            y.shape` is (batch, maxlen_out, token)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">(</span><span class="n">tgt</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cache</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cache</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoders</span><span class="p">)</span>
+        <span class="n">new_cache</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">decoder</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">cache</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoders</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_speech_attn</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">memory_mask</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="n">speech_mask</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="kc">None</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="n">memory_mask</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span>
+                    <span class="n">x</span><span class="p">,</span> <span class="n">tgt_mask</span><span class="p">,</span> <span class="n">memory</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">c</span>
+                <span class="p">)</span>
+            <span class="n">new_cache</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">normalize_before</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">after_norm</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="n">h_asr</span> <span class="o">=</span> <span class="n">y</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">y</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">output_layer</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">return_hs</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">h_asr</span><span class="p">,</span> <span class="n">new_cache</span>
+        <span class="k">return</span> <span class="n">y</span><span class="p">,</span> <span class="n">new_cache</span></div>
+
+<div class="viewcode-block" id="TransformerMDDecoder.score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">speech</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score.&quot;&quot;&quot;</span>
+        <span class="n">ys_mask</span> <span class="o">=</span> <span class="n">subsequent_mask</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">logp</span><span class="p">,</span> <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_one_step</span><span class="p">(</span>
+            <span class="n">ys</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">ys_mask</span><span class="p">,</span>
+            <span class="n">x</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+            <span class="n">speech</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="n">speech</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">cache</span><span class="o">=</span><span class="n">state</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="k">return</span> <span class="n">logp</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="TransformerMDDecoder.batch_score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.transformer_decoder.TransformerMDDecoder.batch_score">[docs]</a>    <span class="k">def</span> <span class="nf">batch_score</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">ys</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">states</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+        <span class="n">xs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Any</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new token batch.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ys (torch.Tensor): torch.int64 prefix tokens (n_batch, ylen).</span>
+<span class="sd">            states (List[Any]): Scorer states for prefix tokens.</span>
+<span class="sd">            xs (torch.Tensor):</span>
+<span class="sd">                The encoder feature that generates ys (n_batch, xlen, n_feat).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            tuple[torch.Tensor, List[Any]]: Tuple of</span>
+<span class="sd">                batchfied scores for next token with shape of `(n_batch, n_vocab)`</span>
+<span class="sd">                and next state list for ys.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># merge states</span>
+        <span class="n">n_batch</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+        <span class="n">n_layers</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoders</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">states</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batch_state</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># transpose state of [batch, layer] into [layer, batch]</span>
+            <span class="n">batch_state</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">states</span><span class="p">[</span><span class="n">b</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_batch</span><span class="p">)])</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)</span>
+            <span class="p">]</span>
+
+        <span class="c1"># batch decoding</span>
+        <span class="n">ys_mask</span> <span class="o">=</span> <span class="n">subsequent_mask</span><span class="p">(</span><span class="n">ys</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">device</span><span class="o">=</span><span class="n">xs</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">logp</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_one_step</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">ys_mask</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">speech</span><span class="p">,</span> <span class="n">cache</span><span class="o">=</span><span class="n">batch_state</span><span class="p">)</span>
+
+        <span class="c1"># transpose state of [layer, batch] into [batch, layer]</span>
+        <span class="n">state_list</span> <span class="o">=</span> <span class="p">[[</span><span class="n">states</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">b</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_layers</span><span class="p">)]</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_batch</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">logp</span><span class="p">,</span> <span class="n">state_list</span></div></div>
 </pre></div>
 
            </div>

@@ -219,9 +219,13 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer_streaming</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">BeamSearchTransducerStreaming</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.batch_beam_search</span> <span class="kn">import</span> <span class="n">BatchBeamSearch</span>  <span class="c1"># noqa: H301</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.batch_beam_search</span> <span class="kn">import</span> <span class="n">BatchHypothesis</span>  <span class="c1"># noqa: H301</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.beam_search</span> <span class="kn">import</span> <span class="n">Hypothesis</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.beam_search_timesync_streaming</span> <span class="kn">import</span> <span class="n">BeamSearchTimeSyncStreaming</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.e2e_asr_common</span> <span class="kn">import</span> <span class="n">end_detect</span>
 
 
@@ -246,6 +250,12 @@
         <span class="n">disable_repetition_detection</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">encoded_feat_length_limit</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
         <span class="n">decoder_text_length_limit</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">incremental_decode</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">time_sync</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">ctc</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">hold_n</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">transducer_conf</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">joint_network</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize beam search.&quot;&quot;&quot;</span>
@@ -256,6 +266,35 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">disable_repetition_detection</span> <span class="o">=</span> <span class="n">disable_repetition_detection</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">encoded_feat_length_limit</span> <span class="o">=</span> <span class="n">encoded_feat_length_limit</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder_text_length_limit</span> <span class="o">=</span> <span class="n">decoder_text_length_limit</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">incremental_decode</span> <span class="o">=</span> <span class="n">incremental_decode</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_sync</span> <span class="o">=</span> <span class="n">time_sync</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctc</span> <span class="o">=</span> <span class="n">ctc</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hold_n</span> <span class="o">=</span> <span class="n">hold_n</span>
+
+        <span class="k">if</span> <span class="n">time_sync</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">transducer_conf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">time_sync_search</span> <span class="o">=</span> <span class="n">BeamSearchTransducerStreaming</span><span class="p">(</span>
+                    <span class="n">decoder</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="p">[</span><span class="s2">&quot;decoder&quot;</span><span class="p">],</span>
+                    <span class="n">joint_network</span><span class="o">=</span><span class="n">joint_network</span><span class="p">,</span>
+                    <span class="n">beam_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span>
+                    <span class="n">token_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span>
+                    <span class="n">hold_n</span><span class="o">=</span><span class="n">hold_n</span><span class="p">,</span>
+                    <span class="o">**</span><span class="n">transducer_conf</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="p">[</span><span class="s2">&quot;decoder&quot;</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">scorers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                <span class="n">scorers</span><span class="p">[</span><span class="s2">&quot;ctc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ctc</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">time_sync_search</span> <span class="o">=</span> <span class="n">BeamSearchTimeSyncStreaming</span><span class="p">(</span>
+                    <span class="n">beam_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_size</span><span class="p">,</span>
+                    <span class="n">weights</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
+                    <span class="n">scorers</span><span class="o">=</span><span class="n">scorers</span><span class="p">,</span>
+                    <span class="n">sos</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
+                    <span class="n">token_list</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span>
+                    <span class="n">hold_n</span><span class="o">=</span><span class="n">hold_n</span><span class="p">,</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
 
@@ -267,10 +306,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">ended_hyps</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">process_idx</span> <span class="o">=</span> <span class="mi">0</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span> <span class="o">=</span> <span class="kc">None</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prev_incremental</span> <span class="o">=</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearchOnline.score_full"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.score_full">[docs]</a>    <span class="k">def</span> <span class="nf">score_full</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">hyp</span><span class="p">:</span> <span class="n">BatchHypothesis</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">pre_x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Score new hypothesis by `self.full_scorers`.</span>
 
@@ -326,7 +366,7 @@
 <span class="sd">            list[Hypothesis]: N-best decoding results</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encbuffer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encbuffer</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">encbuffer</span> <span class="o">=</span> <span class="n">x</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">encbuffer</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">encbuffer</span><span class="p">,</span> <span class="n">x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -339,53 +379,202 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">maxlen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">maxlenratio</span> <span class="o">*</span> <span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span>
 
-        <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-            <span class="n">cur_end_frame</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">look_ahead</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span>
-            <span class="p">)</span>
-            <span class="k">if</span> <span class="n">cur_end_frame</span> <span class="o">&lt;</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
-                <span class="n">h</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cur_end_frame</span><span class="p">)</span>
-                <span class="n">block_is_final</span> <span class="o">=</span> <span class="kc">False</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">is_final</span><span class="p">:</span>
-                    <span class="n">h</span> <span class="o">=</span> <span class="n">x</span>
-                    <span class="n">block_is_final</span> <span class="o">=</span> <span class="kc">True</span>
-                <span class="k">else</span><span class="p">:</span>
-                    <span class="k">break</span>
-
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Start processing block: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span><span class="p">)</span>
+        <span class="c1"># set block_size == 0 for recomputing</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">block_is_final</span> <span class="o">=</span> <span class="n">is_final</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">x</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
                 <span class="s2">&quot;  Feature length: </span><span class="si">{}</span><span class="s2">, current position: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
                     <span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_idx</span>
                 <span class="p">)</span>
             <span class="p">)</span>
-            <span class="k">if</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">encoded_feat_length_limit</span> <span class="o">&gt;</span> <span class="mi">0</span>
-                <span class="ow">and</span> <span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoded_feat_length_limit</span>
-            <span class="p">):</span>
-                <span class="n">h</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span>
-                    <span class="mi">0</span><span class="p">,</span>
-                    <span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoded_feat_length_limit</span><span class="p">,</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">encoded_feat_length_limit</span><span class="p">,</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># init hyps</span>
+                <span class="n">init_scores</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="n">init_states</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">if</span> <span class="s2">&quot;ctc&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="p">[</span><span class="s2">&quot;ctc&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">batch_init_state</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+                    <span class="n">init_scores</span><span class="p">[</span><span class="s2">&quot;ctc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.0</span><span class="p">])</span>
+                    <span class="n">init_states</span><span class="p">[</span><span class="s2">&quot;ctc&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;length_bonus&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">init_scores</span><span class="p">[</span><span class="s2">&quot;length_bonus&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.0</span><span class="p">])</span>
+                    <span class="n">init_states</span><span class="p">[</span><span class="s2">&quot;length_bonus&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+                <span class="k">if</span> <span class="s2">&quot;decoder&quot;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">scorers</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">init_scores</span><span class="p">[</span><span class="s2">&quot;decoder&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.0</span><span class="p">])</span>
+                    <span class="n">init_states</span><span class="p">[</span><span class="s2">&quot;decoder&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="o">=</span> <span class="n">BatchHypothesis</span><span class="p">(</span>
+                    <span class="n">score</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mf">0.0</span><span class="p">]),</span>
+                    <span class="n">scores</span><span class="o">=</span><span class="n">init_scores</span><span class="p">,</span>
+                    <span class="n">states</span><span class="o">=</span><span class="n">init_states</span><span class="p">,</span>
+                    <span class="n">length</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="mi">2</span><span class="p">]),</span>
+                    <span class="n">yseq</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">hyp_primer</span><span class="p">],</span> <span class="n">device</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">hs</span><span class="o">=</span><span class="p">[],</span>
+                <span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prev_incremental</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_sync</span><span class="p">:</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_one_block_time_sync</span><span class="p">(</span>
+                    <span class="n">h</span><span class="p">,</span> <span class="n">block_is_final</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">maxlenratio</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_one_block</span><span class="p">(</span>
+                    <span class="n">h</span><span class="p">,</span> <span class="n">block_is_final</span><span class="p">,</span> <span class="n">maxlen</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_idx</span><span class="p">,</span> <span class="n">maxlenratio</span>
+                <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Finished processing chunk: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1"># prune running_hyps, taking top as an incremental decoding</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">incremental_decode</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_final</span><span class="p">:</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">0</span>
+                <span class="p">):</span>  <span class="c1"># running_hyps will be empty if maxlen is reached</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s2">&quot;search stopped by maxlen in a non final chunk. </span><span class="se">\</span>
+<span class="s2">                        reverting to prev running hyp&quot;</span>
+                    <span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_incremental</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Hyps before incremental pruning: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">prev_incremental</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                    <span class="s2">&quot;Hyps after incremental pruning: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                 <span class="p">)</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_hyp</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
-            <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_one_block</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">block_is_final</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Finished processing block: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span> <span class="o">+=</span> <span class="mi">1</span>
-            <span class="k">if</span> <span class="n">block_is_final</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">ret</span>
-        <span class="k">if</span> <span class="n">ret</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="p">[]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                        <span class="s2">&quot;best running hypo: &quot;</span>
+                        <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]]</span>
+                        <span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="c1"># hold_n</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_n</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">length</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="o">=</span> <span class="n">BatchHypothesis</span><span class="p">(</span>
+                        <span class="n">score</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">score</span><span class="p">,</span>
+                        <span class="n">scores</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
+                        <span class="n">states</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">states</span><span class="p">,</span>
+                        <span class="n">length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">length</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">hold_n</span><span class="p">,</span>
+                        <span class="n">yseq</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="p">[:,</span> <span class="p">:</span> <span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">hold_n</span><span class="p">],</span>
+                        <span class="n">hs</span><span class="o">=</span><span class="p">[],</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+                            <span class="s2">&quot;best hypo after hold: &quot;</span>
+                            <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+                                <span class="p">[</span>
+                                    <span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="n">x</span><span class="p">]</span>
+                                    <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span>
+                                <span class="p">]</span>
+                            <span class="p">)</span>
+                        <span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">is_final</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="p">[]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">ret</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span>
+                <span class="c1"># dont return incremental hyps,</span>
+                <span class="c1"># check them by grabbing top running_hyp</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span> <span class="o">=</span> <span class="n">ret</span>
+                <span class="k">return</span> <span class="p">[]</span>
+
+        <span class="c1"># blockwise processing w/ rewinding</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span> <span class="o">=</span> <span class="n">ret</span>
-            <span class="c1"># N-best results</span>
-            <span class="k">return</span> <span class="n">ret</span></div>
+            <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+                <span class="n">cur_end_frame</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">block_size</span>
+                    <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">look_ahead</span>
+                    <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">hop_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">cur_end_frame</span> <span class="o">&lt;</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="n">h</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">cur_end_frame</span><span class="p">)</span>
+                    <span class="n">block_is_final</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">is_final</span><span class="p">:</span>
+                        <span class="n">h</span> <span class="o">=</span> <span class="n">x</span>
+                        <span class="n">block_is_final</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">break</span>
+
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Start processing block: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                    <span class="s2">&quot;  Feature length: </span><span class="si">{}</span><span class="s2">, current position: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                        <span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_idx</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">encoded_feat_length_limit</span> <span class="o">&gt;</span> <span class="mi">0</span>
+                    <span class="ow">and</span> <span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoded_feat_length_limit</span>
+                <span class="p">):</span>
+                    <span class="n">h</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">narrow</span><span class="p">(</span>
+                        <span class="mi">0</span><span class="p">,</span>
+                        <span class="n">h</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoded_feat_length_limit</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">encoded_feat_length_limit</span><span class="p">,</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">init_hyp</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_sync</span><span class="p">:</span>
+                    <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_one_block_time_sync</span><span class="p">(</span>
+                        <span class="n">h</span><span class="p">,</span> <span class="n">block_is_final</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">maxlenratio</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">process_one_block</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">block_is_final</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Finished processing block: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">processed_block</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                <span class="c1"># prune running_hyps, taking top as an incremental decoding</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">incremental_decode</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="s2">&quot;Hyps before incremental pruning: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_batch_select</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span>
+                        <span class="s2">&quot;Hyps after incremental pruning: </span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span><span class="o">.</span><span class="n">yseq</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">block_is_final</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="n">ret</span>
+            <span class="k">if</span> <span class="n">ret</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="p">[]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prev_output</span> <span class="o">=</span> <span class="n">ret</span>
+                <span class="c1"># N-best results</span>
+                <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="BatchBeamSearchOnline.process_one_block_time_sync"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.process_one_block_time_sync">[docs]</a>    <span class="k">def</span> <span class="nf">process_one_block_time_sync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Recognize one block w/ time sync.&quot;&quot;&quot;</span>
+        <span class="n">hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_sync_search</span><span class="p">(</span>
+            <span class="n">h</span><span class="p">,</span>
+            <span class="n">start_idx</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">,</span>
+            <span class="n">is_final</span><span class="o">=</span><span class="n">is_final</span><span class="p">,</span>
+            <span class="n">incremental_decode</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">incremental_decode</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;time:&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;best_hyp:&quot;</span> <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">yseq</span><span class="p">]))</span>
+        <span class="k">if</span> <span class="n">is_final</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">hyps</span></div>
 
 <div class="viewcode-block" id="BatchBeamSearchOnline.process_one_block"><a class="viewcode-back" href="../../../_gen/espnet.nets.html#espnet.nets.batch_beam_search_online.BatchBeamSearchOnline.process_one_block">[docs]</a>    <span class="k">def</span> <span class="nf">process_one_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">is_final</span><span class="p">,</span> <span class="n">maxlen</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Recognize one block.&quot;&quot;&quot;</span>
@@ -441,6 +630,8 @@
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">local_ended_hyps</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_final</span><span class="p">:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Detected hyp(s) reaching EOS in this block.&quot;</span><span class="p">)</span>
                 <span class="k">break</span>
+                <span class="c1"># breaking here means that prev hyps</span>
+                <span class="c1"># is 2 behind the ended hyps, not 1</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">prev_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">running_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_process</span><span class="p">(</span>
@@ -462,6 +653,11 @@
         <span class="k">if</span> <span class="n">is_final</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">assemble_hyps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ended_hyps</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">local_ended_hyps</span>
+            <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+                <span class="n">local_ended_hyps</span> <span class="o">=</span> <span class="p">[]</span>
+
             <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ended_hyps</span><span class="p">:</span>
                 <span class="n">local_ended_hyps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
             <span class="n">rets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">assemble_hyps</span><span class="p">(</span><span class="n">local_ended_hyps</span><span class="p">)</span>

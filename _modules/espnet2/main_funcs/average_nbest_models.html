@@ -304,6 +304,7 @@
                         <span class="c1"># (If there are any cases that requires averaging</span>
                         <span class="c1">#  or the other reducing method, e.g. max/min, for integer type,</span>
                         <span class="c1">#  please report.)</span>
+                        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Accumulating </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2"> instead of averaging&quot;</span><span class="p">)</span>
                         <span class="k">pass</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="n">avg</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">avg</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">/</span> <span class="n">n</span>

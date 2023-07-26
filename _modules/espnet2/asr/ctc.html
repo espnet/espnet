@@ -209,7 +209,9 @@
            <div itemprop="articleBody">
              
   <h1>Source code for espnet2.asr.ctc</h1><div class="highlight"><pre>
-<span></span><span class="kn">import</span> <span class="nn">torch</span>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
@@ -250,6 +252,10 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">CTCLoss</span><span class="p">(</span>
                 <span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">,</span> <span class="n">zero_infinity</span><span class="o">=</span><span class="n">zero_infinity</span>
             <span class="p">)</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;builtin2&quot;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ignore_nan_grad</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;builtin2&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">CTCLoss</span><span class="p">(</span><span class="n">reduction</span><span class="o">=</span><span class="s2">&quot;none&quot;</span><span class="p">)</span>
 
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">:</span>
             <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.gtn_ctc</span> <span class="kn">import</span> <span class="n">GTNCTCLossFunction</span>
@@ -265,6 +271,61 @@
             <span class="n">th_pred</span> <span class="o">=</span> <span class="n">th_pred</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span><span class="p">(</span><span class="n">th_pred</span><span class="p">,</span> <span class="n">th_target</span><span class="p">,</span> <span class="n">th_ilen</span><span class="p">,</span> <span class="n">th_olen</span><span class="p">)</span>
             <span class="n">size</span> <span class="o">=</span> <span class="n">th_pred</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduce</span><span class="p">:</span>
+                <span class="c1"># Batch-size average</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">/</span> <span class="n">size</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">loss</span> <span class="o">=</span> <span class="n">loss</span> <span class="o">/</span> <span class="n">size</span>
+            <span class="k">return</span> <span class="n">loss</span>
+
+        <span class="c1"># builtin2 ignores nan losses using the logic below, while</span>
+        <span class="c1"># builtin relies on the zero_infinity flag in pytorch CTC</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;builtin2&quot;</span><span class="p">:</span>
+            <span class="n">th_pred</span> <span class="o">=</span> <span class="n">th_pred</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span><span class="p">(</span><span class="n">th_pred</span><span class="p">,</span> <span class="n">th_target</span><span class="p">,</span> <span class="n">th_ilen</span><span class="p">,</span> <span class="n">th_olen</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">loss</span><span class="o">.</span><span class="n">requires_grad</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_nan_grad</span><span class="p">:</span>
+                <span class="c1"># ctc_grad: (L, B, O)</span>
+                <span class="n">ctc_grad</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">grad_fn</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">loss</span><span class="p">))</span>
+                <span class="n">ctc_grad</span> <span class="o">=</span> <span class="n">ctc_grad</span><span class="o">.</span><span class="n">sum</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+                <span class="n">indices</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ctc_grad</span><span class="p">)</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="n">indices</span><span class="o">.</span><span class="n">long</span><span class="p">()</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Return as is</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="s2">&quot;All samples in this mini-batch got nan grad.&quot;</span>
+                        <span class="s2">&quot; Returning nan value instead of CTC loss&quot;</span>
+                    <span class="p">)</span>
+                <span class="k">elif</span> <span class="n">size</span> <span class="o">!=</span> <span class="n">th_pred</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">th_pred</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">size</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">th_pred</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+                        <span class="s2">&quot; samples got nan grad.&quot;</span>
+                        <span class="s2">&quot; These were ignored for CTC loss.&quot;</span>
+                    <span class="p">)</span>
+
+                    <span class="c1"># Create mask for target</span>
+                    <span class="n">target_mask</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">full</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">th_target</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)],</span>
+                        <span class="mi">1</span><span class="p">,</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">bool</span><span class="p">,</span>
+                        <span class="n">device</span><span class="o">=</span><span class="n">th_target</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                    <span class="p">)</span>
+                    <span class="n">s</span> <span class="o">=</span> <span class="mi">0</span>
+                    <span class="k">for</span> <span class="n">ind</span><span class="p">,</span> <span class="n">le</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">th_olen</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">indices</span><span class="p">[</span><span class="n">ind</span><span class="p">]:</span>
+                            <span class="n">target_mask</span><span class="p">[</span><span class="n">s</span> <span class="p">:</span> <span class="n">s</span> <span class="o">+</span> <span class="n">le</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                        <span class="n">s</span> <span class="o">+=</span> <span class="n">le</span>
+
+                    <span class="c1"># Calc loss again using maksed data</span>
+                    <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span><span class="p">(</span>
+                        <span class="n">th_pred</span><span class="p">[:,</span> <span class="n">indices</span><span class="p">,</span> <span class="p">:],</span>
+                        <span class="n">th_target</span><span class="p">[</span><span class="n">target_mask</span><span class="p">],</span>
+                        <span class="n">th_ilen</span><span class="p">[</span><span class="n">indices</span><span class="p">],</span>
+                        <span class="n">th_olen</span><span class="p">[</span><span class="n">indices</span><span class="p">],</span>
+                    <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="n">th_pred</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduce</span><span class="p">:</span>
                 <span class="c1"># Batch-size average</span>

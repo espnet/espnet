@@ -271,6 +271,7 @@
         <span class="n">multi_blank_durations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
         <span class="n">multi_blank_indices</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
         <span class="n">score_norm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">score_norm_during</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">nbest</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">token_list</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">):</span>
@@ -293,6 +294,8 @@
 <span class="sd">            multi_blank_durations: The duration of each blank token. (MBG)</span>
 <span class="sd">            multi_blank_indices: The index of each blank token in token_list. (MBG)</span>
 <span class="sd">            score_norm: Normalize final scores by length. (&quot;default&quot;)</span>
+<span class="sd">            score_norm_during:</span>
+<span class="sd">              Normalize scores by length during search. (default, TSD, ALSD)</span>
 <span class="sd">            nbest: Number of final hypothesis.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -368,6 +371,7 @@
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;LM is provided but not used, since this is greedy search.&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">score_norm</span> <span class="o">=</span> <span class="n">score_norm</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">score_norm_during</span> <span class="o">=</span> <span class="n">score_norm_during</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span> <span class="o">=</span> <span class="n">nbest</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
@@ -516,7 +520,10 @@
                 <span class="p">)</span>
 
             <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
-                <span class="n">max_hyp</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_norm_during</span><span class="p">:</span>
+                    <span class="n">max_hyp</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">yseq</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">max_hyp</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
                 <span class="n">hyps</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">max_hyp</span><span class="p">)</span>
 
                 <span class="n">dec_out</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">lm_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">score</span><span class="p">(</span><span class="n">max_hyp</span><span class="p">,</span> <span class="n">cache</span><span class="p">)</span>
@@ -567,7 +574,12 @@
                         <span class="p">)</span>
                     <span class="p">)</span>
 
-                <span class="n">hyps_max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">)</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_norm_during</span><span class="p">:</span>
+                    <span class="n">hyps_max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span>
+                        <span class="nb">max</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">yseq</span><span class="p">))</span><span class="o">.</span><span class="n">score</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">hyps_max</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">hyps</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">)</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
                 <span class="n">kept_most_prob</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
                     <span class="p">[</span><span class="n">hyp</span> <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="n">kept_hyps</span> <span class="k">if</span> <span class="n">hyp</span><span class="o">.</span><span class="n">score</span> <span class="o">&gt;</span> <span class="n">hyps_max</span><span class="p">],</span>
                     <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span>
@@ -668,9 +680,17 @@
 
                             <span class="n">D</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_hyp</span><span class="p">)</span>
 
-                <span class="n">C</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">beam</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_norm_during</span><span class="p">:</span>
+                    <span class="n">C</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">yseq</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span>
+                        <span class="p">:</span><span class="n">beam</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">C</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">D</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">beam</span><span class="p">]</span>
 
-            <span class="n">B</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">beam</span><span class="p">]</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_norm_during</span><span class="p">:</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">yseq</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">beam</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">B</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">beam</span><span class="p">]</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">sort_nbest</span><span class="p">(</span><span class="n">B</span><span class="p">)</span></div>
 
@@ -771,7 +791,12 @@
 
                         <span class="n">A</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">new_hyp</span><span class="p">)</span>
 
-                <span class="n">B</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">beam</span><span class="p">]</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_norm_during</span><span class="p">:</span>
+                    <span class="n">B</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">yseq</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[</span>
+                        <span class="p">:</span><span class="n">beam</span>
+                    <span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">B</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">score</span><span class="p">,</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)[:</span><span class="n">beam</span><span class="p">]</span>
                 <span class="n">B</span> <span class="o">=</span> <span class="n">recombine_hyps</span><span class="p">(</span><span class="n">B</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">final</span><span class="p">:</span>
