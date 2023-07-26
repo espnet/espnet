@@ -41,7 +41,7 @@ class ExtendedHypothesis(Hypothesis):
     lm_scores: torch.Tensor = None
 
 
-class BeamSearchTransducer:
+class BeamSearchTransducerStreaming:
     """Beam search implementation for Transducer."""
 
     def __init__(

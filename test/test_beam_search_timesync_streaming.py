@@ -6,7 +6,7 @@ import torch
 from espnet.nets.asr_interface import dynamic_import_asr
 from espnet.nets.lm_interface import dynamic_import_lm
 from espnet.nets.scorers.length_bonus import LengthBonus
-from espnet.nets.test_beam_search_timesync_streaming import BeamSearchTimeSync
+from espnet.nets.test_beam_search_timesync_streaming import BeamSearchTimeSyncStreaming
 
 rnn_args = Namespace(
     elayers=1,
@@ -189,7 +189,7 @@ def test_beam_search_timesync_streaming(
     )
     model.to(device, dtype=dtype)
     model.eval()
-    beam = BeamSearchTimeSync(
+    beam = BeamSearchTimeSyncStreaming(
         beam_size=args.beam_size,
         weights=weights,
         scorers=scorers,

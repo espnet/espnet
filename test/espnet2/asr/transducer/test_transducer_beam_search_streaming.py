@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
-from espnet2.asr.transducer.beam_search_transducer_streaming import BeamSearchTransducer
+from espnet2.asr.transducer.beam_search_transducer_streaming import BeamSearchTransducerStreaming
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
@@ -48,7 +48,7 @@ def test_transducer_beam_search_streaming(rnn_type, search_params):
     if isinstance(lm, str) and lm == "TransformerLM":
         lm = TransformerLM(vocab_size, pos_enc=None, unit=10, layer=2)
 
-    beam = BeamSearchTransducer(
+    beam = BeamSearchTransducerStreaming(
         decoder,
         joint_net,
         beam_size=beam_size,

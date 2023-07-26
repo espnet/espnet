@@ -8,11 +8,11 @@ from typing import Tuple  # noqa: H301
 
 import torch
 
-from espnet2.asr.transducer.beam_search_transducer_streaming import BeamSearchTransducer
+from espnet2.asr.transducer.beam_search_transducer_streaming import BeamSearchTransducerStreaming
 from espnet.nets.batch_beam_search import BatchBeamSearch  # noqa: H301
 from espnet.nets.batch_beam_search import BatchHypothesis  # noqa: H301
 from espnet.nets.beam_search import Hypothesis
-from espnet.nets.beam_search_timesync_streaming import BeamSearchTimeSync
+from espnet.nets.beam_search_timesync_streaming import BeamSearchTimeSyncStreaming
 from espnet.nets.e2e_asr_common import end_detect
 
 
@@ -60,7 +60,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
 
         if time_sync:
             if transducer_conf is not None:
-                self.time_sync_search = BeamSearchTransducer(
+                self.time_sync_search = BeamSearchTransducerStreaming(
                     decoder=self.scorers["decoder"],
                     joint_network=joint_network,
                     beam_size=self.beam_size,
@@ -73,7 +73,7 @@ class BatchBeamSearchOnline(BatchBeamSearch):
             else:
                 scorers = self.scorers.copy()
                 scorers["ctc"] = ctc
-                self.time_sync_search = BeamSearchTimeSync(
+                self.time_sync_search = BeamSearchTimeSyncStreaming(
                     beam_size=self.beam_size,
                     weights=self.weights,
                     scorers=scorers,
