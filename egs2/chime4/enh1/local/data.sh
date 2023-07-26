@@ -139,11 +139,11 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     #  (2) tr05_simu_noisy, dt05_simu_noisy, et05_simu_noisy
     local/simu_noisy_chime4_data_prep.sh ${CHIME4}
 
-    # prepare data for 1ch track: (TODO: et05_simu_isolated_1ch_track)
+    # prepare data for 1ch track:
     #  (1) {tr05,dt05,et05}_simu_isolated_1ch_track
     local/simu_ext_chime4_data_prep.sh --track 1 --annotations ${CHIME4}/data/annotations \
         --extra-annotations ${extra_annotations} isolated_1ch_track ${odir}/audio/16kHz
-    #  (2) {tr05,dt05,et05}_real_isolated_1ch_track (TODO: tr05_real_isolated_1ch_track)
+    #  (2) {tr05,dt05,et05}_real_isolated_1ch_track
     local/real_ext_chime4_data_prep.sh --track 1 --isolated_6ch_dir ${CHIME4}/data/audio/16kHz/isolated_6ch_track \
         isolated_1ch_track ${CHIME4}/data/audio/16kHz/isolated_1ch_track
 
@@ -152,6 +152,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/simu_ext_chime4_data_prep.sh --track 6 isolated_6ch_track ${odir}/audio/16kHz
     #  (2) {tr05,dt05,et05}_real_isolated_6ch_track
     local/real_ext_chime4_data_prep.sh --track 6 isolated_6ch_track ${CHIME4}/data/audio/16kHz/isolated_6ch_track
+
+    # prepare data for 2ch track:
+    #  (1) {dt05,et05}_simu_isolated_2ch_track
+    local/simu_ext_chime4_data_prep.sh --track 2 --annotations ${CHIME4}/data/annotations \
+        --extra-annotations ${extra_annotations} isolated_2ch_track ${odir}/audio/16kHz
+    #  (2) {dt05,et05}_real_isolated_2ch_track
+    local/real_ext_chime4_data_prep.sh --track 2 --annotations ${CHIME4}/data/annotations \
+        --extra-annotations ${extra_annotations} isolated_2ch_track ${CHIME4}/data/audio/16kHz/isolated_2ch_track
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
