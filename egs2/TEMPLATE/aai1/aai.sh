@@ -71,7 +71,7 @@ aai_args=      # Arguments for aai model training, e.g., "--max_epoch 10".
                # Note that it will overwrite args in aai config.
 pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
-feats_normalize=global_mvn # Normalizaton layer type.
+feats_normalize=utterance_mvn # Normalizaton layer type.
 num_ref=1   # Number of references for training.
             # In supervised learning based speech enhancement / separation, it is equivalent to number of speakers.
 num_inf=    # Number of inferences output by the model

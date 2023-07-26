@@ -235,7 +235,7 @@ def score(args):
             hyp = hyp[:min_len, :]
             utt_cc = []
             for i in range(len(ref[0])):
-                utt_cc.append(scipy.stats.pearsonr(ref[:, i], hyp[:, i]))
+                utt_cc.append(scipy.stats.pearsonr(ref[:, i], hyp[:, i])[0])
             sdublevel_cc[spk].append(utt_cc)
             overall_cc.append(utt_cc)
     overall_cc = round(np.mean(np.mean(overall_cc, axis=0)), 4)
