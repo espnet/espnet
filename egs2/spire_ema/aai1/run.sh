@@ -14,7 +14,7 @@ inference_config=conf/decode_aai.yaml
 
 ./aai.sh \
     --lang en \
-    --stage 5 \
+    --stage 7 \
     --ngpu 1 \
     --nj 16 \
     --feats_type raw \
@@ -24,4 +24,3 @@ inference_config=conf/decode_aai.yaml
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --inference_aai_model "10epoch.pth" \
