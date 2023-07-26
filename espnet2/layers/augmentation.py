@@ -245,10 +245,10 @@ def pitch_shift(
             -4 for shifting pitch down by 4/`bins_per_octave` octaves
             4 for shifting pitch up by 4/`bins_per_octave` octaves
         bins_per_octave (int): number of steps per octave
-        n_fft (int): length of FFT (in second)
-        win_length (int or None): The window length (in second) used for STFT
+        n_fft (float): length of FFT (in second)
+        win_length (float or None): The window length (in second) used for STFT
             If None, it is treated as equal to n_fft
-        hop_length (int): The hop size (in second) used for STFT
+        hop_length (float): The hop size (in second) used for STFT
         window (str or None): The windowing function applied to the signal after
             padding with zeros
 
@@ -323,10 +323,10 @@ def time_stretch(
         waveform (torch.Tensor): audio signal (..., time)
         sample_rate (int): sampling rate in Hz
         factor (float): speed-up factor (e.g., 0.9 for 90% speed and 1.3 for 130% speed)
-        n_fft (int): length of FFT (in second)
-        win_length (int or None): The window length (in second) used for STFT
+        n_fft (float): length of FFT (in second)
+        win_length (float or None): The window length (in second) used for STFT
             If None, it is treated as equal to n_fft
-        hop_length (int): The hop size (in second) used for STFT
+        hop_length (float): The hop size (in second) used for STFT
         window (str or None): The windowing function applied to the signal after
             padding with zeros
 
