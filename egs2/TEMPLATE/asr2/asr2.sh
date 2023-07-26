@@ -819,9 +819,12 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
         cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
 
         for utt_extra_file in ${utt_extra_files}; do
-            cp "${data_feats}/org/${dset}/${utt_extra_file}" "${data_feats}/${dset}"
+            awk -F ' ' 'NF > 1{print}' ${data_feats}/org/${dset}/${utt_extra_file} > ${data_feats}/${dset}/${utt_extra_file} 
         done
         # TODO: Maybe Remove empty text
+        awk -F ' ' 'NF > 1{print}' ${data_feats}/${dset}/text > tmp && mv tmp ${data_feats}/${dset}/text 
+        utils/fix_data_dir.sh --utt_extra_files ${utt_extra_files} "${data_feats}/${dset}"
+
         # TODO: Add other data cleaning -- currently being done as part of data.sh
     done
 

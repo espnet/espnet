@@ -53,6 +53,13 @@ def get_parser():
     parser.add_argument("--feature_conf", type=str, default=None)
     parser.add_argument("--batch_bins", type=int, default=1)
     parser.add_argument(
+        "--feature_maxlen", 
+        type=int,
+        default=240000,
+        help="Maximum length of feature to apply KMeans on at a time. Default is 240000 raw samples for SSL feature extraction"
+    )
+
+    parser.add_argument(
         "--utt2num_samples",
         type=str,
         default=None,
@@ -170,7 +177,13 @@ def dump_label(
                 )
 
                 for idx, utt in enumerate(utt_ids):
-                    lab = apply_kmeans(feats[idx][: feats_lens[idx]].numpy())
+                    if "feature_maxlen" in kwargs and feats_lens[idx] > kwargs.get("feature_maxlen"):
+                        lab = np.array([])
+                        for i in range(0, feats_lens[idx], kwargs.get("feature_maxlen")):
+                            out = apply_kmeans(feats[idx][i:i+kwargs.get("feature_maxlen")].numpy())
+                            lab.append(out)
+                    else:        
+                        lab = apply_kmeans(feats[idx][: feats_lens[idx]].numpy())
                     writer[utt] = lab
 
     logger.info("finished successfully")
