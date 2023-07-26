@@ -41,6 +41,9 @@ expdir=exp            # Directory to save experiments.
 python=python3        # Specify python to execute espnet commands.
 fold_length=120000     # fold_length for speech data during enhancement training
 
+# Data preparation related
+local_data_opts= # The options given to local/data.sh
+
 # Feature extraction related
 feats_type=raw_copy   # Feature type (raw, raw_copy, fbank_pitch, or extracted).
 audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
@@ -167,7 +170,7 @@ log "Skipped stages: ${skip_stages}"
 if [ ${stage} -le 1  ] && [ ${stop_stage} -ge 1  ] && ! [[ " ${skip_stages} " =~ [[:space:]]1[[:space:]]  ]]; then
     log "Stage 1: Data preparation for train and evaluation."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh
+    local/data.sh ${local_data_opts}
     log "Stage 1 FIN."
 fi
 
