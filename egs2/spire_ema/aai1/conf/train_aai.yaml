@@ -29,9 +29,9 @@ frontend_conf:
 seed: 2022
 num_workers: 4
 batch_type: numel
-batch_bins: 8000000
-accum_grad: 1
-max_epoch: 20
+batch_bins: 2000000
+accum_grad: 2
+max_epoch: 50
 patience: none
 init: none
 best_model_criterion:
@@ -43,5 +43,5 @@ use_amp: true
 
 optim: adam
 optim_conf:
-    lr: 0.002
+    lr: 0.0005
     weight_decay: 0.000001
