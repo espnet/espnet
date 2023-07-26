@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-#  2023, University of Stuttgart;  Pavel Denisov
+#  2021, University of Stuttgart;  Pavel Denisov
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Length Adaptor PostEncoder."""
+"""Length adaptor PostEncoder."""
 
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -19,31 +19,42 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
     def __init__(
         self,
         input_size: int,
-        length_adaptor_n_layers: int = 1,
-        output_size: int = 0,
+        length_adaptor_n_layers: int = 0,
+        input_layer: Optional[str] = None,
+        output_size: Optional[int] = None,
+        dropout_rate: float = 0.1,
+        return_int_enc: bool = False,
     ):
         """Initialize the module."""
         assert check_argument_types()
         super().__init__()
 
-        assert length_adaptor_n_layers > 0
-
-        if output_size != 0:
-            self.linear_in = torch.nn.Linear(input_size, output_size)
-            self._output_size = output_size
+        if input_layer == "linear":
+            self.embed = torch.nn.Sequential(
+                torch.nn.Linear(input_size, output_size),
+                torch.nn.LayerNorm(output_size),
+                torch.nn.Dropout(dropout_rate),
+            )
+            self.out_sz = output_size
         else:
-            self.linear_in = torch.nn.Identity()
-            self._output_size = input_size
+            self.embed = None
+            self.out_sz = input_size
 
         # Length Adaptor as in https://aclanthology.org/2021.acl-long.68.pdf
 
-        length_adaptor_layers = []
-        for _ in range(length_adaptor_n_layers):
-            length_adaptor_layers.append(torch.nn.Conv1d(input_size, input_size, 2, 2))
-            length_adaptor_layers.append(torch.nn.ReLU())
+        if length_adaptor_n_layers > 0:
+            length_adaptor_layers = []
+            for _ in range(length_adaptor_n_layers):
+                length_adaptor_layers.append(
+                    torch.nn.Conv1d(self.out_sz, self.out_sz, 2, 2)
+                )
+                length_adaptor_layers.append(torch.nn.ReLU())
+        else:
+            length_adaptor_layers = [torch.nn.Identity()]
 
         self.length_adaptor = torch.nn.Sequential(*length_adaptor_layers)
         self.length_adaptor_ratio = 2**length_adaptor_n_layers
+        self.return_int_enc = return_int_enc
 
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
@@ -58,6 +69,9 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
                 self.length_adaptor_ratio,
             )
 
+        if self.embed is not None:
+            input = self.embed(input)
+
         input = input.permute(0, 2, 1)
         input = self.length_adaptor(input)
         input = input.permute(0, 2, 1)
@@ -66,10 +80,8 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
             input_lengths.float().div(self.length_adaptor_ratio).floor().long()
         )
 
-        input = self.linear_in(input)
-
         return input, input_lengths
 
     def output_size(self) -> int:
         """Get the output size."""
-        return self._output_size
+        return self.out_sz

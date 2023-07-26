@@ -6,7 +6,7 @@
 
 import copy
 import logging
-from typing import Tuple
+from typing import Any, List, Tuple
 
 import torch
 import torch.nn.functional as F
@@ -17,13 +17,16 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 try:
     from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoTokenizer
+    from transformers.file_utils import ModelOutput
 
     is_transformers_available = True
 except ImportError:
     is_transformers_available = False
 
+from espnet.nets.scorer_interface import BatchScorerInterface
 
-class HuggingFaceTransformersDecoder(AbsDecoder):
+
+class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
     """Hugging Face Transformers Decoder.
 
     Args:
@@ -231,6 +234,54 @@ class HuggingFaceTransformersDecoder(AbsDecoder):
         args["return_dict"] = True
 
         return args, no_loss_lengths
+
+    def score(self, ys, state, x, speech=None):
+        model_kwargs = {
+            "encoder_outputs": ModelOutput(
+                last_hidden_state=self.linear_in(x).unsqueeze(0)
+            ),
+        }
+        # TODO(brian): caching
+        model_inputs = self.hf_generate.prepare_inputs_for_generation(
+            ys.unsqueeze(0), **model_kwargs
+        )
+        outputs = self.hf_generate(
+            **model_inputs,
+            return_dict=True,
+            output_attentions=False,
+            output_hidden_states=False
+        )
+        next_token_logits = outputs.logits[:, -1, :]
+        next_token_scores = torch.nn.functional.log_softmax(
+            next_token_logits, dim=-1
+        )  # (batch_size * num_beams, vocab_size)
+        return next_token_scores.squeeze(0), None
+
+    def batch_score(
+        self,
+        ys: torch.Tensor,
+        states: List[Any],
+        xs: torch.Tensor,
+        speech: torch.Tensor = None,
+    ) -> Tuple[torch.Tensor, List[Any]]:
+        # import pdb;pdb.set_trace()
+        model_kwargs = {
+            "encoder_outputs": ModelOutput(last_hidden_state=self.linear_in(xs)),
+        }
+        model_inputs = self.hf_generate.prepare_inputs_for_generation(
+            ys, **model_kwargs
+        )
+        outputs = self.hf_generate(
+            **model_inputs,
+            return_dict=True,
+            output_attentions=False,
+            output_hidden_states=False
+        )
+        next_token_logits = outputs.logits[:, -1, :]
+        next_token_scores = torch.nn.functional.log_softmax(
+            next_token_logits, dim=-1
+        )  # (batch_size * num_beams, vocab_size)
+        return next_token_scores, None
 
 
 def get_hugging_face_model_network(model):

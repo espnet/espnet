@@ -123,15 +123,26 @@ def test_CommonCollateFn_repr(float_pad_value, int_pad_value, not_sequence):
 
 
 @pytest.mark.parametrize(
-    "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop",
+    (
+        "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad,"
+        "rand_crop, window_size, window_shift, sample_rate"
+    ),
     [
-        (0.0, -1, (), 1, True, False),
-        (3.0, 2, ("a",), 1, False, False),
-        (np.inf, 100, ("a", "b"), 2, True, False),
+        (0.0, -1, (), 1, True, True, 25, 20, 16),
+        (3.0, 2, ("a",), 1, False, False, 25, 20, 16),
+        (np.inf, 100, ("a", "b"), 2, True, False, 25, 20, 16),
     ],
 )
 def test_HuBERT_(
-    float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop
+    float_pad_value,
+    int_pad_value,
+    not_sequence,
+    label_downsampling,
+    pad,
+    rand_crop,
+    window_size,
+    window_shift,
+    sample_rate,
 ):
     _hubert_collate_fn = HuBERTCollateFn(
         float_pad_value=float_pad_value,
@@ -140,6 +151,9 @@ def test_HuBERT_(
         label_downsampling=label_downsampling,
         pad=pad,
         rand_crop=rand_crop,
+        window_size=window_size,
+        window_shift=window_shift,
+        sample_rate=sample_rate,
     )
     data = [
         (
@@ -217,15 +231,26 @@ def test_HuBERT_(
 
 
 @pytest.mark.parametrize(
-    "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop",
+    (
+        "float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, "
+        "rand_crop, window_size, window_shift, sample_rate"
+    ),
     [
-        (0.0, -1, (), 1, True, True),
-        (3.0, 2, ("a",), 1, False, False),
-        (np.inf, 100, ("a", "b"), 2, True, False),
+        (0.0, -1, (), 1, True, True, 25, 20, 16),
+        (3.0, 2, ("a",), 1, False, False, 80, 40, 16),
+        (np.inf, 100, ("a", "b"), 2, True, False, 25, 20, 16),
     ],
 )
 def test_HuBERTCollateFn_repr(
-    float_pad_value, int_pad_value, not_sequence, label_downsampling, pad, rand_crop
+    float_pad_value,
+    int_pad_value,
+    not_sequence,
+    label_downsampling,
+    pad,
+    rand_crop,
+    window_size,
+    window_shift,
+    sample_rate,
 ):
     print(
         HuBERTCollateFn(
@@ -235,5 +260,8 @@ def test_HuBERTCollateFn_repr(
             label_downsampling=label_downsampling,
             pad=pad,
             rand_crop=rand_crop,
+            window_size=window_size,
+            window_shift=window_shift,
+            sample_rate=sample_rate,
         )
     )
