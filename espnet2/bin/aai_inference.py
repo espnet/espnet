@@ -5,12 +5,13 @@
 import argparse
 import logging
 import shutil
-import sys
+import sys, os
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
-
+import scipy.stats
 import numpy as np
+from pathlib import Path
 import soundfile as sf
 import torch
 from packaging.version import parse as V
@@ -24,7 +25,7 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
-
+from espnet2.fileio.read_text import read_2columns_text
 
 class AAI:
     def __init__(
@@ -72,27 +73,11 @@ class AAI:
         batch = {"speech": speech, "speech_lengths": lengths}
         logging.info("speech length: " + str(speech.size(1)))
 
-        # a. To device
         batch = to_device(batch, device=self.device)
-
-        # overwrite the decode configs if provided
-        cfg = self.decode_conf
-        if decode_conf is not None:
-            cfg = self.decode_conf.copy()
-            cfg.update(decode_conf)
-
-        # inference
-        if self.always_fix_seed:
-            set_all_random_seed(self.seed)
-        output = self.aai_model.encode(**batch)
-        output = self.aai_model.decoder(output)
-        print(output.shape, speech.shape)
-
         
-
-       
-
-        return output_dict
+        output, lens = self.aai_model.encode(**batch)
+        output = self.aai_model.decoder(output, lens)
+        return output, lens
 
     @staticmethod
     def from_pretrained(
@@ -134,6 +119,7 @@ def inference(
     dtype: str,
     ngpu: int,
     seed: int,
+    score: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
@@ -213,135 +199,48 @@ def inference(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
-    with DatadirWriter(output_dir) as ema_writer:
+    with NpyScpWriter(output_dir / "pred_ema", output_dir / "pred_ema/pred.scp") as ema_writer:
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
-            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}            
+            output, lengths = aai(**batch)
+            assert len(output.shape) == 3
+            for idx in range(len(output)):
+                ema_writer[keys[idx]] = output[idx, :lengths[idx], :].cpu().numpy()
 
-            start_time = time.perf_counter()
-            output_dict = aai(**batch)
-
-            key = keys[0]
-            insize = next(iter(batch.values())).size(0) + 1
-            if output_dict.get("feat_gen") is not None:
-                # standard text2mel model case
-                feat_gen = output_dict["feat_gen"]
-                logging.info(
-                    "inference speed = {:.1f} frames / sec.".format(
-                        int(feat_gen.size(0)) / (time.perf_counter() - start_time)
-                    )
-                )
-                logging.info(f"{key} (size:{insize}->{feat_gen.size(0)})")
-                if feat_gen.size(0) == insize * maxlenratio:
-                    logging.warning(f"output length reaches maximum length ({key}).")
-
-                norm_writer[key] = output_dict["feat_gen"].cpu().numpy()
-                shape_writer.write(
-                    f"{key} " + ",".join(map(str, output_dict["feat_gen"].shape)) + "\n"
-                )
-                if output_dict.get("feat_gen_denorm") is not None:
-                    denorm_writer[key] = output_dict["feat_gen_denorm"].cpu().numpy()
-            else:
-                # end-to-end text2wav model case
-                wav = output_dict["wav"]
-                logging.info(
-                    "inference speed = {:.1f} points / sec.".format(
-                        int(wav.size(0)) / (time.perf_counter() - start_time)
-                    )
-                )
-                logging.info(f"{key} (size:{insize}->{wav.size(0)})")
-
-            if output_dict.get("duration") is not None:
-                # Save duration and fucus rates
-                duration_writer.write(
-                    f"{key} "
-                    + " ".join(map(str, output_dict["duration"].long().cpu().numpy()))
-                    + "\n"
-                )
-
-            if output_dict.get("focus_rate") is not None:
-                focus_rate_writer.write(
-                    f"{key} {float(output_dict['focus_rate']):.5f}\n"
-                )
-
-            if output_dict.get("att_w") is not None:
-                # Plot attention weight
-                att_w = output_dict["att_w"].cpu().numpy()
-
-                if att_w.ndim == 2:
-                    att_w = att_w[None][None]
-                elif att_w.ndim != 4:
-                    raise RuntimeError(f"Must be 2 or 4 dimension: {att_w.ndim}")
-
-                w, h = plt.figaspect(att_w.shape[0] / att_w.shape[1])
-                fig = plt.Figure(
-                    figsize=(
-                        w * 1.3 * min(att_w.shape[0], 2.5),
-                        h * 1.3 * min(att_w.shape[1], 2.5),
-                    )
-                )
-                fig.suptitle(f"{key}")
-                axes = fig.subplots(att_w.shape[0], att_w.shape[1])
-                if len(att_w) == 1:
-                    axes = [[axes]]
-                for ax, att_w in zip(axes, att_w):
-                    for ax_, att_w_ in zip(ax, att_w):
-                        ax_.imshow(att_w_.astype(np.float32), aspect="auto")
-                        ax_.set_xlabel("Input")
-                        ax_.set_ylabel("Output")
-                        ax_.xaxis.set_major_locator(MaxNLocator(integer=True))
-                        ax_.yaxis.set_major_locator(MaxNLocator(integer=True))
-
-                fig.set_tight_layout({"rect": [0, 0.03, 1, 0.95]})
-                fig.savefig(output_dir / f"att_ws/{key}.png")
-                fig.clf()
-
-            if output_dict.get("prob") is not None:
-                # Plot stop token prediction
-                prob = output_dict["prob"].cpu().numpy()
-
-                fig = plt.Figure()
-                ax = fig.add_subplot(1, 1, 1)
-                ax.plot(prob)
-                ax.set_title(f"{key}")
-                ax.set_xlabel("Output")
-                ax.set_ylabel("Stop probability")
-                ax.set_ylim(0, 1)
-                ax.grid(which="both")
-
-                fig.set_tight_layout(True)
-                fig.savefig(output_dir / f"probs/{key}.png")
-                fig.clf()
-
-            if output_dict.get("wav") is not None:
-                # TODO(kamo): Write scp
-                sf.write(
-                    f"{output_dir}/wav/{key}.wav",
-                    output_dict["wav"].cpu().numpy(),
-                    text2speech.fs,
-                    "PCM_16",
-                )
-
-    # remove files if those are not included in output dict
-    if output_dict.get("feat_gen") is None:
-        shutil.rmtree(output_dir / "norm")
-    if output_dict.get("feat_gen_denorm") is None:
-        shutil.rmtree(output_dir / "denorm")
-    if output_dict.get("att_w") is None:
-        shutil.rmtree(output_dir / "att_ws")
-    if output_dict.get("duration") is None:
-        shutil.rmtree(output_dir / "durations")
-    if output_dict.get("focus_rate") is None:
-        shutil.rmtree(output_dir / "focus_rates")
-    if output_dict.get("prob") is None:
-        shutil.rmtree(output_dir / "probs")
-    if output_dict.get("wav") is None:
-        shutil.rmtree(output_dir / "wav")
-
-
+def score(args):
+    p = Path(args.data_path_and_name_and_type[0][0])
+    parent_folder = p.parents[0]
+    refs = read_2columns_text(os.path.join(parent_folder, "text"))
+    spks = read_2columns_text(os.path.join(parent_folder, "utt2spk"))
+    sdublevel_cc = {}
+    overall_cc = []
+    for folder in os.listdir(args.output_dir):
+        if not folder.startswith("output."): continue
+        folder = os.path.join(args.output_dir, folder, "pred_ema")
+        for fname in os.listdir(folder):
+            fname = os.path.join(folder, fname)
+            if not fname.endswith(".npy"): continue
+            utt = Path(fname).stem
+            spk = spks[utt]
+            if spk not in sdublevel_cc: sdublevel_cc[spk] = []
+            with open(fname, 'rb') as f:
+                hyp = np.load(f)
+            ref = torch.load(refs[utt])
+            min_len = min(ref.shape[0], hyp.shape[0])
+            ref = ref[:min_len, :]
+            hyp = hyp[:min_len, :]
+            utt_cc = []
+            for i in range(len(ref[0])):
+                utt_cc.append(scipy.stats.pearsonr(ref[:, i], hyp[:, i]))
+            sdublevel_cc[spk].append(utt_cc)
+            overall_cc.append(utt_cc)
+    overall_cc = round(np.mean(np.mean(overall_cc, axis=0)), 4)
+    print(parent_folder, overall_cc)
+    
 def get_parser():
     """Get argument parser."""
     parser = config_argparse.ArgumentParser(
@@ -445,6 +344,11 @@ def get_parser():
         type=float,
         default=1.0,
     )
+    group.add_argument(
+        "--score",
+        type=bool,
+        default=False,
+    )
     return parser
 
 
@@ -455,7 +359,11 @@ def main(cmd=None):
     args = parser.parse_args(cmd)
     kwargs = vars(args)
     kwargs.pop("config", None)
+    if args.score:
+        score(args)
+        return
     inference(**kwargs)
+    
 
 
 if __name__ == "__main__":

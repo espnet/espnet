@@ -105,8 +105,8 @@ class ESPnetAAIModel(AbsESPnetModel):
             encoder_out, encoder_out_lens, ema
         )
 
-        stats["loss_aai"] = loss_mse.detach()
-        stats["cc_aai"] = cc
+        stats["loss_mse"] = loss_mse.detach()
+        stats["cc"] = cc
         stats["loss"] = loss_mse.detach()
 
         loss, stats, weight = force_gatherable((loss_mse, stats, batch_size), loss_mse.device)

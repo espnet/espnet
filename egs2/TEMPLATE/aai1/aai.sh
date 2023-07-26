@@ -88,7 +88,7 @@ inference_config= # Config for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
 
-inference_aai_model=valid.acc.ave.pth # AAI model path for decoding.
+inference_aai_model=valid.cc.best.pth # AAI model path for decoding.
                                       # e.g.
                                       # inference_aai_model=train.loss.best.pth
                                       # inference_aai_model=3epoch.pth
@@ -100,14 +100,7 @@ download_model= # Download a model from Model Zoo and use it for decoding.
 train_set=       # Name of training set.
 valid_set=       # Name of validation set used for monitoring/tuning network training.
 test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-bpe_train_text=  # Text file path of bpe training set.
-lm_train_text=   # Text file path of language model training set.
-lm_dev_text=     # Text file path of language model development set.
-lm_test_text=    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
-cleaner=none     # Text cleaner.
-hyp_cleaner=none # Text cleaner for hypotheses (may be used with external tokenizers)
-g2p=none         # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
 score_opts=                # The options given to sclite scoring
 local_score_opts=          # The options given to local/score.sh.
@@ -184,8 +177,6 @@ Options:
     --test_sets     # Names of test sets.
                     # Multiple items (e.g., both dev and eval sets) can be specified (required).
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
-    --cleaner       # Text cleaner (default="${cleaner}").
-    --g2p           # g2p method (default="${g2p}").
     --lang          # The language type of corpus (default=${lang}).
     --score_opts             # The options given to sclite scoring (default="{score_opts}").
     --local_score_opts       # The options given to local/score.sh (default="{local_score_opts}").
@@ -324,22 +315,15 @@ if [ -z "${inference_tag}" ]; then
 fi
 
 if "${skip_data_prep}"; then
-    skip_stages+="1 2 3 4 5 "
+    skip_stages+="1 2 3 4 "
 fi
 if "${skip_train}"; then
-    skip_stages+="2 4 5 6 7 8 9 10 11 "
+    skip_stages+="2 4 5 6 7 "
 fi
 if "${skip_eval}"; then
-    skip_stages+="12 13 "
+    skip_stages+="7 "
 fi
 
-if "${skip_upload}" && "${skip_upload_hf}"; then
-    skip_stages+="14 15 16 "
-elif "${skip_upload}"; then
-    skip_stages+="15 "
-elif "${skip_upload_hf}"; then
-    skip_stages+="16 "
-fi
 skip_stages=$(echo "${skip_stages}" | tr ' ' '\n' | sort -nu | tr '\n' ' ')
 log "Skipped stages: ${skip_stages}"
 
@@ -436,133 +420,6 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 echo "${audio_format}" > "${data_feats}${_suf}/${dset}/audio_format"
             fi
         done
-
-    elif [ "${feats_type}" = raw_copy ]; then
-        # If you guaranteed that the data already satisfy the raw format, you can skip format_wav_scp.py for reduce the overhead
-        for dset in ${_dsets}; do
-            if [ -e "data/${dset}/segments" ]; then
-                log "Error: data/${dset}/segments is existing. Please use --feats_type raw"
-                exit 1
-            fi
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                _suf="/org"
-            else
-                _suf=""
-            fi
-            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                _suf="/org"
-
-                if [ -e "data/${dset}/utt2dur" ]; then
-                    _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-                    <data/${dset}/utt2dur awk '{ print $1, int($2*'${_fs}'); }' > "${data_feats}${_suf}/${dset}"/utt2num_samples
-
-                elif [ -e "data/${dset}/utt2num_samples" ]; then
-                    cp "data/${dset}/utt2num_samples" "${data_feats}${_suf}/${dset}"/utt2num_samples
-
-                else
-                    log "Error: data/${dset}/utt2dur or data/${dset}/utt2num_samples must be existing for train_set and valid_set. Please use --feats_type raw. If you'd like to perform this script for evaluation, please give --skip_train true"
-                    exit 1
-                fi
-            fi
-
-            # Copy reference text files if there is more than 1 reference
-            if [ ${#ref_text_files[@]} -gt 1 ]; then
-                # shellcheck disable=SC2068
-                for ref_txt in ${ref_text_files[@]}; do
-                    [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
-                done
-            fi
-
-            echo "raw" > "${data_feats}${_suf}/${dset}/feats_type"
-            if "${multi_columns_input_wav_scp}"; then
-                echo "multi_${audio_format}" > "${data_feats}${_suf}/${dset}/audio_format"
-            else
-                echo "${audio_format}" > "${data_feats}${_suf}/${dset}/audio_format"
-            fi
-        done
-
-    elif [ "${feats_type}" = fbank_pitch ]; then
-        log "[Require Kaldi] Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
-
-        for dset in ${_dsets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                _suf="/org"
-            else
-                _suf=""
-            fi
-            # 1. Copy datadir
-            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-
-            # Copy reference text files if there is more than 1 reference
-            if [ ${#ref_text_files[@]} -gt 1 ]; then
-                # shellcheck disable=SC2068
-                for ref_txt in ${ref_text_files[@]}; do
-                    [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
-                done
-            fi
-
-            # 2. Feature extract
-            _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
-            steps/make_fbank_pitch.sh --nj "${_nj}" --cmd "${train_cmd}" "${data_feats}${_suf}/${dset}"
-            utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
-
-            # 3. Derive the the frame length and feature dimension
-            scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                "${data_feats}${_suf}/${dset}/feats.scp" "${data_feats}${_suf}/${dset}/feats_shape"
-
-            # 4. Write feats_dim
-            head -n 1 "${data_feats}${_suf}/${dset}/feats_shape" | awk '{ print $2 }' \
-                | cut -d, -f2 > ${data_feats}${_suf}/${dset}/feats_dim
-
-            # 5. Write feats_type
-            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
-        done
-
-    elif [ "${feats_type}" = fbank ]; then
-        log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
-        log "${feats_type} is not supported yet."
-        exit 1
-
-    elif  [ "${feats_type}" = extracted ]; then
-        log "Stage 3: ${feats_type} extract: data/ -> ${data_feats}"
-        # Assumming you don't have wav.scp, but feats.scp is created by local/data.sh instead.
-
-        for dset in ${_dsets}; do
-            if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
-                _suf="/org"
-            else
-                _suf=""
-            fi
-            # Generate dummy wav.scp to avoid error by copy_data_dir.sh
-            if [ ! -f data/"${dset}"/wav.scp ]; then
-                if [ ! -f data/"${dset}"/segments ]; then
-                    <data/"${dset}"/feats.scp awk ' { print($1,"<DUMMY>") }' > data/"${dset}"/wav.scp
-                else
-                    <data/"${dset}"/segments awk ' { print($2,"<DUMMY>") }' > data/"${dset}"/wav.scp
-                fi
-            fi
-            utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
-
-            # Copy reference text files if there is more than 1 reference
-            # shellcheck disable=SC2068
-            if [ ${#ref_text_files[@]} -gt 1 ]; then
-                for ref_txt in ${ref_text_files[@]}; do
-                    [ -f data/${dset}/${ref_txt} ] && cp data/${dset}/${ref_txt} ${data_feats}${_suf}/${dset}
-                done
-            fi
-
-            # Derive the the frame length and feature dimension
-            _nj=$(min "${nj}" "$(<"${data_feats}${_suf}/${dset}/utt2spk" wc -l)")
-            scripts/feats/feat_to_shape.sh --nj "${_nj}" --cmd "${train_cmd}" \
-                "${data_feats}${_suf}/${dset}/feats.scp" "${data_feats}${_suf}/${dset}/feats_shape"
-
-            pyscripts/feats/feat-to-shape.py "scp:head -n 1 ${data_feats}${_suf}/${dset}/feats.scp |" - | \
-                awk '{ print $2 }' | cut -d, -f2 > "${data_feats}${_suf}/${dset}/feats_dim"
-
-            echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
-        done
-
     else
         log "Error: not supported: --feats_type ${feats_type}"
         exit 2
@@ -649,10 +506,10 @@ fi
 
 # ========================== Data preparation is done here. ==========================
 
-if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~ [[:space:]]10[[:space:]] ]]; then
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
     _aai_train_dir="${data_feats}/${train_set}"
     _aai_valid_dir="${data_feats}/${valid_set}"
-    log "Stage 10: AAI collect stats: train_set=${_aai_train_dir}, valid_set=${_aai_valid_dir}"
+    log "Stage 5: AAI collect stats: train_set=${_aai_train_dir}, valid_set=${_aai_valid_dir}"
 
     _opts=
     if [ -n "${aai_config}" ]; then
@@ -756,10 +613,10 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
 fi
 
 
-if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~ [[:space:]]11[[:space:]] ]]; then
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [[:space:]]6[[:space:]] ]]; then
     _aai_train_dir="${data_feats}/${train_set}"
     _aai_valid_dir="${data_feats}/${valid_set}"
-    log "Stage 11: AAI Training: train_set=${_aai_train_dir}, valid_set=${_aai_valid_dir}"
+    log "Stage 6: AAI Training: train_set=${_aai_train_dir}, valid_set=${_aai_valid_dir}"
 
     _opts=
     if [ -n "${aai_config}" ]; then
@@ -837,41 +694,8 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
 
 fi
 
-
-if [ -n "${download_model}" ]; then
-    log "Use ${download_model} for decoding and evaluation"
-    aai_exp="${expdir}/${download_model}"
-    mkdir -p "${aai_exp}"
-
-    # If the model already exists, you can skip downloading
-    espnet_model_zoo_download --unpack true "${download_model}" > "${aai_exp}/config.txt"
-
-    # Get the path of each file
-    _aai_model_file=$(<"${aai_exp}/config.txt" sed -e "s/.*'aai_model_file': '\([^']*\)'.*$/\1/")
-    _aai_train_config=$(<"${aai_exp}/config.txt" sed -e "s/.*'aai_train_config': '\([^']*\)'.*$/\1/")
-
-    # Create symbolic links
-    ln -sf "${_aai_model_file}" "${aai_exp}"
-    ln -sf "${_aai_train_config}" "${aai_exp}"
-    inference_aai_model=$(basename "${_aai_model_file}")
-
-    if [ "$(<${aai_exp}/config.txt grep -c lm_file)" -gt 0 ]; then
-        _lm_file=$(<"${aai_exp}/config.txt" sed -e "s/.*'lm_file': '\([^']*\)'.*$/\1/")
-        _lm_train_config=$(<"${aai_exp}/config.txt" sed -e "s/.*'lm_train_config': '\([^']*\)'.*$/\1/")
-
-        lm_exp="${expdir}/${download_model}/lm"
-        mkdir -p "${lm_exp}"
-
-        ln -sf "${_lm_file}" "${lm_exp}"
-        ln -sf "${_lm_train_config}" "${lm_exp}"
-        inference_lm=$(basename "${_lm_file}")
-    fi
-
-fi
-
-
-if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~ [[:space:]]12[[:space:]] ]]; then
-    log "Stage 12: Decoding: training_dir=${aai_exp}"
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [[:space:]]7[[:space:]] ]]; then
+    log "Stage 7: Decoding: training_dir=${aai_exp}"
 
     if ${gpu_inference}; then
         _cmd="${cuda_cmd}"
@@ -908,13 +732,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
             _ema=text
-            if [[ "${audio_format}" == *ark* ]]; then
-                _type=kaldi_ark
-            elif [[ "${_audio_format}" == *multi* ]]; then
-                _type=multi_columns_sound
-            else
-                _type=sound
-            fi
+            _type=sound
         else
             _scp=feats.scp
             _type=kaldi_ark
@@ -947,158 +765,11 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
                 --output_dir "${_logdir}"/output.JOB \
                 ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/aai_inference.*.log) ; exit 1; }
 
-
-        # 4. Concatenates the output files from each jobs
-        # shellcheck disable=SC2068
-        for ref_txt in ${ref_text_files[@]}; do
-            suffix=$(echo ${ref_txt} | sed 's/text//')
-            for f in token token_int score text; do
-                if [ -f "${_logdir}/output.1/1best_recog/${f}${suffix}" ]; then
-                    for i in $(seq "${_nj}"); do
-                        cat "${_logdir}/output.${i}/1best_recog/${f}${suffix}"
-                    done | sort -k1 >"${_dir}/${f}${suffix}"
-                fi
-            done
-        done
-
+        ${python} -m espnet2.bin.${aai_task}_inference${inference_bin_tag} \
+                --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
+                --key_file "${_logdir}"/keys.JOB.scp \
+                --output_dir "${_logdir}" \
+                --score True 
     done
 fi
-
-packed_model="${aai_exp}/${aai_exp##*/}_${inference_aai_model%.*}.zip"
-if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~ [[:space:]]14[[:space:]] ]]; then
-    log "Stage 14: Pack model: ${packed_model}"
-
-    _opts=
-    if "${use_lm}"; then
-        _opts+="--lm_train_config ${lm_exp}/config.yaml "
-        _opts+="--lm_file ${lm_exp}/${inference_lm} "
-        _opts+="--option ${lm_exp}/perplexity_test/ppl "
-        _opts+="--option ${lm_exp}/images "
-    fi
-    if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${aai_stats_dir}/train/feats_stats.npz "
-    fi
-    if [ "${token_type}" = bpe ]; then
-        _opts+="--option ${bpemodel} "
-    fi
-    if [ "${nlsyms_txt}" != none ]; then
-        _opts+="--option ${nlsyms_txt} "
-    fi
-    # shellcheck disable=SC2086
-    ${python} -m espnet2.bin.pack aai \
-        --aai_train_config "${aai_exp}"/config.yaml \
-        --aai_model_file "${aai_exp}"/"${inference_aai_model}" \
-        ${_opts} \
-        --option "${aai_exp}"/RESULTS.md \
-        --option "${aai_exp}"/images \
-        --outpath "${packed_model}"
-fi
-
-
-if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~ [[:space:]]15[[:space:]] ]]; then
-    log "Stage 15: Upload model to Zenodo: ${packed_model}"
-    log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
-
-    # To upload your model, you need to do:
-    #   1. Sign up to Zenodo: https://zenodo.org/
-    #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
-    #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
-
-    if command -v git &> /dev/null; then
-        _creator_name="$(git config user.name)"
-        _checkout="
-git checkout $(git show -s --format=%H)"
-
-    else
-        _creator_name="$(whoami)"
-        _checkout=""
-    fi
-    # /some/where/espnet/egs2/foo/aai1/ -> foo/aai1
-    _task="$(pwd | rev | cut -d/ -f2 | rev)"
-    # foo/aai1 -> foo
-    _corpus="${_task%/*}"
-    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-
-    # Generate description file
-    cat << EOF > "${aai_exp}"/description
-This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
-<p>&nbsp;</p>
-<ul>
-<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
-<li><strong>Evaluate in the recipe</strong><pre>
-<code class="language-bash">git clone https://github.com/espnet/espnet
-cd espnet${_checkout}
-pip install -e .
-cd $(pwd | rev | cut -d/ -f1-3 | rev)
-./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
-</pre></li>
-<li><strong>Results</strong><pre><code>$(cat "${aai_exp}"/RESULTS.md)</code></pre></li>
-<li><strong>AAI config</strong><pre><code>$(cat "${aai_exp}"/config.yaml)</code></pre></li>
-<li><strong>LM config</strong><pre><code>$(if ${use_lm}; then cat "${lm_exp}"/config.yaml; else echo NONE; fi)</code></pre></li>
-</ul>
-EOF
-
-    # NOTE(kamo): The model file is uploaded here, but not published yet.
-    #   Please confirm your record at Zenodo and publish it by yourself.
-
-    # shellcheck disable=SC2086
-    espnet_model_zoo_upload \
-        --file "${packed_model}" \
-        --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
-        --description_file "${aai_exp}"/description \
-        --creator_name "${_creator_name}" \
-        --license "CC-BY-4.0" \
-        --use_sandbox false \
-        --publish false
-fi
-
-
-if [ ${stage} -le 16 ] && [ ${stop_stage} -ge 16 ] && ! [[ " ${skip_stages} " =~ [[:space:]]16[[:space:]] ]]; then
-    [ -z "${hf_repo}" ] && \
-        log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
-    exit 1
-    log "Stage 16: Upload model to HuggingFace: ${hf_repo}"
-
-    gitlfs=$(git lfs --version 2> /dev/null || true)
-    [ -z "${gitlfs}" ] && \
-        log "ERROR: You need to install git-lfs first" && \
-        exit 1
-
-    dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
-    [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
-
-    if command -v git &> /dev/null; then
-        _creator_name="$(git config user.name)"
-        _checkout="git checkout $(git show -s --format=%H)"
-    else
-        _creator_name="$(whoami)"
-        _checkout=""
-    fi
-    # /some/where/espnet/egs2/foo/aai1/ -> foo/aai1
-    _task="$(pwd | rev | cut -d/ -f2 | rev)"
-    # foo/aai1 -> foo
-    _corpus="${_task%/*}"
-    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
-
-    # copy files in ${dir_repo}
-    unzip -o ${packed_model} -d ${dir_repo}
-    # Generate description file
-    # shellcheck disable=SC2034
-    hf_task=automatic-speech-recognition
-    # shellcheck disable=SC2034
-    espnet_task=AAI
-    # shellcheck disable=SC2034
-    task_exp=${aai_exp}
-    eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
-
-    this_folder=${PWD}
-    cd ${dir_repo}
-    if [ -n "$(git status --porcelain)" ]; then
-        git add .
-        git commit -m "Update model"
-    fi
-    git push
-    cd ${this_folder}
-fi
-
 log "Successfully finished. [elapsed=${SECONDS}s]"
