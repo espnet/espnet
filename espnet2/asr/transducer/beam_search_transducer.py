@@ -83,7 +83,7 @@ class BeamSearchTransducer:
             multi_blank_durations: The duration of each blank token. (MBG)
             multi_blank_indices: The index of each blank token in token_list. (MBG)
             score_norm: Normalize final scores by length. ("default")
-            score_norm_during: 
+            score_norm_during:
               Normalize scores by length during search. (default, TSD, ALSD)
             nbest: Number of final hypothesis.
 

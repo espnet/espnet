@@ -82,7 +82,7 @@ class BeamSearchTransducer:
               Number of additional candidates for expanded hypotheses selection. (mAES)
             expansion_gamma: Allowed logp difference for prune-by-value method. (mAES)
             score_norm: Normalize final scores by length. ("default")
-            score_norm_during: 
+            score_norm_during:
               Normalize scores by length during search. (default, TSD, ALSD)
             nbest: Number of final hypothesis.
 
