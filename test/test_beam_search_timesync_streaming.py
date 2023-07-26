@@ -189,7 +189,7 @@ def test_beam_search_timesync_streaming(
     )
     model.to(device, dtype=dtype)
     model.eval()
-    beam = BeamSearchTimeSync(
+    beam = BeamSearchTimeSyncStreaming(
         beam_size=args.beam_size,
         weights=weights,
         scorers=scorers,
