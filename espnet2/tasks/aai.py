@@ -27,6 +27,8 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.transformer_encoder_multispkr import (
     TransformerEncoder as TransformerEncoderMultiSpkr,
 )
+from espnet2.aai.decoder.abs_decoder import AbsDecoder
+from espnet2.aai.decoder.linear_decoder import LinearDecoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.encoder.whisper_encoder import OpenAIWhisperEncoder
@@ -117,6 +119,13 @@ encoder_choices = ClassChoices(
     type_check=AbsEncoder,
     default="rnn",
 )
+decoder_choices = ClassChoices(
+    "decoder",
+    classes=dict(linear=LinearDecoder),
+    type_check=AbsDecoder,
+    default="linear",
+)
+
 preprocessor_choices = ClassChoices(
     "preprocessor",
     classes=dict(
@@ -132,17 +141,12 @@ class AAITask(AbsTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
-    # Add variable objects configurations
     class_choices_list = [
-        # --frontend and --frontend_conf
         frontend_choices,
-        # --specaug and --specaug_conf
         specaug_choices,
-        # --normalize and --normalize_conf
         normalize_choices,
-        # --preencoder and --preencoder_conf
         encoder_choices,
-        # --postencoder and --postencoder_conf
+        decoder_choices,
         preprocessor_choices,
     ]
 
@@ -348,13 +352,18 @@ class AAITask(AbsTask):
 
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
-
+        decoder_class = decoder_choices.get_class(args.decoder)
+        decoder = decoder_class(
+            encoder_output_size=encoder.output_size(),
+            **args.decoder_conf,
+        )
 
         model = ESPnetAAIModel(
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
             encoder=encoder,
+            decoder=decoder,
             **args.model_conf,
         )
 

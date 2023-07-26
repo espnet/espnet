@@ -1,12 +1,14 @@
 import logging
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
+import scipy.stats
 
 import torch
+import numpy as np
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.aai.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
@@ -38,6 +40,7 @@ class ESPnetAAIModel(AbsESPnetModel):
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         encoder: AbsEncoder,
+        decoder: AbsDecoder,
         ignore_id: int = -1,
         length_normalized_loss: bool = False,
         extract_feats_in_collect_stats: bool = True,
@@ -51,7 +54,7 @@ class ESPnetAAIModel(AbsESPnetModel):
         self.specaug = specaug
         self.normalize = normalize
         self.encoder = encoder
-
+        self.decoder = decoder
         self.error_calculator = None
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
@@ -89,6 +92,7 @@ class ESPnetAAIModel(AbsESPnetModel):
 
         # 1. Encoder
         encoder_out, encoder_out_lens = self.encode(speech, speech_lengths)
+        encoder_out = self.decoder(encoder_out, encoder_out_lens)
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
@@ -186,14 +190,30 @@ class ESPnetAAIModel(AbsESPnetModel):
         encoder_out_lens = [min(x, lens) for x in encoder_out_lens]
         # Calc CTC loss
         # loss_ctc = self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+        if not self.training:
+            cc = []
+            ys_pad_ = ys_pad.detach().cpu().numpy()
+            encoder_out_ = encoder_out.detach().cpu().numpy()
+        else: 
+            cc = None
+        #change to mask based normalisation
         for i in range(encoder_out.shape[0]):
             if i == 0:
                 loss = lossfn(encoder_out[i, :encoder_out_lens[i], :], ys_pad[i, :encoder_out_lens[i], :])
             else:
                 loss = loss + lossfn(encoder_out[i, :encoder_out_lens[i], :], ys_pad[i, :encoder_out_lens[i], :])
-        # Calc CER using CTC
-        # cer_ctc = None
-        # if not self.training and self.error_calculator is not None:
-        #     ys_hat = self.ctc.argmax(encoder_out).data
-        #     cer_ctc = self.error_calculator(ys_hat.cpu(), ys_pad.cpu(), is_ctc=True)
-        return loss, 0
+            # 
+            if not self.training:
+                c = []
+                
+                for j in range(encoder_out.shape[-1]):
+                    single_utt_cc = scipy.stats.pearsonr(ys_pad_[i, :encoder_out_lens[i], j], encoder_out_[i, :encoder_out_lens[i], j])[0]
+                    c.append(single_utt_cc)
+                cc.append(c)
+        loss = loss / encoder_out.shape[0]
+        if not self.training:  
+            cc = np.array(cc)
+            cc = np.mean(np.mean(cc, axis=0))
+        
+        
+        return loss, cc

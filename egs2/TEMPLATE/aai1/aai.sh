@@ -713,9 +713,9 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     #       but it's used only for deciding the sample ids.
 
     _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},speech,${_type} "
-    _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},ema,${_type} "
+    _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/text,ema,pth "
     _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_scp},speech,${_type} "
-    _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_scp},ema,${_type} "
+    _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/text,ema,pth "
     # shellcheck disable=SC2068
 
     echo $_opts
@@ -803,7 +803,7 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
 
     _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_scp},speech,${_type} "
     _opts+="--valid_data_path_and_name_and_type ${_aai_valid_dir}/${_ema},ema,pth "
-    _opts+="--valid_shape_file ${aai_stats_dir}/train/speech_shape "
+    _opts+="--valid_shape_file ${aai_stats_dir}/valid/speech_shape "
 
 
     log "Generate '${aai_exp}/run.sh'. You can resume the process from stage 11 using this script"
@@ -885,40 +885,12 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
     if [ -n "${inference_config}" ]; then
         _opts+="--config ${inference_config} "
     fi
-    if "${use_lm}"; then
-        if "${use_word_lm}"; then
-            _opts+="--word_lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--word_lm_file ${lm_exp}/${inference_lm} "
-        else
-            _opts+="--lm_train_config ${lm_exp}/config.yaml "
-            _opts+="--lm_file ${lm_exp}/${inference_lm} "
-        fi
-    fi
-    if "${use_ngram}"; then
-         _opts+="--ngram_file ${ngram_exp}/${inference_ngram}"
-    fi
 
     # 2. Generate run.sh
     log "Generate '${aai_exp}/${inference_tag}/run.sh'. You can resume the process from stage 12 using this script"
     mkdir -p "${aai_exp}/${inference_tag}"; echo "${run_args} --stage 12 \"\$@\"; exit \$?" > "${aai_exp}/${inference_tag}/run.sh"; chmod +x "${aai_exp}/${inference_tag}/run.sh"
 
     inference_bin_tag=""
-    if [ ${aai_task} == "aai" ]; then
-        if "${use_k2}"; then
-            # Now only _nj=1 is verified if using k2
-            inference_bin_tag="_k2"
-
-            _opts+="--is_ctc_decoding ${k2_ctc_decoding} "
-            _opts+="--use_nbest_rescoring ${use_nbest_rescoring} "
-            _opts+="--num_paths ${num_paths} "
-            _opts+="--nll_batch_size ${nll_batch_size} "
-            _opts+="--k2_config ${k2_config} "
-        elif "${use_streaming}"; then
-            inference_bin_tag="_streaming"
-        elif "${use_maskctc}"; then
-            inference_bin_tag="_maskctc"
-        fi
-    fi
 
     if "${eval_valid_set}"; then
         _dsets="org/${valid_set} ${test_sets}"
@@ -935,6 +907,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         _audio_format="$(cat ${_data}/audio_format 2>/dev/null || echo ${audio_format})"
         if [ "${_feats_type}" = raw ]; then
             _scp=wav.scp
+            _ema=text
             if [[ "${audio_format}" == *ark* ]]; then
                 _type=kaldi_ark
             elif [[ "${_audio_format}" == *multi* ]]; then
@@ -950,12 +923,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         # 1. Split the key file
         key_file=${_data}/${_scp}
         split_scps=""
-        if "${use_k2}"; then
-          # Now only _nj=1 is verified if using k2
-          _nj=1
-        else
-          _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
-        fi
+
+        _nj=$(min "${inference_nj}" "$(<${key_file} wc -l)")
 
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/keys.${n}.scp"
@@ -978,21 +947,6 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
                 --output_dir "${_logdir}"/output.JOB \
                 ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/aai_inference.*.log) ; exit 1; }
 
-        # 3. Calculate and report RTF based on decoding logs
-        if [ ${aai_task} == "aai" ] && [ -z ${inference_bin_tag} ]; then
-            log "Calculating RTF & latency... log: '${_logdir}/calculate_rtf.log'"
-            rm -f "${_logdir}"/calculate_rtf.log
-            _fs=$(python3 -c "import humanfriendly as h;print(h.parse_size('${fs}'))")
-            _sample_shift=$(python3 -c "print(1 / ${_fs} * 1000)") # in ms
-            ${_cmd} JOB=1 "${_logdir}"/calculate_rtf.log \
-                pyscripts/utils/calculate_rtf.py \
-                    --log-dir ${_logdir} \
-                    --log-name "aai_inference" \
-                    --input-shift ${_sample_shift} \
-                    --start-times-marker "speech length" \
-                    --end-times-marker "best hypo" \
-                    --inf-num ${num_inf} || { cat "${_logdir}"/calculate_rtf.log; exit 1; }
-        fi
 
         # 4. Concatenates the output files from each jobs
         # shellcheck disable=SC2068
@@ -1009,108 +963,6 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
 
     done
 fi
-
-
-if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~ [[:space:]]13[[:space:]] ]]; then
-    log "Stage 13: Scoring"
-    if [ "${token_type}" = phn ]; then
-        log "Error: Not implemented for token_type=phn"
-        exit 1
-    fi
-
-    if "${eval_valid_set}"; then
-        _dsets="org/${valid_set} ${test_sets}"
-    else
-        _dsets="${test_sets}"
-    fi
-    for dset in ${_dsets}; do
-        _data="${data_feats}/${dset}"
-        _dir="${aai_exp}/${inference_tag}/${dset}"
-
-        for _tok_type in "char" "word" "bpe"; do
-            [ "${_tok_type}" = bpe ] && [ ! -f "${bpemodel}" ] && continue
-
-            _opts="--token_type ${_tok_type} "
-            if [ "${_tok_type}" = "char" ] || [ "${_tok_type}" = "word" ]; then
-                _type="${_tok_type:0:1}er"
-                _opts+="--non_linguistic_symbols ${nlsyms_txt} "
-                _opts+="--remove_non_linguistic_symbols true "
-
-            elif [ "${_tok_type}" = "bpe" ]; then
-                _type="ter"
-                _opts+="--bpemodel ${bpemodel} "
-
-            else
-                log "Error: unsupported token type ${_tok_type}"
-            fi
-
-            _scoredir="${_dir}/score_${_type}"
-            mkdir -p "${_scoredir}"
-
-            # shellcheck disable=SC2068
-            for ref_txt in ${ref_text_files[@]}; do
-                # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
-                suffix=$(echo ${ref_txt} | sed 's/text//')
-
-                # Tokenize text to ${_tok_type} level
-                paste \
-                    <(<"${_data}/${ref_txt}" \
-                        ${python} -m espnet2.bin.tokenize_text  \
-                            -f 2- --input - --output - \
-                            --cleaner "${cleaner}" \
-                            ${_opts} \
-                            ) \
-                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                        >"${_scoredir}/ref${suffix:-${suffix}}.trn"
-
-                # NOTE(kamo): Don't use cleaner for hyp
-                paste \
-                    <(<"${_dir}/${ref_txt}"  \
-                        ${python} -m espnet2.bin.tokenize_text  \
-                            -f 2- --input - --output - \
-                            ${_opts} \
-                            --cleaner "${hyp_cleaner}" \
-                            ) \
-                    <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
-                        >"${_scoredir}/hyp${suffix:-${suffix}}.trn"
-
-            done
-
-            # Note(simpleoier): score across all possible permutations
-            if [ ${num_ref} -gt 1 ] && [ -n "${suffix}" ]; then
-                for i in $(seq ${num_ref}); do
-                    for j in $(seq ${num_inf}); do
-                        sclite \
-                            ${score_opts} \
-                            -r "${_scoredir}/ref_spk${i}.trn" trn \
-                            -h "${_scoredir}/hyp_spk${j}.trn" trn \
-                            -i rm -o all stdout > "${_scoredir}/result_r${i}h${j}.txt"
-                    done
-                done
-                # Generate the oracle permutation hyp.trn and ref.trn
-                pyscripts/utils/eval_perm_free_error.py --num-spkrs ${num_ref} \
-                    --results-dir ${_scoredir}
-            fi
-
-            sclite \
-                ${score_opts} \
-                -r "${_scoredir}/ref.trn" trn \
-                -h "${_scoredir}/hyp.trn" trn \
-                -i rm -o all stdout > "${_scoredir}/result.txt"
-
-            log "Write ${_type} result in ${_scoredir}/result.txt"
-            grep -e Avg -e SPKR -m 2 "${_scoredir}/result.txt"
-        done
-    done
-
-    [ -f local/score.sh ] && local/score.sh ${local_score_opts} "${aai_exp}"
-
-    # Show results in Markdown syntax
-    scripts/utils/show_aai_result.sh "${aai_exp}" > "${aai_exp}"/RESULTS.md
-    cat "${aai_exp}"/RESULTS.md
-
-fi
-
 
 packed_model="${aai_exp}/${aai_exp##*/}_${inference_aai_model%.*}.zip"
 if [ ${stage} -le 14 ] && [ ${stop_stage} -ge 14 ] && ! [[ " ${skip_stages} " =~ [[:space:]]14[[:space:]] ]]; then

@@ -39,7 +39,6 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
         self.loader = loader
         self.dtype = dtype
         self.rate = None
-
     def keys(self):
         return self.loader.keys()
 
