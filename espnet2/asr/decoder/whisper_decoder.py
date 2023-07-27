@@ -67,7 +67,9 @@ class OpenAIWhisperDecoder(AbsDecoder, BatchScorerInterface):
         super().__init__()
 
         assert whisper_model in whisper.available_models()
-        _model = whisper.load_model(whisper_model, download_root=download_dir, device='cpu')
+        _model = whisper.load_model(
+            whisper_model, download_root=download_dir, device="cpu"
+        )
         self.decoders = copy.deepcopy(_model.decoder)
         attention_dim = self.decoders.token_embedding.embedding_dim
 
