@@ -4,30 +4,37 @@ import torch
 from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPostEncoder
 
 
-@pytest.mark.parametrize("odim", [200, 400])
-def test_length_adaptor_forward(odim):
+@pytest.mark.parametrize("input_layer, odim", [[None, None], ["linear", 400]])
+def test_length_adaptor_forward(input_layer, odim):
     idim = 400
     length_adaptor_n_layers = 1
-    postencoder = LengthAdaptorPostEncoder(idim, length_adaptor_n_layers, odim)
+    postencoder = LengthAdaptorPostEncoder(
+        idim, length_adaptor_n_layers, input_layer, odim
+    )
     x = torch.randn([4, 50, idim], requires_grad=True)
     x_lengths = torch.LongTensor([20, 5, 50, 15])
     y, y_lengths = postencoder(x, x_lengths)
     y.sum().backward()
 
-    assert postencoder.output_size() == odim
+    if odim is None:
+        odim_expected = idim
+    else:
+        odim_expected = odim
+
+    assert postencoder.output_size() == odim_expected
 
     y_shape_1_expected = 50 // 2**length_adaptor_n_layers
     y_lengths_expected = (
         x_lengths.float().div(2**length_adaptor_n_layers).floor().long()
     )
 
-    assert y.shape == torch.Size([4, y_shape_1_expected, odim])
+    assert y.shape == torch.Size([4, y_shape_1_expected, odim_expected])
     assert torch.equal(y_lengths, y_lengths_expected)
 
 
 def test_transformers_too_short_utt():
     idim = 400
-    postencoder = LengthAdaptorPostEncoder(idim, 2, idim)
+    postencoder = LengthAdaptorPostEncoder(idim, 2, "linear", idim)
     x = torch.randn([2, 3, idim], requires_grad=True)
     x_lengths = torch.LongTensor([3, 2])
     with pytest.raises(Exception):
