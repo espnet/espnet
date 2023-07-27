@@ -17,10 +17,10 @@ svs: joint_score2wav                     # model architecture
 svs_conf:
   # copied from pretrained model's config.yaml
   score2mel_type: naive_rnn_dp
-  score2mel_params:                       # keyword arguments for the selected model
+  score2mel_params:              # keyword arguments for the selected model
     midi_dim: 129                # midi dimension (note number + silence)
     embed_dim: 512               # char or phn embedding dimension
-    tempo_dim: 500
+    duration_dim: 500            # duration embedding range
     eprenet_conv_layers: 0       # prenet (from bytesing) conv layers
     eprenet_conv_chans: 256      # prenet (from bytesing) conv channels numbers
     eprenet_conv_filts: 3        # prenet (from bytesing) conv filters size
@@ -108,7 +108,7 @@ svs_conf:
   discriminator_adv_loss_params:
     average_by_discriminators: false # whether to average loss value by #discriminators
     loss_type: mse                   # loss type, "mse" or "hinge"
-  use_feat_match_loss: true            # whether to use feat match loss
+  use_feat_match_loss: true          # whether to use feat match loss
   feat_match_loss_params:
     average_by_discriminators: false # whether to average loss value by #discriminators
     average_by_layers: false         # whether to average loss value by #layers of each discriminator
@@ -125,7 +125,7 @@ svs_conf:
     fmax: null         # maximum frequency for Mel basis
     log_base: null     # null represent natural log
 
-  lambda_score2mel: 1.0   # loss scaling coefficient for score2mel loss
+  lambda_score2mel: 1.0  # loss scaling coefficient for score2mel loss
   lambda_adv: 1.0        # loss scaling coefficient for adversarial loss
   lambda_mel: 45.0       # loss scaling coefficient for Mel loss
   lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
@@ -176,27 +176,25 @@ generator_first: true # whether to start updating generator first
 ##########################################################
 num_iters_per_epoch: 500    # number of iterations per epoch
 max_epoch: 250              # number of epochs
-grad_clip: -1              # gradient clipping norm
+grad_clip: -1               # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
 
 batch_type: sorted
 batch_size: 16
-#batch_bins: 5000000       # batch bins (feats_type=raw)
-#batch_type: numel         # how to make batch
 
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
-num_workers: 10              # number of workers of data loader
+num_workers: 10             # number of workers of data loader
 train_dtype: float32        # dtype in training
-use_amp: false            # whether to use pytorch amp
-log_interval: 50          # log interval in iterations
+use_amp: false              # whether to use pytorch amp
+log_interval: 50            # log interval in iterations
 keep_nbest_models: 5        # number of models to keep
 num_att_plot: 3             # number of attention figures to be saved in every check
-seed: 777                 # random seed number
-patience: null            # patience for early stopping
-unused_parameters: true   # needed for multi gpu case
-best_model_criterion:     # criterion to save the best models
+seed: 777                   # random seed number
+patience: null              # patience for early stopping
+unused_parameters: true     # needed for multi gpu case
+best_model_criterion:       # criterion to save the best models
 -   - valid
     - score2mel_loss
     - min
@@ -207,6 +205,6 @@ best_model_criterion:     # criterion to save the best models
     - total_count
     - max
 cudnn_deterministic: false # setting to false accelerates the training speed but makes it non-deterministic
-                          # in the case of GAN-TTS training, we strongly recommend setting to false
+                           # in the case of GAN-TTS training, we strongly recommend setting to false
 cudnn_benchmark: false     # setting to true might acdelerate the training speed but sometimes decrease it
-                          # therefore, we set to false as a default (recommend trying both cases)
+                           # therefore, we set to false as a default (recommend trying both cases)
