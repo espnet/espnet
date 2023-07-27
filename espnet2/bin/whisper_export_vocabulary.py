@@ -9,7 +9,9 @@ from typeguard import check_argument_types
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def export_vocabulary(output: str, whisper_model: str, log_level: str, sot_asr: bool=False):
+def export_vocabulary(
+    output: str, whisper_model: str, log_level: str, sot_asr: bool = False
+):
     try:
         import whisper.tokenizer
     except Exception as e:
