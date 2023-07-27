@@ -21,7 +21,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/eval|1032|131075|88.6|6.3|5.1|3.9|15.3|99.0|
 
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
