@@ -920,7 +920,8 @@ def get_parser():
         "--sot_asr",
         type=str2bool,
         default=False,
-        help="Whether we are using a Serialized Output Training (SOT) ASR model, which is useful for multi-speaker ASR",
+        help="Whether we are using a Serialized Output Training (SOT) ASR model, "
+        "which is useful for multi-speaker ASR.",
     )
     group = parser.add_argument_group("Quantization related")
     group.add_argument(
