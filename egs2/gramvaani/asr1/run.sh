@@ -17,6 +17,4 @@ decode_config="conf/decode_asr.yaml"
     --train_set "train100" \
     --valid_set "dev" \
     --test_sets "test" \
-    --token_type char \
-    --ngpu 1 \
-    --nj 48 \
+    --token_type char  "$@"
