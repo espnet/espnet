@@ -872,6 +872,7 @@ if ! "${skip_eval}"; then
                         ${_inf_scp} \
                         --ref_channel ${ref_channel} \
                         --flexible_numspk ${flexible_numspk} \
+                        --is_tse ${is_tse_task} \
                         ${scoring_opts}
 
                 for spk in $(seq "${ref_num}"); do

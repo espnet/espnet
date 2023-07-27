@@ -687,6 +687,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
         --other_sets "${test_sets} ${train_sp_sets}" \
         --datadir "${data_audio}" \
         --featdir "${data_extract}" \
+        --audio_format "${audio_format}" \
         --feature_type "${kmeans_feature_type}" \
         --layer "${layer}" \
         --feature_conf "${kmeans_feature_conf}" \
@@ -1660,11 +1661,14 @@ if [ ${stage} -le 18 ] && [ ${stop_stage} -ge 18 ] && ! [[ " ${skip_stages} " =~
     espnet_task=ASR
     # shellcheck disable=SC2034
     task_exp=${asr_exp}
+    # shellcheck disable=SC2034
+    lang=${tgt_lang}
     eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
     this_folder=${PWD}
     cd ${dir_repo}
     if [ -n "$(git status --porcelain)" ]; then
+        git lfs track *.mdl
         git add .
         git commit -m "Update model"
     fi

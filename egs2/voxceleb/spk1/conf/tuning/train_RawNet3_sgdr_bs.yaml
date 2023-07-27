@@ -1,0 +1,62 @@
+# RawNet3 reproduce recipe configuration.
+
+frontend: raw
+
+encoder: rawnet3
+encoder_conf:
+  model_scale: 8
+  ndim: 1024
+  sinc_stride: 16
+
+pooling: chn_attn_stat
+pooling_conf:
+  input_size: 1536  # 1.5 * ndim of RawNet3 encoder
+
+projector: rawnet3
+projector_conf:
+  input_size: 3072  # 2 * input_size of pooling
+  output_size: 256
+
+preprocessor: spk
+preprocessor_conf:
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
+  num_eval: 5
+  noise_apply_prob: 0.0
+  rir_apply_prob: 0.0
+
+model_conf:
+  extract_feats_in_collect_stats: false
+
+loss: aamsoftmax
+loss_conf:
+  nout: 256
+  nclasses: 7205
+  margin: 0.3
+  scale: 30
+
+max_epoch: 40
+#num_iters_per_epoch: 1
+num_att_plot: 0
+num_workers: 8
+cudnn_deterministic: False
+cudnn_benchmark: True
+batch_size: 128
+#batch_type: unsorted
+iterator_type: sequence
+shuffle_within_batch: True
+log_interval: 50
+optim: adamw
+optim_conf:
+  lr: 0.001
+  weight_decay: 0.00005
+  amsgrad: False
+
+scheduler: CosineAnnealingWarmupRestarts
+scheduler_conf:
+  first_cycle_steps: 77544
+  cycle_mult: 1.0
+  max_lr: 0.001
+  min_lr: 0.000005
+  warmup_steps: 1000
+  gamma: 0.75
