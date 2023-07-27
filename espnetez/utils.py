@@ -1,13 +1,41 @@
 import yaml
 from espnet2.tasks.asr import ASRTask
-from espnet2.tasks.asr_transducer import ASRTransducerTask
+from espnet2.tasks.asvspoof import ASVSpoofTask
+from espnet2.tasks.diar import DiarizationTask
+from espnet2.tasks.enh_s2t import EnhS2TTask
+from espnet2.tasks.enh_tse import TargetSpeakerExtractionTask
+from espnet2.tasks.enh import EnhancementTask
+from espnet2.tasks.gan_svs import GANSVSTask
+from espnet2.tasks.gan_tts import GANTTSTask
+from espnet2.tasks.hubert import HubertTask
+from espnet2.tasks.lm import LMTask
+from espnet2.tasks.mt import MTTask
+from espnet2.tasks.slu import SLUTask
+from espnet2.tasks.st import STTask
+from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
+from espnet2.tasks.uasr import UASRTask
+
+
 from argparse import Namespace
 
 TASK_CLASSES = dict(
     asr=ASRTask,
-    asr_transducer=ASRTransducerTask,
+    asvspoof=ASVSpoofTask,
+    diar=DiarizationTask,
+    enh_s2t=EnhS2TTask,
+    enh_tse=TargetSpeakerExtractionTask,
+    enh=EnhancementTask,
+    gan_svs=GANSVSTask,
+    gan_tts=GANTTSTask,
+    hubert=HubertTask,
+    lm=LMTask,
+    mt=MTTask,
+    slu=SLUTask,
+    st=STTask,
+    svs=SVSTask,
     tts=TTSTask,
+    uasr=UASRTask,
 )
 
 
