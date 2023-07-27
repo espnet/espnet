@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import glob
 import importlib
-import signal
 import sys
 import traceback
 
@@ -19,16 +18,7 @@ else:
     has_mir_eval = True
 
 
-module_name = ""
 failed_imports = []
-
-
-def sig_handler(signum, frame):
-    reason = "Segmentation fault"
-    failed_imports.append((module_name, reason))
-
-
-signal.signal(signal.SIGSEGV, sig_handler)
 for dirname in ["espnet", "espnet2"]:
     for f in glob.glob(f"{dirname}/**/*.py"):
         module_name = f.replace("/", ".")[:-3]
@@ -59,6 +49,6 @@ for dirname in ["espnet", "espnet2"]:
 
 if failed_imports:
     print(f"Error: Failed to import {len(failed_imports)} modules")
-    for i, (name, reason) in enumerate(failed_imports):
+    for i, (name, reason) in enumerate(failed_imports, 1):
         print(f"[{i}] {name}\n\t{reason}\n")
     raise RuntimeError("See the errors above")
