@@ -220,13 +220,14 @@
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torch.nn.functional</span> <span class="k">as</span> <span class="nn">F</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.abs_decoder</span> <span class="kn">import</span> <span class="n">AbsDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">make_pad_mask</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForSeq2SeqLM</span>
+    <span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoModelForSeq2SeqLM</span><span class="p">,</span> <span class="n">AutoTokenizer</span>
     <span class="kn">from</span> <span class="nn">transformers.file_utils</span> <span class="kn">import</span> <span class="n">ModelOutput</span>
 
     <span class="n">is_transformers_available</span> <span class="o">=</span> <span class="kc">True</span>
@@ -249,6 +250,9 @@
         <span class="n">vocab_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">encoder_output_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">model_name_or_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">causal_lm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
+        <span class="n">postfix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -260,14 +264,51 @@
                 <span class="s2">&quot; &amp;&amp; ./installers/install_transformers.sh`.&quot;</span>
             <span class="p">)</span>
 
-        <span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForSeq2SeqLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">causal_lm</span> <span class="o">=</span> <span class="n">causal_lm</span>
 
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">decoder</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_lm</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">get_hugging_face_model_network</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="s2">&quot;word_embeddings&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder_word_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">word_embeddings</span>
+            <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="s2">&quot;embed_in&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder_word_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed_in</span>
+            <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="s2">&quot;embed_tokens&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder_word_embeddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">embed_tokens</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Can not find the word embeddings attribute&quot;</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">pad_token_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">pad_token_id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span>
+            <span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder_pad_token_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">pad_token_id</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder_pad_token_id</span> <span class="o">=</span> <span class="mi">1</span>
+
+            <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">AutoTokenizer</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_padding_side</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">padding_side</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_word_embeddings</span><span class="p">(</span>
+                <span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">postfix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_word_embeddings</span><span class="p">(</span>
+                <span class="n">tokenizer</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="n">postfix</span><span class="p">,</span> <span class="n">return_tensors</span><span class="o">=</span><span class="s2">&quot;pt&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">long</span><span class="p">()</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">AutoModelForSeq2SeqLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">lm_head</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">lm_head</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">decoder</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">decoder</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">resize_token_embeddings</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">lm_head</span> <span class="o">=</span> <span class="n">get_hugging_face_model_lm_head</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">model_name_or_path</span> <span class="o">=</span> <span class="n">model_name_or_path</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder_pretrained_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
@@ -301,29 +342,109 @@
 <span class="sd">                if use_output_layer is True,</span>
 <span class="sd">            olens: (batch, )</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;return_dict&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+        <span class="n">enc_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_in</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;MBartDecoder&quot;</span><span class="p">:</span>
-            <span class="n">ys_in_pad</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_lm</span><span class="p">:</span>
+            <span class="n">args</span><span class="p">,</span> <span class="n">no_loss_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">add_prefix_postfix</span><span class="p">(</span>
+                <span class="n">enc_out</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_in_lens</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;return_dict&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
 
-        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;input_ids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ys_in_pad</span>
-        <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">ys_in_lens</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys_in_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;attention_mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;MBartDecoder&quot;</span><span class="p">:</span>
+                <span class="n">ys_in_pad</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
 
-        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;encoder_hidden_states&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">linear_in</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">)</span>
-        <span class="n">hs_mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">hlens</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
-        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;encoder_attention_mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hs_mask</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;input_ids&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ys_in_pad</span>
+            <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">ys_in_lens</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">ys_in_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;attention_mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mask</span>
+
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;encoder_hidden_states&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">enc_out</span>
+            <span class="n">hs_mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">hlens</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;encoder_attention_mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hs_mask</span>
 
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span><span class="o">.</span><span class="n">last_hidden_state</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">causal_lm</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_padding_side</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                            <span class="n">x</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="o">-</span><span class="n">ys_in_lens</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:,</span> <span class="p">:],</span>
+                            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ys_in_lens</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">ys_in_lens</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                            <span class="n">x</span><span class="p">[</span>
+                                <span class="n">i</span><span class="p">,</span>
+                                <span class="n">no_loss_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">:</span> <span class="n">no_loss_lengths</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">ys_in_lens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+                                <span class="p">:,</span>
+                            <span class="p">],</span>
+                            <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">ys_in_lens</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">-</span> <span class="n">ys_in_lens</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+                        <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                    <span class="p">]</span>
+                <span class="p">)</span>
+
         <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm_head</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
 
-        <span class="n">olens</span> <span class="o">=</span> <span class="n">mask</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">int</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">olens</span></div>
+        <span class="k">return</span> <span class="n">x</span><span class="p">,</span> <span class="n">ys_in_lens</span></div>
 
 <div class="viewcode-block" id="HuggingFaceTransformersDecoder.reload_pretrained_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.reload_pretrained_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reload_pretrained_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder_pretrained_params</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lm_head_pretrained_params</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lm_head_pretrained_params</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lm_head_pretrained_params</span><span class="p">)</span>
+
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Pretrained Transformers model parameters reloaded!&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="HuggingFaceTransformersDecoder.add_prefix_postfix"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.add_prefix_postfix">[docs]</a>    <span class="k">def</span> <span class="nf">add_prefix_postfix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_out</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys_in_pad</span><span class="p">,</span> <span class="n">ys_in_lens</span><span class="p">):</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="n">hlens_max</span> <span class="o">=</span> <span class="p">(</span><span class="n">hlens</span> <span class="o">+</span> <span class="n">ys_in_lens</span><span class="p">)</span><span class="o">.</span><span class="n">max</span><span class="p">()</span>
+
+        <span class="n">enc_out_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">hlens</span><span class="p">)):</span>
+            <span class="n">enc_out_element</span> <span class="o">=</span> <span class="p">[</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">enc_out</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="n">enc_out</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="p">:</span> <span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">:],</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">postfix</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">enc_out</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">decoder_word_embeddings</span><span class="p">(</span>
+                    <span class="n">ys_in_pad</span><span class="p">[</span><span class="n">i</span> <span class="p">:</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">ys_in_lens</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">enc_out</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+            <span class="p">]</span>
+
+            <span class="n">padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_word_embeddings</span><span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([[</span><span class="bp">self</span><span class="o">.</span><span class="n">decoder_pad_token_id</span><span class="p">]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">enc_out</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">hlens_max</span> <span class="o">-</span> <span class="p">(</span><span class="n">hlens</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">ys_in_lens</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_padding_side</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
+                <span class="n">enc_out_element</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">padding</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">enc_out_element</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">enc_out_element</span><span class="p">),</span> <span class="n">padding</span><span class="p">)</span>
+
+            <span class="n">enc_out_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">(</span><span class="n">enc_out_element</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;inputs_embeds&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">vstack</span><span class="p">(</span><span class="n">enc_out_list</span><span class="p">)</span>
+
+        <span class="n">no_loss_lengths</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">hlens</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">postfix</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">inputs_lengths</span> <span class="o">=</span> <span class="n">no_loss_lengths</span> <span class="o">+</span> <span class="n">ys_in_lens</span>
+
+        <span class="n">hs_mask</span> <span class="o">=</span> <span class="p">(</span><span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">inputs_lengths</span><span class="p">))</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">enc_out</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">float</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_padding_side</span> <span class="o">==</span> <span class="s2">&quot;left&quot;</span><span class="p">:</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;attention_mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hs_mask</span><span class="o">.</span><span class="n">flip</span><span class="p">([</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">args</span><span class="p">[</span><span class="s2">&quot;attention_mask&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">hs_mask</span>
+
+        <span class="n">args</span><span class="p">[</span><span class="s2">&quot;return_dict&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">return</span> <span class="n">args</span><span class="p">,</span> <span class="n">no_loss_lengths</span></div>
 
 <div class="viewcode-block" id="HuggingFaceTransformersDecoder.score"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.score">[docs]</a>    <span class="k">def</span> <span class="nf">score</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">speech</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="n">model_kwargs</span> <span class="o">=</span> <span class="p">{</span>
@@ -372,6 +493,30 @@
             <span class="n">next_token_logits</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span>
         <span class="p">)</span>  <span class="c1"># (batch_size * num_beams, vocab_size)</span>
         <span class="k">return</span> <span class="n">next_token_scores</span><span class="p">,</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="get_hugging_face_model_network"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.hugging_face_transformers_decoder.get_hugging_face_model_network">[docs]</a><span class="k">def</span> <span class="nf">get_hugging_face_model_network</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;transformer&quot;</span><span class="p">):</span>
+        <span class="n">network</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">transformer</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;gpt_neox&quot;</span><span class="p">):</span>
+        <span class="n">network</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">gpt_neox</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">):</span>
+        <span class="n">network</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">model</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Can not find the network attribute&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">network</span></div>
+
+
+<div class="viewcode-block" id="get_hugging_face_model_lm_head"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.decoder.hugging_face_transformers_decoder.get_hugging_face_model_lm_head">[docs]</a><span class="k">def</span> <span class="nf">get_hugging_face_model_lm_head</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;lm_head&quot;</span><span class="p">):</span>
+        <span class="n">lm_head</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">lm_head</span>
+    <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="s2">&quot;embed_out&quot;</span><span class="p">):</span>
+        <span class="n">lm_head</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">embed_out</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Can not find the LM head attribute&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">lm_head</span></div>
 </pre></div>
 
            </div>

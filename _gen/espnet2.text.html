@@ -143,6 +143,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.utils.html">espnet2.utils package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.iterators.html">espnet2.iterators package</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.text package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-text-hugging-face-token-id-converter-1">espnet2.text.hugging_face_token_id_converter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-build-tokenizer-1">espnet2.text.build_tokenizer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-cleaner-1">espnet2.text.cleaner</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-text-whisper-token-id-converter-1">espnet2.text.whisper_token_id_converter</a></li>
@@ -207,6 +208,30 @@
              
   <section id="espnet2-text-package">
 <h1>espnet2.text package<a class="headerlink" href="#espnet2-text-package" title="Permalink to this headline">¶</a></h1>
+<section id="espnet2-text-hugging-face-token-id-converter-1">
+<span id="espnet2-text-hugging-face-token-id-converter"></span><h2>espnet2.text.hugging_face_token_id_converter<a class="headerlink" href="#espnet2-text-hugging-face-token-id-converter-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.text.hugging_face_token_id_converter"></span><dl class="class">
+<dt id="espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.text.hugging_face_token_id_converter.</code><code class="sig-name descname">HuggingFaceTokenIDConverter</code><span class="sig-paren">(</span><em class="sig-param">model_name_or_path: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/text/hugging_face_token_id_converter.html#HuggingFaceTokenIDConverter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter.get_num_vocabulary_size">
+<code class="sig-name descname">get_num_vocabulary_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/text/hugging_face_token_id_converter.html#HuggingFaceTokenIDConverter.get_num_vocabulary_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter.get_num_vocabulary_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter.ids2tokens">
+<code class="sig-name descname">ids2tokens</code><span class="sig-paren">(</span><em class="sig-param">integers: Union[numpy.ndarray, Iterable[int]]</em><span class="sig-paren">)</span> &#x2192; List[str]<a class="reference internal" href="../_modules/espnet2/text/hugging_face_token_id_converter.html#HuggingFaceTokenIDConverter.ids2tokens"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter.ids2tokens" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter.tokens2ids">
+<code class="sig-name descname">tokens2ids</code><span class="sig-paren">(</span><em class="sig-param">tokens: Iterable[str]</em><span class="sig-paren">)</span> &#x2192; List[int]<a class="reference internal" href="../_modules/espnet2/text/hugging_face_token_id_converter.html#HuggingFaceTokenIDConverter.tokens2ids"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter.tokens2ids" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-text-build-tokenizer-1">
 <span id="espnet2-text-build-tokenizer"></span><h2>espnet2.text.build_tokenizer<a class="headerlink" href="#espnet2-text-build-tokenizer-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.text.build_tokenizer"></span><dl class="function">

@@ -514,6 +514,8 @@
 </li>
       <li><a href="_gen/espnet2.optimizers.html#espnet2.optimizers.optim_groups.add_optimizer_hooks">add_optimizer_hooks() (in module espnet2.optimizers.optim_groups)</a>
 </li>
+      <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.add_prefix_postfix">add_prefix_postfix() (espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder method)</a>
+</li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_mix_utils.add_results_to_json">add_results_to_json() (in module espnet.asr.asr_mix_utils)</a>
 
       <ul>
@@ -4000,6 +4002,8 @@
 </li>
       <li><a href="_gen/espnet2.text.html#module-espnet2.text.cleaner">espnet2.text.cleaner (module)</a>
 </li>
+      <li><a href="_gen/espnet2.text.html#module-espnet2.text.hugging_face_token_id_converter">espnet2.text.hugging_face_token_id_converter (module)</a>
+</li>
       <li><a href="_gen/espnet2.text.html#module-espnet2.text.hugging_face_tokenizer">espnet2.text.hugging_face_tokenizer (module)</a>
 </li>
       <li><a href="_gen/espnet2.text.html#module-espnet2.text.korean_cleaner">espnet2.text.korean_cleaner (module)</a>
@@ -6042,6 +6046,10 @@
       </ul></li>
       <li><a href="_gen/espnet.utils.html#espnet.utils.spec_augment.get_grid_locations">get_grid_locations() (in module espnet.utils.spec_augment)</a>
 </li>
+      <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.hugging_face_transformers_decoder.get_hugging_face_model_lm_head">get_hugging_face_model_lm_head() (in module espnet2.asr.decoder.hugging_face_transformers_decoder)</a>
+</li>
+      <li><a href="_gen/espnet2.asr.html#espnet2.asr.decoder.hugging_face_transformers_decoder.get_hugging_face_model_network">get_hugging_face_model_network() (in module espnet2.asr.decoder.hugging_face_transformers_decoder)</a>
+</li>
       <li><a href="_gen/espnet2.torch_utils.html#espnet2.torch_utils.model_summary.get_human_readable_count">get_human_readable_count() (in module espnet2.torch_utils.model_summary)</a>
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.state_spaces.components.get_initializer">get_initializer() (in module espnet2.asr.state_spaces.components)</a>
@@ -6114,9 +6122,11 @@
 </li>
       <li><a href="_gen/espnet2.train.html#espnet2.train.distributed_utils.get_num_nodes">get_num_nodes() (in module espnet2.train.distributed_utils)</a>
 </li>
-      <li><a href="_gen/espnet2.text.html#espnet2.text.token_id_converter.TokenIDConverter.get_num_vocabulary_size">get_num_vocabulary_size() (espnet2.text.token_id_converter.TokenIDConverter method)</a>
+      <li><a href="_gen/espnet2.text.html#espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter.get_num_vocabulary_size">get_num_vocabulary_size() (espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter method)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.text.html#espnet2.text.token_id_converter.TokenIDConverter.get_num_vocabulary_size">(espnet2.text.token_id_converter.TokenIDConverter method)</a>
+</li>
         <li><a href="_gen/espnet2.text.html#espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.get_num_vocabulary_size">(espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter method)</a>
 </li>
       </ul></li>
@@ -6534,10 +6544,10 @@
       </ul></li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.state_spaces.residual.Highway">Highway (class in espnet2.asr.state_spaces.residual)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet.nets.html#espnet.nets.pytorch_backend.tacotron2.cbhg.HighwayNet">HighwayNet (class in espnet.nets.pytorch_backend.tacotron2.cbhg)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="_gen/espnet2.enh.html#espnet2.enh.loss.criterions.time_domain.MultiResL1SpecLoss.hop_sz">hop_sz (espnet2.enh.loss.criterions.time_domain.MultiResL1SpecLoss attribute)</a>
 </li>
       <li><a href="_gen/espnet.nets.html#espnet.nets.batch_beam_search.BatchHypothesis.hs">hs (espnet.nets.batch_beam_search.BatchHypothesis attribute)</a>
@@ -6553,6 +6563,8 @@
       <li><a href="_gen/espnet2.hubert.html#espnet2.hubert.espnet_model.HubertPretrainModel">HubertPretrainModel (class in espnet2.hubert.espnet_model)</a>
 </li>
       <li><a href="_gen/espnet2.tasks.html#espnet2.tasks.hubert.HubertTask">HubertTask (class in espnet2.tasks.hubert)</a>
+</li>
+      <li><a href="_gen/espnet2.text.html#espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter">HuggingFaceTokenIDConverter (class in espnet2.text.hugging_face_token_id_converter)</a>
 </li>
       <li><a href="_gen/espnet2.text.html#espnet2.text.hugging_face_tokenizer.HuggingFaceTokenizer">HuggingFaceTokenizer (class in espnet2.text.hugging_face_tokenizer)</a>
 </li>
@@ -6604,9 +6616,11 @@
 </li>
       <li><a href="_gen/espnet2.asr.html#espnet2.asr.maskctc_model.MaskCTCInference.ids2text">ids2text() (espnet2.asr.maskctc_model.MaskCTCInference method)</a>
 </li>
-      <li><a href="_gen/espnet2.text.html#espnet2.text.token_id_converter.TokenIDConverter.ids2tokens">ids2tokens() (espnet2.text.token_id_converter.TokenIDConverter method)</a>
+      <li><a href="_gen/espnet2.text.html#espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter.ids2tokens">ids2tokens() (espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter method)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.text.html#espnet2.text.token_id_converter.TokenIDConverter.ids2tokens">(espnet2.text.token_id_converter.TokenIDConverter method)</a>
+</li>
         <li><a href="_gen/espnet2.text.html#espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.ids2tokens">(espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter method)</a>
 </li>
       </ul></li>
@@ -9804,9 +9818,11 @@
 </li>
       <li><a href="_gen/espnet2.bin.html#espnet2.bin.tokenize_text.tokenize">tokenize() (in module espnet2.bin.tokenize_text)</a>
 </li>
-      <li><a href="_gen/espnet2.text.html#espnet2.text.token_id_converter.TokenIDConverter.tokens2ids">tokens2ids() (espnet2.text.token_id_converter.TokenIDConverter method)</a>
+      <li><a href="_gen/espnet2.text.html#espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter.tokens2ids">tokens2ids() (espnet2.text.hugging_face_token_id_converter.HuggingFaceTokenIDConverter method)</a>
 
       <ul>
+        <li><a href="_gen/espnet2.text.html#espnet2.text.token_id_converter.TokenIDConverter.tokens2ids">(espnet2.text.token_id_converter.TokenIDConverter method)</a>
+</li>
         <li><a href="_gen/espnet2.text.html#espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.tokens2ids">(espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter method)</a>
 </li>
       </ul></li>
@@ -9830,10 +9846,10 @@
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_load">torch_load() (in module espnet.asr.asr_utils)</a>
 </li>
-      <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_resume">torch_resume() (in module espnet.asr.asr_utils)</a>
-</li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_resume">torch_resume() (in module espnet.asr.asr_utils)</a>
+</li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_save">torch_save() (in module espnet.asr.asr_utils)</a>
 </li>
       <li><a href="_gen/espnet.asr.html#espnet.asr.asr_utils.torch_snapshot">torch_snapshot() (in module espnet.asr.asr_utils)</a>

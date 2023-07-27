@@ -271,6 +271,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.hugging_face_transformers_postencoder</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">HuggingFaceTransformersPostEncoder</span><span class="p">,</span>
 <span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.postencoder.length_adaptor_postencoder</span> <span class="kn">import</span> <span class="n">LengthAdaptorPostEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.abs_preencoder</span> <span class="kn">import</span> <span class="n">AbsPreEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.linear</span> <span class="kn">import</span> <span class="n">LinearProjection</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.preencoder.sinc</span> <span class="kn">import</span> <span class="n">LightweightSincConvs</span>
@@ -373,6 +374,7 @@
     <span class="n">name</span><span class="o">=</span><span class="s2">&quot;postencoder&quot;</span><span class="p">,</span>
     <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
         <span class="n">hugging_face_transformers</span><span class="o">=</span><span class="n">HuggingFaceTransformersPostEncoder</span><span class="p">,</span>
+        <span class="n">length_adaptor</span><span class="o">=</span><span class="n">LengthAdaptorPostEncoder</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsPostEncoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>

@@ -223,6 +223,10 @@
 <span class="kn">import</span> <span class="nn">torch.quantization</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.hugging_face_transformers_decoder</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_hugging_face_model_lm_head</span><span class="p">,</span>
+    <span class="n">get_hugging_face_model_network</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.s4_decoder</span> <span class="kn">import</span> <span class="n">S4Decoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="n">BeamSearchTransducer</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.transducer.beam_search_transducer</span> <span class="kn">import</span> <span class="p">(</span>
@@ -234,11 +238,13 @@
 <span class="kn">from</span> <span class="nn">espnet2.tasks.enh_s2t</span> <span class="kn">import</span> <span class="n">EnhS2TTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.lm</span> <span class="kn">import</span> <span class="n">LMTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.build_tokenizer</span> <span class="kn">import</span> <span class="n">build_tokenizer</span>
+<span class="kn">from</span> <span class="nn">espnet2.text.hugging_face_token_id_converter</span> <span class="kn">import</span> <span class="n">HuggingFaceTokenIDConverter</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.token_id_converter</span> <span class="kn">import</span> <span class="n">TokenIDConverter</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.whisper_token_id_converter</span> <span class="kn">import</span> <span class="n">OpenAIWhisperTokenIDConverter</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.nested_dict_action</span> <span class="kn">import</span> <span class="n">NestedDictAction</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str2triple_str</span><span class="p">,</span> <span class="n">str_or_none</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.batch_beam_search</span> <span class="kn">import</span> <span class="n">BatchBeamSearch</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.batch_beam_search_online_sim</span> <span class="kn">import</span> <span class="n">BatchBeamSearchOnlineSim</span>
@@ -252,7 +258,7 @@
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
 
 <span class="k">try</span><span class="p">:</span>
-    <span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForSeq2SeqLM</span>
+    <span class="kn">from</span> <span class="nn">transformers</span> <span class="kn">import</span> <span class="n">AutoModelForCausalLM</span><span class="p">,</span> <span class="n">AutoModelForSeq2SeqLM</span>
     <span class="kn">from</span> <span class="nn">transformers.file_utils</span> <span class="kn">import</span> <span class="n">ModelOutput</span>
 
     <span class="n">is_transformers_available</span> <span class="o">=</span> <span class="kc">True</span>
@@ -311,7 +317,7 @@
         <span class="n">quantize_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Linear&quot;</span><span class="p">],</span>
         <span class="n">quantize_dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;qint8&quot;</span><span class="p">,</span>
         <span class="n">hugging_face_decoder</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="n">hugging_face_decoder_max_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">256</span><span class="p">,</span>
+        <span class="n">hugging_face_decoder_conf</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{},</span>
         <span class="n">time_sync</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">multi_asr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
@@ -438,26 +444,54 @@
                     <span class="s2">&quot; &amp;&amp; ./installers/install_transformers.sh`.&quot;</span>
                 <span class="p">)</span>
 
-            <span class="n">hugging_face_model</span> <span class="o">=</span> <span class="n">AutoModelForSeq2SeqLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
-                <span class="n">decoder</span><span class="o">.</span><span class="n">model_name_or_path</span>
-            <span class="p">)</span>
-
-            <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
-
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">hugging_face_model</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">):</span>
-                <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span>
-                    <span class="n">decoder</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">decoder</span><span class="o">.</span><span class="n">causal_lm</span><span class="p">:</span>
+                <span class="n">hugging_face_model</span> <span class="o">=</span> <span class="n">AutoModelForCausalLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+                    <span class="n">decoder</span><span class="o">.</span><span class="n">model_name_or_path</span>
                 <span class="p">)</span>
-                <span class="k">del</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span>
+
+                <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">resize_token_embeddings</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">out_features</span><span class="p">)</span>
+
+                <span class="n">transformer</span> <span class="o">=</span> <span class="n">get_hugging_face_model_network</span><span class="p">(</span><span class="n">hugging_face_model</span><span class="p">)</span>
+                <span class="n">transformer</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+
+                <span class="n">lm_head</span> <span class="o">=</span> <span class="n">get_hugging_face_model_lm_head</span><span class="p">(</span><span class="n">hugging_face_model</span><span class="p">)</span>
+                <span class="n">lm_head</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
-                <span class="k">del</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">encoder</span>
+                <span class="n">hugging_face_model</span> <span class="o">=</span> <span class="n">AutoModelForSeq2SeqLM</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+                    <span class="n">decoder</span><span class="o">.</span><span class="n">model_name_or_path</span>
+                <span class="p">)</span>
+
+                <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">decoder</span><span class="o">.</span><span class="n">lm_head</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
+
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">hugging_face_model</span><span class="p">,</span> <span class="s2">&quot;model&quot;</span><span class="p">):</span>
+                    <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span>
+                        <span class="n">decoder</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+                    <span class="p">)</span>
+                    <span class="k">del</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">encoder</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span>
+                        <span class="n">decoder</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">state_dict</span><span class="p">()</span>
+                    <span class="p">)</span>
+                    <span class="k">del</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">encoder</span>
 
             <span class="k">del</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">lm_head</span>
             <span class="k">del</span> <span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">decoder</span>
 
             <span class="n">hugging_face_linear_in</span> <span class="o">=</span> <span class="n">decoder</span><span class="o">.</span><span class="n">linear_in</span>
             <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="s2">&quot;num_beams&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">hugging_face_decoder_conf</span><span class="p">:</span>
+                <span class="n">hugging_face_decoder_conf</span><span class="p">[</span>
+                    <span class="s2">&quot;num_beams&quot;</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_beams</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">pad_token_id</span> <span class="ow">is</span> <span class="kc">None</span>
+                <span class="ow">and</span> <span class="s2">&quot;pad_token_id&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">hugging_face_decoder_conf</span>
+            <span class="p">):</span>
+                <span class="n">hugging_face_decoder_conf</span><span class="p">[</span>
+                    <span class="s2">&quot;pad_token_id&quot;</span>
+                <span class="p">]</span> <span class="o">=</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">eos_token_id</span>
 
             <span class="n">beam_search</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="kc">None</span>
@@ -555,7 +589,9 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">build_tokenizer</span><span class="p">(</span><span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;whisper_en&quot;</span><span class="p">,</span> <span class="s2">&quot;whisper_multilingual&quot;</span><span class="p">]:</span>
+        <span class="k">if</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;hugging_face&quot;</span><span class="p">:</span>
+            <span class="n">converter</span> <span class="o">=</span> <span class="n">HuggingFaceTokenIDConverter</span><span class="p">(</span><span class="n">model_name_or_path</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">bpemodel</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;whisper_en&quot;</span><span class="p">,</span> <span class="s2">&quot;whisper_multilingual&quot;</span><span class="p">]:</span>
             <span class="n">converter</span> <span class="o">=</span> <span class="n">TokenIDConverter</span><span class="p">(</span><span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">converter</span> <span class="o">=</span> <span class="n">OpenAIWhisperTokenIDConverter</span><span class="p">(</span><span class="n">model_type</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">)</span>
@@ -572,8 +608,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="n">beam_search_transducer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span> <span class="o">=</span> <span class="n">hugging_face_model</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_linear_in</span> <span class="o">=</span> <span class="n">hugging_face_linear_in</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_beam_size</span> <span class="o">=</span> <span class="n">beam_size</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_decoder_max_length</span> <span class="o">=</span> <span class="n">hugging_face_decoder_max_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_decoder_conf</span> <span class="o">=</span> <span class="n">hugging_face_decoder_conf</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">maxlenratio</span> <span class="o">=</span> <span class="n">maxlenratio</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">minlenratio</span> <span class="o">=</span> <span class="n">minlenratio</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
@@ -691,22 +726,48 @@
                 <span class="s2">&quot;best hypo: &quot;</span> <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">ids2tokens</span><span class="p">(</span><span class="n">best</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span><span class="p">:</span>
-            <span class="n">decoder_start_token_id</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">decoder_start_token_id</span>
-            <span class="p">)</span>
-            <span class="n">yseq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
-                <span class="n">encoder_outputs</span><span class="o">=</span><span class="n">ModelOutput</span><span class="p">(</span>
-                    <span class="n">last_hidden_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_linear_in</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
-                <span class="p">),</span>
-                <span class="n">use_cache</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">decoder_start_token_id</span><span class="o">=</span><span class="n">decoder_start_token_id</span><span class="p">,</span>
-                <span class="n">num_beams</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_beam_size</span><span class="p">,</span>
-                <span class="n">max_length</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_decoder_max_length</span><span class="p">,</span>
-            <span class="p">)</span>
+            <span class="n">num_beams</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_decoder_conf</span><span class="p">[</span><span class="s2">&quot;num_beams&quot;</span><span class="p">]</span>
+            <span class="n">enc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_linear_in</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">causal_lm</span><span class="p">:</span>
+                <span class="n">forward_args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asr_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">add_prefix_postfix</span><span class="p">(</span>
+                    <span class="n">enc</span><span class="p">,</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">([</span><span class="n">enc</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">enc</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">enc</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">enc</span><span class="o">.</span><span class="n">device</span><span class="p">),</span>
+                <span class="p">)</span>
+
+                <span class="c1"># input_ids are ignored if we provide inputs_embeds,</span>
+                <span class="c1"># but input_ids are still required, so we make fake ones</span>
+                <span class="n">input_ids</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span>
+                    <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">forward_args</span><span class="p">[</span><span class="s2">&quot;inputs_embeds&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="n">enc</span><span class="o">.</span><span class="n">device</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">yseq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+                    <span class="n">input_ids</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">num_beams</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">inputs_embeds</span><span class="o">=</span><span class="n">forward_args</span><span class="p">[</span><span class="s2">&quot;inputs_embeds&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">num_beams</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="n">attention_mask</span><span class="o">=</span><span class="n">input_ids</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">num_beams</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_decoder_conf</span><span class="p">,</span>
+                <span class="p">)</span>
+
+                <span class="n">yseq</span> <span class="o">=</span> <span class="n">yseq</span><span class="p">[:,</span> <span class="n">input_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">decoder_start_token_id</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">decoder_start_token_id</span>
+                <span class="p">)</span>
+                <span class="n">yseq</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_model</span><span class="o">.</span><span class="n">generate</span><span class="p">(</span>
+                    <span class="n">encoder_outputs</span><span class="o">=</span><span class="n">ModelOutput</span><span class="p">(</span><span class="n">last_hidden_state</span><span class="o">=</span><span class="n">enc</span><span class="p">),</span>
+                    <span class="n">decoder_start_token_id</span><span class="o">=</span><span class="n">decoder_start_token_id</span><span class="p">,</span>
+                    <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">hugging_face_decoder_conf</span><span class="p">,</span>
+                <span class="p">)</span>
+
             <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="p">[</span><span class="n">Hypothesis</span><span class="p">(</span><span class="n">yseq</span><span class="o">=</span><span class="n">yseq</span><span class="p">[</span><span class="mi">0</span><span class="p">])]</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
                 <span class="s2">&quot;best hypo: &quot;</span>
-                <span class="o">+</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">ids2tokens</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokens2text</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">ids2tokens</span><span class="p">(</span><span class="n">nbest_hyps</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                <span class="p">)</span>
                 <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -815,7 +876,7 @@
     <span class="n">quantize_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">quantize_dtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">hugging_face_decoder</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-    <span class="n">hugging_face_decoder_max_length</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">hugging_face_decoder_conf</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
     <span class="n">time_sync</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">multi_asr</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
 <span class="p">):</span>
@@ -868,7 +929,7 @@
         <span class="n">quantize_modules</span><span class="o">=</span><span class="n">quantize_modules</span><span class="p">,</span>
         <span class="n">quantize_dtype</span><span class="o">=</span><span class="n">quantize_dtype</span><span class="p">,</span>
         <span class="n">hugging_face_decoder</span><span class="o">=</span><span class="n">hugging_face_decoder</span><span class="p">,</span>
-        <span class="n">hugging_face_decoder_max_length</span><span class="o">=</span><span class="n">hugging_face_decoder_max_length</span><span class="p">,</span>
+        <span class="n">hugging_face_decoder_conf</span><span class="o">=</span><span class="n">hugging_face_decoder_conf</span><span class="p">,</span>
         <span class="n">time_sync</span><span class="o">=</span><span class="n">time_sync</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
@@ -1132,7 +1193,12 @@
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--ngram_weight&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;ngram weight&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--streaming&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--hugging_face_decoder&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--hugging_face_decoder_max_length&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--hugging_face_decoder_conf&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Custom kwargs for the HF .generate()&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
 
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--transducer_conf&quot;</span><span class="p">,</span>

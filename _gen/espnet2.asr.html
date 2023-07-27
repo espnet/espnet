@@ -1959,7 +1959,7 @@ registered hooks while the latter silently ignores them.</p>
 <dt id="espnet2.asr.postencoder.length_adaptor_postencoder.LengthAdaptorPostEncoder">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.postencoder.length_adaptor_postencoder.</code><code class="sig-name descname">LengthAdaptorPostEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">length_adaptor_n_layers: int = 0</em>, <em class="sig-param">input_layer: Optional[str] = None</em>, <em class="sig-param">output_size: Optional[int] = None</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">return_int_enc: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/postencoder/length_adaptor_postencoder.html#LengthAdaptorPostEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.postencoder.length_adaptor_postencoder.LengthAdaptorPostEncoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder" title="espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.postencoder.abs_postencoder.AbsPostEncoder</span></code></a></p>
-<p>Hugging Face Transformers PostEncoder.</p>
+<p>Length Adaptor PostEncoder.</p>
 <p>Initialize the module.</p>
 <dl class="method">
 <dt id="espnet2.asr.postencoder.length_adaptor_postencoder.LengthAdaptorPostEncoder.forward">
@@ -4485,7 +4485,7 @@ registered hooks while the latter silently ignores them.</p>
 <span class="target" id="module-espnet2.asr.decoder.hugging_face_transformers_decoder"></span><p>Hugging Face Transformers Decoder.</p>
 <dl class="class">
 <dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.hugging_face_transformers_decoder.</code><code class="sig-name descname">HuggingFaceTransformersDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">model_name_or_path: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.decoder.hugging_face_transformers_decoder.</code><code class="sig-name descname">HuggingFaceTransformersDecoder</code><span class="sig-paren">(</span><em class="sig-param">vocab_size: int</em>, <em class="sig-param">encoder_output_size: int</em>, <em class="sig-param">model_name_or_path: str</em>, <em class="sig-param">causal_lm: bool = False</em>, <em class="sig-param">prefix: str = ''</em>, <em class="sig-param">postfix: str = ''</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.decoder.abs_decoder.AbsDecoder" title="espnet2.asr.decoder.abs_decoder.AbsDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.decoder.abs_decoder.AbsDecoder</span></code></a>, <a class="reference internal" href="espnet.nets.html#espnet.nets.scorer_interface.BatchScorerInterface" title="espnet.nets.scorer_interface.BatchScorerInterface"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet.nets.scorer_interface.BatchScorerInterface</span></code></a></p>
 <p>Hugging Face Transformers Decoder.</p>
 <dl class="field-list simple">
@@ -4496,6 +4496,11 @@ registered hooks while the latter silently ignores them.</p>
 </ul>
 </dd>
 </dl>
+<dl class="method">
+<dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.add_prefix_postfix">
+<code class="sig-name descname">add_prefix_postfix</code><span class="sig-paren">(</span><em class="sig-param">enc_out</em>, <em class="sig-param">hlens</em>, <em class="sig-param">ys_in_pad</em>, <em class="sig-param">ys_in_lens</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder.add_prefix_postfix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.add_prefix_postfix" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.batch_score">
 <code class="sig-name descname">batch_score</code><span class="sig-paren">(</span><em class="sig-param">ys: torch.Tensor, states: List[Any], xs: torch.Tensor, speech: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, List[Any]]<a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#HuggingFaceTransformersDecoder.batch_score"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.HuggingFaceTransformersDecoder.batch_score" title="Permalink to this definition">¶</a></dt>
@@ -4582,6 +4587,16 @@ and next state for ys</p>
 </dd></dl>
 
 </dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.get_hugging_face_model_lm_head">
+<code class="sig-prename descclassname">espnet2.asr.decoder.hugging_face_transformers_decoder.</code><code class="sig-name descname">get_hugging_face_model_lm_head</code><span class="sig-paren">(</span><em class="sig-param">model</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#get_hugging_face_model_lm_head"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.get_hugging_face_model_lm_head" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.decoder.hugging_face_transformers_decoder.get_hugging_face_model_network">
+<code class="sig-prename descclassname">espnet2.asr.decoder.hugging_face_transformers_decoder.</code><code class="sig-name descname">get_hugging_face_model_network</code><span class="sig-paren">(</span><em class="sig-param">model</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/decoder/hugging_face_transformers_decoder.html#get_hugging_face_model_network"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.hugging_face_transformers_decoder.get_hugging_face_model_network" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="espnet2-asr-decoder-init-1">
