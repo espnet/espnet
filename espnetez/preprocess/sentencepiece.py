@@ -1,13 +1,15 @@
 import os
 import shutil
 from pathlib import Path
-import sentencepiece as spm
 from typing import Union
 
+import sentencepiece as spm
+
+
 def prepare_sentences(
-        dump_text_paths: Union[str, Path],
-        output_path: Union[str, Path],
-    ):
+    dump_text_paths: Union[str, Path],
+    output_path: Union[str, Path],
+):
     """Create train.txt file for sentencepiece training from the given dump file.
 
     Args:
@@ -21,21 +23,23 @@ def prepare_sentences(
 
     lines = []
     for dump_text_path in dump_text_paths:
-        with open(dump_text_path, 'r') as f:
+        with open(dump_text_path, "r") as f:
             lines += f.readlines()
-    
-    texts = '\n'.join([line.split(' ', maxsplit=1)[1].replace('\n', '') for line in lines])
 
-    with open(os.path.join(output_path, "train.txt"), 'w') as f:
+    texts = "\n".join(
+        [line.split(" ", maxsplit=1)[1].replace("\n", "") for line in lines]
+    )
+
+    with open(os.path.join(output_path, "train.txt"), "w") as f:
         f.write(texts)
 
 
 def train_sentencepiece(
-        dump_text_path: Union[str, Path],
-        output_path: Union[str, Path],
-        vocab_size: int =5000,
-        character_coverage: float =0.9995,
-    ):
+    dump_text_path: Union[str, Path],
+    output_path: Union[str, Path],
+    vocab_size: int = 5000,
+    character_coverage: float = 0.9995,
+):
     """Main function to train sentencepiece model.
 
     Args:
@@ -55,14 +59,16 @@ def train_sentencepiece(
     )
     if not os.path.exists(output_path):
         os.makedirs(output_path)
-    
+
     shutil.move("bpe.model", output_path)
     shutil.move("bpe.vocab", output_path)
 
     # create vocab file
-    with open(os.path.join(output_path, "bpe.vocab"), 'r') as f:
+    with open(os.path.join(output_path, "bpe.vocab"), "r") as f:
         lines = f.readlines()
-    
-    vocabs = ['<blank>', '<unk>'] + [l.split('\t')[0] for l in lines][3:] + ['<sos/eos>']
-    with open(os.path.join(output_path, "tokens.txt"), 'w') as f:
-        f.write('\n'.join(vocabs))
+
+    vocabs = (
+        ["<blank>", "<unk>"] + [l.split("\t")[0] for l in lines][3:] + ["<sos/eos>"]
+    )
+    with open(os.path.join(output_path, "tokens.txt"), "w") as f:
+        f.write("\n".join(vocabs))

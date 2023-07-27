@@ -1,13 +1,15 @@
 import glob
 import os
 from argparse import Namespace
+from pathlib import Path
+from typing import Dict, Union
 
 from espnetez.utils import get_task_class
-from typing import Union, Dict
-from pathlib import Path
+
 
 class Trainer:
     """Generic trainer class for ESPnet training!"""
+
     def __init__(
         self,
         task: str,
@@ -71,4 +73,3 @@ class Trainer:
         # Then start training.
         self.train_config.collect_stats = False
         self.task_class.main(self.train_config)
-    
