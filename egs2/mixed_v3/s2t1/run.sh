@@ -17,8 +17,8 @@ inference_config=conf/decode_s2t.yaml
 # inference only args
 # --cleaner whisper_en --hyp_cleaner whisper_en
 ./s2t.sh \
-    --stage 11 \
-    --stop_stage 11 \
+    --stage 1 \
+    --stop_stage 13 \
     --use_lm false \
     --num_nodes 16 \
     --ngpu 4 \
