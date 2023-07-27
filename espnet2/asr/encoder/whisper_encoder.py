@@ -50,7 +50,7 @@ class OpenAIWhisperEncoder(AbsEncoder):
         self.dropout = torch.nn.Dropout(dropout_rate)
 
         assert whisper_model in whisper.available_models()
-        _model = whisper.load_model(whisper_model, download_root=download_dir)
+        _model = whisper.load_model(whisper_model, download_root=download_dir, device='cpu')
         self.encoders = copy.deepcopy(_model.encoder)
         self.encoders.train()
 
