@@ -80,3 +80,35 @@ Following are the details about this recipe.
 |---|---|---|---|---|---|---|---|---|
 |decode_sot_asr_model_valid.acc.ave/dev|3000|670222|90.1|6.3|3.6|3.5|13.4|99.3|
 |decode_sot_asr_model_valid.acc.ave/test|3000|605408|90.7|5.7|3.6|3.3|12.6|98.7|
+
+
+## Whisper SOT results
+
+### exp/asr_train_sot_asr_whisper_small_raw_en_whisper_multilingual
+
+## Environments
+- date: `Thu Jul 27 19:07:11 CST 2023`
+- python version: `3.9.16 (main, Mar  8 2023, 14:00:05)  [GCC 11.2.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 2.0.1+cu118`
+- Git hash: `bfa5a6ca2d1697c88443b2eaecdfdec72524e05d`
+  - Commit date: `Tue Jul 25 18:31:13 2023 +0800`
+
+- ASR config: [conf/tuning/train_sot_asr_whisper_small.yaml](conf/tuning/train_sot_asr_whisper_small.yaml)
+- Decode config: [conf/tuning/decode_sot.yaml](conf/tuning/decode_sot.yaml)
+- Pretrained model: https://huggingface.co/espnet/chendali_librimix_asr_train_sot_asr_whisper_small_raw_en_whisper_multilingual
+
+
+#### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|org/dev|3000|126853|76.7|18.5|4.7|2.7|26.0|100.0|
+|decode_sot_asr_model_valid.acc.ave/test|3000|114243|77.8|17.1|5.1|2.8|25.0|100.0|
+
+#### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|org/dev|3000|673222|87.3|6.8|5.9|3.6|16.4|100.0|
+|decode_sot_asr_model_valid.acc.ave/test|3000|608408|87.7|6.2|6.1|3.4|15.7|100.0|
