@@ -1,4 +1,4 @@
-from .data import *
-from .utils import *
 from .config import *
+from .data import *
 from .trainer import Trainer
+from .utils import *

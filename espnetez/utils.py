@@ -1,4 +1,7 @@
+from argparse import Namespace
+
 import yaml
+
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asvspoof import ASVSpoofTask
 from espnet2.tasks.diar import DiarizationTask
