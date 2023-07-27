@@ -2,23 +2,26 @@ import os
 import glob
 from argparse import Namespace
 from espnetez.utils import get_task_class
-
+from typing import Union, Dict
+from pathlib import Path
 
 class Trainer:
+    """Generic trainer class for ESPnet training!"""
     def __init__(
         self,
-        task,
-        train_dump_dir,
-        valid_dump_dir,
-        output_dir,
-        data_inputs,
-        train_config,
+        task: str,
+        train_dump_dir: Union[str, Path],
+        valid_dump_dir: Union[str, Path],
+        output_dir: Union[str, Path],
+        data_inputs: Dict[str, Dict],
+        train_config: Namespace,
         **kwargs
     ):
         self.task_class = get_task_class(task)
         self.train_config = train_config
         self.train_config.update(kwargs)
         self.train_config = Namespace(**self.train_config)
+        self.output_dir = output_dir
         self._update_config(
             train_dump_dir=train_dump_dir,
             valid_dump_dir=valid_dump_dir,
@@ -48,9 +51,13 @@ class Trainer:
         self.train_config.valid_shape_file = glob.glob(os.path.join(output_dir, "valid", "*shape"))
 
     def train(self):
+        # check if output directory contains stats file.
+        if len(self.train_config.train_shape_file) == 0:
+            # Then we need to collect stats.
+            self.train_config.collect_stats = True
+            self.task_class.main(self.train_config)
+
+        # Then start training.
         self.train_config.collect_stats = False
         self.task_class.main(self.train_config)
     
-    def collect_stats(self):
-        self.train_config.collect_stats = True
-        self.task_class.main(self.train_config)
