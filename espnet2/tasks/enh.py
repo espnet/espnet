@@ -419,8 +419,7 @@ class EnhancementTask(AbsTask):
                 )
                 kwargs.update(args.preprocessor_conf)
                 retval = preprocessor_choices.get_class(args.preprocessor)(
-                    train=train,
-                    **kwargs,
+                    train=train, **kwargs
                 )
             else:
                 raise ValueError(

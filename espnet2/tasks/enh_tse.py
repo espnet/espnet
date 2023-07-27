@@ -248,8 +248,7 @@ class TargetSpeakerExtractionTask(AbsTask):
         cls, args: argparse.Namespace, train: bool
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
-        retval = TSEPreprocessor(
-            train=train,
+        kwargs = dict(
             train_spk2enroll=args.train_spk2enroll,
             enroll_segment=getattr(args, "enroll_segment", None),
             load_spk_embedding=getattr(args, "load_spk_embedding", False),
@@ -269,8 +268,9 @@ class TargetSpeakerExtractionTask(AbsTask):
             force_single_channel=getattr(args, "force_single_channel", False),
             channel_reordering=getattr(args, "channel_reordering", False),
             categories=getattr(args, "categories", None),
-            **args.preprocessor_conf,
         )
+        kwargs.update(args.preprocessor_conf)
+        retval = TSEPreprocessor(train=train, **kwargs)
         assert check_return_type(retval)
         return retval
 
@@ -332,7 +332,7 @@ class TargetSpeakerExtractionTask(AbsTask):
             extractor=extractor,
             decoder=decoder,
             loss_wrappers=loss_wrappers,
-            **args.model_conf,
+            **args.model_conf
         )
 
         # FIXME(kamo): Should be done in model?
