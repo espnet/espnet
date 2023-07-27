@@ -338,7 +338,45 @@
     <span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize NaiveRNN module.</span>
 
-<span class="sd">        Args: TODO(Yuning)</span>
+<span class="sd">        Args:</span>
+<span class="sd">            idim (int): Dimension of the label inputs.</span>
+<span class="sd">            odim (int): Dimension of the outputs.</span>
+<span class="sd">            midi_dim (int): Dimension of the midi inputs.</span>
+<span class="sd">            embed_dim (int): Dimension of the token embedding.</span>
+<span class="sd">            eprenet_conv_layers (int): Number of prenet conv layers.</span>
+<span class="sd">            eprenet_conv_filts (int): Number of prenet conv filter size.</span>
+<span class="sd">            eprenet_conv_chans (int): Number of prenet conv filter channels.</span>
+<span class="sd">            elayers (int): Number of encoder layers.</span>
+<span class="sd">            eunits (int): Number of encoder hidden units.</span>
+<span class="sd">            ebidirectional (bool): If bidirectional in encoder.</span>
+<span class="sd">            midi_embed_integration_type (str): how to integrate midi information,</span>
+<span class="sd">                (&quot;add&quot; or &quot;cat&quot;).</span>
+<span class="sd">            dlayers (int): Number of decoder lstm layers.</span>
+<span class="sd">            dunits (int): Number of decoder lstm units.</span>
+<span class="sd">            dbidirectional (bool): if bidirectional in decoder.</span>
+<span class="sd">            postnet_layers (int): Number of postnet layers.</span>
+<span class="sd">            postnet_filts (int): Number of postnet filter size.</span>
+<span class="sd">            postnet_chans (int): Number of postnet filter channels.</span>
+<span class="sd">            use_batch_norm (bool): Whether to use batch normalization.</span>
+<span class="sd">            reduction_factor (int): Reduction factor.</span>
+<span class="sd">            # extra embedding related</span>
+<span class="sd">            spks (Optional[int]): Number of speakers. If set to &gt; 1, assume that the</span>
+<span class="sd">                sids will be provided as the input and use sid embedding layer.</span>
+<span class="sd">            langs (Optional[int]): Number of languages. If set to &gt; 1, assume that the</span>
+<span class="sd">                lids will be provided as the input and use sid embedding layer.</span>
+<span class="sd">            spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to &gt; 0,</span>
+<span class="sd">                assume that spembs will be provided as the input.</span>
+<span class="sd">            spk_embed_integration_type (str): How to integrate speaker embedding.</span>
+<span class="sd">            eprenet_dropout_rate (float): Prenet dropout rate.</span>
+<span class="sd">            edropout_rate (float): Encoder dropout rate.</span>
+<span class="sd">            ddropout_rate (float): Decoder dropout rate.</span>
+<span class="sd">            postnet_dropout_rate (float): Postnet dropout_rate.</span>
+<span class="sd">            init_type (str): How to initialize transformer parameters.</span>
+<span class="sd">            use_masking (bool): Whether to mask padded part in loss calculation.</span>
+<span class="sd">            use_weighted_masking (bool): Whether to apply weighted masking in</span>
+<span class="sd">                loss calculation.</span>
+<span class="sd">            loss_type (str): Loss function type (&quot;L1&quot;, &quot;L2&quot;, or &quot;L1+L2&quot;).</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -422,7 +460,7 @@
                 <span class="n">eunits</span> <span class="o">*</span> <span class="n">dim_direction</span><span class="p">,</span> <span class="n">eunits</span> <span class="o">*</span> <span class="n">dim_direction</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">midi_projection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">linear</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">midi_projection</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
                 <span class="mi">2</span> <span class="o">*</span> <span class="n">eunits</span> <span class="o">*</span> <span class="n">dim_direction</span><span class="p">,</span> <span class="n">eunits</span> <span class="o">*</span> <span class="n">dim_direction</span>
             <span class="p">)</span>
 
@@ -709,6 +747,8 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">langs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">lid_embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lid_emb</span><span class="p">(</span><span class="n">lids</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
             <span class="n">hs</span> <span class="o">=</span> <span class="n">hs</span> <span class="o">+</span> <span class="n">lid_embs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">spembs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">spembs</span> <span class="o">=</span> <span class="n">spembs</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
         <span class="c1"># integrate speaker embedding</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_embed_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>

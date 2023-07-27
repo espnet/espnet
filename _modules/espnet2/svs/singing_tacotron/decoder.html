@@ -596,64 +596,7 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_activation_fn</span><span class="p">(</span><span class="n">outs</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span></div>
-
-<div class="viewcode-block" id="Decoder.calculate_all_attentions"><a class="viewcode-back" href="../../../../_gen/espnet2.svs.html#espnet2.svs.singing_tacotron.decoder.Decoder.calculate_all_attentions">[docs]</a>    <span class="k">def</span> <span class="nf">calculate_all_attentions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculate all of the attention weights.</span>
-<span class="sd">        Args:</span>
-<span class="sd">            hs (Tensor): Batch of the sequences of padded hidden states (B, Tmax, idim).</span>
-<span class="sd">            hlens (LongTensor): Batch of lengths of each input batch (B,).</span>
-<span class="sd">            trans_token (Tensor): Global transition token for duration (B x Tmax x 1)</span>
-<span class="sd">            ys (Tensor):</span>
-<span class="sd">                Batch of the sequences of padded target features (B, Lmax, odim).</span>
-<span class="sd">        Returns:</span>
-<span class="sd">            numpy.ndarray: Batch of attention weights (B, Lmax, Tmax).</span>
-<span class="sd">        Note:</span>
-<span class="sd">            This computation is performed in teacher-forcing manner.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># thin out frames (B, Lmax, odim) -&gt;  (B, Lmax/r, odim)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span><span class="p">]</span>
-
-        <span class="c1"># length list should be list of int</span>
-        <span class="n">hlens</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">hlens</span><span class="p">))</span>
-
-        <span class="c1"># initialize hidden states of decoder</span>
-        <span class="n">c_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
-        <span class="n">z_list</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
-        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">moves</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">)):</span>
-            <span class="n">c_list</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
-            <span class="n">z_list</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_zero_state</span><span class="p">(</span><span class="n">hs</span><span class="p">)]</span>
-        <span class="n">prev_out</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span><span class="n">hs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">)</span>
-
-        <span class="c1"># initialize attention</span>
-        <span class="n">prev_att_w</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
-
-        <span class="c1"># loop for an output sequence</span>
-        <span class="n">att_ws</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_att_extra_inputs</span><span class="p">:</span>
-                <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prev_att_w</span><span class="p">,</span> <span class="n">prev_out</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prev_att_w</span><span class="p">)</span>
-            <span class="n">att_ws</span> <span class="o">+=</span> <span class="p">[</span><span class="n">att_w</span><span class="p">]</span>
-            <span class="n">prenet_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span><span class="p">(</span><span class="n">prev_out</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prev_out</span>
-            <span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">att_c</span><span class="p">,</span> <span class="n">prenet_out</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">xs</span><span class="p">,</span> <span class="p">(</span><span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">)):</span>
-                <span class="n">z_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="n">i</span><span class="p">](</span>
-                    <span class="n">z_list</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="p">(</span><span class="n">z_list</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-                <span class="p">)</span>
-            <span class="n">prev_out</span> <span class="o">=</span> <span class="n">y</span>  <span class="c1"># teacher forcing</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cumulate_att_w</span> <span class="ow">and</span> <span class="n">prev_att_w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">prev_att_w</span> <span class="o">=</span> <span class="n">prev_att_w</span> <span class="o">+</span> <span class="n">att_w</span>  <span class="c1"># Note: error when use +=</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">prev_att_w</span> <span class="o">=</span> <span class="n">att_w</span>
-
-        <span class="n">att_ws</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">att_ws</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (B, Lmax, Tmax)</span>
-
-        <span class="k">return</span> <span class="n">att_ws</span></div></div>
+        <span class="k">return</span> <span class="n">outs</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">att_ws</span></div></div>
 </pre></div>
 
            </div>

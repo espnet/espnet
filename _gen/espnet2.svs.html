@@ -524,7 +524,7 @@ strings are acceptable.</p>
 <span class="target" id="module-espnet2.svs.xiaoice.XiaoiceSing"></span><p>XiaoiceSing related modules.</p>
 <dl class="class">
 <dt id="espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.xiaoice.XiaoiceSing.</code><code class="sig-name descname">XiaoiceSing</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">midi_dim: int = 129</em>, <em class="sig-param">duration_dim: int = 500</em>, <em class="sig-param">embed_dim: int = 512</em>, <em class="sig-param">adim: int = 384</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">elayers: int = 6</em>, <em class="sig-param">eunits: int = 1536</em>, <em class="sig-param">dlayers: int = 6</em>, <em class="sig-param">dunits: int = 1536</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 512</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">positionwise_layer_type: str = 'conv1d'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">use_scaled_pos_enc: bool = True</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">encoder_normalize_before: bool = True</em>, <em class="sig-param">decoder_normalize_before: bool = True</em>, <em class="sig-param">encoder_concat_after: bool = False</em>, <em class="sig-param">decoder_concat_after: bool = False</em>, <em class="sig-param">duration_predictor_layers: int = 2</em>, <em class="sig-param">duration_predictor_chans: int = 384</em>, <em class="sig-param">duration_predictor_kernel_size: int = 3</em>, <em class="sig-param">duration_predictor_dropout_rate: float = 0.1</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">encoder_type: str = 'transformer'</em>, <em class="sig-param">decoder_type: str = 'transformer'</em>, <em class="sig-param">transformer_enc_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">conformer_rel_pos_type: str = 'legacy'</em>, <em class="sig-param">conformer_pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">conformer_self_attn_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">conformer_activation_type: str = 'swish'</em>, <em class="sig-param">use_macaron_style_in_conformer: bool = True</em>, <em class="sig-param">use_cnn_in_conformer: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">conformer_enc_kernel_size: int = 7</em>, <em class="sig-param">conformer_dec_kernel_size: int = 31</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">init_enc_alpha: float = 1.0</em>, <em class="sig-param">init_dec_alpha: float = 1.0</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em>, <em class="sig-param">loss_function: str = 'XiaoiceSing2'</em>, <em class="sig-param">loss_type: str = 'L1'</em>, <em class="sig-param">lambda_mel: float = 1</em>, <em class="sig-param">lambda_dur: float = 0.1</em>, <em class="sig-param">lambda_pitch: float = 0.01</em>, <em class="sig-param">lambda_vuv: float = 0.01</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/xiaoice/XiaoiceSing.html#XiaoiceSing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.svs.xiaoice.XiaoiceSing.</code><code class="sig-name descname">XiaoiceSing</code><span class="sig-paren">(</span><em class="sig-param">idim: int</em>, <em class="sig-param">odim: int</em>, <em class="sig-param">midi_dim: int = 129</em>, <em class="sig-param">duration_dim: int = 500</em>, <em class="sig-param">adim: int = 384</em>, <em class="sig-param">aheads: int = 4</em>, <em class="sig-param">elayers: int = 6</em>, <em class="sig-param">eunits: int = 1536</em>, <em class="sig-param">dlayers: int = 6</em>, <em class="sig-param">dunits: int = 1536</em>, <em class="sig-param">postnet_layers: int = 5</em>, <em class="sig-param">postnet_chans: int = 512</em>, <em class="sig-param">postnet_filts: int = 5</em>, <em class="sig-param">postnet_dropout_rate: float = 0.5</em>, <em class="sig-param">positionwise_layer_type: str = 'conv1d'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 1</em>, <em class="sig-param">use_scaled_pos_enc: bool = True</em>, <em class="sig-param">use_batch_norm: bool = True</em>, <em class="sig-param">encoder_normalize_before: bool = True</em>, <em class="sig-param">decoder_normalize_before: bool = True</em>, <em class="sig-param">encoder_concat_after: bool = False</em>, <em class="sig-param">decoder_concat_after: bool = False</em>, <em class="sig-param">duration_predictor_layers: int = 2</em>, <em class="sig-param">duration_predictor_chans: int = 384</em>, <em class="sig-param">duration_predictor_kernel_size: int = 3</em>, <em class="sig-param">duration_predictor_dropout_rate: float = 0.1</em>, <em class="sig-param">reduction_factor: int = 1</em>, <em class="sig-param">encoder_type: str = 'transformer'</em>, <em class="sig-param">decoder_type: str = 'transformer'</em>, <em class="sig-param">transformer_enc_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_enc_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_positional_dropout_rate: float = 0.1</em>, <em class="sig-param">transformer_dec_attn_dropout_rate: float = 0.1</em>, <em class="sig-param">conformer_rel_pos_type: str = 'legacy'</em>, <em class="sig-param">conformer_pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">conformer_self_attn_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">conformer_activation_type: str = 'swish'</em>, <em class="sig-param">use_macaron_style_in_conformer: bool = True</em>, <em class="sig-param">use_cnn_in_conformer: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">conformer_enc_kernel_size: int = 7</em>, <em class="sig-param">conformer_dec_kernel_size: int = 31</em>, <em class="sig-param">spks: Optional[int] = None</em>, <em class="sig-param">langs: Optional[int] = None</em>, <em class="sig-param">spk_embed_dim: Optional[int] = None</em>, <em class="sig-param">spk_embed_integration_type: str = 'add'</em>, <em class="sig-param">init_type: str = 'xavier_uniform'</em>, <em class="sig-param">init_enc_alpha: float = 1.0</em>, <em class="sig-param">init_dec_alpha: float = 1.0</em>, <em class="sig-param">use_masking: bool = False</em>, <em class="sig-param">use_weighted_masking: bool = False</em>, <em class="sig-param">loss_function: str = 'XiaoiceSing2'</em>, <em class="sig-param">loss_type: str = 'L1'</em>, <em class="sig-param">lambda_mel: float = 1</em>, <em class="sig-param">lambda_dur: float = 0.1</em>, <em class="sig-param">lambda_pitch: float = 0.01</em>, <em class="sig-param">lambda_vuv: float = 0.01</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/xiaoice/XiaoiceSing.html#XiaoiceSing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.xiaoice.XiaoiceSing.XiaoiceSing" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.svs.abs_svs.AbsSVS" title="espnet2.svs.abs_svs.AbsSVS"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.svs.abs_svs.AbsSVS</span></code></a></p>
 <p>XiaoiceSing module for Singing Voice Synthesis.</p>
 <p>This is a module of XiaoiceSing. A high-quality singing voice synthesis system which
@@ -542,8 +542,10 @@ calculate the syllable duration loss for rhythm enhancement (syllable loss)</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
+<li><p><strong>idim</strong> (<em>int</em>) – Dimension of the label inputs.</p></li>
 <li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
+<li><p><strong>midi_dim</strong> (<em>int</em>) – Dimension of the midi inputs.</p></li>
+<li><p><strong>duration_dim</strong> (<em>int</em>) – Dimension of the duration inputs.</p></li>
 <li><p><strong>elayers</strong> (<em>int</em>) – Number of encoder layers.</p></li>
 <li><p><strong>eunits</strong> (<em>int</em>) – Number of encoder hidden units.</p></li>
 <li><p><strong>dlayers</strong> (<em>int</em>) – Number of decoder layers.</p></li>
@@ -598,7 +600,7 @@ calculation.</p></li>
 <li><p><strong>use_weighted_masking</strong> (<em>bool</em>) – Whether to apply weighted masking in loss
 calculation.</p></li>
 <li><p><strong>loss_function</strong> (<em>str</em>) – Loss functions (“FastSpeech1” or “XiaoiceSing2”)</p></li>
-<li><p><strong>loss_type</strong> (<em>str</em>) – Loss type (“L1” (MAE) or “L2” (MSE))</p></li>
+<li><p><strong>loss_type</strong> (<em>str</em>) – Mel loss type (“L1” (MAE), “L2” (MSE) or “L1+L2”)</p></li>
 <li><p><strong>lambda_mel</strong> (<em>float</em>) – Loss scaling coefficient for Mel loss.</p></li>
 <li><p><strong>lambda_dur</strong> (<em>float</em>) – Loss scaling coefficient for duration loss.</p></li>
 <li><p><strong>lambda_pitch</strong> (<em>float</em>) – Loss scaling coefficient for pitch loss.</p></li>
@@ -717,7 +719,7 @@ calculation.</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.svs.xiaoice.loss.XiaoiceSing2Loss.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">after_outs: torch.Tensor</em>, <em class="sig-param">before_outs: torch.Tensor</em>, <em class="sig-param">d_outs: torch.Tensor</em>, <em class="sig-param">p_outs: torch.Tensor</em>, <em class="sig-param">v_outs: torch.Tensor</em>, <em class="sig-param">ys: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor</em>, <em class="sig-param">ps: torch.Tensor</em>, <em class="sig-param">vs: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">olens: torch.Tensor</em>, <em class="sig-param">loss_type: str = 'L2'</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/xiaoice/loss.html#XiaoiceSing2Loss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.xiaoice.loss.XiaoiceSing2Loss.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">after_outs: torch.Tensor</em>, <em class="sig-param">before_outs: torch.Tensor</em>, <em class="sig-param">d_outs: torch.Tensor</em>, <em class="sig-param">p_outs: torch.Tensor</em>, <em class="sig-param">v_outs: torch.Tensor</em>, <em class="sig-param">ys: torch.Tensor</em>, <em class="sig-param">ds: torch.Tensor</em>, <em class="sig-param">ps: torch.Tensor</em>, <em class="sig-param">vs: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">olens: torch.Tensor</em>, <em class="sig-param">loss_type: str = 'L1'</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/xiaoice/loss.html#XiaoiceSing2Loss.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.xiaoice.loss.XiaoiceSing2Loss.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -733,6 +735,7 @@ calculation.</p></li>
 <li><p><strong>vs</strong> (<em>Tensor</em>) – Batch of target VUV (B, T_text, 1).</p></li>
 <li><p><strong>ilens</strong> (<em>LongTensor</em>) – Batch of the lengths of each input (B,).</p></li>
 <li><p><strong>olens</strong> (<em>LongTensor</em>) – Batch of the lengths of each target (B,).</p></li>
+<li><p><strong>loss_type</strong> (<em>str</em>) – Mel loss type (“L1” (MAE), “L2” (MSE) or “L1+L2”)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -903,7 +906,7 @@ which learn accurate alignment information automatically.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>idim</strong> (<em>int</em>) – Dimension of the inputs.</p></li>
+<li><p><strong>idim</strong> (<em>int</em>) – Dimension of the label inputs.</p></li>
 <li><p><strong>odim</strong> – (int) Dimension of the outputs.</p></li>
 <li><p><strong>embed_dim</strong> (<em>int</em>) – Dimension of the token embedding.</p></li>
 <li><p><strong>elayers</strong> (<em>int</em>) – Number of encoder blstm layers.</p></li>
@@ -1098,32 +1101,6 @@ with decoder lstm outputs.</p></li>
 </dd>
 </dl>
 <dl class="method">
-<dt id="espnet2.svs.singing_tacotron.decoder.Decoder.calculate_all_attentions">
-<code class="sig-name descname">calculate_all_attentions</code><span class="sig-paren">(</span><em class="sig-param">hs</em>, <em class="sig-param">hlens</em>, <em class="sig-param">ys</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/singing_tacotron/decoder.html#Decoder.calculate_all_attentions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.singing_tacotron.decoder.Decoder.calculate_all_attentions" title="Permalink to this definition">¶</a></dt>
-<dd><p>Calculate all of the attention weights.
-:param hs: Batch of the sequences of padded hidden states (B, Tmax, idim).
-:type hs: Tensor
-:param hlens: Batch of lengths of each input batch (B,).
-:type hlens: LongTensor
-:param trans_token: Global transition token for duration (B x Tmax x 1)
-:type trans_token: Tensor
-:param ys: Batch of the sequences of padded target features (B, Lmax, odim).
-:type ys: Tensor</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Batch of attention weights (B, Lmax, Tmax).</p>
-</dd>
-<dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>numpy.ndarray</p>
-</dd>
-</dl>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>This computation is performed in teacher-forcing manner.</p>
-</aside>
-</dd></dl>
-
-<dl class="method">
 <dt id="espnet2.svs.singing_tacotron.decoder.Decoder.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs</em>, <em class="sig-param">hlens</em>, <em class="sig-param">trans_token</em>, <em class="sig-param">ys</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/svs/singing_tacotron/decoder.html#Decoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.singing_tacotron.decoder.Decoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
@@ -1218,7 +1195,49 @@ Tensor: Attention weights (L, T).</p>
 The features are processed directly over time-domain from music score and
 predict the singing voice features</p>
 <p>Initialize NaiveRNN module.</p>
-<p>Args: TODO(Yuning)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idim</strong> (<em>int</em>) – Dimension of the label inputs.</p></li>
+<li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
+<li><p><strong>midi_dim</strong> (<em>int</em>) – Dimension of the midi inputs.</p></li>
+<li><p><strong>embed_dim</strong> (<em>int</em>) – Dimension of the token embedding.</p></li>
+<li><p><strong>eprenet_conv_layers</strong> (<em>int</em>) – Number of prenet conv layers.</p></li>
+<li><p><strong>eprenet_conv_filts</strong> (<em>int</em>) – Number of prenet conv filter size.</p></li>
+<li><p><strong>eprenet_conv_chans</strong> (<em>int</em>) – Number of prenet conv filter channels.</p></li>
+<li><p><strong>elayers</strong> (<em>int</em>) – Number of encoder layers.</p></li>
+<li><p><strong>eunits</strong> (<em>int</em>) – Number of encoder hidden units.</p></li>
+<li><p><strong>ebidirectional</strong> (<em>bool</em>) – If bidirectional in encoder.</p></li>
+<li><p><strong>midi_embed_integration_type</strong> (<em>str</em>) – how to integrate midi information,
+(“add” or “cat”).</p></li>
+<li><p><strong>dlayers</strong> (<em>int</em>) – Number of decoder lstm layers.</p></li>
+<li><p><strong>dunits</strong> (<em>int</em>) – Number of decoder lstm units.</p></li>
+<li><p><strong>dbidirectional</strong> (<em>bool</em>) – if bidirectional in decoder.</p></li>
+<li><p><strong>postnet_layers</strong> (<em>int</em>) – Number of postnet layers.</p></li>
+<li><p><strong>postnet_filts</strong> (<em>int</em>) – Number of postnet filter size.</p></li>
+<li><p><strong>postnet_chans</strong> (<em>int</em>) – Number of postnet filter channels.</p></li>
+<li><p><strong>use_batch_norm</strong> (<em>bool</em>) – Whether to use batch normalization.</p></li>
+<li><p><strong>reduction_factor</strong> (<em>int</em>) – Reduction factor.</p></li>
+<li><p><strong>extra embedding related</strong> (<em>#</em>) – </p></li>
+<li><p><strong>spks</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Number of speakers. If set to &gt; 1, assume that the
+sids will be provided as the input and use sid embedding layer.</p></li>
+<li><p><strong>langs</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Number of languages. If set to &gt; 1, assume that the
+lids will be provided as the input and use sid embedding layer.</p></li>
+<li><p><strong>spk_embed_dim</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Speaker embedding dimension. If set to &gt; 0,
+assume that spembs will be provided as the input.</p></li>
+<li><p><strong>spk_embed_integration_type</strong> (<em>str</em>) – How to integrate speaker embedding.</p></li>
+<li><p><strong>eprenet_dropout_rate</strong> (<em>float</em>) – Prenet dropout rate.</p></li>
+<li><p><strong>edropout_rate</strong> (<em>float</em>) – Encoder dropout rate.</p></li>
+<li><p><strong>ddropout_rate</strong> (<em>float</em>) – Decoder dropout rate.</p></li>
+<li><p><strong>postnet_dropout_rate</strong> (<em>float</em>) – Postnet dropout_rate.</p></li>
+<li><p><strong>init_type</strong> (<em>str</em>) – How to initialize transformer parameters.</p></li>
+<li><p><strong>use_masking</strong> (<em>bool</em>) – Whether to mask padded part in loss calculation.</p></li>
+<li><p><strong>use_weighted_masking</strong> (<em>bool</em>) – Whether to apply weighted masking in
+loss calculation.</p></li>
+<li><p><strong>loss_type</strong> (<em>str</em>) – Loss function type (“L1”, “L2”, or “L1+L2”).</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="method">
 <dt id="espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">label_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">duration_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">slur: torch.LongTensor = None</em>, <em class="sig-param">slur_lengths: torch.Tensor = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">flag_IsValid=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn.html#NaiveRNN.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn.NaiveRNN.forward" title="Permalink to this definition">¶</a></dt>
@@ -1360,8 +1379,53 @@ Tensor: Mean square error loss value.</p>
 for singing voice synthesis
 The features are processed directly over time-domain from music score and
 predict the singing voice features</p>
-<p>Initialize NaiveRNN module.</p>
-<p>Args: TODO(Yuning)</p>
+<p>Initialize NaiveRNNDP module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>idim</strong> (<em>int</em>) – Dimension of the label inputs.</p></li>
+<li><p><strong>odim</strong> (<em>int</em>) – Dimension of the outputs.</p></li>
+<li><p><strong>midi_dim</strong> (<em>int</em>) – Dimension of the midi inputs.</p></li>
+<li><p><strong>embed_dim</strong> (<em>int</em>) – Dimension of the token embedding.</p></li>
+<li><p><strong>eprenet_conv_layers</strong> (<em>int</em>) – Number of prenet conv layers.</p></li>
+<li><p><strong>eprenet_conv_filts</strong> (<em>int</em>) – Number of prenet conv filter size.</p></li>
+<li><p><strong>eprenet_conv_chans</strong> (<em>int</em>) – Number of prenet conv filter channels.</p></li>
+<li><p><strong>elayers</strong> (<em>int</em>) – Number of encoder layers.</p></li>
+<li><p><strong>eunits</strong> (<em>int</em>) – Number of encoder hidden units.</p></li>
+<li><p><strong>ebidirectional</strong> (<em>bool</em>) – If bidirectional in encoder.</p></li>
+<li><p><strong>midi_embed_integration_type</strong> (<em>str</em>) – how to integrate midi information,
+(“add” or “cat”).</p></li>
+<li><p><strong>dlayers</strong> (<em>int</em>) – Number of decoder lstm layers.</p></li>
+<li><p><strong>dunits</strong> (<em>int</em>) – Number of decoder lstm units.</p></li>
+<li><p><strong>dbidirectional</strong> (<em>bool</em>) – if bidirectional in decoder.</p></li>
+<li><p><strong>postnet_layers</strong> (<em>int</em>) – Number of postnet layers.</p></li>
+<li><p><strong>postnet_filts</strong> (<em>int</em>) – Number of postnet filter size.</p></li>
+<li><p><strong>postnet_chans</strong> (<em>int</em>) – Number of postnet filter channels.</p></li>
+<li><p><strong>use_batch_norm</strong> (<em>bool</em>) – Whether to use batch normalization.</p></li>
+<li><p><strong>reduction_factor</strong> (<em>int</em>) – Reduction factor.</p></li>
+<li><p><strong>duration_predictor_layers</strong> (<em>int</em>) – Number of duration predictor layers.</p></li>
+<li><p><strong>duration_predictor_chans</strong> (<em>int</em>) – Number of duration predictor channels.</p></li>
+<li><p><strong>duration_predictor_kernel_size</strong> (<em>int</em>) – Kernel size of duration predictor.</p></li>
+<li><p><strong>duration_predictor_dropout_rate</strong> (<em>float</em>) – Dropout rate in duration predictor.</p></li>
+<li><p><strong>extra embedding related</strong> (<em>#</em>) – </p></li>
+<li><p><strong>spks</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Number of speakers. If set to &gt; 1, assume that the
+sids will be provided as the input and use sid embedding layer.</p></li>
+<li><p><strong>langs</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Number of languages. If set to &gt; 1, assume that the
+lids will be provided as the input and use sid embedding layer.</p></li>
+<li><p><strong>spk_embed_dim</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – Speaker embedding dimension. If set to &gt; 0,
+assume that spembs will be provided as the input.</p></li>
+<li><p><strong>spk_embed_integration_type</strong> (<em>str</em>) – How to integrate speaker embedding.</p></li>
+<li><p><strong>eprenet_dropout_rate</strong> (<em>float</em>) – Prenet dropout rate.</p></li>
+<li><p><strong>edropout_rate</strong> (<em>float</em>) – Encoder dropout rate.</p></li>
+<li><p><strong>ddropout_rate</strong> (<em>float</em>) – Decoder dropout rate.</p></li>
+<li><p><strong>postnet_dropout_rate</strong> (<em>float</em>) – Postnet dropout_rate.</p></li>
+<li><p><strong>init_type</strong> (<em>str</em>) – How to initialize transformer parameters.</p></li>
+<li><p><strong>use_masking</strong> (<em>bool</em>) – Whether to mask padded part in loss calculation.</p></li>
+<li><p><strong>use_weighted_masking</strong> (<em>bool</em>) – Whether to apply weighted masking in
+loss calculation.</p></li>
+</ul>
+</dd>
+</dl>
 <dl class="method">
 <dt id="espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">text: torch.Tensor</em>, <em class="sig-param">text_lengths: torch.Tensor</em>, <em class="sig-param">feats: torch.Tensor</em>, <em class="sig-param">feats_lengths: torch.Tensor</em>, <em class="sig-param">label: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">label_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">melody_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">pitch: Optional[torch.Tensor] = None</em>, <em class="sig-param">pitch_lengths: Optional[torch.Tensor] = None</em>, <em class="sig-param">duration: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">duration_lengths: Optional[Dict[str</em>, <em class="sig-param">torch.Tensor]] = None</em>, <em class="sig-param">slur: torch.LongTensor = None</em>, <em class="sig-param">slur_lengths: torch.Tensor = None</em>, <em class="sig-param">spembs: Optional[torch.Tensor] = None</em>, <em class="sig-param">sids: Optional[torch.Tensor] = None</em>, <em class="sig-param">lids: Optional[torch.Tensor] = None</em>, <em class="sig-param">joint_training: bool = False</em>, <em class="sig-param">flag_IsValid=False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/svs/naive_rnn/naive_rnn_dp.html#NaiveRNNDP.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.svs.naive_rnn.naive_rnn_dp.NaiveRNNDP.forward" title="Permalink to this definition">¶</a></dt>

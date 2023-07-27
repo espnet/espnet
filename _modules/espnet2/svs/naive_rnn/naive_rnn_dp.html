@@ -282,9 +282,50 @@
         <span class="n">use_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">use_weighted_masking</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize NaiveRNN module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize NaiveRNNDP module.</span>
 
-<span class="sd">        Args: TODO(Yuning)</span>
+<span class="sd">        Args:</span>
+<span class="sd">            idim (int): Dimension of the label inputs.</span>
+<span class="sd">            odim (int): Dimension of the outputs.</span>
+<span class="sd">            midi_dim (int): Dimension of the midi inputs.</span>
+<span class="sd">            embed_dim (int): Dimension of the token embedding.</span>
+<span class="sd">            eprenet_conv_layers (int): Number of prenet conv layers.</span>
+<span class="sd">            eprenet_conv_filts (int): Number of prenet conv filter size.</span>
+<span class="sd">            eprenet_conv_chans (int): Number of prenet conv filter channels.</span>
+<span class="sd">            elayers (int): Number of encoder layers.</span>
+<span class="sd">            eunits (int): Number of encoder hidden units.</span>
+<span class="sd">            ebidirectional (bool): If bidirectional in encoder.</span>
+<span class="sd">            midi_embed_integration_type (str): how to integrate midi information,</span>
+<span class="sd">                (&quot;add&quot; or &quot;cat&quot;).</span>
+<span class="sd">            dlayers (int): Number of decoder lstm layers.</span>
+<span class="sd">            dunits (int): Number of decoder lstm units.</span>
+<span class="sd">            dbidirectional (bool): if bidirectional in decoder.</span>
+<span class="sd">            postnet_layers (int): Number of postnet layers.</span>
+<span class="sd">            postnet_filts (int): Number of postnet filter size.</span>
+<span class="sd">            postnet_chans (int): Number of postnet filter channels.</span>
+<span class="sd">            use_batch_norm (bool): Whether to use batch normalization.</span>
+<span class="sd">            reduction_factor (int): Reduction factor.</span>
+<span class="sd">            duration_predictor_layers (int): Number of duration predictor layers.</span>
+<span class="sd">            duration_predictor_chans (int): Number of duration predictor channels.</span>
+<span class="sd">            duration_predictor_kernel_size (int): Kernel size of duration predictor.</span>
+<span class="sd">            duration_predictor_dropout_rate (float): Dropout rate in duration predictor.</span>
+<span class="sd">            # extra embedding related</span>
+<span class="sd">            spks (Optional[int]): Number of speakers. If set to &gt; 1, assume that the</span>
+<span class="sd">                sids will be provided as the input and use sid embedding layer.</span>
+<span class="sd">            langs (Optional[int]): Number of languages. If set to &gt; 1, assume that the</span>
+<span class="sd">                lids will be provided as the input and use sid embedding layer.</span>
+<span class="sd">            spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to &gt; 0,</span>
+<span class="sd">                assume that spembs will be provided as the input.</span>
+<span class="sd">            spk_embed_integration_type (str): How to integrate speaker embedding.</span>
+<span class="sd">            eprenet_dropout_rate (float): Prenet dropout rate.</span>
+<span class="sd">            edropout_rate (float): Encoder dropout rate.</span>
+<span class="sd">            ddropout_rate (float): Decoder dropout rate.</span>
+<span class="sd">            postnet_dropout_rate (float): Postnet dropout_rate.</span>
+<span class="sd">            init_type (str): How to initialize transformer parameters.</span>
+<span class="sd">            use_masking (bool): Whether to mask padded part in loss calculation.</span>
+<span class="sd">            use_weighted_masking (bool): Whether to apply weighted masking in</span>
+<span class="sd">                loss calculation.</span>
+
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -549,6 +590,7 @@
             <span class="n">midi</span> <span class="o">=</span> <span class="n">melody</span>
             <span class="n">label_lengths</span> <span class="o">=</span> <span class="n">label_lengths</span>
             <span class="n">midi_lengths</span> <span class="o">=</span> <span class="n">melody_lengths</span>
+            <span class="n">duration_</span> <span class="o">=</span> <span class="n">duration</span>
             <span class="n">ds</span> <span class="o">=</span> <span class="n">duration</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">]</span>
@@ -576,7 +618,10 @@
             <span class="n">midi_emb</span><span class="p">,</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
         <span class="n">duration_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pack_padded_sequence</span><span class="p">(</span>
-            <span class="n">duration_emb</span><span class="p">,</span> <span class="n">midi_lengths</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span>
+            <span class="n">duration_emb</span><span class="p">,</span>
+            <span class="n">duration_lengths</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span>
+            <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">hs_label</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">label_emb</span><span class="p">)</span>
@@ -612,16 +657,21 @@
         <span class="n">d_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">duration_predictor</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_masks</span><span class="p">)</span>  <span class="c1"># (B, T_text)</span>
         <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">ds</span><span class="p">)</span>  <span class="c1"># (B, seq_len, eunits)</span>
 
+        <span class="n">olens</span> <span class="o">=</span> <span class="n">feats_lengths</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">olens_in</span> <span class="o">=</span> <span class="n">olens</span><span class="o">.</span><span class="n">new</span><span class="p">([</span><span class="n">olen</span> <span class="o">//</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="k">for</span> <span class="n">olen</span> <span class="ow">in</span> <span class="n">olens</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">olens_in</span> <span class="o">=</span> <span class="n">olens</span>
+
         <span class="n">hs_emb</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pack_padded_sequence</span><span class="p">(</span>
-            <span class="n">hs</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span>
+            <span class="n">hs</span><span class="p">,</span> <span class="n">olens_in</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cpu&quot;</span><span class="p">),</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">enforce_sorted</span><span class="o">=</span><span class="kc">False</span>
         <span class="p">)</span>
 
         <span class="n">zs</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs_emb</span><span class="p">)</span>
         <span class="n">zs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">utils</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">pad_packed_sequence</span><span class="p">(</span><span class="n">zs</span><span class="p">,</span> <span class="n">batch_first</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-        <span class="n">zs</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span><span class="p">]</span>
-
-        <span class="c1"># (B, T_feats//r, odim * r) -&gt; (B, T_feats//r * r, odim)</span>
+        <span class="c1"># feat_out: (B, T_feats//r, dunits * dim_direction) -&gt; (B, T_feats//r, odim * r)</span>
+        <span class="c1"># view: (B, T_feats//r, odim * r) -&gt; (B, T_feats//r * r, odim)</span>
         <span class="n">before_outs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">))</span>
 
         <span class="c1"># postnet -&gt; (B, T_feats//r * r, odim)</span>
@@ -748,14 +798,9 @@
         <span class="n">hs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">length_regulator</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">d_outs_int</span><span class="p">)</span>  <span class="c1"># (B, T_feats, adim)</span>
         <span class="n">zs</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">hs</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">&gt;</span> <span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">):</span>
-            <span class="n">zs</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[:,</span> <span class="p">:</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># if too short, use the first frame</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">zs</span> <span class="o">=</span> <span class="n">zs</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span> <span class="o">-</span> <span class="mi">1</span> <span class="p">::</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduction_factor</span><span class="p">]</span>
-
-        <span class="c1"># (B, T_feats//r, odim * r) -&gt; (B, T_feats//r * r, odim)</span>
+        <span class="c1"># feat_out: (B, T_feats//r, dunits * dim_direction) -&gt; (B, T_feats//r, odim * r)</span>
+        <span class="c1"># view: (B, T_feats//r, odim * r) -&gt; (B, T_feats//r * r, odim)</span>
         <span class="n">before_outs</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">feat_out</span><span class="p">(</span><span class="n">zs</span><span class="p">)</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">zs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">odim</span><span class="p">))</span>
-
         <span class="c1"># postnet -&gt; (B, T_feats//r * r, odim)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">postnet</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">after_outs</span> <span class="o">=</span> <span class="n">before_outs</span>
