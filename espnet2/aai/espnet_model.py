@@ -1,10 +1,10 @@
 import logging
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
-import scipy.stats
 
-import torch
 import numpy as np
+import scipy.stats
+import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
@@ -66,7 +66,6 @@ class ESPnetAAIModel(AbsESPnetModel):
                 self.frontend is None
             ), "frontend should be None when using full Whisper model"
 
-
     def forward(
         self,
         speech: torch.Tensor,
@@ -83,11 +82,11 @@ class ESPnetAAIModel(AbsESPnetModel):
             kwargs: "utt_id" is among the input.
         """
         # Check that batch_size is unified
-        assert (
-            speech.shape[0]
-            == speech_lengths.shape[0]
-            == ema.shape[0]
-        ), (speech.shape, speech_lengths.shape, ema.shape)
+        assert speech.shape[0] == speech_lengths.shape[0] == ema.shape[0], (
+            speech.shape,
+            speech_lengths.shape,
+            ema.shape,
+        )
         batch_size = speech.shape[0]
 
         # 1. Encoder
@@ -101,15 +100,15 @@ class ESPnetAAIModel(AbsESPnetModel):
         loss_mse = None
         stats = dict()
 
-        loss_mse, cc = self._calc_aai_loss(
-            encoder_out, encoder_out_lens, ema
-        )
+        loss_mse, cc = self._calc_aai_loss(encoder_out, encoder_out_lens, ema)
 
         stats["loss_mse"] = loss_mse.detach()
         stats["cc"] = cc
         stats["loss"] = loss_mse.detach()
 
-        loss, stats, weight = force_gatherable((loss_mse, stats, batch_size), loss_mse.device)
+        loss, stats, weight = force_gatherable(
+            (loss_mse, stats, batch_size), loss_mse.device
+        )
         return loss, stats, weight
 
     def collect_feats(
@@ -138,10 +137,9 @@ class ESPnetAAIModel(AbsESPnetModel):
                 feats, feats_lengths = self.specaug(feats, feats_lengths)
 
             if self.normalize is not None:
-                feats, feats_lengths = self.normalize(feats, feats_lengths)       
+                feats, feats_lengths = self.normalize(feats, feats_lengths)
 
         encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
-        
 
         assert encoder_out.size(0) == speech.size(0), (
             encoder_out.size(),
@@ -181,9 +179,9 @@ class ESPnetAAIModel(AbsESPnetModel):
         encoder_out: torch.Tensor,
         encoder_out_lens: torch.Tensor,
         ys_pad: torch.Tensor,
-    ):  
+    ):
         lossfn = torch.nn.MSELoss(reduction="mean")
-        
+
         lens = min(encoder_out.shape[1], ys_pad.shape[1])
         encoder_out = encoder_out[:, :lens, :]
         ys_pad = ys_pad[:, :lens, :]
@@ -194,26 +192,34 @@ class ESPnetAAIModel(AbsESPnetModel):
             cc = []
             ys_pad_ = ys_pad.detach().cpu().numpy()
             encoder_out_ = encoder_out.detach().cpu().numpy()
-        else: 
+        else:
             cc = None
-        #change to mask based normalisation
+        # change to mask based normalisation
         for i in range(encoder_out.shape[0]):
             if i == 0:
-                loss = lossfn(encoder_out[i, :encoder_out_lens[i], :], ys_pad[i, :encoder_out_lens[i], :])
+                loss = lossfn(
+                    encoder_out[i, : encoder_out_lens[i], :],
+                    ys_pad[i, : encoder_out_lens[i], :],
+                )
             else:
-                loss = loss + lossfn(encoder_out[i, :encoder_out_lens[i], :], ys_pad[i, :encoder_out_lens[i], :])
-            # 
+                loss = loss + lossfn(
+                    encoder_out[i, : encoder_out_lens[i], :],
+                    ys_pad[i, : encoder_out_lens[i], :],
+                )
+            #
             if not self.training:
                 c = []
-                
+
                 for j in range(encoder_out.shape[-1]):
-                    single_utt_cc = scipy.stats.pearsonr(ys_pad_[i, :encoder_out_lens[i], j], encoder_out_[i, :encoder_out_lens[i], j])[0]
+                    single_utt_cc = scipy.stats.pearsonr(
+                        ys_pad_[i, : encoder_out_lens[i], j],
+                        encoder_out_[i, : encoder_out_lens[i], j],
+                    )[0]
                     c.append(single_utt_cc)
                 cc.append(c)
         loss = loss / encoder_out.shape[0]
-        if not self.training:  
+        if not self.training:
             cc = np.array(cc)
             cc = np.mean(np.mean(cc, axis=0))
-        
-        
+
         return loss, cc

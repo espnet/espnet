@@ -21,7 +21,7 @@ use Getopt::Long;
 # pbs.pl has the same functionality as run.pl, except that
 # it runs the job in question on the queue (PBS).
 # This version of pbs.pl uses the task array functionality
-# of PBS.  
+# of PBS.
 # The script now supports configuring the queue system using a config file
 # (default in conf/pbs.conf; but can be passed specified with --config option)
 # and a set of command line options.

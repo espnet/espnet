@@ -25,4 +25,3 @@ class LinearDecoder(AbsDecoder):
         output = self.linear_decoder(input)
 
         return output
-

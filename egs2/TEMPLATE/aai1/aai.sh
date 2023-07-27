@@ -653,7 +653,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
         _opts+="--normalize=global_mvn --normalize_conf stats_file=${aai_stats_dir}/train/feats_stats.npz "
     fi
 
-    
+
     _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_scp},speech,${_type} "
     _opts+="--train_data_path_and_name_and_type ${_aai_train_dir}/${_ema},ema,pth "
     _opts+="--train_shape_file ${aai_stats_dir}/train/speech_shape "
@@ -769,7 +769,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
                 --data_path_and_name_and_type "${_data}/${_scp},speech,${_type}" \
                 --key_file "${_logdir}"/keys.JOB.scp \
                 --output_dir "${_logdir}" \
-                --score True 
+                --score True
     done
 fi
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -2,12 +2,11 @@ import collections.abc
 from pathlib import Path
 from typing import Union
 
-import torch
 import numpy as np
+import torch
 from typeguard import check_argument_types
 
 from espnet2.fileio.read_text import read_2columns_text
-
 
 
 class PthScpReader(collections.abc.Mapping):

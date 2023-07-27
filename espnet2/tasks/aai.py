@@ -6,6 +6,9 @@ import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.aai.decoder.abs_decoder import AbsDecoder
+from espnet2.aai.decoder.linear_decoder import LinearDecoder
+from espnet2.aai.espnet_model import ESPnetAAIModel
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -27,19 +30,15 @@ from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.transformer_encoder_multispkr import (
     TransformerEncoder as TransformerEncoderMultiSpkr,
 )
-from espnet2.aai.decoder.abs_decoder import AbsDecoder
-from espnet2.aai.decoder.linear_decoder import LinearDecoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from espnet2.asr.encoder.whisper_encoder import OpenAIWhisperEncoder
-from espnet2.aai.espnet_model import ESPnetAAIModel
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.whisper import WhisperFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
-
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -165,7 +164,7 @@ class AAITask(AbsTask):
             default=None,
             help="The number of input dimension of the feature",
         )
-        
+
         group.add_argument(
             "--init",
             type=lambda x: str_or_none(x.lower()),
@@ -194,7 +193,7 @@ class AAITask(AbsTask):
             default=get_default_kwargs(ESPnetAAIModel),
             help="The keyword arguments for model class.",
         )
-        
+
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
             "--use_preprocessor",
@@ -202,7 +201,6 @@ class AAITask(AbsTask):
             default=True,
             help="Apply preprocessing to data or not",
         )
-
 
         group.add_argument(
             "--speech_volume_normalize",

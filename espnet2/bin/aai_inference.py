@@ -4,28 +4,30 @@
 
 import argparse
 import logging
+import os
 import shutil
-import sys, os
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence, Tuple, Union
-import scipy.stats
+
 import numpy as np
-from pathlib import Path
+import scipy.stats
 import soundfile as sf
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
-from espnet2.fileio.datadir_writer import DatadirWriter
 
+from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.npy_scp import NpyScpWriter
+from espnet2.fileio.read_text import read_2columns_text
 from espnet2.tasks.aai import AAITask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.fileio.read_text import read_2columns_text
+
 
 class AAI:
     def __init__(
@@ -74,7 +76,7 @@ class AAI:
         logging.info("speech length: " + str(speech.size(1)))
 
         batch = to_device(batch, device=self.device)
-        
+
         output, lens = self.aai_model.encode(**batch)
         output = self.aai_model.decoder(output, lens)
         return output, lens
@@ -131,7 +133,6 @@ def inference(
     maxlenratio: float,
     allow_variable_data_keys: bool,
     decoder_weight=1.0,
-
 ):
     """Run text-to-speech inference."""
     assert check_argument_types()
@@ -199,17 +200,20 @@ def inference(
     import matplotlib.pyplot as plt
     from matplotlib.ticker import MaxNLocator
 
-    with NpyScpWriter(output_dir / "pred_ema", output_dir / "pred_ema/pred.scp") as ema_writer:
+    with NpyScpWriter(
+        output_dir / "pred_ema", output_dir / "pred_ema/pred.scp"
+    ) as ema_writer:
         for idx, (keys, batch) in enumerate(loader, 1):
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
-            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}            
+            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
             output, lengths = aai(**batch)
             assert len(output.shape) == 3
             for idx in range(len(output)):
-                ema_writer[keys[idx]] = output[idx, :lengths[idx], :].cpu().numpy()
+                ema_writer[keys[idx]] = output[idx, : lengths[idx], :].cpu().numpy()
+
 
 def score(args):
     p = Path(args.data_path_and_name_and_type[0][0])
@@ -219,15 +223,18 @@ def score(args):
     sdublevel_cc = {}
     overall_cc = []
     for folder in os.listdir(args.output_dir):
-        if not folder.startswith("output."): continue
+        if not folder.startswith("output."):
+            continue
         folder = os.path.join(args.output_dir, folder, "pred_ema")
         for fname in os.listdir(folder):
             fname = os.path.join(folder, fname)
-            if not fname.endswith(".npy"): continue
+            if not fname.endswith(".npy"):
+                continue
             utt = Path(fname).stem
             spk = spks[utt]
-            if spk not in sdublevel_cc: sdublevel_cc[spk] = []
-            with open(fname, 'rb') as f:
+            if spk not in sdublevel_cc:
+                sdublevel_cc[spk] = []
+            with open(fname, "rb") as f:
                 hyp = np.load(f)
             ref = torch.load(refs[utt])
             min_len = min(ref.shape[0], hyp.shape[0])
@@ -240,7 +247,8 @@ def score(args):
             overall_cc.append(utt_cc)
     overall_cc = round(np.mean(np.mean(overall_cc, axis=0)), 4)
     print(parent_folder, overall_cc)
-    
+
+
 def get_parser():
     """Get argument parser."""
     parser = config_argparse.ArgumentParser(
@@ -363,7 +371,6 @@ def main(cmd=None):
         score(args)
         return
     inference(**kwargs)
-    
 
 
 if __name__ == "__main__":

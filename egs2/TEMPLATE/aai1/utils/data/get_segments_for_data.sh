@@ -5,7 +5,7 @@
 # utterance to time offsets into a recording, with the format:
 #   <utterance-id> <recording-id> <segment-begin> <segment-end>
 # This script assumes utterance and recording ids are the same (i.e., that
-# wav.scp is indexed by utterance), and uses durations from 'utt2dur', 
+# wav.scp is indexed by utterance), and uses durations from 'utt2dur',
 # created if necessary by get_utt2dur.sh.
 
 . ./path.sh
