@@ -42,9 +42,13 @@ from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
+from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
+    HuggingFaceTransformersPostEncoder,
+)
+from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPostEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -96,6 +100,17 @@ normalize_choices = ClassChoices(
     optional=True,
 )
 
+preencoder_choices = ClassChoices(
+    name="preencoder",
+    classes=dict(
+        sinc=LightweightSincConvs,
+        linear=LinearProjection,
+    ),
+    type_check=AbsPreEncoder,
+    default=None,
+    optional=True,
+)
+
 encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
@@ -118,6 +133,17 @@ encoder_choices = ClassChoices(
     type_check=AbsEncoder,
     default="rnn",
 )
+postencoder_choices = ClassChoices(
+    name="postencoder",
+    classes=dict(
+        hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+        length_adaptor=LengthAdaptorPostEncoder,
+    ),
+    type_check=AbsPostEncoder,
+    default=None,
+    optional=True,
+)
+
 decoder_choices = ClassChoices(
     "decoder",
     classes=dict(linear=LinearDecoder),
@@ -144,7 +170,9 @@ class AAITask(AbsTask):
         frontend_choices,
         specaug_choices,
         normalize_choices,
+        preencoder_choices,
         encoder_choices,
+        postencoder_choices,
         decoder_choices,
         preprocessor_choices,
     ]
@@ -348,8 +376,27 @@ class AAITask(AbsTask):
         else:
             normalize = None
 
+        if getattr(args, "preencoder", None) is not None:
+            preencoder_class = preencoder_choices.get_class(args.preencoder)
+            preencoder = preencoder_class(**args.preencoder_conf)
+            input_size = preencoder.output_size()
+        else:
+            preencoder = None
+            
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+        encoder_output_size = encoder.output_size()
+        
+        if getattr(args, "postencoder", None) is not None:
+            postencoder_class = postencoder_choices.get_class(args.postencoder)
+            postencoder = postencoder_class(
+                input_size=encoder_output_size, **args.postencoder_conf
+            )
+            encoder_output_size = postencoder.output_size()
+        else:
+            postencoder = None
+            
+            
         decoder_class = decoder_choices.get_class(args.decoder)
         decoder = decoder_class(
             encoder_output_size=encoder.output_size(),
@@ -360,7 +407,9 @@ class AAITask(AbsTask):
             frontend=frontend,
             specaug=specaug,
             normalize=normalize,
+            preencoder=preencoder,
             encoder=encoder,
+            postencoder=postencoder,
             decoder=decoder,
             **args.model_conf,
         )

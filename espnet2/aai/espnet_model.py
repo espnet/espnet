@@ -10,6 +10,8 @@ from typeguard import check_argument_types
 
 from espnet2.aai.decoder.abs_decoder import AbsDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -33,7 +35,10 @@ class ESPnetAAIModel(AbsESPnetModel):
         frontend: Optional[AbsFrontend],
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
+        preencoder: Optional[AbsPreEncoder],
+        postencoder: Optional[AbsPostEncoder],
         encoder: AbsEncoder,
+        postencoder: Optional[AbsPostEncoder],
         decoder: AbsDecoder,
         ignore_id: int = -1,
         length_normalized_loss: bool = False,
@@ -47,7 +52,9 @@ class ESPnetAAIModel(AbsESPnetModel):
         self.frontend = frontend
         self.specaug = specaug
         self.normalize = normalize
+        self.preencoder = preencoder
         self.encoder = encoder
+        self.postencoder = postencoder
         self.decoder = decoder
         self.error_calculator = None
 
@@ -132,8 +139,17 @@ class ESPnetAAIModel(AbsESPnetModel):
 
             if self.normalize is not None:
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
+            
+        #example - upsample features    
+        if self.preencoder is not None:
+            feats, feats_lengths = self.preencoder(feats, feats_lengths)
 
         encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths)
+        
+        if self.postencoder is not None:
+            encoder_out, encoder_out_lens = self.postencoder(
+                encoder_out, encoder_out_lens
+            )
 
         assert encoder_out.size(0) == speech.size(0), (
             encoder_out.size(),
