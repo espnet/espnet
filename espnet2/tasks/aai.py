@@ -39,14 +39,14 @@ from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.whisper import WhisperFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
-from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
-from espnet2.asr.preencoder.linear import LinearProjection
-from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
 from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPostEncoder
+from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
+from espnet2.asr.preencoder.linear import LinearProjection
+from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -382,11 +382,11 @@ class AAITask(AbsTask):
             input_size = preencoder.output_size()
         else:
             preencoder = None
-            
+
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
         encoder_output_size = encoder.output_size()
-        
+
         if getattr(args, "postencoder", None) is not None:
             postencoder_class = postencoder_choices.get_class(args.postencoder)
             postencoder = postencoder_class(
@@ -395,8 +395,7 @@ class AAITask(AbsTask):
             encoder_output_size = postencoder.output_size()
         else:
             postencoder = None
-            
-            
+
         decoder_class = decoder_choices.get_class(args.decoder)
         decoder = decoder_class(
             encoder_output_size=encoder.output_size(),
