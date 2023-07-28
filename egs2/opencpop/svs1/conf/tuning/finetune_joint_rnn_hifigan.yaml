@@ -20,7 +20,7 @@ svs_conf:
   score2mel_params:              # keyword arguments for the selected model
     midi_dim: 129                # midi dimension (note number + silence)
     embed_dim: 512               # char or phn embedding dimension
-    duration_dim: 500            # duration embedding range
+    duration_dim: 512            # duration embedding range
     eprenet_conv_layers: 0       # prenet (from bytesing) conv layers
     eprenet_conv_chans: 256      # prenet (from bytesing) conv channels numbers
     eprenet_conv_filts: 3        # prenet (from bytesing) conv filters size
@@ -145,8 +145,8 @@ pitch_normalize: global_mvn  # normalizer for the pitch feature
 # initialization (might need to modify for your own pretrained model)
 init_param:
 #- exp/rnn-dp/latest.pth:svs:svs.generator.score2mel
-#- exp/ofuton_hifigan.v1/generator.pth::svs.generator.vocoder
-#- exp/ofuton_hifigan.v1/discriminator.pth::svs.discriminator
+#- exp/opencpop_hifigan.v1/generator.pth::svs.generator.vocoder
+#- exp/opencpop_hifigan.v1/discriminator.pth::svs.discriminator
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
