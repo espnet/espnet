@@ -28,7 +28,7 @@ else:
 
 
 class ESPnetAAIModel(AbsESPnetModel):
-    """CTC-attention hybrid Encoder-Decoder model"""
+    """Encoder model"""
 
     def __init__(
         self,
