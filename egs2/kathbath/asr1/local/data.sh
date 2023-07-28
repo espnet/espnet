@@ -98,7 +98,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 splitname=$(basename $split)
                 mkdir -p data/"$ln"/"$splitname"
                 find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; cat data/"$ln"/"$splitname"/wavs | rev | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
-                paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp 
+                paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
                 cat "$split"/"transcription_n2w.txt" | sed "s/.m4a//g" > data/"$ln"/"$splitname"/text
                 utils/utt2spk_to_spk2utt.pl data/"$ln"/"$splitname"/utt2spk > data/"$ln"/"$splitname"/spk2utt
@@ -125,11 +125,11 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             for split in $lang/* ; do
                 splitname=$(basename $split)"_noisy"
                 if [ "$splitname" == "valid_noisy" ]; then
-                    continue    
+                    continue
                 fi
                 mkdir -p data/"$ln"/"$splitname"
                 find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; cat data/"$ln"/"$splitname"/wavs | rev | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
-                paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp 
+                paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
                 cat "$split"/"transcription_n2w.txt" | sed "s/.m4a//g" > data/"$ln"/"$splitname"/text
                 utils/utt2spk_to_spk2utt.pl data/"$ln"/"$splitname"/utt2spk > data/"$ln"/"$splitname"/spk2utt
