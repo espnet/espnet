@@ -1,1 +1,0 @@
-../../../../../utils/make_fbank.sh
