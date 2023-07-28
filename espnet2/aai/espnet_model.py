@@ -15,12 +15,6 @@ from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.e2e_asr_common import ErrorCalculator
-from espnet.nets.pytorch_backend.nets_utils import th_accuracy
-from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
-from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
-    LabelSmoothingLoss,
-)
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -182,19 +176,19 @@ class ESPnetAAIModel(AbsESPnetModel):
     ):
         lossfn = torch.nn.MSELoss(reduction="mean")
 
+        #maybe not a good idea to do this.. 
         lens = min(encoder_out.shape[1], ys_pad.shape[1])
         encoder_out = encoder_out[:, :lens, :]
         ys_pad = ys_pad[:, :lens, :]
         encoder_out_lens = [min(x, lens) for x in encoder_out_lens]
-        # Calc CTC loss
-        # loss_ctc = self.ctc(encoder_out, encoder_out_lens, ys_pad, ys_pad_lens)
+
         if not self.training:
             cc = []
             ys_pad_ = ys_pad.detach().cpu().numpy()
             encoder_out_ = encoder_out.detach().cpu().numpy()
         else:
             cc = None
-        # change to mask based normalisation
+        # change to mask based normalisation instead of loop
         for i in range(encoder_out.shape[0]):
             if i == 0:
                 loss = lossfn(
@@ -209,7 +203,7 @@ class ESPnetAAIModel(AbsESPnetModel):
             #
             if not self.training:
                 c = []
-
+                #change to torch cc
                 for j in range(encoder_out.shape[-1]):
                     single_utt_cc = scipy.stats.pearsonr(
                         ys_pad_[i, : encoder_out_lens[i], j],
