@@ -16,11 +16,13 @@ from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
     "spks, langs, use_gst",
     [(-1, -1, False), (5, 2, True)],
 )
+@pytest.mark.parametrize("loss_type", ["L1", "L2", "L1+L2"])
 @pytest.mark.parametrize("use_guided_attn_loss", [True, False])
 def test_singing_tacotron(
     prenet_layers,
     postnet_layers,
     reduction_factor,
+    loss_type,
     atype,
     spks,
     langs,
@@ -65,7 +67,7 @@ def test_singing_tacotron(
         gst_conv_stride=2,
         gst_gru_layers=1,
         gst_gru_units=4,
-        loss_type="L1",
+        loss_type=loss_type,
         use_guided_attn_loss=use_guided_attn_loss,
         guided_attn_loss_sigma=0.4,
         guided_attn_loss_lambda=1.0,
@@ -74,8 +76,8 @@ def test_singing_tacotron(
     inputs = dict(
         text=torch.randint(0, idim, (2, 8)),
         text_lengths=torch.tensor([8, 5], dtype=torch.long),
-        feats=torch.randn(2, 16, odim),
-        feats_lengths=torch.tensor([16, 13], dtype=torch.long),
+        feats=torch.randn(2, 16 * reduction_factor, odim),
+        feats_lengths=torch.tensor([16, 10], dtype=torch.long) * reduction_factor,
         label={
             "lab": torch.randint(0, idim, (2, 8)),
             "score": torch.randint(0, idim, (2, 8)),
@@ -110,8 +112,8 @@ def test_singing_tacotron(
         },
         slur=torch.randint(0, 2, (2, 8)),
         slur_lengths=torch.tensor([8, 5], dtype=torch.long),
-        pitch=torch.randn(2, 16, 1),
-        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
+        pitch=torch.randn(2, 16 * reduction_factor, 1),
+        pitch_lengths=torch.tensor([16, 10], dtype=torch.long) * reduction_factor,
     )
     if spk_embed_dim is not None:
         inputs.update(spembs=torch.randn(2, spk_embed_dim))
@@ -176,7 +178,7 @@ def test_singing_tacotron(
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
             slur=torch.randint(0, 2, (1, 5)),
-            pitch=torch.randn(16, 1),
+            pitch=torch.randn(11 * reduction_factor, 1),
         )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
@@ -252,8 +254,8 @@ def test_singing_tacotron(
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
             slur=torch.randint(0, 2, (1, 5)),
-            pitch=torch.randn(16, 1),
-            feats=torch.randn(16, odim),
+            pitch=torch.randn(11 * reduction_factor, 1),
+            feats=torch.randn(11 * reduction_factor, odim),
         )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
