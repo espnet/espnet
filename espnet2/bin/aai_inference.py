@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-"""Script to run the inference of text-to-speeech model."""
+"""Script to run the inference of acoustic to articulatory inversion / speech inversion model."""
 
 import argparse
 import logging
 import os
-import shutil
 import sys
 import time
 from pathlib import Path
@@ -13,12 +12,10 @@ from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import scipy.stats
-import soundfile as sf
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
-from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.fileio.read_text import read_2columns_text
 from espnet2.tasks.aai import AAITask
@@ -40,7 +37,7 @@ class AAI:
         device: str = "cpu",
         seed: int = 777,
     ):
-        """Initialize Text2Speech module."""
+        """Initialize AAI module."""
         assert check_argument_types()
 
         # setup model
@@ -61,7 +58,7 @@ class AAI:
         self,
         speech: Union[torch.Tensor, np.ndarray] = None,
     ) -> Dict[str, torch.Tensor]:
-        """Run text-to-speech."""
+        """Run inversion."""
         assert check_argument_types()
 
         # check inputs
@@ -70,7 +67,6 @@ class AAI:
 
         # prepare batch
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
-        # lengths: (1,)
         lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
         batch = {"speech": speech, "speech_lengths": lengths}
         logging.info("speech length: " + str(speech.size(1)))
@@ -86,17 +82,14 @@ class AAI:
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build Text2Speech instance from the pretrained model.
+        """Build AAI instance from the pretrained model.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
-            vocoder_tag (Optional[str]): Vocoder tag of the pretrained vocoders.
-                Currently, the tags of parallel_wavegan are supported, which should
-                start with the prefix "parallel_wavegan/".
 
         Returns:
-            Text2Speech: Text2Speech instance.
+            AAI: AAI instance.
 
         """
         if model_tag is not None:
@@ -134,7 +127,7 @@ def inference(
     allow_variable_data_keys: bool,
     decoder_weight=1.0,
 ):
-    """Run text-to-speech inference."""
+    """Run inversion inference."""
     assert check_argument_types()
     if batch_size > 1:
         raise NotImplementedError("batch decoding is not implemented")
@@ -184,21 +177,7 @@ def inference(
 
     # 6. Start for-loop
     output_dir = Path(output_dir)
-    (output_dir / "norm").mkdir(parents=True, exist_ok=True)
-    (output_dir / "denorm").mkdir(parents=True, exist_ok=True)
-    (output_dir / "speech_shape").mkdir(parents=True, exist_ok=True)
-    (output_dir / "wav").mkdir(parents=True, exist_ok=True)
-    (output_dir / "att_ws").mkdir(parents=True, exist_ok=True)
-    (output_dir / "probs").mkdir(parents=True, exist_ok=True)
-    (output_dir / "durations").mkdir(parents=True, exist_ok=True)
-    (output_dir / "focus_rates").mkdir(parents=True, exist_ok=True)
-
-    # Lazy load to avoid the backend error
-    import matplotlib
-
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-    from matplotlib.ticker import MaxNLocator
+    (output_dir / "pred_ema").mkdir(parents=True, exist_ok=True)
 
     with NpyScpWriter(
         output_dir / "pred_ema", output_dir / "pred_ema/pred.scp"
@@ -216,6 +195,7 @@ def inference(
 
 
 def score(args):
+    ##needs further work
     p = Path(args.data_path_and_name_and_type[0][0])
     parent_folder = p.parents[0]
     refs = read_2columns_text(os.path.join(parent_folder, "text"))
@@ -252,7 +232,7 @@ def score(args):
 def get_parser():
     """Get argument parser."""
     parser = config_argparse.ArgumentParser(
-        description="TTS inference",
+        description="AAI inference",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
