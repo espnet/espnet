@@ -27,8 +27,8 @@ def main():
         new_lines.append(line)
 
     with open(filename, "w") as f:
-        for l in new_lines:
-            f.write(l + "\n")
+        for line in new_lines:
+            f.write(line + "\n")
 
 
 if __name__ == "__main__":
