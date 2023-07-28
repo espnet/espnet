@@ -68,12 +68,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         sed "s:./:$download_data/GV_Dev_5h/:" data/dev/mp3.scp > data/temp ; mv data/temp data/dev/mp3.scp
         sed "s:./:$download_data/GV_Train_100h/:" data/train100/mp3.scp > data/temp ; mv data/temp data/train100/mp3.scp
 
-        for x in train100 dev test; do
+        for x in train100 dev test; do  
 
             fname="data/"$x/"text"
             python3 local/clean_text.py $fname
             cut -d' ' -f1 data/"$x"/text > data/clean_ids
-            cat data/"$x"/mp3.scp | grep -f data/clean_ids > data/temp ; mv data/temp data/"$x"/mp3.scp
+            grep -f data/clean_ids data/"$x"/mp3.scp > data/temp ; mv data/temp data/"$x"/mp3.scp
             paste -d" " "data/clean_ids" "data/clean_ids" > "data/"$x/"utt2spk"
             rm data/clean_ids
 
