@@ -64,15 +64,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         cp $download_data/"GV_Train_100h"/{mp3.scp,text} data/train100
         cp $download_data/"GV_Dev_5h"/{mp3.scp,text} data/dev
         cp $download_data/"GV_Eval_3h"/{mp3.scp,text} data/test
-        cat data/test/mp3.scp | sed "s:./:"$download_data/GV_Eval_3h"/:" > data/temp ; mv data/temp data/test/mp3.scp
-        cat data/dev/mp3.scp | sed "s:./:"$download_data/GV_Dev_5h"/:" > data/temp ; mv data/temp data/dev/mp3.scp
-        cat data/train100/mp3.scp | sed "s:./:"$download_data/GV_Train_100h"/:" > data/temp ; mv data/temp data/train100/mp3.scp
+        sed "s:./:$download_data/GV_Eval_3h/:" data/test/mp3.scp > data/temp ; mv data/temp data/test/mp3.scp
+        sed "s:./:$download_data/GV_Dev_5h/:" data/dev/mp3.scp > data/temp ; mv data/temp data/dev/mp3.scp
+        sed "s:./:$download_data/GV_Train_100h/:" data/train100/mp3.scp > data/temp ; mv data/temp data/train100/mp3.scp
 
         for x in train100 dev test; do
 
             fname="data/"$x/"text"
             python3 local/clean_text.py $fname
-            cat data/"$x"/text | cut -d' ' -f1 > data/clean_ids
+            cut -d' ' -f1 data/"$x"/text > data/clean_ids
             cat data/"$x"/mp3.scp | grep -f data/clean_ids > data/temp ; mv data/temp data/"$x"/mp3.scp
             paste -d" " "data/clean_ids" "data/clean_ids" > "data/"$x/"utt2spk"
             rm data/clean_ids
@@ -84,9 +84,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             mkdir -p $savefolder
             [ -e $savepath ] && rm $savepath
             while IFS= read -r line;do
-                path=`echo $line | cut -d' ' -f2`
-                id=`echo $line | cut -d' ' -f1`
-                savename=$savefolder"/"$id".wav"
+                path=$(echo $line | cut -d' ' -f2)
+                id=$(echo $line | cut -d' ' -f1)
+                savename="$savefolder"/"$id".wav
                 sox $path -c 1 $savename rate 16000
                 echo $id$" "$savename >> $savepath
                 done < "data/"$x/"mp3.scp"
