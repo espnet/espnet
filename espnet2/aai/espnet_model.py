@@ -192,7 +192,7 @@ class ESPnetAAIModel(AbsESPnetModel):
     ):
         lossfn = torch.nn.MSELoss(reduction="mean")
 
-        #maybe not a good idea to do this.. 
+        # maybe not a good idea to do this..
         lens = min(encoder_out.shape[1], ys_pad.shape[1])
         encoder_out = encoder_out[:, :lens, :]
         ys_pad = ys_pad[:, :lens, :]
@@ -219,7 +219,7 @@ class ESPnetAAIModel(AbsESPnetModel):
             #
             if not self.training:
                 c = []
-                #change to torch cc
+                # change to torch cc
                 for j in range(encoder_out.shape[-1]):
                     single_utt_cc = scipy.stats.pearsonr(
                         ys_pad_[i, : encoder_out_lens[i], j],
