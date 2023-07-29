@@ -7,26 +7,29 @@ set -o pipefail
 
 train_set=train
 valid_set=dev
-test_sets="dev"
+test_sets="test/LibriSpeech/test_clean test/LibriSpeech/test_other test/SWBD/eval2000 test/TEDLIUM/test"
 
 nbpe=50000
-s2t_config=conf/tuning/train_s2t_transformer_conv2d_size1024_e24_d24_lr1e-3_warmup30k.yaml
+s2t_config=conf/tuning/train_s2t_transformer_conv2d_size1024_e18_d18_lr5e-4_warmup20k.yaml
 inference_config=conf/decode_s2t.yaml
 
+# inference only args
+# --cleaner whisper_en --hyp_cleaner whisper_en
 ./s2t.sh \
-    --stage 5 \
-    --stop_stage 5 \
+    --stage 1 \
+    --stop_stage 13 \
     --use_lm false \
-    --num_nodes 8 \
+    --num_nodes 32 \
     --ngpu 4 \
-    --nj 128 \
+    --nj 64 \
     --gpu_inference true \
-    --inference_nj 32 \
-    --num_splits_s2t 5 \
+    --inference_nj 64 \
+    --num_splits_s2t 10 \
     --feats_type raw \
     --audio_format flac.ark \
     --token_type bpe \
     --nbpe ${nbpe} \
+    --bpe_input_sentence_size 10000000 \
     --s2t_config "${s2t_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
