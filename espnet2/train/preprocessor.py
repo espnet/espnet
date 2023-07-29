@@ -13,6 +13,7 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
+from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 
@@ -173,7 +174,11 @@ class CommonPreprocessor(AbsPreprocessor):
                 g2p_type=g2p_type,
                 nonsplit_symbol=nonsplit_symbol,
             )
-            if bpemodel not in ["whisper_en", "whisper_multilingual"]:
+            if token_type == "hugging_face":
+                self.token_id_converter = HuggingFaceTokenIDConverter(
+                    model_name_or_path=bpemodel
+                )
+            elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
                 self.token_id_converter = TokenIDConverter(
                     token_list=token_list,
                     unk_symbol=unk_symbol,

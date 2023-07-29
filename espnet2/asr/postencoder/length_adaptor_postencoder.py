@@ -14,7 +14,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 
 
 class LengthAdaptorPostEncoder(AbsPostEncoder):
-    """Hugging Face Transformers PostEncoder."""
+    """Length Adaptor PostEncoder."""
 
     def __init__(
         self,

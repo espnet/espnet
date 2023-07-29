@@ -16,32 +16,30 @@
 svs: joint_score2wav                     # model architecture
 svs_conf:
   # copied from pretrained model's config.yaml
-  score2mel_type: naive_rnn_dp
+  score2mel_type: xiaoice
   score2mel_params:              # keyword arguments for the selected model
-    midi_dim: 129                # midi dimension (note number + silence)
-    embed_dim: 512               # char or phn embedding dimension
-    duration_dim: 500            # duration embedding range
-    eprenet_conv_layers: 0       # prenet (from bytesing) conv layers
-    eprenet_conv_chans: 256      # prenet (from bytesing) conv channels numbers
-    eprenet_conv_filts: 3        # prenet (from bytesing) conv filters size
-    elayers: 3                   # number of lstm layers in encoder
-    eunits: 256                  # number of lstm units
-    ebidirectional: True         # if bidirectional in encoder
-    midi_embed_integration_type: add # how to integrate midi information
-    dlayers: 2                   # number of lstm layers in decoder
-    dunits: 256                  # number of lstm units in decoder
-    dbidirectional: True         # if bidirectional in decoder
+    midi_dim: 129                # midi embedding range (note number + silence)
+    duration_dim: 512            # duration embedding range
+    adim: 384
+    aheads: 4
+    elayers: 6                   # number of lstm layers in encoder
+    eunits: 1536                 # number of lstm units
+    dlayers: 6                   # number of lstm layers in decoder
+    dunits: 1536                 # number of lstm units in decoder
     postnet_layers: 5            # number of layers in postnet
     postnet_chans: 512           # number of channels in postnet
     postnet_filts: 5             # filter size of postnet layer
+    postnet_dropout_rate: 0.5    # postnet dropout_rate
     use_batch_norm: true         # whether to use batch normalization in postnet
     reduction_factor: 1          # reduction factor
-    eprenet_dropout_rate: 0.2    # prenet dropout rate
-    edropout_rate: 0.1           # encoder dropout rate
-    ddropout_rate: 0.1           # decoder dropout rate
-    postnet_dropout_rate: 0.5    # postnet dropout_rate
     init_type: pytorch           # parameter initialization
     use_masking: true            # whether to apply masking for padded part in loss calculation
+    loss_function: XiaoiceSing2  # Loss funtions (FastSpeech1 or XiaoiceSing2)
+    loss_type: L1                # mel loss type ("L1", "L2" or "L1+L2")
+    lambda_mel: 1                # Loss scaling coefficient for Mel loss.
+    lambda_dur: 0.1              # Loss scaling coefficient for duration loss.
+    lambda_pitch: 0.01           # Loss scaling coefficient for pitch loss.
+    lambda_vuv: 0.01             # Loss scaling coefficient for VUV loss.
 
   # vocoder related
   vocoder_type: hifigan_generator
@@ -125,7 +123,7 @@ svs_conf:
     fmax: null         # maximum frequency for Mel basis
     log_base: null     # null represent natural log
 
-  lambda_score2mel: 1.0  # loss scaling coefficient for score2mel loss
+  lambda_score2mel: 1.0   # loss scaling coefficient for score2mel loss
   lambda_adv: 1.0        # loss scaling coefficient for adversarial loss
   lambda_mel: 45.0       # loss scaling coefficient for Mel loss
   lambda_feat_match: 2.0 # loss scaling coefficient for feat match loss
@@ -144,9 +142,9 @@ pitch_normalize: global_mvn  # normalizer for the pitch feature
 
 # initialization (might need to modify for your own pretrained model)
 init_param:
-#- exp/rnn-dp/latest.pth:svs:svs.generator.score2mel
-#- exp/ofuton_hifigan.v1/generator.pth::svs.generator.vocoder
-#- exp/ofuton_hifigan.v1/discriminator.pth::svs.discriminator
+#- exp/xiaoice/latest.pth:svs:svs.generator.score2mel
+#- exp/opencpop_hifigan.v1/generator.pth::svs.generator.vocoder
+#- exp/opecnpop_hifigan.v1/discriminator.pth::svs.discriminator
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
@@ -207,4 +205,4 @@ best_model_criterion:       # criterion to save the best models
 cudnn_deterministic: false # setting to false accelerates the training speed but makes it non-deterministic
                            # in the case of GAN-TTS training, we strongly recommend setting to false
 cudnn_benchmark: false     # setting to true might acdelerate the training speed but sometimes decrease it
-                           # therefore, we set to false as a default (recommend trying both cases)
+                          # therefore, we set to false as a default (recommend trying both cases)
