@@ -1886,7 +1886,7 @@ class S2TPreprocessor(CommonPreprocessor):
 
                     # Augment text
                     if name == self.text_name:
-                        # NOTE(yifan): The first token is always space 
+                        # NOTE(yifan): The first token is always space
                         # which should be removed.
                         # No space is allowed between special tokens.
                         # This works for bpe, but maybe not for the other types.
