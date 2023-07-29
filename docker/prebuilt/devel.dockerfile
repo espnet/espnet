@@ -16,7 +16,7 @@ ENV PATH=/opt/miniconda/bin:${PATH}
 # Download ESPnet
 RUN git clone ${ESPNET_LOCATION} && \
     cd espnet && \
-    rm -rf docker egs egs2 espnet2 test utils && \
+    rm -rf docker egs egs2 test utils && \
     rm -rf .git
 
 # Install espnet
@@ -42,17 +42,14 @@ RUN if [ -z "${CUDA_VER}" ]; then \
     fi; \
     echo "Make with options ${MY_OPTS}" && \
     ln -s /opt/kaldi ./ && \
-   rm -f activate_python.sh && touch activate_python.sh && \
-   conda install -y conda "python=3.9" && \
-    make KALDI=/opt/kaldi ${MY_OPTS} && \
-    . ./activate_python.sh && \
-    ./installers/install_kenlm.sh && \
-    ./installers/install_chainer.sh cpu && \
+    rm -f activate_python.sh && touch activate_python.sh && \
+    conda install -y conda "python=3.9" && \
+    make KALDI=/opt/kaldi ${MY_OPTS}  && \
     conda clean --all && \
     rm -f *.tar.*  && \
     pip cache purge
 
-RUN rm -rf ../espnet
+RUN rm -rf ../espnet*
 
 WORKDIR /
 

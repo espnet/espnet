@@ -70,6 +70,7 @@ LIBRITTS=downloads
 LIBRITTS_R=downloads
 LJSPEECH=downloads
 MUSAN=
+MUSDB18=downloads
 MUST_C=downloads
 NSC=
 NIT_SONG070=

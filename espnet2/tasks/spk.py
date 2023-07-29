@@ -31,7 +31,7 @@ from espnet2.train.preprocessor import (
     CommonPreprocessor,
     SpkPreprocessor,
 )
-from espnet2.train.trainer import Trainer
+from espnet2.train.spk_trainer import SpkTrainer as Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
@@ -176,7 +176,7 @@ class SpeakerTask(AbsTask):
             "--target_duration",
             type=float,
             default=3.0,
-            help="Duration of samples in a minibatch",
+            help="Duration (in seconds) of samples in a minibatch",
         )
 
         group.add_argument(
@@ -187,7 +187,7 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
-            "--sr",
+            "--sample_rate",
             type=int,
             default=16000,
             help="Sampling rate",
@@ -198,6 +198,13 @@ class SpeakerTask(AbsTask):
             type=int,
             default=10,
             help="Number of segments to make from one utterance in the inference phase",
+        )
+
+        group.add_argument(
+            "--rir_scp",
+            type=str,
+            default="",
+            help="Directory of the rir data to be augmented",
         )
 
         group.add_argument(
@@ -252,7 +259,11 @@ class SpeakerTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ("spk_labels",)
+        # When calculating EER, we need trials where each trial has two
+        # utterances. speech2 corresponds to the second utterance of each
+        # trial pair in the validation/inference phase.
+        retval = ("speech2", "trial", "spk_labels")
+
         assert check_return_type(retval)
         return retval
 
