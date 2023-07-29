@@ -611,9 +611,11 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                         space_symbol=space_symbol,
                         non_linguistic_symbols=non_linguistic_symbols,
                         g2p_type=g2p_type,
-                        encode_kwargs=tokenizer_encode_conf[i]
-                        if i < len(tokenizer_encode_conf)
-                        else None,
+                        encode_kwargs=(
+                            tokenizer_encode_conf[i]
+                            if i < len(tokenizer_encode_conf)
+                            else None
+                        ),
                     )
                 )
                 self.token_id_converter.append(
@@ -1779,7 +1781,7 @@ class S2TPreprocessor(CommonPreprocessor):
         na_symbol: str = "<na>",  # text is not available e.g. for prev or ctc
         speech_length: float = 30,  # pad or trim speech to this value in seconds
         speech_resolution: float = 0.02,  # speech time resolution
-        speech_init_silence: float = 1.0,  # max silence to add before speech for data augmentation
+        speech_init_silence: float = 1.0,  # max silence before speech for data aug
         text_prev_apply_prob: float = 0.5,  # whether to condition on text_prev
         time_apply_prob: float = 0.5,  # whether to include timestamps
         notime_symbol: str = "<notimestamps>",
@@ -1884,9 +1886,10 @@ class S2TPreprocessor(CommonPreprocessor):
 
                     # Augment text
                     if name == self.text_name:
-                        # NOTE(yifan): The first token is always space which should be removed,
-                        # because no space should be present between special tokens.
-                        # This works for bpe, but probably not for the other token types.
+                        # NOTE(yifan): The first token is always space 
+                        # which should be removed.
+                        # No space is allowed between special tokens.
+                        # This works for bpe, but maybe not for the other types.
                         text_ints = text_ints[1:]
 
                         # Remove timestamps
@@ -1898,7 +1901,7 @@ class S2TPreprocessor(CommonPreprocessor):
                                     text_ints > self.last_time,
                                 )
                             ]
-                            # The first two tokens are <category> and <task>, respectively
+                            # First two tokens are <category> and <task>
                             text_ints = np.insert(text_ints, 2, self.notime)
 
                         # Shift timestamps
