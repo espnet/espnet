@@ -2549,7 +2549,8 @@ outputs..</p>
 <li><p><strong>y_hat</strong> (<em>Tensor</em>) – Generated waveform tensor (B, 1, T).</p></li>
 <li><p><strong>y</strong> (<em>Tensor</em>) – Groundtruth waveform tensor (B, 1, T).</p></li>
 <li><p><strong>spec</strong> (<em>Optional</em><em>[</em><em>Tensor</em><em>]</em>) – Groundtruth linear amplitude spectrum tensor
-(B, n_fft, T). if provided, use it instead of groundtruth waveform.</p></li>
+(B, T, n_fft // 2 + 1).  if provided, use it instead of groundtruth
+waveform.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

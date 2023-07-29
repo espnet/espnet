@@ -488,7 +488,8 @@
 <span class="sd">            y_hat (Tensor): Generated waveform tensor (B, 1, T).</span>
 <span class="sd">            y (Tensor): Groundtruth waveform tensor (B, 1, T).</span>
 <span class="sd">            spec (Optional[Tensor]): Groundtruth linear amplitude spectrum tensor</span>
-<span class="sd">                (B, n_fft, T). if provided, use it instead of groundtruth waveform.</span>
+<span class="sd">                (B, T, n_fft // 2 + 1).  if provided, use it instead of groundtruth</span>
+<span class="sd">                waveform.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            Tensor: Mel-spectrogram loss value.</span>
