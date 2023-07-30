@@ -1,6 +1,5 @@
 from typing import List
 
-
 SYMBOL_NA: str = "<na>"  # symbol denoting text is not available
 SYMBOL_NOSPEECH: str = "<nospeech>"  # symbol denoting non-speech audio
 SPEECH_MAX_LEN: float = 30  # max speech length in seconds
