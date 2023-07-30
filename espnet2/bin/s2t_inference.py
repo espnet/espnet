@@ -47,7 +47,6 @@ ListOfHypothesis = List[
 class Speech2Text:
     """Speech2Text class
 
-    TODO:
     Examples:
         >>> import soundfile
         >>> speech2text = Speech2Text("s2t_config.yml", "s2t.pth")
