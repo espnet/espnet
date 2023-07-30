@@ -17,8 +17,7 @@ def test_espnet_model(encoder_arch, decoder_arch):
         "<nospeech>",
         "<en>",
         "<asr>",
-        "<st_en>"
-        "<notimestamps>",
+        "<st_en>" "<notimestamps>",
         "<0.00>",
         "<30.00>",
         "a",
