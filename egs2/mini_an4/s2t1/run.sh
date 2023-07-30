@@ -20,6 +20,6 @@ set -o pipefail
     --train_set "train_nodev" \
     --valid_set "train_dev" \
     --test_sets "test" \
-    --bpe_train_text "dump/raw/${train_set}/text" \
+    --bpe_train_text "dump/raw/train_nodev/text" \
     --bpe_nlsyms "data/nlsyms.txt" \
-    --lm_train_text "dump/raw/${train_set}/text" "$@"
+    --lm_train_text "dump/raw/train_nodev/text" "$@"
