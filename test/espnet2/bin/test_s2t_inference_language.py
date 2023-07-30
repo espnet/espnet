@@ -28,8 +28,7 @@ def token_list(tmp_path: Path):
             "<nospeech>",
             "<en>",
             "<asr>",
-            "<st_en>"
-            "<notimestamps>",
+            "<st_en>" "<notimestamps>",
             "<0.00>",
             "<30.00>",
             "a",
