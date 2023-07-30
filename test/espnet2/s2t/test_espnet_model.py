@@ -43,7 +43,6 @@ def test_espnet_model(encoder_arch, decoder_arch):
         postencoder=None,
         decoder=decoder,
         ctc=ctc,
-        joint_network=None,
     )
 
     inputs = dict(
