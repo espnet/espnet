@@ -174,14 +174,20 @@ def merge_short_utterances(
     end_time = utts[-1].end_time
     lang = utts[0].lang
     task = utts[0].task
-    utt_id = f"{wav_id}_{round(1000 * start_time):09d}_{round(1000 * end_time):09d}_{lang[1:-1]}_{task[1:-1]}"
+    utt_id = (
+        f"{wav_id}_{round(1000 * start_time):09d}_"
+        f"{round(1000 * end_time):09d}_{lang[1:-1]}_{task[1:-1]}"
+    )
     text = " ".join([u.text for u in utts])
     asr_text = " ".join([u.asr_text for u in utts])
     prev_text = prev.text if prev is not None else SYMBOL_NA
 
     text_with_time = ""
     for u in utts:
-        text_with_time += f"{time2token(u.start_time - start_time)} {u.text.strip()}{time2token(u.end_time - start_time)}"
+        text_with_time += (
+            f"{time2token(u.start_time - start_time)} "
+            f"{u.text.strip()}{time2token(u.end_time - start_time)}"
+        )
 
     return LongUtterance(
         utt_id=utt_id,
@@ -206,17 +212,19 @@ def generate_long_utterances(
     utts.sort(key=lambda x: x.start_time)
 
     long_utts = [None]
-    l, r = 0, 0
-    while l < len(utts):
-        if r < len(utts) and utts[r].end_time - utts[l].start_time <= SPEECH_MAX_LEN:
-            r += 1
-        elif r > l:
-            long_utts.append(merge_short_utterances(utts[l:r], long_utts[-1]))
-            l = r
+    left, right = 0, 0
+    while left < len(utts):
+        if right < len(utts) and (
+            utts[right].end_time - utts[left].start_time <= SPEECH_MAX_LEN
+        ):
+            right += 1
+        elif right > left:
+            long_utts.append(merge_short_utterances(utts[left:right], long_utts[-1]))
+            left = right
         else:  # skip the current utt if its length already exceeds the limit
             long_utts.append(None)
-            l = r + 1
-            r = l
+            left = right + 1
+            right = left
 
     long_utts = [u for u in long_utts if u is not None]
     return long_utts

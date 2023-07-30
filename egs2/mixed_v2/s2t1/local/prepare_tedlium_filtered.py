@@ -98,7 +98,11 @@ def collect_data(
                     if transcript:
                         utts.append(
                             Utterance(
-                                utt_id=f"{prefix}_{filename}_{float(start_time) * 1000:09.0f}_{float(end_time) * 1000:09.0f}",
+                                utt_id=(
+                                    f"{prefix}_{filename}_"
+                                    f"{float(start_time) * 1000:09.0f}_"
+                                    f"{float(end_time) * 1000:09.0f}"
+                                ),
                                 wav_id=f"{prefix}_{filename}",
                                 wav_path=f"sph2pipe -f wav -p {sph} |",
                                 start_time=float(start_time),

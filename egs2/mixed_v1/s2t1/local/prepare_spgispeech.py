@@ -32,8 +32,14 @@ def collect_data(
         ret.append(
             [
                 Utterance(
-                    utt_id=f"{prefix}_{split}_{wav_rel_path.removesuffix('.wav').replace('/', '_')}",
-                    wav_id=f"{prefix}_{split}_{wav_rel_path.removesuffix('.wav').replace('/', '_')}",
+                    utt_id=(
+                        f"{prefix}_{split}_"
+                        f"{wav_rel_path.removesuffix('.wav').replace('/', '_')}"
+                    ),
+                    wav_id=(
+                        f"{prefix}_{split}_"
+                        f"{wav_rel_path.removesuffix('.wav').replace('/', '_')}"
+                    ),
                     wav_path=str(wav_abs_path.resolve()),
                     start_time=0.0,
                     end_time=librosa.get_duration(filename=wav_abs_path),

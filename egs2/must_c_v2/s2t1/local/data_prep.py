@@ -13,10 +13,10 @@ def parse_data(root: Path, lang: str, dataset: str) -> Dict[str, List[Dict]]:
         utts = yaml.safe_load(fp)
 
     with open(txt_path / f"{dataset}.en", "r") as fp:
-        src_text = [l.strip() for l in fp.readlines()]
+        src_text = [ln.strip() for ln in fp.readlines()]
 
     with open(txt_path / f"{dataset}.{lang}", "r") as fp:
-        tgt_text = [l.strip() for l in fp.readlines()]
+        tgt_text = [ln.strip() for ln in fp.readlines()]
 
     assert len(src_text) == len(tgt_text) and len(tgt_text) == len(utts)
 
@@ -115,9 +115,10 @@ def prepare_single(
                 "prev_src": " ".join(prev_src) if prev_src else "<na>",
                 "prev_tgt": " ".join(prev_tgt) if prev_tgt else "<na>",
             }
-            long_utt[
-                "utt_id"
-            ] = f"{wav_id}_{round(1000*long_utt['start']):07d}_{round(1000*long_utt['end']):07d}"
+            long_utt["utt_id"] = (
+                f"{wav_id}_{round(1000*long_utt['start']):07d}"
+                f"_{round(1000*long_utt['end']):07d}"
+            )
 
             if long_utt["utt_id"] not in uttids:
                 uttids.append(long_utt["utt_id"])
@@ -251,7 +252,7 @@ if __name__ == "__main__":
     ]
     task_tokens = [
         "<transcribe>",
-        *[f"<translate{l}>" for l in args.langs],
+        *[f"<translate{x}>" for x in args.langs],
     ]
     timestamp_tokens = [
         "<notimestamps>",

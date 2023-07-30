@@ -43,7 +43,10 @@ def collect_data(
                         Utterance(
                             utt_id=f"{prefix}_{seg['sid']}",
                             wav_id=f"{prefix}_{audio['aid']}",
-                            wav_path=f"ffmpeg -i {str(wav_path.resolve())} -ac 1 -ar 16000 -f wav - |",
+                            wav_path=(
+                                f"ffmpeg -i {str(wav_path.resolve())} -ac 1 -ar 16000"
+                                " -f wav - |"
+                            ),
                             start_time=seg["begin_time"],
                             end_time=seg["end_time"],
                             lang="<en>",
@@ -132,7 +135,7 @@ if __name__ == "__main__":
         SYMBOL_NA,
         SYMBOL_NOSPEECH,
         "<en>",
-        *[f"<st_{l}>" for l in args.langs],
+        *[f"<st_{x}>" for x in args.langs],
         *SYMBOLS_TIME,
     ]
     with open(args.output_dir / "nlsyms.txt", "w") as fp:

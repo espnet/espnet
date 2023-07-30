@@ -23,7 +23,7 @@ def request_with_retry(url, n_retries=3, success_list=[200], **kwargs):
         try:
             response = requests.get(url, **kwargs)
             if response.status_code in success_list:
-                ## Return response if successful
+                # Return response if successful
                 return response
         except Exception as e:
             print(e)
@@ -72,7 +72,10 @@ def collect_data(
                 Utterance(
                     utt_id=f"{prefix}_{lang}_{uttid}",
                     wav_id=f"{prefix}_{lang}_{url.split('/')[-1].removesuffix('.mp3')}",
-                    wav_path=f"ffmpeg -i {str(mp3_file.resolve())} -ac 1 -ar 16000 -f wav - |",
+                    wav_path=(
+                        f"ffmpeg -i {str(mp3_file.resolve())} -ac 1 -ar 16000 -f"
+                        " wav - |"
+                    ),
                     start_time=start_time,
                     end_time=end_time,
                     lang=f"<{lang}>",
@@ -123,7 +126,7 @@ if __name__ == "__main__":
     special_tokens = [
         SYMBOL_NA,
         SYMBOL_NOSPEECH,
-        *[f"<{l}>" for l in args.langs],
+        *[f"<{x}>" for x in args.langs],
         "<asr>",
         *SYMBOLS_TIME,
     ]

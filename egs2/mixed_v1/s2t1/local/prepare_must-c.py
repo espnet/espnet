@@ -36,10 +36,10 @@ def collect_data(
         utts = yaml.safe_load(fp)
 
     with open(txt_dir / f"{split}.en", "r") as fp:
-        src_text = [l.strip() for l in fp.readlines()]
+        src_text = [ln.strip() for ln in fp.readlines()]
 
     with open(txt_dir / f"{split}.{lang}", "r") as fp:
-        tgt_text = [l.strip() for l in fp.readlines()]
+        tgt_text = [ln.strip() for ln in fp.readlines()]
 
     assert len(src_text) == len(tgt_text) and len(tgt_text) == len(utts)
 
@@ -54,7 +54,10 @@ def collect_data(
         # NOTE(yifan): each utterance can be used in two tasks (asr, st)
         wav2utts[wav_name + ".asr"].append(
             Utterance(
-                utt_id=f"{wav_id}_{round(1000 * start_time):07d}_{round(1000 * end_time):07d}_asr",
+                utt_id=(
+                    f"{wav_id}_{round(1000 * start_time):07d}"
+                    f"_{round(1000 * end_time):07d}_asr"
+                ),
                 wav_id=wav_id,
                 wav_path=wav_path,
                 start_time=start_time,
@@ -67,7 +70,10 @@ def collect_data(
         )
         wav2utts[wav_name + f".st_{lang}"].append(
             Utterance(
-                utt_id=f"{wav_id}_{round(1000 * start_time):07d}_{round(1000 * end_time):07d}_st_{lang}",
+                utt_id=(
+                    f"{wav_id}_{round(1000 * start_time):07d}"
+                    f"_{round(1000 * end_time):07d}_st_{lang}"
+                ),
                 wav_id=wav_id,
                 wav_path=wav_path,
                 start_time=start_time,
@@ -169,7 +175,7 @@ if __name__ == "__main__":
         SYMBOL_NOSPEECH,
         "<en>",
         "<asr>",
-        *[f"<st_{l}>" for l in languages],
+        *[f"<st_{x}>" for x in languages],
         *SYMBOLS_TIME,
     ]
     with open(args.output_dir / "nlsyms.txt", "w") as fp:
