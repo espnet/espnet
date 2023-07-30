@@ -14,7 +14,6 @@ from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H30
 from espnet2.asr.decoder.mlm_decoder import MLMDecoder
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.s4_decoder import S4Decoder
-from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,
     DynamicConvolutionTransformerDecoder,
@@ -62,7 +61,6 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -168,7 +166,6 @@ decoder_choices = ClassChoices(
         dynamic_conv=DynamicConvolutionTransformerDecoder,
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
-        transducer=TransducerDecoder,
         mlm=MLMDecoder,
         whisper=OpenAIWhisperDecoder,
         hugging_face_transformers=HuggingFaceTransformersDecoder,
@@ -259,12 +256,6 @@ class S2TTask(AbsTask):
             action=NestedDictAction,
             default=get_default_kwargs(CTC),
             help="The keyword arguments for CTC class.",
-        )
-        group.add_argument(
-            "--joint_net_conf",
-            action=NestedDictAction,
-            default=None,
-            help="The keyword arguments for joint network class.",
         )
 
         group = parser.add_argument_group(description="Preprocess related")
@@ -469,16 +460,6 @@ class S2TTask(AbsTask):
         else:
             raise RuntimeError("token_list must be str or list")
 
-        # If use multi-blank transducer criterion,
-        # big blank symbols are added just before the standard blank
-        if args.model_conf.get("transducer_multi_blank_durations", None) is not None:
-            sym_blank = args.model_conf.get("sym_blank", "<blank>")
-            blank_idx = token_list.index(sym_blank)
-            for dur in args.model_conf.get("transducer_multi_blank_durations"):
-                if f"<blank{dur}>" not in token_list:  # avoid this during inference
-                    token_list.insert(blank_idx, f"<blank{dur}>")
-            args.token_list = token_list
-
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
 
@@ -537,30 +518,13 @@ class S2TTask(AbsTask):
         # 5. Decoder
         if getattr(args, "decoder", None) is not None:
             decoder_class = decoder_choices.get_class(args.decoder)
-
-            if args.decoder == "transducer":
-                decoder = decoder_class(
-                    vocab_size,
-                    embed_pad=0,
-                    **args.decoder_conf,
-                )
-
-                joint_network = JointNetwork(
-                    vocab_size,
-                    encoder.output_size(),
-                    decoder.dunits,
-                    **args.joint_net_conf,
-                )
-            else:
-                decoder = decoder_class(
-                    vocab_size=vocab_size,
-                    encoder_output_size=encoder_output_size,
-                    **args.decoder_conf,
-                )
-                joint_network = None
+            decoder = decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.decoder_conf,
+            )
         else:
             decoder = None
-            joint_network = None
 
         # 6. CTC
         ctc = CTC(
@@ -582,7 +546,6 @@ class S2TTask(AbsTask):
             postencoder=postencoder,
             decoder=decoder,
             ctc=ctc,
-            joint_network=joint_network,
             token_list=token_list,
             **args.model_conf,
         )
