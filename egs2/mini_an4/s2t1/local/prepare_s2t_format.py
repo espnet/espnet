@@ -34,6 +34,7 @@ if __name__ == "__main__":
         for line in f_text_ctc:
             uttid, raw_text = line.strip().split(maxsplit=1)
             f_text.write(
-                f"{uttid} <eng><asr><0.00> {raw_text.strip()}{time2token(utt2dur[uttid])}\n"
+                f"{uttid} <eng><asr><0.00> "
+                f"{raw_text.strip()}{time2token(utt2dur[uttid])}\n"
             )
             f_text_prev.write(f"{uttid} {SYMBOL_NA}\n")
