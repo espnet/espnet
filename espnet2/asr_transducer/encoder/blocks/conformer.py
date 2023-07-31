@@ -186,12 +186,12 @@ class Conformer(torch.nn.Module):
 
             xtention_cache = key[:, -left_context:, :]
 
-            x = residual + self.dropout(
-                self.xtention(x, key, key, pos, mask, chunk_mask=chunk_mask)
+            x = residual + self.xtention(
+                x, key, key, pos, mask, left_context=left_context
             )
         else:
             x, xtention_cache = self.xtention(x, pos, state=self.cache[0])
-            x = residual + self.dropout(x)
+            x = residual + x
 
         residual = x
 

@@ -237,6 +237,6 @@ class EBranchformer(torch.nn.Module):
 
         x = self.norm_final(x)
 
-        self.cache = [att_cache, conv_cache, merge_cache]
+        self.cache = [xtention_cache, conv_cache, merge_cache]
 
-        return x, pos_enc
+        return x, pos
