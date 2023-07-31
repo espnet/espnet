@@ -127,6 +127,8 @@ use_streaming=false # Whether to use streaming decoding
 
 use_maskctc=false # Whether to use maskctc decoding
 
+use_align_refine=false # Whether to use align refine decoding
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -252,6 +254,7 @@ Options:
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
     --use_maskctc         # Whether to use maskctc decoding (default="${use_streaming}").
+    --use_align_refine    # Whether to use align refine decoding (default=false)
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -1503,6 +1506,8 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
             inference_bin_tag="_streaming"
         elif "${use_maskctc}"; then
             inference_bin_tag="_maskctc"
+        elif "${use_align_refine}"; then
+            inference_bin_tag="_align_refine"
         fi
     fi
 
