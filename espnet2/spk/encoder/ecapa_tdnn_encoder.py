@@ -1,0 +1,74 @@
+# Copyright 2023 Jee-weon Jung
+# Apache 2.0
+
+"""
+ECAPA-TDNN Encoder
+"""
+
+import torch
+import torch.nn as nn
+from typeguard import check_argument_types
+
+from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.spk.layers.EcapaBlock import EcapaBlock
+
+
+class EcapaTdnnEncoder(AbsEncoder):
+    """
+    ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from
+    mel-filterbank energy or MFCC features.
+    Paper: B Desplanques at el., ``ECAPA-TDNN: Emphasized Channel Attention,
+        Propagation and Aggregation in TDNN Based Speaker Verification,''
+        in Proc. INTERSPEECH, 2020.
+
+    Note that the model's output dimensionality self._output_size equals to
+        1.5 * ndim.
+
+    Args:
+        block: type of encoder block class to use.
+        model_scale: scale value of the Res2Net architecture.
+        ndim: dimensionality of the hidden representation.  """
+
+    def __init__(
+        self,
+        block: str = "EcapaBlock",
+        model_scale: int = 8,
+        ndim: int = 1024,
+        **kwargs,
+    ):
+        assert check_argument_types()
+        super().__init__()
+        if block == "EcapaBlock":
+            block = EcapaBlock
+        else:
+            raise ValueError(f"unsupported block, got: {block}")
+        self._output_size = int(ndim * 1.5)
+
+        self.conv = nn.Conv1d(input_dim, ndim, kernel_size=5, stride=1,
+                              padding=2)
+        self.relu = nn.ReLU()
+        self.bn = self.BatchNorm1d(ndim)
+
+        self.layer1 = block(ndim, ndim, kernel_size=3, dilation=2,
+                            scale=model_scale)
+        self.layer2 = block(ndim, ndim, kernel_size=3, dilation=3,
+                            scale=model_scale)
+        self.layer3 = block(ndim, ndim, kernel_size=3, dilation=4,
+                            scale=model_scale)
+        self.layer4 = nn.Conv1d(3 * ndim, int(1.5 * ndim), kernel_size=1)
+
+        self.mp3 = nn.MaxPool1d(3)
+
+    def output_size(self) -> int:
+        return self._output_size
+
+    def forward(self, data: torch.Tensor):
+        # frame-level propagation
+        x1 = self.layer1(x)
+        x2 = self.layer2(x + x1)
+        x3 = self.layer3(x + x1 + x2)
+
+        x = self.layer4(torch.cat((x1, x2, x3), dim=1))
+        x = self.relu(x)
+
+        return x
