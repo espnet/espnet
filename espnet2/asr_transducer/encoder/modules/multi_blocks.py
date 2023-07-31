@@ -50,7 +50,7 @@ class MultiBlocks(torch.nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        pos_enc: torch.Tensor,
+        pos: torch.Tensor,
         mask: torch.Tensor,
         chunk_mask: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
@@ -58,7 +58,8 @@ class MultiBlocks(torch.nn.Module):
 
         Args:
             x: MultiBlocks input sequences. (B, T, D_block_1)
-            pos_enc: Positional embedding sequences.
+            pos: Positional encoding/embedding sequences.
+                   (B, 2 * (T - 1), D_block) or ((??), (??), (??))
             mask: Source mask. (B, T)
             chunk_mask: Chunk mask. (T_2, T_2)
 
@@ -73,7 +74,7 @@ class MultiBlocks(torch.nn.Module):
                 self.keep_probs[idx]
                 >= (self.blockdrop_rate * (self.blockdrop_decay * idx))
             ):
-                x, mask, pos_enc = block(x, pos_enc, mask, chunk_mask=chunk_mask)
+                x, mask, pos = block(x, pos, mask, chunk_mask=chunk_mask)
 
         x = self.norm_blocks(x)
 
@@ -82,7 +83,7 @@ class MultiBlocks(torch.nn.Module):
     def chunk_forward(
         self,
         x: torch.Tensor,
-        pos_enc: torch.Tensor,
+        pos: torch.Tensor,
         mask: torch.Tensor,
         left_context: int = 0,
     ) -> torch.Tensor:
@@ -90,7 +91,8 @@ class MultiBlocks(torch.nn.Module):
 
         Args:
             x: MultiBlocks input sequences. (B, T, D_block_1)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_att)
+            pos: Positional encoding/embedding sequences.
+                   (B, 2 * (T - 1), D_block) or ((??), (??), (??))
             mask: Source mask. (B, T_2)
             left_context: Number of previous frames the attention module can see
                           in current chunk (used by Conformer and Branchformer block).
@@ -100,12 +102,7 @@ class MultiBlocks(torch.nn.Module):
 
         """
         for block in self.blocks:
-            x, pos_enc = block.chunk_forward(
-                x,
-                pos_enc,
-                mask,
-                left_context=left_context,
-            )
+            x, pos = block.chunk_forward(x, pos, mask, left_context=left_context)
 
         x = self.norm_blocks(x)
 

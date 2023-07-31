@@ -1,6 +1,6 @@
 """Conformer block for Transducer encoder."""
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 
@@ -10,7 +10,7 @@ class Conformer(torch.nn.Module):
 
     Args:
         block_size: Input/output size.
-        self_att: Self-attention module instance.
+        xtention: Self-attention or retention module instance.
         feed_forward: Feed-forward module instance.
         feed_forward_macaron: Feed-forward module instance for macaron network.
         conv_mod: Convolution module instance.
@@ -23,7 +23,7 @@ class Conformer(torch.nn.Module):
     def __init__(
         self,
         block_size: int,
-        self_att: torch.nn.Module,
+        xtention: torch.nn.Module,
         feed_forward: torch.nn.Module,
         feed_forward_macaron: torch.nn.Module,
         conv_mod: torch.nn.Module,
@@ -34,7 +34,8 @@ class Conformer(torch.nn.Module):
         """Construct a Conformer object."""
         super().__init__()
 
-        self.self_att = self_att
+        self.xtention = xtention
+        self.use_attention = hasattr(xtention, "compute_att_score")
 
         self.feed_forward = feed_forward
         self.feed_forward_macaron = feed_forward_macaron
@@ -43,7 +44,7 @@ class Conformer(torch.nn.Module):
         self.conv_mod = conv_mod
 
         self.norm_feed_forward = norm_class(block_size, **norm_args)
-        self.norm_self_att = norm_class(block_size, **norm_args)
+        self.norm_xtention = norm_class(block_size, **norm_args)
 
         self.norm_macaron = norm_class(block_size, **norm_args)
         self.norm_conv = norm_class(block_size, **norm_args)
@@ -63,11 +64,16 @@ class Conformer(torch.nn.Module):
             device: Device to use for cache tensor.
 
         """
-        self.cache = [
-            torch.zeros(
+        if self.use_attention:
+            xtention_cache = torch.zeros(
                 (1, left_context, self.block_size),
                 device=device,
-            ),
+            )
+        else:
+            xtention_cache = {}
+
+        self.cache = [
+            xtention_cache,
             torch.zeros(
                 (
                     1,
@@ -81,22 +87,28 @@ class Conformer(torch.nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        pos_enc: torch.Tensor,
+        pos: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
         mask: torch.Tensor,
         chunk_mask: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
+    ]:
         """Encode input sequences.
 
         Args:
             x: Conformer input sequences. (B, T, D_block)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
+            pos: Positional encoding/embedding sequences.
+                   (B, 2 * (T - 1), D_block) or ((??), (??), (??))
             mask: Source mask. (B, T)
             chunk_mask: Chunk mask. (T_2, T_2)
 
         Returns:
             x: Conformer output sequences. (B, T, D_block)
             mask: Source mask. (B, T)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
+            pos: Positional encoding/embedding sequences.
+                   (B, 2 * (T - 1), D_block) or ((??), (??), (??))
 
         """
         residual = x
@@ -107,18 +119,15 @@ class Conformer(torch.nn.Module):
         )
 
         residual = x
-        x = self.norm_self_att(x)
+        x = self.norm_xtention(x)
 
-        x = residual + self.dropout(
-            self.self_att(
-                x,
-                x,
-                x,
-                pos_enc,
-                mask,
-                chunk_mask=chunk_mask,
+        if self.use_attention:
+            x = residual + self.dropout(
+                self.xtention(x, x, x, pos, mask, chunk_mask=chunk_mask)
             )
-        )
+        else:
+            x, _ = self.xtention(x, pos)
+            x = residual + self.dropout(x)
 
         residual = x
 
@@ -133,27 +142,32 @@ class Conformer(torch.nn.Module):
 
         x = self.norm_final(x)
 
-        return x, mask, pos_enc
+        return x, mask, pos
 
     def chunk_forward(
         self,
         x: torch.Tensor,
-        pos_enc: torch.Tensor,
+        pos: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
         mask: torch.Tensor,
         left_context: int = 0,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[
+        torch.Tensor,
+        Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
+    ]:
         """Encode chunk of input sequence.
 
         Args:
             x: Conformer input sequences. (B, T, D_block)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
+            pos: Positional encoding/embedding sequences.
+                   (B, 2 * (T - 1), D_block) or ((??), (??), (??))
             mask: Source mask. (B, T_2)
             left_context: Number of previous frames the attention module can see
                           in current chunk.
 
         Returns:
             x: Conformer output sequences. (B, T, D_block)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
+            pos: Positional encoding/embedding sequences.
+                       (B, 2 * (T - 1), D_block) or ((??), (??), (??))
 
         """
         residual = x
@@ -162,22 +176,22 @@ class Conformer(torch.nn.Module):
         x = residual + self.feed_forward_scale * self.feed_forward_macaron(x)
 
         residual = x
-        x = self.norm_self_att(x)
+        x = self.norm_xtention(x)
 
-        if left_context > 0:
-            key = torch.cat([self.cache[0], x], dim=1)
+        if self.use_attention:
+            if left_context > 0:
+                key = torch.cat([self.cache[0], x], dim=1)
+            else:
+                key = x
+
+            xtention_cache = key[:, -left_context:, :]
+
+            x = residual + self.dropout(
+                self.xtention(x, key, key, pos, mask, chunk_mask=chunk_mask)
+            )
         else:
-            key = x
-        att_cache = key[:, -left_context:, :]
-
-        x = residual + self.self_att(
-            x,
-            key,
-            key,
-            pos_enc,
-            mask,
-            left_context=left_context,
-        )
+            x, xtention_cache = self.xtention(x, pos, state=self.cache[0])
+            x = residual + self.dropout(x)
 
         residual = x
 
@@ -192,6 +206,6 @@ class Conformer(torch.nn.Module):
 
         x = self.norm_final(x)
 
-        self.cache = [att_cache, conv_cache]
+        self.cache = [xtention_cache, conv_cache]
 
-        return x, pos_enc
+        return x, pos

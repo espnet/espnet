@@ -43,6 +43,7 @@ def get_activation(
             FTSwish,
             {"threshold": ftswish_threshold, "mean_shift": ftswish_mean_shift},
         ),
+        "gelu": (torch.nn.GELU, {}),
         "hardtanh": (
             torch.nn.Hardtanh,
             {"min_val": hardtanh_min_val, "max_val": hardtanh_max_val},

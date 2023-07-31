@@ -1,6 +1,6 @@
 """Branchformer block for Transducer encoder."""
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 
@@ -13,7 +13,7 @@ class Branchformer(torch.nn.Module):
     Args:
         block_size: Input/output size.
         linear_size: Linear layers' hidden size.
-        self_att: Self-attention module instance.
+        xtention: Self-attention or retention module instance.
         conv_mod: Convolution module instance.
         norm_class: Normalization class.
         norm_args: Normalization module arguments.
@@ -25,7 +25,7 @@ class Branchformer(torch.nn.Module):
         self,
         block_size: int,
         linear_size: int,
-        self_att: torch.nn.Module,
+        xtention: torch.nn.Module,
         conv_mod: torch.nn.Module,
         norm_class: torch.nn.Module = torch.nn.LayerNorm,
         norm_args: Dict = {},
@@ -34,7 +34,9 @@ class Branchformer(torch.nn.Module):
         """Construct a Branchformer object."""
         super().__init__()
 
-        self.self_att = self_att
+        self.xtention = xtention
+        self.use_attention = hasattr(xtention, "compute_att_score")
+
         self.conv_mod = conv_mod
 
         self.channel_proj1 = torch.nn.Sequential(
@@ -44,7 +46,7 @@ class Branchformer(torch.nn.Module):
 
         self.merge_proj = torch.nn.Linear(block_size + block_size, block_size)
 
-        self.norm_self_att = norm_class(block_size, **norm_args)
+        self.norm_xtention = norm_class(block_size, **norm_args)
         self.norm_mlp = norm_class(block_size, **norm_args)
         self.norm_final = norm_class(block_size, **norm_args)
 
@@ -63,11 +65,16 @@ class Branchformer(torch.nn.Module):
             device: Device to use for cache tensor.
 
         """
-        self.cache = [
-            torch.zeros(
+        if self.use_attention:
+            xtention_cache = torch.zeros(
                 (1, left_context, self.block_size),
                 device=device,
-            ),
+            )
+        else:
+            xtention_cache = {}
+
+        self.cache = [
+            xtention_cache,
             torch.zeros(
                 (
                     1,
@@ -81,32 +88,42 @@ class Branchformer(torch.nn.Module):
     def forward(
         self,
         x: torch.Tensor,
-        pos_enc: torch.Tensor,
+        pos: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
         mask: torch.Tensor,
         chunk_mask: Optional[torch.Tensor] = None,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[
+        torch.Tensor,
+        torch.Tensor,
+        Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
+    ]:
         """Encode input sequences.
 
         Args:
             x: Branchformer input sequences. (B, T, D_block)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
+            pos: Positional encoding/embedding sequences.
+                   (B, 2 * (T - 1), D_block) or ((??), (??), (??))
             mask: Source mask. (B, T)
             chunk_mask: Chunk mask. (T_2, T_2)
 
         Returns:
             x: Branchformer output sequences. (B, T, D_block)
             mask: Source mask. (B, T)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
+            pos: Positional encoding/embedding sequences.
+                   (B, 2 * (T - 1), D_block) or ((??), (??), (??))
 
         """
         x1 = x
         x2 = x
 
-        x1 = self.norm_self_att(x1)
+        x1 = self.norm_xtention(x1)
 
-        x1 = self.dropout(
-            self.self_att(x1, x1, x1, pos_enc, mask=mask, chunk_mask=chunk_mask)
-        )
+        if self.use_attention:
+            x1 = self.dropout(
+                self.xtention(x1, x1, x1, pos, mask=mask, chunk_mask=chunk_mask)
+            )
+        else:
+            x1, _ = self.xtention(x, pos)
+            x1 = self.dropout(x1)
 
         x2 = self.norm_mlp(x2)
 
@@ -120,42 +137,48 @@ class Branchformer(torch.nn.Module):
 
         x = self.norm_final(x)
 
-        return x, mask, pos_enc
+        return x, mask, pos
 
     def chunk_forward(
         self,
         x: torch.Tensor,
-        pos_enc: torch.Tensor,
+        pos: Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],
         mask: torch.Tensor,
         left_context: int = 0,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[torch.Tensor, Union[Tuple[torch.Tensor, torch.Tensor, torch.Tensor]],]:
         """Encode chunk of input sequence.
 
         Args:
             x: Branchformer input sequences. (B, T, D_block)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
+            pos: Positional encoding/embedding sequences.
+                   (B, 2 * (T - 1), D_block) or ((??), (??), (??))
             mask: Source mask. (B, T_2)
             left_context: Number of previous frames the attention module can see
                           in current chunk.
 
         Returns:
             x: Branchformer output sequences. (B, T, D_block)
-            pos_enc: Positional embedding sequences. (B, 2 * (T - 1), D_block)
+            pos: Positional encoding/embedding sequences.
+                   (B, 2 * (T - 1), D_block) or ((??), (??), (??))
 
         """
         x1 = x
         x2 = x
 
-        x1 = self.norm_self_att(x1)
+        x1 = self.norm_xtention(x1)
 
-        if left_context > 0:
-            key = torch.cat([self.cache[0], x1], dim=1)
+        if self.use_attention:
+            if left_context > 0:
+                key = torch.cat([self.cache[0], x1], dim=1)
+            else:
+                key = x1
+
+            xtention_cache = key[:, -left_context:, :]
+
+            x1 = self.xtention(x1, key, key, pos, mask=mask, left_context=left_context)
         else:
-            key = x1
-        val = key
-
-        att_cache = key[:, -left_context:, :]
-        x1 = self.self_att(x1, key, val, pos_enc, mask=mask, left_context=left_context)
+            x, xtention_cache = self.xtention(x, pos, state=self.cache[0])
+            x = residual + self.dropout(x)
 
         x2 = self.norm_mlp(x2)
 
@@ -167,6 +190,6 @@ class Branchformer(torch.nn.Module):
 
         x = self.norm_final(x)
 
-        self.cache = [att_cache, conv_cache]
+        self.cache = [xtention_cache, conv_cache]
 
-        return x, pos_enc
+        return x, pos

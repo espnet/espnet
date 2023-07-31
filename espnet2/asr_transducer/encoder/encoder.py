@@ -49,12 +49,16 @@ class Encoder(torch.nn.Module):
         main_params = build_main_parameters(**main_conf)
 
         self.embed = build_input_block(input_size, input_conf)
-        self.pos_enc = build_positional_encoding(embed_size, main_params, body_conf[0])
+        self.pos = build_positional_encoding(embed_size, main_params, body_conf[0])
         self.encoders = build_body_blocks(body_conf, main_params, output_size)
 
         self.output_size = output_size
 
-        self.dynamic_chunk_training = main_params["dynamic_chunk_training"]
+        self.use_attention = main_params["xtention_type"] == "attention"
+
+        self.dynamic_chunk_training = (
+            main_params["dynamic_chunk_training"] and self.use_attention
+        )
         self.short_chunk_threshold = main_params["short_chunk_threshold"]
         self.short_chunk_size = main_params["short_chunk_size"]
         self.num_left_chunks = main_params["num_left_chunks"]
@@ -101,7 +105,7 @@ class Encoder(torch.nn.Module):
         mask = make_source_mask(x_len)
 
         x, mask = self.embed(x, mask)
-        pos_enc = self.pos_enc(x)
+        pos = self.pos(x)
 
         if self.dynamic_chunk_training:
             max_len = x.size(1)
@@ -123,7 +127,7 @@ class Encoder(torch.nn.Module):
 
         x = self.encoders(
             x,
-            pos_enc,
+            pos,
             mask,
             chunk_mask=chunk_mask,
         )
@@ -156,7 +160,7 @@ class Encoder(torch.nn.Module):
         x = x[:, 1:-1, :]
         mask = mask[:, 1:-1]
 
-        pos_enc = self.pos_enc(x, left_context=left_context)
+        pos = self.pos(x, left_context=left_context, recurrent=True)
 
         processed_mask = (
             torch.arange(left_context, device=x.device).view(1, left_context).flip(1)
@@ -168,7 +172,7 @@ class Encoder(torch.nn.Module):
 
         x = self.encoders.chunk_forward(
             x,
-            pos_enc,
+            pos,
             mask,
             left_context=left_context,
         )
