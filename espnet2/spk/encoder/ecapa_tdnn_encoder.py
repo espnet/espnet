@@ -27,7 +27,7 @@ class EcapaTdnnEncoder(AbsEncoder):
     Args:
         block: type of encoder block class to use.
         model_scale: scale value of the Res2Net architecture.
-        ndim: dimensionality of the hidden representation.  """
+        ndim: dimensionality of the hidden representation."""
 
     def __init__(
         self,
@@ -44,17 +44,13 @@ class EcapaTdnnEncoder(AbsEncoder):
             raise ValueError(f"unsupported block, got: {block}")
         self._output_size = int(ndim * 1.5)
 
-        self.conv = nn.Conv1d(input_dim, ndim, kernel_size=5, stride=1,
-                              padding=2)
+        self.conv = nn.Conv1d(input_dim, ndim, kernel_size=5, stride=1, padding=2)
         self.relu = nn.ReLU()
         self.bn = self.BatchNorm1d(ndim)
 
-        self.layer1 = block(ndim, ndim, kernel_size=3, dilation=2,
-                            scale=model_scale)
-        self.layer2 = block(ndim, ndim, kernel_size=3, dilation=3,
-                            scale=model_scale)
-        self.layer3 = block(ndim, ndim, kernel_size=3, dilation=4,
-                            scale=model_scale)
+        self.layer1 = block(ndim, ndim, kernel_size=3, dilation=2, scale=model_scale)
+        self.layer2 = block(ndim, ndim, kernel_size=3, dilation=3, scale=model_scale)
+        self.layer3 = block(ndim, ndim, kernel_size=3, dilation=4, scale=model_scale)
         self.layer4 = nn.Conv1d(3 * ndim, int(1.5 * ndim), kernel_size=1)
 
         self.mp3 = nn.MaxPool1d(3)
