@@ -191,6 +191,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         if [ "${skip_train}" = false ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
 
+            # category2utt will be used bydata sampler
+            cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" \
