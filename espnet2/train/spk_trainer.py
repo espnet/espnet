@@ -98,10 +98,14 @@ class SpkTrainer(Trainer):
                 _utt_id_1, _utt_id_2 = _utt_id.split("*")
                 if _utt_id_1 not in utt_id_list:
                     utt_id_list.append(_utt_id_1)
-                    speech_list.append(_speech)
+                    speech_list.append(
+                        to_device(_speech, "cuda" if ngpu > 0 else "cpu")
+                    )
                 if _utt_id_2 not in utt_id_list:
                     utt_id_list.append(_utt_id_2)
-                    speech_list.append(_speech2)
+                    speech_list.append(
+                        to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
+                    )
 
         # extract speaker embeddings.
         n_utt = len(utt_id_list)
@@ -145,6 +149,7 @@ class SpkTrainer(Trainer):
             if distributed:
                 iterator_stop.fill_(1)
                 torch.distributed.all_reduce(iterator_stop, ReduceOp.SUM)
+        torch.cuda.empty_cache()
 
         scores = torch.cat(scores).type(torch.float32)
         labels = torch.cat(labels).type(torch.int32).flatten()
@@ -189,10 +194,10 @@ class SpkTrainer(Trainer):
                 scores_nontrg.append(_s)
             else:
                 raise ValueError(f"{_l}, {type(_l)}")
-        trg_mean = np.mean(scores_trg)
-        trg_std = np.std(scores_trg)
-        nontrg_mean = np.std(scores_nontrg)
-        nontrg_std = np.std(scores_nontrg)
+        trg_mean = float(np.mean(scores_trg))
+        trg_std = float(np.std(scores_trg))
+        nontrg_mean = float(np.std(scores_nontrg))
+        nontrg_std = float(np.std(scores_nontrg))
 
         # exception for collect_stats.
         if len(scores) == 1:
@@ -219,3 +224,4 @@ class SpkTrainer(Trainer):
                 nontrg_std=nontrg_std,
             )
         )
+        torch.cuda.empty_cache()

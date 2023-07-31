@@ -1,7 +1,8 @@
 # Sampler that keeps equally distributed categories (i.e., classes) within
 # each minibatch. If the batch_size is smaller than the number of classes,
 # all samples in the minibatch will belong to different classes.
-# Cross-checked with https://github.com/clovaai/voxceleb_trainer/blob/master/DatasetLoader.py
+# Cross-checked with https://github.com/clovaai/voxceleb_trainer/blob/master/
+# DatasetLoader.py
 # 'key_file' is just a text file which describes each sample name."
 # \n\n"
 #     utterance_id_a\n"
@@ -34,6 +35,7 @@ class CategoryBalancedSampler(AbsSampler):
         drop_last: bool = False,
         category2utt_file: str = None,
         epoch: int = 1,
+        **kwargs,
     ):
         assert check_argument_types()
         assert batch_size > 0
@@ -74,7 +76,6 @@ class CategoryBalancedSampler(AbsSampler):
             # don't allow more number of samples that belong to each category
             # then n_utt_per_category_in_batch
             if current_batch_stats[flattened_cats[idx]] >= n_utt_per_category_in_batch:
-                tmp_cnt += 1
                 continue
 
             current_batch.append(category2utt[flattened_cats[idx]].pop())

@@ -1682,6 +1682,8 @@ class AbsTask(ABC):
             drop_last=args.drop_last_iter,
             category2utt_file=category2utt_file,
             epoch=1,
+            num_batches=iter_options.num_batches,
+            distributed=iter_options.distributed,
         )
         batch_sampler = CategoryBalancedSampler(**sampler_args)
 
