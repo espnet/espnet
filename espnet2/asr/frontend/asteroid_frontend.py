@@ -61,13 +61,18 @@ class AsteroidFrontend(AbsFrontend):
             ParamSincFB(sinc_filters, sinc_kernel_size, stride=sinc_stride)
         )
         self.log_term = log_term
+        self.sinc_kernel_size = sinc_kernel_size
+        self.sinc_stride = sinc_stride
         self.output_dim = sinc_filters
 
-    def forward(self, input: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, input: torch.Tensor, input_length: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Apply the Asteroid filterbank frontend to the input.
 
         Args:
             input: Input (B, T).
+            input_length: Input length (B,).
 
         Returns:
             Tensor: Frame-wise output (B, T', D).
@@ -77,21 +82,23 @@ class AsteroidFrontend(AbsFrontend):
             len(input.size()) == 2
         ), "The number of dimensions of input tensor must be 2!"
 
-        with torch.cuda.amp.autocase(enable=False):
+        with torch.cuda.amp.autocast(enabled=False):
             # reflect padding to match lengths of in/out
-            input = input.unsqueeze(1)
-            input = F.pad(input, (1, 0), "reflect")
+            x = input.unsqueeze(1)
+            x = F.pad(x, (1, 0), "reflect")
 
             # apply preemphasis
-            input = F.conv1d(input, self.flipped_filter)
+            x = F.conv1d(x, self.flipped_filter)
 
             # apply norm
-            input = self.norm(input)
+            x = self.norm(x)
 
             # apply frame feature extraction
             x = torch.log(torch.abs(self.conv(x)) + self.log_term)
 
-        return x - torch.mean(x, dim=-1, keepdim=True)
+        input_length = (input_length - self.sinc_kernel_size) // self.sinc_stride + 1
+
+        return x - torch.mean(x, dim=-1, keepdim=True), input_length
 
     def output_size(self) -> int:
         """Return output length of feature dimension D."""

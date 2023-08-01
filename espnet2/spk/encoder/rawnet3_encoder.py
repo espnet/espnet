@@ -69,7 +69,7 @@ class RawNet3Encoder(AbsEncoder):
     def output_size(self) -> int:
         return self._output_size
 
-    def forward(self, data: torch.Tensor):
+    def forward(self, x: torch.Tensor):
         # frame-level propagation
         x1 = self.layer1(x)
         x2 = self.layer2(x1)
