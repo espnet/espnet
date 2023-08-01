@@ -7,6 +7,7 @@
 from typing import Tuple
 
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from asteroid_filterbanks import Encoder, ParamSincFB
 from typeguard import check_argument_types
@@ -38,7 +39,8 @@ class AsteroidFrontend(AbsFrontend):
         Args:
             sinc_filters: the filter numbers for sinc.
             sinc_kernel_size: the kernel size for sinc.
-            sinc_stride: the sinc stride.
+            sinc_stride: the sincstride size of the first sinc-conv layer
+                where it decides the compression rate (Hz).
             preemph_coef: the coeifficient for preempahsis.
             log_term: the log term to prevent infinity.
         """
@@ -50,12 +52,13 @@ class AsteroidFrontend(AbsFrontend):
         # so the filter is flipped
         self.register_buffer(
             "flipped_filter",
-            torch.FloatTensor([-self.preemph_coef, 1.0]).unsqueeze(0).unsqueeze(0),
+            torch.FloatTensor([-preemph_coef, 1.0]).unsqueeze(0).unsqueeze(0),
         )
 
         self.norm = nn.InstanceNorm1d(1, eps=1e-4, affine=True)
+        self.sinc_filters = sinc_filters
         self.conv = Encoder(
-            ParamSIncFB(sinc_filters, sinc_kernel_size, stride=sinc_stride)
+            ParamSincFB(sinc_filters, sinc_kernel_size, stride=sinc_stride)
         )
         self.log_term = log_term
         self.output_dim = sinc_filters

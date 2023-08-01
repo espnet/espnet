@@ -26,6 +26,10 @@ class ChnAttnStatPooling(AbsPooling):
             nn.Conv1d(128, input_size, kernel_size=1),
             nn.Softmax(dim=2),
         )
+        self._output_size = input_size * 2
+
+    def output_size(self):
+        return self._output_size
 
     def forward(self, x):
         t = x.size()[-1]

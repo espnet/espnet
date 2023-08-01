@@ -23,7 +23,7 @@ class SEModule(nn.Module):
         return input * x
 
 
-class Bottle2neck(nn.Module):
+class EcapaBlock(nn.Module):
     def __init__(self, inplanes, planes, kernel_size=None, dilation=None, scale=8):
         super(Bottle2neck, self).__init__()
         width = int(math.floor(planes / scale))

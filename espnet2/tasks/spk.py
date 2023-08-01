@@ -194,6 +194,10 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
+            "--spk_num", type=int, default=None, help="spk number in training"
+        )
+
+        group.add_argument(
             "--sample_rate",
             type=int,
             default=16000,
@@ -301,15 +305,22 @@ class SpeakerTask(AbsTask):
 
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+        encoder_output_size = encoder.output_size()
 
         pooling_class = pooling_choices.get_class(args.pooling)
-        pooling = pooling_class(**args.pooling_conf)
+        pooling = pooling_class(input_size=encoder_output_size, **args.pooling_conf)
+        pooling_output_size = pooling.output_size()
 
         projector_class = projector_choices.get_class(args.projector)
-        projector = projector_class(**args.projector_conf)
+        projector = projector_class(
+            input_size=pooling_output_size, **args.projector_conf
+        )
+        projector_output_size = projector.output_size()
 
         loss_class = loss_choices.get_class(args.loss)
-        loss = loss_class(**args.loss_conf)
+        loss = loss_class(
+            nout=projector_output_size, nclasses=args.spk_num, **args.loss_conf
+        )
 
         model = ESPnetSpeakerModel(
             frontend=frontend,
