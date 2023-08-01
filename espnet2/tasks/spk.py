@@ -7,7 +7,10 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.asteroid_frontend import AsteroidFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.fused import FusedFrontends
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
@@ -43,10 +46,12 @@ frontend_choices = ClassChoices(
     classes=dict(
         default=DefaultFrontend,
         sliding_window=SlidingWindow,
-        raw=AbsFrontend,
+        asteroid_frontend=AsteroidFrontend,
+        s3prl=S3prlFrontend,
+        fused=FusedFrontends,
     ),
     type_check=AbsFrontend,
-    default="default",
+    default=None,
     optional=True,
 )
 
@@ -273,14 +278,12 @@ class SpeakerTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetSpeakerModel:
         assert check_argument_types()
 
-        if args.frontend != "raw":
+        if args.frontend is not None:
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
             input_size = frontend.output_size()
         else:
-            # Give features from data-loader
-            args.frontend = None
-            args.frontend_conf = {}
+            # Give features from data-loader (e.g., precompute features).
             frontend = None
             input_size = args.input_size
 
