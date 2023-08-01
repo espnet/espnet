@@ -217,7 +217,7 @@ class EBranchformer(torch.nn.Module):
 
             x1 = self.xtention(x1, key, key, pos, mask=mask, left_context=left_context)
         else:
-            x1, xtention_cache = self.xtention(x, pos, state=self.cache[0])
+            x1, xtention_cache = self.xtention(x1, pos, state=self.cache[0])
 
         x2 = self.norm_mlp(x2)
 

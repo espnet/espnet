@@ -122,7 +122,7 @@ class Branchformer(torch.nn.Module):
                 self.xtention(x1, x1, x1, pos, mask=mask, chunk_mask=chunk_mask)
             )
         else:
-            x1, _ = self.xtention(x, pos)
+            x1, _ = self.xtention(x1, pos)
             x1 = self.dropout(x1)
 
         x2 = self.norm_mlp(x2)
@@ -177,8 +177,7 @@ class Branchformer(torch.nn.Module):
 
             x1 = self.xtention(x1, key, key, pos, mask=mask, left_context=left_context)
         else:
-            x, xtention_cache = self.xtention(x, pos, state=self.cache[0])
-            x = residual + x
+            x1, xtention_cache = self.xtention(x1, pos, state=self.cache[0])
 
         x2 = self.norm_mlp(x2)
 
