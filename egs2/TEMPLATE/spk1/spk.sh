@@ -317,6 +317,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --train_shape_file "${_logdir}/train.JOB.scp" \
             --valid_shape_file "${_logdir}/valid.JOB.scp" \
             --spk2utt ${_spk_train_dir}/spk2utt \
+            --spk_num $(wc -l ${_spk_train_dir}/spk2utt | cut -f1 -d" ") \
             --output_dir "${_logdir}/stats.JOB" \
             ${_opts} ${spk_args} || { cat $(grep -l -i error "${_logdir}"/stats.*.log) ; exit 1;  }
 
@@ -369,6 +370,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial2.scp,speech2,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial_label,spk_labels,text \
             --spk2utt ${_spk_train_dir}/spk2utt \
+            --spk_num $(wc -l ${_spk_train_dir}/spk2utt | cut -f1 -d" ") \
             --fold_length ${fold_length} \
             --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
             --output_dir "${spk_exp}" \
