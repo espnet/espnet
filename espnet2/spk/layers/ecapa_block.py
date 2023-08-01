@@ -25,7 +25,7 @@ class SEModule(nn.Module):
 
 class EcapaBlock(nn.Module):
     def __init__(self, inplanes, planes, kernel_size=None, dilation=None, scale=8):
-        super(Bottle2neck, self).__init__()
+        super(self).__init__()
         width = int(math.floor(planes / scale))
         self.conv1 = nn.Conv1d(inplanes, width * scale, kernel_size=1)
         self.bn1 = nn.BatchNorm1d(width * scale)

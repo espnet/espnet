@@ -10,7 +10,7 @@ import torch.nn as nn
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.spk.layers.EcapaBlock import EcapaBlock
+from espnet2.spk.layers.ecapa_block import EcapaBlock
 
 
 class EcapaTdnnEncoder(AbsEncoder):
@@ -48,7 +48,7 @@ class EcapaTdnnEncoder(AbsEncoder):
 
         self.conv = nn.Conv1d(input_size, ndim, kernel_size=5, stride=1, padding=2)
         self.relu = nn.ReLU()
-        self.bn = self.BatchNorm1d(ndim)
+        self.bn = nn.BatchNorm1d(ndim)
 
         self.layer1 = block(ndim, ndim, kernel_size=3, dilation=2, scale=model_scale)
         self.layer2 = block(ndim, ndim, kernel_size=3, dilation=3, scale=model_scale)
