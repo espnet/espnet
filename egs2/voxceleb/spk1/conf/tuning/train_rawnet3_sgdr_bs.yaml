@@ -45,7 +45,7 @@ loss_conf:
 # Training related
 max_epoch: 40
 num_att_plot: 0
-num_workers: 0
+num_workers: 8
 cudnn_deterministic: False
 cudnn_benchmark: True
 batch_size: 128

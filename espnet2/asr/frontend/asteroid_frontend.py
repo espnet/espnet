@@ -97,8 +97,9 @@ class AsteroidFrontend(AbsFrontend):
             x = torch.log(torch.abs(self.conv(x)) + self.log_term)
 
         input_length = (input_length - self.sinc_kernel_size) // self.sinc_stride + 1
+        x = x - torch.mean(x, dim=-1, keepdim=True)
 
-        return x - torch.mean(x, dim=-1, keepdim=True), input_length
+        return x.permute(0, 2, 1), input_length
 
     def output_size(self) -> int:
         """Return output length of feature dimension D."""

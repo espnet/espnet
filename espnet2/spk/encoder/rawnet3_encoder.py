@@ -71,7 +71,7 @@ class RawNet3Encoder(AbsEncoder):
 
     def forward(self, x: torch.Tensor):
         # frame-level propagation
-        x1 = self.layer1(x)
+        x1 = self.layer1(x.permute(0, 2, 1))
         x2 = self.layer2(x1)
         x3 = self.layer3(self.mp3(x1) + x2)
 

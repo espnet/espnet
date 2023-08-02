@@ -60,7 +60,11 @@ class EcapaTdnnEncoder(AbsEncoder):
     def output_size(self) -> int:
         return self._output_size
 
-    def forward(self, data: torch.Tensor):
+    def forward(self, x: torch.Tensor):
+        x = self.conv(x.permute(0, 2, 1))
+        x = self.relu(x)
+        x = self.bn(x)
+
         x1 = self.layer1(x)
         x2 = self.layer2(x + x1)
         x3 = self.layer3(x + x1 + x2)
