@@ -3,7 +3,7 @@
 Train an LM using the prepared tokens and text data
 
 Step 1:  Prepare discrete speech tokens for train/valid/test data and token vocabulary. This step is done externally.
-Following files are needed: train: data/lm_train.txt, valid: data/lm_valid.txt test: data/lm_test.txt and token vocabulary: data/tokens.txt
+Following files are needed: train: _data/lm_train.txt_, valid: _data/lm_valid.txt_ test: _data/lm_test.txt_ and token vocabulary: _data/tokens.txt_ .
 
 Discrete speech tokens contains lines with format:  <utt_id> <space_separated_discrete_speech_tokens> . Example:  
 ```
