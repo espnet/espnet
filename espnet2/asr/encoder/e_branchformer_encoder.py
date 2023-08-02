@@ -10,7 +10,7 @@ Reference:
 """
 
 import logging
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -37,6 +37,8 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import (
+    Conv1dSubsampling2,
+    Conv1dSubsampling3,
     Conv2dSubsampling,
     Conv2dSubsampling1,
     Conv2dSubsampling2,
@@ -249,6 +251,20 @@ class EBranchformerEncoder(AbsEncoder):
                 torch.nn.Dropout(dropout_rate),
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
             )
+        elif input_layer == "conv1d2":
+            self.embed = Conv1dSubsampling2(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
+            )
+        elif input_layer == "conv1d3":
+            self.embed = Conv1dSubsampling3(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
+            )
         elif input_layer == "conv2d":
             self.embed = Conv2dSubsampling(
                 input_size,
@@ -296,7 +312,9 @@ class EBranchformerEncoder(AbsEncoder):
             )
         elif input_layer is None:
             if input_size == output_size:
-                self.embed = None
+                self.embed = torch.nn.Sequential(
+                    pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len)
+                )
             else:
                 self.embed = torch.nn.Linear(input_size, output_size)
         else:
@@ -418,6 +436,8 @@ class EBranchformerEncoder(AbsEncoder):
 
         if (
             isinstance(self.embed, Conv2dSubsampling)
+            or isinstance(self.embed, Conv1dSubsampling2)
+            or isinstance(self.embed, Conv1dSubsampling3)
             or isinstance(self.embed, Conv2dSubsampling1)
             or isinstance(self.embed, Conv2dSubsampling2)
             or isinstance(self.embed, Conv2dSubsampling6)

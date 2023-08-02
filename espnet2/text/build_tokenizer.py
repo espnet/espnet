@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, Union
+from typing import Dict, Iterable, Union
 
 from typeguard import check_argument_types
 
@@ -21,6 +21,8 @@ def build_tokenizer(
     delimiter: str = None,
     g2p_type: str = None,
     nonsplit_symbol: Iterable[str] = None,
+    # tokenization encode (text2token) args, e.g. BPE dropout, only applied in training
+    encode_kwargs: Dict = None,
 ) -> AbsTokenizer:
     """A helper function to instantiate Tokenizer"""
     assert check_argument_types()
@@ -32,7 +34,9 @@ def build_tokenizer(
             raise RuntimeError(
                 "remove_non_linguistic_symbols is not implemented for token_type=bpe"
             )
-        return SentencepiecesTokenizer(bpemodel)
+        if encode_kwargs is None:
+            encode_kwargs = dict()
+        return SentencepiecesTokenizer(bpemodel, encode_kwargs)
 
     if token_type == "hugging_face":
         if bpemodel is None:

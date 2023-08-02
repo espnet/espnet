@@ -16,11 +16,11 @@ import os
 import re
 import sys
 import traceback
-from decimal import Decimal
 from pathlib import Path
 from typing import Dict
 
 import kaldiio
+import soundfile as sf
 from pyopenjtalk import run_frontend
 
 from espnet2.text.phoneme_tokenizer import PhonemeTokenizer
@@ -47,7 +47,7 @@ TRAIN_TEXT_PATH = os.path.join(WORK_DIR, "text")
 DURATIONS_PATH = os.path.join(WORK_DIR, "durations")
 DICTIONARY_PATH = os.path.join(WORK_DIR, "train_dict.txt")
 
-punctuation = "!',.?" + '"'
+punctuation = '!,.?"'
 
 # JP_DICT_URL =
 # "https://raw.githubusercontent.com/r9y9/open_jtalk/1.11/src/mecab-naist-jdic/unidic-csj.csv"
@@ -61,9 +61,8 @@ def get_path(s, sep=os.sep):
 
 
 def get_jp_text(text):
-    new_text = run_frontend(text)[0]
-    new_text = " ".join(x.split(",")[0] for x in new_text)
-    return new_text
+    new_text = run_frontend(text)
+    return " ".join([token["string"] for token in new_text])
 
 
 def get_parser():
@@ -71,8 +70,8 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description=(
             "Utilities to format from MFA to ESPnet.\n"
-            "Usage: python scripts/utils/mfa_format.py ACTION [dataset] [options]\n"
-            "python scripts/utils/mfa_format.py labs ljspeech\n"
+            "Usage: python scripts/utils/mfa_format.py TASK [--options]\n"
+            "python scripts/utils/mfa_format.py labs\n"
             "python scripts/utils/mfa_format.py validate\n"
             "python scripts/utils/mfa_format.py durations\n"
         )
@@ -143,8 +142,10 @@ def get_parser():
     return parser
 
 
-def get_phoneme_durations(data: Dict, original_text: str, fs: int, hop_size: int):
-    """Get phohene durations."""
+def get_phoneme_durations(
+    data: Dict, original_text: str, fs: int, hop_size: int, n_samples: int
+):
+    """Get phoneme durations."""
     orig_text = original_text.replace(" ", "").rstrip()
     text_pos = 0
     maxTimestamp = data["end"]
@@ -171,7 +172,7 @@ def get_phoneme_durations(data: Dict, original_text: str, fs: int, hop_size: int
             puncs = []
             while text_pos < len(orig_text):
                 char = orig_text[text_pos]
-                if char.isalpha():
+                if char.isalpha() or char == "'":
                     break
                 else:
                     puncs.append(char)
@@ -226,7 +227,7 @@ def get_phoneme_durations(data: Dict, original_text: str, fs: int, hop_size: int
     # STFT frames calculation: https://github.com/librosa/librosa/issues/1288
     # centered stft
 
-    total_durations = int(Decimal(str(maxTimestamp)) * fs / hop_size) + 1
+    total_durations = int(n_samples / hop_size) + 1
     timing_frames = [int(timing * fs / hop_size) + 1 for timing in timings]
     durations = [
         timing_frames[i + 1] - timing_frames[i] for i in range(len(timing_frames) - 1)
@@ -263,6 +264,7 @@ def validate(args):
 
 def make_durations(args):
     """Make durations file."""
+
     wavs_dir = Path(args.corpus_dir)
     textgrid_dir = args.textgrid_dir
     train_text_path = args.train_text_path
@@ -276,9 +278,22 @@ def make_durations(args):
                 len(lab_paths) > 0
             ), f"The folder {wavs_dir} does not contain any transcription."
             for lab_path in lab_paths:
+                wav_path = lab_path.as_posix().replace(
+                    ".lab", ".wav"
+                )  # Assumes .wav files are in same dir as .lab files
+                if not os.path.exists(wav_path):
+                    logging.warning("There is no wav file for %s, skipping.", lab_path)
+                    continue
+
+                # get no. of samples and original sr directly from audio file
+                with sf.SoundFile(wav_path) as audio:
+                    orig_sr = audio.samplerate
+                    # Account for downsampling
+                    no_samples = int(audio.frames * (args.samplerate / orig_sr))
+
                 filename = (
                     lab_path.as_posix()
-                    .replace(args.corpus_dir + "/", "")
+                    .replace(args.corpus_dir.rstrip("/") + "/", "")
                     .replace(".lab", "")
                 )
                 with open(lab_path) as lab_file:
@@ -290,7 +305,11 @@ def make_durations(args):
                 with codecs.open(tg_path, "r", encoding="utf-8") as reader:
                     _data_dict = json.load(reader)
                 new_phones, durations = get_phoneme_durations(
-                    _data_dict, original_text, args.samplerate, args.hop_size
+                    _data_dict,
+                    original_text,
+                    args.samplerate,
+                    args.hop_size,
+                    no_samples,
                 )
                 key = filename.split("/")[-1]
                 text_file.write(f'{key} {" ".join(new_phones)}\n')
@@ -323,9 +342,11 @@ def make_dictionary(args):
 
 def make_labs(args):
     """Make lab file for datasets."""
-    import soundfile as sf
 
     from espnet2.text.cleaner import TextCleaner
+
+    if not args.text_cleaner:
+        args.text_cleaner = None
 
     corpus_dir = Path(args.corpus_dir)
     cleaner = TextCleaner(args.text_cleaner)
@@ -338,64 +359,69 @@ def make_labs(args):
         logging.info("Preparing data for %s", dset)
         dset: Path = Path("data") / dset
         # Generate directories according to spk2utt
-        speakers = dict()
-        with open(dset / "spk2utt") as reader:
+        utt2spk = dict()
+        with open(dset / "utt2spk") as reader:
             for line in reader:
-                line = line.split()
-                (corpus_dir / line[0]).mkdir(parents=True, exist_ok=True)
-                speakers.update({key: line[0] for key in line[1:]})
+                utt, spk = line.strip().split(maxsplit=1)
+                utt2spk[utt] = spk
+            for spk in set(utt2spk.values()):
+                (corpus_dir / spk).mkdir(parents=True, exist_ok=True)
 
         # Generate labs according to text file
         with open(dset / "text", encoding="utf-8") as reader:
             for line in reader:
-                key = line.split()[0]
-                text = " ".join(line.split()[1:])
+                utt, text = line.strip().split(maxsplit=1)
                 text = cleaner(text).lower()
                 # Convert single quotes into double quotes
                 #   so that MFA doesn't confuse them with clitics.
                 # Find ' not preceded by a letter to the last ' not followed by a letter
                 text = re.sub(r"(\W|^)'(\w[\w .,!?']*)'(\W|$)", r'\1"\2"\3', text)
 
+                # Remove braces because MFA interprets them as enclosing a single word
+                text = re.sub(r"[\{\}]", "", text)
+
                 # In case of frontend, preprocess data.
                 if frontend is not None:
                     text = frontend(text)
 
-                spk = speakers.get(key, None)
-                if spk is None:
-                    continue
-                with open(
-                    corpus_dir / spk / f"{key}.lab", "w", encoding="utf-8"
-                ) as writer:
-                    writer.write(text)
+                try:
+                    spk = utt2spk[utt]
+                    with open(
+                        corpus_dir / spk / f"{utt}.lab", "w", encoding="utf-8"
+                    ) as writer:
+                        writer.write(text)
+                except KeyError:
+                    logging.warning(f"{utt} is in text file but not in utt2spk")
 
         # Generate wavs according to wav.scp and segment files
         if (dset / "segments").exists():
             wscp = (dset / "wav.scp").as_posix()
             segments = (dset / "segments").as_posix()
             with kaldiio.ReadHelper(f"scp:{wscp}", segments=segments) as reader:
-                for key, (rate, array) in reader:
-                    spk: str = speakers.get(key, None)
-                    if spk is None:
-                        continue
-                    dst_file = (corpus_dir / spk / f"{key}.wav").as_posix()
-                    sf.write(dst_file, array, rate)
+                for utt, (rate, array) in reader:
+                    try:
+                        spk = utt2spk[utt]
+                        dst_file = (corpus_dir / spk / f"{utt}.wav").as_posix()
+                        sf.write(dst_file, array, rate)
+                    except KeyError:
+                        logging.warning(f"{utt} is in wav.scp file but not in utt2spk")
         else:
             with open(dset / "wav.scp") as reader:
-                rate = None
                 for line in reader:
-                    line = line.split()
-                    src_file = os.path.abspath(get_path(line))
-                    spk: str = speakers.get(line[0], None)
-                    if spk is None:
-                        continue
-                    dst_file = corpus_dir / spk / f"{line[0]}.wav"
-                    if src_file.endswith(".wav"):
-                        # Create symlink
-                        dst_file.symlink_to(src_file)
-                    else:
-                        # Create wav file
-                        rate, array = kaldiio.load_mat(" ".join(line[1:]))
-                        sf.write(dst_file.as_posix(), array, rate)
+                    utt, src_file = line.strip().split(maxsplit=1)
+                    src_file = os.path.abspath(src_file)
+                    try:
+                        spk = utt2spk[utt]
+                        dst_file = corpus_dir / spk / f"{utt}.wav"
+                        if src_file.endswith(".wav"):
+                            # Create symlink
+                            dst_file.symlink_to(src_file)
+                        else:
+                            # Create wav file
+                            rate, array = kaldiio.load_mat(src_file)
+                            sf.write(dst_file.as_posix(), array, rate)
+                    except KeyError:
+                        logging.warning(f"{utt} is in wav.scp file but not in utt2spk")
     logging.info("Finished writing .lab files")
 
 

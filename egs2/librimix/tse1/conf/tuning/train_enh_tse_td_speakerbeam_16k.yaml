@@ -1,0 +1,85 @@
+optim: adam
+max_epoch: 100
+batch_type: folded
+batch_size: 16
+iterator_type: chunk
+chunk_length: 48000
+# exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
+# from the length consistency check in ChunkIterFactory
+chunk_excluded_key_prefixes:
+- "enroll_ref"
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 0
+unused_parameters: true
+patience: 20
+accum_grad: 1
+grad_clip: 5.0
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+   mode: min
+   factor: 0.7
+   patience: 3
+
+model_conf:
+    num_spk: 2
+    share_encoder: true
+
+train_spk2enroll: data/train-100/spk2enroll.json
+enroll_segment: 48000
+load_spk_embedding: false
+load_all_speakers: false
+
+encoder: conv
+encoder_conf:
+    channel: 256
+    kernel_size: 32
+    stride: 16
+decoder: conv
+decoder_conf:
+    channel: 256
+    kernel_size: 32
+    stride: 16
+extractor: td_speakerbeam
+extractor_conf:
+    layer: 8
+    stack: 4
+    bottleneck_dim: 256
+    hidden_dim: 512
+    skip_dim: 256
+    kernel: 3
+    causal: False
+    norm_type: gLN
+    pre_nonlinear: prelu
+    nonlinear: relu
+    # enrollment related
+    i_adapt_layer: 7
+    adapt_layer_type: mul
+    adapt_enroll_dim: 256
+    use_spk_emb: false
+
+# A list for criterions
+# The overlall loss in the multi-task learning will be:
+# loss = weight_1 * loss_1 + ... + weight_N * loss_N
+# The default `weight` for each sub-loss is 1.0
+criterions:
+  # The first criterion
+  - name: snr
+    conf:
+      eps: 1.0e-7
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

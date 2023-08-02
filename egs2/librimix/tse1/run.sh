@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-sample_rate=16k # If using 8k, please make sure `spk2enroll.json` points to 8k audios as well
+sample_rate=16k # 8k or 16k
 min_or_max=min  # "min" or "max". This is to determine how the mixtures are generated in local/data.sh.
 
 

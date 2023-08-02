@@ -88,4 +88,5 @@ tools/._*
 tools/ice-g2p*
 tools/fairseq*
 tools/featbin*
+tools/Miniconda*
 tools/miniconda

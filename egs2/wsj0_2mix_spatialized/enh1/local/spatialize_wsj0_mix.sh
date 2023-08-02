@@ -71,6 +71,7 @@ unzip ${wdir}/spatialize_wsj0-mix.zip -d ${dir}
 sed -i -e "s#data_in_root  = './wsj0-mix/';#data_in_root  = '${wsj0_2mix_wav}';#" \
        -e "s#rir_root      = './wsj0-mix/';#rir_root      = '${wsj0_2mix_spatialized_wav}';#" \
        -e "s#data_out_root = './wsj0-mix/';#data_out_root = '${wsj0_2mix_spatialized_wav}';#" \
+       -e "s#RIR-Generator-master/#RIR-Generator/" \
        ${dir}/spatialize_wsj0_mix.m
 
 sed -i -e "s#MIN_OR_MAX=\"'min'\"#MIN_OR_MAX=\"'${min_or_max}'\"#" \
