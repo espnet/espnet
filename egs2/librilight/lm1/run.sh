@@ -11,7 +11,7 @@ lm_train_text=data/lm_train.txt
 lm_dev_text=data/lm_valid.txt
 lm_test_text=data/lm_test.txt
 
-lm_config=conf/train_lm_rnn_unit1024_nlayers3_dropout0.2_epoch30.yaml
+lm_config=conf/tuning/train_lm_rnn_unit1024_nlayers3_dropout0.2_epoch30.yaml
 
 ./asr.sh \
     --stage 6 \
