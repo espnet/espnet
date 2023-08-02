@@ -1,6 +1,7 @@
 import math
-import torch.nn as nn
+
 import torch
+import torch.nn as nn
 
 """
 Basic blocks for ECAPA-TDNN.
