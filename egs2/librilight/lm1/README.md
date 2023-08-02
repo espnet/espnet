@@ -1,21 +1,20 @@
 ## Train speech Language Model
 
-Train an LM using the prepared tokens and text data:
+Train an LM using the prepared tokens and text data
 
-Step 1:  Prepare discrete speech tokens for train/valid/test data and token vocabulary. Example: train: data/lm_train.txt, valid: data/lm_valid.txt test: data/lm_test.txt and token vocabulary: data/tokens.txt
+Step 1:  Prepare discrete speech tokens for train/valid/test data and token vocabulary. This step is done externally.
+Following files are needed: train: data/lm_train.txt, valid: data/lm_valid.txt test: data/lm_test.txt and token vocabulary: data/tokens.txt
 
+Discrete speech tokens contains lines with format:  <utt_id> <space separated discrete speech tokens>. Example:  
+```
+100_2315_04_baum_sea_fairies_64kb_0000	20 18 48 47 34 11 14 21 34 36 14 21 35 41 19 45 4 7 44 37 17 7 30 0 8 3 44 11 36 25 47 17 24 44 49 32 29 24 26 16 12 46 9 20 33 20 33 20 18 6 8 42 41 19 45 7 37 17 24 17 30 0 8 3 44 11
+```
 Step 2: Move preprocessed data for LM training
 ```
-mkdir -p data/token_list/word
-cp data/tokens.txt data/token_list/word/
-
-lm_train_text=data/lm_train.txt
-data_feats=dump/raw
-mkdir -p ${data_feats}
-cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+./local/data_prep.sh
 ```
 
-Step 3: Train model
+Step 3: Train LM
 ```
 ./run.sh
 ```
