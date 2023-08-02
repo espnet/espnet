@@ -10,7 +10,7 @@ import torch.nn as nn
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
-from espnet2.spk.layers.EcapaBlock import EcapaBlock
+from espnet2.spk.layers.ecapa_block import EcapaBlock
 
 
 class EcapaTdnnEncoder(AbsEncoder):
@@ -21,19 +21,21 @@ class EcapaTdnnEncoder(AbsEncoder):
         Propagation and Aggregation in TDNN Based Speaker Verification,''
         in Proc. INTERSPEECH, 2020.
 
-    Note that the model's output dimensionality self._output_size equals to
-        1.5 * ndim.
-
     Args:
+        input_size: input feature dimension.
         block: type of encoder block class to use.
         model_scale: scale value of the Res2Net architecture.
-        ndim: dimensionality of the hidden representation."""
+        ndim: dimensionality of the hidden representation.
+        output_size: output embedding dimension.
+    """
 
     def __init__(
         self,
+        input_size: int,
         block: str = "EcapaBlock",
         model_scale: int = 8,
         ndim: int = 1024,
+        output_size: int = 1536,
         **kwargs,
     ):
         assert check_argument_types()
@@ -42,24 +44,27 @@ class EcapaTdnnEncoder(AbsEncoder):
             block = EcapaBlock
         else:
             raise ValueError(f"unsupported block, got: {block}")
-        self._output_size = int(ndim * 1.5)
+        self._output_size = output_size
 
-        self.conv = nn.Conv1d(input_dim, ndim, kernel_size=5, stride=1, padding=2)
+        self.conv = nn.Conv1d(input_size, ndim, kernel_size=5, stride=1, padding=2)
         self.relu = nn.ReLU()
-        self.bn = self.BatchNorm1d(ndim)
+        self.bn = nn.BatchNorm1d(ndim)
 
         self.layer1 = block(ndim, ndim, kernel_size=3, dilation=2, scale=model_scale)
         self.layer2 = block(ndim, ndim, kernel_size=3, dilation=3, scale=model_scale)
         self.layer3 = block(ndim, ndim, kernel_size=3, dilation=4, scale=model_scale)
-        self.layer4 = nn.Conv1d(3 * ndim, int(1.5 * ndim), kernel_size=1)
+        self.layer4 = nn.Conv1d(3 * ndim, output_size, kernel_size=1)
 
         self.mp3 = nn.MaxPool1d(3)
 
     def output_size(self) -> int:
         return self._output_size
 
-    def forward(self, data: torch.Tensor):
-        # frame-level propagation
+    def forward(self, x: torch.Tensor):
+        x = self.conv(x.permute(0, 2, 1))
+        x = self.relu(x)
+        x = self.bn(x)
+
         x1 = self.layer1(x)
         x2 = self.layer2(x + x1)
         x3 = self.layer3(x + x1 + x2)

@@ -1,22 +1,30 @@
 # RawNet3 reproduce recipe configuration.
 
-frontend: raw
+# Frontend
+frontend: asteroid_frontend
+frontend_conf:
+    sinc_stride: 16
+    sinc_kernel_size: 251
+    sinc_filters: 256
+    preemph_coef: 0.97
+    log_term: 0.000001
 
+# Encoder
 encoder: rawnet3
 encoder_conf:
   model_scale: 8
   ndim: 1024
-  sinc_stride: 16
+  output_size: 1536
 
+# Pooling
 pooling: chn_attn_stat
-pooling_conf:
-  input_size: 1536  # 1.5 * ndim of RawNet3 encoder
 
+# Projector
 projector: rawnet3
 projector_conf:
-  input_size: 3072  # 2 * input_size of pooling
   output_size: 256
 
+# Preprocessor
 preprocessor: spk
 preprocessor_conf:
   target_duration: 3.0  # seconds
@@ -30,18 +38,18 @@ preprocessor_conf:
   rir_apply_prob: 0.5
   rir_scp: /home/jeeweonj/corpora/voxcelebs/rirs.scp
 
+# Model config
 model_conf:
   extract_feats_in_collect_stats: false
 
+# Loss
 loss: aamsoftmax
 loss_conf:
-  nout: 256
-  nclasses: 7205
   margin: 0.3
   scale: 30
 
+# Training related
 max_epoch: 160
-#num_iters_per_epoch: 1
 num_att_plot: 0
 num_workers: 8
 cudnn_deterministic: False
@@ -52,12 +60,19 @@ shuffle_within_batch: False
 log_interval: 100
 batch_size: 512
 valid_batch_size: 40
+best_model_criterion:
+- - valid
+  - eer
+  - min
+
+# Optimizer
 optim: adam
 optim_conf:
   lr: 0.001
   weight_decay: 0.00005
   amsgrad: False
 
+# Scheduler
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
   first_cycle_steps: 73024
@@ -66,8 +81,3 @@ scheduler_conf:
   min_lr: 0.000005
   warmup_steps: 1000
   gamma: 0.7
-
-best_model_criterion:
-- - valid
-  - eer
-  - min

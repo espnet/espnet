@@ -7,7 +7,10 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.asteroid_frontend import AsteroidFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.fused import FusedFrontends
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
@@ -43,10 +46,12 @@ frontend_choices = ClassChoices(
     classes=dict(
         default=DefaultFrontend,
         sliding_window=SlidingWindow,
-        raw=AbsFrontend,
+        asteroid_frontend=AsteroidFrontend,
+        s3prl=S3prlFrontend,
+        fused=FusedFrontends,
     ),
     type_check=AbsFrontend,
-    default="default",
+    default=None,
     optional=True,
 )
 
@@ -189,6 +194,10 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
+            "--spk_num", type=int, default=None, help="spk number in training"
+        )
+
+        group.add_argument(
             "--sample_rate",
             type=int,
             default=16000,
@@ -273,14 +282,12 @@ class SpeakerTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetSpeakerModel:
         assert check_argument_types()
 
-        if args.frontend != "raw":
+        if args.frontend is not None:
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
             input_size = frontend.output_size()
         else:
-            # Give features from data-loader
-            args.frontend = None
-            args.frontend_conf = {}
+            # Give features from data-loader (e.g., precompute features).
             frontend = None
             input_size = args.input_size
 
@@ -298,15 +305,22 @@ class SpeakerTask(AbsTask):
 
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+        encoder_output_size = encoder.output_size()
 
         pooling_class = pooling_choices.get_class(args.pooling)
-        pooling = pooling_class(**args.pooling_conf)
+        pooling = pooling_class(input_size=encoder_output_size, **args.pooling_conf)
+        pooling_output_size = pooling.output_size()
 
         projector_class = projector_choices.get_class(args.projector)
-        projector = projector_class(**args.projector_conf)
+        projector = projector_class(
+            input_size=pooling_output_size, **args.projector_conf
+        )
+        projector_output_size = projector.output_size()
 
         loss_class = loss_choices.get_class(args.loss)
-        loss = loss_class(**args.loss_conf)
+        loss = loss_class(
+            nout=projector_output_size, nclasses=args.spk_num, **args.loss_conf
+        )
 
         model = ESPnetSpeakerModel(
             frontend=frontend,
