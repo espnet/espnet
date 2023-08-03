@@ -275,7 +275,7 @@ class MfaConformerEncoder(AbsEncoder):
             ),
             layer_drop_rate,
         )
-        self.ln = LayerNorm(output_size*num_blocks)
+        self.ln = LayerNorm(output_size * num_blocks)
 
     def output_size(self) -> int:
         return self._output_size
@@ -304,8 +304,9 @@ class MfaConformerEncoder(AbsEncoder):
         ):
             xs_pad, _ = self.embed(x, masks)
         else:
-            raise NotImplementedError(f"Supposed to be one of the Conv"
-                                      f"subsampling layers")
+            raise NotImplementedError(
+                f"Supposed to be one of the Conv" f"subsampling layers"
+            )
 
         intermediate_outs = []
         for layer_idx, encoder_layer in enumerate(self.encoders):
@@ -313,7 +314,7 @@ class MfaConformerEncoder(AbsEncoder):
             intermediate_outs.append(x[0])
 
         x = torch.cat(intermediate_outs, dim=-1)
-        x = self.ln(x).transpose(1,2) # (#batch, L, output_size)
-                                      # to (#batch, output_size, L)
+        x = self.ln(x).transpose(1, 2)  # (#batch, L, output_size)
+        # to (#batch, output_size, L)
 
         return x
