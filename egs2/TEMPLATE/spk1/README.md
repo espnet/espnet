@@ -2,9 +2,9 @@
 
 This is a template of Spk1 recipe for ESPnet2.
 It follows d-vector style training/inference for speaker verification.
-In other words, it trains a DNN as a closed set speaker classifier. 
-After training the classification head is removed. The last hidden layer 
-(or sometimes another layer) is used as a speaker representation (i.e., 
+In other words, it trains a DNN as a closed set speaker classifier.
+After training the classification head is removed. The last hidden layer
+(or sometimes another layer) is used as a speaker representation (i.e.,
 speaker embedding) to represent diverse open set speakers.
 
 ## Table of Contents
@@ -55,7 +55,7 @@ Format the wave files in `wav.scp` to a single format (wav / flac / kaldi_ark).
 
 Statistics calculation stage.
 It collects the shape information of input and output texts for Spk training.
-Currently, it's close to a dummy because we set all utterances to have equal 
+Currently, it's close to a dummy because we set all utterances to have equal
 duration in the training phase.
 
 ### 4. Spk training
