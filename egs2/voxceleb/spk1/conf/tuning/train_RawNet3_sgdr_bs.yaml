@@ -22,6 +22,8 @@ preprocessor_conf:
   target_duration: 3.0  # seconds
   sample_rate: 16000
   num_eval: 5
+  noise_apply_prob: 0.0
+  rir_apply_prob: 0.0
 
 model_conf:
   extract_feats_in_collect_stats: false
