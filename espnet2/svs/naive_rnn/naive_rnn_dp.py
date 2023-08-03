@@ -38,7 +38,7 @@ class NaiveRNNDP(AbsSVS):
         odim: int,
         midi_dim: int = 129,
         embed_dim: int = 512,
-        tempo_dim: int = 500,
+        duration_dim: int = 500,
         eprenet_conv_layers: int = 3,
         eprenet_conv_chans: int = 256,
         eprenet_conv_filts: int = 5,
@@ -71,9 +71,50 @@ class NaiveRNNDP(AbsSVS):
         use_masking: bool = False,
         use_weighted_masking: bool = False,
     ):
-        """Initialize NaiveRNN module.
+        """Initialize NaiveRNNDP module.
 
-        Args: TODO(Yuning)
+        Args:
+            idim (int): Dimension of the label inputs.
+            odim (int): Dimension of the outputs.
+            midi_dim (int): Dimension of the midi inputs.
+            embed_dim (int): Dimension of the token embedding.
+            eprenet_conv_layers (int): Number of prenet conv layers.
+            eprenet_conv_filts (int): Number of prenet conv filter size.
+            eprenet_conv_chans (int): Number of prenet conv filter channels.
+            elayers (int): Number of encoder layers.
+            eunits (int): Number of encoder hidden units.
+            ebidirectional (bool): If bidirectional in encoder.
+            midi_embed_integration_type (str): how to integrate midi information,
+                ("add" or "cat").
+            dlayers (int): Number of decoder lstm layers.
+            dunits (int): Number of decoder lstm units.
+            dbidirectional (bool): if bidirectional in decoder.
+            postnet_layers (int): Number of postnet layers.
+            postnet_filts (int): Number of postnet filter size.
+            postnet_chans (int): Number of postnet filter channels.
+            use_batch_norm (bool): Whether to use batch normalization.
+            reduction_factor (int): Reduction factor.
+            duration_predictor_layers (int): Number of duration predictor layers.
+            duration_predictor_chans (int): Number of duration predictor channels.
+            duration_predictor_kernel_size (int): Kernel size of duration predictor.
+            duration_predictor_dropout_rate (float): Dropout rate in duration predictor.
+            # extra embedding related
+            spks (Optional[int]): Number of speakers. If set to > 1, assume that the
+                sids will be provided as the input and use sid embedding layer.
+            langs (Optional[int]): Number of languages. If set to > 1, assume that the
+                lids will be provided as the input and use sid embedding layer.
+            spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
+                assume that spembs will be provided as the input.
+            spk_embed_integration_type (str): How to integrate speaker embedding.
+            eprenet_dropout_rate (float): Prenet dropout rate.
+            edropout_rate (float): Encoder dropout rate.
+            ddropout_rate (float): Decoder dropout rate.
+            postnet_dropout_rate (float): Postnet dropout_rate.
+            init_type (str): How to initialize transformer parameters.
+            use_masking (bool): Whether to mask padded part in loss calculation.
+            use_weighted_masking (bool): Whether to apply weighted masking in
+                loss calculation.
+
         """
         assert check_argument_types()
         super().__init__()
@@ -81,7 +122,7 @@ class NaiveRNNDP(AbsSVS):
         # store hyperparameters
         self.idim = idim
         self.midi_dim = midi_dim
-        self.tempo_dim = tempo_dim
+        self.duration_dim = duration_dim
         self.eunits = eunits
         self.odim = odim
         self.eos = idim - 1
@@ -123,7 +164,7 @@ class NaiveRNNDP(AbsSVS):
                 ),
                 torch.nn.Linear(eprenet_conv_chans, eunits),
             )
-            self.tempo_encoder_input_layer = torch.nn.Sequential(
+            self.duration_encoder_input_layer = torch.nn.Sequential(
                 EncoderPrenet(
                     idim=midi_dim,
                     embed_dim=embed_dim,
@@ -146,8 +187,8 @@ class NaiveRNNDP(AbsSVS):
                 embedding_dim=eunits,
                 padding_idx=self.padding_idx,
             )
-            self.tempo_encoder_input_layer = torch.nn.Embedding(
-                num_embeddings=tempo_dim,
+            self.duration_encoder_input_layer = torch.nn.Embedding(
+                num_embeddings=duration_dim,
                 embedding_dim=eunits,
                 padding_idx=self.padding_idx,
             )
@@ -172,7 +213,7 @@ class NaiveRNNDP(AbsSVS):
             # proj_size=eunits,
         )
 
-        self.tempo_encoder = torch.nn.LSTM(
+        self.duration_encoder = torch.nn.LSTM(
             input_size=eunits,
             hidden_size=eunits,
             num_layers=elayers,
@@ -188,7 +229,7 @@ class NaiveRNNDP(AbsSVS):
                 eunits * dim_direction, eunits * dim_direction
             )
         else:
-            self.midi_projection = torch.nn.linear(
+            self.midi_projection = torch.nn.Linear(
                 3 * eunits * dim_direction, eunits * dim_direction
             )
 
@@ -336,27 +377,28 @@ class NaiveRNNDP(AbsSVS):
         if joint_training:
             label = label
             midi = melody
-            tempo = duration
             label_lengths = label_lengths
             midi_lengths = melody_lengths
+            duration_ = duration
             ds = duration
         else:
             label = label["score"]
             midi = melody["score"]
-            tempo = duration["score_phn"]
+            duration_ = duration["score_phn"]
             label_lengths = label_lengths["score"]
             midi_lengths = melody_lengths["score"]
+            duration_lengths = duration_lengths["score_phn"]
             ds = duration["lab"]
 
-        text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
         label = label[:, : label_lengths.max()]  # for data-parallel
+        duration_ = duration_[:, : duration_lengths.max()]  # for data-parallel
         batch_size = feats.size(0)
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
         midi_emb = self.midi_encoder_input_layer(midi)
-        tempo_emb = self.tempo_encoder_input_layer(tempo)
+        duration_emb = self.duration_encoder_input_layer(duration_)
 
         label_emb = torch.nn.utils.rnn.pack_padded_sequence(
             label_emb, label_lengths.to("cpu"), batch_first=True, enforce_sorted=False
@@ -364,23 +406,28 @@ class NaiveRNNDP(AbsSVS):
         midi_emb = torch.nn.utils.rnn.pack_padded_sequence(
             midi_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
         )
-        tempo_emb = torch.nn.utils.rnn.pack_padded_sequence(
-            tempo_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
+        duration_emb = torch.nn.utils.rnn.pack_padded_sequence(
+            duration_emb,
+            duration_lengths.to("cpu"),
+            batch_first=True,
+            enforce_sorted=False,
         )
 
         hs_label, (_, _) = self.encoder(label_emb)
         hs_midi, (_, _) = self.midi_encoder(midi_emb)
-        hs_tempo, (_, _) = self.tempo_encoder(tempo_emb)
+        hs_duration, (_, _) = self.duration_encoder(duration_emb)
 
         hs_label, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_label, batch_first=True)
         hs_midi, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_midi, batch_first=True)
-        hs_tempo, _ = torch.nn.utils.rnn.pad_packed_sequence(hs_tempo, batch_first=True)
+        hs_duration, _ = torch.nn.utils.rnn.pad_packed_sequence(
+            hs_duration, batch_first=True
+        )
 
         if self.midi_embed_integration_type == "add":
-            hs = hs_label + hs_midi + hs_tempo
+            hs = hs_label + hs_midi + hs_duration
             hs = F.leaky_relu(self.midi_projection(hs))
         else:
-            hs = torch.cat((hs_label, hs_midi, hs_tempo), dim=-1)
+            hs = torch.cat((hs_label, hs_midi, hs_duration), dim=-1)
             hs = F.leaky_relu(self.midi_projection(hs))
         # integrate spk & lang embeddings
         if self.spks is not None:
@@ -399,16 +446,21 @@ class NaiveRNNDP(AbsSVS):
         d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
         hs = self.length_regulator(hs, ds)  # (B, seq_len, eunits)
 
+        olens = feats_lengths
+        if self.reduction_factor > 1:
+            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+        else:
+            olens_in = olens
+
         hs_emb = torch.nn.utils.rnn.pack_padded_sequence(
-            hs, feats_lengths.to("cpu"), batch_first=True, enforce_sorted=False
+            hs, olens_in.to("cpu"), batch_first=True, enforce_sorted=False
         )
 
         zs, (_, _) = self.decoder(hs_emb)
         zs, _ = torch.nn.utils.rnn.pad_packed_sequence(zs, batch_first=True)
 
-        zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
-
-        # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
+        # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
+        # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
 
         # postnet -> (B, T_feats//r * r, odim)
@@ -495,23 +547,23 @@ class NaiveRNNDP(AbsSVS):
         label = label["score"]
         midi = melody["score"]
         if joint_training:
-            tempo = duration["lab"]
+            duration_ = duration["lab"]
         else:
-            tempo = duration["score_phn"]
+            duration_ = duration["score_phn"]
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
         midi_emb = self.midi_encoder_input_layer(midi)
-        tempo_emb = self.tempo_encoder_input_layer(tempo)
+        duration_emb = self.duration_encoder_input_layer(duration_)
 
         hs_label, (_, _) = self.encoder(label_emb)
         hs_midi, (_, _) = self.midi_encoder(midi_emb)
-        hs_tempo, (_, _) = self.tempo_encoder(tempo_emb)
+        hs_duration, (_, _) = self.duration_encoder(duration_emb)
 
         if self.midi_embed_integration_type == "add":
-            hs = hs_label + hs_midi + hs_tempo
+            hs = hs_label + hs_midi + hs_duration
             hs = F.leaky_relu(self.midi_projection(hs))
         else:
-            hs = torch.cat((hs_label, hs_midi, hs_tempo), dim=-1)
+            hs = torch.cat((hs_label, hs_midi, hs_duration), dim=-1)
             hs = F.leaky_relu(self.midi_projection(hs))
         # integrate spk & lang embeddings
         if self.spks is not None:
@@ -520,6 +572,8 @@ class NaiveRNNDP(AbsSVS):
         if self.langs is not None:
             lid_embs = self.lid_emb(lids.view(-1))
             hs = hs + lid_embs.unsqueeze(1)
+        if spembs is not None:
+            spembs = spembs.unsqueeze(0)
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
@@ -533,11 +587,9 @@ class NaiveRNNDP(AbsSVS):
         hs = self.length_regulator(hs, d_outs_int)  # (B, T_feats, adim)
         zs, (_, _) = self.decoder(hs)
 
-        zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
-
-        # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
+        # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
+        # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
-
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -574,4 +626,4 @@ class NaiveRNNDP(AbsSVS):
         else:
             raise NotImplementedError("support only add or concat.")
 
-        return
+        return hs

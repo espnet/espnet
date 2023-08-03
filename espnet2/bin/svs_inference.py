@@ -17,14 +17,14 @@ from typeguard import check_argument_types
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_svs.vits import VITS
+from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 from espnet2.tasks.svs import SVSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
-
-# from espnet2.tts.utils import DurationCalculator
 
 
 class SingingGenerate:
@@ -41,7 +41,15 @@ class SingingGenerate:
         self,
         train_config: Optional[Union[Path, str]],
         model_file: Optional[Union[Path, str]] = None,
+        threshold: float = 0.5,
+        minlenratio: float = 0.0,
+        maxlenratio: float = 10.0,
         use_teacher_forcing: bool = False,
+        use_att_constraint: bool = False,
+        use_dynamic_filter: bool = False,
+        backward_window: int = 2,
+        forward_window: int = 4,
+        speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
         vocoder_config: Union[Path, str] = None,
@@ -52,6 +60,7 @@ class SingingGenerate:
         always_fix_seed: bool = False,
         prefer_normalized_feats: bool = False,
     ):
+        """Initialize SingingGenerate module."""
         assert check_argument_types()
 
         # setup model
@@ -66,7 +75,7 @@ class SingingGenerate:
         self.svs = model.svs
         self.normalize = model.normalize
         self.feats_extract = model.feats_extract
-        # self.duration_calculator = DurationCalculator() # TODO(Yuning)
+        self.duration_calculator = DurationCalculator()
         self.preprocess_fn = SVSTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
@@ -94,6 +103,16 @@ class SingingGenerate:
             decode_conf.update(
                 noise_scale=noise_scale,
                 noise_scale_dur=noise_scale_dur,
+            )
+        if isinstance(self.svs, singing_tacotron):
+            decode_conf.update(
+                threshold=threshold,
+                maxlenratio=maxlenratio,
+                minlenratio=minlenratio,
+                use_att_constraint=use_att_constraint,
+                use_dynamic_filter=use_dynamic_filter,
+                forward_window=forward_window,
+                backward_window=backward_window,
             )
         self.decode_conf = decode_conf
 
@@ -176,9 +195,9 @@ class SingingGenerate:
             cfg.update(decode_conf)
         output_dict = self.model.inference(**batch, **cfg)
 
-        if output_dict.get("att_ws") is not None:
-            output_dict.update(duration=None, focus_rate=None)
-            # duration, focus_rate = self.duration_calculator(att_ws)
+        if output_dict.get("att_w") is not None:
+            duration, focus_rate = self.duration_calculator(output_dict["att_w"])
+            output_dict.update(duration=duration, focus_rate=focus_rate)
         else:
             output_dict.update(duration=None, focus_rate=None)
 
@@ -306,6 +325,7 @@ def inference(
     allow_variable_data_keys: bool,
     vocoder_config: Optional[str] = None,
     vocoder_checkpoint: Optional[str] = None,
+    vocoder_tag: Optional[str] = None,
 ):
     """Perform SVS model decoding."""
     assert check_argument_types()

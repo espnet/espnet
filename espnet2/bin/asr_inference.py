@@ -12,6 +12,10 @@ import torch
 import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.asr.decoder.hugging_face_transformers_decoder import (
+    get_hugging_face_model_lm_head,
+    get_hugging_face_model_network,
+)
 from espnet2.asr.decoder.s4_decoder import S4Decoder
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr.transducer.beam_search_transducer import (
@@ -23,11 +27,13 @@ from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
 from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
@@ -41,7 +47,7 @@ from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
 
 try:
-    from transformers import AutoModelForSeq2SeqLM
+    from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM
     from transformers.file_utils import ModelOutput
 
     is_transformers_available = True
@@ -100,7 +106,7 @@ class Speech2Text:
         quantize_modules: List[str] = ["Linear"],
         quantize_dtype: str = "qint8",
         hugging_face_decoder: bool = False,
-        hugging_face_decoder_max_length: int = 256,
+        hugging_face_decoder_conf: Dict[str, Any] = {},
         time_sync: bool = False,
         multi_asr: bool = False,
     ):
@@ -227,26 +233,54 @@ class Speech2Text:
                     " && ./installers/install_transformers.sh`."
                 )
 
-            hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
-                decoder.model_name_or_path
-            )
-
-            hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
-
-            if hasattr(hugging_face_model, "model"):
-                hugging_face_model.model.decoder.load_state_dict(
-                    decoder.decoder.state_dict()
+            if decoder.causal_lm:
+                hugging_face_model = AutoModelForCausalLM.from_pretrained(
+                    decoder.model_name_or_path
                 )
-                del hugging_face_model.model.encoder
+
+                hugging_face_model.resize_token_embeddings(decoder.lm_head.out_features)
+
+                transformer = get_hugging_face_model_network(hugging_face_model)
+                transformer.load_state_dict(decoder.decoder.state_dict())
+
+                lm_head = get_hugging_face_model_lm_head(hugging_face_model)
+                lm_head.load_state_dict(decoder.lm_head.state_dict())
             else:
-                hugging_face_model.decoder.load_state_dict(decoder.decoder.state_dict())
-                del hugging_face_model.encoder
+                hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
+                    decoder.model_name_or_path
+                )
+
+                hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
+
+                if hasattr(hugging_face_model, "model"):
+                    hugging_face_model.model.decoder.load_state_dict(
+                        decoder.decoder.state_dict()
+                    )
+                    del hugging_face_model.model.encoder
+                else:
+                    hugging_face_model.decoder.load_state_dict(
+                        decoder.decoder.state_dict()
+                    )
+                    del hugging_face_model.encoder
 
             del asr_model.decoder.lm_head
             del asr_model.decoder.decoder
 
             hugging_face_linear_in = decoder.linear_in
             hugging_face_model.to(device=device).eval()
+
+            if "num_beams" not in hugging_face_decoder_conf:
+                hugging_face_decoder_conf[
+                    "num_beams"
+                ] = hugging_face_model.config.num_beams
+
+            if (
+                hugging_face_model.config.pad_token_id is None
+                and "pad_token_id" not in hugging_face_decoder_conf
+            ):
+                hugging_face_decoder_conf[
+                    "pad_token_id"
+                ] = hugging_face_model.config.eos_token_id
 
             beam_search = None
             beam_search_transducer = None
@@ -344,7 +378,9 @@ class Speech2Text:
         else:
             tokenizer = build_tokenizer(token_type=token_type)
 
-        if bpemodel not in ["whisper_en", "whisper_multilingual"]:
+        if token_type == "hugging_face":
+            converter = HuggingFaceTokenIDConverter(model_name_or_path=bpemodel)
+        elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
             converter = OpenAIWhisperTokenIDConverter(model_type=bpemodel)
@@ -361,8 +397,7 @@ class Speech2Text:
         self.beam_search_transducer = beam_search_transducer
         self.hugging_face_model = hugging_face_model
         self.hugging_face_linear_in = hugging_face_linear_in
-        self.hugging_face_beam_size = beam_size
-        self.hugging_face_decoder_max_length = hugging_face_decoder_max_length
+        self.hugging_face_decoder_conf = hugging_face_decoder_conf
         self.maxlenratio = maxlenratio
         self.minlenratio = minlenratio
         self.device = device
@@ -480,22 +515,48 @@ class Speech2Text:
                 "best hypo: " + "".join(self.converter.ids2tokens(best.yseq[1:])) + "\n"
             )
         elif self.hugging_face_model:
-            decoder_start_token_id = (
-                self.hugging_face_model.config.decoder_start_token_id
-            )
-            yseq = self.hugging_face_model.generate(
-                encoder_outputs=ModelOutput(
-                    last_hidden_state=self.hugging_face_linear_in(enc).unsqueeze(0)
-                ),
-                use_cache=True,
-                decoder_start_token_id=decoder_start_token_id,
-                num_beams=self.hugging_face_beam_size,
-                max_length=self.hugging_face_decoder_max_length,
-            )
+            num_beams = self.hugging_face_decoder_conf["num_beams"]
+            enc = self.hugging_face_linear_in(enc).unsqueeze(0)
+            if self.asr_model.decoder.causal_lm:
+                forward_args, _ = self.asr_model.decoder.add_prefix_postfix(
+                    enc,
+                    torch.tensor([enc.shape[1]]).to(enc.device),
+                    torch.ones([1, 1], dtype=int, device=enc.device),
+                    torch.ones([1], dtype=int, device=enc.device),
+                )
+
+                # input_ids are ignored if we provide inputs_embeds,
+                # but input_ids are still required, so we make fake ones
+                input_ids = torch.ones(
+                    [1, forward_args["inputs_embeds"].shape[1]],
+                    dtype=int,
+                    device=enc.device,
+                )
+
+                yseq = self.hugging_face_model.generate(
+                    input_ids.repeat(num_beams, 1),
+                    inputs_embeds=forward_args["inputs_embeds"].repeat(num_beams, 1, 1),
+                    attention_mask=input_ids.repeat(num_beams, 1),
+                    **self.hugging_face_decoder_conf,
+                )
+
+                yseq = yseq[:, input_ids.shape[1] - 1 :]
+            else:
+                decoder_start_token_id = (
+                    self.hugging_face_model.config.decoder_start_token_id
+                )
+                yseq = self.hugging_face_model.generate(
+                    encoder_outputs=ModelOutput(last_hidden_state=enc),
+                    decoder_start_token_id=decoder_start_token_id,
+                    **self.hugging_face_decoder_conf,
+                )
+
             nbest_hyps = [Hypothesis(yseq=yseq[0])]
             logging.info(
                 "best hypo: "
-                + "".join(self.converter.ids2tokens(nbest_hyps[0].yseq[1:]))
+                + self.tokenizer.tokens2text(
+                    self.converter.ids2tokens(nbest_hyps[0].yseq[1:])
+                )
                 + "\n"
             )
         else:
@@ -604,7 +665,7 @@ def inference(
     quantize_modules: List[str],
     quantize_dtype: str,
     hugging_face_decoder: bool,
-    hugging_face_decoder_max_length: int,
+    hugging_face_decoder_conf: Dict[str, Any],
     time_sync: bool,
     multi_asr: bool,
 ):
@@ -657,7 +718,7 @@ def inference(
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
         hugging_face_decoder=hugging_face_decoder,
-        hugging_face_decoder_max_length=hugging_face_decoder_max_length,
+        hugging_face_decoder_conf=hugging_face_decoder_conf,
         time_sync=time_sync,
     )
     speech2text = Speech2Text.from_pretrained(
@@ -921,7 +982,12 @@ def get_parser():
     group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
     group.add_argument("--streaming", type=str2bool, default=False)
     group.add_argument("--hugging_face_decoder", type=str2bool, default=False)
-    group.add_argument("--hugging_face_decoder_max_length", type=int, default=256)
+    group.add_argument(
+        "--hugging_face_decoder_conf",
+        type=NestedDictAction,
+        default=dict(),
+        help="Custom kwargs for the HF .generate()",
+    )
 
     group.add_argument(
         "--transducer_conf",

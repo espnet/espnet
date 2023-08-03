@@ -61,8 +61,8 @@ max_wav_duration=20  # Maximum duration in second.
 token_type=word      # Tokenization type (char or bpe).
 
 # Pretrain model related
-hubert_args=         # Arguments for asr model training, e.g., "--max_epoch 10".
-                     # Note that it will overwrite args in asr config.
+hubert_args=         # Arguments for ssl model training, e.g., "--max_epoch 10".
+                     # Note that it will overwrite args in ssl config.
 num_splits_ssl=1 # Number of splitting for lm corpus.
 
 # Pretrain related
@@ -75,11 +75,13 @@ features_km=            # Feature for k-means clustering (multiple values, e.g. 
 layers_km=              # Layers of feature for k-means clustering of training stage (multiple values, e.g. "0 6 9")
 portion_km=1            # Portion of training set used for k-means
 gpu_dump_feature=false  # Whether to use gpu in kmeans process for feature dumping.
+kmeans_opts=            # The options given to scripts/feats/perform_kmeans.sh
 alignment_phoneme_dir=  # Phoneme alignment directory with tsv file (utt_id, phoneme_alignment)
 
 # Upload model related
 hf_repo=
 inference_ssl_model=valid.loss.best.pth # SSL model path from previous iteration and uploading
+download_model= # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=     # Name of training set
@@ -138,6 +140,7 @@ Options:
                        # e.g., --hubert_args "--max_epoch 10"
                        # Note that it will overwrite args in pt config.
     --gpu_dump_feature # Whether to use gpu for kmeans feature dumping (default="${gpu_dump_feature}").
+    --kmeans_opts      # The options given to kmeans step (default="${kmeans_opts}").
 
     # Alignment
     --alignment_phoneme_dir # Phoneme alignment directory with tsv file (utt_id, phoneme_alignment)
@@ -149,6 +152,7 @@ Options:
     --speech_fold_length  # fold_length for speech data during HuBERT training (default="${speech_fold_length}").
     --text_fold_length    # fold_length for text data during HuBERT training (default="${text_fold_length}").
     --inference_ssl_model # SSL model path from previous iteration and uploading (default="${inference_ssl_model}").
+    --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
 EOF
 )
 
@@ -321,6 +325,7 @@ else
     log "Skip the stages for data preparation"
 fi
 
+
 if ! "${skip_train}"; then
 
     for ((iter=${train_start_iter}; iter<=${train_stop_iter};iter++)); do
@@ -342,39 +347,66 @@ if ! "${skip_train}"; then
         token_listdir="data/${lang}_token_list_kmeans_iter${iter}_${feats_km}_${n_clusters}clusters/${token_type}"
         km_tag="kmeans_iter${iter}_${feats_km}_${train_set}_portion${portion_km}"
 
+        last_iter_ssl_model=
+        if [ -n "${download_model}" ]; then
+            log "Use ${download_model} for decoding and evaluation"
+            ssl_exp="${expdir}/${download_model}"
+            mkdir -p "${ssl_exp}"
+
+            # If the model already exists, you can skip downloading
+            espnet_model_zoo_download --unpack true "${download_model}" > "${ssl_exp}/config.txt"
+
+            # Get the path of each file
+            _ssl_model_file=$(<"${ssl_exp}/config.txt" sed -e "s/.*'ssl_model_file': '\([^']*\)'.*$/\1/")
+            _ssl_train_config=$(<"${ssl_exp}/config.txt" sed -e "s/.*'ssl_train_config': '\([^']*\)'.*$/\1/")
+
+            # Create symbolic links
+            ln -sf "${_ssl_model_file}" "${ssl_exp}"
+            ln -sf "${_ssl_train_config}" "${ssl_exp}"
+
+            last_iter_ssl_model+="${expdir}/${download_model}/"
+            last_iter_ssl_model+=$(basename "${_ssl_model_file}")
+        elif [ ${feats_km} != "mfcc" ]; then
+            last_iter_ssl_model+="${expdir}/hubert_iter$(( iter-1 ))_"
+            last_iter_ssl_model+="$(basename "${train_config_list[${iter}-1]}" .yaml)_${feats_type}/"
+            last_iter_ssl_model+="${inference_ssl_model}"
+        fi
+
         if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             log "Stage 5 [Iter ${iter} / ${train_stop_iter}]: Running ${n_clusters} cluster K-means on ${feats_km} feature."
 
             _opts=
-            if [ ${iter} -ge 1 ]; then
+            if [ ${feats_km} != "mfcc" ]; then
+                if [ -z ${last_iter_ssl_model} ]; then
+                    log "Error: last_iter_ssl_model required. Please check the iteration number." && exit 1;
+                fi
                 if ! "${gpu_dump_feature}"; then
                     log "Warning: It is recommented to use GPU in HuBERT feature extraction for K-means clustering."
                 fi
                 _opts+="--use_gpu ${gpu_dump_feature} "
 
-                pretrained_ssl_tag="$(basename "${train_config_list[${iter}-1]}" .yaml)_${feats_type}"
-                pretrained_ssl_exp="${expdir}/hubert_iter$(( iter-1 ))_${pretrained_ssl_tag}"
-
-                _opts+="--hubert_url espnet "
-                _opts+="--hubert_dir_path ${pretrained_ssl_exp}/${inference_ssl_model} "
+                _opts+="--hubert_url ${feats_km} "
+                _opts+="--hubert_dir_path ${last_iter_ssl_model} "
+                _opts+="--layer ${layer} "
             fi
 
-            ./local/perform_kmeans.sh \
+            scripts/feats/perform_kmeans.sh \
                 --stage 1 \
                 --stop_stage 5 \
                 --train_set "${train_set}" \
                 --dev_set "${valid_set}" \
                 --nclusters "${n_clusters}" \
                 --feature_type "${feats_km}" \
-                --layer "${layer}" \
                 --datadir "${data_feats}" \
-                --feat_dir "${dumpdir}/hubert_feats" \
+                --featdir "${dumpdir}/hubert_feats" \
                 --km_dir "${expdir}/${km_tag}" \
                 --portion "${portion_km}" \
                 --dictdir "${token_listdir}" \
                 --nj ${nj} \
+                --cpu_cmd "${train_cmd}" \
+                --cuda_cmd "${cuda_cmd}" \
                 ${alignment_phoneme_dir:+--alignment_phoneme_dir ${alignment_phoneme_dir}} \
-                ${_opts} || exit 1;
+                ${_opts} ${kmeans_opts} || exit 1;
         fi
 
         if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
@@ -513,7 +545,7 @@ if ! "${skip_train}"; then
             fi
             if [ "${feats_normalize}" = global_mvn ]; then
                 # Default normalization is utterance_mvn and changes to global_mvn
-                _opts+="--normalize=global_mvn --normalize_conf stats_file=${asr_stats_dir}/train/feats_stats.npz "
+                _opts+="--normalize=global_mvn --normalize_conf stats_file=${ssl_stats_dir}/train/feats_stats.npz "
             fi
 
             if [ "${num_splits_ssl}" -gt 1 ]; then
@@ -525,13 +557,13 @@ if ! "${skip_train}"; then
                 if [ ! -f "${_split_dir}/.done" ]; then
                     rm -f "${_split_dir}/.done"
                     ${python} -m espnet2.bin.split_scps \
-                              --scps \
-                              "${_ssl_train_dir}/${_scp}" \
-                              "${_ssl_train_dir}/text" \
-                              "${ssl_stats_dir}/train/speech_shape" \
-                              "${ssl_stats_dir}/train/text_shape.${token_type}" \
-                              --num_splits "${num_splits_ssl}" \
-                              --output_dir "${_split_dir}"
+                        --scps \
+                        "${_ssl_train_dir}/${_scp}" \
+                        "${_ssl_train_dir}/text.km.${km_tag}" \
+                        "${ssl_stats_dir}/train/speech_shape" \
+                        "${ssl_stats_dir}/train/text_shape.${token_type}" \
+                        --num_splits "${num_splits_ssl}" \
+                        --output_dir "${_split_dir}"
                     touch "${_split_dir}/.done"
                 else
                     log "${_split_dir}/.done exists. Spliting is skipped"
@@ -593,6 +625,8 @@ else
     log "Skip the training stages"
 fi
 
+
+ssl_config=${train_config_list[${train_stop_iter}]}
 if [ -n "${ssl_config}" ]; then
     ssl_tag="$(basename "${ssl_config}" .yaml)_${feats_type}"
 else
@@ -607,12 +641,12 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 
     _opts=
     if [ "${feats_normalize}" = global_mvn ]; then
-        _opts+="--option ${asr_stats_dir}/train/feats_stats.npz "
+        _opts+="--option ${ssl_stats_dir}/train/feats_stats.npz "
     fi
     # shellcheck disable=SC2086
     ${python} -m espnet2.bin.pack ssl \
-        --train_config "${ssl_exp}"/config.yaml \
-        --model_file "${ssl_exp}"/"${inference_ssl_model}" \
+        --ssl_train_config "${ssl_exp}"/config.yaml \
+        --ssl_model_file "${ssl_exp}"/"${inference_ssl_model}" \
         ${_opts} \
         --option "${ssl_exp}"/images \
         --option "${expdir}/${km_tag}/km_${n_clusters_list[${train_stop_iter}]}.mdl" \
@@ -641,9 +675,9 @@ if ! "${skip_upload_hf}"; then
             _creator_name="$(whoami)"
             _checkout=""
         fi
-        # /some/where/espnet/egs2/foo/asr1/ -> foo/asr1
+        # /some/where/espnet/egs2/foo/ssl1/ -> foo/ssl1
         _task="$(pwd | rev | cut -d/ -f2 | rev)"
-        # foo/asr1 -> foo
+        # foo/ssl1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 

@@ -577,7 +577,13 @@ class JETSGenerator(torch.nn.Module):
 
         # forward alignment module and obtain duration, averaged pitch, energy
         h_masks = make_pad_mask(text_lengths).to(hs.device)
-        log_p_attn = self.alignment_module(hs, feats, h_masks)
+        log_p_attn = self.alignment_module(
+            hs,
+            feats,
+            text_lengths,
+            feats_lengths,
+            h_masks,
+        )
         ds, bin_loss = viterbi_decode(log_p_attn, text_lengths, feats_lengths)
         ps = average_by_duration(
             ds, pitch.squeeze(-1), text_lengths, feats_lengths
@@ -689,7 +695,13 @@ class JETSGenerator(torch.nn.Module):
         h_masks = make_pad_mask(text_lengths).to(hs.device)
         if use_teacher_forcing:
             # forward alignment module and obtain duration, averaged pitch, energy
-            log_p_attn = self.alignment_module(hs, feats, h_masks)
+            log_p_attn = self.alignment_module(
+                hs,
+                feats,
+                text_lengths,
+                feats_lengths,
+                h_masks,
+            )
             d_outs, _ = viterbi_decode(log_p_attn, text_lengths, feats_lengths)
             p_outs = average_by_duration(
                 d_outs, pitch.squeeze(-1), text_lengths, feats_lengths
