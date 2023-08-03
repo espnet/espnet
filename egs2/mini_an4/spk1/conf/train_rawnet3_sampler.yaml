@@ -40,3 +40,4 @@ max_epoch: 1
 num_iters_per_epoch: 1
 iterator_type: category
 valid_iterator_type: sequence
+batch_size: 2

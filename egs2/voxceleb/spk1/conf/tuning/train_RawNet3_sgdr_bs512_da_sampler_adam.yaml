@@ -24,11 +24,11 @@ preprocessor_conf:
   num_eval: 5
   noise_apply_prob: 0.5
   noise_info:
-  - [1.0, 'dump/musan_speech.scp', [4, 7], [13, 20]]
-  - [1.0, 'dump/musan_noise.scp', [1, 1], [0, 15]]
-  - [1.0, 'dump/musan_music.scp', [1, 1], [5, 15]]
+  - [1.0, 'dump/raw/musan_speech.scp', [4, 7], [13, 20]]
+  - [1.0, 'dump/raw/musan_noise.scp', [1, 1], [0, 15]]
+  - [1.0, 'dump/raw/musan_music.scp', [1, 1], [5, 15]]
   rir_apply_prob: 0.5
-  rir_scp: dump/rirs.scp
+  rir_scp: dump/raw/rirs.scp
 
 model_conf:
   extract_feats_in_collect_stats: false
