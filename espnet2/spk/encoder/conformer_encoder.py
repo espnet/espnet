@@ -270,7 +270,7 @@ class MfaConformerEncoder(AbsEncoder):
                 convolution_layer(*convolution_layer_args) if use_cnn_module else None,
                 dropout_rate,
                 normalize_before,
-                concat_after=False,
+                False,
                 stochastic_depth_rate[lnum],
             ),
             layer_drop_rate,
@@ -302,7 +302,7 @@ class MfaConformerEncoder(AbsEncoder):
             or isinstance(self.embed, Conv2dSubsampling6)
             or isinstance(self.embed, Conv2dSubsampling8)
         ):
-            xs_pad, masks = self.embed(xs_pad, masks)
+            xs_pad, _ = self.embed(x, masks)
         else:
             raise NotImplementedError(f"Supposed to be one of the Conv"
                                       f"subsampling layers")
@@ -310,9 +310,9 @@ class MfaConformerEncoder(AbsEncoder):
         intermediate_outs = []
         for layer_idx, encoder_layer in enumerate(self.encoders):
             x, _ = encoder_layer(xs_pad, masks)
-            intermediate_outs.append(x)
+            intermediate_outs.append(x[0])
 
-        x = torch.cat(intermediate_outputs, dim=-1)
+        x = torch.cat(intermediate_outs, dim=-1)
         x = self.ln(x).transpose(1,2) # (#batch, L, output_size)
                                       # to (#batch, output_size, L)
 

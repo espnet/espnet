@@ -19,6 +19,7 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
+from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.abs_loss import AbsLoss
@@ -74,13 +75,12 @@ normalize_choices = ClassChoices(
     optional=True,
 )
 
-# add more choices (e.g., ECAPA-TDNN)
 encoder_choices = ClassChoices(
     name="encoder",
     classes=dict(
-        # conformer=ConformerEncoder, #TODO (Jee-weon): add.
         rawnet3=RawNet3Encoder,
         ecapa_tdnn=EcapaTdnnEncoder,
+        mfa_conformer=MfaConformerEncoder,
     ),
     type_check=AbsEncoder,
     default="rawnet3",
