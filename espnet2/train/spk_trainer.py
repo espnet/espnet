@@ -224,4 +224,7 @@ class SpkTrainer(Trainer):
                 nontrg_std=nontrg_std,
             )
         )
+
+        # added to reduce GRAM usage. May have minor speed boost when
+        # this line is commented in case GRAM is not fully used.
         torch.cuda.empty_cache()
