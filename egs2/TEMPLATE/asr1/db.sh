@@ -188,7 +188,7 @@ ITAKO=
 NATSUME=
 KIRITAN=
 NAMINE=
-KATHBATH=/data/Database/Kathbath
+KATHBATH=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
