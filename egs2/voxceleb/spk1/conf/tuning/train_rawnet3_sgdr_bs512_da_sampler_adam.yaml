@@ -1,4 +1,6 @@
 # RawNet3 reproduce recipe configuration.
+# Requires approx. 40GRAM per GPU when run with 2GPUs
+# or 20GRAM when run with 4GPUs.
 
 # Frontend
 frontend: asteroid_frontend
