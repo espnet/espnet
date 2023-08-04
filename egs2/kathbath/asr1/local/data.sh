@@ -87,10 +87,16 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 path=$split/"audio"
                 savepath=$split/"audio_16k"
                 mkdir -p $savepath
-                for f in $(find "$path" -type f -name "*.m4a"); do
+
+                find "$path" -type f -name "*.m4a" > $split/"audio_files"
+                while IFS= read -r f;
+                do
                     fname=$savepath/$(basename -- "$f" | cut -d'.' -f1).wav
-                    ffmpeg -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname"  #make faster
-                done
+                    ffmpeg -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname" #make faster
+
+                done < $split/"audio_files"
+                rm $split/"audio_files"
+
             done
             ln=$(basename $lang)
             mkdir -p data/"$ln"
@@ -115,10 +121,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 path=$split/"audio"
                 savepath=$split/"audio_16k"
                 mkdir -p $savepath
-                for f in $(find "$path" -type f -name "*.m4a"); do
+                find "$path" -type f -name "*.m4a" > $split/"audio_files"
+                while IFS= read -r f;
+                do
                     fname=$savepath/$(basename -- "$f" | cut -d'.' -f1).wav
                     ffmpeg -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname"
-                done
+
+                done < $split/"audio_files"
+                rm $split/"audio_files"
+            
             done
             ln=$(basename $lang)
             mkdir -p data/"$ln"
