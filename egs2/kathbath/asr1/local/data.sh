@@ -92,7 +92,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 while IFS= read -r f;
                 do
                     fname=$savepath/$(basename -- "$f" | cut -d'.' -f1).wav
-                    ffmpeg -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname" #make faster
+                    ffmpeg -nostdin -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname" #make faster
 
                 done < $split/"audio_files"
                 rm $split/"audio_files"
@@ -125,7 +125,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 while IFS= read -r f;
                 do
                     fname=$savepath/$(basename -- "$f" | cut -d'.' -f1).wav
-                    ffmpeg -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname"
+                    ffmpeg -nostdin -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname"
 
                 done < $split/"audio_files"
                 rm $split/"audio_files"
@@ -150,6 +150,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         done
         touch "data"/"dataprep_done"
     else
-        log "stage 2: "data/dataprep_done" is complete"
+        log "stage 2: data/dataprep_done is complete"
     fi
 fi
