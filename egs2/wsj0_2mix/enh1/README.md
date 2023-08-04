@@ -204,6 +204,14 @@ config: conf/tuning/train_enh_dptnet.yaml
 |enhanced_tt_min_8k|98.68|23.23|22.90|35.30|22.81|
 
 
+## TF-GridNetV2
+
+ - config: conf/tuning/train_enh_tfgridnetv2_tf_lr-patience3_patience5.yaml
+ - Pretrained model: 
+
+|dataset|STOI|SAR|SDR|SIR|SI_SNR|
+|---|---|---|---|---|---|
+
 
 ## enh_train_enh_skim_causal_small_raw
 
