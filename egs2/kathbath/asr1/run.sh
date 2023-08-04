@@ -5,11 +5,11 @@ set -e
 set -u
 set -o pipefail
 
-lang="hindi"
+lang="urdu"
 
 train_set="$lang"/"train"
 valid_set="$lang"/"valid"
-test_sets=""$lang"/"test" "$lang"/"test_known" "$lang"/"test_noisy" "$lang"/"test_known_noisy""
+test_sets="$lang/test $lang/test_known $lang/test_noisy $lang/test_known_noisy"
 
 asr_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml

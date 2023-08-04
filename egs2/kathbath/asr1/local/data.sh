@@ -81,9 +81,9 @@ mkdir -p data
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "data/dataprep_done" ]; then
         log "stage 2: Data Preparation"
-        for lang in $download_data/"kb_data_clean_m4a"/* ; do
+        for lang in "$download_data"/"kb_data_clean_m4a"/* ; do
             log "Processing $lang"
-            for split in $lang/* ; do
+            for split in "$lang"/* ; do
                 path=$split/"audio"
                 savepath=$split/"audio_16k"
                 mkdir -p $savepath
@@ -94,13 +94,13 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             done
             ln=$(basename $lang)
             mkdir -p data/"$ln"
-            for split in $lang/* ; do
+            for split in "$lang"/* ; do
                 splitname=$(basename $split)
                 mkdir -p data/"$ln"/"$splitname"
-                find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; cat data/"$ln"/"$splitname"/wavs | rev | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
+                find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; rev data/"$ln"/"$splitname"/wavs | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
-                cat "$split"/"transcription_n2w.txt" | sed "s/.m4a//g" > data/"$ln"/"$splitname"/text
+                sed "s/.m4a//g" "$split"/"transcription_n2w.txt" > data/"$ln"/"$splitname"/text
                 utils/utt2spk_to_spk2utt.pl data/"$ln"/"$splitname"/utt2spk > data/"$ln"/"$splitname"/spk2utt
                 utils/fix_data_dir.sh data/"$ln"/"$splitname"
                 rm data/"$ln"/"$splitname"/wavs data/"$ln"/"$splitname"/uttids
@@ -108,9 +108,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
         done
         
-        for lang in $download_data/"kb_data_noisy_m4a"/* ; do
+        for lang in "$download_data"/"kb_data_noisy_m4a"/* ; do
             log "Processing $lang"
-            for split in $lang/* ; do
+            for split in "$lang"/* ; do
                 log $split
                 path=$split/"audio"
                 savepath=$split/"audio_16k"
@@ -122,22 +122,22 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             done
             ln=$(basename $lang)
             mkdir -p data/"$ln"
-            for split in $lang/* ; do
+            for split in "$lang"/* ; do
                 splitname=$(basename $split)"_noisy"
                 if [ "$splitname" == "valid_noisy" ]; then
                     continue
                 fi
                 mkdir -p data/"$ln"/"$splitname"
-                find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; cat data/"$ln"/"$splitname"/wavs | rev | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
+                find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; rev data/"$ln"/"$splitname"/wavs | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
-                cat "$split"/"transcription_n2w.txt" | sed "s/.m4a//g" > data/"$ln"/"$splitname"/text
+                sed "s/.m4a//g" "$split"/"transcription_n2w.txt" > data/"$ln"/"$splitname"/text
                 utils/utt2spk_to_spk2utt.pl data/"$ln"/"$splitname"/utt2spk > data/"$ln"/"$splitname"/spk2utt
                 utils/fix_data_dir.sh data/"$ln"/"$splitname"
                 rm data/"$ln"/"$splitname"/wavs data/"$ln"/"$splitname"/uttids
             done
         done
-        touch "data/dataprep_done"
+        touch "data"/"dataprep_done"
     else
         log "stage 2: "data/dataprep_done" is complete"
     fi
