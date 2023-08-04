@@ -211,7 +211,8 @@ class GridNetV2Block(nn.Module):
             self.intra_linear = nn.Linear(hidden_channels * 2, in_channels)
         else:
             self.intra_linear = nn.ConvTranspose1d(
-                    hidden_channels * 2, emb_dim, emb_ks, stride=emb_hs)
+                hidden_channels * 2, emb_dim, emb_ks, stride=emb_hs
+            )
 
         self.inter_norm = nn.LayerNorm(emb_dim, eps=eps)
         self.inter_rnn = nn.LSTM(
@@ -221,28 +222,35 @@ class GridNetV2Block(nn.Module):
             self.inter_linear = nn.Linear(hidden_channels * 2, in_channels)
         else:
             self.inter_linear = nn.ConvTranspose1d(
-                    hidden_channels * 2, emb_dim, emb_ks, stride=emb_hs)
+                hidden_channels * 2, emb_dim, emb_ks, stride=emb_hs
+            )
 
         E = math.ceil(
             approx_qk_dim * 1.0 / n_freqs
         )  # approx_qk_dim is only approximate
         assert emb_dim % n_head == 0
 
-        self.add_module('attn_conv_Q', nn.Conv2d(emb_dim, n_head*E, 1))
-        self.add_module('attn_norm_Q',
-                AllHeadPReLULayerNormalization4DCF(
-                    (n_head, E, n_freqs), eps=eps))
+        self.add_module("attn_conv_Q", nn.Conv2d(emb_dim, n_head * E, 1))
+        self.add_module(
+            "attn_norm_Q",
+            AllHeadPReLULayerNormalization4DCF((n_head, E, n_freqs), eps=eps),
+        )
 
-        self.add_module('attn_conv_K', nn.Conv2d(emb_dim, n_head*E, 1))
-        self.add_module('attn_norm_K',
-                AllHeadPReLULayerNormalization4DCF(
-                    (n_head, E, n_freqs), eps=eps))
+        self.add_module("attn_conv_K", nn.Conv2d(emb_dim, n_head * E, 1))
+        self.add_module(
+            "attn_norm_K",
+            AllHeadPReLULayerNormalization4DCF((n_head, E, n_freqs), eps=eps),
+        )
 
-        self.add_module('attn_conv_V',
-                nn.Conv2d(emb_dim, n_head * emb_dim // n_head, 1))
-        self.add_module('attn_norm_V',
-                AllHeadPReLULayerNormalization4DCF(
-                    (n_head, emb_dim // n_head, n_freqs), eps=eps))
+        self.add_module(
+            "attn_conv_V", nn.Conv2d(emb_dim, n_head * emb_dim // n_head, 1)
+        )
+        self.add_module(
+            "attn_norm_V",
+            AllHeadPReLULayerNormalization4DCF(
+                (n_head, emb_dim // n_head, n_freqs), eps=eps
+            ),
+        )
 
         self.add_module(
             "attn_concat_proj",
@@ -268,97 +276,103 @@ class GridNetV2Block(nn.Module):
         B, C, old_T, old_Q = x.shape
 
         olp = self.emb_ks - self.emb_hs
-        T = math.ceil((old_T + 2 * olp - self.emb_ks) / self.emb_hs) * self.emb_hs + self.emb_ks
-        Q = math.ceil((old_Q + 2 * olp - self.emb_ks) / self.emb_hs) * self.emb_hs + self.emb_ks
+        T = (
+            math.ceil((old_T + 2 * olp - self.emb_ks) / self.emb_hs) * self.emb_hs
+            + self.emb_ks
+        )
+        Q = (
+            math.ceil((old_Q + 2 * olp - self.emb_ks) / self.emb_hs) * self.emb_hs
+            + self.emb_ks
+        )
 
-        x = x.permute(0, 2, 3, 1) # [B, old_T, old_Q, C]
-        x = F.pad(x, (0, 0, olp, Q - old_Q - olp, olp, T - old_T - olp)) # [B, T, Q, C]
+        x = x.permute(0, 2, 3, 1)  # [B, old_T, old_Q, C]
+        x = F.pad(x, (0, 0, olp, Q - old_Q - olp, olp, T - old_T - olp))  # [B, T, Q, C]
 
         # intra RNN
         input_ = x
-        intra_rnn = self.intra_norm(input_) # [B, T, Q, C]
+        intra_rnn = self.intra_norm(input_)  # [B, T, Q, C]
         if self.emb_ks == self.emb_hs:
-            intra_rnn = intra_rnn.view([B * T, -1, self.emb_ks * C]) # [BT, Q//I, I*C]
-            intra_rnn, _ = self.intra_rnn(intra_rnn) # [BT, Q//I, H]
-            intra_rnn = self.intra_linear(intra_rnn) # [BT, Q//I, I*C]
+            intra_rnn = intra_rnn.view([B * T, -1, self.emb_ks * C])  # [BT, Q//I, I*C]
+            intra_rnn, _ = self.intra_rnn(intra_rnn)  # [BT, Q//I, H]
+            intra_rnn = self.intra_linear(intra_rnn)  # [BT, Q//I, I*C]
             intra_rnn = intra_rnn.view([B, T, Q, C])
         else:
-            intra_rnn = intra_rnn.view([B * T, Q, C]) # [BT, Q, C]
-            intra_rnn = intra_rnn.transpose(1, 2) # [BT, C, Q]
+            intra_rnn = intra_rnn.view([B * T, Q, C])  # [BT, Q, C]
+            intra_rnn = intra_rnn.transpose(1, 2)  # [BT, C, Q]
             intra_rnn = F.unfold(
-                    intra_rnn[...,None], (self.emb_ks, 1), stride=(self.emb_hs, 1)
-                    ) # [BT, C*I, -1]
-            intra_rnn = intra_rnn.transpose(1, 2) # [BT, -1, C*I]
+                intra_rnn[..., None], (self.emb_ks, 1), stride=(self.emb_hs, 1)
+            )  # [BT, C*I, -1]
+            intra_rnn = intra_rnn.transpose(1, 2)  # [BT, -1, C*I]
 
-            intra_rnn, _ = self.intra_rnn(intra_rnn) # [BT, -1, H]
+            intra_rnn, _ = self.intra_rnn(intra_rnn)  # [BT, -1, H]
 
-            intra_rnn = intra_rnn.transpose(1, 2) # [BT, H, -1]
-            intra_rnn = self.intra_linear(intra_rnn) # [BT, C, Q]
+            intra_rnn = intra_rnn.transpose(1, 2)  # [BT, H, -1]
+            intra_rnn = self.intra_linear(intra_rnn)  # [BT, C, Q]
             intra_rnn = intra_rnn.view([B, T, C, Q])
-            intra_rnn = intra_rnn.transpose(-2, -1) # [B, T, Q, C]
-        intra_rnn = intra_rnn + input_ # [B, T, Q, C]
+            intra_rnn = intra_rnn.transpose(-2, -1)  # [B, T, Q, C]
+        intra_rnn = intra_rnn + input_  # [B, T, Q, C]
 
-        intra_rnn = intra_rnn.transpose(1, 2) # [B, Q, T, C]
+        intra_rnn = intra_rnn.transpose(1, 2)  # [B, Q, T, C]
 
         # inter RNN
         input_ = intra_rnn
-        inter_rnn = self.inter_norm(input_) # [B, Q, T, C]
+        inter_rnn = self.inter_norm(input_)  # [B, Q, T, C]
         if self.emb_ks == self.emb_hs:
-            inter_rnn = inter_rnn.view([B * Q, -1, self.emb_ks * C]) # [BQ, T//I, I*C]
-            inter_rnn, _ = self.inter_rnn(inter_rnn) # [BQ, T//I, H]
-            inter_rnn = self.inter_linear(inter_rnn) # [BQ, T//I, I*C]
+            inter_rnn = inter_rnn.view([B * Q, -1, self.emb_ks * C])  # [BQ, T//I, I*C]
+            inter_rnn, _ = self.inter_rnn(inter_rnn)  # [BQ, T//I, H]
+            inter_rnn = self.inter_linear(inter_rnn)  # [BQ, T//I, I*C]
             inter_rnn = inter_rnn.view([B, Q, T, C])
         else:
-            inter_rnn = inter_rnn.view(B * Q, T, C) # [BQ, T, C]
-            inter_rnn = inter_rnn.transpose(1, 2) # [BQ, C, T]
+            inter_rnn = inter_rnn.view(B * Q, T, C)  # [BQ, T, C]
+            inter_rnn = inter_rnn.transpose(1, 2)  # [BQ, C, T]
             inter_rnn = F.unfold(
-                    inter_rnn[...,None], (self.emb_ks, 1), stride=(self.emb_hs, 1)
-                    ) # [BQ, C*I, -1]
-            inter_rnn = inter_rnn.transpose(1, 2) # [BQ, -1, C*I]
+                inter_rnn[..., None], (self.emb_ks, 1), stride=(self.emb_hs, 1)
+            )  # [BQ, C*I, -1]
+            inter_rnn = inter_rnn.transpose(1, 2)  # [BQ, -1, C*I]
 
-            inter_rnn, _ = self.inter_rnn(inter_rnn) # [BQ, -1, H]
+            inter_rnn, _ = self.inter_rnn(inter_rnn)  # [BQ, -1, H]
 
-            inter_rnn = inter_rnn.transpose(1, 2) # [BQ, H, -1]
-            inter_rnn = self.inter_linear(inter_rnn) # [BQ, C, T]
+            inter_rnn = inter_rnn.transpose(1, 2)  # [BQ, H, -1]
+            inter_rnn = self.inter_linear(inter_rnn)  # [BQ, C, T]
             inter_rnn = inter_rnn.view([B, Q, C, T])
-            inter_rnn = inter_rnn.transpose(-2, -1) # [B, Q, T, C]
-        inter_rnn = inter_rnn + input_ # [B, Q, T, C]
+            inter_rnn = inter_rnn.transpose(-2, -1)  # [B, Q, T, C]
+        inter_rnn = inter_rnn + input_  # [B, Q, T, C]
 
-        inter_rnn = inter_rnn.permute(0, 3, 2, 1) # [B, C, T, Q]
+        inter_rnn = inter_rnn.permute(0, 3, 2, 1)  # [B, C, T, Q]
 
         inter_rnn = inter_rnn[..., olp : olp + old_T, olp : olp + old_Q]
         batch = inter_rnn
 
-        Q = self['attn_norm_Q'](self['attn_conv_Q'](batch)) # [B, n_head, C, T, Q]
-        K = self['attn_norm_K'](self['attn_conv_K'](batch)) # [B, n_head, C, T, Q]
-        V = self['attn_norm_V'](self['attn_conv_V'](batch)) # [B, n_head, C, T, Q]
-        Q = Q.view(-1, *Q.shape[2:]) # [B*n_head, C, T, Q]
-        K = K.view(-1, *K.shape[2:]) # [B*n_head, C, T, Q]
-        V = V.view(-1, *V.shape[2:]) # [B*n_head, C, T, Q]
+        Q = self["attn_norm_Q"](self["attn_conv_Q"](batch))  # [B, n_head, C, T, Q]
+        K = self["attn_norm_K"](self["attn_conv_K"](batch))  # [B, n_head, C, T, Q]
+        V = self["attn_norm_V"](self["attn_conv_V"](batch))  # [B, n_head, C, T, Q]
+        Q = Q.view(-1, *Q.shape[2:])  # [B*n_head, C, T, Q]
+        K = K.view(-1, *K.shape[2:])  # [B*n_head, C, T, Q]
+        V = V.view(-1, *V.shape[2:])  # [B*n_head, C, T, Q]
 
         Q = Q.transpose(1, 2)
-        Q = Q.flatten(start_dim=2) # [B', T, C*Q]
-        
+        Q = Q.flatten(start_dim=2)  # [B', T, C*Q]
+
         K = K.transpose(2, 3)
-        K = K.contiguous().view([B * self.n_head, -1, old_T]) # [B', C*Q, T]
-        
-        V = V.transpose(1, 2) # [B', T, C, Q]
+        K = K.contiguous().view([B * self.n_head, -1, old_T])  # [B', C*Q, T]
+
+        V = V.transpose(1, 2)  # [B', T, C, Q]
         old_shape = V.shape
-        V = V.flatten(start_dim=2) # [B', T, C*Q]
+        V = V.flatten(start_dim=2)  # [B', T, C*Q]
         emb_dim = Q.shape[-1]
 
-        attn_mat = torch.matmul(Q, K) / (emb_dim**0.5) # [B', T, T]
-        attn_mat = F.softmax(attn_mat, dim=2) # [B', T, T]
-        V = torch.matmul(attn_mat, V) # [B', T, C*Q]
+        attn_mat = torch.matmul(Q, K) / (emb_dim**0.5)  # [B', T, T]
+        attn_mat = F.softmax(attn_mat, dim=2)  # [B', T, T]
+        V = torch.matmul(attn_mat, V)  # [B', T, C*Q]
 
-        V = V.reshape(old_shape) # [B', T, C, Q]
-        V = V.transpose(1, 2) # [B', C, T, Q]
+        V = V.reshape(old_shape)  # [B', T, C, Q]
+        V = V.transpose(1, 2)  # [B', C, T, Q]
         emb_dim = V.shape[1]
 
         batch = V.contiguous().view(
-                [B, self.n_head * emb_dim, old_T, old_Q]
-                ) # [B, C, T, Q])
-        batch = self['attn_concat_proj'](batch) # [B, C, T, Q])
+            [B, self.n_head * emb_dim, old_T, old_Q]
+        )  # [B, C, T, Q])
+        batch = self["attn_concat_proj"](batch)  # [B, C, T, Q])
 
         out = batch + inter_rnn
         return out
@@ -409,10 +423,10 @@ class AllHeadPReLULayerNormalization4DCF(nn.Module):
         B, _, T, _ = x.shape
         x = x.view([B, self.H, self.E, T, self.n_freqs])
         x = self.act(x)  # [B,H,E,T,F]
-        stat_dim = (2,4)
+        stat_dim = (2, 4)
         mu_ = x.mean(dim=stat_dim, keepdim=True)  # [B,H,1,T,1]
         std_ = torch.sqrt(
-                x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps
-                )  # [B,H,1,T,1]
-        x = ((x - mu_) / std_) * self.gamma + self.beta # [B,H,E,T,F]
+            x.var(dim=stat_dim, unbiased=False, keepdim=True) + self.eps
+        )  # [B,H,1,T,1]
+        x = ((x - mu_) / std_) * self.gamma + self.beta  # [B,H,E,T,F]
         return x

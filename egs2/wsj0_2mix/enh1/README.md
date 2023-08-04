@@ -207,7 +207,7 @@ config: conf/tuning/train_enh_dptnet.yaml
 ## TF-GridNetV2
 
  - config: conf/tuning/train_enh_tfgridnetv2_tf_lr-patience3_patience5.yaml
- - Pretrained model: 
+ - Pretrained model:
 
 |dataset|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|
