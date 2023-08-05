@@ -5,9 +5,9 @@ from typing import Dict, List, Union
 
 
 def join_dumps(
-        dump_paths: List[str],
-        output_dir: Union[str, Path],
-    ):
+    dump_paths: List[str],
+    output_dir: Union[str, Path],
+):
     """Create a joined dump file from a list of dump paths.
 
     Args:
@@ -17,7 +17,9 @@ def join_dumps(
     Raises:
         ValueError: _description_
     """
-    dump_file_names = [os.path.basename(g) for g in glob.glob(os.path.join(dump_paths[0], '*'))]
+    dump_file_names = [
+        os.path.basename(g) for g in glob.glob(os.path.join(dump_paths[0], "*"))
+    ]
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -25,21 +27,23 @@ def join_dumps(
         lines = []
         for dataset in dump_paths:
             if not os.path.exists(os.path.join(dataset, dump_file_name)):
-                raise ValueError(f"Dump file {dump_file_name} does not exist in {dataset}.")
-            
+                raise ValueError(
+                    f"Dump file {dump_file_name} does not exist in {dataset}."
+                )
+
             dump_file_path = os.path.join(dataset, dump_file_name)
             with open(dump_file_path, "r") as f:
                 lines += f.readlines()
-        
+
         with open(os.path.join(output_dir, dump_file_name), "w") as f:
-            f.write("\n".join([line.replace('\n', '') for line in lines]))
+            f.write("\n".join([line.replace("\n", "") for line in lines]))
 
 
 def create_dump_file(
-        dump_dir: Union[str, Path],
-        dataset: Union[Dict[str, Dict], List[Dict]],
-        data_inputs: Dict[str, Dict],
-    ):
+    dump_dir: Union[str, Path],
+    dataset: Union[Dict[str, Dict], List[Dict]],
+    data_inputs: Dict[str, Dict],
+):
     """Create a dump file for a dataset.
 
     Args:
