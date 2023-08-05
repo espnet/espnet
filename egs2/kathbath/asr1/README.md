@@ -29,3 +29,16 @@
 |sanskrit|asr_train_asr_raw_sanskrit_bpe500|9.9|5.7|9.9|14.5|
 
 #Pretrained models
+|lang|hugging_face link|
+|---|---|
+|urdu|https://huggingface.co/viks66/asr_train_asr_raw_urdu_bpe500|
+|telugu|https://huggingface.co/viks66/asr_train_asr_raw_telugu_bpe500|
+|kannada|https://huggingface.co/viks66/asr_train_asr_raw_kannada_bpe500|
+|malayalam|https://huggingface.co/viks66/asr_train_asr_raw_malayalam_bpe500|
+|bengali|https://huggingface.co/viks66/asr_train_asr_raw_bengali_char|
+|odia|https://huggingface.co/viks66/asr_train_asr_raw_odia_bpe500|
+|gujarati|https://huggingface.co/viks66/asr_train_asr_raw_gujarati_char|
+|hindi|https://huggingface.co/viks66/asr_train_asr_raw_hindi_bpe500|
+|tamil|https://huggingface.co/viks66/asr_train_asr_raw_tamil_bpe500|
+|punjabi|https://huggingface.co/viks66/asr_train_asr_raw_punjabi_bpe500|
+|sanskrit|https://huggingface.co/viks66/asr_train_asr_raw_sanskrit_bpe500|
