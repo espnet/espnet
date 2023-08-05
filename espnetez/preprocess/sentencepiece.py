@@ -7,6 +7,7 @@ from typing import Union
 def prepare_sentences(
         dump_text_paths: Union[str, Path],
         output_path: Union[str, Path],
+        remove_characters=''
     ):
     """Create train.txt file for sentencepiece training from the given dump file.
 
@@ -14,7 +15,6 @@ def prepare_sentences(
         dump_text_paths (Union[str, Path]): Dump text file path.
         output_path (Union[str, Path]): Output directory for train.txt file.
     """
-
     # Please join the dump set before running this function.
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -24,9 +24,12 @@ def prepare_sentences(
         with open(dump_text_path, 'r') as f:
             lines += f.readlines()
     
+    # normalize text
+    # remove unrequired characters
+    lines = [line.translate(str.maketrans('', '', remove_characters)) for line in lines]
     texts = '\n'.join([line.split(' ', maxsplit=1)[1].replace('\n', '') for line in lines])
 
-    with open(os.path.join(output_path, "train.txt"), 'w') as f:
+    with open(os.path.join(output_path, "spm_train.txt"), 'w') as f:
         f.write(texts)
 
 
