@@ -1,8 +1,9 @@
 import os
 import shutil
 from pathlib import Path
-import sentencepiece as spm
 from typing import Union
+
+import sentencepiece as spm
 
 
 def prepare_sentences(
@@ -32,7 +33,7 @@ def prepare_sentences(
         [line.split(" ", maxsplit=1)[1].replace("\n", "") for line in lines]
     )
 
-    with open(os.path.join(output_path, "spm_train.txt"), "w") as f:
+    with open(os.path.join(output_path, "train.txt"), "w") as f:
         f.write(texts)
 
 
