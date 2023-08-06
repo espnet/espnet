@@ -46,6 +46,8 @@ python=python3       # Specify python to execute espnet commands.
 local_data_opts= # The options given to local/data.sh.
 post_process_local_data_opts= # The options given to local/data.sh for additional processing in stage 4.
 auxiliary_data_tags= # the names of training data for auxiliary tasks
+extra_files= # the files of extra traing data
+post_process_stats_data_opts= # The options given to local/data.sh for additional processing in stage 10.
 
 # Speed perturbation related
 speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
@@ -1300,6 +1302,15 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
             >"${asr_stats_dir}/valid/${ref_txt}_shape.${token_type}"
     done
+
+    if [ -n "${post_process_stats_data_opts}" ]; then
+        # Do any additional local data post-processing here
+        local/data.sh ${post_process_stats_data_opts} --files "${extra_files}" \
+	  --asr_data_dir "${data_feats}/${train_set}" \
+	  --asr_stats_dir "${asr_stats_dir}" \
+	  --bpemodel "${bpemodel}"
+    fi
+
 fi
 
 
@@ -1384,6 +1395,16 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
                  _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${aux_dset},text,text "
             done
         fi
+
+	read -r -a extra_file_list <<< "${extra_files}"
+	if [ ${#extra_file_list[@]} != 0 ]; then
+	    _opts+="--allow_variable_data_keys True "
+	    for extra_file in "${extra_file_list[@]}"; do
+		_opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${extra_file},${extra_file},text "
+		_opts+="--train_shape_file ${asr_stats_dir}/train/${extra_file}_shape.bpe "
+	    done
+	fi
+
         # shellcheck disable=SC2068
         for i in ${!ref_text_names[@]}; do
             _opts+="--fold_length ${asr_text_fold_length} "
