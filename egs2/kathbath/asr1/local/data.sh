@@ -107,6 +107,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
                 sed "s/.m4a//g" "$split"/"transcription_n2w.txt" > data/"$ln"/"$splitname"/text
+                sed 's/\xC2\xA0/ /g' data/"$ln"/"$splitname"/text > data/"$ln"/"$splitname"/temp ; mv data/"$ln"/"$splitname"/temp data/"$ln"/"$splitname"/text
                 utils/utt2spk_to_spk2utt.pl data/"$ln"/"$splitname"/utt2spk > data/"$ln"/"$splitname"/spk2utt
                 utils/fix_data_dir.sh data/"$ln"/"$splitname"
                 rm data/"$ln"/"$splitname"/wavs data/"$ln"/"$splitname"/uttids
@@ -143,6 +144,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
                 sed "s/.m4a//g" "$split"/"transcription_n2w.txt" > data/"$ln"/"$splitname"/text
+                sed 's/\xC2\xA0/ /g' data/"$ln"/"$splitname"/text > data/"$ln"/"$splitname"/temp ; mv data/"$ln"/"$splitname"/temp data/"$ln"/"$splitname"/text
                 utils/utt2spk_to_spk2utt.pl data/"$ln"/"$splitname"/utt2spk > data/"$ln"/"$splitname"/spk2utt
                 utils/fix_data_dir.sh data/"$ln"/"$splitname"
                 rm data/"$ln"/"$splitname"/wavs data/"$ln"/"$splitname"/uttids
