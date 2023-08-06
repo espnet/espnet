@@ -8,6 +8,9 @@ from espnet2.samplers.length_batch_sampler import LengthBatchSampler
 from espnet2.samplers.num_elements_batch_sampler import NumElementsBatchSampler
 from espnet2.samplers.sorted_batch_sampler import SortedBatchSampler
 from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+from espnet2.samplers.text_injected_batch_sampler import (
+    TextInjectedBatchSampler,
+)
 
 BATCH_TYPES = dict(
     unsorted="UnsortedBatchSampler has nothing in particular feature and "
@@ -81,6 +84,7 @@ def build_batch_sampler(
     fold_lengths: Sequence[int] = (),
     padding: bool = True,
     utt2category_file: str = None,
+    injected_text_frequency: int = 3,
 ) -> AbsSampler:
     """Helper function to instantiate BatchSampler.
 
@@ -145,6 +149,17 @@ def build_batch_sampler(
             drop_last=drop_last,
             padding=padding,
             min_batch_size=min_batch_size,
+        )
+    elif type == "text_injected":
+        retval = TextInjectedBatchSampler(
+            batch_bins=batch_bins,
+            shape_files=shape_files,
+            sort_in_batch=sort_in_batch,
+            sort_batch=sort_batch,
+            drop_last=drop_last,
+            padding=padding,
+            min_batch_size=min_batch_size,
+            injected_text_frequency=injected_text_frequency,
         )
 
     elif type == "length":

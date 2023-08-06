@@ -5,7 +5,7 @@ import logging
 import numbers
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Collection, Dict, Mapping, Tuple, Union
+from typing import Any, Callable, Collection, Dict, Mapping, Tuple, Union, Optional
 
 import h5py
 import humanfriendly
@@ -604,5 +604,154 @@ class ESPnetDataset(AbsDataset):
             self.cache[uid] = data
 
         retval = uid, data
+        assert check_return_type(retval)
+        return retval
+
+
+class TextInjectedESPnetDataset(ESPnetDataset):
+    def __init__(
+        self,
+        path_name_type_list: Collection[Tuple[str, str, str]],
+        preprocess: Callable[
+            [str, Dict[str, np.ndarray]], Dict[str, np.ndarray]
+        ] = None,
+        float_dtype: str = "float32",
+        int_dtype: str = "long",
+        max_cache_size: Union[float, int, str] = 0.0,
+        max_cache_fd: int = 0,
+        utt2category_file: Optional[str] = None,
+    ):
+        assert check_argument_types()
+        if len(path_name_type_list) == 0:
+            raise ValueError(
+                '1 or more elements are required for "path_name_type_list"'
+            )
+
+        path_name_type_list = copy.deepcopy(path_name_type_list)
+        self.preprocess = preprocess
+
+        self.float_dtype = float_dtype
+        self.int_dtype = int_dtype
+        self.max_cache_fd = max_cache_fd
+        self.utt2category = {}
+
+        if utt2category_file:
+            with open(utt2category_file, "r", encoding="utf-8") as utt2category_file:
+                utt2category_lines = utt2category_file.readlines()
+                for utt2category_line in utt2category_lines:
+                    utt2category_line = utt2category_line.strip()
+                    uid, category = utt2category_line.split(" ")
+                    self.utt2category[uid] = category.lower()
+
+                self.preprocess.utt2category = self.utt2category
+
+        self.injected_names = set(
+            [path_name_type[1] for path_name_type in path_name_type_list],
+        ) - set(["speech", "text"])
+
+        self.loader_dict = {}
+        self.injected_loader_dict = {}
+        self.debug_info = {}
+        for path, name, _type in path_name_type_list:
+            if name in self.loader_dict:
+                raise RuntimeError(f'"{name}" is duplicated for data-key')
+
+            loader = self._build_loader(path, _type)
+
+            if name in self.injected_names:
+                self.injected_loader_dict[name] = loader
+                if len(self.injected_loader_dict[name]) == 0:
+                    raise RuntimeError(f"{path} has no samples")
+            else:
+                self.loader_dict[name] = loader
+                if len(self.loader_dict[name]) == 0:
+                    raise RuntimeError(f"{path} has no samples")
+
+            self.debug_info[name] = path, _type
+            # TODO(kamo): Should check consistency of each utt-keys?
+
+        if isinstance(max_cache_size, str):
+            max_cache_size = humanfriendly.parse_size(max_cache_size)
+        self.max_cache_size = max_cache_size
+        if max_cache_size > 0:
+            self.cache = SizedDict(shared=True)
+        else:
+            self.cache = None
+
+    def __getitem__(self, uid: Union[str, int]) -> Tuple[str, Dict[str, np.ndarray]]:
+        assert check_argument_types()
+
+        # Change integer-id to string-id
+        if isinstance(uid, int):
+            d = next(iter(self.loader_dict.values()))
+            uid = list(d)[uid]
+
+        if self.cache is not None and uid in self.cache:
+            data = self.cache[uid]
+            return uid, data
+
+        data = {}
+        category = self.utt2category.get(uid, "speech")
+
+        loaders = self.injected_loader_dict if category in self.injected_names \
+            else self.loader_dict
+
+        # 1. Load data from each loaders
+        for name, loader in loaders.items():
+            try:
+                value = loader[uid]
+                if isinstance(value, (list)):
+                    value = np.array(value)
+                if not isinstance(
+                    value, (np.ndarray, torch.Tensor, str, numbers.Number, tuple)
+                ):
+                    raise TypeError(
+                        (
+                            "Must be ndarray, torch.Tensor, "
+                            "str,  Number or tuple: {}".format(type(value))
+                        )
+                    )
+            except Exception:
+                path, _type = self.debug_info[name]
+                logging.error(
+                    f"Error happened with path={path}, type={_type}, id={uid}"
+                )
+                raise
+
+            # torch.Tensor is converted to ndarray
+            if isinstance(value, torch.Tensor):
+                value = value.numpy()
+            elif isinstance(value, numbers.Number):
+                value = np.array([value])
+            data[name] = value
+
+        # 2. [Option] Apply preprocessing
+        #   e.g. espnet2.train.preprocessor:CommonPreprocessor
+        if self.preprocess is not None:
+            data = self.preprocess(uid, data)
+
+        # 3. Force data-precision
+        for name in data:
+            value = data[name]
+            if not isinstance(value, np.ndarray):
+                raise RuntimeError(
+                    f"All values must be converted to np.ndarray object "
+                    f'by preprocessing, but "{name}" is still {type(value)}.'
+                )
+
+            # Cast to desired type
+            if value.dtype.kind == "f":
+                value = value.astype(self.float_dtype)
+            elif value.dtype.kind == "i":
+                value = value.astype(self.int_dtype)
+            else:
+                raise NotImplementedError(f"Not supported dtype: {value.dtype}")
+            data[name] = value
+
+        if self.cache is not None and self.cache.size < self.max_cache_size:
+            self.cache[uid] = data
+
+        retval = uid, data
+
         assert check_return_type(retval)
         return retval

@@ -46,7 +46,12 @@ from espnet2.torch_utils.pytorch_version import pytorch_cudnn_version
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
-from espnet2.train.dataset import DATA_TYPES, AbsDataset, ESPnetDataset
+from espnet2.train.dataset import (
+    DATA_TYPES,
+    AbsDataset,
+    ESPnetDataset,
+    TextInjectedESPnetDataset,
+)
 from espnet2.train.distributed_utils import (
     DistributedOption,
     free_port,
@@ -180,6 +185,11 @@ class IteratorOptions:
     num_batches: Optional[int]
     num_iters_per_epoch: Optional[int]
     train: bool
+
+
+@dataclass
+class InjectedIteratorOptions(IteratorOptions):
+    injected_text_frequency: int
 
 
 class AbsTask(ABC):
@@ -318,7 +328,7 @@ class AbsTask(ABC):
         group.add_argument(
             "--iterator_type",
             type=str,
-            choices=["sequence", "category", "chunk", "task", "none"],
+            choices=["sequence", "category", "chunk", "task", "none", "text_injected"],
             default="sequence",
             help="Specify iterator type",
         )
@@ -1514,22 +1524,46 @@ class AbsTask(ABC):
         else:
             raise NotImplementedError(f"mode={mode}")
 
-        return IteratorOptions(
-            preprocess_fn=preprocess_fn,
-            collate_fn=collate_fn,
-            data_path_and_name_and_type=data_path_and_name_and_type,
-            shape_files=shape_files,
-            batch_type=batch_type,
-            batch_size=batch_size,
-            batch_bins=batch_bins,
-            num_batches=num_batches,
-            max_cache_size=max_cache_size,
-            max_cache_fd=max_cache_fd,
-            allow_multi_rates=allow_multi_rates,
-            distributed=distributed,
-            num_iters_per_epoch=num_iters_per_epoch,
-            train=train,
-        )
+
+        is_injected = args.iterator_type == "text_injected"
+        if is_injected:
+            injected_text_frequency = args.model_conf.get(
+                "injected_text_frequency",
+                3,
+            )
+            return InjectedIteratorOptions(
+                preprocess_fn=preprocess_fn,
+                collate_fn=collate_fn,
+                data_path_and_name_and_type=data_path_and_name_and_type,
+                shape_files=shape_files,
+                batch_type=batch_type,
+                batch_size=batch_size,
+                batch_bins=batch_bins,
+                num_batches=num_batches,
+                max_cache_size=max_cache_size,
+                max_cache_fd=max_cache_fd,
+                distributed=distributed,
+                num_iters_per_epoch=num_iters_per_epoch,
+                train=train,
+                injected_text_frequency=injected_text_frequency,
+            )
+        else:
+            return IteratorOptions(
+                preprocess_fn=preprocess_fn,
+                collate_fn=collate_fn,
+                data_path_and_name_and_type=data_path_and_name_and_type,
+                shape_files=shape_files,
+                batch_type=batch_type,
+                batch_size=batch_size,
+                batch_bins=batch_bins,
+                num_batches=num_batches,
+                max_cache_size=max_cache_size,
+                max_cache_fd=max_cache_fd,
+                allow_multi_rates=allow_multi_rates,
+                distributed=distributed,
+                num_iters_per_epoch=num_iters_per_epoch,
+                train=train,
+            )
 
     @classmethod
     def build_iter_factory(
@@ -1596,6 +1630,12 @@ class AbsTask(ABC):
             )
         elif iterator_type == "task":
             return cls.build_task_iter_factory(
+                args=args,
+                iter_options=iter_options,
+                mode=mode,
+            )
+        elif args.iterator_type == "text_injected":
+            return cls.build_text_injected_iter_factory(
                 args=args,
                 iter_options=iter_options,
                 mode=mode,
@@ -1962,6 +2002,92 @@ class AbsTask(ABC):
         # 3. Build MultipleIterFactory
         return MultipleIterFactory(
             build_funcs=build_funcs, shuffle=iter_options.train, seed=args.seed
+        )
+
+    @classmethod
+    def build_text_injected_iter_factory(
+        cls,
+        args: argparse.Namespace,
+        iter_options: InjectedIteratorOptions,
+        mode: str,
+    ) -> AbsIterFactory:
+        assert check_argument_types()
+
+        if Path(
+            Path(iter_options.data_path_and_name_and_type[0][0]).parent, "utt2category"
+        ).exists():
+            utt2category_file = str(
+                Path(
+                    Path(iter_options.data_path_and_name_and_type[0][0]).parent,
+                    "utt2category",
+                )
+            )
+            logging.warning("Reading " + utt2category_file)
+        else:
+            utt2category_file = None
+
+        dataset = TextInjectedESPnetDataset(
+            iter_options.data_path_and_name_and_type,
+            float_dtype=args.train_dtype,
+            preprocess=iter_options.preprocess_fn,
+            max_cache_size=iter_options.max_cache_size,
+            max_cache_fd=iter_options.max_cache_fd,
+            utt2category_file=utt2category_file,
+        )
+
+        cls.check_task_requirements(
+            dataset, args.allow_variable_data_keys, train=iter_options.train
+        )
+
+        batch_sampler = build_batch_sampler(
+            type=iter_options.batch_type,
+            shape_files=iter_options.shape_files,
+            fold_lengths=args.fold_length,
+            batch_size=iter_options.batch_size,
+            batch_bins=iter_options.batch_bins,
+            sort_in_batch=args.sort_in_batch,
+            sort_batch=args.sort_batch,
+            drop_last=False,
+            min_batch_size=torch.distributed.get_world_size()
+            if iter_options.distributed
+            else 1,
+            utt2category_file=utt2category_file,
+            injected_text_frequency=iter_options.injected_text_frequency,
+        )
+
+        batches = list(batch_sampler)
+        if iter_options.num_batches is not None:
+            batches = batches[: iter_options.num_batches]
+
+        bs_list = [len(batch) for batch in batches]
+
+        logging.info(f"[{mode}] dataset:\n{dataset}")
+        logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
+        logging.info(
+            f"[{mode}] mini-batch sizes summary: N-batch={len(bs_list)}, "
+            f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
+        )
+
+        if iter_options.distributed:
+            world_size = torch.distributed.get_world_size()
+            rank = torch.distributed.get_rank()
+            for batch in batches:
+                if len(batch) < world_size:
+                    raise RuntimeError(
+                        f"The batch-size must be equal or more than world_size: "
+                        f"{len(batch)} < {world_size}"
+                    )
+            batches = [batch[rank::world_size] for batch in batches]
+
+        return SequenceIterFactory(
+            dataset=dataset,
+            batches=batches,
+            seed=args.seed,
+            num_iters_per_epoch=iter_options.num_iters_per_epoch,
+            shuffle=iter_options.train,
+            num_workers=args.num_workers,
+            collate_fn=iter_options.collate_fn,
+            pin_memory=args.ngpu > 0,
         )
 
     @classmethod

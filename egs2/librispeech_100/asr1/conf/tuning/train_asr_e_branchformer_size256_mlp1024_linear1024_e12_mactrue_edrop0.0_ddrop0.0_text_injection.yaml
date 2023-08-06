@@ -14,7 +14,7 @@ encoder_conf:
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: conv2d
+    input_layer: injected_conv2d
     layer_drop_rate: 0.0
     linear_units: 1024
     positionwise_layer_type: linear
@@ -37,18 +37,26 @@ model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
+    injected_text_frequency: 3
+    injected_text_type: fixed
+    # fixed: token repeats injected_text_frequency times
+    # random: token repeats randomly picked from [1, injected_text_frequency]
 
 frontend_conf:
     n_fft: 512
     win_length: 400
     hop_length: 160
 
+model: text_injected_espnet
+preprocessor: text_injected
+unused_parameters: true
 seed: 2022
 num_workers: 4
-batch_type: numel
-batch_bins: 16000000
-accum_grad: 4
-max_epoch: 70
+batch_type: text_injected
+batch_bins: 32000000 # 16000000
+accum_grad: 2 # 4
+max_epoch: 70 # 160
+iterator_type: text_injected
 patience: none
 init: none
 best_model_criterion:
@@ -81,3 +89,4 @@ specaug_conf:
     - 0.
     - 0.05
     num_time_mask: 5
+

@@ -41,6 +41,7 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     Conv1dSubsampling2,
     Conv1dSubsampling3,
     Conv2dSubsampling,
+    InjectedConv2dSubsampling,
     Conv2dSubsampling1,
     Conv2dSubsampling2,
     Conv2dSubsampling6,
@@ -280,6 +281,13 @@ class EBranchformerEncoder(AbsEncoder):
                 dropout_rate,
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
             )
+        elif input_layer == "injected_conv2d":
+            self.embed = InjectedConv2dSubsampling(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
+            )
         elif input_layer == "conv2d1":
             self.embed = Conv2dSubsampling1(
                 input_size,
@@ -425,6 +433,7 @@ class EBranchformerEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
         max_layer: int = None,
+        pseudo_mask: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -434,6 +443,7 @@ class EBranchformerEncoder(AbsEncoder):
             prev_states (torch.Tensor): Not to be used now.
             ctc (CTC): Intermediate CTC module.
             max_layer (int): Layer depth below which InterCTC is applied.
+            pseudo_mask (torch.Tensor): The mask which indicates if the sample is a pseudo speech (#batch).
         Returns:
             torch.Tensor: Output tensor (#batch, L, output_size).
             torch.Tensor: Output length (#batch).
@@ -447,6 +457,7 @@ class EBranchformerEncoder(AbsEncoder):
             or isinstance(self.embed, Conv1dSubsampling1)
             or isinstance(self.embed, Conv1dSubsampling2)
             or isinstance(self.embed, Conv1dSubsampling3)
+            or isinstance(self.embed, InjectedConv2dSubsampling)
             or isinstance(self.embed, Conv2dSubsampling1)
             or isinstance(self.embed, Conv2dSubsampling2)
             or isinstance(self.embed, Conv2dSubsampling6)
@@ -460,7 +471,10 @@ class EBranchformerEncoder(AbsEncoder):
                     xs_pad.size(1),
                     limit_size,
                 )
-            xs_pad, masks = self.embed(xs_pad, masks)
+            if isinstance(self.embed, InjectedConv2dSubsampling):
+                xs_pad, masks = self.embed(xs_pad, masks, pseudo_mask)
+            else:
+                xs_pad, masks = self.embed(xs_pad, masks)
         elif self.embed is not None:
             xs_pad = self.embed(xs_pad)
 
@@ -498,7 +512,7 @@ class EBranchformerEncoder(AbsEncoder):
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]
 
-        xs_pad = self.after_norm(xs_pad)
+        xs_pad, masks = self.encoders(xs_pad, masks)
         olens = masks.squeeze(1).sum(1)
         if len(intermediate_outs) > 0:
             return (xs_pad, intermediate_outs), olens, None

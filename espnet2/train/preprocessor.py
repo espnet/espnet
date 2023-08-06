@@ -4,7 +4,7 @@ import random
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Collection, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Collection, Dict, Iterable, List, Union, Optional
 
 import librosa
 import numpy as np
@@ -2119,6 +2119,76 @@ class SpkPreprocessor(CommonPreprocessor):
         if "task_tokens" in data:
             data["task_tokens"] = np.asarray([int(data["task_tokens"])])
 
+class TextInjectedPreprocessor(CommonPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        token_type: str = None,
+        token_list: Union[Path, str, Iterable[str]] = None,
+        bpemodel: Union[Path, str, Iterable[str]] = None,
+        text_cleaner: Collection[str] = None,
+        g2p_type: str = None,
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        delimiter: str = None,
+        rir_scp: str = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: str = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
+        aux_task_names: Collection[str] = None,
+        speech_volume_normalize: float = None,
+        speech_name: str = "speech",
+        text_name: str = "text",
+        fs: int = 0,
+        nonsplit_symbol: Iterable[str] = None,
+        utt2category: Optional[Dict[str, str]] = None,
+        injected_names: Optional[str] = None,
+        injected_text_frequency: int = 3,
+    ):
+        super().__init__(
+            train,
+            token_type,
+            token_list,
+            bpemodel,
+            text_cleaner,
+            g2p_type,
+            unk_symbol,
+            space_symbol,
+            non_linguistic_symbols,
+            delimiter,
+            rir_scp,
+            rir_apply_prob,
+            noise_scp,
+            noise_apply_prob,
+            noise_db_range,
+            short_noise_thres,
+            aux_task_names,
+            speech_volume_normalize,
+            speech_name,
+            text_name,
+            fs,
+            nonsplit_symbol,
+        )
+
+        self.utt2category = utt2category
+        self.injected_text_frequency = injected_text_frequency
+
+    def _injected_text_process(
+        self, data: Dict[str, Union[str, np.ndarray]], injected_name: str,
+    ) -> Dict[str, np.ndarray]:
+        if injected_name in data and self.tokenizer is not None:
+            text = data[injected_name]
+            text = self.text_cleaner(text)
+            tokens = self.tokenizer.text2tokens(text)
+            text_ints = self.token_id_converter.tokens2ids(tokens)
+            data[self.text_name] = np.array(text_ints, dtype=np.int64)
+            data[self.speech_name] = np.array([], dtype=np.float64)
+            del data[injected_name]
+
+        assert check_return_type(data)
         return data
 
     def __call__(
@@ -2126,8 +2196,16 @@ class SpkPreprocessor(CommonPreprocessor):
     ) -> Dict[str, np.ndarray]:
         assert check_argument_types()
 
-        data = self._text_process(data)
-        data = self._speech_process(data)
+        if self.utt2category is None:
+            category = self.speech_name
+        else:
+            category = self.utt2category.get(uid, self.speech_name)
+
+        if category in [self.speech_name, self.text_name]:
+            data = self._speech_process(data)
+            data = self._text_process(data)
+        else:
+            data = self._injected_text_process(data, category)
 
         return data
 

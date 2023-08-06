@@ -7,6 +7,7 @@
 """Subsampling layer definition."""
 
 import torch
+import torch.nn.functional as F
 
 from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
 
@@ -272,6 +273,134 @@ class Conv2dSubsampling(torch.nn.Module):
         if x_mask is None:
             return x, None
         return x, x_mask[:, :, :-2:2][:, :, :-2:2]
+
+    def __getitem__(self, key):
+        """Get item.
+
+        When reset_parameters() is called, if use_scaled_pos_enc is used,
+            return the positioning encoding.
+
+        """
+        if key != -1:
+            raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
+        return self.out[key]
+
+
+class InjectedConv2dSubsampling(torch.nn.Module):
+    """Convolutional 2D subsampling (to 1/4 length).
+
+    Args:
+        idim (int): Input dimension.
+        odim (int): Output dimension.
+        dropout_rate (float): Dropout rate.
+        pos_enc (torch.nn.Module): Custom position encoding layer.
+
+    """
+
+    def __init__(self, idim, odim, dropout_rate, pos_enc=None):
+        """Construct an Conv2dSubsampling object."""
+        super(InjectedConv2dSubsampling, self).__init__()
+        self.conv = torch.nn.Sequential(
+            torch.nn.Conv2d(1, odim, 3, 2),
+            torch.nn.ReLU(),
+            torch.nn.Conv2d(odim, odim, 3, 2),
+            torch.nn.ReLU(),
+        )
+        self.out = torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim)
+        self.injected_text_out = torch.nn.Linear(idim, odim)
+        self.position_encoding = pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
+
+    def forward(self, x, x_mask, pseudo_mask=None):
+        """Subsample x.
+
+        Args:
+            x (torch.Tensor): Input tensor (#batch, time, idim).
+            x_mask (torch.Tensor): Input mask (#batch, 1, time).
+            pseudo_mask (torch.Tensor): The mask which indicates if the sample is a pseudo speech (#batch).
+
+        Returns:
+            torch.Tensor: Subsampled tensor (#batch, time', odim),
+                where time' = time // 4.
+            torch.Tensor: Subsampled mask (#batch, 1, time'),
+                where time' = time // 4.
+
+        """
+
+        pseudo_x, pseudo_x_mask = None, None
+        if pseudo_mask is not None:
+            pseudo_x = x[pseudo_mask]
+            pseudo_x_mask = x_mask[pseudo_mask]
+
+            x = x[~pseudo_mask]
+            x_mask = x_mask[~pseudo_mask]
+
+        if x.size(0) > 0:
+            x = x.unsqueeze(1)  # (b, c, t, f)
+            x = self.conv(x)
+            b, c, t, f = x.size()
+            x = self.out(x.transpose(1, 2).contiguous().view(b, t, c * f))
+            x_mask = x_mask[:, :, :-2:2][:, :, :-2:2]
+
+        if pseudo_x_mask is not None:
+            pseudo_x = self.injected_text_out(pseudo_x)
+
+        # Merge actual speech feats and pseudo speech feats
+        if (
+            pseudo_mask is not None
+            and x.size(0) > 0
+            and pseudo_x.size(0) > 0
+        ):
+            x_lengths = x.size(1)
+            pseudo_x_lengths = pseudo_x.size(1)
+
+            if pseudo_x_lengths > x_lengths:
+                diff = pseudo_x_lengths - x_lengths
+
+                x = F.pad(
+                    x.transpose(1, 2), (0, diff),
+                    value=0,
+                )
+                x = x.transpose(1, 2)
+                x_mask = F.pad(
+                    x_mask,
+                    (0, diff),
+                    value=False,
+                )
+            elif pseudo_x_lengths < x_lengths:
+                diff = x_lengths - pseudo_x_lengths
+
+                pseudo_x = F.pad(
+                    pseudo_x.transpose(1, 2), (0, diff),
+                    value=0,
+                )
+                pseudo_x = pseudo_x.transpose(1, 2)
+                pseudo_x_mask = F.pad(
+                    pseudo_x_mask,
+                    (0, diff),
+                    value=False,
+                )
+
+            x = torch.cat([x, pseudo_x], dim=0)
+            x_mask = torch.cat([x_mask, pseudo_x_mask], dim=0)
+
+            x_max_len = x_mask.squeeze(1).sum(1).max(1)
+            pseudo_max_len = pseudo_x_mask.squeeze(1).sum(1).max(1)
+            max_len = max(x_max_len, pseudo_max_len)
+
+            x = x[:, :max_len, :]
+            x_mask = x_mask[:, :, :max_len]
+        elif (
+            pseudo_x_mask is not None
+            and x.size(0) == 0
+        ):
+            x = pseudo_x
+            x_mask = pseudo_x_mask
+
+        x = self.position_encoding(x)
+
+        if x_mask is None:
+            return x, None
+        return x, x_mask
 
     def __getitem__(self, key):
         """Get item.
