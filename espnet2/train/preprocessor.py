@@ -1521,6 +1521,7 @@ class DiarPreprocessor(CommonPreprocessor):
         data = self._rttm_process(data)
         return data
 
+
 class SpkPreprocessor(CommonPreprocessor):
     """Preprocessor for Speaker tasks.
 
