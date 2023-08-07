@@ -406,6 +406,20 @@ i.e. `bins = sum(numel(feat) for feats in batch for feat in feats)`,
 where `numel` returns the infinite product of the shape of each feature;
 `shape[0] * shape[1] * ...`
 
+```bash
+python -m espnet.bin.asr_train \
+  --batch_bins 200000 --batch_type numel \
+  --train_data_path_and_name_and_type "train.scp,feats,npy" \
+  --train_data_path_and_name_and_type "train2.scp,feats2,npy" \
+  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
+  --valid_data_path_and_name_and_type  "valid2.scp,feats2,npy" \
+  --train_shape_file "train_shape.txt" \
+  --train_shape_file "train_shape2.txt" \
+  --valid_shape_file "valid_shape.txt" \
+  --valid_shape_file "valid_shape2.txt"
+```
+
+
 ### `--batch_type catbel`
 
 This type of batch_type focuses on the case of classification tasks.
