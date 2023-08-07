@@ -233,11 +233,17 @@ class SpeakerTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-            retval = preprocessor_choices.get_class(args.preprocessor)(
-                spk2utt=args.spk2utt,
-                train=train,
-                **args.preprocessor_conf,
-            )
+            if train:
+                retval = preprocessor_choices.get_class(args.preprocessor)(
+                    spk2utt=args.spk2utt,
+                    train=train,
+                    **args.preprocessor_conf,
+                )
+            else:
+                retval = preprocessor_choices.get_class(args.preprocessor)(
+                    train=train,
+                    **args.preprocessor_conf,
+                )
 
         else:
             retval = None
