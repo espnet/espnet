@@ -49,3 +49,4 @@
 |tamil|https://huggingface.co/viks66/asr_train_asr_raw_tamil_bpe500|
 |punjabi|https://huggingface.co/viks66/asr_train_asr_raw_punjabi_bpe500|
 |sanskrit|https://huggingface.co/viks66/asr_train_asr_raw_sanskrit_bpe500|
+|marathi|https://huggingface.co/viks66/asr_train_asr_raw_odia_bpe500|
