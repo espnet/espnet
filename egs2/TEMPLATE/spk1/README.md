@@ -42,7 +42,7 @@ Data preparation stage.
 
 #### ESPnet format:
 
-It calls `local/data.sh` to creates Kaldi-style data directories in `data/` for training, validation, and evaluation sets. It's the same as `asr1` tasks.
+It calls `local/data.sh` to create Kaldi-style data directories in `data/` for training, validation, and evaluation sets. It's the same as `asr1` tasks.
 
 See also:
 - [About Kaldi-style data directory](https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE#about-kaldi-style-data-directory)
@@ -72,7 +72,7 @@ See also:
 ### VoxCeleb Training
 Here, we show the procedure to run the recipe using `egs2/voxceleb/spk1`.
 
-Move on the recipe directory.
+Move to the recipe directory.
 ```sh
 $ cd egs2/voxceleb/spk1
 ```
@@ -82,7 +82,7 @@ Modify `VOXCELEB1`, `VOXCELEB2` variables in `db.sh` if you want to change the d
 $ vim db.sh
 ```
 
-Modify `cmd.sh` and `conf/*.conf` if you want to use job scheduler.
+Modify `cmd.sh` and `conf/*.conf` if you want to use the job scheduler.
 See the detail in [using job scheduling system](https://espnet.github.io/espnet/parallelization.html).
 ```sh
 $ vim cmd.sh
