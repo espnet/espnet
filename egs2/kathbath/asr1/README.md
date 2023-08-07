@@ -16,6 +16,7 @@
 |lang|exp|test|test_known|test_known_noisy|test_noisy|
 
 #CER
+|lang|exp|test|test_known|test_known_noisy|test_noisy|
 |---|---|---|---|---|---|
 |urdu|asr_train_asr_raw_urdu_bpe500|4.8|3.7|4.7|7.7|
 |telugu|asr_train_asr_raw_telugu_bpe500|5.0|3.7|4.6|7.3|
