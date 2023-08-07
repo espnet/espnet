@@ -238,8 +238,9 @@ asr_train.py
 
     usage: asr_train.py [-h] [--config CONFIG] [--print_config]
                         [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                        [--dry_run DRY_RUN]
-                        [--iterator_type {sequence,chunk,task,none}]
+                        [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                        [--iterator_type {sequence,category,chunk,task,none}]
+                        [--valid_iterator_type {sequence,category,chunk,task,none}]
                         [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                         [--num_workers NUM_WORKERS] [--num_att_plot NUM_ATT_PLOT]
                         [--dist_backend DIST_BACKEND]
@@ -356,9 +357,13 @@ asr_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -474,7 +479,7 @@ asr_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -899,8 +904,10 @@ asr_transducer_train.py
 
     usage: asr_transducer_train.py [-h] [--config CONFIG] [--print_config]
                                    [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                                   [--drop_last_iter DROP_LAST_ITER]
                                    [--dry_run DRY_RUN]
-                                   [--iterator_type {sequence,chunk,task,none}]
+                                   [--iterator_type {sequence,category,chunk,task,none}]
+                                   [--valid_iterator_type {sequence,category,chunk,task,none}]
                                    [--output_dir OUTPUT_DIR] [--ngpu NGPU]
                                    [--seed SEED] [--num_workers NUM_WORKERS]
                                    [--num_att_plot NUM_ATT_PLOT]
@@ -1014,9 +1021,13 @@ asr_transducer_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -1132,7 +1143,7 @@ asr_transducer_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -1510,8 +1521,9 @@ diar_train.py
 
     usage: diar_train.py [-h] [--config CONFIG] [--print_config]
                          [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                         [--dry_run DRY_RUN]
-                         [--iterator_type {sequence,chunk,task,none}]
+                         [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                         [--iterator_type {sequence,category,chunk,task,none}]
+                         [--valid_iterator_type {sequence,category,chunk,task,none}]
                          [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                          [--num_workers NUM_WORKERS] [--num_att_plot NUM_ATT_PLOT]
                          [--dist_backend DIST_BACKEND]
@@ -1607,9 +1619,13 @@ diar_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -1725,7 +1741,7 @@ diar_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -2164,8 +2180,9 @@ enh_s2t_train.py
 
     usage: enh_s2t_train.py [-h] [--config CONFIG] [--print_config]
                             [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                            [--dry_run DRY_RUN]
-                            [--iterator_type {sequence,chunk,task,none}]
+                            [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                            [--iterator_type {sequence,category,chunk,task,none}]
+                            [--valid_iterator_type {sequence,category,chunk,task,none}]
                             [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                             [--num_workers NUM_WORKERS]
                             [--num_att_plot NUM_ATT_PLOT]
@@ -2319,9 +2336,13 @@ enh_s2t_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -2437,7 +2458,7 @@ enh_s2t_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -2878,8 +2899,9 @@ enh_train.py
 
     usage: enh_train.py [-h] [--config CONFIG] [--print_config]
                         [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                        [--dry_run DRY_RUN]
-                        [--iterator_type {sequence,chunk,task,none}]
+                        [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                        [--iterator_type {sequence,category,chunk,task,none}]
+                        [--valid_iterator_type {sequence,category,chunk,task,none}]
                         [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                         [--num_workers NUM_WORKERS] [--num_att_plot NUM_ATT_PLOT]
                         [--dist_backend DIST_BACKEND]
@@ -2984,9 +3006,13 @@ enh_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -3102,7 +3128,7 @@ enh_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -3490,8 +3516,9 @@ enh_tse_train.py
 
     usage: enh_tse_train.py [-h] [--config CONFIG] [--print_config]
                             [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                            [--dry_run DRY_RUN]
-                            [--iterator_type {sequence,chunk,task,none}]
+                            [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                            [--iterator_type {sequence,category,chunk,task,none}]
+                            [--valid_iterator_type {sequence,category,chunk,task,none}]
                             [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                             [--num_workers NUM_WORKERS]
                             [--num_att_plot NUM_ATT_PLOT]
@@ -3600,9 +3627,13 @@ enh_tse_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -3718,7 +3749,7 @@ enh_tse_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -4018,8 +4049,9 @@ gan_svs_train.py
 
     usage: gan_svs_train.py [-h] [--config CONFIG] [--print_config]
                             [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                            [--dry_run DRY_RUN]
-                            [--iterator_type {sequence,chunk,task,none}]
+                            [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                            [--iterator_type {sequence,category,chunk,task,none}]
+                            [--valid_iterator_type {sequence,category,chunk,task,none}]
                             [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                             [--num_workers NUM_WORKERS]
                             [--num_att_plot NUM_ATT_PLOT]
@@ -4143,9 +4175,13 @@ gan_svs_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -4261,7 +4297,7 @@ gan_svs_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -4557,8 +4593,9 @@ gan_tts_train.py
 
     usage: gan_tts_train.py [-h] [--config CONFIG] [--print_config]
                             [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                            [--dry_run DRY_RUN]
-                            [--iterator_type {sequence,chunk,task,none}]
+                            [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                            [--iterator_type {sequence,category,chunk,task,none}]
+                            [--valid_iterator_type {sequence,category,chunk,task,none}]
                             [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                             [--num_workers NUM_WORKERS]
                             [--num_att_plot NUM_ATT_PLOT]
@@ -4676,9 +4713,13 @@ gan_tts_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -4794,7 +4835,7 @@ gan_tts_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -5082,8 +5123,9 @@ hubert_train.py
 
     usage: hubert_train.py [-h] [--config CONFIG] [--print_config]
                            [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                           [--dry_run DRY_RUN]
-                           [--iterator_type {sequence,chunk,task,none}]
+                           [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                           [--iterator_type {sequence,category,chunk,task,none}]
+                           [--valid_iterator_type {sequence,category,chunk,task,none}]
                            [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                            [--num_workers NUM_WORKERS]
                            [--num_att_plot NUM_ATT_PLOT]
@@ -5202,9 +5244,13 @@ hubert_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -5320,7 +5366,7 @@ hubert_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -5745,8 +5791,9 @@ lm_train.py
 
     usage: lm_train.py [-h] [--config CONFIG] [--print_config]
                        [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                       [--dry_run DRY_RUN]
-                       [--iterator_type {sequence,chunk,task,none}]
+                       [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                       [--iterator_type {sequence,category,chunk,task,none}]
+                       [--valid_iterator_type {sequence,category,chunk,task,none}]
                        [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                        [--num_workers NUM_WORKERS] [--num_att_plot NUM_ATT_PLOT]
                        [--dist_backend DIST_BACKEND]
@@ -5840,9 +5887,13 @@ lm_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -5958,7 +6009,7 @@ lm_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -6311,8 +6362,9 @@ mt_train.py
 
     usage: mt_train.py [-h] [--config CONFIG] [--print_config]
                        [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                       [--dry_run DRY_RUN]
-                       [--iterator_type {sequence,chunk,task,none}]
+                       [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                       [--iterator_type {sequence,category,chunk,task,none}]
+                       [--valid_iterator_type {sequence,category,chunk,task,none}]
                        [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                        [--num_workers NUM_WORKERS] [--num_att_plot NUM_ATT_PLOT]
                        [--dist_backend DIST_BACKEND]
@@ -6425,9 +6477,13 @@ mt_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -6543,7 +6599,7 @@ mt_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -6846,8 +6902,9 @@ spk_train.py
 
     usage: spk_train.py [-h] [--config CONFIG] [--print_config]
                         [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                        [--dry_run DRY_RUN]
-                        [--iterator_type {sequence,chunk,task,none}]
+                        [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                        [--iterator_type {sequence,category,chunk,task,none}]
+                        [--valid_iterator_type {sequence,category,chunk,task,none}]
                         [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                         [--num_workers NUM_WORKERS] [--num_att_plot NUM_ATT_PLOT]
                         [--dist_backend DIST_BACKEND]
@@ -6945,9 +7002,13 @@ spk_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -7063,7 +7124,7 @@ spk_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -7536,8 +7597,9 @@ st_train.py
 
     usage: st_train.py [-h] [--config CONFIG] [--print_config]
                        [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                       [--dry_run DRY_RUN]
-                       [--iterator_type {sequence,chunk,task,none}]
+                       [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                       [--iterator_type {sequence,category,chunk,task,none}]
+                       [--valid_iterator_type {sequence,category,chunk,task,none}]
                        [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                        [--num_workers NUM_WORKERS] [--num_att_plot NUM_ATT_PLOT]
                        [--dist_backend DIST_BACKEND]
@@ -7659,9 +7721,13 @@ st_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -7777,7 +7843,7 @@ st_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS
@@ -8214,8 +8280,9 @@ tts_train.py
 
     usage: tts_train.py [-h] [--config CONFIG] [--print_config]
                         [--log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}]
-                        [--dry_run DRY_RUN]
-                        [--iterator_type {sequence,chunk,task,none}]
+                        [--drop_last_iter DROP_LAST_ITER] [--dry_run DRY_RUN]
+                        [--iterator_type {sequence,category,chunk,task,none}]
+                        [--valid_iterator_type {sequence,category,chunk,task,none}]
                         [--output_dir OUTPUT_DIR] [--ngpu NGPU] [--seed SEED]
                         [--num_workers NUM_WORKERS] [--num_att_plot NUM_ATT_PLOT]
                         [--dist_backend DIST_BACKEND]
@@ -8322,9 +8389,13 @@ tts_train.py
       --print_config        Print the config file and exit (default: False)
       --log_level {ERROR,WARNING,INFO,DEBUG,NOTSET}
                             The verbose level of logging (default: INFO)
+      --drop_last_iter DROP_LAST_ITER
+                            Exclude the minibatch with leftovers. (default: False)
       --dry_run DRY_RUN     Perform process without training (default: False)
-      --iterator_type {sequence,chunk,task,none}
+      --iterator_type {sequence,category,chunk,task,none}
                             Specify iterator type (default: sequence)
+      --valid_iterator_type {sequence,category,chunk,task,none}
+                            Specify iterator type (default: None)
       --output_dir OUTPUT_DIR
       --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
       --seed SEED           Random seed (default: 0)
@@ -8440,7 +8511,7 @@ tts_train.py
       --num_iters_per_epoch NUM_ITERS_PER_EPOCH
                             Restrict the number of iterations for training per epoch (default: None)
       --batch_size BATCH_SIZE
-                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded'. (default: 20)
+                            The mini-batch size used for training. Used if batch_type='unsorted', 'sorted', or 'folded', or 'catbel'. (default: 20)
       --valid_batch_size VALID_BATCH_SIZE
                             If not given, the value of --batch_size is used (default: None)
       --batch_bins BATCH_BINS

@@ -152,6 +152,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-num-elements-batch-sampler-1">espnet2.samplers.num_elements_batch_sampler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-abs-sampler-1">espnet2.samplers.abs_sampler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-length-batch-sampler-1">espnet2.samplers.length_batch_sampler</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-category-balanced-sampler-1">espnet2.samplers.category_balanced_sampler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-unsorted-batch-sampler-1">espnet2.samplers.unsorted_batch_sampler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-init-1">espnet2.samplers.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-samplers-folded-batch-sampler-1">espnet2.samplers.folded_batch_sampler</a></li>
@@ -231,8 +232,10 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>type</strong> – mini-batch type. “unsorted”, “sorted”, “folded”, “numel”, or, “length”</p></li>
-<li><p><strong>batch_size</strong> – The mini-batch size. Used for “unsorted”, “sorted”, “folded” mode</p></li>
+<li><p><strong>type</strong> – mini-batch type. “unsorted”, “sorted”, “folded”, “numel”,
+“length”, or “catbel”</p></li>
+<li><p><strong>batch_size</strong> – The mini-batch size. Used for “unsorted”, “sorted”,
+“folded”, “catbel” mode</p></li>
 <li><p><strong>batch_bins</strong> – Used for “numel” model</p></li>
 <li><p><strong>shape_files</strong> – Text files describing the length and dimension
 of each features. e.g. uttA 1330,80</p></li>
@@ -279,6 +282,20 @@ used for “numel” mode</p></li>
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.samplers.length_batch_sampler.</code><code class="sig-name descname">LengthBatchSampler</code><span class="sig-paren">(</span><em class="sig-param">batch_bins: int, shape_files: Union[Tuple[str, ...], List[str]], min_batch_size: int = 1, sort_in_batch: str = 'descending', sort_batch: str = 'ascending', drop_last: bool = False, padding: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/samplers/length_batch_sampler.html#LengthBatchSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.length_batch_sampler.LengthBatchSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.samplers.abs_sampler.AbsSampler" title="espnet2.samplers.abs_sampler.AbsSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.samplers.abs_sampler.AbsSampler</span></code></a></p>
 </dd></dl>
+
+</section>
+<section id="espnet2-samplers-category-balanced-sampler-1">
+<span id="espnet2-samplers-category-balanced-sampler"></span><h2>espnet2.samplers.category_balanced_sampler<a class="headerlink" href="#espnet2-samplers-category-balanced-sampler-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.samplers.category_balanced_sampler"></span><dl class="class">
+<dt id="espnet2.samplers.category_balanced_sampler.CategoryBalancedSampler">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.samplers.category_balanced_sampler.</code><code class="sig-name descname">CategoryBalancedSampler</code><span class="sig-paren">(</span><em class="sig-param">batch_size: int</em>, <em class="sig-param">min_batch_size: int = 1</em>, <em class="sig-param">drop_last: bool = False</em>, <em class="sig-param">category2utt_file: str = None</em>, <em class="sig-param">epoch: int = 1</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/samplers/category_balanced_sampler.html#CategoryBalancedSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.category_balanced_sampler.CategoryBalancedSampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.samplers.abs_sampler.AbsSampler" title="espnet2.samplers.abs_sampler.AbsSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.samplers.abs_sampler.AbsSampler</span></code></a></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.samplers.category_balanced_sampler.round_down">
+<code class="sig-prename descclassname">espnet2.samplers.category_balanced_sampler.</code><code class="sig-name descname">round_down</code><span class="sig-paren">(</span><em class="sig-param">num</em>, <em class="sig-param">divisor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/samplers/category_balanced_sampler.html#round_down"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.samplers.category_balanced_sampler.round_down" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="espnet2-samplers-unsorted-batch-sampler-1">

@@ -80,6 +80,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#batch-type-folded"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">folded</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#batch-type-length"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">length</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#batch-type-numel"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">numel</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#batch-type-catbel"><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">catbel</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#gradient-accumulating">Gradient accumulating</a></li>
@@ -438,7 +439,7 @@ python<span class="w"> </span>-m<span class="w"> </span>espnet2.bin.asr_train<sp
 <h2>Change mini-batch type<a class="headerlink" href="#change-mini-batch-type" title="Permalink to this headline">¶</a></h2>
 <p>We adopt variable mini-batch size with considering the dimension of the input features
 to make the best use of the GPU memory.</p>
-<p>There are 5 types:</p>
+<p>There are 6 types:</p>
 <table border="1" class="docutils">
 <thead>
 <tr>
@@ -478,6 +479,12 @@ to make the best use of the GPU memory.</p>
 <td>--batch_bins</td>
 <td>Yes</td>
 <td>Shape information of features</td>
+</tr>
+<tr>
+<td>catbel</td>
+<td>--batch_size</td>
+<td>No</td>
+<td>-</td>
 </tr>
 </tbody>
 </table><p>Note that <strong>–batch_size is ignored if –batch_type=length or –batch_type=numel</strong>.</p>
@@ -618,6 +625,26 @@ where <code class="docutils literal notranslate"><span class="pre">numel</span><
 <span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_shape2.txt&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_shape.txt&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_shape2.txt&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="batch-type-catbel">
+<h3><code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">catbel</span></code><a class="headerlink" href="#batch-type-catbel" title="Permalink to this headline">¶</a></h3>
+<p>This type of batch_type focuses on the case of classification tasks.
+It guarantees that within each mini-batch, all samples belong to different classes.
+<code class="docutils literal notranslate"><span class="pre">--batch_size</span></code> is used to determine the mini-batch size.
+This batch type does not go along with the default <code class="docutils literal notranslate"><span class="pre">sequence</span></code> iterator_type.
+It is instead designed to be used with <code class="docutils literal notranslate"><span class="pre">category</span></code> iterator_type.
+Therefore, instead of explicitely giving <code class="docutils literal notranslate"><span class="pre">--batch_type</span> <span class="pre">catbel</span></code>, it is more recommended
+to give <code class="docutils literal notranslate"><span class="pre">--iterator_type</span> <span class="pre">category</span></code> which will automatically set <code class="docutils literal notranslate"><span class="pre">batch_type</span></code> to <code class="docutils literal notranslate"><span class="pre">catbel</span></code>.
+It is also important to use a preprocessor that adjusts the sample duration to enable
+mini-batch construction. One example would be <code class="docutils literal notranslate"><span class="pre">espnet2/train/preprocessor/SpkPreprocessor</span></code>.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>espnet.bin.spk_train<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--batch_bins<span class="w"> </span><span class="m">256</span><span class="w"> </span>--iterator_type<span class="w"> </span>category<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_data_path_and_name_and_type<span class="w"> </span><span class="s2">&quot;train.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_data_path_and_name_and_type<span class="w">  </span><span class="s2">&quot;valid.scp,feats,npy&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--train_shape_file<span class="w"> </span><span class="s2">&quot;train_shape.txt&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--valid_shape_file<span class="w"> </span><span class="s2">&quot;valid_shape.txt&quot;</span><span class="w"> </span><span class="se">\</span>
 </pre></div>
 </div>
 </section>

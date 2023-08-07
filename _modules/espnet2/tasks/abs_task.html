@@ -233,6 +233,7 @@
 
 <span class="kn">from</span> <span class="nn">espnet</span> <span class="kn">import</span> <span class="n">__version__</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.abs_iter_factory</span> <span class="kn">import</span> <span class="n">AbsIterFactory</span>
+<span class="kn">from</span> <span class="nn">espnet2.iterators.category_iter_factory</span> <span class="kn">import</span> <span class="n">CategoryIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.chunk_iter_factory</span> <span class="kn">import</span> <span class="n">ChunkIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.multiple_iter_factory</span> <span class="kn">import</span> <span class="n">MultipleIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.sequence_iter_factory</span> <span class="kn">import</span> <span class="n">SequenceIterFactory</span>
@@ -240,6 +241,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.optimizers.optim_groups</span> <span class="kn">import</span> <span class="n">configure_optimizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.optimizers.sgd</span> <span class="kn">import</span> <span class="n">SGD</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.build_batch_sampler</span> <span class="kn">import</span> <span class="n">BATCH_TYPES</span><span class="p">,</span> <span class="n">build_batch_sampler</span>
+<span class="kn">from</span> <span class="nn">espnet2.samplers.category_balanced_sampler</span> <span class="kn">import</span> <span class="n">CategoryBalancedSampler</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.unsorted_batch_sampler</span> <span class="kn">import</span> <span class="n">UnsortedBatchSampler</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.cosine_anneal_warmup_restart</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">CosineAnnealingWarmupRestarts</span><span class="p">,</span>
@@ -511,6 +513,12 @@
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The verbose level of logging&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--drop_last_iter&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Exclude the minibatch with leftovers.&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--dry_run&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -519,8 +527,15 @@
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--iterator_type&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sequence&quot;</span><span class="p">,</span> <span class="s2">&quot;chunk&quot;</span><span class="p">,</span> <span class="s2">&quot;task&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">],</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sequence&quot;</span><span class="p">,</span> <span class="s2">&quot;category&quot;</span><span class="p">,</span> <span class="s2">&quot;chunk&quot;</span><span class="p">,</span> <span class="s2">&quot;task&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">],</span>
             <span class="n">default</span><span class="o">=</span><span class="s2">&quot;sequence&quot;</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify iterator type&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--valid_iterator_type&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;sequence&quot;</span><span class="p">,</span> <span class="s2">&quot;category&quot;</span><span class="p">,</span> <span class="s2">&quot;chunk&quot;</span><span class="p">,</span> <span class="s2">&quot;task&quot;</span><span class="p">,</span> <span class="s2">&quot;none&quot;</span><span class="p">],</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify iterator type&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
@@ -886,7 +901,7 @@
             <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The mini-batch size used for training. Used if batch_type=&#39;unsorted&#39;,&quot;</span>
-            <span class="s2">&quot; &#39;sorted&#39;, or &#39;folded&#39;.&quot;</span><span class="p">,</span>
+            <span class="s2">&quot; &#39;sorted&#39;, or &#39;folded&#39;, or &#39;catbel&#39;.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--valid_batch_size&quot;</span><span class="p">,</span>
@@ -1724,26 +1739,37 @@
             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                 <span class="nb">setattr</span><span class="p">(</span><span class="n">iter_options</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">iterator_type</span> <span class="o">==</span> <span class="s2">&quot;sequence&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;valid&quot;</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">valid_iterator_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">iterator_type</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">valid_iterator_type</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">iterator_type</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">iterator_type</span>
+
+        <span class="k">if</span> <span class="n">iterator_type</span> <span class="o">==</span> <span class="s2">&quot;sequence&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">build_sequence_iter_factory</span><span class="p">(</span>
                 <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
                 <span class="n">iter_options</span><span class="o">=</span><span class="n">iter_options</span><span class="p">,</span>
                 <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">iterator_type</span> <span class="o">==</span> <span class="s2">&quot;chunk&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">iterator_type</span> <span class="o">==</span> <span class="s2">&quot;category&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">build_category_iter_factory</span><span class="p">(</span>
+                <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
+                <span class="n">iter_options</span><span class="o">=</span><span class="n">iter_options</span><span class="p">,</span>
+                <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">iterator_type</span> <span class="o">==</span> <span class="s2">&quot;chunk&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">build_chunk_iter_factory</span><span class="p">(</span>
                 <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
                 <span class="n">iter_options</span><span class="o">=</span><span class="n">iter_options</span><span class="p">,</span>
                 <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
             <span class="p">)</span>
-        <span class="k">elif</span> <span class="n">args</span><span class="o">.</span><span class="n">iterator_type</span> <span class="o">==</span> <span class="s2">&quot;task&quot;</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">iterator_type</span> <span class="o">==</span> <span class="s2">&quot;task&quot;</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">build_task_iter_factory</span><span class="p">(</span>
                 <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
                 <span class="n">iter_options</span><span class="o">=</span><span class="n">iter_options</span><span class="p">,</span>
                 <span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: iterator_type=</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">iterator_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not supported: iterator_type=</span><span class="si">{</span><span class="n">iterator_type</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AbsTask.build_sequence_iter_factory"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_sequence_iter_factory">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build_sequence_iter_factory</span><span class="p">(</span>
@@ -1774,6 +1800,7 @@
             <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Reading &quot;</span> <span class="o">+</span> <span class="n">utt2category_file</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">utt2category_file</span> <span class="o">=</span> <span class="kc">None</span>
+
         <span class="n">batch_sampler</span> <span class="o">=</span> <span class="n">build_batch_sampler</span><span class="p">(</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">batch_type</span><span class="p">,</span>
             <span class="n">shape_files</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">shape_files</span><span class="p">,</span>
@@ -1782,7 +1809,7 @@
             <span class="n">batch_bins</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">batch_bins</span><span class="p">,</span>
             <span class="n">sort_in_batch</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">sort_in_batch</span><span class="p">,</span>
             <span class="n">sort_batch</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">sort_batch</span><span class="p">,</span>
-            <span class="n">drop_last</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">drop_last</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">drop_last_iter</span><span class="p">,</span>
             <span class="n">min_batch_size</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">iter_options</span><span class="o">.</span><span class="n">distributed</span>
             <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
@@ -1820,6 +1847,89 @@
             <span class="n">num_iters_per_epoch</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">num_iters_per_epoch</span><span class="p">,</span>
             <span class="n">shuffle</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
             <span class="n">shuffle_within_batch</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">shuffle_within_batch</span><span class="p">,</span>
+            <span class="n">num_workers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_workers</span><span class="p">,</span>
+            <span class="n">collate_fn</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">collate_fn</span><span class="p">,</span>
+            <span class="n">pin_memory</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="p">)</span></div>
+
+<div class="viewcode-block" id="AbsTask.build_category_iter_factory"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.abs_task.AbsTask.build_category_iter_factory">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">build_category_iter_factory</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">iter_options</span><span class="p">:</span> <span class="n">IteratorOptions</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsIterFactory</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="n">dataset</span> <span class="o">=</span> <span class="n">ESPnetDataset</span><span class="p">(</span>
+            <span class="n">iter_options</span><span class="o">.</span><span class="n">data_path_and_name_and_type</span><span class="p">,</span>
+            <span class="n">float_dtype</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">train_dtype</span><span class="p">,</span>
+            <span class="n">preprocess</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">preprocess_fn</span><span class="p">,</span>
+            <span class="n">max_cache_size</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">max_cache_size</span><span class="p">,</span>
+            <span class="n">max_cache_fd</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">max_cache_fd</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">cls</span><span class="o">.</span><span class="n">check_task_requirements</span><span class="p">(</span>
+            <span class="n">dataset</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">allow_variable_data_keys</span><span class="p">,</span> <span class="n">train</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">train</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">Path</span><span class="p">(</span>
+            <span class="n">Path</span><span class="p">(</span><span class="n">iter_options</span><span class="o">.</span><span class="n">data_path_and_name_and_type</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span> <span class="s2">&quot;category2utt&quot;</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">exists</span><span class="p">():</span>
+            <span class="n">category2utt_file</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span>
+                <span class="n">Path</span><span class="p">(</span>
+                    <span class="n">Path</span><span class="p">(</span><span class="n">iter_options</span><span class="o">.</span><span class="n">data_path_and_name_and_type</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">parent</span><span class="p">,</span>
+                    <span class="s2">&quot;category2utt&quot;</span><span class="p">,</span>
+                <span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s2">&quot;Reading &quot;</span> <span class="o">+</span> <span class="n">category2utt_file</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">category2utt_file</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;category2utt mandatory for category iterator, but not found&quot;</span>
+            <span class="p">)</span>
+
+        <span class="n">sampler_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+            <span class="n">batch_size</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span>
+            <span class="n">min_batch_size</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">iter_options</span><span class="o">.</span><span class="n">distributed</span>
+            <span class="k">else</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="n">drop_last</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">drop_last_iter</span><span class="p">,</span>
+            <span class="n">category2utt_file</span><span class="o">=</span><span class="n">category2utt_file</span><span class="p">,</span>
+            <span class="n">epoch</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+            <span class="n">num_batches</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">num_batches</span><span class="p">,</span>
+            <span class="n">distributed</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">distributed</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">batch_sampler</span> <span class="o">=</span> <span class="n">CategoryBalancedSampler</span><span class="p">(</span><span class="o">**</span><span class="n">sampler_args</span><span class="p">)</span>
+
+        <span class="n">batches</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">batch_sampler</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">iter_options</span><span class="o">.</span><span class="n">num_batches</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">batches</span> <span class="o">=</span> <span class="n">batches</span><span class="p">[:</span> <span class="n">iter_options</span><span class="o">.</span><span class="n">num_batches</span><span class="p">]</span>
+
+        <span class="n">bs_list</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">]</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">] dataset:</span><span class="se">\n</span><span class="si">{</span><span class="n">dataset</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">] Batch sampler: </span><span class="si">{</span><span class="n">batch_sampler</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;[</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s2">] mini-batch sizes summary: N-batch=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">bs_list</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;mean=</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">bs_list</span><span class="p">)</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">, min=</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">bs_list</span><span class="p">)</span><span class="si">}</span><span class="s2">, max=</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">bs_list</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">iter_options</span><span class="o">.</span><span class="n">distributed</span><span class="p">:</span>
+            <span class="n">world_size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span>
+            <span class="n">rank</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">world_size</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;The batch-size must be equal or more than world_size: &quot;</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span><span class="si">}</span><span class="s2"> &lt; </span><span class="si">{</span><span class="n">world_size</span><span class="si">}</span><span class="s2">&quot;</span>
+                    <span class="p">)</span>
+            <span class="n">batches</span> <span class="o">=</span> <span class="p">[</span><span class="n">batch</span><span class="p">[</span><span class="n">rank</span><span class="p">::</span><span class="n">world_size</span><span class="p">]</span> <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">CategoryIterFactory</span><span class="p">(</span>
+            <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">,</span>
+            <span class="n">batches</span><span class="o">=</span><span class="n">batches</span><span class="p">,</span>
+            <span class="n">seed</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span>
+            <span class="n">num_iters_per_epoch</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">num_iters_per_epoch</span><span class="p">,</span>
+            <span class="n">sampler_args</span><span class="o">=</span><span class="n">sampler_args</span><span class="p">,</span>
+            <span class="n">shuffle</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
             <span class="n">num_workers</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">num_workers</span><span class="p">,</span>
             <span class="n">collate_fn</span><span class="o">=</span><span class="n">iter_options</span><span class="o">.</span><span class="n">collate_fn</span><span class="p">,</span>
             <span class="n">pin_memory</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>

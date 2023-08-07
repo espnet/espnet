@@ -59,6 +59,17 @@ espnet2.samplers.length_batch_sampler
     :show-inheritance:
 
 
+.. _espnet2.samplers.category_balanced_sampler:
+
+espnet2.samplers.category_balanced_sampler
+------------------------------------------
+
+.. automodule:: espnet2.samplers.category_balanced_sampler
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.samplers.unsorted_batch_sampler:
 
 espnet2.samplers.unsorted_batch_sampler

@@ -157,6 +157,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-iterators-chunk-iter-factory-1">espnet2.iterators.chunk_iter_factory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-iterators-abs-iter-factory-1">espnet2.iterators.abs_iter_factory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-iterators-multiple-iter-factory-1">espnet2.iterators.multiple_iter_factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-iterators-category-iter-factory-1">espnet2.iterators.category_iter_factory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-iterators-sequence-iter-factory-1">espnet2.iterators.sequence_iter_factory</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-iterators-init-1">espnet2.iterators.__init__</a></li>
 </ul>
@@ -256,6 +257,47 @@ for this iterator. Instead of it, “num_samples_per_epoch” is implemented.</p
 <code class="sig-name descname">build_iter</code><span class="sig-paren">(</span><em class="sig-param">epoch: int</em>, <em class="sig-param">shuffle: bool = None</em><span class="sig-paren">)</span> &#x2192; Iterator<a class="reference internal" href="../_modules/espnet2/iterators/multiple_iter_factory.html#MultipleIterFactory.build_iter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.iterators.multiple_iter_factory.MultipleIterFactory.build_iter" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+</dd></dl>
+
+</section>
+<section id="espnet2-iterators-category-iter-factory-1">
+<span id="espnet2-iterators-category-iter-factory"></span><h2>espnet2.iterators.category_iter_factory<a class="headerlink" href="#espnet2-iterators-category-iter-factory-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.iterators.category_iter_factory"></span><dl class="class">
+<dt id="espnet2.iterators.category_iter_factory.CategoryIterFactory">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.iterators.category_iter_factory.</code><code class="sig-name descname">CategoryIterFactory</code><span class="sig-paren">(</span><em class="sig-param">dataset, batches: Union[espnet2.samplers.abs_sampler.AbsSampler, Sequence[Sequence[Any]]], num_iters_per_epoch: int = None, seed: int = 0, sampler_args: dict = None, shuffle: bool = False, num_workers: int = 0, collate_fn=None, pin_memory: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/iterators/category_iter_factory.html#CategoryIterFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.iterators.category_iter_factory.CategoryIterFactory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.iterators.abs_iter_factory.AbsIterFactory" title="espnet2.iterators.abs_iter_factory.AbsIterFactory"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.iterators.abs_iter_factory.AbsIterFactory</span></code></a></p>
+<p>Build iterator for each epoch.</p>
+<p>This class simply creates pytorch DataLoader except for the following points:
+- The random seed is decided according to the number of epochs. This feature</p>
+<blockquote>
+<div><p>guarantees reproducibility when resuming from middle of training process.</p>
+</div></blockquote>
+<ul class="simple">
+<li><p>Enable to restrict the number of samples for one epoch. This features
+controls the interval number between training and evaluation.</p></li>
+</ul>
+<dl class="method">
+<dt id="espnet2.iterators.category_iter_factory.CategoryIterFactory.build_iter">
+<code class="sig-name descname">build_iter</code><span class="sig-paren">(</span><em class="sig-param">epoch: int</em>, <em class="sig-param">shuffle: bool = None</em><span class="sig-paren">)</span> &#x2192; torch.utils.data.dataloader.DataLoader<a class="reference internal" href="../_modules/espnet2/iterators/category_iter_factory.html#CategoryIterFactory.build_iter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.iterators.category_iter_factory.CategoryIterFactory.build_iter" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.iterators.category_iter_factory.RawSampler">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.iterators.category_iter_factory.</code><code class="sig-name descname">RawSampler</code><span class="sig-paren">(</span><em class="sig-param">batches</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/iterators/category_iter_factory.html#RawSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.iterators.category_iter_factory.RawSampler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.samplers.html#espnet2.samplers.abs_sampler.AbsSampler" title="espnet2.samplers.abs_sampler.AbsSampler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.samplers.abs_sampler.AbsSampler</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.iterators.category_iter_factory.RawSampler.generate">
+<code class="sig-name descname">generate</code><span class="sig-paren">(</span><em class="sig-param">seed</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/iterators/category_iter_factory.html#RawSampler.generate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.iterators.category_iter_factory.RawSampler.generate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.iterators.category_iter_factory.worker_init_fn">
+<code class="sig-prename descclassname">espnet2.iterators.category_iter_factory.</code><code class="sig-name descname">worker_init_fn</code><span class="sig-paren">(</span><em class="sig-param">worker_id</em>, <em class="sig-param">base_seed=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/iterators/category_iter_factory.html#worker_init_fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.iterators.category_iter_factory.worker_init_fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set random seed for each worker in DataLoader.</p>
 </dd></dl>
 
 </section>
