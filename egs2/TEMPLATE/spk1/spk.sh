@@ -39,7 +39,8 @@ gpu_inference=false   # Whether to perform gpu decoding.
 dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
 python=python3        # Specify python to execute espnet commands.
-fold_length=120000     # fold_length for speech data during enhancement training
+fold_length=120000    # fold_length for speech data during enhancement training
+inference_config=conf/decode.yaml # Inference configuration
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh
@@ -58,6 +59,10 @@ spk_exp=              # Specify the directory path for spk experiment.
 spk_tag=              # Suffix to the result dir for spk model training.
 spk_config=           # Config for the spk model training.
 spk_args=             # Arguments for spk model training.
+
+# Inference related
+inference_config=     # Inference configuration file
+inference_model_file= # Inference model weight file
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -99,6 +104,9 @@ Options:
     spk_tag=              # Suffix to the result dir for spk model training.
     spk_config=           # Config for the spk model training.
     spk_args=             # Arguments for spk model training.
+
+    # Inference related
+    inference_config=     # Inference configuration file
 
     # [Task dependent] Set the datadir name created by local/data.sh
     train_set=       # Name of training set.
@@ -389,5 +397,45 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             --fold_length ${fold_length} \
             --valid_shape_file ${spk_stats_dir}/valid/speech_shape \
             --output_dir "${spk_exp}" \
+            ${_opts} ${spk_args}
+fi
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "Stage 5: Inference."
+
+    infer_exp=${spk_exp}/inference
+    _inference_dir=${data_feats}/${test_sets}
+    log "Spk inference started... log: '${infer_exp}/inference.log'"
+    if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
+        # SGE can't include "/" in a job name
+        jobname="$(basename ${infer_exp})"
+    else
+        jobname="${infer_exp}/inference.log"
+    fi
+
+    _opts=
+    if [ -n "${spk_config}"  ]; then
+        # To generate the config file: e.g.
+        #   % python3 -m espnet2.bin.spk_train --print_config --optim adam
+        _opts+="--spk_train_config ${spk_config} "
+    fi
+
+    ${python} -m espnet2.bin.launch \
+        --cmd "${cuda_cmd} --name ${jobname}" \
+        --log ${infer_exp}/inference.log \
+        --ngpu ${ngpu} \
+        --num_nodes ${num_nodes} \
+        --init_file_prefix ${spk_exp}/.dist_init_ \
+        --multiprocessing_distributed true -- \
+        ${python} -m espnet2.bin.spk_inference \
+            --use_preprocessor true \
+            --output_dir ${infer_exp} \
+            --data_path_and_name_and_type ${_inference_dir}/trial.scp,speech,sound \
+            --data_path_and_name_and_type ${_inference_dir}/trial2.scp,speech2,sound \
+            --data_path_and_name_and_type ${_inference_dir}/trial_label,spk_labels,text \
+            --shape_file ${spk_stats_dir}/valid/speech_shape \
+            --fold_length ${fold_length} \
+            --config ${inference_config} \
+            --spk_model_file ${inference_model_file} \
             ${_opts} ${spk_args}
 fi
