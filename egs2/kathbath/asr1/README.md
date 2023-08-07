@@ -11,10 +11,11 @@
 |hindi|asr_train_asr_raw_hindi_bpe500|12.5|10.1|12.6|14.3|
 |tamil|asr_train_asr_raw_tamil_bpe500|23.3|20.1|24.3|24.2|
 |punjabi|asr_train_asr_raw_punjabi_bpe500|15.9|14.3|14.2|24.9|
-|sanskrit|asr_train_asr_raw_sanskrit_bpe500|39.1|27.7|38.9|49.9|
+|sanskrit|asr_train_asr_raw_sanskrit_bpe200|40.3|27.7|39.3|49.8|
+|marathi|asr_train_asr_raw_marathi_bpe500|16.6|15.1|16.7|19.7|
+|lang|exp|test|test_known|test_known_noisy|test_noisy|
 
 #CER
-|lang|exp|test|test_known|test_known_noisy|test_noisy|
 |---|---|---|---|---|---|
 |urdu|asr_train_asr_raw_urdu_bpe500|4.8|3.7|4.7|7.7|
 |telugu|asr_train_asr_raw_telugu_bpe500|5.0|3.7|4.6|7.3|
@@ -26,7 +27,9 @@
 |hindi|asr_train_asr_raw_hindi_bpe500|4.2|3.1|4.3|5.4|
 |tamil|asr_train_asr_raw_tamil_bpe500|4.3|3.3|4.9|4.7|
 |punjabi|asr_train_asr_raw_punjabi_bpe500|5.2|3.8|4.5|9.4|
-|sanskrit|asr_train_asr_raw_sanskrit_bpe500|9.9|5.7|9.9|14.5|
+|sanskrit|asr_train_asr_raw_sanskrit_bpe200|10.1|5.6|9.8|14.6|
+|marathi|asr_train_asr_raw_marathi_bpe500|4.1|3.8|4.3|5.2|
+
 
 #Pretrained models
 |lang|hugging_face link|
