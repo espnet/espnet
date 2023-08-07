@@ -78,24 +78,15 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 mkdir -p data
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ ! -e "data/dataprep_done" ]; then
         log "stage 2: Data Preparation"
         for lang in "$download_data"/"kb_data_clean_m4a"/* ; do
             log "Processing $lang"
             for split in "$lang"/* ; do
                 path=$split/"audio"
-                savepath=$split/"audio_16k"
-                mkdir -p $savepath
 
-                find "$path" -type f -name "*.m4a" > $split/"audio_files"
-                while IFS= read -r f;
-                do
-                    fname=$savepath/$(basename -- "$f" | cut -d'.' -f1).wav
-                    ffmpeg -nostdin -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname" #make faster
-
-                done < $split/"audio_files"
-                rm $split/"audio_files"
+                find "$path" -type f -name "*.m4a" -exec bash -c 'ffmpeg -nostdin -loglevel warning -hide_banner -stats -i "$0" -ar 16000 -ac 1 "${0/.m4a/.wav}"' {} \;
 
             done
             ln=$(basename $lang)
@@ -103,7 +94,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             for split in "$lang"/* ; do
                 splitname=$(basename $split)
                 mkdir -p data/"$ln"/"$splitname"
-                find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; rev data/"$ln"/"$splitname"/wavs | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
+                find $split/"audio" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; rev data/"$ln"/"$splitname"/wavs | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
                 sed "s/.m4a//g" "$split"/"transcription_n2w.txt" > data/"$ln"/"$splitname"/text
@@ -120,16 +111,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
             for split in "$lang"/* ; do
                 log $split
                 path=$split/"audio"
-                savepath=$split/"audio_16k"
-                mkdir -p $savepath
-                find "$path" -type f -name "*.m4a" > $split/"audio_files"
-                while IFS= read -r f;
-                do
-                    fname=$savepath/$(basename -- "$f" | cut -d'.' -f1).wav
-                    ffmpeg -nostdin -loglevel warning -hide_banner -stats -i "$f" -ar 16000 -ac 1 "$fname"
-
-                done < $split/"audio_files"
-                rm $split/"audio_files"
+                
+                find "$path" -type f -name "*.m4a" -exec bash -c 'ffmpeg -nostdin -loglevel warning -hide_banner -stats -i "$0" -ar 16000 -ac 1 "${0/.m4a/.wav}"' {} \;
 
             done
             ln=$(basename $lang)
@@ -140,7 +123,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
                     continue
                 fi
                 mkdir -p data/"$ln"/"$splitname"
-                find $split/"audio_16k" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; rev data/"$ln"/"$splitname"/wavs | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
+                find $split/"audio" -iname "*.wav" > data/"$ln"/"$splitname"/wavs ; rev data/"$ln"/"$splitname"/wavs | cut -d'/' -f1 | rev | cut -d'.' -f1 > data/"$ln"/"$splitname"/uttids ;
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/wavs > data/"$ln"/"$splitname"/wav.scp
                 paste -d'\t' data/"$ln"/"$splitname"/uttids data/"$ln"/"$splitname"/uttids > data/"$ln"/"$splitname"/utt2spk
                 sed "s/.m4a//g" "$split"/"transcription_n2w.txt" > data/"$ln"/"$splitname"/text
