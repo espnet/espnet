@@ -190,18 +190,22 @@ def main(args):
             ref_trn_path = f"{root}/ref.trn"
             hyp_trn_path = f"{root}/hyp.trn"
 
-            split_trn_by_rule(root, "independent", independent_rule, ref_trn_path)
-            split_trn_by_rule(root, "independent", independent_rule, hyp_trn_path)
-            split_trn_by_rule(root, "few_shot", few_shot_rule, ref_trn_path)
-            split_trn_by_rule(root, "few_shot", few_shot_rule, hyp_trn_path)
-            split_trn_by_rule(
-                root, "language_family", language_family_rule, ref_trn_path
-            )
-            split_trn_by_rule(
-                root, "language_family", language_family_rule, hyp_trn_path
-            )
-            split_trn_by_rule(root, "all", no_rule, ref_trn_path)
-            split_trn_by_rule(root, "all", no_rule, hyp_trn_path)
+            if args.score_type == "independent":
+                split_trn_by_rule(root, "independent", independent_rule, ref_trn_path)
+                split_trn_by_rule(root, "independent", independent_rule, hyp_trn_path)
+            elif args.score_type == "normal":
+                split_trn_by_rule(root, "few_shot", few_shot_rule, ref_trn_path)
+                split_trn_by_rule(root, "few_shot", few_shot_rule, hyp_trn_path)
+            elif args.score_type == "language_family":
+                split_trn_by_rule(
+                    root, "language_family", language_family_rule, ref_trn_path
+                )
+                split_trn_by_rule(
+                    root, "language_family", language_family_rule, hyp_trn_path
+                )
+            elif args.score_type == "all":
+                split_trn_by_rule(root, "all", no_rule, ref_trn_path)
+                split_trn_by_rule(root, "all", no_rule, hyp_trn_path)
 
     if LID or ONLY_LID:  # LID will be parsed from inferenced text file directly
         tasks = []
@@ -218,12 +222,16 @@ def main(args):
             lid_info = lid_parse(ref_txt_path, hyp_txt_path)
             write_lines(lid_info, lid_trn_path)
 
-            split_trn_by_rule(root, "independent", independent_rule, lid_trn_path)
-            split_trn_by_rule(root, "few_shot", few_shot_rule, lid_trn_path)
-            split_trn_by_rule(
-                root, "language_family", language_family_rule, lid_trn_path
-            )
-            split_trn_by_rule(root, "all", no_rule, lid_trn_path)
+            if args.score_type == "independent":
+                split_trn_by_rule(root, "independent", independent_rule, lid_trn_path)
+            elif args.score_type == "normal":
+                split_trn_by_rule(root, "few_shot", few_shot_rule, lid_trn_path)
+            elif args.score_type == "language_family":
+                split_trn_by_rule(
+                    root, "language_family", language_family_rule, lid_trn_path
+                )
+            elif args.score_type == "all":
+                split_trn_by_rule(root, "all", no_rule, lid_trn_path)
 
 
 if __name__ == "__main__":
@@ -231,6 +239,7 @@ if __name__ == "__main__":
     parser.add_argument("--dir", type=str)
     parser.add_argument("--lid", type=str2bool, default=False)
     parser.add_argument("--only_lid", type=str2bool, default=False)
+    parser.add_argument("--score_type", type=str, default="all")
 
     args = parser.parse_args()
     LID = args.lid

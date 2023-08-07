@@ -211,6 +211,21 @@ class TargetSpeakerExtractionTask(AbsTask):
             default=False,
             help="Whether to force all data to be single-channel.",
         )
+        group.add_argument(
+            "--channel_reordering",
+            type=str2bool,
+            default=False,
+            help="Whether to randomly reorder the channels of the "
+            "multi-channel signals.",
+        )
+        group.add_argument(
+            "--categories",
+            nargs="+",
+            default=[],
+            type=str,
+            help="The set of all possible categories in the dataset. Used to add the "
+            "category information to each sample",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -240,34 +255,20 @@ class TargetSpeakerExtractionTask(AbsTask):
             load_spk_embedding=getattr(args, "load_spk_embedding", False),
             load_all_speakers=getattr(args, "load_all_speakers", False),
             # inherited from EnhPreprocessor
-            rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-            rir_apply_prob=args.rir_apply_prob
-            if hasattr(args, "rir_apply_prob")
-            else 1.0,
-            noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-            noise_apply_prob=args.noise_apply_prob
-            if hasattr(args, "noise_apply_prob")
-            else 1.0,
-            noise_db_range=args.noise_db_range
-            if hasattr(args, "noise_db_range")
-            else "13_15",
-            short_noise_thres=args.short_noise_thres
-            if hasattr(args, "short_noise_thres")
-            else 0.5,
-            speech_volume_normalize=args.speech_volume_normalize
-            if hasattr(args, "speech_volume_normalize")
-            else None,
-            use_reverberant_ref=args.use_reverberant_ref
-            if hasattr(args, "use_reverberant_ref")
-            else None,
-            num_spk=args.num_spk if hasattr(args, "num_spk") else 1,
-            num_noise_type=args.num_noise_type
-            if hasattr(args, "num_noise_type")
-            else 1,
-            sample_rate=args.sample_rate if hasattr(args, "sample_rate") else 8000,
-            force_single_channel=args.force_single_channel
-            if hasattr(args, "force_single_channel")
-            else False,
+            rir_scp=getattr(args, "rir_scp", None),
+            rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
+            noise_scp=getattr(args, "noise_scp", None),
+            noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
+            noise_db_range=getattr(args, "noise_db_range", "13_15"),
+            short_noise_thres=getattr(args, "short_noise_thres", 0.5),
+            speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
+            use_reverberant_ref=getattr(args, "use_reverberant_ref", None),
+            num_spk=getattr(args, "num_spk", 1),
+            num_noise_type=getattr(args, "num_noise_type", 1),
+            sample_rate=getattr(args, "sample_rate", 8000),
+            force_single_channel=getattr(args, "force_single_channel", False),
+            channel_reordering=getattr(args, "channel_reordering", False),
+            categories=getattr(args, "categories", None),
         )
         assert check_return_type(retval)
         return retval
@@ -296,6 +297,7 @@ class TargetSpeakerExtractionTask(AbsTask):
             retval += [
                 "speech_ref{}".format(n) for n in range(1, MAX_REFERENCE_NUM + 1)
             ]
+        retval += ["category"]
         retval = tuple(retval)
         assert check_return_type(retval)
         return retval

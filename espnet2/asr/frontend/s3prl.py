@@ -51,7 +51,7 @@ class S3prlFrontend(AbsFrontend):
             extra_conf=frontend_conf.get("extra_conf", None),
         )
         if getattr(upstream.upstream, "model", None):
-            if getattr(upstream.upstream.model, "feature_grad_mult", None):
+            if getattr(upstream.upstream.model, "feature_grad_mult", None) is not None:
                 upstream.upstream.model.feature_grad_mult = 1.0
         upstream.eval()
 

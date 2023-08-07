@@ -6,12 +6,15 @@ from espnet2.asr_transducer.beam_search_transducer import (
     BeamSearchTransducer,
     Hypothesis,
 )
+from espnet2.asr_transducer.decoder.mega_decoder import MEGADecoder
 from espnet2.asr_transducer.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr_transducer.decoder.rwkv_decoder import RWKVDecoder
 from espnet2.asr_transducer.decoder.stateless_decoder import StatelessDecoder
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 
 
+@pytest.mark.execution_timeout(5.0)
 @pytest.mark.parametrize(
     "decoder_class, decoder_opts, search_opts",
     [
@@ -23,6 +26,10 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
         (RNNDecoder, {"hidden_size": 4}, {"search_type": "default", "lm": None}),
         (StatelessDecoder, {}, {"search_type": "default", "lm": None}),
         (StatelessDecoder, {}, {"search_type": "default"}),
+        (MEGADecoder, {}, {"search_type": "default", "lm": None}),
+        (MEGADecoder, {"chunk_size": 2}, {"search_type": "default"}),
+        (RWKVDecoder, {"linear_size": 4}, {"search_type": "default", "lm": None}),
+        (RWKVDecoder, {"linear_size": 4}, {"search_type": "default"}),
         (RNNDecoder, {"hidden_size": 4}, {"search_type": "alsd", "u_max": 10}),
         (
             RNNDecoder,
@@ -31,6 +38,14 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
         ),
         (StatelessDecoder, {}, {"search_type": "alsd", "u_max": 10}),
         (StatelessDecoder, {}, {"search_type": "alsd", "u_max": 10, "lm": None}),
+        (MEGADecoder, {}, {"search_type": "alsd", "u_max": 10}),
+        (MEGADecoder, {}, {"search_type": "alsd", "u_max": 10, "lm": None}),
+        (RWKVDecoder, {"linear_size": 4}, {"search_type": "alsd", "u_max": 10}),
+        (
+            RWKVDecoder,
+            {"linear_size": 4},
+            {"search_type": "alsd", "u_max": 10, "lm": None},
+        ),
         (RNNDecoder, {"hidden_size": 4}, {"search_type": "tsd", "max_sym_exp": 3}),
         (
             RNNDecoder,
@@ -39,6 +54,14 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
         ),
         (StatelessDecoder, {}, {"search_type": "tsd", "max_sym_exp": 3}),
         (StatelessDecoder, {}, {"search_type": "tsd", "max_sym_exp": 3, "lm": None}),
+        (MEGADecoder, {}, {"search_type": "tsd", "max_sym_exp": 3}),
+        (MEGADecoder, {}, {"search_type": "tsd", "max_sym_exp": 3, "lm": None}),
+        (RWKVDecoder, {"linear_size": 4}, {"search_type": "tsd", "max_sym_exp": 3}),
+        (
+            RWKVDecoder,
+            {"linear_size": 4},
+            {"search_type": "tsd", "max_sym_exp": 3, "lm": None},
+        ),
         (RNNDecoder, {"hidden_size": 4}, {"search_type": "maes", "nstep": 2}),
         (
             RNNDecoder,
@@ -47,6 +70,18 @@ from espnet2.lm.seq_rnn_lm import SequentialRNNLM
         ),
         (StatelessDecoder, {}, {"search_type": "maes", "nstep": 2}),
         (StatelessDecoder, {}, {"search_type": "maes", "nstep": 2, "lm": None}),
+        (MEGADecoder, {}, {"search_type": "maes", "nstep": 2}),
+        (
+            MEGADecoder,
+            {"chunk_size": 2},
+            {"search_type": "maes", "nstep": 2, "lm": None},
+        ),
+        (RWKVDecoder, {"linear_size": 4}, {"search_type": "maes", "nstep": 2}),
+        (
+            RWKVDecoder,
+            {"linear_size": 4},
+            {"search_type": "maes", "nstep": 2, "lm": None},
+        ),
     ],
 )
 def test_transducer_beam_search(decoder_class, decoder_opts, search_opts):
@@ -55,7 +90,14 @@ def test_transducer_beam_search(decoder_class, decoder_opts, search_opts):
 
     encoder_size = 4
 
-    decoder = decoder_class(vocab_size, embed_size=4, **decoder_opts)
+    if decoder_class in (MEGADecoder, RWKVDecoder):
+        if decoder_class == RWKVDecoder and not torch.cuda.is_available():
+            pytest.skip("A GPU is required for WKV kernel computation")
+
+        decoder = decoder_class(vocab_size, block_size=4, **decoder_opts)
+    else:
+        decoder = decoder_class(vocab_size, embed_size=4, **decoder_opts)
+
     joint_net = JointNetwork(vocab_size, encoder_size, 4, joint_space_size=2)
 
     lm = search_opts.pop(

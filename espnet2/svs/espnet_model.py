@@ -42,6 +42,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         score_feats_extract: Optional[AbsFeatsExtract],
         label_extract: Optional[AbsFeatsExtract],
         pitch_extract: Optional[AbsFeatsExtract],
+        ying_extract: Optional[AbsFeatsExtract],
         duration_extract: Optional[AbsFeatsExtract],
         energy_extract: Optional[AbsFeatsExtract],
         normalize: Optional[AbsNormalize and InversibleInterface],
@@ -57,6 +58,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         self.score_feats_extract = score_feats_extract
         self.label_extract = label_extract
         self.pitch_extract = pitch_extract
+        self.ying_extract = ying_extract
         self.duration_extract = duration_extract
         self.energy_extract = energy_extract
         self.normalize = normalize
@@ -89,6 +91,8 @@ class ESPnetSVSModel(AbsESPnetModel):
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
+        ying: Optional[torch.Tensor] = None,
+        ying_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -220,6 +224,8 @@ class ESPnetSVSModel(AbsESPnetModel):
                 ]
                 duration_score_syb = duration_syb[:, : duration_score_syb_lengths.max()]
                 slur = slur[:, : slur_lengths.max()]
+            else:
+                raise RuntimeError("Cannot understand score_feats extract type")
 
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
@@ -230,6 +236,13 @@ class ESPnetSVSModel(AbsESPnetModel):
 
             if self.energy_extract is not None and energy is None:
                 energy, energy_lengths = self.energy_extract(
+                    singing,
+                    singing_lengths,
+                    feats_lengths=feats_lengths,
+                )
+
+            if self.ying_extract is not None and ying is None:
+                ying, ying_lengths = self.ying_extract(
                     singing,
                     singing_lengths,
                     feats_lengths=feats_lengths,
@@ -310,6 +323,8 @@ class ESPnetSVSModel(AbsESPnetModel):
             batch.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if self.energy_extract is not None and energy is not None:
             batch.update(energy=energy, energy_lengths=energy_lengths)
+        if self.ying_extract is not None and ying is not None:
+            batch.update(ying=ying)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
         return self.svs(**batch)
@@ -337,6 +352,8 @@ class ESPnetSVSModel(AbsESPnetModel):
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
+        ying: Optional[torch.Tensor] = None,
+        ying_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -411,6 +428,12 @@ class ESPnetSVSModel(AbsESPnetModel):
                 singing_lengths,
                 feats_lengths=feats_lengths,
             )
+        if self.ying_extract is not None and ying is None:
+            ying, ying_lengths = self.ying_extract(
+                singing,
+                singing_lengths,
+                feats_lengths=feats_lengths,
+            )
 
         # store in dict
         feats_dict = {}
@@ -420,6 +443,8 @@ class ESPnetSVSModel(AbsESPnetModel):
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:
             feats_dict.update(energy=energy, energy_lengths=energy_lengths)
+        if ying is not None:
+            feats_dict.update(ying=ying, ying_lengths=ying_lengths)
 
         return feats_dict
 

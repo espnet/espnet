@@ -1,0 +1,18 @@
+# This configuration is the basic decoding setting for Singing Tacotron.
+# It can be also applied to Transformer. If you met some problems
+# such as deletions or repetitions, it is worthwhile to try
+# `use_att_constraint: true` or `use_dynamic_filter: true`(for GDCA)
+# to make the generation more stable.
+# Note that attention constraint is not supported in Transformer.
+
+##########################################################
+#                    DECODING SETTING                    #
+##########################################################
+threshold: 0.5             # threshold to stop the generation
+maxlenratio: 30.0          # maximum length of generated samples = input length * maxlenratio
+minlenratio: 0.0           # minimum length of generated samples = input length * minlenratio
+use_att_constraint: false  # whether to use attention constraint, which is introduced in deep voice 3
+use_dynamic_filter: true   # whether to use dynamic filter, which is introduced in singing tacotron
+backward_window: 2         # backward window size in the attention constraint
+forward_window: 4          # forward window size in the attention constraint
+use_teacher_forcing: false # whether to use teacher forcing
