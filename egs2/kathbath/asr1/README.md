@@ -1,4 +1,5 @@
 #WER
+
 |lang|exp|test|test_known|test_known_noisy|test_noisy|
 |---|---|---|---|---|---|
 |urdu|asr_train_asr_raw_urdu_bpe500|14.8|13.1|15.8|21.1|
@@ -16,6 +17,7 @@
 |lang|exp|test|test_known|test_known_noisy|test_noisy|
 
 #CER
+
 |lang|exp|test|test_known|test_known_noisy|test_noisy|
 |---|---|---|---|---|---|
 |urdu|asr_train_asr_raw_urdu_bpe500|4.8|3.7|4.7|7.7|
@@ -33,6 +35,7 @@
 
 
 #Pretrained models
+
 |lang|hugging_face link|
 |---|---|
 |urdu|https://huggingface.co/viks66/asr_train_asr_raw_urdu_bpe500|
