@@ -27,4 +27,4 @@ Step 3: Train LM
 * Vocabulary: 50
 * LM config: https://github.com/soumimaiti/espnet/blob/train_speechlm/egs2/librilight/lm1/conf/tuning/train_lm_rnn_unit1024_nlayers3_dropout0.2_epoch30.yaml
 * Pretrained model: https://huggingface.co/soumi-maiti/speech-ulm-lstm/tree/main
-* Perplexity on Librispeech test (test-clean+test-other): 3.29 
+* Perplexity on Librispeech test (test-clean+test-other): 3.29
