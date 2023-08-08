@@ -111,7 +111,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             for split in "$lang"/* ; do
                 log $split
                 path=$split/"audio"
-                
+
                 find "$path" -type f -name "*.m4a" -exec bash -c 'ffmpeg -nostdin -loglevel warning -hide_banner -stats -i "$0" -ar 16000 -ac 1 "${0/.m4a/.wav}"' {} \;
 
             done
