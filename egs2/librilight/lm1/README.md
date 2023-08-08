@@ -3,7 +3,18 @@
 Train an LM using the prepared tokens and text data
 
 Step 1:  Prepare discrete speech tokens for train/valid/test data and token vocabulary. This step is done externally.
-Following files are needed: train: _data/lm_train.txt_, valid: _data/lm_valid.txt_ test: _data/lm_test.txt_ and token vocabulary: _data/tokens.txt_ .
+
+### External Hubert feature extraction
+Discrete speech tokens extracted using `fairseq` library. Example:  Hubert speech tokens can be extracted using: https://github.com/facebookresearch/fairseq/tree/main/examples/hubert/simple_kmeans and using script ```local/extract_feat.sh```. 
+
+Following prepared files are needed for this recipe:
+* **train: _data/lm_train.txt_** 
+* **valid: _data/lm_valid.txt_**  
+* **test: _data/lm_test.txt_**  
+* **token vocabulary: _data/tokens.txt_**
+
+
+`token vocabulary` can be generated using `local/create_token_voc.py`
 
 Discrete speech tokens contains lines with format:  <utt_id> <space_separated_discrete_speech_tokens> . Example:
 ```
