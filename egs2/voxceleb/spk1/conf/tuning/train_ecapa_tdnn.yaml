@@ -12,24 +12,11 @@ normalize_conf:
     norm_vars: false
 
 # Encoder
-encoder: mfa_conformer
+encoder: ecapa_tdnn
 encoder_conf:
-  output_size: 512
-  attention_heads: 8
-  linear_units: 2048
-  num_blocks: 6
-  dropout_rate: 0.1
-  positional_dropout_rate: 0.1
-  attention_dropout_rate: 0.1
-  input_layer: conv2d2
-  normalize_before: true
-  macaron_style: true
-  rel_pos_type: latest
-  pos_enc_layer_type: rel_pos
-  selfattention_layer_type: rel_selfattn
-  activation_type: swish
-  use_cnn_module: true
-  cnn_module_kernel: 15
+  model_scale: 8
+  ndim: 1024
+  output_size: 1536
 
 # Pooling
 pooling: chn_attn_stat
@@ -64,7 +51,7 @@ loss_conf:
   scale: 30
 
 # Training related
-max_epoch: 250
+max_epoch: 160
 num_att_plot: 0
 num_workers: 8
 cudnn_deterministic: False
@@ -90,12 +77,10 @@ optim_conf:
 # Scheduler
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-  first_cycle_steps: 250000
+  first_cycle_steps: 73024
   cycle_mult: 1.0
   max_lr: 0.001
-  min_lr: 0.0000001
-  warmup_steps: 125000
+  min_lr: 0.000005
+  warmup_steps: 1000
   gamma: 0.7
 
-unused_parameters: True
-grad_clip: 9999
