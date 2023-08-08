@@ -3,6 +3,8 @@ from typing import Iterable, List, Union
 import numpy as np
 from typeguard import check_argument_types
 
+from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
+
 # <sos> and <eos> for Whisper multilingual ---
 # '<|startoftranscript|>': 50258
 # '<|endoftext|>':         50257
@@ -16,6 +18,7 @@ class OpenAIWhisperTokenIDConverter:
     def __init__(
         self,
         model_type: str = "whisper_multilingual",
+        language: str = "en",
     ):
         assert check_argument_types()
 
@@ -29,13 +32,15 @@ class OpenAIWhisperTokenIDConverter:
             )
             raise e
 
+        language = LANGUAGES_CODE_MAPPING.get(language)
+        if language is None:
+            raise ValueError("language unsupported for Whisper model")
+
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-        # TODO(Shih-Lun): should support feeding in
-        #                  different languages (default is en)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=None
+                multilingual=True, language=language
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)

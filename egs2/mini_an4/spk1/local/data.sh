@@ -83,8 +83,10 @@ EOF
         python local/make_trial.py data/${x}/wav.scp data/${x}
     done
 
-    find downloads/noise/ -iname "*.wav" | awk '{print "noise" NR " " $1}' > data/${train_set}/noises.scp
-    find downloads/rirs/ -iname "*.wav" | awk '{print "rir" NR " " $1}' > data/${train_set}/rirs.scp
+    find downloads/noise/ -iname "*.wav" | awk '{print "noise" NR " " $1}' > data/musan_music.scp
+    find downloads/noise/ -iname "*.wav" | awk '{print "noise" NR " " $1}' > data/musan_noise.scp
+    find downloads/noise/ -iname "*.wav" | awk '{print "noise" NR " " $1}' > data/musan_speech.scp
+    find downloads/rirs/ -iname "*.wav" | awk '{print "rir" NR " " $1}' > data/rirs.scp
 fi
 
 
