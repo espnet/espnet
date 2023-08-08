@@ -39,7 +39,7 @@ PYTHONPATH=. python examples/hubert/simple_kmeans/generate_tsv_from_list.py -i $
 # dump hubert feature
 echo 'Generating acoustic features: '
 PYTHONPATH=. python examples/hubert/simple_kmeans/dump_hubert_feature.py ${data_dir} ${split} ${ckpt_path} ${layer} ${nshard} ${rank} ${data_dir} >>${logfile}
-       
+
 # Get quantized feature
 echo 'Generating quantized ${k} features: '
 PYTHONPATH=. python examples/hubert/simple_kmeans/dump_km_label.py ${data_dir} ${split} ${km_path} ${nshard} ${rank} ${data_dir}  >>${logfile}
