@@ -48,21 +48,27 @@ def inference(args):
     # 1. Set random-seed
     set_all_random_seed(args.seed)
 
-    # 2. define model and train args
+    # 2. define train args
     spk_model, spk_train_args = SpeakerTask.build_model_from_file(
         args.spk_train_config, args.spk_model_file, device
     )
 
-    # overwrite args with inference args
+    # 3. Overwrite args with inference args
     args = vars(args)
     args["valid_data_path_and_name_and_type"] = args["data_path_and_name_and_type"]
     args["valid_shape_file"] = args["shape_file"]
+    args["preprocessor_conf"] = {
+        "target_duration": args["target_duration"],
+        "num_eval": args["num_eval"],
+        "noise_apply_prob": 0.0,
+        "rir_apply_prob": 0.0
+    }
 
     merged_args = vars(spk_train_args)
     merged_args.update(args)
     args = argparse.Namespace(**merged_args)
 
-    # 3. Build data-iterator
+    # 4. Build data-iterator
     resolve_distributed_mode(args)
     distributed_option = build_dataclass(DistributedOption, args)
     distributed_option.init_options()
