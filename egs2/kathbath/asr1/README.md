@@ -14,7 +14,6 @@
 |punjabi|asr_train_asr_raw_punjabi_bpe500|15.9|14.3|14.2|24.9|
 |sanskrit|asr_train_asr_raw_sanskrit_bpe200|40.3|27.7|39.3|49.8|
 |marathi|asr_train_asr_raw_marathi_bpe500|16.6|15.1|16.7|19.7|
-|lang|exp|test|test_known|test_known_noisy|test_noisy|
 
 #CER
 
