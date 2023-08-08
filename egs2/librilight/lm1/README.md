@@ -18,3 +18,13 @@ Step 3: Train LM
 ```
 ./run.sh
 ```
+
+## Speech Language Model with LSTM
+
+### Environments
+* date: `Oct 16 11:22:52 CDT 2022`
+* pytorch version: `pytorch 1.12.1`
+* Vocabulary: 50
+* LM config: https://github.com/soumimaiti/espnet/blob/train_speechlm/egs2/librilight/lm1/conf/tuning/train_lm_rnn_unit1024_nlayers3_dropout0.2_epoch30.yaml
+* Pretrained model: https://huggingface.co/soumi-maiti/speech-ulm-lstm/tree/main
+* Perplexity on Librispeech test (test-clean+test-other): 3.29 
