@@ -66,7 +66,8 @@ MISP2021=
 MLSUPERB=
 L3DAS22=
 LIBRIMIX=downloads
-LIBRITTS=
+LIBRITTS=downloads
+LIBRITTS_R=downloads
 LJSPEECH=downloads
 MUSAN=
 MUSDB18=downloads
@@ -187,6 +188,7 @@ ITAKO=
 NATSUME=
 KIRITAN=
 NAMINE=
+GRAMVAANI=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
