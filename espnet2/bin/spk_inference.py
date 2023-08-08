@@ -3,12 +3,14 @@ import argparse
 import logging
 import sys
 
-from espnet2.tasks.spk import SpeakerTask
-
+import humanfriendly
 import numpy as np
 import torch
-import humanfriendly
 from typeguard import check_argument_types, check_return_type
+
+from espnet2.samplers.build_batch_sampler import BATCH_TYPES
+from espnet2.tasks.spk import SpeakerTask
+from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.train.distributed_utils import (
     DistributedOption,
     free_port,
@@ -17,22 +19,20 @@ from espnet2.train.distributed_utils import (
     get_num_nodes,
     resolve_distributed_mode,
 )
-from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.train.reporter import Reporter, SubReporter
-from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils import config_argparse
-from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet.utils.cli_utils import get_commandline_args
+from espnet2.utils.build_dataclass import build_dataclass
 from espnet2.utils.types import (
     humanfriendly_parse_size_or_none,
+    int_or_none,
     str2bool,
     str2triple_str,
     str_or_none,
-    int_or_none,
 )
+from espnet.utils.cli_utils import get_commandline_args
+
 
 def inference(args):
-
     assert check_argument_types()
 
     logging.basicConfig(
@@ -61,7 +61,7 @@ def inference(args):
         "target_duration": args["target_duration"],
         "num_eval": args["num_eval"],
         "noise_apply_prob": 0.0,
-        "rir_apply_prob": 0.0
+        "rir_apply_prob": 0.0,
     }
 
     merged_args = vars(spk_train_args)
@@ -90,10 +90,11 @@ def inference(args):
             iterator=loader,
             reporter=sub_reporter,
             options=trainer_options,
-            distributed_option=distributed_option
+            distributed_option=distributed_option,
         )
     if not distributed_option.distributed or distributed_option.dist_rank == 0:
         logging.info(reporter.log_message())
+
 
 def get_parser():
     parser = config_argparse.ArgumentParser(
@@ -271,7 +272,6 @@ def get_parser():
         default=False,
         help="Exclude the minibatch with leftovers.",
     )
-
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
@@ -539,11 +539,13 @@ def get_parser():
 
     return parser
 
+
 def main(cmd=None):
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
     inference(args)
+
 
 if __name__ == "__main__":
     main()
