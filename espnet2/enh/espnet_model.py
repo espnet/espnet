@@ -239,12 +239,13 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             # do not predict time-domain signal in the training stage
             speech_pre = None
 
-        if additional.get("batch_num_spk") is not None:
-            # mask other speakers's speech in batch
-            num_spk = additional.get("num_spk")
-            batch_num_spk = additional.get("batch_num_spk")
-            for spk in range(num_spk):
-                speech_pre[spk][torch.where(spk >= batch_num_spk)] = 0.0001
+        if additional is not None:
+            if additional.get("batch_num_spk") is not None:
+                # mask other speakers's speech in batch
+                num_spk = additional.get("num_spk")
+                batch_num_spk = additional.get("batch_num_spk")
+                for spk in range(num_spk):
+                    speech_pre[spk][torch.where(spk >= batch_num_spk)] = 0.0001
 
         return speech_pre, feature_mix, feature_pre, others
 
