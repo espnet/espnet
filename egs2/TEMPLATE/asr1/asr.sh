@@ -960,7 +960,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             --whisper_model "${token_type}" \
             --sot_asr "${sot_asr}" \
             --output "${token_list}" ${_opts}
-            
+
     elif [ "${token_type}" = hugging_face ]; then
         log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
 

@@ -34,7 +34,6 @@ LANGUAGES_CODE_MAPPING = {
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
-
     def __init__(self, model_type: str, language: str = "en", sot: bool = False):
         assert check_argument_types()
 
