@@ -10,8 +10,13 @@ from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet.utils.cli_utils import get_commandline_args
 
 
-
-def export_vocabulary(output: str, whisper_model: str, language: str, log_level: str, sot_asr: bool = False):
+def export_vocabulary(
+    output: str,
+    whisper_model: str,
+    language: str,
+    log_level: str,
+    sot_asr: bool = False,
+):
     try:
         import whisper.tokenizer
     except Exception as e:
