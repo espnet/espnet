@@ -49,25 +49,33 @@ num_workers: 4
 sort_in_batch: descending       # how to sort data in making batch
 sort_batch: descending          # how to sort created batches
 batch_type: numel
-batch_bins: 12000000            # good for 8 * RTX 3090 24G
-accum_grad: 4
-max_epoch: 3
+batch_bins: 70000000            # good for 8 * RTX 3090 24G
+accum_grad: 2
+max_epoch: 10
 patience: none
 init: none
 best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 3
+keep_nbest_models: 5
 
 use_amp: true
 cudnn_deterministic: false
 cudnn_benchmark: false
 
+# LoRA finetune related
+use_lora: true
+lora_conf:
+    rank: 8
+    alpha: 16
+    dropout_rate: 0.05
+    target_modules: ["query", "key", "value", "attn.out"]
+
 optim: adamw
 grad_clip: 1.0
 optim_conf:
-    lr: 1.0e-05
+    lr: 5.0e-04
     weight_decay: 0.01
     betas:
     - 0.9
