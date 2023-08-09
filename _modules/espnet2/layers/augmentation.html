@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>espnet2.layers.augmentation &mdash; ESPnet 202308 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../../../_static/jquery.js"></script>
+        <script type="text/javascript" src="../../../_static/underscore.js"></script>
+        <script type="text/javascript" src="../../../_static/doctools.js"></script>
+        <script type="text/javascript" src="../../../_static/language_data.js"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+        <script async="async" type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+        <script type="text/x-mathjax-config">MathJax.Hub.Config({"tex2jax": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true, "ignoreClass": "tex2jax_ignore|mathjax_ignore|document", "processClass": "tex2jax_process|mathjax_process|math|output_area"}})</script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            ESPnet
+          </a>
+              <div class="version">
+                202308
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p><span class="caption-text">Tutorial:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../tutorial.html">Common usages</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../parallelization.html">Using job scheduling system</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../faq.html">FAQ</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../docker.html">Docker</a></li>
+</ul>
+<p><span class="caption-text">ESPnet1:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet1_tutorial.html">Usage</a></li>
+</ul>
+<p><span class="caption-text">ESPnet2:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html">ESPnet2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_tutorial.html#instruction-for-run-sh">Instruction for run.sh</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_training_option.html">Change the configuration for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_format_wav_scp.html">Converting audio file formats using format_wav_scp.py</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_task.html">Task class and data input system for training</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../espnet2_distributed.html">Distributed training</a></li>
+</ul>
+<p><span class="caption-text">Notebook:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/DataPreparation_CMU_11492_692_Spring2023(Assignment0).html">CMU 11492/11692 Spring 2023: Data preparation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/DataPreparation_CMU_11492_692_Spring2023(Assignment0).html#Data-preparation-in-ESPnet">Data preparation in ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/SpeechEnhancement_CMU_11492_692_Spring2023(Assignment7).html">CMU 11492/11692 Spring 2023: Speech Enhancement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/SpeechEnhancement_CMU_11492_692_Spring2023(Assignment7).html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/SpokenLanguageUnderstanding_CMU_11492_692_Spring2023(Assignment6).html">CMU 11492/11692 Spring 2023: Spoken Language Understanding</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/TextToSpeech_CMU_11492_692_Spring2023(Assignment8).html">CMU 11492/11692 Spring 2023: Text to Speech</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_cli.html">Speech Recognition (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/asr_library.html">Speech Recognition (Library)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_2pass_slu_demo.html">ESPNET 2 pass SLU Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_realtime_demo.html">ESPnet2-ASR realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_transfer_learning_demo.html"><strong>Use transfer learning for ASR in ESPnet2</strong></a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_transfer_learning_demo.html#Abstract">Abstract</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_transfer_learning_demo.html#ESPnet-installation-(about-10-minutes-in-total)">ESPnet installation (about 10 minutes in total)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_asr_transfer_learning_demo.html#mini_an4-recipe-as-a-transfer-learning-example">mini_an4 recipe as a transfer learning example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial2 (New task)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet-(Almost-same-procedure-as-your-first-tutorial)">Install ESPnet (Almost same procedure as your first tutorial)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_new_task_tutorial_CMU_11751_18781_Fall2022.html#What-we-provide-you-and-what-you-need-to-proceed">What we provide you and what you need to proceed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html">CMU 11751/18781 Fall 2022: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Install-ESPnet">Install ESPnet</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Run-an-existing-recipe">Run an existing recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Make-a-new-recipe">Make a new recipe</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_recipe_tutorial_CMU_11751_18781_Fall2022.html#Additional-resources">Additional resources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_streaming_asr_demo.html">ESPnet2 real streaming Transformer demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tts_realtime_demo.html">ESPnet2-TTS realtime demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html">CMU 11751/18781 2021: ESPnet Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-an-inference-example">Run an inference example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Full-installation">Full installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet2_tutorial_2021_CMU_11751_18781.html#Run-a-recipe-example">Run a recipe example</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet_se_demonstration_for_waspaa_2021.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#Contents">Contents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(1)-Tutorials-on-the-Basic-Usage">(1) Tutorials on the Basic Usage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/espnet_se_demonstration_for_waspaa_2021.html#(2)-Tutorials-on-Contributing-to-ESPNet-SE-Project">(2) Tutorials on Contributing to ESPNet-SE Project</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/onnx_conversion_demo.html">espnet_onnx demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/onnx_conversion_demo.html#Install-Dependency">Install Dependency</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/onnx_conversion_demo.html#Export-your-model">Export your model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/onnx_conversion_demo.html#Inference-with-onnx">Inference with onnx</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/onnx_conversion_demo.html#Using-streaming-model">Using streaming model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/pretrained.html">Pretrained Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/se_demo.html">ESPnet Speech Enhancement Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/st_demo.html">ESPnet Speech Translation Demonstration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_cli.html">Text-to-Speech (Recipe)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../notebook/tts_realtime_demo.html">ESPnet real time E2E-TTS demonstration</a></li>
+</ul>
+<p><span class="caption-text">Package Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.distributed.html">espnet.distributed package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.tts.html">espnet.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.asr.html">espnet.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.st.html">espnet.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.transform.html">espnet.transform package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.bin.html">espnet.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.optimizer.html">espnet.optimizer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.nets.html">espnet.nets package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.scheduler.html">espnet.scheduler package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.vc.html">espnet.vc package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.mt.html">espnet.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.lm.html">espnet.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet.utils.html">espnet.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.svs.html">espnet2.svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tts.html">espnet2.tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr.html">espnet2.asr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.st.html">espnet2.st package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.bin.html">espnet2.bin package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.schedulers.html">espnet2.schedulers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_svs.html">espnet2.gan_svs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fileio.html">espnet2.fileio package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.slu.html">espnet2.slu package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.uasr.html">espnet2.uasr package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.spk.html">espnet2.spk package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.enh.html">espnet2.enh package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.train.html">espnet2.train package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.main_funcs.html">espnet2.main_funcs package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.samplers.html">espnet2.samplers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.mt.html">espnet2.mt package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.fst.html">espnet2.fst package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.utils.html">espnet2.utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.tasks.html">espnet2.tasks package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.iterators.html">espnet2.iterators package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.torch_utils.html">espnet2.torch_utils package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.diar.html">espnet2.diar package</a></li>
+</ul>
+<p><span class="caption-text">Tool Reference:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet_bin.html">core tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/espnet2_bin.html">core tools (espnet2)</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_py.html">python utility tools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../apis/utils_sh.html">bash utility tools</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">ESPnet</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">espnet2.layers.augmentation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for espnet2.layers.augmentation</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">torch</span>
+<span class="kn">import</span> <span class="nn">torchaudio</span>
+
+
+<div class="viewcode-block" id="weighted_sample_without_replacement"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.weighted_sample_without_replacement">[docs]</a><span class="k">def</span> <span class="nf">weighted_sample_without_replacement</span><span class="p">(</span><span class="n">population</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">rng</span><span class="o">=</span><span class="n">random</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s2">&quot;Cannot take a larger sample than population when without replacement&quot;</span>
+        <span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="p">[</span><span class="n">rng</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">w</span><span class="p">)</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="n">weights</span><span class="p">]</span>
+    <span class="n">order</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">population</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">order</span><span class="p">[</span><span class="o">-</span><span class="n">k</span><span class="p">:]]</span></div>
+
+
+<div class="viewcode-block" id="DataAugmentation"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.DataAugmentation">[docs]</a><span class="k">class</span> <span class="nc">DataAugmentation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A series of data augmentation effects that can be applied to a given waveform.</span>
+
+<span class="sd">    Note: Currently we only support single-channel waveforms.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        effects (list): a list of effects to be applied to the waveform.</span>
+<span class="sd">            Example:</span>
+<span class="sd">                [</span>
+<span class="sd">                    [0.1, &quot;lowpass&quot;, {&quot;cutoff_freq&quot;: 1000, &quot;Q&quot;: 0.707}],</span>
+<span class="sd">                    [0.1, &quot;highpass&quot;, {&quot;cutoff_freq&quot;: 3000, &quot;Q&quot;: 0.707}],</span>
+<span class="sd">                    [0.1, &quot;equalization&quot;, {&quot;center_freq&quot;: 1000, &quot;gain&quot;: 0, &quot;Q&quot;: 0.707}],</span>
+<span class="sd">                    [</span>
+<span class="sd">                        0.1,</span>
+<span class="sd">                        [</span>
+<span class="sd">                            [0.3, &quot;speed_perturb&quot;, {&quot;factor&quot;: 0.9}],</span>
+<span class="sd">                            [0.3, &quot;speed_perturb&quot;, {&quot;factor&quot;: 1.1}],</span>
+<span class="sd">                        ]</span>
+<span class="sd">                    ],</span>
+<span class="sd">                ]</span>
+<span class="sd">            Description:</span>
+<span class="sd">                - The above list defines a series of data augmentation effects that will</span>
+<span class="sd">                  be randomly sampled to apply to a given waveform.</span>
+<span class="sd">                - The data structure of each element can be either</span>
+<span class="sd">                  type1=Tuple[float, str, Dict] or type2=Tuple[float, type1].</span>
+<span class="sd">                - In type1, the three values are the weight of sampling this effect, the</span>
+<span class="sd">                  name (key) of the effect, and the keyword arguments for the effect.</span>
+<span class="sd">                - In type2, the first value is the weight of sampling this effect.</span>
+<span class="sd">                  The second value is a list of type1 elements which are similarly</span>
+<span class="sd">                  defined as above.</span>
+<span class="sd">                - Note that he effects defined in each type2 data are mutually exclusive</span>
+<span class="sd">                  (i.e., only one of them can be applied each time).</span>
+<span class="sd">                  This can be useful when you want to avoid applying some specific</span>
+<span class="sd">                  effects at the same time.</span>
+<span class="sd">        apply_n (list): range of the number of effects to be applied to the waveform.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">effects</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span>
+            <span class="n">Union</span><span class="p">[</span>
+                <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]]],</span>
+                <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">],</span>
+            <span class="p">]</span>
+        <span class="p">],</span>
+        <span class="n">apply_n</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+    <span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">effects</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">tup</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tup</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">list</span><span class="p">)</span> <span class="k">else</span> <span class="n">tup</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">effects</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">effect_probs</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">tup</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">effects</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">apply_n</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">apply_n</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">apply_n</span>
+        <span class="k">assert</span> <span class="n">apply_n</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">apply_n</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">apply_n</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">apply_n</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">waveform</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">from_numpy</span><span class="p">(</span><span class="n">waveform</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">waveform</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="n">waveform</span><span class="o">.</span><span class="n">shape</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_n</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_n</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="n">apply_n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">apply_n</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_n</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">apply_n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">apply_n</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">effect</span> <span class="ow">in</span> <span class="n">weighted_sample_without_replacement</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">effects</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">effect_probs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">apply_n</span>
+        <span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">effect</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="n">probs</span> <span class="o">=</span> <span class="p">[</span><span class="n">tup</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">tup</span> <span class="ow">in</span> <span class="n">effect</span><span class="p">]</span>
+                <span class="n">_</span><span class="p">,</span> <span class="n">eff</span><span class="p">,</span> <span class="n">eff_args</span> <span class="o">=</span> <span class="n">weighted_sample_without_replacement</span><span class="p">(</span>
+                    <span class="n">effect</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">probs</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="mi">1</span>
+                <span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">eff</span><span class="p">,</span> <span class="n">eff_args</span> <span class="o">=</span> <span class="n">effect</span>
+
+            <span class="n">waveform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_effect</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">eff</span><span class="p">,</span> <span class="n">eff_args</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">waveform</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">_apply_effect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">eff</span><span class="p">,</span> <span class="n">eff_args</span><span class="p">):</span>
+        <span class="n">eff_args</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;sample_rate&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">effects_dict</span><span class="p">[</span><span class="n">eff</span><span class="p">](</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="o">**</span><span class="n">eff_args</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="lowpass_filtering"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.lowpass_filtering">[docs]</a><span class="k">def</span> <span class="nf">lowpass_filtering</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cutoff_freq</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">Q</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.707</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Lowpass filter the input signal.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        cutoff_freq (int): filter cutoff frequency</span>
+<span class="sd">        Q (float or torch.Tensor): https://en.wikipedia.org/wiki/Q_factor</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): filtered signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">lowpass_biquad</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">cutoff_freq</span><span class="p">,</span> <span class="n">Q</span><span class="o">=</span><span class="n">Q</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="highpass_filtering"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.highpass_filtering">[docs]</a><span class="k">def</span> <span class="nf">highpass_filtering</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">cutoff_freq</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3000</span><span class="p">,</span> <span class="n">Q</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.707</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Highpass filter the input signal.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        cutoff_freq (int): filter cutoff frequency</span>
+<span class="sd">        Q (float or torch.Tensor): https://en.wikipedia.org/wiki/Q_factor</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): filtered signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">highpass_biquad</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">cutoff_freq</span><span class="p">,</span> <span class="n">Q</span><span class="o">=</span><span class="n">Q</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="bandpass_filtering"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.bandpass_filtering">[docs]</a><span class="k">def</span> <span class="nf">bandpass_filtering</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span>
+    <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">center_freq</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3000</span><span class="p">,</span>
+    <span class="n">Q</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.707</span><span class="p">,</span>
+    <span class="n">const_skirt_gain</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Bandpass filter the input signal.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        center_freq_freq (int): filter&#39;s center_freq frequency</span>
+<span class="sd">        Q (float or torch.Tensor): https://en.wikipedia.org/wiki/Q_factor</span>
+<span class="sd">        const_skirt_gain (bool): If True, uses a constant skirt gain (peak gain = Q).</span>
+<span class="sd">            If False, uses a constant 0dB peak gain.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): filtered signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">bandpass_biquad</span><span class="p">(</span>
+        <span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">center_freq</span><span class="p">,</span> <span class="n">Q</span><span class="o">=</span><span class="n">Q</span><span class="p">,</span> <span class="n">const_skirt_gain</span><span class="o">=</span><span class="n">const_skirt_gain</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="bandreject_filtering"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.bandreject_filtering">[docs]</a><span class="k">def</span> <span class="nf">bandreject_filtering</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">center_freq</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3000</span><span class="p">,</span> <span class="n">Q</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.707</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Two-pole band-reject filter the input signal.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        center_freq_freq (int): filter&#39;s center_freq frequency</span>
+<span class="sd">        Q (float or torch.Tensor): https://en.wikipedia.org/wiki/Q_factor</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): filtered signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">bandreject_biquad</span><span class="p">(</span>
+        <span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">center_freq</span><span class="p">,</span> <span class="n">Q</span><span class="o">=</span><span class="n">Q</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="contrast"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.contrast">[docs]</a><span class="k">def</span> <span class="nf">contrast</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span> <span class="n">enhancement_amount</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">75.0</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply contrast effect to the input signal to make it sound louder.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz (not used)</span>
+<span class="sd">        enhancement_amount (float): controls the amount of the enhancement</span>
+<span class="sd">            Allowed range of values for enhancement_amount : 0-100</span>
+<span class="sd">            Note that enhancement_amount = 0 still gives a significant</span>
+<span class="sd">            contrast enhancement.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): filtered signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">contrast</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">enhancement_amount</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="equalization_filtering"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.equalization_filtering">[docs]</a><span class="k">def</span> <span class="nf">equalization_filtering</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span>
+    <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">center_freq</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span>
+    <span class="n">gain</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">Q</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.707</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Equalization filter the input signal.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        center_freq (int): filter&#39;s center frequency</span>
+<span class="sd">        gain (float or torch.Tensor): desired gain at the boost (or attenuation) in dB</span>
+<span class="sd">        Q (float or torch.Tensor): https://en.wikipedia.org/wiki/Q_factor</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): filtered signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">equalizer_biquad</span><span class="p">(</span>
+        <span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">,</span> <span class="n">center_freq</span><span class="p">,</span> <span class="n">gain</span><span class="p">,</span> <span class="n">Q</span><span class="o">=</span><span class="n">Q</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="pitch_shift"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.pitch_shift">[docs]</a><span class="k">def</span> <span class="nf">pitch_shift</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span>
+    <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">n_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">bins_per_octave</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">12</span><span class="p">,</span>
+    <span class="n">n_fft</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.032</span><span class="p">,</span>
+    <span class="n">win_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">hop_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.008</span><span class="p">,</span>
+    <span class="n">window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;hann&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Shift the pitch of a waveform by `n_steps` steps.</span>
+
+<span class="sd">    Note: this function is slow.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        n_steps (int): the (fractional) steps to shift the pitch</span>
+<span class="sd">            -4 for shifting pitch down by 4/`bins_per_octave` octaves</span>
+<span class="sd">            4 for shifting pitch up by 4/`bins_per_octave` octaves</span>
+<span class="sd">        bins_per_octave (int): number of steps per octave</span>
+<span class="sd">        n_fft (float): length of FFT (in second)</span>
+<span class="sd">        win_length (float or None): The window length (in second) used for STFT</span>
+<span class="sd">            If None, it is treated as equal to n_fft</span>
+<span class="sd">        hop_length (float): The hop size (in second) used for STFT</span>
+<span class="sd">        window (str or None): The windowing function applied to the signal after</span>
+<span class="sd">            padding with zeros</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): filtered signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_fft</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">n_fft</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">hop_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">hop_length</span> <span class="o">=</span> <span class="n">n_fft</span> <span class="o">//</span> <span class="mi">4</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">hop_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">hop_length</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">win_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">win_length</span> <span class="o">=</span> <span class="n">n_fft</span>
+    <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">window_func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">window</span><span class="si">}</span><span class="s2">_window&quot;</span><span class="p">)</span>
+        <span class="n">window</span> <span class="o">=</span> <span class="n">window_func</span><span class="p">(</span><span class="n">win_length</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">waveform</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">waveform</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">pitch_shift</span><span class="p">(</span>
+        <span class="n">waveform</span><span class="p">,</span>
+        <span class="n">sample_rate</span><span class="p">,</span>
+        <span class="n">n_steps</span><span class="p">,</span>
+        <span class="n">bins_per_octave</span><span class="o">=</span><span class="n">bins_per_octave</span><span class="p">,</span>
+        <span class="n">n_fft</span><span class="o">=</span><span class="n">n_fft</span><span class="p">,</span>
+        <span class="n">win_length</span><span class="o">=</span><span class="n">win_length</span><span class="p">,</span>
+        <span class="n">hop_length</span><span class="o">=</span><span class="n">hop_length</span><span class="p">,</span>
+        <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="speed_perturb"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.speed_perturb">[docs]</a><span class="k">def</span> <span class="nf">speed_perturb</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Speed perturbation which also changes the pitch.</span>
+
+<span class="sd">    Note: This function should be used with caution as it changes the signal duration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        factor (float): speed factor (e.g., 0.9 for 90% speed)</span>
+<span class="sd">        lengths (torch.Tensor): lengths of the input signals</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): perturbed signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">orig_freq</span> <span class="o">=</span> <span class="n">sample_rate</span>
+    <span class="n">source_sample_rate</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">factor</span> <span class="o">*</span> <span class="n">orig_freq</span><span class="p">)</span>
+    <span class="n">target_sample_rate</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">orig_freq</span><span class="p">)</span>
+
+    <span class="n">gcd</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">gcd</span><span class="p">(</span><span class="n">source_sample_rate</span><span class="p">,</span> <span class="n">target_sample_rate</span><span class="p">)</span>
+    <span class="n">source_sample_rate</span> <span class="o">=</span> <span class="n">source_sample_rate</span> <span class="o">//</span> <span class="n">gcd</span>
+    <span class="n">target_sample_rate</span> <span class="o">=</span> <span class="n">target_sample_rate</span> <span class="o">//</span> <span class="n">gcd</span>
+
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span>
+        <span class="n">waveform</span><span class="p">,</span> <span class="n">source_sample_rate</span><span class="p">,</span> <span class="n">target_sample_rate</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="time_stretch"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.time_stretch">[docs]</a><span class="k">def</span> <span class="nf">time_stretch</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span>
+    <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">n_fft</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.032</span><span class="p">,</span>
+    <span class="n">win_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">hop_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.008</span><span class="p">,</span>
+    <span class="n">window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;hann&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Time scaling (speed up in time without modifying pitch) via phase vocoder.</span>
+
+<span class="sd">    Note: This function should be used with caution as it changes the signal duration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        factor (float): speed-up factor (e.g., 0.9 for 90% speed and 1.3 for 130% speed)</span>
+<span class="sd">        n_fft (float): length of FFT (in second)</span>
+<span class="sd">        win_length (float or None): The window length (in second) used for STFT</span>
+<span class="sd">            If None, it is treated as equal to n_fft</span>
+<span class="sd">        hop_length (float): The hop size (in second) used for STFT</span>
+<span class="sd">        window (str or None): The windowing function applied to the signal after</span>
+<span class="sd">            padding with zeros</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): perturbed signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_fft</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">n_fft</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">hop_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">hop_length</span> <span class="o">=</span> <span class="n">n_fft</span> <span class="o">//</span> <span class="mi">4</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">hop_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">hop_length</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">win_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">win_length</span> <span class="o">=</span> <span class="n">n_fft</span>
+    <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">window_func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">window</span><span class="si">}</span><span class="s2">_window&quot;</span><span class="p">)</span>
+        <span class="n">window</span> <span class="o">=</span> <span class="n">window_func</span><span class="p">(</span><span class="n">win_length</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">waveform</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">waveform</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stft</span><span class="p">(</span>
+        <span class="n">waveform</span><span class="p">,</span> <span class="n">n_fft</span><span class="p">,</span> <span class="n">hop_length</span><span class="p">,</span> <span class="n">win_length</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">return_complex</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">freq</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">phase_advance</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">hop_length</span><span class="p">,</span> <span class="n">freq</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">spec_sp</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">phase_vocoder</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">factor</span><span class="p">,</span> <span class="n">phase_advance</span><span class="p">)</span>
+    <span class="n">len_stretch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">waveform</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">factor</span><span class="p">))</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">istft</span><span class="p">(</span>
+        <span class="n">spec_sp</span><span class="p">,</span> <span class="n">n_fft</span><span class="p">,</span> <span class="n">hop_length</span><span class="p">,</span> <span class="n">win_length</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">len_stretch</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="codecs"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.codecs">[docs]</a><span class="k">def</span> <span class="nf">codecs</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span>
+    <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="nb">format</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">compression</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">encoding</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">bits_per_sample</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply the specified codecs to the input signal.</span>
+
+<span class="sd">    Warning: Wait until torchaudio 2.1 for this function to work.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        1. This function only supports CPU backend.</span>
+<span class="sd">        2. The GSM codec can be used to emulate phone line channel effects.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        format (str): file format.</span>
+<span class="sd">            Valid values are &quot;wav&quot;, &quot;mp3&quot;, &quot;ogg&quot;, &quot;vorbis&quot;, &quot;amr-nb&quot;, &quot;amb&quot;,</span>
+<span class="sd">            &quot;flac&quot;, &quot;sph&quot;, &quot;gsm&quot;, and &quot;htk&quot;.</span>
+<span class="sd">        compression (float or None, optional): used for formats other than WAV</span>
+
+<span class="sd">            For more details see torchaudio.backend.sox_io_backend.save().</span>
+<span class="sd">        encoding (str or None, optional): change the encoding for the supported formats</span>
+<span class="sd">            Valid values are &quot;PCM_S&quot; (signed integer Linear PCM),</span>
+<span class="sd">            &quot;PCM_U&quot; (unsigned integer Linear PCM), &quot;PCM_F&quot; (floating point PCM),</span>
+<span class="sd">            &quot;ULAW&quot; (mu-law), and &quot;ALAW&quot; (a-law).</span>
+<span class="sd">            For more details see torchaudio.backend.sox_io_backend.save().</span>
+<span class="sd">        bits_per_sample (int or None, optional): change the bit depth</span>
+<span class="sd">            for the supported formats</span>
+<span class="sd">            For more details see torchaudio.backend.sox_io_backend.save().</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): compressed signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">apply_codec</span><span class="p">(</span>
+        <span class="n">waveform</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+        <span class="n">sample_rate</span><span class="p">,</span>
+        <span class="nb">format</span><span class="p">,</span>
+        <span class="n">channels_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">compression</span><span class="o">=</span><span class="n">compression</span><span class="p">,</span>
+        <span class="n">encoding</span><span class="o">=</span><span class="n">encoding</span><span class="p">,</span>
+        <span class="n">bits_per_sample</span><span class="o">=</span><span class="n">bits_per_sample</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="preemphasis"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.preemphasis">[docs]</a><span class="k">def</span> <span class="nf">preemphasis</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">coeff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.97</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Pre-emphasize a waveform along the time dimension.</span>
+
+<span class="sd">    y[i] = x[i] - coeff * x[i - 1]</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz (not used)</span>
+<span class="sd">        coeff (float): pre-emphasis coefficient. Typically between 0.0 and 1.0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): pre-emphasized signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">waveform</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+    <span class="n">waveform</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:]</span> <span class="o">-=</span> <span class="n">coeff</span> <span class="o">*</span> <span class="n">waveform</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">waveform</span></div>
+
+
+<div class="viewcode-block" id="deemphasis"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.deemphasis">[docs]</a><span class="k">def</span> <span class="nf">deemphasis</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">coeff</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.97</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;De-emphasize a waveform along the time dimension.</span>
+
+<span class="sd">    y[i] = x[i] + coeff * y[i - 1]</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz (not used)</span>
+<span class="sd">        coeff (float): de-emphasis coefficient. Typically between 0.0 and 1.0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): de-emphasized signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a_coeffs</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">new_tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="o">-</span><span class="n">coeff</span><span class="p">])</span>
+    <span class="n">b_coeffs</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">new_tensor</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">torchaudio</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">lfilter</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">a_coeffs</span><span class="o">=</span><span class="n">a_coeffs</span><span class="p">,</span> <span class="n">b_coeffs</span><span class="o">=</span><span class="n">b_coeffs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="clipping"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.clipping">[docs]</a><span class="k">def</span> <span class="nf">clipping</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">min_quantile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">max_quantile</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.9</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Apply the clipping distortion to the input signal.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz (not used)</span>
+<span class="sd">        min_quantile (float): lower bound on the total percent of samples to be clipped</span>
+<span class="sd">        max_quantile (float): upper bound on the total percent of samples to be clipped</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): clipped signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">waveform</span><span class="o">.</span><span class="n">new_tensor</span><span class="p">([</span><span class="n">min_quantile</span><span class="p">,</span> <span class="n">max_quantile</span><span class="p">])</span>
+    <span class="n">min_</span><span class="p">,</span> <span class="n">max_</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">clamp</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">min_</span><span class="p">,</span> <span class="n">max_</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<div class="viewcode-block" id="polarity_inverse"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.polarity_inverse">[docs]</a><span class="k">def</span> <span class="nf">polarity_inverse</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">):</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">waveform</span></div>
+
+
+<div class="viewcode-block" id="reverse"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.reverse">[docs]</a><span class="k">def</span> <span class="nf">reverse</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="n">sample_rate</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">torch</span><span class="o">.</span><span class="n">flip</span><span class="p">(</span><span class="n">waveform</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="corrupt_phase"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.augmentation.corrupt_phase">[docs]</a><span class="k">def</span> <span class="nf">corrupt_phase</span><span class="p">(</span>
+    <span class="n">waveform</span><span class="p">,</span>
+    <span class="n">sample_rate</span><span class="p">,</span>
+    <span class="n">scale</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">n_fft</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.032</span><span class="p">,</span>
+    <span class="n">win_length</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">hop_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.008</span><span class="p">,</span>
+    <span class="n">window</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;hann&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adding random noise to the phase of input waveform.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        waveform (torch.Tensor): audio signal (..., time)</span>
+<span class="sd">        sample_rate (int): sampling rate in Hz</span>
+<span class="sd">        scale (float): scale factor for the phase noise</span>
+<span class="sd">        n_fft (float): length of FFT (in second)</span>
+<span class="sd">        win_length (float or None): The window length (in second) used for STFT</span>
+<span class="sd">            If None, it is treated as equal to n_fft</span>
+<span class="sd">        hop_length (float): The hop size (in second) used for STFT</span>
+<span class="sd">        window (str or None): The windowing function applied to the signal after</span>
+<span class="sd">            padding with zeros</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        ret (torch.Tensor): phase-corrupted signal (..., time)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">n_fft</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">n_fft</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">hop_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">hop_length</span> <span class="o">=</span> <span class="n">n_fft</span> <span class="o">//</span> <span class="mi">4</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">hop_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">sample_rate</span> <span class="o">*</span> <span class="n">hop_length</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">win_length</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">win_length</span> <span class="o">=</span> <span class="n">n_fft</span>
+    <span class="k">if</span> <span class="n">window</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">window_func</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">window</span><span class="si">}</span><span class="s2">_window&quot;</span><span class="p">)</span>
+        <span class="n">window</span> <span class="o">=</span> <span class="n">window_func</span><span class="p">(</span><span class="n">win_length</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">waveform</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">waveform</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stft</span><span class="p">(</span>
+        <span class="n">waveform</span><span class="p">,</span> <span class="n">n_fft</span><span class="p">,</span> <span class="n">hop_length</span><span class="p">,</span> <span class="n">win_length</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">return_complex</span><span class="o">=</span><span class="kc">True</span>
+    <span class="p">)</span>
+    <span class="n">phase</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span>
+    <span class="n">phase</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randn_like</span><span class="p">(</span><span class="n">phase</span><span class="p">)</span> <span class="o">*</span> <span class="n">scale</span> <span class="o">+</span> <span class="n">phase</span>
+    <span class="n">spec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">spec</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">phase</span><span class="p">)</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">functional</span><span class="o">.</span><span class="n">istft</span><span class="p">(</span>
+        <span class="n">spec</span><span class="p">,</span> <span class="n">n_fft</span><span class="p">,</span> <span class="n">hop_length</span><span class="p">,</span> <span class="n">win_length</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="n">window</span><span class="p">,</span> <span class="n">length</span><span class="o">=</span><span class="n">waveform</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+
+<span class="n">effects_dict</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;lowpass&quot;</span><span class="p">:</span> <span class="n">lowpass_filtering</span><span class="p">,</span>
+    <span class="s2">&quot;highpass&quot;</span><span class="p">:</span> <span class="n">highpass_filtering</span><span class="p">,</span>
+    <span class="s2">&quot;bandpass&quot;</span><span class="p">:</span> <span class="n">bandpass_filtering</span><span class="p">,</span>
+    <span class="s2">&quot;bandreject&quot;</span><span class="p">:</span> <span class="n">bandreject_filtering</span><span class="p">,</span>
+    <span class="s2">&quot;contrast&quot;</span><span class="p">:</span> <span class="n">contrast</span><span class="p">,</span>
+    <span class="s2">&quot;equalization&quot;</span><span class="p">:</span> <span class="n">equalization_filtering</span><span class="p">,</span>
+    <span class="s2">&quot;pitch_shift&quot;</span><span class="p">:</span> <span class="n">pitch_shift</span><span class="p">,</span>
+    <span class="s2">&quot;speed_perturb&quot;</span><span class="p">:</span> <span class="n">speed_perturb</span><span class="p">,</span>
+    <span class="s2">&quot;time_stretch&quot;</span><span class="p">:</span> <span class="n">time_stretch</span><span class="p">,</span>
+    <span class="s2">&quot;preemphasis&quot;</span><span class="p">:</span> <span class="n">preemphasis</span><span class="p">,</span>
+    <span class="s2">&quot;deemphasis&quot;</span><span class="p">:</span> <span class="n">deemphasis</span><span class="p">,</span>
+    <span class="s2">&quot;clipping&quot;</span><span class="p">:</span> <span class="n">clipping</span><span class="p">,</span>
+    <span class="s2">&quot;polarity_inverse&quot;</span><span class="p">:</span> <span class="n">polarity_inverse</span><span class="p">,</span>
+    <span class="s2">&quot;reverse&quot;</span><span class="p">:</span> <span class="n">reverse</span><span class="p">,</span>
+    <span class="s2">&quot;corrupt_phase&quot;</span><span class="p">:</span> <span class="n">corrupt_phase</span><span class="p">,</span>
+<span class="p">}</span>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2017, Shinji Watanabe.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

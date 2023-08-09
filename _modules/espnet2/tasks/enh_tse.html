@@ -459,8 +459,7 @@
         <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">]],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]:</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
-        <span class="n">retval</span> <span class="o">=</span> <span class="n">TSEPreprocessor</span><span class="p">(</span>
-            <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+        <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
             <span class="n">train_spk2enroll</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">train_spk2enroll</span><span class="p">,</span>
             <span class="n">enroll_segment</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;enroll_segment&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
             <span class="n">load_spk_embedding</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;load_spk_embedding&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
@@ -481,6 +480,8 @@
             <span class="n">channel_reordering</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;channel_reordering&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
             <span class="n">categories</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;categories&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
         <span class="p">)</span>
+        <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="p">)</span>
+        <span class="n">retval</span> <span class="o">=</span> <span class="n">TSEPreprocessor</span><span class="p">(</span><span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">retval</span></div>
 

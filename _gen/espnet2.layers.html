@@ -160,6 +160,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-log-mel-1">espnet2.layers.log_mel</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-stft-1">espnet2.layers.stft</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-abs-normalize-1">espnet2.layers.abs_normalize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-augmentation-1">espnet2.layers.augmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-time-warp-1">espnet2.layers.time_warp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-init-1">espnet2.layers.__init__</a></li>
 </ul>
@@ -743,6 +744,432 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </dd></dl>
+
+</section>
+<section id="espnet2-layers-augmentation-1">
+<span id="espnet2-layers-augmentation"></span><h2>espnet2.layers.augmentation<a class="headerlink" href="#espnet2-layers-augmentation-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.layers.augmentation"></span><dl class="class">
+<dt id="espnet2.layers.augmentation.DataAugmentation">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">DataAugmentation</code><span class="sig-paren">(</span><em class="sig-param">effects: List[Union[Tuple[float, List[Tuple[float, str, Dict]]], Tuple[float, str, Dict]]], apply_n: Tuple[int, int] = [1, 1]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#DataAugmentation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.DataAugmentation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A series of data augmentation effects that can be applied to a given waveform.</p>
+<p>Note: Currently we only support single-channel waveforms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>effects</strong> (<em>list</em>) – <p>a list of effects to be applied to the waveform.
+.. rubric:: Example</p>
+<dl>
+<dt>[</dt><dd><p>[0.1, “lowpass”, {“cutoff_freq”: 1000, “Q”: 0.707}],
+[0.1, “highpass”, {“cutoff_freq”: 3000, “Q”: 0.707}],
+[0.1, “equalization”, {“center_freq”: 1000, “gain”: 0, “Q”: 0.707}],
+[</p>
+<blockquote>
+<div><p>0.1,
+[</p>
+<blockquote>
+<div><p>[0.3, “speed_perturb”, {“factor”: 0.9}],
+[0.3, “speed_perturb”, {“factor”: 1.1}],</p>
+</div></blockquote>
+<p>]</p>
+</div></blockquote>
+<p>],</p>
+</dd>
+</dl>
+<p>]</p>
+<dl class="simple">
+<dt>Description:</dt><dd><ul>
+<li><p>The above list defines a series of data augmentation effects that will
+be randomly sampled to apply to a given waveform.</p></li>
+<li><p>The data structure of each element can be either
+type1=Tuple[float, str, Dict] or type2=Tuple[float, type1].</p></li>
+<li><p>In type1, the three values are the weight of sampling this effect, the
+name (key) of the effect, and the keyword arguments for the effect.</p></li>
+<li><p>In type2, the first value is the weight of sampling this effect.
+The second value is a list of type1 elements which are similarly
+defined as above.</p></li>
+<li><p>Note that he effects defined in each type2 data are mutually exclusive
+(i.e., only one of them can be applied each time).
+This can be useful when you want to avoid applying some specific
+effects at the same time.</p></li>
+</ul>
+</dd>
+</dl>
+</p></li>
+<li><p><strong>apply_n</strong> (<em>list</em>) – range of the number of effects to be applied to the waveform.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.bandpass_filtering">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">bandpass_filtering</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">center_freq: int = 3000</em>, <em class="sig-param">Q: float = 0.707</em>, <em class="sig-param">const_skirt_gain: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#bandpass_filtering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.bandpass_filtering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bandpass filter the input signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>center_freq_freq</strong> (<em>int</em>) – filter’s center_freq frequency</p></li>
+<li><p><strong>Q</strong> (<em>float</em><em> or </em><em>torch.Tensor</em>) – <a class="reference external" href="https://en.wikipedia.org/wiki/Q_factor">https://en.wikipedia.org/wiki/Q_factor</a></p></li>
+<li><p><strong>const_skirt_gain</strong> (<em>bool</em>) – If True, uses a constant skirt gain (peak gain = Q).
+If False, uses a constant 0dB peak gain.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>filtered signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.bandreject_filtering">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">bandreject_filtering</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">center_freq: int = 3000</em>, <em class="sig-param">Q: float = 0.707</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#bandreject_filtering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.bandreject_filtering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Two-pole band-reject filter the input signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>center_freq_freq</strong> (<em>int</em>) – filter’s center_freq frequency</p></li>
+<li><p><strong>Q</strong> (<em>float</em><em> or </em><em>torch.Tensor</em>) – <a class="reference external" href="https://en.wikipedia.org/wiki/Q_factor">https://en.wikipedia.org/wiki/Q_factor</a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>filtered signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.clipping">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">clipping</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">min_quantile: float = 0.0</em>, <em class="sig-param">max_quantile: float = 0.9</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#clipping"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.clipping" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the clipping distortion to the input signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz (not used)</p></li>
+<li><p><strong>min_quantile</strong> (<em>float</em>) – lower bound on the total percent of samples to be clipped</p></li>
+<li><p><strong>max_quantile</strong> (<em>float</em>) – upper bound on the total percent of samples to be clipped</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>clipped signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.codecs">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">codecs</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">format: str</em>, <em class="sig-param">compression: Optional[float] = None</em>, <em class="sig-param">encoding: Optional[str] = None</em>, <em class="sig-param">bits_per_sample: Optional[int] = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#codecs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.codecs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the specified codecs to the input signal.</p>
+<p>Warning: Wait until torchaudio 2.1 for this function to work.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<ol class="arabic simple">
+<li><p>This function only supports CPU backend.</p></li>
+<li><p>The GSM codec can be used to emulate phone line channel effects.</p></li>
+</ol>
+</aside>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>format</strong> (<em>str</em>) – file format.
+Valid values are “wav”, “mp3”, “ogg”, “vorbis”, “amr-nb”, “amb”,
+“flac”, “sph”, “gsm”, and “htk”.</p></li>
+<li><p><strong>compression</strong> (<em>float</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – <p>used for formats other than WAV</p>
+<p>For more details see torchaudio.backend.sox_io_backend.save().</p>
+</p></li>
+<li><p><strong>encoding</strong> (<em>str</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – change the encoding for the supported formats
+Valid values are “PCM_S” (signed integer Linear PCM),
+“PCM_U” (unsigned integer Linear PCM), “PCM_F” (floating point PCM),
+“ULAW” (mu-law), and “ALAW” (a-law).
+For more details see torchaudio.backend.sox_io_backend.save().</p></li>
+<li><p><strong>bits_per_sample</strong> (<em>int</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – change the bit depth
+for the supported formats
+For more details see torchaudio.backend.sox_io_backend.save().</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>compressed signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.contrast">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">contrast</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int = 16000</em>, <em class="sig-param">enhancement_amount: float = 75.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#contrast"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.contrast" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply contrast effect to the input signal to make it sound louder.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz (not used)</p></li>
+<li><p><strong>enhancement_amount</strong> (<em>float</em>) – controls the amount of the enhancement
+Allowed range of values for enhancement_amount : 0-100
+Note that enhancement_amount = 0 still gives a significant
+contrast enhancement.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>filtered signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.corrupt_phase">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">corrupt_phase</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate</em>, <em class="sig-param">scale: float = 0.5</em>, <em class="sig-param">n_fft: float = 0.032</em>, <em class="sig-param">win_length: Optional[float] = None</em>, <em class="sig-param">hop_length: float = 0.008</em>, <em class="sig-param">window: Optional[str] = 'hann'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#corrupt_phase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.corrupt_phase" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adding random noise to the phase of input waveform.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>scale</strong> (<em>float</em>) – scale factor for the phase noise</p></li>
+<li><p><strong>n_fft</strong> (<em>float</em>) – length of FFT (in second)</p></li>
+<li><p><strong>win_length</strong> (<em>float</em><em> or </em><em>None</em>) – The window length (in second) used for STFT
+If None, it is treated as equal to n_fft</p></li>
+<li><p><strong>hop_length</strong> (<em>float</em>) – The hop size (in second) used for STFT</p></li>
+<li><p><strong>window</strong> (<em>str</em><em> or </em><em>None</em>) – The windowing function applied to the signal after
+padding with zeros</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>phase-corrupted signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.deemphasis">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">deemphasis</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">coeff: float = 0.97</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#deemphasis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.deemphasis" title="Permalink to this definition">¶</a></dt>
+<dd><p>De-emphasize a waveform along the time dimension.</p>
+<p>y[i] = x[i] + coeff * y[i - 1]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz (not used)</p></li>
+<li><p><strong>coeff</strong> (<em>float</em>) – de-emphasis coefficient. Typically between 0.0 and 1.0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>de-emphasized signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.equalization_filtering">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">equalization_filtering</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">center_freq: int = 1000</em>, <em class="sig-param">gain: float = 0.0</em>, <em class="sig-param">Q: float = 0.707</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#equalization_filtering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.equalization_filtering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Equalization filter the input signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>center_freq</strong> (<em>int</em>) – filter’s center frequency</p></li>
+<li><p><strong>gain</strong> (<em>float</em><em> or </em><em>torch.Tensor</em>) – desired gain at the boost (or attenuation) in dB</p></li>
+<li><p><strong>Q</strong> (<em>float</em><em> or </em><em>torch.Tensor</em>) – <a class="reference external" href="https://en.wikipedia.org/wiki/Q_factor">https://en.wikipedia.org/wiki/Q_factor</a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>filtered signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.highpass_filtering">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">highpass_filtering</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">cutoff_freq: int = 3000</em>, <em class="sig-param">Q: float = 0.707</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#highpass_filtering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.highpass_filtering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Highpass filter the input signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>cutoff_freq</strong> (<em>int</em>) – filter cutoff frequency</p></li>
+<li><p><strong>Q</strong> (<em>float</em><em> or </em><em>torch.Tensor</em>) – <a class="reference external" href="https://en.wikipedia.org/wiki/Q_factor">https://en.wikipedia.org/wiki/Q_factor</a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>filtered signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.lowpass_filtering">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">lowpass_filtering</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">cutoff_freq: int = 1000</em>, <em class="sig-param">Q: float = 0.707</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#lowpass_filtering"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.lowpass_filtering" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lowpass filter the input signal.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>cutoff_freq</strong> (<em>int</em>) – filter cutoff frequency</p></li>
+<li><p><strong>Q</strong> (<em>float</em><em> or </em><em>torch.Tensor</em>) – <a class="reference external" href="https://en.wikipedia.org/wiki/Q_factor">https://en.wikipedia.org/wiki/Q_factor</a></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>filtered signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.pitch_shift">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">pitch_shift</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">n_steps: int</em>, <em class="sig-param">bins_per_octave: int = 12</em>, <em class="sig-param">n_fft: float = 0.032</em>, <em class="sig-param">win_length: Optional[float] = None</em>, <em class="sig-param">hop_length: float = 0.008</em>, <em class="sig-param">window: Optional[str] = 'hann'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#pitch_shift"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.pitch_shift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shift the pitch of a waveform by <cite>n_steps</cite> steps.</p>
+<p>Note: this function is slow.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>n_steps</strong> (<em>int</em>) – the (fractional) steps to shift the pitch
+-4 for shifting pitch down by 4/<cite>bins_per_octave</cite> octaves
+4 for shifting pitch up by 4/<cite>bins_per_octave</cite> octaves</p></li>
+<li><p><strong>bins_per_octave</strong> (<em>int</em>) – number of steps per octave</p></li>
+<li><p><strong>n_fft</strong> (<em>float</em>) – length of FFT (in second)</p></li>
+<li><p><strong>win_length</strong> (<em>float</em><em> or </em><em>None</em>) – The window length (in second) used for STFT
+If None, it is treated as equal to n_fft</p></li>
+<li><p><strong>hop_length</strong> (<em>float</em>) – The hop size (in second) used for STFT</p></li>
+<li><p><strong>window</strong> (<em>str</em><em> or </em><em>None</em>) – The windowing function applied to the signal after
+padding with zeros</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>filtered signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.polarity_inverse">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">polarity_inverse</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#polarity_inverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.polarity_inverse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.preemphasis">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">preemphasis</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">coeff: float = 0.97</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#preemphasis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.preemphasis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Pre-emphasize a waveform along the time dimension.</p>
+<p>y[i] = x[i] - coeff * x[i - 1]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz (not used)</p></li>
+<li><p><strong>coeff</strong> (<em>float</em>) – pre-emphasis coefficient. Typically between 0.0 and 1.0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>pre-emphasized signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.reverse">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">reverse</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#reverse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.reverse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.speed_perturb">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">speed_perturb</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">factor: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#speed_perturb"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.speed_perturb" title="Permalink to this definition">¶</a></dt>
+<dd><p>Speed perturbation which also changes the pitch.</p>
+<p>Note: This function should be used with caution as it changes the signal duration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>factor</strong> (<em>float</em>) – speed factor (e.g., 0.9 for 90% speed)</p></li>
+<li><p><strong>lengths</strong> (<em>torch.Tensor</em>) – lengths of the input signals</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>perturbed signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.time_stretch">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">time_stretch</code><span class="sig-paren">(</span><em class="sig-param">waveform</em>, <em class="sig-param">sample_rate: int</em>, <em class="sig-param">factor: float</em>, <em class="sig-param">n_fft: float = 0.032</em>, <em class="sig-param">win_length: Optional[float] = None</em>, <em class="sig-param">hop_length: float = 0.008</em>, <em class="sig-param">window: Optional[str] = 'hann'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#time_stretch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.time_stretch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time scaling (speed up in time without modifying pitch) via phase vocoder.</p>
+<p>Note: This function should be used with caution as it changes the signal duration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>waveform</strong> (<em>torch.Tensor</em>) – audio signal (…, time)</p></li>
+<li><p><strong>sample_rate</strong> (<em>int</em>) – sampling rate in Hz</p></li>
+<li><p><strong>factor</strong> (<em>float</em>) – speed-up factor (e.g., 0.9 for 90% speed and 1.3 for 130% speed)</p></li>
+<li><p><strong>n_fft</strong> (<em>float</em>) – length of FFT (in second)</p></li>
+<li><p><strong>win_length</strong> (<em>float</em><em> or </em><em>None</em>) – The window length (in second) used for STFT
+If None, it is treated as equal to n_fft</p></li>
+<li><p><strong>hop_length</strong> (<em>float</em>) – The hop size (in second) used for STFT</p></li>
+<li><p><strong>window</strong> (<em>str</em><em> or </em><em>None</em>) – The windowing function applied to the signal after
+padding with zeros</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>perturbed signal (…, time)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>ret (torch.Tensor)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.augmentation.weighted_sample_without_replacement">
+<code class="sig-prename descclassname">espnet2.layers.augmentation.</code><code class="sig-name descname">weighted_sample_without_replacement</code><span class="sig-paren">(</span><em class="sig-param">population</em>, <em class="sig-param">weights</em>, <em class="sig-param">k</em>, <em class="sig-param">rng=&lt;module 'random' from '/opt/hostedtoolcache/Python/3.8.17/x64/lib/python3.8/random.py'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/augmentation.html#weighted_sample_without_replacement"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.augmentation.weighted_sample_without_replacement" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </section>
 <section id="espnet2-layers-time-warp-1">

@@ -103,6 +103,17 @@ espnet2.layers.abs_normalize
     :show-inheritance:
 
 
+.. _espnet2.layers.augmentation:
+
+espnet2.layers.augmentation
+---------------------------
+
+.. automodule:: espnet2.layers.augmentation
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.layers.time_warp:
 
 espnet2.layers.time_warp
