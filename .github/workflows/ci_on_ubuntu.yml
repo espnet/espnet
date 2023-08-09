@@ -255,7 +255,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -285,7 +285,7 @@ jobs:
         python3 -m pip freeze
     - name: Import all modules (Try2)
       run: |
-        python3 ./ci/test_import_all.py
+        python3 -q -X faulthandler ./ci/test_import_all.py
 
   check_kaldi_symlinks:
     runs-on: ubuntu-latest
