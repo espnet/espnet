@@ -237,7 +237,7 @@ The behavior for batch-size during multi-GPU training is **different from that o
 We adopt variable mini-batch size with considering the dimension of the input features
 to make the best use of the GPU memory.
 
-There are 5 types:
+There are 6 types:
 
 |batch_type|Option to change batch-size|Variable batch-size|Requirement|
 |---|---|---|---|
@@ -246,6 +246,7 @@ There are 5 types:
 |folded|--batch_size|Yes|Length information of features|
 |length|--batch_bins|Yes|Length information of features|
 |numel|--batch_bins|Yes|Shape information of features|
+|catbel|--batch_size|No|-|
 
 Note that **--batch_size is ignored if --batch_type=length or --batch_type=numel**.
 
@@ -405,7 +406,6 @@ i.e. `bins = sum(numel(feat) for feats in batch for feat in feats)`,
 where `numel` returns the infinite product of the shape of each feature;
 `shape[0] * shape[1] * ...`
 
-
 ```bash
 python -m espnet.bin.asr_train \
   --batch_bins 200000 --batch_type numel \
@@ -417,6 +417,29 @@ python -m espnet.bin.asr_train \
   --train_shape_file "train_shape2.txt" \
   --valid_shape_file "valid_shape.txt" \
   --valid_shape_file "valid_shape2.txt"
+```
+
+
+### `--batch_type catbel`
+
+This type of batch_type focuses on the case of classification tasks.
+It guarantees that within each mini-batch, all samples belong to different classes.
+`--batch_size` is used to determine the mini-batch size.
+This batch type does not go along with the default `sequence` iterator_type.
+It is instead designed to be used with `category` iterator_type.
+Therefore, instead of explicitely giving `--batch_type catbel`, it is more recommended
+to give `--iterator_type category` which will automatically set `batch_type` to `catbel`.
+It is also important to use a preprocessor that adjusts the sample duration to enable
+mini-batch construction. One example would be `espnet2/train/preprocessor/SpkPreprocessor`.
+
+
+```bash
+python -m espnet.bin.spk_train \
+  --batch_bins 256 --iterator_type category \
+  --train_data_path_and_name_and_type "train.scp,feats,npy" \
+  --valid_data_path_and_name_and_type  "valid.scp,feats,npy" \
+  --train_shape_file "train_shape.txt" \
+  --valid_shape_file "valid_shape.txt" \
 ```
 
 ## Gradient accumulating
