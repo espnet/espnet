@@ -491,7 +491,8 @@ def inference(
         inference=True,
     )
     variable_names = [
-        name for path, name, typ in loader.dataset.path_name_type_list
+        name
+        for path, name, typ in loader.dataset.path_name_type_list
         if name.startswith("enroll_ref")
     ]
     num_spk = len(variable_names)
