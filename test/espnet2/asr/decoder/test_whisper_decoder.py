@@ -44,15 +44,14 @@ def test_decoder_init(whisper_decoder):
 @pytest.mark.timeout(50)
 @pytest.mark.parametrize("load_origin_token_embedding", [True, False])
 def test_embedding_expanded_decoder(load_origin_token_embedding):
-
     expanded_dim = 200
     vocab_size = VOCAB_SIZE_WHISPER_MULTILINGUAL + expanded_dim
     decoder = OpenAIWhisperDecoder(
         vocab_size=vocab_size,
         encoder_output_size=384,
         dropout_rate=0,
-        whisper_model='tiny',
-        load_origin_token_embedding=load_origin_token_embedding
+        whisper_model="tiny",
+        load_origin_token_embedding=load_origin_token_embedding,
     )
     hs_pad = torch.randn(4, 100, 384, device=next(decoder.parameters()).device)
     ys_in_pad = torch.randint(
