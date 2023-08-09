@@ -19,8 +19,8 @@ class OpenAIWhisperTokenIDConverter:
     def __init__(
         self,
         model_type: str = "whisper_multilingual",
-        sot: bool = False,
         language: str = "en",
+        sot: bool = False,
     ):
         assert check_argument_types()
 
