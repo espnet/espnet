@@ -512,7 +512,7 @@ class EBranchformerEncoder(AbsEncoder):
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]
 
-        xs_pad, masks = self.encoders(xs_pad, masks)
+        xs_pad = self.after_norm(xs_pad)
         olens = masks.squeeze(1).sum(1)
         if len(intermediate_outs) > 0:
             return (xs_pad, intermediate_outs), olens, None

@@ -13,9 +13,13 @@ SECONDS=0
 
 
 stage=1
-stop_stage=100000
+stop_stage=4
 data_url=www.openslr.org/resources/12
 train_dev="dev"
+asr_data_dir=
+asr_stats_dir=
+files=
+bpemodel=
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -71,6 +75,46 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 	zcat data/local/other_text/librispeech-lm-norm.txt.gz | \
 	    awk '{ printf("librispeech_lng_%08d %s\n",NR,$0) } ' > data/local/other_text/text
     fi
+fi
+
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+      log "stage 5: prepare external text data from train-clean-360 train-other-500"
+      for part in train-clean-360 train-other-500; do
+	  if [ ! -e "${LIBRISPEECH}/LibriSpeech/${part}" ]; then
+	      local/download_and_untar.sh ${LIBRISPEECH} ${data_url} ${part}
+	      local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
+	    else
+	      log "stage 5: ${LIBRISPEECH}/LibriSpeech/${part} is already existing Skip data downloading"
+	  fi
+      done
+      if [ ! -e "data/local/860_text/text" ]; then
+	  mkdir "data/local/860_text/"
+
+	  for part in train_clean_360 train_other_500; do
+	    cat "data/${part}/text" >> "data/local/860_text/text"
+
+	  done
+      else
+	  log "stage 5: data/local/860_text/text is already existing Skip it"
+      fi
+fi
+
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+      log "stage 6: combine training data and external text data"
+      sed -e 's/^/external-/' data/local/860_text/text > ${asr_data_dir}/text_injection
+
+      # utt2category
+      <${asr_data_dir}/wav.scp awk '{print($1, "SPEECH")}' > ${asr_data_dir}/utt2category
+      <${asr_data_dir}/text_injection awk '{print($1, "TEXT_INJECTION")}' >> ${asr_data_dir}/utt2category
+
+fi
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    log "stage 7: create extra text data's shape information"
+    python local/create_extra_info.py --files ${files} \
+      --asr_data_dir ${asr_data_dir} \
+      --bpe_model ${bpemodel} \
+      --asr_stats_dir ${asr_stats_dir}
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

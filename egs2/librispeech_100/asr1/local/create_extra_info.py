@@ -64,7 +64,7 @@ if __name__ == "__main__":
                     extra_file_line = extra_file_line.split(" ")
 
                     uid = extra_file_line[0]
-                    text = extra_file_line[1:]
+                    text = " ".join(extra_file_line[1:])
 
                     len_bpe = len(sp.encode(text))
 

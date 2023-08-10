@@ -398,7 +398,7 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
                 feats, feats_lengths = self.normalize(feats, feats_lengths)
 
         if text is None:
-            return feats, feats_lengths, None
+            return feats, feats_lengths
 
         pseudo_feats = text[speech_lengths == 0]
         pseudo_feats[pseudo_feats == self.ignore_id] = 0
@@ -524,12 +524,19 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
     ) -> Tuple[torch.Tensor, torch.Tensor]:
 
         with autocast(False):
-            feats, feats_lengths, pseudo_mask = self._extract_feats(
-                speech,
-                speech_lengths,
-                text,
-                text_lengths,
-            )
+            if text is None:
+                feats, feats_lengths = self._extract_feats(
+                    speech,
+                    speech_lengths,
+                )
+                pseudo_mask = None
+            else:
+                feats, feats_lengths, pseudo_mask = self._extract_feats(
+                    speech,
+                    speech_lengths,
+                    text,
+                    text_lengths,
+                )
 
         # Pre-encoder, e.g. used for raw input data
         if self.preencoder is not None:
