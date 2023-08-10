@@ -1,4 +1,12 @@
-#WER
+## Environments
+- date: `Thu Jul 27 01:21:08 IST 2023`
+- python version: `3.8.10 (default, May 26 2023, 14:05:08)  [GCC 9.4.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 1.10.1+cu113`
+- Git hash: `4c8aeda5de44f08d3617cdfc7aeb30bdf3d53d72`
+  - Commit date: `Tue Jul 25 19:35:21 2023 +0530`
+
+###WER
 
 |lang|exp|test|test_known|test_known_noisy|test_noisy|
 |---|---|---|---|---|---|
