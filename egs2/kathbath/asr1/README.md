@@ -4,7 +4,7 @@
 - Size: 140.03 MB
 - Training time: 16349 to 34072 seconds
 - GPU: a single 3090 24GB
-  
+
 ## Environments
 - date: `Thu Jul 27 01:21:08 IST 2023`
 - python version: `3.8.10 (default, May 26 2023, 14:05:08)  [GCC 9.4.0]`
