@@ -159,7 +159,7 @@ build_local(){
             log "WARNING: Currently, the only supported CUDA version is ${default_cuda_ver}"
             exit 1;
         fi
-        
+
         if [ "${build_base_image}" = true ] ; then
             docker build -f prebuilt/gpu.dockerfile -t espnet/espnet:cuda-local . || exit 1
             cuda_tag="cuda-local"
