@@ -42,10 +42,9 @@ frontend_choices = ClassChoices(
     classes=dict(
         default=DefaultFrontend,
         sliding_window=SlidingWindow,
-        raw=AbsFrontend,
     ),
     type_check=AbsFrontend,
-    default="default",
+    default=None,
     optional=True,
 )
 
@@ -277,14 +276,12 @@ class SpeakerTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetSpeakerModel:
         assert check_argument_types()
 
-        if args.frontend != "raw":
+        if args.frontend is not None:
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
             input_size = frontend.output_size()
         else:
-            # Give features from data-loader
-            args.frontend = None
-            args.frontend_conf = {}
+            # Give features from data-loader (e.g., precompute features).
             frontend = None
             input_size = args.input_size
 

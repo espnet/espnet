@@ -45,6 +45,9 @@ inference_config=conf/decode.yaml # Inference configuration
 # Data preparation related
 local_data_opts= # The options given to local/data.sh
 
+# Speed perturbation related
+speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
+
 # Feature extraction related
 feats_type=raw_copy   # Feature type (raw, raw_copy, fbank_pitch, or extracted).
 audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
@@ -61,8 +64,8 @@ spk_config=           # Config for the spk model training.
 spk_args=             # Arguments for spk model training.
 
 # Inference related
-inference_config=     # Inference configuration file
-inference_model_file= # Inference model weight file
+inference_config=conf/decode.yaml   # Inference configuration
+inference_model=valid.eer.best.pth  # Inference model weight file
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -90,6 +93,9 @@ Options:
     python=python3        # Specify python to execute espnet commands.
     fold_length=80000     # fold_length for speech data during enhancement training
 
+    # Speed perturbation related
+    speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
+
     # Feature extraction related
     feats_type=raw       # Feature type (raw, raw_copy, fbank_pitch, or extracted).
     audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
@@ -107,6 +113,7 @@ Options:
 
     # Inference related
     inference_config=     # Inference configuration file
+    inference_model_file= # Inference model weight file
 
     # [Task dependent] Set the datadir name created by local/data.sh
     train_set=       # Name of training set.
@@ -145,6 +152,9 @@ else
     exit 2
 fi
 
+# Extra files for speaker recognition process
+utt_extra_files="utt2category"
+
 # Set tag for naming of model directory
 if [ -z "${spk_tag}" ]; then
     if [ -n "${spk_config}" ]; then
@@ -168,12 +178,6 @@ fi
 skip_stages=$(echo "${skip_stages}" | tr ' ' '\n' | sort -nu | tr '\n' ' ')
 log "Skipped stages: ${skip_stages}"
 
-# TODO (Jee-weon): add speed perturb
-#if [ -n "${speed_perturb_factors}"  ]; then
-#    spk_stats_dir="${spk_stats_dir}_sp"
-#    spk_exp="${spk_exp}_sp"
-#fi
-
 
 if [ ${stage} -le 1  ] && [ ${stop_stage} -ge 1  ] && ! [[ " ${skip_stages} " =~ [[:space:]]1[[:space:]]  ]]; then
     log "Stage 1: Data preparation for train and evaluation."
@@ -182,8 +186,35 @@ if [ ${stage} -le 1  ] && [ ${stop_stage} -ge 1  ] && ! [[ " ${skip_stages} " =~
     log "Stage 1 FIN."
 fi
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
-    log "Stage 2: Format wav.scp: data/ -> ${data_feats}"
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [[:space:]]2[[:space:]] ]]; then
+    if [ -n "${speed_perturb_factors}" ]; then
+        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
+        # For example, when speed_perturb_factors="0.9 1.0 1.1", the number of unique speakers will be increased by three times
+        _scp_list="wav.scp "
+
+        for factor in ${speed_perturb_factors}; do
+            if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
+                scripts/utils/perturb_enh_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
+                _dirs+="data/${train_set}_sp${factor} "
+            else
+                # If speed factor is 1, same as the original
+                _dirs+="data/${train_set} "
+            fi
+        done
+        utils/combine_data.sh --extra-files "${_scp_list}" "data/${train_set}_sp" ${_dirs}
+    else
+        log "Skip stage 2: Speed perturbation"
+    fi
+fi
+
+if [ -n "${speed_perturb_factors}" ]; then
+    train_set="${train_set}_sp"
+    spk_stats_dir="${spk_stats_dir}_sp"
+    spk_exp="${spk_exp}_sp"
+fi
+
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
+    log "Stage 3: Format wav.scp: data/ -> ${data_feats}"
 
     if "${skip_train}"; then
         if "${eval_valid_set}"; then
@@ -281,14 +312,18 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
 
         done
+
+        for f in ${utt_extra_files}; do
+            [ -f data/${dset}/${f} ] && cp data/${dset}/${f} ${data_feats}/${dset}/${f}
+        done
     else
         log "${feats_type} is not supported yet."
         exit 1
     fi
 fi
 
-if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    echo "Stage 3: Collect stats"
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    echo "Stage 4: Collect stats"
     _spk_train_dir="${data_feats}/${train_set}"
     _spk_valid_dir="${data_feats}/${valid_set}"
 
@@ -356,8 +391,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     cp ${spk_stats_dir}/valid/speech_shape ${spk_stats_dir}/valid/speech_shape2
 fi
 
-if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-    echo "Stage 4: Train."
+if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    echo "Stage 5: Train."
 
     _spk_train_dir="${data_feats}/${train_set}"
     _spk_valid_dir="${data_feats}/${valid_set}"
@@ -400,10 +435,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
             ${_opts} ${spk_args}
 fi
 
-if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "Stage 5: Inference."
 
-    infer_exp=${spk_exp}/inference
+if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    echo "Stage 6: Inference."
+
+    infer_exp="${spk_exp}/inference"
     _inference_dir=${data_feats}/${test_sets}
     log "Spk inference started... log: '${infer_exp}/inference.log'"
     if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
@@ -411,13 +447,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         jobname="$(basename ${infer_exp})"
     else
         jobname="${infer_exp}/inference.log"
-    fi
-
-    _opts=
-    if [ -n "${spk_config}"  ]; then
-        # To generate the config file: e.g.
-        #   % python3 -m espnet2.bin.spk_train --print_config --optim adam
-        _opts+="--spk_train_config ${spk_config} "
     fi
 
     ${python} -m espnet2.bin.launch \
@@ -436,6 +465,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --shape_file ${spk_stats_dir}/valid/speech_shape \
             --fold_length ${fold_length} \
             --config ${inference_config} \
-            --spk_model_file ${inference_model_file} \
-            ${_opts} ${spk_args}
+            --train_config "${spk_exp}/config.yaml" \
+            --model_file "${spk_exp}"/${inference_model} \
+            ${spk_args}
 fi
