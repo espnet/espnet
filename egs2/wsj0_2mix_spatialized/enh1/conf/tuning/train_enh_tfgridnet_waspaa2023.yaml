@@ -1,0 +1,73 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 25
+batch_type: folded
+batch_size: 12
+iterator_type: chunk
+chunk_length: 32000
+num_workers: 6
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-5
+patience: 5
+grad_clip: 5
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - si_snr
+    - max
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 50
+
+encoder: same
+decoder: same
+separator: tfgridnet
+separator_conf:
+    n_srcs: 2
+    n_fft: 512
+    stride: 256
+    window: "hann"
+    n_imics: 8
+    n_layers: 6
+    lstm_hidden_units: 192
+    attn_n_head: 4
+    attn_approx_qk_dim: 512
+    emb_dim: 48
+    emb_ks: 4
+    emb_hs: 2
+    activation: "gelu"
+    eps: 1.0e-5
+    ref_channel: 0
+
+
+criterions:
+  # The first criterion
+  - name: mr_l1_tfd
+    conf:
+      window_sz: [512]
+      time_domain_weight: 0.99
+    # the wrapper for the current criterion
+    # PIT is widely used in the speech separation task
+    wrapper: pit
+    wrapper_conf:
+      weight: 1.0
+  # The second criterion
+  - name: ci_sdr
+    conf:
+      filter_length: 512
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: pit
+    wrapper_conf:
+      weight: 0.0
+      independent_perm: False
