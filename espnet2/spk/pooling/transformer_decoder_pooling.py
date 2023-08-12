@@ -1,8 +1,13 @@
+from typing import List, Tuple
+
 import torch
 import torch.nn as nn
-from typing import List, Tuple
 from typeguard import check_argument_types
 
+from espnet2.asr.decoder.transformer_decoder import (
+    BaseTransformerDecoder,
+    TransformerDecoder,
+)
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
@@ -11,10 +16,8 @@ from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
-from espnet2.asr.decoder.transformer_decoder import (
-    TransformerDecoder, BaseTransformerDecoder
-)
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
+
 
 class TransformerDecoderPooling(AbsPooling, BaseTransformerDecoder):
     """
@@ -90,7 +93,7 @@ class TransformerDecoderPooling(AbsPooling, BaseTransformerDecoder):
         self,
         encoder_output: torch.Tensor,
         task_tokens: torch.Tensor,
-                ):
+    ):
         """
         Args:
             encoder_output: frame-level embeddings, (batch, dim, seq)
@@ -98,20 +101,17 @@ class TransformerDecoderPooling(AbsPooling, BaseTransformerDecoder):
         Returns:
             x: utterance-level embedding (batch, dim_out)
         """
-        #(bs, seq, dim)
-        memory = self.encoder_mapping(encoder_output.transpose(-2,-1))
+        # (bs, seq, dim)
+        memory = self.encoder_mapping(encoder_output.transpose(-2, -1))
         print(f"memory, {memory.size()}")
         x = self.embed(task_tokens.unsqueeze(1))
         print(f"task tokens after embed, {x.size()}")
 
         # make masks
-        x, _, memory, _ = self.decoders(
-            x, None, memory, None
-        )
+        x, _, memory, _ = self.decoders(x, None, memory, None)
         print(f"x, {x.size()}")
         if self.normalize_before:
             x = self.after_norm(x)
 
         # (bs, dim)
         return x.squeeze(1)
-
