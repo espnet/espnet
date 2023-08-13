@@ -25,6 +25,7 @@ from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
+from espnet2.spk.pooling.transformer_decoder_pooling import TransformerDecoderPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 from espnet2.tasks.abs_task import AbsTask
@@ -89,11 +90,8 @@ encoder_choices = ClassChoices(
 pooling_choices = ClassChoices(
     name="pooling",
     classes=dict(
-        # TODO (Jee-weon): implement additional aggregators
-        # mean=MeanPoolAggregator,
-        # max=MaxPoolAggregator,
-        # attn_stat=AttnStatAggregator,
         chn_attn_stat=ChnAttnStatPooling,
+        transformer_decoder=TransformerDecoderPooling,
     ),
     type_check=AbsPooling,
     default="chn_attn_stat",
@@ -279,7 +277,7 @@ class SpeakerTask(AbsTask):
         # When calculating EER, we need trials where each trial has two
         # utterances. speech2 corresponds to the second utterance of each
         # trial pair in the validation/inference phase.
-        retval = ("speech2", "trial", "spk_labels")
+        retval = ("speech2", "trial", "spk_labels", "task_tokens")
 
         assert check_return_type(retval)
         return retval

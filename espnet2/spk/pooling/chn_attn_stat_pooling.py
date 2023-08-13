@@ -31,7 +31,10 @@ class ChnAttnStatPooling(AbsPooling):
     def output_size(self):
         return self._output_size
 
-    def forward(self, x):
+    def forward(self, x, task_tokens: torch.Tensor = None):
+        if task_tokens is not None:
+            raise ValueError(f"ChannelAttentiveStatisticsPooling is not"
+                             f"adequate for task_tokens")
         t = x.size()[-1]
         global_x = torch.cat(
             (

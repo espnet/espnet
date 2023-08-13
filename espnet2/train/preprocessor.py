@@ -1859,6 +1859,9 @@ class SpkPreprocessor(CommonPreprocessor):
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
 
+        if "task_tokens" in data:
+            data["task_tokens"] = np.asarray([int(data["task_tokens"])])
+
         return data
 
     def __call__(

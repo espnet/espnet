@@ -89,8 +89,12 @@ class SpkTrainer(Trainer):
         # fill dictionary with speech samples
         utt_id_list = []
         speech_list = []
+        task_token = None
         for utt_id, batch in iterator:
             bs = max(bs, len(utt_id))
+            if "task_tokens" in batch:
+                task_token = batch["task_tokens"][0]
+
             assert isinstance(batch, dict), type(batch)
             for _utt_id, _speech, _speech2 in zip(
                 utt_id, batch["speech"], batch["speech2"]
@@ -117,7 +121,17 @@ class SpkTrainer(Trainer):
             _speechs = _speechs.flatten(0, 1)
             _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
 
-            spk_embds = model(speech=_speechs, spk_labels=None, extract_embd=True)
+
+            if task_token is None:
+                task_tokens = None
+            else:
+                task_tokens = to_device(task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu").unsqueeze(1)
+            spk_embds = model(
+                speech=_speechs,
+                spk_labels=None,
+                extract_embd=True,
+                task_tokens=task_tokens
+            )
             spk_embds = F.normalize(spk_embds, p=2, dim=1)
             spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
