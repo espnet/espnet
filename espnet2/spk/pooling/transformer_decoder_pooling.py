@@ -9,16 +9,17 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
 from espnet.nets.pytorch_backend.transformer.decoder_layer import DecoderLayer
 from espnet.nets.pytorch_backend.transformer.embedding import (
+    LearnableFourierPosEnc,
     PositionalEncoding,
     RelPositionalEncoding,
-    LearnableFourierPosEnc,
-    ScaledPositionalEncoding
+    ScaledPositionalEncoding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
     PositionwiseFeedForward,
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
+
 
 class TransformerDecoderPooling(AbsPooling, BaseTransformerDecoder):
     """

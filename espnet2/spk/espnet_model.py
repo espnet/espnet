@@ -89,7 +89,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         if task_tokens is not None:
             assert speech.shape[0] == task_tokens.shape[0], (
                 speech.shape,
-                task_tokens.shape
+                task_tokens.shape,
             )
         batch_size = speech.shape[0]
 

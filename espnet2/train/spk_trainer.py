@@ -121,16 +121,17 @@ class SpkTrainer(Trainer):
             _speechs = _speechs.flatten(0, 1)
             _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
 
-
             if task_token is None:
                 task_tokens = None
             else:
-                task_tokens = to_device(task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu").unsqueeze(1)
+                task_tokens = to_device(
+                    task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu"
+                ).unsqueeze(1)
             spk_embds = model(
                 speech=_speechs,
                 spk_labels=None,
                 extract_embd=True,
-                task_tokens=task_tokens
+                task_tokens=task_tokens,
             )
             spk_embds = F.normalize(spk_embds, p=2, dim=1)
             spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
