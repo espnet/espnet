@@ -29,7 +29,7 @@ WITH_OMP=ON
 all: showenv python conda_packages.done ffmpeg.done sctk sph2pipe check_install
 
 python: activate_python.sh packaging.done espnet.done pytorch.done chainer.done fairscale.done torch_optimizer.done
-extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskit.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done
+extra: warp-transducer.done chainer_ctc.done nkf.done moses.done mwerSegmenter.done pesq kenlm.done pyopenjtalk.done py3mmseg.done beamformit.done fairseq.done s3prl.done k2.done transformers.done phonemizer.done longformer.done muskits.done whisper.done rvad_fast.done sounfile_test parallel-wavegan.done
 
 activate_python.sh:
 	test -f activate_python.sh || { echo "Error: Run ./setup_python.sh or ./setup_anaconda.sh"; exit 1; }
@@ -257,7 +257,7 @@ clean_python:
 clean_extra:
 	rm -rf nkf.done swig.done moses.done mwerSegmenter.done
 	rm -rf hts_engine_API.done open_jtalk.done pyopenjtalk.done
-	rm -rf muskit.done
+	rm -rf muskits.done
 	rm -rf rvad_fast.done
 	rm -rf nkf mecab swig moses mwerSegmenter
 	rm -rf PESQ PESQ.zip

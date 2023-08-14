@@ -12,6 +12,10 @@ try:
     import music21 as m21  # for CI import
 except ImportError or ModuleNotFoundError:
     m21 = None
+try:
+    import miditoolkit  # for CI import
+except ImportError or ModuleNotFoundError:
+    miditoolkit = None
 
 
 class NOTE(object):
@@ -33,7 +37,7 @@ class XMLReader(collections.abc.Mapping):
         ...
 
         >>> reader = XMLScpReader('xml.scp')
-        >>> lyrics_array, notes_array, segs_array = reader['key1']
+        >>> tempo, note_list = reader['key1']
     """
 
     def __init__(
@@ -68,7 +72,7 @@ class XMLReader(collections.abc.Mapping):
                         if n.pitch.midi != prepitch:  # Ignore repeat note
                             note = n
                             break
-                if lr is None or lr == "":  # multi note in one syllable
+                if lr is None or lr == "" or lr == "ー":  # multi note in one syllable
                     if note.pitch.midi == prepitch:  # same pitch
                         notes_list[-1].et += dur
                     else:  # different pitch
@@ -79,12 +83,20 @@ class XMLReader(collections.abc.Mapping):
                     else:
                         notes_list.append(NOTE("P", 0, st, st + dur))
                     prepitch = 0
+                    st += dur
+                    continue
                 else:  # normal note for one syllable
                     notes_list.append(NOTE(lr, note.pitch.midi, st, st + dur))
                 prepitch = note.pitch.midi
-                for arti in note.articulations:  # <br> is tagged as a notation
-                    if arti.name in ["breath mark"]:  # up-bow?
-                        notes_list.append(NOTE("B", 0, st, st))  # , 0))
+                for arti in note.articulations:
+                    # NOTE(Yuning): By default, 'breath mark' appears at the end of
+                    # the sentence. In some situations, 'breath mark' doesn't take
+                    # effect in its belonging note. Please handle them under local/.
+                    if arti.name in ["breath mark"]:  # <br> is tagged as a notation
+                        notes_list.append(NOTE("B", 0, st + dur, st + dur))
+                    # NOTE(Yuning): In some datasets, there is a break when 'staccato'
+                    # occurs. We let users to decide whether to perform segmentation
+                    # under local/.
             else:  # rest note
                 if prepitch == 0:
                     notes_list[-1].et += dur
@@ -159,7 +171,7 @@ class XMLWriter:
             duration = 1.0 * duration / 8
             if duration == 0:
                 duration = 1 / 16
-            if notes_seq[i] != -1:  # isNote
+            if notes_seq[i] != 0:  # isNote
                 n = m21.note.Note(notes_seq[i])
                 if lyrics_seq[i] != "—":
                     n.lyric = lyrics_seq[i]
@@ -184,6 +196,77 @@ class XMLWriter:
 
     def close(self):
         self.fscp.close()
+
+
+class MIDReader(collections.abc.Mapping):
+    """Reader class for 'mid.scp'.
+
+    Examples:
+        key1 /some/path/a.mid
+        key2 /some/path/b.mid
+        key3 /some/path/c.mid
+        key4 /some/path/d.mid
+        ...
+
+        >>> reader = XMLScpReader('mid.scp')
+        >>> tempo, note_list = reader['key1']
+    """
+
+    def __init__(
+        self,
+        fname,
+        add_rest=True,
+        dtype=np.int16,
+    ):
+        assert check_argument_types()
+        assert miditoolkit is not None, (
+            "Cannot load miditoolkit package. ",
+            "Please install Muskit modules via ",
+            "(cd tools && make muskit.done)",
+        )
+        self.fname = fname
+        self.dtype = dtype
+        self.add_rest = add_rest  # add rest into note sequencee
+        self.data = read_2columns_text(fname)  # get key-value dict
+
+    def __getitem__(self, key):
+        midi_obj = miditoolkit.midi.parser.MidiFile(self.data[key])
+        # load tempo
+        tempos = midi_obj.tempo_changes
+        tempos.sort(key=lambda x: (x.time, x.tempo))
+        assert len(tempos) == 1
+        tempo = int(tempos[0].tempo + 0.5)
+        # load pitch time sequence
+        tick_to_time = midi_obj.get_tick_to_time_mapping()
+        notes = midi_obj.instruments[0].notes
+        notes.sort(key=lambda x: (x.start, x.pitch))
+        notes_list = []
+        pre_et = 0
+        for note in notes:
+            st = tick_to_time[note.start]
+            et = tick_to_time[note.end]
+            # NOTE(Yuning): MIDIs don't have explicit rest notes.
+            # Explicit rest notes might be needed for stage 1 in svs.
+            if st != pre_et and self.add_rest:
+                notes_list.append(NOTE("P", 0, pre_et, st))
+            notes_list.append(NOTE("*", note.pitch, st, et))
+            pre_et = et
+        return tempo, notes_list
+
+    def get_path(self, key):
+        return self.data[key]
+
+    def __contains__(self, item):
+        return item
+
+    def __len__(self):
+        return len(self.data)
+
+    def __iter__(self):
+        return iter(self.data)
+
+    def keys(self):
+        return self.data.keys()
 
 
 class SingingScoreReader(collections.abc.Mapping):

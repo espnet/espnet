@@ -79,7 +79,25 @@ def get_parser():
 def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
     segments = []
     segment = SegInfo()
-    for note in notes:
+    for i in range(len(notes)):
+        note = notes[i]
+        # fix errors in dataset
+        # remove wrong note
+        if "64" in file_id:
+            if i in [18, 24, 25]:
+                continue
+            # correct duration
+            if i == 21:
+                note.et = 10.35
+                notes[i + 1].st = 10.35
+        # add missing lyric
+        if "60" in file_id and note.lyric == "ぐ":
+            segment.add(note.st, 5.375, "ぐ", note.midi)
+            segment.add(5.375, note.et, "の", note.midi)
+            continue
+        # replace wrong lyric with correct one
+        if "46" in file_id and note.lyric == "ー":
+            note.lyric = "い"
         # Divide songs by 'P' (pause) or 'B' (breath)
         if note.lyric in sil:
             if len(segment.segs) > 0:

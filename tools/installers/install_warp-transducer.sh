@@ -43,3 +43,12 @@ git clone --single-branch --branch espnet_v1.1 https://github.com/b-flo/warp-tra
         cd pytorch_binding && python3 -m pip install -e .
     )
 )
+
+if ! python -c "import ninja" &> /dev/null; then
+    (
+	set -euo pipefail
+	echo "Installing ninja package for RWKV decoder (training only)."
+
+	python3 -m pip install ninja
+    )
+fi

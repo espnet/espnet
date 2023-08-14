@@ -1,0 +1,74 @@
+normalize: null
+
+encoder: whisper
+encoder_conf:
+    whisper_model: medium
+    dropout_rate: 0.0
+    use_specaug: true
+    specaug_conf:
+        apply_time_warp: true
+        time_warp_window: 5
+        time_warp_mode: bicubic
+        apply_freq_mask: true
+        freq_mask_width_range:
+        - 0
+        - 27
+        num_freq_mask: 2
+        apply_time_mask: true
+        time_mask_width_ratio_range:
+        - 0.
+        - 0.05
+        num_time_mask: 5
+
+
+decoder: whisper
+decoder_conf:
+    whisper_model: medium
+    dropout_rate: 0.0
+
+model_conf:
+    ctc_weight: 0.0
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    sym_sos: "<|startoftranscript|>"
+    sym_eos: "<|endoftext|>"
+    extract_feats_in_collect_stats: false
+
+
+frontend: null
+input_size: 1                   # to prevent build_model() from complaining
+
+seed: 2022
+log_interval: 100
+num_att_plot: 0
+num_workers: 4
+sort_in_batch: descending       # how to sort data in making batch
+sort_batch: descending          # how to sort created batches
+batch_type: numel
+batch_bins: 8000000            # good for single GPU w/ 40G mem
+accum_grad: 4
+max_epoch: 3
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 3
+
+use_amp: true
+cudnn_deterministic: false
+cudnn_benchmark: false
+
+optim: adamw
+grad_clip: 1.0
+optim_conf:
+    lr: 1.0e-05
+    weight_decay: 0.01
+    betas:
+    - 0.9
+    - 0.99
+    eps: 1.0e-06
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 3000

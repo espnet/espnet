@@ -32,6 +32,38 @@
 |decode_asr_lm_lm_train_lm_transformer_en_char_valid.loss.ave_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|126812|94.4|2.8|2.8|1.5|7.2|66.1|
 
 
+## Whisper [medium_finetuning](conf/tuning/train_asr_whisper_full_warmup1500.yaml) without LM
+
+## Environments
+- date: `Fri Jul 21 12:47:17 JST 2023`
+- python version: `3.10.10 (main, Mar 21 2023, 18:45:11) [GCC 11.2.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `d7172fcb7181ffdcca9c0061400254b63e37bf21`
+  - Commit date: `Sat Jul 15 15:01:30 2023 +0900`
+- Pretrained URL: [espnet/yoshiki_chime4_whisper_medium_finetuning](https://huggingface.co/espnet/yoshiki_chime4_whisper_medium_finetuning)
+
+- token_type: whisper_multilingual
+- cleaner: whisper_en
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dt05_real_isolated_1ch_track|1640|24791|97.7|1.9|0.5|0.7|3.0|25.7|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dt05_simu_isolated_1ch_track|1640|24792|95.9|3.3|0.8|0.8|4.9|37.0|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/et05_real_isolated_1ch_track|1320|19341|96.3|3.2|0.5|0.8|4.5|33.6|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|19344|93.1|5.8|1.1|1.2|8.1|43.3|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dt05_real_isolated_1ch_track|1640|141889|99.2|0.4|0.4|0.7|1.5|25.7|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/dt05_simu_isolated_1ch_track|1640|141900|98.2|0.9|0.9|0.8|2.6|37.0|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/et05_real_isolated_1ch_track|1320|110558|98.6|0.8|0.6|0.7|2.1|33.6|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|110572|96.5|1.9|1.5|1.2|4.7|43.3|
+
 
 # Conformer: 12 layers, 2048 linear units
 ## Environments

@@ -2,8 +2,8 @@ optim: adam
 init: xavier_uniform
 max_epoch: 50
 batch_type: folded
-batch_size: 4
-accum_grad: 4
+batch_size: 1
+accum_grad: 16
 iterator_type: chunk
 chunk_length: 24000
 num_workers: 4

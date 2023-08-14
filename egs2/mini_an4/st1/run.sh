@@ -7,9 +7,10 @@ set -o pipefail
 
 src_case=lc.rm
 tgt_case=lc.rm
-st_config=conf/train_st.yaml
 
 ./st.sh \
+    --nj 2 \
+    --inference_nj 2 \
     --src_lang en \
     --tgt_lang en \
     --src_token_type "bpe" \
@@ -22,7 +23,9 @@ st_config=conf/train_st.yaml
     --tgt_bpe_train_text "data/train_nodev/text.${tgt_case}.en" \
     --use_lm false \
     --token_joint false \
-    --st_config "${st_config}" \
+    --st_config conf/train_st_debug.yaml \
+    --lm_config conf/train_lm_rnn_debug.yaml \
+    --inference_config conf/decode_debug.yaml \
     --train_set "train_nodev" \
     --valid_set "train_dev" \
     --test_sets "train_dev test test_seg" \

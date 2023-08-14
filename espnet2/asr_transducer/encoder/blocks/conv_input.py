@@ -4,7 +4,7 @@ from typing import Optional, Tuple, Union
 
 import torch
 
-from espnet2.asr_transducer.utils import sub_factor_to_params
+from espnet2.asr_transducer.utils import get_convinput_module_parameters
 
 
 class ConvInput(torch.nn.Module):
@@ -31,47 +31,46 @@ class ConvInput(torch.nn.Module):
         super().__init__()
 
         self.subsampling_factor = subsampling_factor
+        self.vgg_like = vgg_like
 
         if vgg_like:
             conv_size1, conv_size2 = conv_size
 
-            kernel_1 = int(subsampling_factor / 2)
+            self.maxpool_kernel1, output_proj = get_convinput_module_parameters(
+                input_size, conv_size2, subsampling_factor, is_vgg=True
+            )
 
             self.conv = torch.nn.Sequential(
                 torch.nn.Conv2d(1, conv_size1, 3, stride=1, padding=1),
                 torch.nn.ReLU(),
-                torch.nn.Conv2d(conv_size1, conv_size1, 3, stride=1, padding=1),
+                torch.nn.Conv2d(conv_size1, conv_size1, 3, stride=1, padding=0),
                 torch.nn.ReLU(),
-                torch.nn.MaxPool2d((kernel_1, 2)),
+                torch.nn.MaxPool2d(
+                    self.maxpool_kernel1, stride=2, padding=0, ceil_mode=True
+                ),
                 torch.nn.Conv2d(conv_size1, conv_size2, 3, stride=1, padding=1),
                 torch.nn.ReLU(),
-                torch.nn.Conv2d(conv_size2, conv_size2, 3, stride=1, padding=1),
+                torch.nn.Conv2d(conv_size2, conv_size2, 3, stride=1, padding=0),
                 torch.nn.ReLU(),
-                torch.nn.MaxPool2d((2, 2)),
+                torch.nn.MaxPool2d(2, stride=2, padding=0, ceil_mode=True),
             )
-
-            output_proj = conv_size2 * ((input_size // 2) // 2)
-
-            self.stride_1 = kernel_1
         else:
-            kernel_2, stride_2, conv_2_output_size = sub_factor_to_params(
-                subsampling_factor,
-                input_size,
+            (
+                self.conv_kernel2,
+                self.conv_stride2,
+            ), output_proj = get_convinput_module_parameters(
+                input_size, conv_size, subsampling_factor, is_vgg=False
             )
 
             self.conv = torch.nn.Sequential(
                 torch.nn.Conv2d(1, conv_size, 3, 2),
                 torch.nn.ReLU(),
-                torch.nn.Conv2d(conv_size, conv_size, kernel_2, stride_2),
+                torch.nn.Conv2d(
+                    conv_size, conv_size, self.conv_kernel2, self.conv_stride2
+                ),
                 torch.nn.ReLU(),
             )
 
-            output_proj = conv_size * conv_2_output_size
-
-            self.kernel_2 = kernel_2
-            self.stride_2 = stride_2
-
-        self.vgg_like = vgg_like
         self.min_frame_length = 7 if subsampling_factor < 6 else 11
 
         if output_size is not None:
@@ -82,7 +81,7 @@ class ConvInput(torch.nn.Module):
             self.output_size = output_proj
 
     def forward(
-        self, x: torch.Tensor, mask: Optional[torch.Tensor]
+        self, x: torch.Tensor, mask: Optional[torch.Tensor] = None
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Encode input sequences.
 
@@ -107,18 +106,3 @@ class ConvInput(torch.nn.Module):
             mask = mask[:, : x.size(1)]
 
         return x, mask
-
-    def get_size_before_subsampling(self, size: int) -> int:
-        """Return the original size before subsampling for a given size.
-
-        Args:
-            size: Number of frames after subsampling.
-
-        Returns:
-            : Number of frames before subsampling.
-
-        """
-        if self.vgg_like:
-            return ((size * 2) * self.stride_1) + 1
-
-        return ((size + 2) * 2) + (self.kernel_2 - 1) * self.stride_2

@@ -1,6 +1,6 @@
 """Utility functions for Transducer models."""
 
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import torch
 
@@ -45,35 +45,50 @@ def check_short_utt(sub_factor: int, size: int) -> Tuple[bool, int]:
     return False, -1
 
 
-def sub_factor_to_params(sub_factor: int, input_size: int) -> Tuple[int, int, int]:
-    """Get conv2D second layer parameters for given subsampling factor.
+def get_convinput_module_parameters(
+    input_size: int,
+    last_conv_size,
+    subsampling_factor: int,
+    is_vgg: bool = True,
+) -> Tuple[Union[Tuple[int, int], int], int]:
+    """Return the convolution module parameters.
 
     Args:
-        sub_factor: Subsampling factor (1/X).
-        input_size: Input size.
+        input_size: Module input size.
+        last_conv_size: Last convolution size for module output size computation.
+        subsampling_factor: Total subsampling factor.
+        is_vgg: Whether the module type is VGG-like.
 
     Returns:
-        : Kernel size for second convolution.
-        : Stride for second convolution.
-        : Conv2DSubsampling output size.
+        : First MaxPool2D kernel size or second Conv2d kernel size and stride.
+        output_size: Convolution module output size.
 
     """
-    if sub_factor == 2:
-        return 3, 1, (((input_size - 1) // 2 - 2))
-    elif sub_factor == 4:
-        return 3, 2, (((input_size - 1) // 2 - 1) // 2)
-    elif sub_factor == 6:
-        return 5, 3, (((input_size - 1) // 2 - 2) // 3)
+    if is_vgg:
+        maxpool_kernel1 = subsampling_factor // 2
+
+        output_size = last_conv_size * (((input_size - 1) // 2 - 1) // 2)
+
+        return maxpool_kernel1, output_size
+
+    if subsampling_factor == 2:
+        conv_params = (3, 1)
+    elif subsampling_factor == 4:
+        conv_params = (3, 2)
     else:
-        raise ValueError(
-            "subsampling_factor parameter should be set to either 2, 4 or 6."
-        )
+        conv_params = (5, 3)
+
+    output_size = last_conv_size * (
+        ((input_size - 1) // 2 - (conv_params[0] - conv_params[1])) // conv_params[1]
+    )
+
+    return conv_params, output_size
 
 
 def make_chunk_mask(
     size: int,
     chunk_size: int,
-    left_chunk_size: int = 0,
+    num_left_chunks: int = 0,
     device: torch.device = None,
 ) -> torch.Tensor:
     """Create chunk mask for the subsequent steps (size, size).
@@ -83,7 +98,8 @@ def make_chunk_mask(
     Args:
         size: Size of the source mask.
         chunk_size: Number of frames in chunk.
-        left_chunk_size: Size of the left context in chunks (0 means full context).
+        num_left_chunks: Number of left chunks the attention module can see.
+                           (null or negative value means full context)
         device: Device for the mask tensor.
 
     Returns:
@@ -93,10 +109,10 @@ def make_chunk_mask(
     mask = torch.zeros(size, size, device=device, dtype=torch.bool)
 
     for i in range(size):
-        if left_chunk_size <= 0:
+        if num_left_chunks <= 0:
             start = 0
         else:
-            start = max((i // chunk_size - left_chunk_size) * chunk_size, 0)
+            start = max((i // chunk_size - num_left_chunks) * chunk_size, 0)
 
         end = min((i // chunk_size + 1) * chunk_size, size)
         mask[i, start:end] = True

@@ -386,6 +386,8 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}/org/${train_set}/spk2sid" \
                     "${data_feats}${_suf}/${dset}/utt2spk" \
                     > "${data_feats}${_suf}/${dset}/utt2sid"
+
+		utt_extra_files="${utt_extra_files} utt2sid"
             done
         fi
     fi
@@ -413,6 +415,8 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}/org/${train_set}/lang2lid" \
                     "${data_feats}${_suf}/${dset}/utt2lang" \
                     > "${data_feats}${_suf}/${dset}/utt2lid"
+
+		utt_extra_files="${utt_extra_files} utt2lid"
             done
         fi
     fi
@@ -655,10 +659,10 @@ if ! "${skip_train}"; then
         fi
 
         if [ -z "${teacher_dumpdir}" ]; then
-            log "CASE 1: AR model training"
-            #####################################
-            #     CASE 1: AR model training     #
-            #####################################
+            log "CASE 1: AR model training or NAR model with music score duration"
+            ############################################################################
+            #     CASE 1: AR model training or NAR model with music score duration     #
+            ############################################################################
             _scp=wav.scp
             # "sound" supports "wav", "flac", etc.
             _type=sound
@@ -736,10 +740,10 @@ if ! "${skip_train}"; then
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
         else
-            log "CASE 2: Non-AR model training"
-            #####################################
-            #   CASE 2: Non-AR model training   #
-            #####################################
+	    log "CASE 2: Non-AR model training (with additional alignment)"
+            ##################################################################
+	    #   CASE 2: Non-AR model training  (with additional alignment)   #
+            ##################################################################
             _teacher_train_dir="${teacher_dumpdir}/${train_set}"
             _teacher_valid_dir="${teacher_dumpdir}/${valid_set}"
             _fold_length="${singing_fold_length}"
@@ -782,9 +786,7 @@ if ! "${skip_train}"; then
             fi
         fi
 
-        # TODO (jiatong): add specifics for svs
-        # If there are dumped files of additional inputs, we use it to reduce computational cost
-        # NOTE (kan-bayashi): Use dumped files of the target features as well?
+        # NOTE (jiatong): Use dumped files of the target features as well
         if [ -e "${svs_stats_dir}/train/collect_feats/pitch.scp" ]; then
             _scp=pitch.scp
             _type=npy

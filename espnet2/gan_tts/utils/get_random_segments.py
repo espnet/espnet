@@ -27,6 +27,7 @@ def get_random_segments(
     """
     b, c, t = x.size()
     max_start_idx = x_lengths - segment_size
+    max_start_idx[max_start_idx < 0] = 0
     start_idxs = (torch.rand([b]).to(x.device) * max_start_idx).to(
         dtype=torch.long,
     )

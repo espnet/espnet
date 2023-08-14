@@ -60,6 +60,7 @@ class BeamSearchTransducer:
         multi_blank_durations: List[int] = [],
         multi_blank_indices: List[int] = [],
         score_norm: bool = True,
+        score_norm_during: bool = False,
         nbest: int = 1,
         token_list: Optional[List[str]] = None,
     ):
@@ -82,6 +83,8 @@ class BeamSearchTransducer:
             multi_blank_durations: The duration of each blank token. (MBG)
             multi_blank_indices: The index of each blank token in token_list. (MBG)
             score_norm: Normalize final scores by length. ("default")
+            score_norm_during:
+              Normalize scores by length during search. (default, TSD, ALSD)
             nbest: Number of final hypothesis.
 
         """
@@ -157,6 +160,7 @@ class BeamSearchTransducer:
             logging.warning("LM is provided but not used, since this is greedy search.")
 
         self.score_norm = score_norm
+        self.score_norm_during = score_norm_during
         self.nbest = nbest
 
     def __call__(
@@ -305,7 +309,10 @@ class BeamSearchTransducer:
                 )
 
             while True:
-                max_hyp = max(hyps, key=lambda x: x.score)
+                if self.score_norm_during:
+                    max_hyp = max(hyps, key=lambda x: x.score / len(x.yseq))
+                else:
+                    max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
 
                 dec_out, state, lm_tokens = self.decoder.score(max_hyp, cache)
@@ -356,7 +363,12 @@ class BeamSearchTransducer:
                         )
                     )
 
-                hyps_max = float(max(hyps, key=lambda x: x.score).score)
+                if self.score_norm_during:
+                    hyps_max = float(
+                        max(hyps, key=lambda x: x.score / len(x.yseq)).score
+                    )
+                else:
+                    hyps_max = float(max(hyps, key=lambda x: x.score).score)
                 kept_most_prob = sorted(
                     [hyp for hyp in kept_hyps if hyp.score > hyps_max],
                     key=lambda x: x.score,
@@ -457,9 +469,17 @@ class BeamSearchTransducer:
 
                             D.append(new_hyp)
 
-                C = sorted(D, key=lambda x: x.score, reverse=True)[:beam]
+                if self.score_norm_during:
+                    C = sorted(D, key=lambda x: x.score / len(x.yseq), reverse=True)[
+                        :beam
+                    ]
+                else:
+                    C = sorted(D, key=lambda x: x.score, reverse=True)[:beam]
 
-            B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
+            if self.score_norm_during:
+                B = sorted(A, key=lambda x: x.score / len(x.yseq), reverse=True)[:beam]
+            else:
+                B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
 
         return self.sort_nbest(B)
 
@@ -560,7 +580,12 @@ class BeamSearchTransducer:
 
                         A.append(new_hyp)
 
-                B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
+                if self.score_norm_during:
+                    B = sorted(A, key=lambda x: x.score / len(x.yseq), reverse=True)[
+                        :beam
+                    ]
+                else:
+                    B = sorted(A, key=lambda x: x.score, reverse=True)[:beam]
                 B = recombine_hyps(B)
 
         if final:
