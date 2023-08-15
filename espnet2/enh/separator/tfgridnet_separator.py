@@ -79,8 +79,7 @@ class TFGridNet(AbsSeparator):
         self.n_imics = n_imics
         assert n_fft % 2 == 0
         n_freqs = n_fft // 2 + 1
-        if ref_channel >= 0:
-            self.ref_channel = ref_channel
+        self.ref_channel = ref_channel
 
         self.enc = STFTEncoder(
             n_fft, n_fft, stride, window=window, use_builtin_complex=use_builtin_complex
