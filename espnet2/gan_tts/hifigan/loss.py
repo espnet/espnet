@@ -277,7 +277,8 @@ class MelSpectrogramLoss(torch.nn.Module):
             y_hat (Tensor): Generated waveform tensor (B, 1, T).
             y (Tensor): Groundtruth waveform tensor (B, 1, T).
             spec (Optional[Tensor]): Groundtruth linear amplitude spectrum tensor
-                (B, n_fft, T). if provided, use it instead of groundtruth waveform.
+                (B, T, n_fft // 2 + 1).  if provided, use it instead of groundtruth
+                waveform.
 
         Returns:
             Tensor: Mel-spectrogram loss value.

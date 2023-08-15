@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Set bash to 'debug' mode, it will exit on :
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
-set -e
-set -u
-set -o pipefail
+#set -e
+#set -u
+#set -o pipefail
 
 # language related
-src_lang=es
+src_lang=fr
 tgt_lang=en
 use_src_lang=true
 

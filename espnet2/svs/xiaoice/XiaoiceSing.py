@@ -54,8 +54,7 @@ class XiaoiceSing(AbsSVS):
         idim: int,
         odim: int,
         midi_dim: int = 129,
-        tempo_dim: int = 500,
-        embed_dim: int = 512,
+        duration_dim: int = 500,
         adim: int = 384,
         aheads: int = 4,
         elayers: int = 6,
@@ -118,8 +117,10 @@ class XiaoiceSing(AbsSVS):
         """Initialize XiaoiceSing module.
 
         Args:
-            idim (int): Dimension of the inputs.
+            idim (int): Dimension of the label inputs.
             odim (int): Dimension of the outputs.
+            midi_dim (int): Dimension of the midi inputs.
+            duration_dim (int): Dimension of the duration inputs.
             elayers (int): Number of encoder layers.
             eunits (int): Number of encoder hidden units.
             dlayers (int): Number of decoder layers.
@@ -174,7 +175,7 @@ class XiaoiceSing(AbsSVS):
             use_weighted_masking (bool): Whether to apply weighted masking in loss
                 calculation.
             loss_function (str): Loss functions ("FastSpeech1" or "XiaoiceSing2")
-            loss_type (str): Loss type ("L1" (MAE) or "L2" (MSE))
+            loss_type (str): Mel loss type ("L1" (MAE), "L2" (MSE) or "L1+L2")
             lambda_mel (float): Loss scaling coefficient for Mel loss.
             lambda_dur (float): Loss scaling coefficient for duration loss.
             lambda_pitch (float): Loss scaling coefficient for pitch loss.
@@ -187,9 +188,8 @@ class XiaoiceSing(AbsSVS):
         # store hyperparameters
         self.idim = idim
         self.midi_dim = midi_dim
-        self.tempo_dim = tempo_dim
+        self.duration_dim = duration_dim
         self.odim = odim
-        self.embed_dim = embed_dim
         self.eos = idim - 1
         self.reduction_factor = reduction_factor
         self.encoder_type = encoder_type
@@ -236,16 +236,16 @@ class XiaoiceSing(AbsSVS):
 
         # define encoder
         self.phone_encode_layer = torch.nn.Embedding(
-            num_embeddings=idim, embedding_dim=embed_dim, padding_idx=self.padding_idx
+            num_embeddings=idim, embedding_dim=adim, padding_idx=self.padding_idx
         )
         self.midi_encode_layer = torch.nn.Embedding(
             num_embeddings=midi_dim,
-            embedding_dim=embed_dim,
+            embedding_dim=adim,
             padding_idx=self.padding_idx,
         )
-        self.tempo_encode_layer = torch.nn.Embedding(
-            num_embeddings=tempo_dim,
-            embedding_dim=embed_dim,
+        self.duration_encode_layer = torch.nn.Embedding(
+            num_embeddings=duration_dim,
+            embedding_dim=adim,
             padding_idx=self.padding_idx,
         )
         if encoder_type == "transformer":
@@ -370,7 +370,7 @@ class XiaoiceSing(AbsSVS):
             raise ValueError(f"{decoder_type} is not supported.")
 
         # define final projection
-        self.linear_projection = torch.nn.Linear(adim, odim * reduction_factor + 2)
+        self.linear_projection = torch.nn.Linear(adim, (odim + 2) * reduction_factor)
 
         # define postnet
         self.postnet = (
@@ -465,25 +465,26 @@ class XiaoiceSing(AbsSVS):
         if joint_training:
             label = label
             midi = melody
-            tempo = duration
             label_lengths = label_lengths
             midi_lengths = melody_lengths
-            tempo_lengths = duration_lengths
+            duration_lengths = duration_lengths
+            duration_ = duration
             ds = duration
         else:
             label = label["score"]
             midi = melody["score"]
-            tempo = duration["score_phn"]
+            duration_ = duration["score_phn"]
             label_lengths = label_lengths["score"]
             midi_lengths = melody_lengths["score"]
-            tempo_lengths = duration_lengths["score_phn"]
+            duration_lengths = duration_lengths["score_phn"]
             ds = duration["lab"]
 
-        text = text[:, : text_lengths.max()]  # for data-parallel
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
         label = label[:, : label_lengths.max()]  # for data-parallel
-        tempo = tempo[:, : tempo_lengths.max()]  # for data-parallel
+        duration_ = duration_[:, : duration_lengths.max()]  # for data-parallel
+        olens = feats_lengths
+
         if self.loss_function == "XiaoiceSing2":
             pitch = pitch[:, : pitch_lengths.max()]
             log_f0 = torch.clamp(pitch, min=0)
@@ -492,8 +493,8 @@ class XiaoiceSing(AbsSVS):
 
         label_emb = self.phone_encode_layer(label)
         midi_emb = self.midi_encode_layer(midi)
-        tempo_emb = self.tempo_encode_layer(tempo)
-        input_emb = label_emb + midi_emb + tempo_emb
+        duration_emb = self.duration_encode_layer(duration_)
+        input_emb = label_emb + midi_emb + duration_emb
 
         x_masks = self._source_mask(label_lengths)
         hs, _ = self.encoder(input_emb, x_masks)  # (B, T_text, adim)
@@ -517,12 +518,19 @@ class XiaoiceSing(AbsSVS):
         hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
 
         # forward decoder
-        h_masks = self._source_mask(feats_lengths)
+        if self.reduction_factor > 1:
+            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+        else:
+            olens_in = olens
+        h_masks = self._source_mask(olens_in)
+
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs, log_f0_outs, vuv_outs = self.linear_projection(
-            zs
-        ).split_with_sizes([self.odim * self.reduction_factor, 1, 1], dim=2)
-        before_outs = before_outs.view(zs.size(0), -1, self.odim)  # (B. T_feats, odim)
+        before_outs, log_f0_outs, vuv_outs = (
+            self.linear_projection(zs)
+            .view((zs.size(0), -1, self.odim + 2))
+            .split_with_sizes([self.odim, 1, 1], dim=2)
+        )
+        # (B. T_feats, odim), (B. T_feats, 1), (B. T_feats, 1)
 
         # postnet -> (B, Lmax//r * r, odim)
         if self.postnet is None:
@@ -645,15 +653,15 @@ class XiaoiceSing(AbsSVS):
         label = label["score"]
         midi = melody["score"]
         if joint_training:
-            tempo = duration["lab"]
+            duration_ = duration["lab"]
         else:
-            tempo = duration["score_phn"]
+            duration_ = duration["score_phn"]
         ds = duration["lab"]
 
         label_emb = self.phone_encode_layer(label)
         midi_emb = self.midi_encode_layer(midi)
-        tempo_emb = self.tempo_encode_layer(tempo)
-        input_emb = label_emb + midi_emb + tempo_emb
+        duration_emb = self.duration_encode_layer(duration_)
+        input_emb = label_emb + midi_emb + duration_emb
 
         x_masks = None  # self._source_mask(label_lengths)
         hs, _ = self.encoder(input_emb, x_masks)  # (B, T_text, adim)
@@ -665,6 +673,8 @@ class XiaoiceSing(AbsSVS):
         if self.langs is not None:
             lid_embs = self.lid_emb(lids.view(-1))
             hs = hs + lid_embs.unsqueeze(1)
+        if spembs is not None:
+            spembs = spembs.unsqueeze(0)
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:
@@ -686,11 +696,12 @@ class XiaoiceSing(AbsSVS):
         # forward decoder
         h_masks = None  # self._source_mask(feats_lengths)
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs, _, _ = self.linear_projection(zs).split_with_sizes(
-            [self.odim * self.reduction_factor, 1, 1], dim=2
+        before_outs, _, _ = (
+            self.linear_projection(zs)
+            .view((zs.size(0), -1, self.odim + 2))
+            .split_with_sizes([self.odim, 1, 1], dim=2)
         )
-        before_outs = before_outs.view(zs.size(0), -1, self.odim)  # (B. T_feats, odim)
-        # (B, T_feats, odim)
+        # (B, T_feats, odim), (B, T_feats, 1), (B, T_feats, 1)
 
         # postnet -> (B, Lmax//r * r, odim)
         if self.postnet is None:

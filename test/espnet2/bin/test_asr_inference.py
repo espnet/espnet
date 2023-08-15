@@ -284,9 +284,56 @@ def test_Speech2Text_hugging_face(
     speech2text = Speech2Text(
         asr_train_config=asr_config_file,
         hugging_face_decoder=True,
-        hugging_face_decoder_max_length=10,
+        hugging_face_decoder_conf={"num_beams": 2, "max_new_tokens": 4},
         ctc_weight=0.0,
-        beam_size=2,
+    )
+    speech = np.random.randn(100000)
+    results = speech2text(speech)
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], int)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.parametrize(
+    "model_name_or_path",
+    [
+        "akreal/tiny-random-LlamaForCausalLM",  # tokenizer.padding_side=="left"
+        "akreal/tiny-random-BloomForCausalLM",  # tokenizer.padding_side=="right"
+    ],
+)
+@pytest.mark.parametrize("prefix", ["prefix", ""])
+@pytest.mark.parametrize("postfix", ["postfix", ""])
+@pytest.mark.execution_timeout(10)
+def test_Speech2Text_hugging_face_causal_lm(
+    asr_config_file, token_list_hugging_face, model_name_or_path, prefix, postfix
+):
+    file = open(asr_config_file, "r", encoding="utf-8")
+    asr_train_config = file.read()
+    asr_train_config = yaml.full_load(asr_train_config)
+    asr_train_config["token_type"] = "hugging_face"
+    asr_train_config["bpemodel"] = model_name_or_path
+    asr_train_config["token_list"] = str(token_list_hugging_face)
+    asr_train_config["model_conf"]["ignore_id"] = 1
+    asr_train_config["model_conf"]["sym_blank"] = "<pad>"
+    asr_train_config["model_conf"]["sym_sos"] = "<s>"
+    asr_train_config["model_conf"]["sym_eos"] = "</s>"
+    asr_train_config["decoder"] = "hugging_face_transformers"
+    asr_train_config["decoder_conf"] = {
+        "model_name_or_path": model_name_or_path,
+        "causal_lm": True,
+        "prefix": prefix,
+        "postfix": postfix,
+    }
+    # Change the configuration file
+    with open(asr_config_file, "w", encoding="utf-8") as files:
+        yaml.dump(asr_train_config, files)
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        hugging_face_decoder=True,
+        hugging_face_decoder_conf={"num_beams": 2, "max_new_tokens": 4},
+        ctc_weight=0.0,
     )
     speech = np.random.randn(100000)
     results = speech2text(speech)
