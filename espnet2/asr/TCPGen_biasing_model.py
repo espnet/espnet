@@ -128,6 +128,7 @@ class ESPnetTCPGenBiasingASRModel(ESPnetASRModel):
             # tcpgen biasing
             if self.biasing:
                 from warp_rnnt import rnnt_loss
+
                 self.criterion_transducer_logprob = rnnt_loss
 
                 self.attndim = battndim
