@@ -23,6 +23,7 @@
 - ASR pre-training config: [../../wsj/asr1/conf/tuning/train_asr_conformer_s3prlfrontend_wavlm.yaml](../../wsj/asr1/conf/tuning/train_asr_conformer_s3prlfrontend_wavlm.yaml)
 - Enh-ASR finetuning config: [./conf/tuning/train_enh_asr_tfgridnet_waspaa2023.yaml](./conf/tuning/train_enh_asr_tfgridnet_waspaa2023.yaml)
 - LM config: [../../wsj/asr1/conf/train_lm_transformer.yaml](../../wsj/asr1/conf/train_lm_transformer.yaml)
+- Pretrained model: [https://huggingface.co/espnet/yoshiki_wsj0_2mix_spatialized_enh_asr_tfgridnet_waspaa2023_raw_en_char](https://huggingface.co/espnet/yoshiki_wsj0_2mix_spatialized_enh_asr_tfgridnet_waspaa2023_raw_en_char)
 
 ### WER
 
