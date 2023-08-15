@@ -37,7 +37,7 @@ ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes.
 nj=32                # The number of parallel jobs.
 inference_nj=32      # The number of parallel jobs in decoding.
-gpu_inference=false  # Whether to perform gpu decoding.
+gpu_inference=       # Whether to perform gpu decoding.
 dumpdir=dump         # Directory to dump features.
 expdir=exp           # Directory to save experiments.
 python=python3       # Specify python to execute espnet commands.
@@ -649,13 +649,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             rm -f "${data_audio}/${dset}"/{segments,wav.scp,reco2file_and_channel,reco2dur}
 
             _opts=
-            if [ -e "data/${dset}"/segments ]; then
+            if [ -e data/"${dset}"/segments ]; then
                 # "segments" is used for splitting wav files which are written in "wav".scp
                 # into utterances. The file format of segments:
                 #   <segment_id> <record_id> <start_time> <end_time>
                 #   "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5"
                 # Where the time is written in seconds.
-                _opts+="--segments data/${dset}/segments "
+                # _opts+="--segments data/${dset}/segments "
+                <data/"${dset}"/segments sort -k 2,2 -k 3,3n > data/${dset}/segments.sorted
+                _opts+="--segments data/${dset}/segments.sorted "
             fi
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
@@ -680,6 +682,12 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then
     log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
 
+    if [[ "${audio_format}" == *ark* ]]; then
+        _audio_format=kaldi_ark
+    else
+        _audio_format=sound
+    fi
+
     scripts/feats/perform_kmeans.sh \
         --stage 1 --stop-stage 4 \
         --train_set "${train_set}" \
@@ -702,6 +710,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
         ${kmeans_opts}
 
     log "Stage 4b: Prepare token_list and convert number indices to CJK tokens"
+
+    
 
     # Get uniq chars
     if [ ! -f "${km_dir}/../"distinct_cjk_token_lists ]; then
