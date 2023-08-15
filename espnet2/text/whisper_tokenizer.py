@@ -3,37 +3,10 @@ from typing import Iterable, List
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
-
-LANGUAGES_CODE_MAPPING = {
-    "noinfo": "english",  # default, English
-    "ca": "catalan",
-    "cs": "czech",
-    "cy": "welsh",
-    "de": "german",
-    "en": "english",
-    "eu": "basque",
-    "es": "spanish",
-    "fa": "persian",
-    "fr": "french",
-    "it": "italian",
-    "ja": "japanese",
-    "jpn": "japanese",
-    "ko": "korean",
-    "kr": "korean",
-    "nl": "dutch",
-    "pl": "polish",
-    "pt": "portuguese",
-    "ru": "russian",
-    "tt": "tatar",
-    "zh": "chinese",
-    "zh-TW": "chinese",
-    "zh-CN": "chinese",
-    "zh-HK": "chinese",
-}
-
-
+import os
+dirname = os.path.dirname(__file__)
 class OpenAIWhisperTokenizer(AbsTokenizer):
-    def __init__(self, model_type: str, language: str = "en"):
+    def __init__(self, model_type: str,added_tokens_txt: str = None):
         assert check_argument_types()
 
         try:
@@ -47,25 +20,27 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
             raise e
 
         self.model = model_type
-
-        self.language = LANGUAGES_CODE_MAPPING.get(language)
-        if self.language is None:
-            raise ValueError("language unsupported for Whisper model")
-
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
+        # TODO(Shih-Lun): should support feeding in
+        #                  different languages (default is en)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=self.language
+                multilingual=True, language=None
             )
+            # import pdb;pdb.set_trace()
+            if added_tokens_txt is not None:
+                _added_tokens = []
+                with open(added_tokens_txt) as f:
+                    lines = f.readlines()
+                    for l in lines:
+                        _added_tokens.append(l.rstrip())
+                self.tokenizer.tokenizer.add_tokens(_added_tokens)
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 
     def __repr__(self):
-        return (
-            f"{self.__class__.__name__}(model_type={self.model}, "
-            f"language={self.language})"
-        )
+        return f'{self.__class__.__name__}(model="{self.model}")'
 
     def text2tokens(self, line: str) -> List[str]:
         return self.tokenizer.tokenizer.tokenize(line, add_special_tokens=False)

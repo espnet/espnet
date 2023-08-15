@@ -1,0 +1,8 @@
+beam_size: 20
+ctc_weight: 0.0
+lm_weight: 0.
+maxlenratio: 1.2
+minlenratio: 0.
+penalty: 0.2
+ner_prompt: true
+prompt_token_file: /projects/bbjs/arora1/new_download/espnet/egs2/stop/asr3_combined/add_tokens-Copy1.txt

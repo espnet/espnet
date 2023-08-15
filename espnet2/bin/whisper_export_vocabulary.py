@@ -6,11 +6,11 @@ from pathlib import Path
 
 from typeguard import check_argument_types
 
-from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet.utils.cli_utils import get_commandline_args
+import os
+dirname = os.path.dirname(__file__)
 
-
-def export_vocabulary(output: str, whisper_model: str, language: str, log_level: str):
+def export_vocabulary(output: str, whisper_model: str, log_level: str, add_token_file_name: str):
     try:
         import whisper.tokenizer
     except Exception as e:
@@ -34,16 +34,20 @@ def export_vocabulary(output: str, whisper_model: str, language: str, log_level:
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
-    language = LANGUAGES_CODE_MAPPING.get(language)
-    if language is None:
-        raise ValueError("language unsupported for Whisper model")
-
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
+    # TODO(Shih-Lun): should support feeding in
+    #                  different languages (default is en)
     elif whisper_model == "whisper_multilingual":
-        tokenizer = whisper.tokenizer.get_tokenizer(
-            multilingual=True, language=language
-        )
+        tokenizer = whisper.tokenizer.get_tokenizer(multilingual=True, language=None)
+        # import pdb;pdb.set_trace()
+        if add_token_file_name!="none":
+            _added_tokens = []
+            with open(add_token_file_name) as f:
+                lines = f.readlines()
+                for l in lines:
+                    _added_tokens.append(l.rstrip())
+            tokenizer.tokenizer.add_tokens(_added_tokens)
     else:
         raise ValueError("tokenizer unsupported:", whisper_model)
 
@@ -86,10 +90,10 @@ def get_parser() -> argparse.ArgumentParser:
         help="Whisper model type",
     )
     parser.add_argument(
-        "--language",
+        "--add_token_file_name",
         type=str,
-        default="en",
-        help="Language of Whisper multilingual tokenizer (default is en)",
+        default=None,
+        help="File name for added tokens",
     )
 
     return parser
