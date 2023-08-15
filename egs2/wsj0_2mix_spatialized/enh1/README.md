@@ -9,10 +9,11 @@
 - pytorch version: `pytorch 1.10.1+cu111`
 - Git hash: `277ec3c33d2ca7f47d9d31c84e4dae54ce017bd7`
   - Commit date: `Wed Aug 10 13:32:09 2022 -0400`
+- pretrained model: [https://huggingface.co/espnet/yoshiki_wsj0_2mix_spatialized_enh_tfgridnet_waspaa2023_raw](https://huggingface.co/espnet/yoshiki_wsj0_2mix_spatialized_enh_tfgridnet_waspaa2023_raw)
 - run.sh
   - min_or_max=min
   - sample_rate=16k
-  - mode=multi
+  - mode=multi (both anechoic and reverberant)
 
 
 ## enh_train_enh_tfgridnet_waspaa2023_raw

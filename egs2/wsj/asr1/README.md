@@ -37,6 +37,9 @@
 - pytorch version: `pytorch 1.10.1+cu111`
 - Git hash: `a0702913d1ce828915abb4638abcb308d85400d4`
   - Commit date: `Sun Aug 13 08:04:03 2023 +0900`
+- training config: [conf/tuning/train_asr_conformer_s3prlfrontend_wavlm.yaml](conf/tuning/train_asr_conformer_s3prlfrontend_wavlm.yaml)
+- inference config: [conf/decode.yaml](conf/decode.yaml)
+- pretrained model: [https://huggingface.co/espnet/yoshiki_wsj_asr_conformer_s3prlfrontend_wavlm_raw_en_char](https://huggingface.co/espnet/yoshiki_wsj_asr_conformer_s3prlfrontend_wavlm_raw_en_char)
 
 ### WER
 
