@@ -57,7 +57,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --audio-format "flac" --fs "16k" \
             "data/${dset}/wav.scp" "dump/raw/org/${dset}" \
             "dump/raw/org/${dset}/logs/wav" "dump/raw/org/${dset}/data/wav"
-    done
+     done
 
     python3 local/prepare_spk2enroll_mini_an4.py \
         "dump/raw/org/${train_set}" \
@@ -88,6 +88,26 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
             --seed 1 \
             --output_dir data/${dset} \
             --outfile_prefix "enroll_spk"
+    done
+fi
+
+if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+    log "stage 4: Data preparation for variable numbers of speakers (up to 3 speakers)"
+    for dset in ${train_set} ${train_dev} test; do
+        mkdir -p "data/${dset}_unk_nspk"
+        cp -r "data/${dset}/wav.scp" "data/${dset}_unk_nspk"
+        awk -v min=1 -v max=3 '{srand(FNR*6) nspk=int(min+rand()*(max-min+1)); print($1 " " nspk "spk")}' \
+            "data/${dset}/enroll_spk1.scp" > "data/${dset}_unk_nspk/utt2category"
+        # NOTE: Kaldi pipe IO is not supported when preparing the multi-column scp file
+        awk 'NR==FNR{nspk[$1]=substr($2,1,1); next} {msg=$1; for (i=1; i<=nspk[$1]; ++i) {msg=msg" "$2} print(msg)}' \
+            "data/${dset}_unk_nspk/utt2category" "dump/raw/org/${dset}/wav.scp" > "data/${dset}_unk_nspk/spk1.scp"
+        if [ "${dset}" = "${train_set}" ] && $random_enrollment; then
+            awk 'NR==FNR{nspk[$1]=substr($2,1,1); next} {msg=$1; s=$2; for (i=3; i<=NF; i++) {s=s" "$i;} for (i=1; i<=nspk[$1]; ++i) {msg=msg" "s} print(msg)}' \
+            "data/${dset}_unk_nspk/utt2category" "data/${dset}/enroll_spk1.scp" > "data/${dset}_unk_nspk/enroll_spk1.scp"
+        else
+            cp "data/${dset}_unk_nspk/spk1.scp" "data/${dset}_unk_nspk/enroll_spk1.scp"
+        fi
+        cp "data/${dset}_unk_nspk/spk1.scp" "data/${dset}_unk_nspk/dereverb1.scp"
     done
 fi
 

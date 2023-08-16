@@ -1,6 +1,6 @@
 """Enhancement model module."""
 import contextlib
-from typing import Dict, List, OrderedDict, Tuple
+from typing import Dict, List, Optional, OrderedDict, Tuple
 
 import torch
 from typeguard import check_argument_types
@@ -27,6 +27,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
         decoder: AbsDecoder,
         loss_wrappers: List[AbsLossWrapper],
         num_spk: int = 1,
+        flexible_numspk: bool = False,
         share_encoder: bool = True,
         extract_feats_in_collect_stats: bool = False,
     ):
@@ -40,6 +41,8 @@ class ESPnetExtractionModel(AbsESPnetModel):
         # Whether to share encoder for both mixture and enrollment
         self.share_encoder = share_encoder
         self.num_spk = num_spk
+        # If True, self.num_spk is regarded as the MAXIMUM possible number of speakers
+        self.flexible_numspk = flexible_numspk
 
         self.loss_wrappers = loss_wrappers
         names = [w.criterion.name for w in self.loss_wrappers]
@@ -94,6 +97,8 @@ class ESPnetExtractionModel(AbsESPnetModel):
             for spk in range(self.num_spk)
             if "speech_ref{}".format(spk + 1) in kwargs
         ]
+        num_spk = len(speech_ref) if self.flexible_numspk else self.num_spk
+        assert len(speech_ref) == num_spk, (len(speech_ref), num_spk)
         # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
         speech_ref = torch.stack(speech_ref, dim=1)
         batch_size = speech_mix.shape[0]
@@ -103,7 +108,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
         enroll_ref = [
             # (Batch, samples_aux)
             kwargs["enroll_ref{}".format(spk + 1)]
-            for spk in range(self.num_spk)
+            for spk in range(num_spk)
             if "enroll_ref{}".format(spk + 1) in kwargs
         ]
         enroll_ref_lengths = [
@@ -112,7 +117,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
                 "enroll_ref{}_lengths".format(spk + 1),
                 torch.ones(batch_size).int().fill_(enroll_ref[spk].size(1)),
             )
-            for spk in range(self.num_spk)
+            for spk in range(num_spk)
             if "enroll_ref{}".format(spk + 1) in kwargs
         ]
 
@@ -141,9 +146,14 @@ class ESPnetExtractionModel(AbsESPnetModel):
         ]
         assert len(speech_ref) == len(enroll_ref), (len(speech_ref), len(enroll_ref))
 
+        additional = {}
+        # Additional data is required in Deep Attractor Network
+        if self.flexible_numspk:
+            additional["num_spk"] = num_spk
+
         # model forward
         speech_pre, feature_mix, feature_pre, others = self.forward_enhance(
-            speech_mix, speech_lengths, enroll_ref, enroll_ref_lengths
+            speech_mix, speech_lengths, enroll_ref, enroll_ref_lengths, additional
         )
 
         # loss computation
@@ -163,6 +173,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         enroll_ref: torch.Tensor,
         enroll_ref_lengths: torch.Tensor,
+        additional: Optional[Dict] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
         if self.share_encoder:
@@ -184,6 +195,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
                     feature_aux[spk],
                     flens_aux[spk],
                     suffix_tag=f"_spk{spk + 1}",
+                    additional=additional,
                 )
                 for spk in range(len(enroll_ref))
             ]
@@ -317,7 +329,9 @@ class ESPnetExtractionModel(AbsESPnetModel):
         )
         if "mask_spk1" in others:
             masks_pre = [
-                others["mask_spk{}".format(spk + 1)] for spk in range(self.num_spk)
+                others["mask_spk{}".format(spk + 1)]
+                for spk in range(self.num_spk)
+                if "mask_dereverb{}".format(spk + 1) in others
             ]
         else:
             masks_pre = criterion.create_mask_label(

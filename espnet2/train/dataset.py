@@ -29,15 +29,17 @@ from espnet2.fileio.read_text import (
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
+from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.utils.sized_dict import SizedDict
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
-    def __init__(self, loader, dtype=None):
+    def __init__(self, loader, dtype=None, allow_multi_rates=False):
         assert check_argument_types()
         self.loader = loader
         self.dtype = dtype
         self.rate = None
+        self.allow_multi_rates = allow_multi_rates
 
     def keys(self):
         return self.loader.keys()
@@ -64,10 +66,11 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
                     f"Unexpected type: {type(retval[0])}, {type(retval[1])}"
                 )
 
-            if self.rate is not None and self.rate != rate:
-                raise RuntimeError(
-                    f"Sampling rates are mismatched: {self.rate} != {rate}"
-                )
+            if not self.allow_multi_rates:
+                if self.rate is not None and self.rate != rate:
+                    raise RuntimeError(
+                        f"Sampling rates are mismatched: {self.rate} != {rate}"
+                    )
             self.rate = rate
             # Multichannel wave fie
             # array: (NSample, Channel) or (Nsample)
@@ -181,6 +184,18 @@ def multi_columns_sound_loader(path, float_dtype=None):
     return sound_loader(path, float_dtype, multi_columns=True)
 
 
+def variable_columns_sound_loader(path, float_dtype=None, allow_multi_rates=False):
+    # The file is as follows:
+    #   utterance_id_A /some/where/a1.wav /some/where/a2.wav /some/where/a3.wav
+    #   utterance_id_B /some/where/b1.flac /some/where/b2.flac
+
+    # NOTE(wangyou): SoundScpReader doesn't support pipe-fashion
+    # like Kaldi e.g. "cat a.wav |".
+    # NOTE(wangyou): The audio signal is normalized to [-1,1] range.
+    loader = MultiSoundScpReader(path, always_2d=False, dtype=float_dtype, stack_axis=0)
+    return AdapterForSoundScpReader(loader, allow_multi_rates=allow_multi_rates)
+
+
 def score_loader(path):
     loader = SingingScoreReader(fname=path)
     return AdapterForSingingScoreScpReader(loader)
@@ -224,6 +239,20 @@ DATA_TYPES = {
         "   utterance_id_a a.wav a2.wav\n"
         "   utterance_id_b b.wav b2.wav\n"
         "   ...",
+    ),
+    "variable_columns_sound": dict(
+        func=variable_columns_sound_loader,
+        kwargs=["float_dtype", "allow_multi_rates"],
+        help="Loading variable numbers (columns) of audios in wav.scp. "
+        "The following text file can be loaded as stacked audio data"
+        "\n\n"
+        "   utterance_id_a a1.wav a2.wav a3.wav\n"
+        "   utterance_id_b b1.wav\n"
+        "   utterance_id_c c1.wav c2.wav\n"
+        "   ...\n\n"
+        "Note that audios of different lengths will be right-padded with np.nan "
+        "to the longest audio in the sample.\n"
+        "A preprocessor must be used to remove these paddings.",
     ),
     "score": dict(
         func=score_loader,
