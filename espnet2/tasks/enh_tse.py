@@ -291,7 +291,7 @@ class TargetSpeakerExtractionTask(AbsTask):
             force_single_channel=getattr(args, "force_single_channel", False),
             channel_reordering=getattr(args, "channel_reordering", False),
             categories=getattr(args, "categories", None),
-            speech_segment=getattr(args, "categories", None),
+            speech_segment=getattr(args, "speech_segment", None),
             avoid_allzero_segment=getattr(args, "avoid_allzero_segment", True),
             flexible_numspk=getattr(args, "flexible_numspk", False),
         )
