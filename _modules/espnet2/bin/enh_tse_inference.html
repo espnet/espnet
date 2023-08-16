@@ -701,6 +701,23 @@
         <span class="n">allow_variable_data_keys</span><span class="o">=</span><span class="n">allow_variable_data_keys</span><span class="p">,</span>
         <span class="n">inference</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
+    <span class="n">variable_names</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">name</span>
+        <span class="k">for</span> <span class="n">path</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">typ</span> <span class="ow">in</span> <span class="n">loader</span><span class="o">.</span><span class="n">dataset</span><span class="o">.</span><span class="n">path_name_type_list</span>
+        <span class="k">if</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;enroll_ref&quot;</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">variable_names</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">train_config</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">train_config</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">model_file</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span> <span class="o">/</span> <span class="s2">&quot;config.yaml&quot;</span>
+    <span class="k">if</span> <span class="n">num_spk</span> <span class="o">!=</span> <span class="n">separate_speech</span><span class="o">.</span><span class="n">num_spk</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Number of speakers in the model (</span><span class="si">{</span><span class="n">separate_speech</span><span class="o">.</span><span class="n">num_spk</span><span class="si">}</span><span class="s2">) &quot;</span>
+            <span class="s2">&quot;and the number of speakers provided by --data_path_and_name_and_type &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">num_spk</span><span class="si">}</span><span class="s2">) do not match.</span><span class="se">\n</span><span class="s2">Two solutions:</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;  1. Set model_conf.num_spk in </span><span class="si">{</span><span class="n">train_config</span><span class="si">}</span><span class="s2"> manually to </span><span class="si">{</span><span class="n">num_spk</span><span class="si">}</span><span class="s2">.</span><span class="se">\n</span><span class="s2">&quot;</span>
+            <span class="s2">&quot;  2. Reduce the number of speakers in --data_path_and_name_and_type to &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">separate_speech</span><span class="o">.</span><span class="n">num_spk</span><span class="si">}</span><span class="s2">.&quot;</span>
+        <span class="p">)</span>
 
     <span class="c1"># 4. Start for-loop</span>
     <span class="n">output_dir</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output_dir</span><span class="p">)</span><span class="o">.</span><span class="n">expanduser</span><span class="p">()</span><span class="o">.</span><span class="n">resolve</span><span class="p">()</span>
