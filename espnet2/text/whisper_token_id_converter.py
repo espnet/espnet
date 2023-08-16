@@ -21,7 +21,7 @@ class OpenAIWhisperTokenIDConverter:
         model_type: str = "whisper_multilingual",
         language: str = "en",
         sot: bool = False,
-        speaker_change_symbol: str = '<sc>'
+        speaker_change_symbol: str = "<sc>",
     ):
         assert check_argument_types()
 

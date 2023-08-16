@@ -16,7 +16,7 @@ def export_vocabulary(
     language: str,
     log_level: str,
     sot_asr: bool = False,
-    speaker_change_symbol: str = "<sc>"
+    speaker_change_symbol: str = "<sc>",
 ):
     try:
         import whisper.tokenizer
