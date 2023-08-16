@@ -33,6 +33,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         feats_extract: Optional[AbsFeatsExtract],
         normalize: Optional[AbsNormalize and InversibleInterface],
         pitch_extract: Optional[AbsFeatsExtract],
+        ying_extract: Optional[AbsFeatsExtract],
         pitch_normalize: Optional[AbsNormalize and InversibleInterface],
         energy_extract: Optional[AbsFeatsExtract],
         energy_normalize: Optional[AbsNormalize and InversibleInterface],
@@ -47,6 +48,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         self.pitch_normalize = pitch_normalize
         self.energy_extract = energy_extract
         self.energy_normalize = energy_normalize
+        self.ying_extract = ying_extract
         self.tts = tts
         assert hasattr(
             tts, "generator"
@@ -76,6 +78,8 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
+        ying: Optional[torch.Tensor] = None,
+        ying_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -95,6 +99,8 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
             energy_lengths (Optional[Tensor]): Energy length tensor (B,).
+            ying (Optional[Tensor]): Yingram tensor.
+            ying_lengths (Optional[Tensor]): Yingram length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
@@ -133,6 +139,12 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
                     durations=durations,
                     durations_lengths=durations_lengths,
                 )
+            if self.ying_extract is not None and ying is None:
+                ying, ying_lengths = self.ying_extract(
+                    speech,
+                    speech_lengths,
+                    feats_lengths=feats_lengths,
+                )
 
             # Normalize
             if self.normalize is not None:
@@ -160,6 +172,8 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             batch.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if self.energy_extract is not None and energy is not None:
             batch.update(energy=energy, energy_lengths=energy_lengths)
+        if self.ying_extract is not None and ying is not None:
+            batch.update(ying=ying)
         if spembs is not None:
             batch.update(spembs=spembs)
         if sids is not None:
@@ -181,6 +195,8 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
+        ying: Optional[torch.Tensor] = None,
+        ying_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -199,6 +215,8 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             pitch_lengths (Optional[Tensor): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
             energy_lengths (Optional[Tensor): Energy length tensor (B,).
+            ying (Optional[Tensor]): Yingram tensor.
+            ying_lengths (Optional[Tensor]): Yingram length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker index tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
@@ -229,6 +247,12 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
                 durations=durations,
                 durations_lengths=durations_lengths,
             )
+        if self.ying_extract is not None and ying is None:
+            ying, ying_lengths = self.ying_extract(
+                speech,
+                speech_lengths,
+                feats_lengths=feats_lengths,
+            )
 
         # store in dict
         feats_dict = {}
@@ -238,5 +262,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:
             feats_dict.update(energy=energy, energy_lengths=energy_lengths)
+        if ying is not None:
+            feats_dict.update(ying=ying, ying_lengths=ying_lengths)
 
         return feats_dict

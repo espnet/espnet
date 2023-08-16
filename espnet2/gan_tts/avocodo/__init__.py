@@ -1,4 +1,4 @@
-from espnet2.gan_svs.avocodo.avocodo import (
+from espnet2.gan_tts.avocodo.avocodo import (
     MDC,
     SBD,
     AvocodoDiscriminator,
