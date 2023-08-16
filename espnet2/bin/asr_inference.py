@@ -244,8 +244,8 @@ class Speech2Text:
                 multi_blank_durations=multi_blank_durations,
                 multi_blank_indices=multi_blank_indices,
                 token_list=token_list,
-                biasing=asr_model.biasing,
-                deepbiasing=asr_model.deepbiasing,
+                biasing=getattr(asr_model, "biasing", False),
+                deepbiasing=getattr(asr_model, "deepbiasing", False),
                 BiasingBundle=biasingbundle,
                 **transducer_conf,
             )
