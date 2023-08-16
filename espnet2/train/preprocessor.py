@@ -519,9 +519,13 @@ class CommonPreprocessor_multi(CommonPreprocessor):
             ), "SOT model with speaker_change_symbol only support single text input."
 
             if bpemodel in ["whisper_en", "whisper_multilingual"]:
-                self.tokenizer = OpenAIWhisperTokenizer(bpemodel, sot=True)
+                self.tokenizer = OpenAIWhisperTokenizer(
+                    bpemodel, sot=True, speaker_change_symbol=speaker_change_symbol
+                )
                 self.token_id_converter = OpenAIWhisperTokenIDConverter(
-                    model_type=bpemodel, sot=True
+                    model_type=bpemodel,
+                    sot=True,
+                    speaker_change_symbol=speaker_change_symbol,
                 )
 
     def _text_process(

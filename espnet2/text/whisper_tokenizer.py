@@ -34,7 +34,13 @@ LANGUAGES_CODE_MAPPING = {
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
-    def __init__(self, model_type: str, language: str = "en", sot: bool = False):
+    def __init__(
+        self,
+        model_type: str,
+        language: str = "en",
+        sot: bool = False,
+        speaker_change_symbol: str = "<sc>",
+    ):
         assert check_argument_types()
 
         try:
@@ -64,7 +70,7 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
 
         self.tokenizer = copy.deepcopy(self.tokenizer)
         timestamps = [f"<|{i*30/1500:.2f}|>" for i in range(0, 1501)]
-        sc = ["<sc>"] if sot else []
+        sc = [speaker_change_symbol] if sot else []
         special_tokens = (
             self.tokenizer.tokenizer.additional_special_tokens + timestamps + sc
         )

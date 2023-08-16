@@ -16,6 +16,7 @@ def export_vocabulary(
     language: str,
     log_level: str,
     sot_asr: bool = False,
+    speaker_change_symbol: str = "<sc>"
 ):
     try:
         import whisper.tokenizer
@@ -71,7 +72,7 @@ def export_vocabulary(
 
     if sot_asr:
         full_vocab_size += 1
-        fout.write("<sc>" + "\n")
+        fout.write(speaker_change_symbol + "\n")
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -107,6 +108,14 @@ def get_parser() -> argparse.ArgumentParser:
         "--sot_asr",
         type=bool,
         default=False,
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
+    )
+
+    parser.add_argument(
+        "--speaker_change_symbol",
+        type=str,
+        default="<sc>",
         required=False,
         help="Whether SOT-style training is used in Whisper",
     )
