@@ -383,14 +383,15 @@ class Speech2Text:
         else:
             tokenizer = build_tokenizer(token_type=token_type)
 
-
-
         if token_type == "hugging_face":
             converter = HuggingFaceTokenIDConverter(model_name_or_path=bpemodel)
         elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
-            if hasattr(asr_train_args, 'preprocessor_conf') and  'speaker_change_symbol' in asr_train_args.preprocessor_conf:
+            if (
+                hasattr(asr_train_args, "preprocessor_conf")
+                and "speaker_change_symbol" in asr_train_args.preprocessor_conf
+            ):
                 sot_asr = True
             else:
                 sot_asr = False
