@@ -109,7 +109,6 @@ class Speech2Text:
         hugging_face_decoder_conf: Dict[str, Any] = {},
         time_sync: bool = False,
         multi_asr: bool = False,
-        sot_asr: bool = False,
     ):
         assert check_argument_types()
 
@@ -384,11 +383,17 @@ class Speech2Text:
         else:
             tokenizer = build_tokenizer(token_type=token_type)
 
+
+
         if token_type == "hugging_face":
             converter = HuggingFaceTokenIDConverter(model_name_or_path=bpemodel)
         elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
+            if hasattr(asr_train_args, 'preprocessor_conf') and  'speaker_change_symbol' in asr_train_args.preprocessor_conf:
+                sot_asr = True
+            else:
+                sot_asr = False
             converter = OpenAIWhisperTokenIDConverter(
                 model_type=bpemodel, language=tokenizer_language, sot=sot_asr
             )
@@ -676,7 +681,6 @@ def inference(
     hugging_face_decoder_conf: Dict[str, Any],
     time_sync: bool,
     multi_asr: bool,
-    sot_asr: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -729,7 +733,6 @@ def inference(
         hugging_face_decoder=hugging_face_decoder,
         hugging_face_decoder_conf=hugging_face_decoder_conf,
         time_sync=time_sync,
-        sot_asr=sot_asr,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -922,13 +925,6 @@ def get_parser():
         default=False,
         help="Whether we are using a monolithic multi-speaker ASR model "
         "(This flag should be False if a speech separation model is used before ASR)",
-    )
-    group.add_argument(
-        "--sot_asr",
-        type=str2bool,
-        default=False,
-        help="Whether we are using a Serialized Output Training (SOT) ASR model, "
-        "which is useful for multi-speaker ASR.",
     )
     group = parser.add_argument_group("Quantization related")
     group.add_argument(
