@@ -95,8 +95,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "stage 4: Data preparation for variable numbers of speakers (up to 3 speakers)"
     for dset in ${train_set} ${train_dev} test; do
         mkdir -p "data/${dset}_unk_nspk"
-        cp -r "data/${dset}/wav.scp" "data/${dset}_unk_nspk"
-        awk -v min=1 -v max=3 '{srand(FNR*6) nspk=int(min+rand()*(max-min+1)); print($1 " " nspk "spk")}' \
+        cp "data/${dset}/wav.scp" "data/${dset}_unk_nspk"
+        cp "data/${dset}/utt2spk" "data/${dset}_unk_nspk"
+        cp "data/${dset}/spk2utt" "data/${dset}_unk_nspk"
+        awk -v min=1 -v max=3 '{srand(FNR*6); nspk=int(min+rand()*(max-min+1)); print($1 " " nspk "spk")}' \
             "data/${dset}/enroll_spk1.scp" > "data/${dset}_unk_nspk/utt2category"
         # NOTE: Kaldi pipe IO is not supported when preparing the multi-column scp file
         awk 'NR==FNR{nspk[$1]=substr($2,1,1); next} {msg=$1; for (i=1; i<=nspk[$1]; ++i) {msg=msg" "$2} print(msg)}' \

@@ -302,8 +302,8 @@ if ${variable_num_refs}; then
         log "[ERROR] --dereverb_ref_num must be 1 if --variable_num_refs is true, but got ${dereverb_ref_num}"
         exit 1
     fi
-    if [ ! -e "${data_feats}/${train_set}/utt2category" ] || [ ! -e "${data_feats}/${valid_set}/utt2category" ]; then
-        log "[ERROR] utt2category must be prepared in ${data_feats}/${train_set} and ${data_feats}/${valid_set} if --variable_num_refs is true."
+    if [ ! -e "data/${train_set}/utt2category" ] || [ ! -e "data/${valid_set}/utt2category" ]; then
+        log "[ERROR] utt2category must be prepared in data/${train_set} and data/${valid_set} if --variable_num_refs is true."
         exit 1
     else
         log "[WARNING] Variable speaker number is enabled. Please ensure the utt2category file assigns the same category ID to samples with the same number of speakers."
@@ -399,15 +399,22 @@ if ! "${skip_data_prep}"; then
                 _spk_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n "; done)
             fi
 
-            for spk in ${_spk_list} "wav" ; do
-                if ${is_tse_task} && [[ "${spk}" == *enroll_spk* ]]; then
+            for spk in "wav" ${_spk_list}; do
+                if ${is_tse_task} && [[ "${spk}" == enroll_spk* ]]; then
                     audio_path=$(head -n 1 "data/${dset}/${spk}.scp" | awk '{print $2}')
                     if [[ ("${dset}" == "${train_set}" && "${audio_path:0:1}" == "*") || "${audio_path: -4}" == ".npy" ]]; then
                         # In case of
                         # 1. a special format in `enroll_spk?.scp`:
                         # MIXTURE_UID *UID SPEAKER_ID
                         # 2. speaker embeddings instead of enrollment audios in `enroll_spk?.scp`
-                        utils/filter_scp.pl "${data_feats}${_suf}/${dset}/spk1.scp" "data/${dset}/${spk}.scp" > "${data_feats}${_suf}/${dset}/${spk}.scp"
+                        utils/filter_scp.pl "${data_feats}${_suf}/${dset}/wav.scp" "data/${dset}/${spk}.scp" > "${data_feats}${_suf}/${dset}/${spk}.scp"
+                        continue
+                    fi
+                fi
+                if ${variable_num_refs}; then
+                    if [[ "${spk}" == spk* ]] || [[ "${spk}" == dereverb* ]] || [[ "${spk}" == enroll_spk* ]]; then
+                        # skip formatting for multi-audio-column scp files
+                        utils/filter_scp.pl "${data_feats}${_suf}/${dset}/wav.scp" "data/${dset}/${spk}.scp" > "${data_feats}${_suf}/${dset}/${spk}.scp"
                         continue
                     fi
                 fi
