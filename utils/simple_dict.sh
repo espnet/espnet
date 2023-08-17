@@ -8,7 +8,7 @@ _check_parameter_count() {
 }
 
 _check_parameter_space_or_slash() {
-    if [[ "$1" == *\/* ]] || [[ "$1" == *\ * ]]; then
+    if [[ "$1" == */* ]] || [[ "$1" == *\ * ]]; then
         echo "Bad name: $1"
         exit 1
     fi
