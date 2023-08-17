@@ -16,6 +16,7 @@ from espnet2.asr.encoder.contextual_block_conformer_encoder import (  # noqa: H3
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (  # noqa: H301
     ContextualBlockTransformerEncoder,
 )
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.fileio.datadir_writer import DatadirWriter
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.st import STTask
@@ -29,8 +30,16 @@ from espnet.nets.batch_beam_search_online import BatchBeamSearchOnline
 from espnet.nets.beam_search import Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
+from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
+
+try:
+    from transformers import AutoModelForSeq2SeqLM
+
+    is_transformers_available = True
+except ImportError:
+    is_transformers_available = False
 
 
 class Speech2TextStreaming:
@@ -62,12 +71,19 @@ class Speech2TextStreaming:
         batch_size: int = 1,
         dtype: str = "float32",
         beam_size: int = 20,
+        ctc_weight: float = 0.0,
         lm_weight: float = 1.0,
         penalty: float = 0.0,
         nbest: int = 1,
         disable_repetition_detection=False,
         decoder_text_length_limit=0,
         encoded_feat_length_limit=0,
+        time_sync: bool = False,
+        incremental_decode: bool = False,
+        blank_penalty: float = 1.0,
+        hold_n: int = 0,
+        transducer_conf: dict = None,
+        hugging_face_decoder: bool = False,
     ):
         assert check_argument_types()
 
@@ -78,14 +94,31 @@ class Speech2TextStreaming:
         )
         st_model.to(dtype=getattr(torch, dtype)).eval()
 
-        assert isinstance(
+        if isinstance(
             st_model.encoder, ContextualBlockTransformerEncoder
-        ) or isinstance(st_model.encoder, ContextualBlockConformerEncoder)
+        ) or isinstance(st_model.encoder, ContextualBlockConformerEncoder):
+            if isinstance(st_model.frontend, S3prlFrontend):
+                raise NotImplementedError(
+                    "S3prlFrontend not supported with blockwise encoder"
+                )
+            if st_model.hier_encoder is not None:
+                raise NotImplementedError(
+                    "hierarchical encoder not supported with blockwise encoder"
+                )
+            block_size = st_train_args.encoder_conf["block_size"]
+        else:
+            block_size = 0  # recompute encoder with every new chunk
 
         decoder = st_model.decoder
+        if hasattr(st_model, "st_ctc"):
+            ctc = CTCPrefixScorer(ctc=st_model.st_ctc, eos=st_model.eos)
+        else:
+            ctc = None
+
         token_list = st_model.token_list
         scorers.update(
             decoder=decoder,
+            ctc=ctc,
             length_bonus=LengthBonus(len(token_list)),
         )
 
@@ -98,44 +131,117 @@ class Speech2TextStreaming:
 
         # 3. Build BeamSearch object
         weights = dict(
-            decoder=1.0,
+            decoder=1.0 - ctc_weight,
+            ctc=ctc_weight,
             lm=lm_weight,
             length_bonus=penalty,
+            blank_penalty=blank_penalty,
         )
 
-        assert "encoder_conf" in st_train_args
-        assert "look_ahead" in st_train_args.encoder_conf
-        assert "hop_size" in st_train_args.encoder_conf
-        assert "block_size" in st_train_args.encoder_conf
-        # look_ahead = st_train_args.encoder_conf['look_ahead']
-        # hop_size   = st_train_args.encoder_conf['hop_size']
-        # block_size = st_train_args.encoder_conf['block_size']
+        # assert "encoder_conf" in st_train_args
+        # assert "look_ahead" in st_train_args.encoder_conf
+        # assert "hop_size" in st_train_args.encoder_conf
+        # assert "block_size" in st_train_args.encoder_conf
 
         assert batch_size == 1
 
-        beam_search = BatchBeamSearchOnline(
-            beam_size=beam_size,
-            weights=weights,
-            scorers=scorers,
-            sos=st_model.sos,
-            eos=st_model.eos,
-            vocab_size=len(token_list),
-            token_list=token_list,
-            pre_beam_score_key="full",
-            disable_repetition_detection=disable_repetition_detection,
-            decoder_text_length_limit=decoder_text_length_limit,
-            encoded_feat_length_limit=encoded_feat_length_limit,
-        )
+        if (
+            decoder.__class__.__name__ == "HuggingFaceTransformersDecoder"
+            and hugging_face_decoder
+        ):
+            if not is_transformers_available:
+                raise ImportError(
+                    "`transformers` is not available."
+                    " Please install it via `pip install transformers`"
+                    " or `cd /path/to/espnet/tools && . ./activate_python.sh"
+                    " && ./installers/install_transformers.sh`."
+                )
 
-        non_batch = [
-            k
-            for k, v in beam_search.full_scorers.items()
-            if not isinstance(v, BatchScorerInterface)
-        ]
-        assert len(non_batch) == 0
+            hugging_face_model = AutoModelForSeq2SeqLM.from_pretrained(
+                decoder.model_name_or_path
+            )
 
-        # TODO(karita): make all scorers batchfied
-        logging.info("BatchBeamSearchOnline implementation is selected.")
+            hugging_face_model.lm_head.load_state_dict(decoder.lm_head.state_dict())
+
+            if hasattr(hugging_face_model, "model"):
+                hugging_face_model.model.decoder.load_state_dict(
+                    decoder.decoder.state_dict()
+                )
+                del hugging_face_model.model.encoder
+            else:
+                hugging_face_model.decoder.load_state_dict(decoder.decoder.state_dict())
+                del hugging_face_model.encoder
+
+            # del st_model.decoder.lm_head
+            # del st_model.decoder.decoder
+
+            hugging_face_linear_in = decoder.linear_in
+            hugging_face_model.to(device=device).eval()
+
+            # hacky way to use .score()
+            st_model.decoder.hf_generate = hugging_face_model
+            weights = dict(
+                decoder=1.0 - ctc_weight,
+                ctc=ctc_weight,
+                lm=lm_weight,
+                length_bonus=penalty,
+            )
+            beam_search = BatchBeamSearchOnline(
+                beam_size=beam_size,
+                weights=weights,
+                scorers=scorers,
+                sos=hugging_face_model.config.decoder_start_token_id,
+                eos=hugging_face_model.config.eos_token_id,
+                vocab_size=len(token_list),
+                token_list=token_list,
+                pre_beam_score_key="full",
+                disable_repetition_detection=disable_repetition_detection,
+                decoder_text_length_limit=decoder_text_length_limit,
+                encoded_feat_length_limit=encoded_feat_length_limit,
+                incremental_decode=incremental_decode,
+                time_sync=time_sync,
+                block_size=block_size,
+                ctc=st_model.st_ctc if hasattr(st_model, "st_ctc") else None,
+                hold_n=hold_n,
+            )
+            self.hugging_face_model = hugging_face_model
+            self.hugging_face_linear_in = hugging_face_linear_in
+
+        else:
+            beam_search = BatchBeamSearchOnline(
+                beam_size=beam_size,
+                weights=weights,
+                scorers=scorers,
+                sos=st_model.sos,
+                eos=st_model.eos,
+                vocab_size=len(token_list),
+                token_list=token_list,
+                pre_beam_score_key="full",
+                disable_repetition_detection=disable_repetition_detection,
+                decoder_text_length_limit=decoder_text_length_limit,
+                encoded_feat_length_limit=encoded_feat_length_limit,
+                incremental_decode=incremental_decode,
+                time_sync=time_sync,
+                ctc=st_model.st_ctc if hasattr(st_model, "st_ctc") else None,
+                hold_n=hold_n,
+                transducer_conf=transducer_conf,
+                joint_network=st_model.st_joint_network
+                if hasattr(st_model, "st_joint_network")
+                else None,
+            )
+            self.hugging_face_model = None
+            self.hugging_face_linear_in = None
+
+        if transducer_conf is None:
+            non_batch = [
+                k
+                for k, v in beam_search.full_scorers.items()
+                if not isinstance(v, BatchScorerInterface)
+            ]
+            assert len(non_batch) == 0
+
+            # TODO(karita): make all scorers batchfied
+            logging.info("BatchBeamSearchOnline implementation is selected.")
 
         beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
         for scorer in scorers.values():
@@ -152,7 +258,7 @@ class Speech2TextStreaming:
 
         if token_type is None:
             tokenizer = None
-        elif token_type == "bpe":
+        elif token_type == "bpe" or token_type == "hugging_face":
             if bpemodel is not None:
                 tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
             else:
@@ -193,6 +299,7 @@ class Speech2TextStreaming:
     def reset(self):
         self.frontend_states = None
         self.encoder_states = None
+        self.hier_encoder_states = None
         self.beam_search.reset()
 
     def apply_frontend(
@@ -291,16 +398,26 @@ class Speech2TextStreaming:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        feats, feats_lengths, self.frontend_states = self.apply_frontend(
-            speech, self.frontend_states, is_final=is_final
-        )
-        enc, _, self.encoder_states = self.st_model.encoder(
-            feats,
-            feats_lengths,
-            self.encoder_states,
-            is_final=is_final,
-            infer_mode=True,
-        )
+        if isinstance(
+            self.st_model.encoder, ContextualBlockTransformerEncoder
+        ) or isinstance(self.st_model.encoder, ContextualBlockConformerEncoder):
+            feats, feats_lengths, self.frontend_states = self.apply_frontend(
+                speech, self.frontend_states, is_final=is_final
+            )
+            enc, _, self.encoder_states = self.st_model.encoder(
+                feats,
+                feats_lengths,
+                self.encoder_states,
+                is_final=is_final,
+                infer_mode=True,
+            )
+        else:
+            speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
+            lengths = speech.new_full([1], dtype=torch.long, fill_value=speech.size(1))
+            batch = {"speech": speech, "speech_lengths": lengths}
+            batch = to_device(batch, device=self.device)
+            enc, enc_lengths = self.st_model.encode(**batch)
+
         nbest_hyps = self.beam_search(
             x=enc[0],
             maxlenratio=self.maxlenratio,
@@ -347,6 +464,7 @@ def inference(
     beam_size: int,
     ngpu: int,
     seed: int,
+    ctc_weight: float,
     lm_weight: float,
     penalty: float,
     nbest: int,
@@ -367,6 +485,12 @@ def inference(
     disable_repetition_detection: bool,
     encoded_feat_length_limit: int,
     decoder_text_length_limit: int,
+    time_sync: bool,
+    incremental_decode: bool,
+    blank_penalty: float,
+    hold_n: int,
+    transducer_conf: Optional[dict],
+    hugging_face_decoder: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -402,12 +526,19 @@ def inference(
         minlenratio=minlenratio,
         dtype=dtype,
         beam_size=beam_size,
+        ctc_weight=ctc_weight,
         lm_weight=lm_weight,
         penalty=penalty,
         nbest=nbest,
         disable_repetition_detection=disable_repetition_detection,
         decoder_text_length_limit=decoder_text_length_limit,
         encoded_feat_length_limit=encoded_feat_length_limit,
+        time_sync=time_sync,
+        incremental_decode=incremental_decode,
+        blank_penalty=blank_penalty,
+        hold_n=hold_n,
+        transducer_conf=transducer_conf,
+        hugging_face_decoder=hugging_face_decoder,
     )
 
     # 3. Build data-iterator
@@ -441,17 +572,32 @@ def inference(
                 else:
                     speech = batch["speech"]
                     if (len(speech) // sim_chunk_length) > 1:
-                        for i in range(len(speech) // sim_chunk_length):
-                            speech2text(
-                                speech=speech[
-                                    i * sim_chunk_length : (i + 1) * sim_chunk_length
-                                ],
-                                is_final=False,
+                        # recompute with incrementally longer input
+                        if isinstance(speech2text.st_model.frontend, S3prlFrontend):
+                            for i in range(len(speech) // sim_chunk_length):
+                                speech2text(
+                                    speech=speech[: (i + 1) * sim_chunk_length],
+                                    is_final=False,
+                                )
+                            results = speech2text(
+                                speech[: len(speech)],
+                                is_final=True,
                             )
-                        results = speech2text(
-                            speech[(i + 1) * sim_chunk_length : len(speech)],
-                            is_final=True,
-                        )
+                        # non recompute
+                        else:
+                            for i in range(len(speech) // sim_chunk_length):
+                                speech2text(
+                                    speech=speech[
+                                        i
+                                        * sim_chunk_length : (i + 1)
+                                        * sim_chunk_length
+                                    ],
+                                    is_final=False,
+                                )
+                            results = speech2text(
+                                speech[(i + 1) * sim_chunk_length : len(speech)],
+                                is_final=True,
+                            )
                     else:
                         results = speech2text(**batch)
 
@@ -562,6 +708,7 @@ def get_parser():
         default=0.0,
         help="Input length ratio to obtain min output length",
     )
+    group.add_argument("--ctc_weight", type=float, default=0.0, help="CTC weight")
     group.add_argument("--lm_weight", type=float, default=1.0, help="RNNLM weight")
     group.add_argument("--disable_repetition_detection", type=str2bool, default=False)
 
@@ -594,6 +741,36 @@ def get_parser():
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
     )
+    group.add_argument(
+        "--time_sync",
+        type=str2bool,
+        default=False,
+        help="Time synchronous beam search.",
+    )
+    group.add_argument(
+        "--incremental_decode",
+        type=str2bool,
+        default=False,
+        help="Time synchronous beam search.",
+    )
+    group.add_argument(
+        "--blank_penalty",
+        type=float,
+        default=1.0,
+        help="Time synchronous beam search.",
+    )
+    group.add_argument(
+        "--hold_n",
+        type=int,
+        default=0,
+        help="Time synchronous beam search.",
+    )
+    group.add_argument(
+        "--transducer_conf",
+        default=None,
+        help="The keyword arguments for transducer beam search.",
+    )
+    group.add_argument("--hugging_face_decoder", type=str2bool, default=False)
 
     return parser
 
