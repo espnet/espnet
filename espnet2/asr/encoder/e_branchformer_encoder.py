@@ -466,7 +466,7 @@ class EBranchformerEncoder(AbsEncoder):
             else:
                 xs_pad, masks = self.encoders(xs_pad, masks)
         else:
-            for layer_idx, encoder_layer in enumerate(self.encoders):
+            for layer_idx, encoder_layer in enumerate(self.encoders)
                 xs_pad, masks = encoder_layer(xs_pad, masks)
 
                 if layer_idx + 1 in self.interctc_layer_idx:
