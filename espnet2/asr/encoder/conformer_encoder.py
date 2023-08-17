@@ -303,6 +303,7 @@ class ConformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
+        max_layer: int = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -310,6 +311,7 @@ class ConformerEncoder(AbsEncoder):
             xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
             ilens (torch.Tensor): Input length (#batch).
             prev_states (torch.Tensor): Not to be used now.
+            max_layer (int): Layer for feature extraction
 
         Returns:
             torch.Tensor: Output tensor (#batch, L, output_size).
@@ -340,7 +342,14 @@ class ConformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            xs_pad, masks = self.encoders(xs_pad, masks)
+            if max_layer is not None:
+                assert (0 <= max_layer < len(self.encoders)):
+                for layer_idx, encoder_layer in enumerate(self.encoders):
+                    xs_pad, masks = encoder_layer(xs_pad, masks)
+                    if layer_idx >= max_layer:
+                        break
+            else:
+                xs_pad, masks = self.encoders(xs_pad, masks)
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
@@ -365,6 +374,9 @@ class ConformerEncoder(AbsEncoder):
                             xs_pad = (x, pos_emb)
                         else:
                             xs_pad = xs_pad + self.conditioning_layer(ctc_out)
+
+                    if layer and layer_idx >= layer:
+                        break
 
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]

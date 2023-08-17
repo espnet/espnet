@@ -425,7 +425,7 @@ class EBranchformerEncoder(AbsEncoder):
             ilens (torch.Tensor): Input length (#batch).
             prev_states (torch.Tensor): Not to be used now.
             ctc (CTC): Intermediate CTC module.
-            max_layer (int): Layer depth below which InterCTC is applied.
+            max_layer (int): Layer for feature extraction
         Returns:
             torch.Tensor: Output tensor (#batch, L, output_size).
             torch.Tensor: Output length (#batch).
@@ -457,7 +457,8 @@ class EBranchformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            if max_layer is not None and 0 <= max_layer < len(self.encoders):
+            if max_layer is not None:
+                assert (0 <= max_layer < len(self.encoders)):
                 for layer_idx, encoder_layer in enumerate(self.encoders):
                     xs_pad, masks = encoder_layer(xs_pad, masks)
                     if layer_idx >= max_layer:
@@ -485,6 +486,9 @@ class EBranchformerEncoder(AbsEncoder):
                             xs_pad = tuple(xs_pad)
                         else:
                             xs_pad = xs_pad + self.conditioning_layer(ctc_out)
+                            
+                    if max_layer and layer_idx >= max_layer:
+                        break
 
         if isinstance(xs_pad, tuple):
             xs_pad = xs_pad[0]

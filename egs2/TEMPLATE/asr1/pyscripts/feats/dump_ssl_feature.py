@@ -5,6 +5,7 @@ import os
 import numpy as np
 from ssl_feature_utils import (
     ESPnetHubertFeatureReader,
+    ESPnetASRModelFeatureReader,
     HubertFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
@@ -25,6 +26,7 @@ feature_reader_choice = dict(
     mfcc=MfccFeatureReader,
     fairseq_hubert=HubertFeatureReader,
     espnet_hubert=ESPnetHubertFeatureReader,
+    espnet_asr=ESPnetASRModelFeatureReader
     s3prl=S3PRLFeatureReader,
 )
 
