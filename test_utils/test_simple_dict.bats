@@ -2,8 +2,7 @@ setup() {
     load "bats-support/load"
     load "bats-assert/load"
 
-    cd $BATS_TEST_DIRNAME/../egs2/mls/asr2
-    utils=$(cd $BATS_TEST_DIRNAME/..; pwd)/utils
+    utils=$BATS_TEST_DIRNAME/../utils
     echo $utils
 }
 
