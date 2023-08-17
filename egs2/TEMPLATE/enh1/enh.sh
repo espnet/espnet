@@ -626,6 +626,35 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
+        if ${variable_num_refs}; then
+            # When variable numbers of speakers are enabled, different stats dirs may contain
+            #   different numbers of key files (with different number suffixes).
+            # So we need to manually create dummy stats files and placeholder entries to avoid
+            #   errors when using `espnet2.bin.aggregate_stats_dirs`.
+            for dset in train valid; do
+                # aggregate all batch keys in case some are missing in some stats dirs
+                for i in $(seq "${_nj}"); do
+                    ls "${_logdir}/stats.${i}/${dset}/"
+                done | sort | uniq | grep -oP '.*(?=_shape)' > "${_logdir}/${dset}_batch_keys"
+                while IFS= read -r name; do
+                    fname="${name}_shape"
+                    for i in $(seq "${_nj}"); do
+                        if [ ! -e "${_logdir}/stats.${i}/${dset}/${fname}" ]; then
+                            # create dummy stats files
+                            awk '{print $1 " 0"}' "${_logdir}/${dset}.${i}.scp" > "${_logdir}/stats.${i}/${dset}/${fname}"
+                        else
+                            # create placeholder entries for missing samples in each shape file
+                            mv "${_logdir}/stats.${i}/${dset}/${fname}" "${_logdir}/stats.${i}/${dset}/${fname}.bak"
+                            awk 'NR==FNR{a[$1]=$2; next} {if($1 in a) {print $1" "a[$1]} else {print $1" 0"}}' "${_logdir}/stats.${i}/${dset}/${fname}.bak" "${_logdir}/${dset}.${i}.scp" > "${_logdir}/stats.${i}/${dset}/${fname}"
+                            rm "${_logdir}/stats.${i}/${dset}/${fname}.bak"
+                        fi
+                    done
+                done < "${_logdir}/${dset}_batch_keys"
+                for i in $(seq "${_nj}"); do
+                    cp "${_logdir}/${dset}_batch_keys" "${_logdir}/stats.${i}/${dset}/batch_keys"
+                done
+            done
+        fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --skip_sum_stats --output_dir "${enh_stats_dir}"
 

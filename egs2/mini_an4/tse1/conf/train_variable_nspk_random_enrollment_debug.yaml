@@ -47,15 +47,22 @@ chunk_excluded_key_prefixes:
 - "enroll_ref"
 
 model_conf:
-  num_spk: 3  # the maximum possible number of speakers
+  num_spk: 3  # the maximum possible number of speakers in the model
   flexible_numspk: true
   share_encoder: true
 
-train_spk2enroll: data/train_nodev/spk2enroll.json
-enroll_segment: 5000
-load_spk_embedding: false
-load_all_speakers: true
-flexible_numspk: true
+preprocessor: enh
+preprocessor_conf:
+  num_spk: 3  # the maximum possible number of speakers in the preprocessor
+  train_spk2enroll: data/train_nodev/spk2enroll.json
+  enroll_segment: 5000
+  load_spk_embedding: false
+  load_all_speakers: true
+  flexible_numspk: true
+  categories:
+  - 1spk
+  - 2spk
+  - 3spk
 
 max_epoch: 1
 num_iters_per_epoch: 1

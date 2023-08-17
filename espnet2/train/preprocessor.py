@@ -1127,27 +1127,27 @@ class EnhPreprocessor(CommonPreprocessor):
             assert category in self.categories, category
             data["utt2category"] = np.array([self.categories[category]])
 
-        if self.train:
-            if self.flexible_numspk:
-                # The number of speaker varies in each sample.
-                # Different speaker signals are stacked in the first dimension.
-                sref_name = self.speech_ref_name_prefix + "1"
-                dref_name = self.dereverb_ref_name_prefix + "1"
-                num_spk = len(data[sref_name])
-                for i in range(2, self.num_spk + 1):
-                    data.pop(self.speech_ref_name_prefix + str(i), None)
-                    data.pop(self.dereverb_ref_name_prefix + str(i), None)
-                # Divide the stacked signals into single speaker signals for consistency
-                for i in range(num_spk - 1, -1, -1):
-                    idx = str(i + 1)
+        sref_name = self.speech_ref_name_prefix + "1"
+        if self.flexible_numspk and sref_name in data:
+            # The number of speaker varies in each sample.
+            # Different speaker signals are stacked in the first dimension.
+            dref_name = self.dereverb_ref_name_prefix + "1"
+            num_spk = len(data[sref_name])
+            for i in range(2, self.num_spk + 1):
+                data.pop(self.speech_ref_name_prefix + str(i), None)
+                data.pop(self.dereverb_ref_name_prefix + str(i), None)
+            # Divide the stacked signals into single speaker signals for consistency
+            for i in range(num_spk - 1, -1, -1):
+                idx = str(i + 1)
+                # make sure no np.nan paddings are in the data
+                assert not np.isnan(np.sum(data[sref_name][i])), uid
+                data[self.speech_ref_name_prefix + idx] = data[sref_name][i]
+                if dref_name in data:
                     # make sure no np.nan paddings are in the data
-                    assert not np.isnan(np.sum(data[sref_name][i])), uid
-                    data[self.speech_ref_name_prefix + idx] = data[sref_name][i]
-                    if dref_name in data:
-                        # make sure no np.nan paddings are in the data
-                        assert not np.isnan(np.sum(data[dref_name][i])), uid
-                        data[self.dereverb_ref_name_prefix + idx] = data[dref_name][i]
+                    assert not np.isnan(np.sum(data[dref_name][i])), uid
+                    data[self.dereverb_ref_name_prefix + idx] = data[dref_name][i]
 
+        if self.train:
             # clean speech signal (Nmic, Time)
             speech_ref = [
                 self._ensure_2d(data[self.speech_ref_name_prefix + str(i + 1)])
@@ -1611,31 +1611,34 @@ class TSEPreprocessor(EnhPreprocessor):
         num_spk = len(ref_names)
 
         aux_names = [k for k in data.keys() if re.match(r"enroll_ref\d+", k)]
-        if self.train:
-            if self.flexible_numspk:
-                # The number of speaker varies in each sample.
-                # Different speaker signals are stacked in the first dimension.
-                enroll_name = "enroll_ref1"
-                for name in aux_names:
-                    if name != enroll_name:
-                        data.pop(name)
-                aux_names = [f"enroll_ref{i + 1}" for i in range(num_spk)]
-                # Divide the concatenated enrollments into single speaker enrollments
-                # NOTE(wangyou): whitespace is not allowed inside each path
-                tup = data[enroll_name][i].split()
-                if len(tup) == num_spk:
-                    # normal format in `enroll_spk1.scp`:
-                    # MIXTURE_UID /path/to/enrollment_or_embedding
-                    for i in range(num_spk - 1, -1, -1):
-                        data[f"enroll_ref{i + 1}"] = tup[i]
-                elif len(tup) == num_spk * 2:
-                    # a special format in `enroll_spk1.scp`:
-                    # MIXTURE_UID *UID SPEAKER_ID
-                    for i in range(num_spk - 1, -1, -1):
-                        data[f"enroll_ref{i + 1}"] = " ".join(tup[i * 2: i * 2 + 1])
-                else:
-                    raise ValueError("Invalid format in enroll_spk1.scp")
+        if self.flexible_numspk:
+            # The number of speaker varies in each sample.
+            # Different speaker signals are stacked in the first dimension.
+            enroll_name = "enroll_ref1"
+            for name in aux_names:
+                if name != enroll_name:
+                    data.pop(name)
+            aux_names = [f"enroll_ref{i + 1}" for i in range(num_spk)]
+            # Divide the concatenated enrollments into single speaker enrollments
+            # NOTE(wangyou): whitespace is not allowed inside each path
+            tup = data[enroll_name].split()
+            if len(tup) == num_spk:
+                # normal format in `enroll_spk1.scp`:
+                # MIXTURE_UID /path/to/enrollment_or_embedding
+                for i in range(num_spk - 1, -1, -1):
+                    data[f"enroll_ref{i + 1}"] = tup[i]
+            elif len(tup) == num_spk * 2:
+                # a special format in `enroll_spk1.scp`:
+                # MIXTURE_UID *UID SPEAKER_ID
+                for i in range(num_spk - 1, -1, -1):
+                    data[f"enroll_ref{i + 1}"] = " ".join(tup[i * 2: i * 2 + 2])
+            else:
+                raise ValueError(
+                    f"Invalid format with in enroll_spk1.scp. Expected {num_spk} or "
+                    f"{num_spk * 2} columns, got {len(tup)} columns:\n{tup}"
+                )
 
+        if self.train:
             assert len(ref_names) == len(aux_names), (len(ref_names), len(aux_names))
             if not self.load_all_speakers:
                 # only load one target-speaker data
