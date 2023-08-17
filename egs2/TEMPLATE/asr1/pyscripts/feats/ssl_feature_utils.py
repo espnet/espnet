@@ -226,7 +226,7 @@ class HubertFeatureReader(BaseFeatureReader):
 class ESPnetHubertFeatureReader(BaseFeatureReader):
     def __init__(
         self,
-        hubert_model_path,
+        model_path,
         layer,
         sample_rate=16000,
         max_chunk=1600000,
@@ -239,7 +239,7 @@ class ESPnetHubertFeatureReader(BaseFeatureReader):
 
         hubert_model, hubert_train_args = HubertTask.build_model_from_file(
             None,
-            hubert_model_path,
+            model_path,
             self.device,
         )
         self.model = hubert_model.encoder.hubert_pretrain_model.to(self.device).eval()
@@ -305,7 +305,7 @@ class S3PRLFeatureReader(BaseFeatureReader):
 
 
 class ESPnetASRModelFeatureReader(BaseFeatureReader):
-    def __init__(self, asr_model_path, layer, sample_rate=16000, max_chunk=1600000):
+    def __init__(self, model_path, layer, sample_rate=16000, max_chunk=1600000):
         self.sample_rate = sample_rate
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -313,7 +313,7 @@ class ESPnetASRModelFeatureReader(BaseFeatureReader):
 
         asr_model, asr_train_args = ASRTask.build_model_from_file(
             None,
-            asr_model_path,
+            model_path,
             device,
         )
         self.device = next(asr_model.parameters()).device

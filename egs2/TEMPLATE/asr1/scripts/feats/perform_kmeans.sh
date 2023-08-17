@@ -39,7 +39,7 @@ storage_save_mode=false     # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
 
 feature_conf=       # feature configuration in json string format
-feature_type=mfcc   # mfcc / fairseq_hubert / espnet_hubert
+feature_type=mfcc   # mfcc / fairseq_hubert / espnet_hubert / espnet_asr
 layer=              # The layer index of SSL models to extract features from.
 batch_bins=         # batch size when extracting features and labels.
 
@@ -70,7 +70,12 @@ if [ -z "${feature_conf}" ]; then
     feature_conf="{type=${feature_type}"
     if [ ${feature_type} = "espnet_hubert" ]; then
         feature_conf+=",conf={\
-sample_rate=16000,hubert_model_path=${hubert_dir_path},\
+sample_rate=16000,model_path=${hubert_dir_path},\
+layer=${layer}\
+}"
+    elif [ ${feature_type} = "espnet_asr" ]; then
+        feature_conf+=",conf={\
+sample_rate=16000,model_path=${hubert_dir_path},\
 layer=${layer}\
 }"
     elif [ ${feature_type} = "fairseq_hubert" ]; then
