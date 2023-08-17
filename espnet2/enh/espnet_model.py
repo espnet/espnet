@@ -133,9 +133,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 for n in range(num_spk)
                 if "dereverb_ref{}".format(n + 1) in kwargs
             ]
-            assert len(dereverb_speech_ref) in (1, num_spk), len(
-                dereverb_speech_ref
-            )
+            assert len(dereverb_speech_ref) in (1, num_spk), len(dereverb_speech_ref)
             # (Batch, N, samples) or (Batch, N, samples, channels)
             dereverb_speech_ref = torch.stack(dereverb_speech_ref, dim=1)
         else:

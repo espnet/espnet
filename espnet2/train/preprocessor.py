@@ -1631,7 +1631,7 @@ class TSEPreprocessor(EnhPreprocessor):
                 # a special format in `enroll_spk1.scp`:
                 # MIXTURE_UID *UID SPEAKER_ID
                 for i in range(num_spk - 1, -1, -1):
-                    data[f"enroll_ref{i + 1}"] = " ".join(tup[i * 2: i * 2 + 2])
+                    data[f"enroll_ref{i + 1}"] = " ".join(tup[i * 2 : i * 2 + 2])
             else:
                 raise ValueError(
                     f"Invalid format with in enroll_spk1.scp. Expected {num_spk} or "

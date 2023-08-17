@@ -11,7 +11,6 @@ from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.samplers.abs_sampler import AbsSampler
 
-
 DEFAULT_EXCLUDED_KEY_PREFIXES = ("utt2category", "utt2fs")
 
 

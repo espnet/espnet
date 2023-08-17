@@ -15,6 +15,7 @@ import torch
 from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
@@ -29,7 +30,6 @@ from espnet2.fileio.read_text import (
 from espnet2.fileio.rttm import RttmReader
 from espnet2.fileio.score_scp import SingingScoreReader
 from espnet2.fileio.sound_scp import SoundScpReader
-from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.utils.sized_dict import SizedDict
 
 
