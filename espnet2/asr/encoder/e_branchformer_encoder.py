@@ -486,7 +486,7 @@ class EBranchformerEncoder(AbsEncoder):
                             xs_pad = tuple(xs_pad)
                         else:
                             xs_pad = xs_pad + self.conditioning_layer(ctc_out)
-                            
+
                     if max_layer and layer_idx >= max_layer:
                         break
 

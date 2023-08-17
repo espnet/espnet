@@ -240,7 +240,7 @@ class TransformerEncoder(AbsEncoder):
                     if self.interctc_use_conditioning:
                         ctc_out = ctc.softmax(encoder_out)
                         xs_pad = xs_pad + self.conditioning_layer(ctc_out)
-                    
+
                     if max_layer and layer_idx >= max_layer:
                         break
 

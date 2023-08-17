@@ -4,8 +4,8 @@ import os
 
 import numpy as np
 from ssl_feature_utils import (
-    ESPnetHubertFeatureReader,
     ESPnetASRModelFeatureReader,
+    ESPnetHubertFeatureReader,
     HubertFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,

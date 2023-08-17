@@ -397,7 +397,9 @@ class ESPnetASRModel(AbsESPnetModel):
                 feats, feats_lengths, ctc=self.ctc
             )
         else:
-            encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths, max_layer=max_layer)
+            encoder_out, encoder_out_lens, _ = self.encoder(
+                feats, feats_lengths, max_layer=max_layer
+            )
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]

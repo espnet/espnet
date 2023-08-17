@@ -303,6 +303,7 @@ class S3PRLFeatureReader(BaseFeatureReader):
         feats_lens = feats_lens.cpu()
         return feats, feats_lens
 
+
 class ESPnetASRModelFeatureReader(BaseFeatureReader):
     def __init__(self, asr_model_path, layer, sample_rate=16000, max_chunk=1600000):
         self.sample_rate = sample_rate
@@ -329,7 +330,7 @@ class ESPnetASRModelFeatureReader(BaseFeatureReader):
             x = data
         with torch.inference_mode():
             x = torch.from_numpy(x).float().to(self.device)
-            x = x.view(1, -1) # torch.Size([1, 32640])
+            x = x.view(1, -1)  # torch.Size([1, 32640])
 
             lens = torch.tensor([x.shape[1]], dtype=torch.long)
             feat, _ = self.model.encode(x, lens, max_layer=self.layer)
