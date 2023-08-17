@@ -4,7 +4,7 @@ if [ ! -e tools/kaldi ]; then
     git clone https://github.com/kaldi-asr/kaldi --depth 1 tools/kaldi
 fi
 
-PATH=$(pwd)/bats-core/bin:$(pwd)/shellcheck-stable:$PATH
+PATH=$(pwd)/test_utils/bats-core/bin:$(pwd)/shellcheck-stable:$PATH
 if ! [ -x "$(command -v bats)" ]; then
     echo "=== install bats ==="
     git clone https://github.com/bats-core/bats-core.git test_utils
