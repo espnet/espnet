@@ -59,7 +59,7 @@ if ! wget --no-check-certificate $url -P ${MLS}; then
     exit 1;
 fi
 dict_init md5_dict
-while read line; do
+while read -r line; do
     md5=$( echo $line | cut -d " " -f 1)
     filename=$( echo $line | cut -d " " -f 2)
     dict_put md5_dict $filename $md5
@@ -74,12 +74,12 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
         lm_filename="mls_lm_${lang_name}.tar.gz"
 
         local/download_and_untar.sh \
-            --md5sum $(dict_get md5_dict ${data_filename})\
+            --md5sum "$(dict_get md5_dict ${data_filename})" \
             "${MLS}"\
             "https://dl.fbaipublicfiles.com/mls/${data_filename}" \
             "${data_filename}"
         local/download_and_untar.sh \
-            --md5sum $(dict_get md5_dict ${lang_filename})\
+            --md5sum "$(dict_get md5_dict ${lm_filename})" \
             "${MLS}"\
             "https://dl.fbaipublicfiles.com/mls/${lm_filename}" \
             "${lm_filename}"

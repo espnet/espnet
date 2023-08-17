@@ -6,7 +6,6 @@
 # Apache 2.0
 
 # Adapted from egs/mini_librispeech/s5/local/download_and_untar.sh (commit 1cd6d2ac3a935009fdc4184cb8a72ddad98fe7d9)
-set -x
 
 remove_archive=false
 if [ "$1" == --remove-archive ]; then
