@@ -1,5 +1,60 @@
 # RESULTS
 
+## Whisper [medium_finetuning](conf/tuning/train_asr_whisper_full_warmup3000.yaml) without LM
+
+## Environments
+- date: `Fri Jul 21 12:47:17 JST 2023`
+- python version: `3.10.10 (main, Mar 21 2023, 18:45:11) [GCC 11.2.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `d7172fcb7181ffdcca9c0061400254b63e37bf21`
+  - Commit date: `Sat Jul 15 15:01:30 2023 +0900`
+- Pretrained URL: [espnet/yoshiki_wsj_whisper_medium_finetuning](https://huggingface.co/espnet/yoshiki_wsj_whisper_medium_finetuning)
+
+- token_type: whisper_multilingual
+- cleaner: whisper_en
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_dev93|503|8132|97.7|2.0|0.4|0.3|2.6|24.9|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_eval92|333|5564|98.5|1.4|0.1|0.2|1.7|19.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_dev93|503|46683|99.4|0.3|0.3|0.2|0.8|24.9|
+|decode_asr_whisper_noctc_greedy_asr_model_valid.acc.ave/test_eval92|333|32096|99.6|0.2|0.2|0.2|0.6|19.5|
+
+## Self-supervised learning features [WavLm_large, Conformer, utt_mvn](conf/tuning/train_asr_conformer_s3prlfrontend_wavlm.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer.yaml)
+
+## Environments
+- date: `Tue Jul 11 05:34:44 UTC 2023`
+- python version: `3.7.4 (default, Aug 13 2019, 20:35:49)  [GCC 7.3.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 1.10.1+cu111`
+- Git hash: `a0702913d1ce828915abb4638abcb308d85400d4`
+  - Commit date: `Sun Aug 13 08:04:03 2023 +0900`
+- training config: [conf/tuning/train_asr_conformer_s3prlfrontend_wavlm.yaml](conf/tuning/train_asr_conformer_s3prlfrontend_wavlm.yaml)
+- inference config: [conf/decode.yaml](conf/decode.yaml)
+- pretrained model: [https://huggingface.co/espnet/yoshiki_wsj_asr_conformer_s3prlfrontend_wavlm_raw_en_char](https://huggingface.co/espnet/yoshiki_wsj_asr_conformer_s3prlfrontend_wavlm_raw_en_char)
+
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_lm_lm_train_lm_transformer_en_char_valid.loss.ave_asr_model_valid.acc.ave/test_dev93|503|8234|97.7|2.1|0.3|0.2|2.6|28.0|
+|decode_lm_lm_train_lm_transformer_en_char_valid.loss.ave_asr_model_valid.acc.ave/test_eval92|333|5643|98.6|1.3|0.1|0.1|1.5|19.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_lm_lm_train_lm_transformer_en_char_valid.loss.ave_asr_model_valid.acc.ave/test_dev93|503|48634|99.1|0.3|0.5|0.2|1.0|37.8|
+|decode_lm_lm_train_lm_transformer_en_char_valid.loss.ave_asr_model_valid.acc.ave/test_eval92|333|33341|99.4|0.2|0.3|0.1|0.7|33.0|
+
 ## Self-supervised learning features [HuBERT_large_ll60k, Conformer, utt_mvn](conf/tuning/train_asr_conformer_s3prlfrontend_hubert.yaml) with [Transformer-LM](conf/tuning/train_lm_transformer.yaml)
 
 ### Environments

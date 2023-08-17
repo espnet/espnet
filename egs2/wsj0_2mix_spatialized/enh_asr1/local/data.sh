@@ -37,3 +37,12 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Enh and ASR data preparation"
     local/enh_data.sh --sample_rate ${sample_rate} --min_or_max "max"
 fi
+
+
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    log "stage 2: Combine anechoic and reverberant data"
+    utils/combine_data.sh --extra_files "spk1.scp spk2.scp text_spk1 text_spk2" \
+        data/tr_spatialized_multi_multich_max_${sample_rate} data/tr_spatialized_anechoic_multich_max_${sample_rate} data/tr_spatialized_reverb_multich_max_${sample_rate}
+    utils/combine_data.sh --extra_files "spk1.scp spk2.scp text_spk1 text_spk2" \
+        data/cv_spatialized_multi_multich_max_${sample_rate} data/cv_spatialized_anechoic_multich_max_${sample_rate} data/cv_spatialized_reverb_multich_max_${sample_rate}
+fi
