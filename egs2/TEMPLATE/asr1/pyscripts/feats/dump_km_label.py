@@ -16,8 +16,8 @@ import joblib
 import numpy as np
 import torch
 from ssl_feature_utils import (
-    ESPnetHubertFeatureReader,
     ESPnetASRmodelFeatureReader,
+    ESPnetHubertFeatureReader,
     HubertFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
