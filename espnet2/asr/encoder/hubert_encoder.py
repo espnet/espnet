@@ -16,9 +16,9 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import torch
-from torch.nn import functional as F
 import yaml
 from filelock import FileLock
+from torch.nn import functional as F
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -236,6 +236,7 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
                 >= lengths[:, None]
             )
             return mask
+
         if self.normalize_feats:
             xs_pad = F.layer_norm(xs_pad, xs_pad.shape)
         # manually add the steps. It is not accurate.
