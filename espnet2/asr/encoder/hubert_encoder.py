@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import List, Optional, Tuple
 
 import torch
+from torch.nn import functional as F
 import yaml
 from filelock import FileLock
 from typeguard import check_argument_types
@@ -130,6 +131,7 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
         feature_grad_mult: Optional[float] = 0.1,
         finetuning: bool = False,
         freeze_encoder_updates: int = 0,
+        normalize_feats: bool = False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -184,6 +186,7 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
                 p.requires_grad = False
         self.register_buffer("global_step", torch.LongTensor([0]))
         self.freeze_encoder_updates = freeze_encoder_updates
+        self.normalize_feats = normalize_feats
 
     def output_size(self) -> int:
         return self._output_size
@@ -233,7 +236,8 @@ class TorchAudioHuBERTPretrainEncoder(AbsEncoder):
                 >= lengths[:, None]
             )
             return mask
-
+        if self.normalize_feats:
+            xs_pad = F.layer_norm(xs_pad, xs_pad.shape)
         # manually add the steps. It is not accurate.
         # TODO(simpleoier): to introduce the global update steps into encoder module
         self.global_step += 1

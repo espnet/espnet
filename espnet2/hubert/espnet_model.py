@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from torch.nn import functional as F
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
@@ -157,6 +158,10 @@ class TorchAudioHubertPretrainModel(AbsESPnetModel):
             y_pad_length: (Batch, )
         """
         with autocast(False):
+
+            if self.encoder.normalize_feats:
+                speech = F.layer_norm(speech, speech.shape)
+
             # 1. Extract feats
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 

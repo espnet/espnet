@@ -550,7 +550,7 @@ class BranchformerEncoder(AbsEncoder):
 
         if max_layer is not None:
             assert (0 <= max_layer < len(self.encoders))
-            for layer_idx, encoder_layer in enumerate(self.encoders)
+            for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
                 if layer_idx >= max_layer:
                     break
