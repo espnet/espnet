@@ -109,6 +109,9 @@ class Speech2Text:
         hugging_face_decoder_conf: Dict[str, Any] = {},
         time_sync: bool = False,
         multi_asr: bool = False,
+        lang_prompt_token: Optional[str] = None,
+        nlp_prompt_token: Optional[str] = None,
+        prompt_token_file: str = "/projects/bbjs/arora1/new_download/espnet/egs2/stop/asr2_combined/add_tokens-Copy1.txt",
     ):
         assert check_argument_types()
 
@@ -366,20 +369,18 @@ class Speech2Text:
 
         if token_type is None:
             tokenizer = None
-        elif token_type == "bpe" or token_type == "hugging_face":
+        elif (
+            token_type == "bpe"
+            or token_type == "hugging_face"
+            or "whisper" in token_type
+        ):
             if bpemodel is not None:
-                tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
+                if "whisper" in token_type:
+                    tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel,non_linguistic_symbols=prompt_token_file)
+                else:
+                    tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
             else:
                 tokenizer = None
-        elif "whisper" in token_type:
-            tokenizer_language = asr_train_args.preprocessor_conf.get(
-                "tokenizer_language", "en"
-            )
-            tokenizer = build_tokenizer(
-                token_type=token_type,
-                bpemodel=bpemodel,
-                tokenizer_language=tokenizer_language,
-            )
         else:
             tokenizer = build_tokenizer(token_type=token_type)
 
@@ -388,12 +389,29 @@ class Speech2Text:
         elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
-            converter = OpenAIWhisperTokenIDConverter(
-                model_type=bpemodel, language=tokenizer_language
-            )
-            beam_search.set_hyp_primer(
-                list(converter.tokenizer.sot_sequence_including_notimestamps)
-            )
+            converter = OpenAIWhisperTokenIDConverter(model_type=bpemodel,added_tokens_txt=prompt_token_file)
+            if lang_prompt_token is not None:
+                a1=converter.tokenizer.tokenizer.convert_ids_to_tokens(converter.tokenizer.sot_sequence_including_notimestamps)
+                # a1[2]="<|ic|>"
+                a1=a1[:1]+lang_prompt_token.split()+a1[3:]
+                beam_search.set_hyp_primer(
+                    list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
+                )
+            elif nlp_prompt_token is not None:
+                a1=converter.tokenizer.tokenizer.convert_ids_to_tokens(converter.tokenizer.sot_sequence_including_notimestamps)
+                # a1[2]="<|ic|>"
+                # import pdb;pdb.set_trace()
+                prompt_tokens = tokenizer.text2tokens(nlp_prompt_token)
+                # print(prompt_tokens)
+                # actual_token=[actual_token[0]]+prompt_tokens+actual_token[2:]
+                a1=a1[:2]+prompt_tokens+a1[3:]
+                beam_search.set_hyp_primer(
+                    list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
+                )
+            else:
+                beam_search.set_hyp_primer(
+                    list(converter.tokenizer.sot_sequence_including_notimestamps)
+                )
         logging.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
@@ -675,6 +693,9 @@ def inference(
     hugging_face_decoder_conf: Dict[str, Any],
     time_sync: bool,
     multi_asr: bool,
+    lang_prompt_token: Optional[str],
+    nlp_prompt_token: Optional[str],
+    prompt_token_file:str,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -727,6 +748,9 @@ def inference(
         hugging_face_decoder=hugging_face_decoder,
         hugging_face_decoder_conf=hugging_face_decoder_conf,
         time_sync=time_sync,
+        prompt_token_file=prompt_token_file,
+        lang_prompt_token=lang_prompt_token,
+        nlp_prompt_token=nlp_prompt_token,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -1024,7 +1048,24 @@ def get_parser():
         default=False,
         help="Time synchronous beam search.",
     )
-
+    group.add_argument(
+        "--lang_prompt_token",
+        type=str,
+        default=None,
+        help="Prompt token for mulitlingual prompting",
+    )
+    group.add_argument(
+        "--nlp_prompt_token",
+        type=str,
+        default=None,
+        help="Prompt token for natural language phrases as prompting",
+    )
+    group.add_argument(
+        "--prompt_token_file",
+        type=str,
+        default="/projects/bbjs/arora1/new_download/espnet/egs2/stop/asr2_combined/add_tokens-Copy1.txt",
+        help="Prompt token file",
+    )
     return parser
 
 
