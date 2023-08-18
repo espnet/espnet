@@ -55,7 +55,9 @@ class ESPnetExtractionModel(AbsESPnetModel):
                 raise ValueError("is_dereverb_loss=True is not supported")
 
         # for multi-channel signal
-        self.ref_channel = getattr(self.extractor, "ref_channel", -1)
+        self.ref_channel = getattr(self.extractor, "ref_channel", None)
+        if self.ref_channel is None:
+            self.ref_channel = 0
 
         # Used in espnet2/tasks/abs_task.py for determining whether or not to do
         # collect_feats during collect stats (stage 5).
@@ -147,7 +149,7 @@ class ESPnetExtractionModel(AbsESPnetModel):
         assert len(speech_ref) == len(enroll_ref), (len(speech_ref), len(enroll_ref))
 
         additional = {}
-        # Additional data is required in Deep Attractor Network
+        # Additional data for training the TSE model
         if self.flexible_numspk:
             additional["num_spk"] = num_spk
 
