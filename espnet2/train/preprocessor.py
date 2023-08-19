@@ -1087,7 +1087,7 @@ class EnhPreprocessor(CommonPreprocessor):
             data_dict[self.speech_ref_name_prefix + str(spk + 1)]
             for spk in range(num_spk)
         ]
-        length = speech_refs[0].size(0)
+        length = speech_refs[0].shape[0]
         tgt_length = self.speech_segment
         assert length >= self.speech_segment, (length, tgt_length)
 
