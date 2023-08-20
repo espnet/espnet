@@ -55,9 +55,11 @@ if ! which wget >/dev/null; then
     exit 1;
 fi
 url="https://dl.fbaipublicfiles.com/mls/md5sum.txt"
-if ! wget --no-check-certificate $url -P ${MLS}; then
-    echo "$0: error executing wget $url"
-    exit 1;
+if [ ! -f "${MLS}/md5sum.txt" ]; then
+    if ! wget --no-check-certificate $url -P ${MLS}; then
+        echo "$0: error executing wget $url"
+        exit 1;
+    fi
 fi
 dict_init md5_dict
 while read -r line; do
@@ -101,8 +103,25 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
         # add placeholder to align format with other corpora
         sed -r '/^\s*$/d' ${MLS}/mls_lm_${lang_name}/data.txt | \
-            awk '{printf("%.8d %s\n"), NR-1, $0}'  > data/${lang}_lm_train.txt
+            awk '{printf("%.9d %s\n"), NR-1, $0}'  > data/${lang}_lm_train.txt
     done
+
+    # Merge train, dev set
+    for split in train dev; do
+        mkdir data/mls_all_${split}
+        for f in spk2utt text utt2spk wav.scp; do
+            touch data/mls_all_${split}/${f}
+            for lang in $(dict_keys lang_dict); do
+                cat data/mls_${lang}_${split}/${f} >> data/mls_all_${split}/${f}
+            done
+        done
+        utils/fix_data_dir.sh data/mls_all_${split}
+    done
+
+    for lang in $(dict_keys lang_dict); do
+        lang_name=$(dict_get lang_dict ${lang})
+        sed -r '/^\s*$/d' ${MLS}/mls_lm_${lang_name}/data.txt
+    done | awk '{printf("%.9d %s\n"), NR-1, $0}' > data/all_lm_train.txt
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
         count = 0
         for line in tqdm(open(args.source / subdir / "transcripts.txt")):
-            org_header, trans = line.split("\t")
+            org_header, trans = line.strip().split("\t")
             if subsamples and org_header not in subsamples:
                 continue
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
                 args.source / subdir / "audio" / org_spk / book / f"{org_header}.flac"
             )
             wavscp.write(f"{header} flac -c -d --silent {wavdir} |\n")
-            text.write(f"{header} {trans}")
+            text.write(f"{header} {trans}\n")
             utt2spk.write(f"{header} {spk}\n")
             spk_save[spk].append(header)
 
