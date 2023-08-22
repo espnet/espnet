@@ -40,10 +40,7 @@ def to_complex(c):
     elif torch.is_complex(c):
         return c
     else:
-        if c.shape[-1] != 2:
-            raise TypeError("Invalid input type")
-        c = c[..., 0] + 1j * c[..., 1]
-        return c
+        return torch.view_as_complex(c)
 
 
 def to_double(c):
