@@ -23,9 +23,7 @@ def new_complex_like(
 
 
 def is_torch_complex_tensor(c):
-    return (
-        not isinstance(c, ComplexTensor) and torch.is_complex(c)
-    )
+    return not isinstance(c, ComplexTensor) and torch.is_complex(c)
 
 
 def is_complex(c):
@@ -137,7 +135,7 @@ def matmul(
     # multiplication between complex and real tensors.
     if isinstance(a, ComplexTensor) or isinstance(b, ComplexTensor):
         return FC.matmul(a, b)
-    elif (torch.is_complex(a) or torch.is_complex(b)):
+    elif torch.is_complex(a) or torch.is_complex(b):
         if not torch.is_complex(a):
             o_real = torch.matmul(a, b.real)
             o_imag = torch.matmul(a, b.imag)
@@ -175,7 +173,7 @@ def solve(b: Union[torch.Tensor, ComplexTensor], a: Union[torch.Tensor, ComplexT
             return FC.solve(b, a, return_LU=False)
         else:
             return matmul(inverse(a), b)
-    elif (torch.is_complex(a) or torch.is_complex(b)):
+    elif torch.is_complex(a) or torch.is_complex(b):
         if torch.is_complex(a) and torch.is_complex(b):
             return torch.linalg.solve(a, b)
         else:

@@ -44,7 +44,9 @@ DATA_TYPES = {
     "text_int": lambda x: np.loadtxt(
         StringIO(x), ndmin=1, dtype=np.int64, delimiter=" "
     ),
-    "csv_int": lambda x: np.loadtxt(StringIO(x), ndmin=1, dtype=np.int64, delimiter=","),
+    "csv_int": lambda x: np.loadtxt(
+        StringIO(x), ndmin=1, dtype=np.int64, delimiter=","
+    ),
     "text_float": lambda x: np.loadtxt(
         StringIO(x), ndmin=1, dtype=np.float32, delimiter=" "
     ),
