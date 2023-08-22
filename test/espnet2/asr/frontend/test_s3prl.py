@@ -8,10 +8,8 @@ is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
 is_torch_2_0_plus = V(torch.__version__) >= V("2.0.0")
 
 
+@pytest.mark.skipif(not is_torch_1_8_plus or is_torch_2_0_plus, reason="Not supported")
 def test_frontend_init():
-    if not is_torch_1_8_plus:
-        return
-
     frontend = S3prlFrontend(
         fs=16000,
         frontend_conf=dict(upstream="mel"),
