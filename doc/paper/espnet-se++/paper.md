@@ -71,7 +71,7 @@ bibliography: paper.bib
 
 # Summary
 This paper presents the software design and user interface of ESPnet-SE++, a new speech separation and enhancement (SSE) module of the ESPnet toolkit.
-ESPnet-SE++ significantly expands the functionality of ESPnet-SE [@Li:2021] with several new models, loss functions, and training recipes [@Lu:2022]. Crucially, it features a new, redesigned interface, which allows for a flexible combination of SSE front-ends with many downstream tasks, including automatic speech recognition (ASR), speaker diarization (SD), speech translation (ST), and spoken language understanding (SLU).
+ESPnet-SE++ significantly expands the functionality of ESPnet-SE [@Li:2021] with several new models[@Hershey:2016; Chen:2017; Hu:2020; Tan:2021; Li:2022; Dang:2022; Takahashi:2019; Luo:2019a; Lu:2022a], loss functions [@Luo:2018; Le:2019; Boeddeker:2021; Scheibler:2022], and training recipes as shown in [@Lu:2022b]. Crucially, it features a new, redesigned interface, which allows for a flexible combination of SSE front-ends with many downstream tasks, including automatic speech recognition (ASR), speaker diarization (SD), speech translation (ST), and spoken language understanding (SLU).
 
 # Statement of need
 
