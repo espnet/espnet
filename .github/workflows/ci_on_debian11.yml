@@ -16,7 +16,7 @@ jobs:
       image: debian:11
       env:
         ESPNET_PYTHON_VERSION: "3.10"
-        TH_VERSION: 2.0.1
+        TH_VERSION: 1.13.1
         CHAINER_VERSION: 6.0.0
         USE_CONDA: true
         # To avoid UnicodeEncodeError for python<=3.6
