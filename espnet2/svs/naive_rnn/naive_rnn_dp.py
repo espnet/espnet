@@ -448,7 +448,12 @@ class NaiveRNNDP(AbsSVS):
 
         olens = feats_lengths
         if self.reduction_factor > 1:
-            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+            olens_in = olens.new(
+                [
+                    torch.div(olen, self.reduction_factor, rounding_mode="trunc")
+                    for olen in olens
+                ]
+            )
         else:
             olens_in = olens
 
