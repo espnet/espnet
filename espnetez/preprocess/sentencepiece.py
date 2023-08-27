@@ -28,8 +28,7 @@ def prepare_sentences(
 
     # normalize text
     # remove unrequired characters
-    lines = [line.translate(str.maketrans("", "", remove_characters))
-             for line in lines]
+    lines = [line.translate(str.maketrans("", "", remove_characters)) for line in lines]
     texts = "\n".join(
         [line.split(" ", maxsplit=1)[1].replace("\n", "") for line in lines]
     )
