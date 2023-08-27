@@ -63,8 +63,8 @@ class ESPnetASRModel(AbsESPnetModel):
         transducer_multi_blank_durations: List = [],
         transducer_multi_blank_sigma: float = 0.05,
         use_bayes_risk_transducer: bool = False,
-        brt_risk_strategy: str = 'exp',
-        brt_aggregate_strategy: str = 'transducer_ending',
+        brt_risk_strategy: str = "exp",
+        brt_aggregate_strategy: str = "transducer_ending",
         brt_risk_factor: float = 0.0,
         brt_risk_start: float = 2.0,
         # In a regular ESPnet recipe, <sos> and <eos> are both "<sos/eos>"
@@ -132,8 +132,9 @@ class ESPnetASRModel(AbsESPnetModel):
 
             elif use_bayes_risk_transducer:
                 from espnet2.asr.transducer.bayes_risk_transducer import (
-                    BayesRiskTransducer
+                    BayesRiskTransducer,
                 )
+
                 self.criterion_transducer = BayesRiskTransducer(
                     risk_strategy=brt_risk_strategy,
                     aggregate_strategy=brt_aggregate_strategy,
