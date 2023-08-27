@@ -28,8 +28,7 @@ def prepare_sentences(
 
     # normalize text
     # remove unrequired characters
-    lines = [line.translate(str.maketrans("", "", remove_characters))
-             for line in lines]
+    lines = [line.translate(str.maketrans("", "", remove_characters)) for line in lines]
     texts = "\n".join(
         [line.split(" ", maxsplit=1)[1].replace("\n", "") for line in lines]
     )
@@ -74,8 +73,7 @@ def train_sentencepiece(
         lines = f.readlines()
 
     vocabs = (
-        ["<blank>", "<unk>"] + [l.split("\t")[0] for l in lines][3:]
-            + ["<sos/eos>"]
+        ["<blank>", "<unk>"] + [l.split("\t")[0] for l in lines][3:] + ["<sos/eos>"]
     )
     with open(os.path.join(output_path, "tokens.txt"), "w") as f:
         f.write("\n".join(vocabs))
