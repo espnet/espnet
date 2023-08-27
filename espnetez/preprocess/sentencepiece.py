@@ -74,8 +74,8 @@ def train_sentencepiece(
         lines = f.readlines()
 
     vocabs = (
-        ["<blank>", "<unk>"] + [l.split("\t")[0] for l in lines][3:]
-            + ["<sos/eos>"]
+        ["<blank>", "<unk>"] + [line.split("\t")[0] for line in lines][3:]
+        + ["<sos/eos>"]
     )
     with open(os.path.join(output_path, "tokens.txt"), "w") as f:
         f.write("\n".join(vocabs))
