@@ -62,6 +62,11 @@ class ESPnetASRModel(AbsESPnetModel):
         sym_blank: str = "<blank>",
         transducer_multi_blank_durations: List = [],
         transducer_multi_blank_sigma: float = 0.05,
+        use_bayes_risk_transducer: bool = False,
+        brt_risk_strategy: str = 'exp',
+        brt_aggregate_strategy: str = 'transducer_ending',
+        brt_risk_factor: float = 0.0,
+        brt_risk_start: float = 2.0,
         # In a regular ESPnet recipe, <sos> and <eos> are both "<sos/eos>"
         # Pretrained HF Tokenizer needs custom sym_sos and sym_eos
         sym_sos: str = "<sos/eos>",
@@ -117,13 +122,26 @@ class ESPnetASRModel(AbsESPnetModel):
             self.decoder = decoder
             self.joint_network = joint_network
 
-            if not transducer_multi_blank_durations:
+            if not transducer_multi_blank_durations and not use_bayes_risk_transducer:
                 from warprnnt_pytorch import RNNTLoss
 
                 self.criterion_transducer = RNNTLoss(
                     blank=self.blank_id,
                     fastemit_lambda=0.0,
                 )
+
+            elif use_bayes_risk_transducer:
+                from espnet2.asr.transducer.bayes_risk_transducer import (
+                    BayesRiskTransducer
+                )
+                self.criterion_transducer = BayesRiskTransducer(
+                    risk_strategy=brt_risk_strategy,
+                    aggregate_strategy=brt_aggregate_strategy,
+                    risk_factor=brt_risk_factor,
+                    risk_start=brt_risk_start,
+                    pad_id=self.blank_id,
+                )
+
             else:
                 from espnet2.asr.transducer.rnnt_multi_blank.rnnt_multi_blank import (
                     MultiblankRNNTLossNumba,
