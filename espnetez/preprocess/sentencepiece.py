@@ -28,7 +28,8 @@ def prepare_sentences(
 
     # normalize text
     # remove unrequired characters
-    lines = [line.translate(str.maketrans("", "", remove_characters)) for line in lines]
+    lines = [line.translate(str.maketrans("", "", remove_characters))
+             for line in lines]
     texts = "\n".join(
         [line.split(" ", maxsplit=1)[1].replace("\n", "") for line in lines]
     )
@@ -47,9 +48,11 @@ def train_sentencepiece(
 
     Args:
         dump_text_path (Union[str, Path]): Path to the train.txt file.
-        output_path (Union[str, Path]): Output directory to store sentencepiece model and vocaburary list.
+        output_path (Union[str, Path]): Output directory to store
+            sentencepiece model and vocaburary list.
         vocab_size (int, optional): Vocaburary size. Defaults to 5000.
-        character_coverage (float, optional): Character coverage. Defaults to 0.9995.
+        character_coverage (float, optional): Character coverage.
+            Defaults to 0.9995.
     """
     # Please prepare sentences before running this function.
     spm.SentencePieceTrainer.Train(
@@ -71,7 +74,8 @@ def train_sentencepiece(
         lines = f.readlines()
 
     vocabs = (
-        ["<blank>", "<unk>"] + [l.split("\t")[0] for l in lines][3:] + ["<sos/eos>"]
+        ["<blank>", "<unk>"] + [l.split("\t")[0] for l in lines][3:]
+            + ["<sos/eos>"]
     )
     with open(os.path.join(output_path, "tokens.txt"), "w") as f:
         f.write("\n".join(vocabs))
