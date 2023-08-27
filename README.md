@@ -2,17 +2,17 @@
 
 # ESPnet: end-to-end speech processing toolkit
 
-|system/pytorch ver.|1.10.2|1.11.0|1.12.1|1.13.1|
-| :---: | :---: | :---: | :---: | :---: |
-|ubuntu/python3.10/pip||||[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu/python3.9/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu/python3.8/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|ubuntu/python3.7/pip|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|[![Github Actions](https://github.com/espnet/espnet/workflows/CI/badge.svg)](https://github.com/espnet/espnet/actions)|
-|debian11/python3.7/conda||||[![debian11](https://github.com/espnet/espnet/workflows/debian11/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adebian11)|
-|centos7/python3.7/conda||||[![centos7](https://github.com/espnet/espnet/workflows/centos7/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Acentos7)|
-|ubuntu/doc/python3.8||||[![doc](https://github.com/espnet/espnet/workflows/doc/badge.svg)](https://github.com/espnet/espnet/actions?query=workflow%3Adoc)|
-
-
+|system/pytorch ver.|1.11.0|1.12.1|1.13.1|2.0.1|
+| :---- | :---: | :---: | :---: | :---: |
+|ubuntu/python3.10/pip||||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
+|ubuntu/python3.9/pip||||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
+|ubuntu/python3.8/pip||||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
+|ubuntu/python3.7/pip|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)||
+|debian11/python3.10/conda|||[![ci on debian11](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml?query=branch%3Amaster)||
+|centos7/python3.10/conda|||[![ci on centos7](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml?query=branch%3Amaster)||
+|windows/python3.10/pip||||[![ci on windows](https://github.com/espnet/espnet/actions/workflows/ci_on_windows.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_windows.yml?query=branch%3Amaster)|
+|macos/python3.10/pip||||[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|
+|macos/python3.10/conda||||[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|
 
 [![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
 [![Python Versions](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
@@ -272,9 +272,6 @@ See [ESPnet2](https://espnet.github.io/espnet/espnet2_tutorial.html).
 
 - (ESPnet2) Once installed, run `wandb login` and set `--use_wandb true` to enable tracking runs using W&B.
 
-## Usage
-See [Usage](https://espnet.github.io/espnet/tutorial.html).
-
 ## Docker Container
 
 go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espnet/docker.html).
@@ -282,10 +279,6 @@ go to [docker/](docker/) and follow [instructions](https://espnet.github.io/espn
 ## Contribution
 Thank you for taking the time for ESPnet! Any contributions to ESPnet are welcome, and feel free to ask any questions or requests to [issues](https://github.com/espnet/espnet/issues).
 If it's your first ESPnet contribution,  please follow the [contribution guide](CONTRIBUTING.md).
-
-## Results and demo
-
-You can find useful tutorials and demos in [Interspeech 2019 Tutorial](https://github.com/espnet/interspeech2019-tutorial)
 
 ### ASR results
 

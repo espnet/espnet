@@ -10,11 +10,13 @@ cd ./egs/mini_an4/asr1 || exit 1
 
 set -euo pipefail
 
+echo "==== ASR (backend=chainer) ==="
+./run.sh --python "${python}" --backend chainer
 echo "==== ASR (backend=pytorch lm=RNNLM) ==="
-./run.sh --python "${python}"
+./run.sh --python "${python}" --stage 3
 echo "==== ASR (backend=pytorch, lm=TransformerLM) ==="
 ./run.sh --python "${python}" --stage 3 --stop-stage 3 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
-# skip duplicated ASR training stage 4
+echo "==== ASR (backend=pytorch, lm=TransformerLM, api v2) ==="
 ./run.sh --python "${python}" --stage 5 --lm-config conf/lm_transformer.yaml --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2)"
 echo "==== ASR (backend=pytorch, dtype=float64) ==="
 ./run.sh --python "${python}" --stage 3 --train-config "$(change_yaml.py conf/train.yaml -a train-dtype=float64)" --decode-config "$(change_yaml.py conf/decode.yaml -a api=v2 -a dtype=float64)"
@@ -23,34 +25,19 @@ echo "==== ASR (backend=pytorch, quantize-asr-model true, quantize-lm-model true
 echo "==== ASR (backend=pytorch, quantize-asr-model true, quantize-lm-model true api v2) ==="
 ./run.sh --python "${python}" --stage 5 --decode-config "$(change_yaml.py conf/decode.yaml -a quantize-asr-model=true -a quantize-lm-model=true -a quantize-config=['Linear'] -a api=v2)"
 
-echo "==== ASR (backend=chainer) ==="
-./run.sh --python "${python}" --stage 3 --backend chainer
-
-# skip duplicated ASR training stage 2,3
-# test rnn recipe
-echo "=== ASR (backend=pytorch, model=rnn-pure-ctc) ==="
-./run.sh --python "${python}" --stage 4 --train-config conf/train_pure_ctc.yaml \
-        --decode-config conf/decode_pure_ctc.yaml
-echo "=== ASR (backend=pytorch, model=rnn-no-ctc) ==="
-./run.sh --python "${python}" --stage 4 --train-config conf/train_no_ctc.yaml \
-        --decode-config conf/decode_no_ctc.yaml
+# this is used for the transfer learning
+echo "==== ASR (backend=pytorch, model=rnn-pure-ctc) ==="
+./run.sh --python "${python}" --stage 4 --train-config conf/train_pure_ctc.yaml --decode-config conf/decode_pure_ctc.yaml
 
 # test transformer recipe
 echo "=== ASR (backend=pytorch, model=transformer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transformer.yaml \
         --decode-config conf/decode.yaml
-./run.sh --python "${python}" --stage 5 --train-config conf/train_transformer.yaml \
-        --decode-config conf/decode.yaml --metric acc
-./run.sh --python "${python}" --stage 5 --train-config conf/train_transformer.yaml \
-        --decode-config conf/decode.yaml --metric loss
 echo "=== ASR (backend=pytorch, model=conformer) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer.yaml \
         --decode-config conf/decode.yaml
 echo "=== ASR (backend=pytorch, model=transformer-pure-ctc) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transformer_pure_ctc.yaml \
-        --decode-config conf/decode_pure_ctc.yaml
-echo "=== ASR (backend=pytorch, model=conformer-pure-ctc) ==="
-./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_pure_ctc.yaml \
         --decode-config conf/decode_pure_ctc.yaml
 echo "=== ASR (backend=pytorch, model=transformer-no-ctc) ==="
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transformer_no_ctc.yaml \
@@ -74,9 +61,6 @@ echo "=== ASR (backend=pytorch, model=conformer-transducer) ==="
 echo "=== ASR (backend=pytorch, model=rnnt, tasks=L1+L2+L3+L4+L5)"
 ./run.sh --python "${python}" --stage 4 --train-config conf/train_transducer_aux.yaml \
          --decode-config conf/decode_transducer.yaml
-echo "=== ASR (backend=pytorch, model=conformer-transducer, tasks=L1+L2+L5) ==="
-./run.sh --python "${python}" --stage 4 --train-config conf/train_conformer_transducer_aux.yaml \
-        --decode-config conf/decode_transducer.yaml
 
 # test finetuning
 ## test transfer learning
@@ -110,12 +94,8 @@ cd ./egs/mini_an4/st1 || exit 1
 
 echo "==== ST (backend=pytorch) ==="
 ./run.sh --python "${python}"
-echo "==== ST (backend=pytorch asr0.3) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_asr0.3.yaml
 echo "==== ST (backend=pytorch ctc asr0.3) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_ctc_asr0.3.yaml
-echo "==== ST (backend=pytorch mt0.3) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_mt0.3.yaml
 echo "==== ST (backend=pytorch asr0.2 mt0.2) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_asr0.2_mt0.2.yaml
 echo "==== ST (backend=pytorch, model=transformer) ==="
@@ -127,13 +107,7 @@ echo "==== ST (backend=pytorch, model=transformer) ==="
 ./run.sh --python "${python}" --stage 5 --train_config conf/train_transformer.yaml \
     --metric loss
 echo "==== ST (backend=pytorch asr0.3, model=transformer) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_asr0.3.yaml
-echo "==== ST (backend=pytorch ctc asr0.3, model=transformer) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_ctc_asr0.3.yaml
-echo "==== ST (backend=pytorch mt0.3, model=transformer) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_mt0.3.yaml
-echo "==== ST (backend=pytorch asr0.2 mt0.2, model=transformer) ==="
-./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer_asr0.2_mt0.2.yaml
 echo "==== ST (backend=pytorch asr0.2 mt0.2, model=conformer) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_conformer_asr0.2_mt0.2.yaml
 # Remove generated files in order to reduce the disk usage
@@ -147,12 +121,6 @@ echo "==== MT (backend=pytorch) ==="
 ./run.sh --python "${python}"
 echo "==== MT (backend=pytorch, model=transformer) ==="
 ./run.sh --python "${python}" --stage 4 --train_config conf/train_transformer.yaml
-./run.sh --python "${python}" --stage 5 --train_config conf/train_transformer.yaml \
-    --metric acc
-./run.sh --python "${python}" --stage 5 --train_config conf/train_transformer.yaml \
-    --metric bleu
-./run.sh --python "${python}" --stage 5 --train_config conf/train_transformer.yaml \
-    --metric loss
 # Remove generated files in order to reduce the disk usage
 rm -rf exp tensorboard dump data
 cd "${cwd}" || exit 1

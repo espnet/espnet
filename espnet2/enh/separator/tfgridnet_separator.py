@@ -71,6 +71,7 @@ class TFGridNet(AbsSeparator):
         activation="prelu",
         eps=1.0e-5,
         use_builtin_complex=False,
+        ref_channel=-1,
     ):
         super().__init__()
         self.n_srcs = n_srcs
@@ -78,6 +79,7 @@ class TFGridNet(AbsSeparator):
         self.n_imics = n_imics
         assert n_fft % 2 == 0
         n_freqs = n_fft // 2 + 1
+        self.ref_channel = ref_channel
 
         self.enc = STFTEncoder(
             n_fft, n_fft, stride, window=window, use_builtin_complex=use_builtin_complex

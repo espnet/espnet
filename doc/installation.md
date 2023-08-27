@@ -2,9 +2,9 @@
 ### Requirements
 
 - Python 3.7+
-- gcc 4.9+ for PyTorch1.4.0+
+- gcc 4.9+ for PyTorch1.10.2+
 
-(If you'll use anaconda environment at installation step2,
+(If you'll use an anaconda environment at the installation step2,
 the following packages are installed using conda, so you can skip them.)
 
 - cmake3 for some extensions
@@ -42,8 +42,8 @@ to prepare the appropriate environments.
 
 
 ### Step 1) [Optional] Install Kaldi
-- If you'll use ESPnet1 (under egs/): You need to compile Kaldi.
-- If you'll use ESPnet2 (under egs2/): You can skip installation of Kaldi.
+- If you use ESPnet1 (under egs/), you must compile Kaldi.
+- If you use ESPnet2 (under egs2/), You can skip the installation of Kaldi.
 
 <details><summary>Click to compile Kaldi...</summary><div>
 
@@ -96,7 +96,7 @@ Kaldi's requirements:
 
     ```sh
     $ cd <kaldi-root>/src
-    # [By default MKL is used] ESPnet uses only feature extractor, so you can disable CUDA
+    # [By default MKL is used] ESPnet uses only a feature extractor, so you can disable CUDA
     $ ./configure --use-cuda=no
     # [With OpenBLAS]
     # $ ./configure --openblas-root=../tools/OpenBLAS/install --use-cuda=no
@@ -110,10 +110,6 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
 ### Step 2) Installation ESPnet
 
-<div align="left"><img src="image/environment_structure.png" width="700"/></div>
-
-
-
 1. Git clone ESPnet
     ```sh
     $ cd <any-place>
@@ -121,7 +117,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     ```
 1. [Optional] Put compiled Kaldi under espnet/tools
 
-    If you have compiled Kaldi at Step1, put it under `tools`.
+    If you have compiled Kaldi at Step 1, put it under `tools`.
 
 
     ```sh
@@ -131,7 +127,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
 
 1. Setup Python environment
 
-    You have to create `<espnet-root>/tools/activate_python.sh` to specify the Python interpreter used in espnet recipes.
+    You must create `<espnet-root>/tools/activate_python.sh` to specify the Python interpreter used in espnet recipes.
     (To understand how ESPnet specifies Python, see [path.sh](https://github.com/espnet/espnet/blob/master/egs2/TEMPLATE/asr1/path.sh) for example.)
 
     We also have some scripts to generate `tools/activate_python.sh`.
@@ -146,7 +142,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         ```
 
         This script tries to create a new miniconda if the output directory doesn't exist.
-        If you already have conda and you'll use it then,
+        If you already have conda and you'll use it, then,
 
         ```sh
         $ cd <espnet-root>/tools
@@ -156,7 +152,7 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ ./setup_anaconda.sh ${CONDA_ROOT} espnet 3.8
         ```
 
-    - Option B) Setup venv from system Python
+    - Option B) Setup venv from the system Python
 
         ```sh
         $ cd <espnet-root>/tools
@@ -169,9 +165,9 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
         $ cd <espnet-root>/tools
         $ ./setup_python.sh $(command -v python3)
         ```
-    - Option D) Without setting Python environment
+    - Option D) Without setting the Python environment
 
-        `Option C` and `Option D` are almost same. This option might be suitable for Google colab.
+        `Option C` and `Option D` are almost the same. This option might be suitable for Google colab.
 
         ```sh
         $ cd <espnet-root>/tools
@@ -184,8 +180,8 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     $ make
     ```
 
-    The Makefile tries to install ESPnet and all dependencies including PyTorch.
-    You can also specify PyTorch version, for example:
+    The Makefile tries to install ESPnet and all dependencies, including PyTorch.
+    You can also specify the PyTorch version, for example:
 
     ```sh
     $ cd <espnet-root>/tools
@@ -208,8 +204,8 @@ We also have [prebuilt Kaldi binaries](https://github.com/espnet/espnet/blob/mas
     ```
 
 ### Step 3) [Optional] Custom tool installation
-Some packages used only for specific tasks, e.g. Transducer ASR, Japanese TTS, or etc. are not installed by default,
-so if you meet some installation error when running these recipe, you need to install them optionally.
+Some packages used only for specific tasks, e.g., Transducer ASR, Japanese TTS, etc. are not installed by default,
+so if you meet some installation error when running these recipes, you need to install them optionally.
 
 
 e.g.
@@ -225,10 +221,16 @@ e.g.
     cd <espnet-root>/tools
     bash -c ". activate_python.sh; ./installers/install_pyopenjtalk.sh"
     ```
-- To install a module using pip: e.g. to intstall ipython
+- To install a module using pip: e.g. to install ipython
     ```sh
     cd <espnet-root>/tools
     bash -c ". activate_python.sh; pip install ipython"
+    ```
+  In addition to the python libraries, you can also install several non-python libraries in the conda
+  environment, e.g.,
+    ```sh
+    cd <espnet-root>/tools
+    bash -c ". activate_python.sh; conda install -c anaconda cmake"
     ```
 
 ### Check installation

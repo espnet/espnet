@@ -6,7 +6,12 @@ set -u
 set -o pipefail
 
 ./enh_asr.sh \
+    --nj 2 \
+    --inference_nj 2 \
     --lang en \
+    --enh_asr_config conf/train_debug.yaml \
+    --lm_config conf/train_lm_rnn_debug.yaml \
+    --inference_config conf/decode_asr_debug.yaml \
     --train_set train_nodev \
     --valid_set train_dev \
     --test_sets "train_dev test test_seg" \
