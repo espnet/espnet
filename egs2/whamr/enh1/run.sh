@@ -10,9 +10,9 @@ sample_rate=8k
 
 
 
-train_set=tr_mix_single_reverb_min_8k
-valid_set=cv_mix_single_reverb_min_8k
-test_sets="tt_mix_single_reverb_min_8k"
+train_set=tr_mix_single_reverb_${min_or_max}_${sample_rate}
+valid_set=cv_mix_single_reverb_${min_or_max}_${sample_rate}
+test_sets="tt_mix_single_reverb_${min_or_max}_${sample_rate}"
 
 ./enh.sh \
     --train_set "${train_set}" \

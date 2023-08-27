@@ -9,9 +9,9 @@ min_or_max=min # "min" or "max". This is to determine how the mixtures are gener
 sample_rate=8k
 
 
-train_set=tr_mix_both_min_8k
-valid_set=cv_mix_both_min_8k
-test_sets="tt_mix_both_min_8k"
+train_set=tr_mix_both_${min_or_max}_${sample_rate}
+valid_set=cv_mix_both_${min_or_max}_${sample_rate}
+test_sets="tt_mix_both_${min_or_max}_${sample_rate}"
 
 ./enh.sh \
     --train_set "${train_set}" \

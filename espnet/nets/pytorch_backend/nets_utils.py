@@ -154,7 +154,7 @@ def make_pad_mask(lengths, xs=None, length_dim=-1, maxlen=None):
     # then we use ESPnet-ONNX based implementation for tracable modeling.
     # otherwise we use the traditional implementation for research use.
     if isinstance(lengths, list):
-        logging.warn(
+        logging.warning(
             "Using make_pad_mask with a list of lengths is not tracable. "
             + "If you try to trace this function with type(lengths) == list, "
             + "please change the type of lengths to torch.LongTensor."

@@ -451,7 +451,12 @@ class Transformer(AbsTTS):
             assert olens.ge(
                 self.reduction_factor
             ).all(), "Output length must be greater than or equal to reduction factor."
-            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+            olens_in = olens.new(
+                [
+                    torch.div(olen, self.reduction_factor, rounding_mode="trunc")
+                    for olen in olens
+                ]
+            )
             olens = olens.new([olen - olen % self.reduction_factor for olen in olens])
             max_olen = max(olens)
             ys = ys[:, :max_olen]
@@ -584,7 +589,12 @@ class Transformer(AbsTTS):
         # (B, T_feats, odim) ->  (B, T_feats//r, odim)
         if self.reduction_factor > 1:
             ys_in = ys[:, self.reduction_factor - 1 :: self.reduction_factor]
-            olens_in = olens.new([olen // self.reduction_factor for olen in olens])
+            olens_in = olens.new(
+                [
+                    torch.div(olen, self.reduction_factor, rounding_mode="trunc")
+                    for olen in olens
+                ]
+            )
         else:
             ys_in, olens_in = ys, olens
 
