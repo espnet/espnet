@@ -38,13 +38,13 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: [1.13.1]
+        pytorch-version: [2.0.1]
         chainer-version: [6.0.0]
         use-conda: [false]
         include:
           - os: ubuntu-latest
             python-version: "3.7"
-            pytorch-version: 1.10.2
+            pytorch-version: 1.11.0
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
@@ -107,23 +107,23 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.7]
-        pytorch-version: [1.10.2, 1.11.0, 1.12.1, 1.13.1]
+        pytorch-version: [1.11.0, 1.12.1, 1.13.1]
         chainer-version: [6.0.0]
         use-conda: [false]
         include:
           - os: ubuntu-latest
             python-version: "3.8"
-            pytorch-version: 1.13.1
+            pytorch-version: 2.0.1
             chainer-verssion: 6.0.0
             use-conda: false
           - os: ubuntu-latest
             python-version: "3.9"
-            pytorch-version: 1.13.1
+            pytorch-version: 2.0.1
             chainer-verssion: 6.0.0
             use-conda: false
           - os: ubuntu-latest
             python-version: "3.10"
-            pytorch-version: 1.13.1
+            pytorch-version: 2.0.1
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
@@ -201,13 +201,13 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: [3.7]
-        pytorch-version: [1.10.2]
+        pytorch-version: [1.11.0]
         chainer-version: [6.0.0]
         use-conda: [false]
         include:
           - os: ubuntu-latest
             python-version: "3.10"
-            pytorch-version: 1.13.1
+            pytorch-version: 2.0.1
             chainer-verssion: 6.0.0
             use-conda: false
     steps:
@@ -251,11 +251,11 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         python-version: ["3.10"]
-        pytorch-version: [1.13.1]
+        pytorch-version: [2.0.1]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
@@ -285,7 +285,7 @@ jobs:
         python3 -m pip freeze
     - name: Import all modules (Try2)
       run: |
-        python3 ./ci/test_import_all.py
+        python3 -q -X faulthandler ./ci/test_import_all.py
 
   check_kaldi_symlinks:
     runs-on: ubuntu-latest
