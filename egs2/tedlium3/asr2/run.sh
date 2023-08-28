@@ -7,7 +7,7 @@ set -o pipefail
 
 
 kmeans_feature="wavlm_large/21"  # use model_type/layer_index
-nclusters=2000
+nclusters=1000
 
 src_lang=$(echo "${kmeans_feature}_km${nclusters}" | tr "/" "_")
 tgt_lang=en
@@ -17,10 +17,10 @@ valid_set="dev"
 test_sets="test dev"
 
 asr_config=conf/tuning/train_discrete_asr_e_branchformer1.yaml
-inference_config=conf/decode_asr_ctc.yaml
+inference_config=conf/decode_ctc0.3.yaml
 
-src_nbpe=6000   # I use src_nbpe=6000 for 2000-cluster kmeans.
-tgt_nbpe=5000   # if token_joint is True, then only tgt_nbpe is used
+src_nbpe=2000   # I use src_nbpe=6000 for 2000-cluster kmeans.
+tgt_nbpe=500   # if token_joint is True, then only tgt_nbpe is used
 
 # ts: true sequence
 # rm: deduplicated sequence which removes duplicated tokens
@@ -39,7 +39,7 @@ tgt_case="ts"
     --tgt_nbpe $tgt_nbpe \
     --src_case ${src_case} \
     --tgt_case ${tgt_case} \
-    --speed_perturb_factors "1.0" \
+    --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
