@@ -113,7 +113,7 @@ Options:
 
     # Inference related
     inference_config=     # Inference configuration file
-    inference_model_file= # Inference model weight file
+    inference_model= # Inference model weight file
 
     # [Task dependent] Set the datadir name created by local/data.sh
     train_set=       # Name of training set.
@@ -467,7 +467,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --shape_file ${spk_stats_dir}/valid/speech_shape \
             --fold_length ${fold_length} \
             --config ${inference_config} \
-            --train_config "${spk_exp}/config.yaml" \
-            --model_file "${spk_exp}"/${inference_model} \
+            --spk_train_config "${spk_exp}/config.yaml" \
+            --spk_model_file "${spk_exp}"/${inference_model} \
             ${spk_args}
 fi
