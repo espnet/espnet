@@ -16,6 +16,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
 from espnet2.svs.espnet_model import ESPnetSVSModel
+from espnet2.svs.discrete_svs_espnet_model import ESPnetDiscreteSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
     SyllableScoreFeats,
@@ -133,7 +134,15 @@ svs_choices = ClassChoices(
     type_check=AbsSVS,
     default="naive_rnn",
 )
-
+model_type_choices = ClassChoices(
+    "model_type",
+    classes=dict(
+        svs=ESPnetSVSModel,
+        discrete_svs=ESPnetDiscreteSVSModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="svs",
+)
 
 class SVSTask(AbsTask):
     num_optimizers: int = 1
@@ -158,6 +167,8 @@ class SVSTask(AbsTask):
         energy_extractor_choices,
         # --energy_normalize and --energy_normalize_conf
         energy_normalize_choices,
+        # --model_type and --model_type_conf
+        model_type_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -244,7 +255,25 @@ class SVSTask(AbsTask):
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
-
+        group.add_argument(
+            "--src_bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece (for source language)",
+        )
+        group.add_argument(
+            "--src_token_type",
+            type=str,
+            default=None,
+            choices=["bpe", "char", "word", "phn"],
+            help="The source text will be tokenized " "in the specified level token",
+        )
+        group.add_argument(
+            "--src_token_list",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token (for source language)",
+        )
         parser.add_argument(
             "--fs",
             type=int,
@@ -287,6 +316,9 @@ class SVSTask(AbsTask):
                 g2p_type=args.g2p,
                 fs=args.fs,
                 hop_length=args.feats_extract_conf["hop_length"],
+                discrete_token_type=args.src_token_type,
+                discrete_token_list=args.src_token_list,
+                discrete_bpemodel=args.src_bpemodel,
             )
         else:
             retval = None
@@ -319,10 +351,11 @@ class SVSTask(AbsTask):
                 "lids",
                 "feats",
                 "ying",
+                "discrete_token",
             )
         else:
             # Inference mode
-            retval = ("spembs", "singing", "pitch", "durations", "sids", "lids")
+            retval = ("spembs", "singing", "pitch", "durations", "sids", "lids", "discrete_token")
         return retval
 
     @classmethod
@@ -343,6 +376,17 @@ class SVSTask(AbsTask):
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
 
+        if args.src_token_list is not None:
+            if isinstance(args.src_token_list, str):
+                with open(args.src_token_list, encoding="utf-8") as f:
+                    discrete_token_list = [line.rstrip() for line in f]
+                args.src_token_list = discrete_token_list.copy()
+            elif isinstance(args.src_token_list, (tuple, list)):
+                discrete_token_list = args.src_token_list.copy()
+            else:
+                raise RuntimeError("discrete_token_list must be str or dict")
+            discrete_vocab_size = len(discrete_token_list)
+
         # 1. feats_extract
         if args.odim is None:
             # Extract features in the model
@@ -355,6 +399,8 @@ class SVSTask(AbsTask):
             args.feats_extract_conf = None
             feats_extract = None
             odim = args.odim
+        if args.model_type == "discrete_svs":
+            odim = discrete_vocab_size 
 
         # 2. Normalization layer
         if args.normalize is not None:
@@ -426,21 +472,38 @@ class SVSTask(AbsTask):
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
 
         # 5. Build model
-        model = ESPnetSVSModel(
-            text_extract=score_feats_extract,
-            feats_extract=feats_extract,
-            score_feats_extract=score_feats_extract,
-            label_extract=score_feats_extract,
-            pitch_extract=pitch_extract,
-            ying_extract=ying_extract,
-            duration_extract=score_feats_extract,
-            energy_extract=energy_extract,
-            normalize=normalize,
-            pitch_normalize=pitch_normalize,
-            energy_normalize=energy_normalize,
-            svs=svs,
-            **args.model_conf,
-        )
+        if args.model_type == 'svs':
+            model = ESPnetSVSModel(
+                text_extract=score_feats_extract,
+                feats_extract=feats_extract,
+                score_feats_extract=score_feats_extract,
+                label_extract=score_feats_extract,
+                pitch_extract=pitch_extract,
+                ying_extract=ying_extract,
+                duration_extract=score_feats_extract,
+                energy_extract=energy_extract,
+                normalize=normalize,
+                pitch_normalize=pitch_normalize,
+                energy_normalize=energy_normalize,
+                svs=svs,
+                **args.model_conf,
+            )
+        elif args.model_type == 'discrete_svs':
+            model = ESPnetDiscreteSVSModel(
+                text_extract=score_feats_extract,
+                feats_extract=feats_extract,
+                score_feats_extract=score_feats_extract,
+                label_extract=score_feats_extract,
+                pitch_extract=pitch_extract,
+                ying_extract=ying_extract,
+                duration_extract=score_feats_extract,
+                energy_extract=energy_extract,
+                normalize=normalize,
+                pitch_normalize=pitch_normalize,
+                energy_normalize=energy_normalize,
+                svs=svs,
+                **args.model_conf,
+            )
         assert check_return_type(model)
         return model
 

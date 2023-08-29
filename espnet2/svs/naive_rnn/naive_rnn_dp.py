@@ -20,6 +20,7 @@ from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegula
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
+from espnet2.svs.discrete.loss import DiscreteLoss
 
 
 class NaiveRNNDP(AbsSVS):
@@ -70,6 +71,7 @@ class NaiveRNNDP(AbsSVS):
         init_type: str = "xavier_uniform",
         use_masking: bool = False,
         use_weighted_masking: bool = False,
+        use_discrete_token: bool = False,
     ):
         """Initialize NaiveRNNDP module.
 
@@ -127,8 +129,8 @@ class NaiveRNNDP(AbsSVS):
         self.odim = odim
         self.eos = idim - 1
         self.reduction_factor = reduction_factor
-
         self.midi_embed_integration_type = midi_embed_integration_type
+        self.use_discrete_token = use_discrete_token
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -300,9 +302,12 @@ class NaiveRNNDP(AbsSVS):
         )
 
         # define loss function
-        self.criterion = FastSpeechLoss(
-            use_masking=use_masking, use_weighted_masking=use_weighted_masking
-        )
+        if self.use_discrete_token:
+            self.criterion = DiscreteLoss(use_masking=use_masking, use_weighted_masking=use_weighted_masking)
+        else:
+            self.criterion = FastSpeechLoss(
+                use_masking=use_masking, use_weighted_masking=use_weighted_masking
+            )
 
         # initialize parameters
         self._reset_parameters(
@@ -334,6 +339,8 @@ class NaiveRNNDP(AbsSVS):
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
+        discrete_token: torch.Tensor = None,
+        discrete_token_lengths: torch.Tensor = None,        
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -446,7 +453,10 @@ class NaiveRNNDP(AbsSVS):
         d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
         hs = self.length_regulator(hs, ds)  # (B, seq_len, eunits)
 
-        olens = feats_lengths
+        if self.use_discrete_token:
+            olens = discrete_token_lengths
+        else:
+            olens = feats_lengths
         if self.reduction_factor > 1:
             olens_in = olens.new(
                 [
@@ -487,19 +497,28 @@ class NaiveRNNDP(AbsSVS):
             max_olen = max(olens)
             ys = feats[:, :max_olen]
         else:
-            ys = feats
-            olens = feats_lengths
+            if self.use_discrete_token:
+                ys = discrete_token
+                olens = discrete_token_lengths
+            else:
+                ys = feats
+                olens = feats_lengths
 
         # calculate loss values
         ilens = label_lengths
-        l1_loss, duration_loss = self.criterion(
+        out_loss, duration_loss = self.criterion(
             after_outs, before_outs, d_outs, ys, ds, ilens, olens
         )
-        loss = l1_loss + duration_loss
+        loss = out_loss + duration_loss
 
-        stats = dict(
-            loss=loss.item(), l1_loss=l1_loss.item(), duration_loss=duration_loss.item()
-        )
+        if self.use_discrete_token:
+            stats = dict(
+                loss=loss.item(), CE_loss=out_loss.item(), duration_loss=duration_loss.item()
+            )
+        else:
+            stats = dict(
+                loss=loss.item(), l1_loss=out_loss.item(), duration_loss=duration_loss.item()
+            )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
@@ -602,7 +621,8 @@ class NaiveRNNDP(AbsSVS):
             after_outs = before_outs + self.postnet(
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
-
+        if self.use_discrete_token:
+            after_outs = torch.argmax(after_outs, dim = 2).unsqueeze(2)
         return dict(
             feat_gen=after_outs[0], prob=None, att_w=None
         )  # outs, probs, att_ws
