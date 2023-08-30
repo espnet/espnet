@@ -243,7 +243,7 @@
 
         <span class="n">left</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">x</span><span class="p">[:</span><span class="n">center</span><span class="p">])</span><span class="o">.</span><span class="n">resize</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">warped</span><span class="p">),</span> <span class="n">BICUBIC</span><span class="p">)</span>
         <span class="n">right</span> <span class="o">=</span> <span class="n">Image</span><span class="o">.</span><span class="n">fromarray</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="n">center</span><span class="p">:])</span><span class="o">.</span><span class="n">resize</span><span class="p">((</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">t</span> <span class="o">-</span> <span class="n">warped</span><span class="p">),</span> <span class="n">BICUBIC</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">inplace</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">inplace</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span><span class="p">:</span>
             <span class="n">x</span><span class="p">[:</span><span class="n">warped</span><span class="p">]</span> <span class="o">=</span> <span class="n">left</span>
             <span class="n">x</span><span class="p">[</span><span class="n">warped</span><span class="p">:]</span> <span class="o">=</span> <span class="n">right</span>
             <span class="k">return</span> <span class="n">x</span>
@@ -281,7 +281,7 @@
 <span class="sd">    :param bool inplace: overwrite</span>
 <span class="sd">    :param bool replace_with_zero: pad zero on mask if true else use mean</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">inplace</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">inplace</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span><span class="p">:</span>
         <span class="n">cloned</span> <span class="o">=</span> <span class="n">x</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">cloned</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
@@ -322,7 +322,7 @@
 <span class="sd">    :param bool inplace: overwrite</span>
 <span class="sd">    :param bool replace_with_zero: pad zero on mask if true else use mean</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">inplace</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">inplace</span> <span class="ow">and</span> <span class="n">spec</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">writeable</span><span class="p">:</span>
         <span class="n">cloned</span> <span class="o">=</span> <span class="n">spec</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">cloned</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
