@@ -1,0 +1,73 @@
+# RawNet3 reproduce recipe configuration.
+
+frontend: raw
+
+encoder: rawnet3
+encoder_conf:
+  model_scale: 8
+  ndim: 1024
+  sinc_stride: 16
+
+pooling: chn_attn_stat
+pooling_conf:
+  input_size: 1536  # 1.5 * ndim of RawNet3 encoder
+
+projector: rawnet3
+projector_conf:
+  input_size: 3072  # 2 * input_size of pooling
+  output_size: 256
+
+preprocessor: spk
+preprocessor_conf:
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
+  num_eval: 5
+  noise_apply_prob: 0.5
+  noise_info:
+  - [1.0, 'dump/raw/musan_speech.scp', [4, 7], [13, 20]]
+  - [1.0, 'dump/raw/musan_noise.scp', [1, 1], [0, 15]]
+  - [1.0, 'dump/raw/musan_music.scp', [1, 1], [5, 15]]
+  rir_apply_prob: 0.5
+  rir_scp: dump/raw/rirs.scp
+
+model_conf:
+  extract_feats_in_collect_stats: false
+
+loss: aamsoftmax
+loss_conf:
+  nout: 256
+  nclasses: 7205
+  margin: 0.3
+  scale: 30
+
+max_epoch: 160
+#num_iters_per_epoch: 1
+num_att_plot: 0
+num_workers: 8
+cudnn_deterministic: False
+cudnn_benchmark: True
+iterator_type: category
+valid_iterator_type: sequence
+shuffle_within_batch: False
+log_interval: 100
+batch_size: 512
+valid_batch_size: 40
+optim: adam
+optim_conf:
+  lr: 0.001
+  weight_decay: 0.00005
+  amsgrad: False
+
+scheduler: CosineAnnealingWarmupRestarts
+scheduler_conf:
+  first_cycle_steps: 73024
+  cycle_mult: 1.0
+  max_lr: 0.001
+  min_lr: 0.000005
+  warmup_steps: 1000
+  gamma: 0.7
+
+best_model_criterion:
+- - valid
+  - eer
+  - min

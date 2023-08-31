@@ -1,0 +1,51 @@
+# This is a debug config for CI
+grad_clip: 5.0
+batch_type: folded
+batch_size: 2
+accum_grad: 1
+max_epoch: 1
+num_iters_per_epoch: 1
+patience: none
+# Use self-defined function for initialization
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+input_size: 1
+
+collate_fn_conf:
+    label_downsampling: 1
+    pad: False
+    rand_crop: True
+
+encoder: torchaudio_hubert
+encoder_conf:
+    encoder_embed_dim: 2
+    encoder_pos_conv_kernel: 2
+    encoder_pos_conv_groups: 1
+    encoder_num_layers: 7
+    encoder_num_heads: 2
+    encoder_ff_interm_features: 2
+    encoder_projection_dropout: 0.1
+    encoder_attention_dropout: 0.1
+    encoder_ff_interm_dropout: 0.0
+    encoder_dropout: 0.1
+    encoder_layer_drop: 0.05
+
+model: torchaudio
+
+optim: adam
+optim_conf:
+    lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
+
+frontend: null
+
+normalize: null
+
+specaug: null

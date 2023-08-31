@@ -2,7 +2,8 @@
 # Copyright 2021 Carnegie Mellon University (Author : Roshan Sharma)
 
 ## begin configuration section.
-data=data/dev5_test_sum
+ref_file=data/dev5_test_sum/text
+inference_tag=decode
 # end configuration section.
 
 
@@ -18,8 +19,10 @@ fi
 
 asr_expdir=$1
 
-name=$(basename ${data}) # e.g. dev5_test
-echo "${asr_expdir}/decode_*/${name}"
-for dir in ${asr_expdir}/decode_*/${name}; do
-    python pyscripts/utils/score_summarization.py $data/text $dir/text $(echo $dir | sed 's/exp//g') > $dir/result.sum
+for decode_dir in $(ls -d ${asr_expdir}/*/ | grep ${inference_tag}); do
+	for test_dir in $(ls -d ${decode_dir}/*/); do
+		dir=${test_dir}
+		echo "${decode_dir} ${asr_expdir} ${test_dir} ${dir}"
+    		python pyscripts/utils/score_summarization.py ${ref_file} $dir/text $(echo $dir | sed 's/exp//g') > $dir/result.sum
+	done
 done

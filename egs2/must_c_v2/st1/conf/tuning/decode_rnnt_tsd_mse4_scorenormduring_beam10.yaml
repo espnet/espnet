@@ -1,0 +1,6 @@
+beam_size: 10
+transducer_conf:
+    search_type: tsd
+    score_norm: True
+    score_norm_during: True
+    max_sym_exp: 4

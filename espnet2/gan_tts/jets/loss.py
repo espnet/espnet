@@ -8,7 +8,6 @@ from typing import Tuple
 import numpy as np
 import torch
 import torch.nn.functional as F
-from scipy.stats import betabinom
 from typeguard import check_argument_types
 
 from espnet.nets.pytorch_backend.fastspeech.duration_predictor import (  # noqa: H301
@@ -108,16 +107,9 @@ class VarianceLoss(torch.nn.Module):
 class ForwardSumLoss(torch.nn.Module):
     """Forwardsum loss described at https://openreview.net/forum?id=0NQwnnwAORi"""
 
-    def __init__(self, cache_prior: bool = True):
-        """Initialize forwardsum loss module.
-
-        Args:
-            cache_prior (bool): Whether to cache beta-binomial prior
-
-        """
+    def __init__(self):
+        """Initialize forwardsum loss module."""
         super().__init__()
-        self.cache_prior = cache_prior
-        self._cache = {}
 
     def forward(
         self,
@@ -141,11 +133,6 @@ class ForwardSumLoss(torch.nn.Module):
         """
         B = log_p_attn.size(0)
 
-        # add beta-binomial prior
-        bb_prior = self._generate_prior(ilens, olens)
-        bb_prior = bb_prior.to(dtype=log_p_attn.dtype, device=log_p_attn.device)
-        log_p_attn = log_p_attn + bb_prior
-
         # a row must be added to the attention matrix to account for
         #    blank token of CTC loss
         # (B,T_feats,T_text+1)
@@ -161,6 +148,7 @@ class ForwardSumLoss(torch.nn.Module):
             ].unsqueeze(
                 1
             )  # (T_feats,1,T_text+1)
+            cur_log_p_attn_pd = F.log_softmax(cur_log_p_attn_pd, dim=-1)
             loss += F.ctc_loss(
                 log_probs=cur_log_p_attn_pd,
                 targets=target_seq,
@@ -170,43 +158,3 @@ class ForwardSumLoss(torch.nn.Module):
             )
         loss = loss / B
         return loss
-
-    def _generate_prior(self, text_lengths, feats_lengths, w=1) -> torch.Tensor:
-        """Generate alignment prior formulated as beta-binomial distribution
-
-        Args:
-            text_lengths (Tensor): Batch of the lengths of each input (B,).
-            feats_lengths (Tensor): Batch of the lengths of each target (B,).
-            w (float): Scaling factor; lower -> wider the width.
-
-        Returns:
-            Tensor: Batched 2d static prior matrix (B, T_feats, T_text).
-
-        """
-        B = len(text_lengths)
-        T_text = text_lengths.max()
-        T_feats = feats_lengths.max()
-
-        bb_prior = torch.full((B, T_feats, T_text), fill_value=-np.inf)
-        for bidx in range(B):
-            T = feats_lengths[bidx].item()
-            N = text_lengths[bidx].item()
-
-            key = str(T) + "," + str(N)
-            if self.cache_prior and key in self._cache:
-                prob = self._cache[key]
-            else:
-                alpha = w * np.arange(1, T + 1, dtype=float)  # (T,)
-                beta = w * np.array([T - t + 1 for t in alpha])
-                k = np.arange(N)
-                batched_k = k[..., None]  # (N,1)
-                prob = betabinom.logpmf(batched_k, N, alpha, beta)  # (N,T)
-
-            # store cache
-            if self.cache_prior and key not in self._cache:
-                self._cache[key] = prob
-
-            prob = torch.from_numpy(prob).transpose(0, 1)  # -> (T,N)
-            bb_prior[bidx, :T, :N] = prob
-
-        return bb_prior
