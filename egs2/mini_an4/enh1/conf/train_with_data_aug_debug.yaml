@@ -1,0 +1,57 @@
+# This is a debug config for CI
+encoder: stft
+encoder_conf:
+    n_fft: 512
+    hop_length: 128
+
+decoder: stft
+decoder_conf:
+    n_fft: 512
+    hop_length: 128
+
+separator: rnn
+separator_conf:
+    rnn_type: blstm
+    num_spk: 1
+    nonlinear: relu
+    layer: 1
+    unit: 2
+    dropout: 0.2
+
+preprocessor: enh
+preprocessor_conf:
+    speech_volume_normalize: "0.5_1.0"
+    rir_scp: dump/raw/train_nodev/rirs.scp
+    rir_apply_prob: 1.0
+    noise_scp: dump/raw/train_nodev/noises.scp
+    noise_apply_prob: 1.0
+    noise_db_range: "5_20"
+    sample_rate: 16000
+    force_single_channel: true
+    categories:
+        - 1ch_16k
+        - 2ch_16k
+    data_aug_effects:   # no need to set the "sample_rate" argument for each effect here
+        - [0.1, "contrast", {"enhancement_amount": 75.0}]
+        - [0.1, "highpass", {"cutoff_freq": 5000, "Q": 0.707}]
+        - - 0.1
+          - - [0.3, "clipping", {"min_quantile": 0.05, "max_quantile": 0.95}]
+            - [0.3, "corrupt_phase", {"scale": 0.1, "n_fft": 0.032, "hop_length": 0.008}]
+    data_aug_num: [1, 3]
+    data_aug_prob: 1.0
+
+criterions:
+  # The first criterion
+  - name: mse
+    conf:
+      compute_on_mask: false
+    # the wrapper for the current criterion
+    # for single-talker case, we simplely use fixed_order wrapper
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
+
+max_epoch: 1
+num_iters_per_epoch: 1
+batch_type: folded
+batch_size: 2

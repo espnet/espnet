@@ -1,0 +1,60 @@
+name: ci on centos7
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  unit_test_espnet1_and_espnet2_on_centos7:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    container:
+      image: centos:7
+      env:
+        ESPNET_PYTHON_VERSION: "3.10"
+        # NOTE: 1.9.0 raised libstdc++ version errors in pyworld.
+        # ImportError: /lib64/libstdc++.so.6: version `CXXABI_1.3.8' not found
+        # (required by /__w/espnet/espnet/tools/venv/envs/espnet/lib/python3.6/site-packages/pyworld/pyworld.cpython-36m-x86_64-linux-gnu.so)
+        # NOTE(kamo): The issue doens't exist for python3.7?
+        TH_VERSION: 1.13.1
+        CHAINER_VERSION: 6.0.0
+        USE_CONDA: true
+        CC: /opt/rh/devtoolset-7/root/usr/bin/gcc
+        CXX: /opt/rh/devtoolset-7/root/usr/bin/g++
+        MAKE: /opt/rh/devtoolset-7/root/usr/bin/make
+        # To avoid UnicodeEncodeError for python<=3.6
+        LC_ALL: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@master
+      - name: check OS
+        run: cat /etc/os-release
+      - name: install dependencies
+        run: |
+          # NOTE(kamo): cmake sndfile will be download using anacond:
+          yum install -y git centos-release-scl bzip2 wget which unzip bc patch
+          yum-config-manager --enable rhel-server-rhscl-7-rpms
+          yum install -y devtoolset-7-gcc-c++ devtoolset-7-make sox ncurses-devel libtool automake autoconf
+          localedef -f UTF-8 -i en_US en_US
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
+      - name: install espnet
+        run: |
+          # NOTE(karita) this line exited 1
+          # source scl_source enable devtoolset-7
+          PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
+          ./ci/install.sh
+      - name: test shell
+        run: |
+          PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
+          ./ci/test_shell_espnet1.sh
+          ./ci/test_shell_espnet2.sh
+      - name: test python
+        run: |
+          PATH="/opt/rh/devtoolset-7/root/usr/bin:${PATH:-}"
+          ./ci/test_python_espnet1.sh
+          ./ci/test_python_espnet2.sh

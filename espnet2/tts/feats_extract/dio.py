@@ -150,7 +150,7 @@ class Dio(AbsFeatsExtract):
     @staticmethod
     def _convert_to_continuous_f0(f0: np.array) -> np.array:
         if (f0 == 0).all():
-            logging.warn("All frames seems to be unvoiced.")
+            logging.warning("All frames seems to be unvoiced.")
             return f0
 
         # padding start and end of f0 sequence

@@ -27,7 +27,7 @@ def test_NaiveRNNDP(
     langs,
 ):
     idim = 10
-    odim = 5
+    odim = 4
     model = NaiveRNNDP(
         idim=idim,
         odim=odim,
@@ -68,8 +68,8 @@ def test_NaiveRNNDP(
     inputs = dict(
         text=torch.randint(0, idim, (2, 8)),
         text_lengths=torch.tensor([8, 5], dtype=torch.long),
-        feats=torch.randn(2, 16, odim),
-        feats_lengths=torch.tensor([16, 13], dtype=torch.long),
+        feats=torch.randn(2, 16 * reduction_factor, odim),
+        feats_lengths=torch.tensor([16, 10], dtype=torch.long) * reduction_factor,
         label={
             "lab": torch.randint(0, idim, (2, 8)),
             "score": torch.randint(0, idim, (2, 8)),
@@ -104,8 +104,8 @@ def test_NaiveRNNDP(
         },
         slur=torch.randint(0, 2, (2, 8)),
         slur_lengths=torch.tensor([8, 5], dtype=torch.long),
-        pitch=torch.randn(2, 16, 1),
-        pitch_lengths=torch.tensor([16, 13], dtype=torch.long),
+        pitch=torch.randn(2, 16 * reduction_factor, 1),
+        pitch_lengths=torch.tensor([16, 10], dtype=torch.long) * reduction_factor,
     )
     if spk_embed_dim is not None:
         inputs.update(spembs=torch.randn(2, spk_embed_dim))
@@ -170,7 +170,7 @@ def test_NaiveRNNDP(
                 "score_syb": torch.tensor([[3, 3, 5, 5, 4]], dtype=torch.int64),
             },
             slur=torch.randint(0, 2, (1, 5)),
-            pitch=torch.randn(16, 1),
+            pitch=torch.randn(11 * reduction_factor, 1),
         )
         if spks > 0:
             inputs["sids"] = torch.randint(0, spks, (1,))
@@ -179,6 +179,3 @@ def test_NaiveRNNDP(
         if spk_embed_dim is not None:
             inputs.update(spembs=torch.randn(spk_embed_dim))
         model.inference(**inputs)
-
-
-test_NaiveRNNDP(0, "cat", 1, 3, None, "add", 5, 2)
