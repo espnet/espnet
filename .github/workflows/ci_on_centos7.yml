@@ -15,7 +15,7 @@ jobs:
     container:
       image: centos:7
       env:
-        ESPNET_PYTHON_VERSION: 3.7
+        ESPNET_PYTHON_VERSION: "3.10"
         # NOTE: 1.9.0 raised libstdc++ version errors in pyworld.
         # ImportError: /lib64/libstdc++.so.6: version `CXXABI_1.3.8' not found
         # (required by /__w/espnet/espnet/tools/venv/envs/espnet/lib/python3.6/site-packages/pyworld/pyworld.cpython-36m-x86_64-linux-gnu.so)

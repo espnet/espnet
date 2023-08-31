@@ -490,6 +490,23 @@ def inference(
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
+    variable_names = [
+        name
+        for path, name, typ in loader.dataset.path_name_type_list
+        if name.startswith("enroll_ref")
+    ]
+    num_spk = len(variable_names)
+    if train_config is None:
+        train_config = Path(model_file).parent / "config.yaml"
+    if num_spk != separate_speech.num_spk:
+        raise RuntimeError(
+            f"Number of speakers in the model ({separate_speech.num_spk}) "
+            "and the number of speakers provided by --data_path_and_name_and_type "
+            f"({num_spk}) do not match.\nTwo solutions:\n"
+            f"  1. Set model_conf.num_spk in {train_config} manually to {num_spk}.\n"
+            "  2. Reduce the number of speakers in --data_path_and_name_and_type to "
+            f"{separate_speech.num_spk}."
+        )
 
     # 4. Start for-loop
     output_dir = Path(output_dir).expanduser().resolve()
