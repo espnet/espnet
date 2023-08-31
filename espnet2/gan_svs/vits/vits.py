@@ -408,6 +408,9 @@ class VITS(AbsGANSVS):
         self.langs = self.generator.langs
         self.spk_embed_dim = self.generator.spk_embed_dim
 
+        # hubert alignment
+        self.adaptive_pool = torch.nn.AdaptiveAvgPool1d(1)
+
     @property
     def require_raw_singing(self):
         """Return whether or not singing is required."""
@@ -424,6 +427,8 @@ class VITS(AbsGANSVS):
         text_lengths: torch.Tensor,
         feats: torch.Tensor,
         feats_lengths: torch.Tensor,
+        asr_feats: torch.Tensor,
+        asr_feats_lengths: torch.Tensor,
         singing: torch.Tensor,
         singing_lengths: torch.Tensor,
         label: Optional[Dict[str, torch.Tensor]] = None,
@@ -470,6 +475,30 @@ class VITS(AbsGANSVS):
                 - optim_idx (int): Optimizer index (0 for G and 1 for D).
 
         """
+
+        # asr_feats = asr_feats.transpose(1, 2)
+
+        # adjusted_asr_feats = torch.nn.functional.interpolate(
+        #     asr_feats,
+        #     size=(feats_lengths.max().item(),),
+        #     mode="linear",
+        #     align_corners=True,
+        # ).transpose(1, 2)
+        # print("adjusted_asr_feats", adjusted_asr_feats.shape)
+        # concatenated_feats = torch.cat([feats, adjusted_asr_feats], dim=2)
+        if asr_feats.shape[1] > feats.shape[1]:
+            asr_feats = asr_feats[:, : feats.shape[1], :]
+        elif asr_feats.shape[1] < feats.shape[1]:
+            asr_feats = torch.nn.functional.pad(
+                asr_feats, (0, feats.shape[1] - asr_feats.shape[1])
+            )
+        # print("asr_feats", asr_feats.shape)
+        # print("feats", feats.shape)
+
+        concatenated_feats = torch.cat([feats, asr_feats], dim=2)
+        # print("concatenated_feats", concatenated_feats.shape)
+        # raise ValueError
+
         score_dur = duration["score_syb"]
         gt_dur = duration["lab"]
         label = label["lab"]
@@ -480,7 +509,7 @@ class VITS(AbsGANSVS):
             return self._forward_generator(
                 text=text,
                 text_lengths=text_lengths,
-                feats=feats,
+                feats=concatenated_feats,
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
@@ -500,7 +529,7 @@ class VITS(AbsGANSVS):
             return self._forward_discrminator(
                 text=text,
                 text_lengths=text_lengths,
-                feats=feats,
+                feats=concatenated_feats,
                 feats_lengths=feats_lengths,
                 singing=singing,
                 singing_lengths=singing_lengths,
@@ -726,6 +755,7 @@ class VITS(AbsGANSVS):
                 ddsp_mel_loss = ddsp_mel_loss * self.lambda_mel
                 loss = loss + ddsp_mel_loss
             if self.generator_type == "visinger2":
+                feats = feats[:, :80, :]
                 loss_mel_am = self.mse_loss(feats * z_mask, predict_mel * z_mask)
                 loss = loss + loss_mel_am
 

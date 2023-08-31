@@ -9,6 +9,7 @@ from typeguard import check_argument_types
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
+import torchaudio
 
 
 class S3prlFrontend(AbsFrontend):
@@ -71,6 +72,9 @@ class S3prlFrontend(AbsFrontend):
         self.frontend_type = "s3prl"
         self.hop_length = self.featurizer.downsample_rate
         self.tile_factor = frontend_conf.get("tile_factor", 1)
+        self.resampler = torchaudio.transforms.Resample(
+            orig_freq=24000, new_freq=fs
+        )  # TODO: 24000 is hard-coded
 
     def _tile_representations(self, feature):
         """Tile up the representations by `tile_factor`.
@@ -96,7 +100,12 @@ class S3prlFrontend(AbsFrontend):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        feats, feats_lens = self.upstream(input, input_lengths)
+        input = self.resampler(input)
+        input_lengths = input_lengths / 1.5
+        input_lengths = input_lengths.ceil().long()
+
+        with torch.no_grad():
+            feats, feats_lens = self.upstream(input, input_lengths)
         if self.layer != -1:
             layer = self.layer
             feats, feats_lens = feats[layer], feats_lens[layer]
