@@ -73,7 +73,7 @@ num_att_plot: 1
 log_interval: 1000
 num_workers: 8
 batch_type: numel
-batch_bins: 768000000
+batch_bins: 460800000
 accum_grad: 1
 max_epoch: 35
 patience: none
