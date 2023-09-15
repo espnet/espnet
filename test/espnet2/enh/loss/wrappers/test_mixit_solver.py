@@ -42,7 +42,7 @@ def test_MixITSolver_forward(inf_num, time_domain):
         .transpose(1, 0)
         .float()
     )
-    assert perm[0].equal(torch.tensor(correct_perm1))
+    assert perm[0].equal(correct_perm1.clone().detach())
 
     correct_perm2 = (
         F.one_hot(
@@ -52,7 +52,7 @@ def test_MixITSolver_forward(inf_num, time_domain):
         .transpose(1, 0)
         .float()
     )
-    assert perm[1].equal(torch.tensor(correct_perm2))
+    assert perm[1].equal(correct_perm2.clone().detach())
 
 
 @pytest.mark.parametrize(
@@ -108,7 +108,7 @@ def test_MixITSolver_complex_forward(inf_num, torch_complex):
         .transpose(1, 0)
         .float()
     )
-    assert perm[0].equal(torch.tensor(correct_perm1))
+    assert perm[0].equal(correct_perm1.clone().detach())
 
     correct_perm2 = (
         F.one_hot(
@@ -118,4 +118,4 @@ def test_MixITSolver_complex_forward(inf_num, torch_complex):
         .transpose(1, 0)
         .float()
     )
-    assert perm[1].equal(torch.tensor(correct_perm2))
+    assert perm[1].equal(correct_perm2.clone().detach())

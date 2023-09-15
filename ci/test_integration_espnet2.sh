@@ -50,6 +50,12 @@ echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_
     --feats_normalize "utterance_mvn" --python "${python}" \
     --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
 
+echo "==== feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn, with data augmentation ==="
+./run.sh --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
+    --asr_config "conf/train_asr_rnn_data_aug_debug.yaml" \
+    --feats_normalize "utterance_mvn" --python "${python}" \
+    --asr-args "--model_conf extract_feats_in_collect_stats=false --num_workers 0"
+
 echo "==== use_streaming, feats_type=raw, token_types=bpe, model_conf.extract_feats_in_collect_stats=False, normalize=utt_mvn ==="
 ./run.sh --use_streaming true --ngpu 0 --stage 10 --stop-stage 13 --skip-upload false --feats-type "raw" --token-type "bpe" \
     --feats_normalize "utterance_mvn"  --python "${python}" \
@@ -171,8 +177,10 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
         echo "==== feats_type=${t} with preprocessor ==="
         ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
             --extra_wav_list "rirs.scp noises.scp" --enh_config ./conf/train_with_preprocessor_debug.yaml --enh-args "--num_workers 0"
-        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
-            --enh_config conf/train_with_dynamic_mixing_debug.yaml --ref-num 2 --enh-args "--num_workers 0"
+        ./run.sh --ngpu 0 --stage 5 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
+            --enh_config conf/train_with_data_aug_debug.yaml --enh-args "--num_workers 0"
+        ./run.sh --ngpu 0 --stage 2 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 2 --python "${python}" \
+            --enh_config conf/train_with_dynamic_mixing_debug.yaml --enh-args "--num_workers 0"
     done
     rm data/**/utt2category 2>/dev/null || true
     rm -r dump
@@ -272,6 +280,7 @@ gen_dummy_coverage
 echo "==== [ESPnet2] SPK ==="
 ./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --python "${python}" --spk-args "--num_workers 0"
 ./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_dataaug_debug.yaml --spk-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_sampler.yaml --spk-args "--num_workers 0"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"
