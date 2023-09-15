@@ -1,14 +1,17 @@
 import argparse
 import os
-import shutil
 import re
+import shutil
+
 import librosa
 import miditoolkit
 import numpy as np
 from pydub import AudioSegment
-from espnet2.fileio.score_scp import SingingScoreWriter
 from tqdm import tqdm
-"""Split audio into segments according to structured annotation."""""
+
+from espnet2.fileio.score_scp import SingingScoreWriter
+
+"""Split audio into segments according to structured annotation.""" ""
 """Generate segments according to structured annotation."""
 """Transfer music score into 'score' format."""
 
@@ -46,6 +49,7 @@ def load_midi(args):
         midis[i] = tempo
     return midis
 
+
 def load_midi_note_scp(midi_note_scp):
     # Note(jiatong): midi format is 0-based
     midi_mapping = {}
@@ -56,10 +60,15 @@ def load_midi_note_scp(midi_note_scp):
             midi_mapping[key[1]] = int(key[0])
     return midi_mapping
 
+
 def load_and_process_transcriptions(src_data, transcriptions_path, song_folder):
     # Step 1: Load the WAV file and the transcription file
-    transcriptions = open(transcriptions_path, "r", encoding="utf-8").read().strip().split("\n")
-    midi_obj = miditoolkit.midi.parser.MidiFile(os.path.join(src_data, "raw_data", "midis", "{}.midi".format(song_folder)))
+    transcriptions = (
+        open(transcriptions_path, "r", encoding="utf-8").read().strip().split("\n")
+    )
+    midi_obj = miditoolkit.midi.parser.MidiFile(
+        os.path.join(src_data, "raw_data", "midis", "{}.midi".format(song_folder))
+    )
     midi_notes = []
     midis = []
     tempo = midi_obj.tempo_changes[0].tempo
@@ -75,7 +84,9 @@ def load_and_process_transcriptions(src_data, transcriptions_path, song_folder):
     parsed_transcriptions = [row.split("|") for row in transcriptions]
 
     # Step 3: Find all the rows' corresponding name in the txt file starting with 2001
-    relevant_transcriptions = [row for row in parsed_transcriptions if row[0].startswith(str(song_folder))]
+    relevant_transcriptions = [
+        row for row in parsed_transcriptions if row[0].startswith(str(song_folder))
+    ]
 
     # Step 4: Sum the duration of each file to get the total duration of each subfile
     total_durations = {}
@@ -94,11 +105,16 @@ def load_and_process_transcriptions(src_data, transcriptions_path, song_folder):
             pitches = pitches[1:]
 
         # sum duration by the string of durations, first split the string by space, then convert the string to float, then sum the float
-        total_durations[name] = sum(float(d) for d in duration) * 1000  # Convert to milliseconds
+        total_durations[name] = (
+            sum(float(d) for d in duration) * 1000
+        )  # Convert to milliseconds
         total_pitches[name] = pitches
     return total_durations, total_pitches, midi_notes, midis
 
-def segment_audio(audio, total_durations, total_pitches, midi_mapping, midi_notes, midis, output_temp):
+
+def segment_audio(
+    audio, total_durations, total_pitches, midi_mapping, midi_notes, midis, output_temp
+):
     start_time = 0  # Initialize the current time marker in the audio
     last_end_time = 0  # Initialize end time marker for last segment
     note_idx = 0
@@ -160,8 +176,11 @@ def segment_audio(audio, total_durations, total_pitches, midi_mapping, midi_note
         if os.path.exists(f"{output_name}.wav"):
             print(f"{output_name}.wav already exists. Skipping.")
             continue
-        segment.export(f"{output_name}.wav", format="wav")  # Export it as a wav file in the output folder
+        segment.export(
+            f"{output_name}.wav", format="wav"
+        )  # Export it as a wav file in the output folder
     return None
+
 
 def segment_dataset(args, dataset):
     root_path = os.path.join(args.src_data, dataset)
@@ -173,7 +192,7 @@ def segment_dataset(args, dataset):
         singer_path = os.path.join(root_path, singer_folder)
         if not os.path.isdir(singer_path):
             continue  # Skip files
-        singer_id = re.findall(r'\d+', singer_folder)[0]
+        singer_id = re.findall(r"\d+", singer_folder)[0]
         output_temp = os.path.join(root_path, "segments") + f"/{singer_id}"
         print(f"Processing {singer_folder}")
         for song_folder in tqdm(os.listdir(singer_path)):
@@ -190,9 +209,25 @@ def segment_dataset(args, dataset):
             if not os.path.exists(audio_path):
                 continue  # Skip if the audio file does not exist
             audio = AudioSegment.from_wav(audio_path)
-            total_durations, total_pitches, midi_notes, midis = load_and_process_transcriptions(args.src_data, transcriptions_path, song_folder)
+            (
+                total_durations,
+                total_pitches,
+                midi_notes,
+                midis,
+            ) = load_and_process_transcriptions(
+                args.src_data, transcriptions_path, song_folder
+            )
             midi_mapping = load_midi_note_scp(args.midi_note_scp)
-            segment_audio(audio, total_durations, total_pitches, midi_mapping, midi_notes, midis, output_temp)
+            segment_audio(
+                audio,
+                total_durations,
+                total_pitches,
+                midi_mapping,
+                midi_notes,
+                midis,
+                output_temp,
+            )
+
 
 def create_score(uid, phns, midis, syb_dur, keep):
     # Transfer into 'score' format
@@ -286,7 +321,11 @@ def process_utterance(
         )
         os.system(cmd)
 
-        wavscp.write("acesinger_{}#{} {}/acesinger_{}#{}.wav\n".format(i_str, uid, wav_dumpdir, i_str, uid))
+        wavscp.write(
+            "acesinger_{}#{} {}/acesinger_{}#{}.wav\n".format(
+                i_str, uid, wav_dumpdir, i_str, uid
+            )
+        )
 
         running_dur = 0
         assert len(phn_dur) == len(phns)
@@ -303,8 +342,7 @@ def process_utterance(
         score = dict(
             tempo=tempo, item_list=["st", "et", "lyric", "midi", "phns"], note=note_list
         )
-        writer["acesinger_{}#{}".format(i_str, uid)] = score 
-
+        writer["acesinger_{}#{}".format(i_str, uid)] = score
 
 
 def process_subset(args, set_name, tempos, dataset):
@@ -375,4 +413,3 @@ if __name__ == "__main__":
     segment_dataset(args, dataset)
     for name in ["train", "test"]:
         process_subset(args, name, tempos, dataset)
-                
