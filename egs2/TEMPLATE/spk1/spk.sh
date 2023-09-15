@@ -41,6 +41,9 @@ expdir=exp            # Directory to save experiments.
 python=python3        # Specify python to execute espnet commands.
 fold_length=120000     # fold_length for speech data during enhancement training
 
+# Data preparation related
+local_data_opts= # The options given to local/data.sh
+
 # Feature extraction related
 feats_type=raw_copy   # Feature type (raw, raw_copy, fbank_pitch, or extracted).
 audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
@@ -167,7 +170,7 @@ log "Skipped stages: ${skip_stages}"
 if [ ${stage} -le 1  ] && [ ${stop_stage} -ge 1  ] && ! [[ " ${skip_stages} " =~ [[:space:]]1[[:space:]]  ]]; then
     log "Stage 1: Data preparation for train and evaluation."
     # [Task dependent] Need to create data.sh for new corpus
-    local/data.sh
+    local/data.sh ${local_data_opts}
     log "Stage 1 FIN."
 fi
 
@@ -188,6 +191,14 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         if [ "${skip_train}" = false ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
 
+            # copy extra files that are not covered by copy_data_dir.sh
+            # category2utt will be used bydata sampler
+            cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            for x in music noise speech; do
+                cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
+            done
+            cp data/rirs.scp ${data_feats}/rirs.scp
+
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" \
@@ -207,6 +218,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # Train can be either multi-column data or not, but valid/test always require multi-column trial
         for dset in ${_dsets}; do
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
+
+            # copy extra files that are not covered by copy_data_dir.sh
+            # category2utt will be used bydata sampler
+            cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
             cp data/${dset}/trial_label "${data_feats}/${dset}"
 
             # shellcheck disable=SC2086
@@ -231,6 +246,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     elif [ "${feats_type}" = raw_copy ]; then
         if [ "${skip_train}" = false ]; then
             utils/copy_data_dir.sh --validate_opts --non-print data/"${train_set}" "${data_feats}/${train_set}"
+            # category2utt will be used bydata sampler
+            cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            for x in music noise speech; do
+                cp data/musan_${x}.scp ${data_feats}/musan_${x}.scp
+            done
+            cp data/rirs.scp ${data_feats}/rirs.scp
 
             echo "${feats_type}" > "${data_feats}/${train_set}/feats_type"
             if "${multi_columns_output_wav_scp}"; then
@@ -245,6 +266,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         for dset in ${_dsets}; do
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}/${dset}"
             cp data/${dset}/trial_label "${data_feats}/${dset}"
+            cp data/${dset}/trial.scp "${data_feats}/${dset}"
+            cp data/${dset}/trial2.scp "${data_feats}/${dset}"
 
             echo "${feats_type}" > "${data_feats}/${dset}/feats_type"
             echo "multi_${audio_format}" > "${data_feats}/${dset}/audio_format"
