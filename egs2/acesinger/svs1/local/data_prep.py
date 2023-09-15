@@ -371,6 +371,7 @@ if __name__ == "__main__":
 
     tempos = load_midi(args)
     dataset = args.dataset
+    os.mkdir(os.path.join(args.src_data, dataset, "segments"))
     segment_dataset(args, dataset)
     for name in ["train", "test"]:
         process_subset(args, name, tempos, dataset)
