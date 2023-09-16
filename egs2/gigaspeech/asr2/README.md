@@ -11,6 +11,10 @@
 ## exp/asr_train_discrete_asr_e_branchformer1_e12_lr_raw_wavlm_large_21_km1000_bpe_rm6000_bpe_ts3000
 ### WER
 
+- ASR config: conf/tuning/train_discrete_asr_e_branchformer1_e12_lr.yaml
+- Decode config: conf/decode_ctc0.3.yaml
+- Model link: https://huggingface.co/espnet/eason_gigaspeech_train_asr2_e_branchformer12_lr_raw_wavlm_large_21_km1000
+
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |decode_ctc0.3_asr_model_valid.acc.ave/test|19930|392325|89.0|6.9|4.1|1.9|12.9|73.4|
