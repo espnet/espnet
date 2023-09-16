@@ -10,8 +10,8 @@ from espnet2.train.collate_fn import CommonCollateFn, HuBERTCollateFn, common_co
 )
 def test_common_collate_fn(float_pad_value, int_pad_value, not_sequence):
     data = [
-        ("id", dict(a=np.random.randn(3, 5), b=np.random.randn(4).astype(np.long))),
-        ("id2", dict(a=np.random.randn(2, 5), b=np.random.randn(3).astype(np.long))),
+        ("id", dict(a=np.random.randn(3, 5), b=np.random.randn(4).astype(np.int64))),
+        ("id2", dict(a=np.random.randn(2, 5), b=np.random.randn(3).astype(np.int64))),
     ]
     t = common_collate_fn(
         data,
@@ -43,8 +43,8 @@ def test_common_collate_fn(float_pad_value, int_pad_value, not_sequence):
                 ),
             ]
         ),
-        a_lengths=np.array([3, 2], dtype=np.long),
-        b_lengths=np.array([4, 3], dtype=np.long),
+        a_lengths=np.array([3, 2], dtype=np.int64),
+        b_lengths=np.array([4, 3], dtype=np.int64),
     )
 
     np.testing.assert_array_equal(t[1]["a"], desired["a"])
@@ -67,8 +67,8 @@ def test_(float_pad_value, int_pad_value, not_sequence):
         not_sequence=not_sequence,
     )
     data = [
-        ("id", dict(a=np.random.randn(3, 5), b=np.random.randn(4).astype(np.long))),
-        ("id2", dict(a=np.random.randn(2, 5), b=np.random.randn(3).astype(np.long))),
+        ("id", dict(a=np.random.randn(3, 5), b=np.random.randn(4).astype(np.int64))),
+        ("id2", dict(a=np.random.randn(2, 5), b=np.random.randn(3).astype(np.int64))),
     ]
     t = _common_collate_fn(data)
 
@@ -95,8 +95,8 @@ def test_(float_pad_value, int_pad_value, not_sequence):
                 ),
             ]
         ),
-        a_lengths=np.array([3, 2], dtype=np.long),
-        b_lengths=np.array([4, 3], dtype=np.long),
+        a_lengths=np.array([3, 2], dtype=np.int64),
+        b_lengths=np.array([4, 3], dtype=np.int64),
     )
 
     np.testing.assert_array_equal(t[1]["a"], desired["a"])
@@ -159,13 +159,13 @@ def test_HuBERT_(
         (
             "id",
             dict(
-                speech=np.random.randn(16000), text=np.random.randn(49).astype(np.long)
+                speech=np.random.randn(16000), text=np.random.randn(49).astype(np.int64)
             ),
         ),
         (
             "id2",
             dict(
-                speech=np.random.randn(22000), text=np.random.randn(67).astype(np.long)
+                speech=np.random.randn(22000), text=np.random.randn(67).astype(np.int64)
             ),
         ),
     ]
@@ -195,8 +195,8 @@ def test_HuBERT_(
                     data[1][1]["text"][::label_downsampling],
                 ]
             ),
-            speech_lengths=np.array([16000, 22000], dtype=np.long),
-            text_lengths=np.array([49, 67], dtype=np.long),
+            speech_lengths=np.array([16000, 22000], dtype=np.int64),
+            text_lengths=np.array([49, 67], dtype=np.int64),
         )
     else:
         desired = dict(
@@ -212,8 +212,8 @@ def test_HuBERT_(
                     data[1][1]["text"][:49:label_downsampling],
                 ]
             ),
-            speech_lengths=np.array([16000, 16000], dtype=np.long),
-            text_lengths=np.array([49, 49], dtype=np.long),
+            speech_lengths=np.array([16000, 16000], dtype=np.int64),
+            text_lengths=np.array([49, 49], dtype=np.int64),
         )
 
     if label_downsampling > 1:
