@@ -10,9 +10,9 @@
 
 ## exp/asr_train_discrete_asr_e_branchformer1_e12_lr_raw_wavlm_large_21_km1000_bpe_rm6000_bpe_ts3000
 
-- ASR config: conf/tuning/train_discrete_asr_e_branchformer1_e12_lr.yaml
-- Decode config: conf/decode_ctc0.3.yaml
-- Model link: https://huggingface.co/espnet/eason_gigaspeech_train_asr2_e_branchformer12_lr_raw_wavlm_large_21_km1000
+- ASR config: [conf/tuning/train_discrete_asr_e_branchformer1_e12_lr.yaml](conf/tuning/train_discrete_asr_e_branchformer1_e12_lr.yaml)
+- Decode config: [conf/decode_ctc0.3.yaml](conf/decode_ctc0.3.yaml)
+- Model link: [https://huggingface.co/espnet/eason_gigaspeech_train_asr2_e_branchformer12_lr_raw_wavlm_large_21_km1000](https://huggingface.co/espnet/eason_gigaspeech_train_asr2_e_branchformer12_lr_raw_wavlm_large_21_km1000)
 
 ### WER
 
@@ -34,41 +34,3 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_ctc0.3_asr_model_valid.acc.ave/test|19930|527751|88.8|5.5|5.7|1.7|13.0|73.4|
 |decode_ctc0.3_asr_model_valid.acc.best/test|19930|527751|88.5|5.5|6.0|1.7|13.2|74.5|
-
-## exp/asr_train_discrete_asr_e_branchformer1_e12_lr_raw_wavlm_large_21_km1000_bpe_rm6000_bpe_ts3000/decode_ctc0.3_asr_model_valid.acc.best
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|org/dev|5715|129240|89.4|6.2|4.4|2.3|12.9|79.5|
-
-### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|org/dev|5715|673778|95.4|1.3|3.3|1.8|6.4|79.5|
-
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|org/dev|5715|170948|89.2|5.0|5.7|1.9|12.7|79.5|
-
-## exp/asr_train_discrete_asr_e_branchformer1_e12_lr_raw_wavlm_large_21_km1000_bpe_rm6000_bpe_ts3000/decode_ctc0.3_asr_model_valid.acc.ave
-### WER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|org/dev|5715|129240|89.5|6.3|4.2|2.4|12.9|78.8|
-
-### CER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|org/dev|5715|673778|95.5|1.3|3.2|1.9|6.3|78.8|
-
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
-|org/dev|5715|170948|89.5|5.1|5.5|2.0|12.5|78.8|
