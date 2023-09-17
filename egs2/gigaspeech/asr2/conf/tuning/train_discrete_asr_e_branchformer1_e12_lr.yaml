@@ -1,4 +1,4 @@
-# Trained with V100 (32 GB) x 4 GPUs 
+# Trained with V100 (32 GB) x 4 GPUs
 # BPE-Dropout (https://github.com/google/sentencepiece#subword-regularization-and-bpe-dropout)
 src_tokenizer_encode_conf:
     enable_sampling: true    # If set to true, bpe-dropout is used.
