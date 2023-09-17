@@ -9,6 +9,11 @@
   - Commit date: `Tue Aug 15 18:31:02 2023 -0400`
 
 ## exp/asr_train_discrete_asr_e_branchformer1_e12_lr_raw_wavlm_large_21_km1000_bpe_rm6000_bpe_ts3000
+
+- ASR config: conf/tuning/train_discrete_asr_e_branchformer1_e12_lr.yaml
+- Decode config: conf/decode_ctc0.3.yaml
+- Model link: https://huggingface.co/espnet/eason_gigaspeech_train_asr2_e_branchformer12_lr_raw_wavlm_large_21_km1000
+
 ### WER
 
 - ASR config: conf/tuning/train_discrete_asr_e_branchformer1_e12_lr.yaml
@@ -71,4 +76,3 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |org/dev|5715|170948|89.5|5.1|5.5|2.0|12.5|78.8|
-

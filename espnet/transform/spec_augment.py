@@ -32,7 +32,7 @@ def time_warp(x, max_time_warp=80, inplace=False, mode="PIL"):
 
         left = Image.fromarray(x[:center]).resize((x.shape[1], warped), BICUBIC)
         right = Image.fromarray(x[center:]).resize((x.shape[1], t - warped), BICUBIC)
-        if inplace:
+        if inplace and x.flags.writeable:
             x[:warped] = left
             x[warped:] = right
             return x
@@ -70,7 +70,7 @@ def freq_mask(x, F=30, n_mask=2, replace_with_zero=True, inplace=False):
     :param bool inplace: overwrite
     :param bool replace_with_zero: pad zero on mask if true else use mean
     """
-    if inplace:
+    if inplace and x.flags.writeable:
         cloned = x
     else:
         cloned = x.copy()
@@ -111,7 +111,7 @@ def time_mask(spec, T=40, n_mask=2, replace_with_zero=True, inplace=False):
     :param bool inplace: overwrite
     :param bool replace_with_zero: pad zero on mask if true else use mean
     """
-    if inplace:
+    if inplace and spec.flags.writeable:
         cloned = spec
     else:
         cloned = spec.copy()

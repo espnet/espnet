@@ -703,6 +703,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
     log "Stage 4b: Prepare token_list and convert number indices to CJK tokens"
 
+
+
     # Get uniq chars
     if [ ! -f "${km_dir}/../"distinct_cjk_token_lists ]; then
         if [ ${nclusters} -ge 20900 ]; then
