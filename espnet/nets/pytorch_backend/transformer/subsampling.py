@@ -46,6 +46,7 @@ def check_short_utt(ins, size):
         return True, 15
     return False, -1
 
+
 class Conv1dSubsampling1(torch.nn.Module):
     """Convolutional 1D subsampling.
 
@@ -103,6 +104,7 @@ class Conv1dSubsampling1(torch.nn.Module):
         if key != -1:
             raise NotImplementedError("Support only `-1` (for `reset_parameters`).")
         return self.out[key]
+
 
 class Conv1dSubsampling2(torch.nn.Module):
     """Convolutional 1D subsampling (to 1/2 length).
