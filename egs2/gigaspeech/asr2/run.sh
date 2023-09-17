@@ -17,9 +17,9 @@ train_set="train"
 train_dev="dev"
 test_sets="dev test"
 
-asr_config=conf/tuning/train_discrete_asr_e_branchformer1_e12_lr.yaml
+asr_config=conf/tuning/train_discrete_asr_e_branchformer1_e12_lr1e-3.yaml
 inference_config=conf/decode_ctc0.3.yaml
-gpu_inference=true
+gpu_inference=false
 
 src_nbpe=6000   # I use src_nbpe=6000 for 2000-cluster kmeans.
 tgt_nbpe=3000   # if token_joint is True, then only tgt_nbpe is used
@@ -35,7 +35,7 @@ tgt_case="ts"
     --use_lm false \
     --use_ngram false \
     --nclusters "${nclusters}" \
-    --ngpu 4 \
+    --ngpu 2 \
     --gpu_inference "${gpu_inference}" \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \

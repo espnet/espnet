@@ -48,18 +48,6 @@
 |decode_asr_asr_model_valid.acc.ave/et05_simu_beamformit_2mics|1320|21416|89.0|9.2|1.8|0.9|11.8|66.4|
 |decode_asr_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|21416|92.7|6.4|0.9|0.7|8.0|61.0|
 |decode_asr_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|21416|83.3|13.2|3.5|1.1|17.8|69.4|
-|decode_asr_asr_model_valid.acc.best/dt05_real_beamformit_2mics|1640|27119|89.5|9.2|1.3|0.9|11.4|60.2|
-|decode_asr_asr_model_valid.acc.best/dt05_real_beamformit_5mics|1640|27119|91.7|7.1|1.2|0.6|8.9|57.6|
-|decode_asr_asr_model_valid.acc.best/dt05_real_isolated_1ch_track|1640|27119|88.2|10.0|1.8|0.7|12.5|65.9|
-|decode_asr_asr_model_valid.acc.best/dt05_simu_beamformit_2mics|1640|27120|89.3|9.1|1.6|0.7|11.4|64.9|
-|decode_asr_asr_model_valid.acc.best/dt05_simu_beamformit_5mics|1640|27120|93.0|6.1|0.9|0.5|7.5|57.1|
-|decode_asr_asr_model_valid.acc.best/dt05_simu_isolated_1ch_track|1640|27120|83.7|12.6|3.6|0.7|16.9|68.7|
-|decode_asr_asr_model_valid.acc.best/et05_real_beamformit_2mics|1320|21409|89.7|8.9|1.3|0.6|10.9|70.1|
-|decode_asr_asr_model_valid.acc.best/et05_real_beamformit_5mics|1320|21409|92.3|6.8|0.9|0.5|8.2|60.8|
-|decode_asr_asr_model_valid.acc.best/et05_real_isolated_1ch_track|1320|21409|87.7|10.3|2.0|0.8|13.1|71.7|
-|decode_asr_asr_model_valid.acc.best/et05_simu_beamformit_2mics|1320|21416|88.4|9.9|1.7|1.0|12.7|69.5|
-|decode_asr_asr_model_valid.acc.best/et05_simu_beamformit_5mics|1320|21416|92.3|6.8|0.8|0.8|8.5|63.0|
-|decode_asr_asr_model_valid.acc.best/et05_simu_isolated_1ch_track|1320|21416|82.6|13.6|3.8|1.0|18.4|71.4|
 
 ### CER
 
@@ -77,20 +65,3 @@
 |decode_asr_asr_model_valid.acc.ave/et05_simu_beamformit_2mics|1320|126812|95.3|2.2|2.5|1.0|5.7|66.4|
 |decode_asr_asr_model_valid.acc.ave/et05_simu_beamformit_5mics|1320|126812|97.5|1.2|1.3|0.9|3.4|61.0|
 |decode_asr_asr_model_valid.acc.ave/et05_simu_isolated_1ch_track|1320|126812|91.1|4.1|4.8|1.5|10.4|69.4|
-|decode_asr_asr_model_valid.acc.best/dt05_real_beamformit_2mics|1640|160390|95.4|2.4|2.2|1.1|5.7|60.2|
-|decode_asr_asr_model_valid.acc.best/dt05_real_beamformit_5mics|1640|160390|96.6|1.7|1.7|0.8|4.1|57.6|
-|decode_asr_asr_model_valid.acc.best/dt05_real_isolated_1ch_track|1640|160390|94.9|2.6|2.6|1.0|6.2|65.9|
-|decode_asr_asr_model_valid.acc.best/dt05_simu_beamformit_2mics|1640|160400|95.4|2.3|2.3|0.9|5.6|64.9|
-|decode_asr_asr_model_valid.acc.best/dt05_simu_beamformit_5mics|1640|160400|97.6|1.2|1.2|0.6|3.0|57.1|
-|decode_asr_asr_model_valid.acc.best/dt05_simu_isolated_1ch_track|1640|160400|91.4|4.0|4.6|1.2|9.7|68.7|
-|decode_asr_asr_model_valid.acc.best/et05_real_beamformit_2mics|1320|126796|96.1|1.9|2.0|0.7|4.6|70.1|
-|decode_asr_asr_model_valid.acc.best/et05_real_beamformit_5mics|1320|126796|97.4|1.3|1.3|0.6|3.2|60.8|
-|decode_asr_asr_model_valid.acc.best/et05_real_isolated_1ch_track|1320|126796|95.1|2.4|2.5|0.9|5.8|71.7|
-|decode_asr_asr_model_valid.acc.best/et05_simu_beamformit_2mics|1320|126812|95.0|2.4|2.6|1.1|6.1|69.5|
-|decode_asr_asr_model_valid.acc.best/et05_simu_beamformit_5mics|1320|126812|97.4|1.3|1.3|0.9|3.6|63.0|
-|decode_asr_asr_model_valid.acc.best/et05_simu_isolated_1ch_track|1320|126812|90.8|4.0|5.1|1.5|10.6|71.4|
-
-### TER
-
-|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
-|---|---|---|---|---|---|---|---|---|
