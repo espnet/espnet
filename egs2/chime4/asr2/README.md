@@ -28,9 +28,9 @@
 
 ## exp/asr_train_discrete_asr_e_branchformer_e12_mlp1024_linear1024_macaron_lr1e-4_warmup25k_conv1d1_raw_wavlm_large_21_km1000_bpe_rm2000_char_ts_sp
 
-- ASR config: conf/tuning/train_discrete_asr_e_branchformer_e12_mlp1024_linear1024_macaron_lr1e-4_warmup25k_conv1d1.yaml
-- decode config: conf/decode_asr.yaml
-- Model link: https://huggingface.co/espnet/eason_chime4_asr2_e_branchformer12_conv1d1_raw_wavlm_large_21_km1k_bpe_rm2k_char_ts_sp
+- ASR config: [conf/tuning/train_discrete_asr_e_branchformer_e12_mlp1024_linear1024_macaron_lr1e-4_warmup25k_conv1d1.yaml](conf/tuning/train_discrete_asr_e_branchformer_e12_mlp1024_linear1024_macaron_lr1e-4_warmup25k_conv1d1.yaml)
+- decode config: [conf/decode_asr.yaml](conf/decode_asr.yaml)
+- Model link: [https://huggingface.co/espnet/eason_chime4_asr2_e_branchformer12_conv1d1_raw_wavlm_large_21_km1k_bpe_rm2k_char_ts_sp](https://huggingface.co/espnet/eason_chime4_asr2_e_branchformer12_conv1d1_raw_wavlm_large_21_km1k_bpe_rm2k_char_ts_sp)
 
 ### WER
 
