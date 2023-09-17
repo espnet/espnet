@@ -17,7 +17,7 @@ train_set="train"
 train_dev="dev"
 test_sets="dev test"
 
-asr_config=conf/tuning/train_discrete_asr_e_branchformer1_e12.yaml
+asr_config=conf/tuning/train_discrete_asr_e_branchformer1_e12_lr.yaml
 inference_config=conf/decode_ctc0.3.yaml
 gpu_inference=true
 

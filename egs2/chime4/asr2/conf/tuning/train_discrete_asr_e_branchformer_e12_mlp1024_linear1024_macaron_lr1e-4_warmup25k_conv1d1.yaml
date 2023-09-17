@@ -19,7 +19,7 @@ encoder_conf:
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: conv1d1
+    input_layer: conv1d1  # using conv1d1 to ensure a proper input length in decode stage
     layer_drop_rate: 0.0
     linear_units: 1024
     positionwise_layer_type: linear
