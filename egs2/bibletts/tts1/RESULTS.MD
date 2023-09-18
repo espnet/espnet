@@ -20,6 +20,7 @@
 
 
 ## Results: using objective evaluation (MCD, RMSE) 
+Pretrained models can be found at [BibleTTS pretrained models](https://huggingface.co/espnet/vits_tts_bibletts_char/tree/main)
 
   * Experiment results on different languages:
     |   Languages     | MCD | RMSE |
