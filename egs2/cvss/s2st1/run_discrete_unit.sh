@@ -24,7 +24,6 @@ CUDA_VISIBLE_DEVICES=8,9 ./s2st.sh \
     --nj 64 \
     --inference_nj 1 \
     --use_discrete_unit true \
-    --use_gpu_feat_extract false \
     --local_data_opts "--stage 0 --src_lang ${src_lang} --version ${version}" \
     --feats_type raw \
     --audio_format "wav" \
