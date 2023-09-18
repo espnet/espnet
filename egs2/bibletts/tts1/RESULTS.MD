@@ -1,10 +1,11 @@
-- Environments
+# BIBLE-TTS Results
+## Environments
 
   - python version: `3.8.18`
 
   - pytorch version: `pytorch 2.0.1+cu117`
 
-- The details of BibleTTS dataset
+## The details of BibleTTS dataset
 
   | Languages  | Number of Training Utters | Hours (h) |
   |:-----: | :-----: | :----: |
@@ -18,11 +19,9 @@
 
 
 
-- Results: {using objective evaluation (MCD, RMSE) } 
+## Results: using objective evaluation (MCD, RMSE) 
 
-
-
-* Experiment results on different languages
+  * Experiment results on different languages:
     |   Languages     | MCD | RMSE |
     |:-----: | :-----: | :----: |
     | Yoruba |  9.66 ± 1.05  | 0.32 ± 0.03   |
@@ -32,10 +31,10 @@
     | Ewe | 11.11 ± 3.62 |  0.27 ± 0.06 |
     | Akuapem Twi |  7.98 ± 1.57 | 0.28 ± 0.06 |
 
-* Experiment results (Ablation study on Yoruba): 
-  |      Settings      | MCD_test |MCD_dev | RMSE_test | RMSE_dev |
-  |:-----: | :-----: | :----: | :----: | :----: | 
-  | Yoruba (train from scratch) | **9.66 ± 1.05** | **6.94 ± 1.96** | **0.32 ± 0.03** | **0.30 ± 0.06** |
-  | Yoruba (finetune from pretrained model, char-based)) |  10.43 ± 1.13  | 7.97 ± 2.37 | 0.39 ± 0.05 | 0.39 ± 0.10|
-  | Yoruba (finetune from pretrained model, phn-based) |  10.14 ± 1.26  | 7.42 ± 1.76 | 0.35 ± 0.04 | 0.31 ± 0.07 |
+  * Experiment results (Ablation study on Yoruba): 
+    |      Settings      | MCD_test |MCD_dev | RMSE_test | RMSE_dev |
+    |:-----: | :-----: | :----: | :----: | :----: | 
+    | Yoruba (train from scratch) | **9.66 ± 1.05** | **6.94 ± 1.96** | **0.32 ± 0.03** | **0.30 ± 0.06** |
+    | Yoruba (finetune from pretrained model, char-based)) |  10.43 ± 1.13  | 7.97 ± 2.37 | 0.39 ± 0.05 | 0.39 ± 0.10|
+    | Yoruba (finetune from pretrained model, phn-based) |  10.14 ± 1.26  | 7.42 ± 1.76 | 0.35 ± 0.04 | 0.31 ± 0.07 |
 
