@@ -13,6 +13,7 @@ AN4=downloads
 ASVTutorial=espnet_tutorial_asvspoof
 APHASIABANK=
 AUDIOSET=
+BIBLETTS=downloads
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
