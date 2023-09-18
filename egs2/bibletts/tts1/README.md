@@ -2,8 +2,8 @@
 
 This is the recipe of single speaker TTS model with [Bible TTS](https://masakhane-io.github.io/bibleTTS/) corpus.
 
-Our goal is to build a TTS character based system using high-quality BibleTTS dataset. BibleTTS is a large high-quality open Text-to-Speech dataset with up to 80 hours of single speaker. It releases aligned speech and text for six languages spoken in Sub-Saharan Africa. There are two options: 
-1) Train VITS models from scratch for each language. 
+Our goal is to build a TTS character based system using high-quality BibleTTS dataset. BibleTTS is a large high-quality open Text-to-Speech dataset with up to 80 hours of single speaker. It releases aligned speech and text for six languages spoken in Sub-Saharan Africa. There are two options:
+1) Train VITS models from scratch for each language.
 
 2) Finetune from a pretrained TTS model to accelarate training stage.
 
@@ -69,10 +69,10 @@ $ ./run.sh \
     --train_config ./conf/tuning/train_vits.yaml \
     --train_args "--init_param <pretrain-model-path>":::tts.generator.text_encoder.emb \
     --inference_model train.total_count.ave.pth \
-    --tag vits_lj_train_phn_1Minter_char_ft_${lang} 
+    --tag vits_lj_train_phn_1Minter_char_ft_${lang}
 
 ```
-### 3. Inference 
+### 3. Inference
 
 TTS model decoding stage. You can change the decoding setting via --inference_config and --inference_args.
 ```sh
@@ -110,4 +110,3 @@ $ ./run.sh \
     exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
     dump/raw/eval1/wav.scp
 ```
-

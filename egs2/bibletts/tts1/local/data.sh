@@ -13,7 +13,7 @@ SECONDS=0
 stage=0
 stop_stage=1
 lang="hausa"
-subsets=("dev" "eval" "train") # 
+subsets=("dev" "eval" "train") #
 log "$0 $*"
 . utils/parse_options.sh
 
