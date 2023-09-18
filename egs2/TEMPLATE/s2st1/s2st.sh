@@ -470,8 +470,7 @@ if ! "${skip_data_prep}"; then
             # If nothing is need, then format_wav_scp.sh does nothing:
             # i.e. the input file format and rate is same as the output.
 
-            # for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-            for dset in ${test_sets}; do
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
                 else
