@@ -18,7 +18,7 @@ version=c # c or t (please refer to cvss paper for details)
 
 # base url for download commonvoice
 cv_data_url=https://voice-prod-bundler-ee1969a6ce8178826482b88e843c335139bd3fb4.s3.amazonaws.com/cv-corpus-4-2019-12-10/${src_lang}.tar.gz
-cvss_data_url=https://storage.googleapis.com/cvss/cvss_${version}_v1.0/cvss_${version}_${src_lang}_en_v1.0.tar.gz
+cvss_data_url=https://storage.googleapis.com/cvss/cvss_t_v1.0/cvss_${version}_${src_lang}_en_v1.0.tar.gz
 
 
 log() {
@@ -40,14 +40,14 @@ set -o pipefail
 
 log "data preparation started"
 
-# if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-#     log "stage1: Download data to ${CVSS}"
-#     log "Prepare source data from commonvoice 4.0"
-#     mkdir -p ${CVSS}/commonvoice4
-#     local/download_and_untar.sh ${CVSS} ${cv_data_url} ${src_lang}.tar.gz
-#     mv ${CVSS}/cv-corpus-4-2019-12-10 ${CVSS}/commonvoice4/${src_lang}
-#     local/download_and_untar.sh ${CVSS} ${cvss_data_url} ${src_lang}.tar.gz
-# fi
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    log "stage1: Download data to ${CVSS}"
+    log "Prepare source data from commonvoice 4.0"
+    mkdir -p ${CVSS}/commonvoice4
+    local/download_and_untar.sh ${CVSS} ${cv_data_url} ${src_lang}.tar.gz
+    mv ${CVSS}/cv-corpus-4-2019-12-10 ${CVSS}/commonvoice4/${src_lang}
+    local/download_and_untar.sh ${CVSS} ${cvss_data_url} ${src_lang}.tar.gz
+fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage2: Preparing data for commonvoice and cvss"
