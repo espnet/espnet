@@ -21,10 +21,7 @@ lm_config=
 
 speed_perturb_factors="0.9 1.0 1.1"
 
-gpu_inference=false
-
 src_nbpe=2000   # I use src_nbpe=6000 for 2000-cluster kmeans.
-tgt_nbpe=5000   # if token_joint is True, then only tgt_nbpe is used
 
 # ts: true sequence
 # rm: deduplicated sequence which removes duplicated tokens
