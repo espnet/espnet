@@ -680,6 +680,12 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then
     log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
 
+    if [ ${ngpu} -gt 0 ]; then
+        use_gpu="true"
+    else
+        use_gpu="false"
+    fi
+
     scripts/feats/perform_kmeans.sh \
         --stage 1 --stop-stage 4 \
         --train_set "${train_set}" \
@@ -695,7 +701,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
         --portion "${portion}" \
         --nclusters "${nclusters}" \
         --storage_save_mode ${storage_save_mode} \
-        --use_gpu true \
+        --use_gpu "${use_gpu}" \
         --nj ${nj} \
         --cpu_cmd "${train_cmd}" \
         --cuda_cmd "${cuda_cmd}" \
