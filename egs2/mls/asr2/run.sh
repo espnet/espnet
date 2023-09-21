@@ -63,4 +63,3 @@ tgt_case="ts"
     # --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
     # --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang} data/local/other_text/text" \
 
-curl -X POST -H 'Content-type: application/json' --data '{"text":"Done!"}' https://hooks.slack.com/services/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
