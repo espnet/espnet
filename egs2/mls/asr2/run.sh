@@ -22,7 +22,7 @@ if [ "$lang" == "all" ]; then
     for ln in es en fr nl it pt pl de; do
         test_sets+="mls_${ln}_test "
     done
-elif
+else
     test_sets="mls_${lang}_test"
 fi
 
