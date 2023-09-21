@@ -47,4 +47,3 @@
 |decode_ctc0.3_lm_lm_train_bpe150_valid.loss.ave_asr_model_valid.acc.ave/mls_nl_test|3075|438029|80.6|13.2|6.2|3.2|22.6|100.0|
 |decode_ctc0.3_lm_lm_train_bpe150_valid.loss.ave_asr_model_valid.acc.ave/mls_pl_test|520|82933|85.5|10.0|4.5|1.7|16.3|100.0|
 |decode_ctc0.3_lm_lm_train_bpe150_valid.loss.ave_asr_model_valid.acc.ave/mls_pt_test|871|116658|81.5|12.0|6.5|2.5|21.0|100.0|
-
