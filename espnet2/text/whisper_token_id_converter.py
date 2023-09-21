@@ -17,8 +17,9 @@ from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 class OpenAIWhisperTokenIDConverter:
     def __init__(
         self,
-        model_type: str = "whisper_multilingual",
-        language: str = "en",
+        model_type: str,
+        language: str,
+        task: str,
     ):
         assert check_argument_types()
 
@@ -34,13 +35,15 @@ class OpenAIWhisperTokenIDConverter:
 
         language = LANGUAGES_CODE_MAPPING.get(language)
         if language is None:
-            raise ValueError("language unsupported for Whisper model")
+            raise ValueError(f"language: {language} unsupported for Whisper model")
+        if task not in ["transcribe", "translate"]:
+            raise ValueError(f"task: {task} unsupported for Whisper model")
 
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=language
+                multilingual=True, language=language, task=task
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)

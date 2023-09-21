@@ -8,9 +8,9 @@ References:
 
 """
 from typing import List
+from typeguard import check_argument_types
 
 import torch
-from typeguard import check_argument_types
 
 try:
     import loralib as lora

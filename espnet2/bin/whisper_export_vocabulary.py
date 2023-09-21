@@ -10,7 +10,13 @@ from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def export_vocabulary(output: str, whisper_model: str, language: str, log_level: str):
+def export_vocabulary(
+    output: str,
+    whisper_model: str,
+    log_level: str,
+    whisper_language: str = None,
+    whisper_task: str = None,
+):
     try:
         import whisper.tokenizer
     except Exception as e:
@@ -34,15 +40,17 @@ def export_vocabulary(output: str, whisper_model: str, language: str, log_level:
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
-    language = LANGUAGES_CODE_MAPPING.get(language)
-    if language is None:
+    whisper_language = LANGUAGES_CODE_MAPPING.get(whisper_language)
+    if whisper_language is None:
         raise ValueError("language unsupported for Whisper model")
+    if whisper_task not in ["transcribe", "translate"]:
+        raise ValueError(f"task: {whisper_task} unsupported for Whisper model")
 
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
     elif whisper_model == "whisper_multilingual":
         tokenizer = whisper.tokenizer.get_tokenizer(
-            multilingual=True, language=language
+            multilingual=True, language=whisper_language, task=whisper_task
         )
     else:
         raise ValueError("tokenizer unsupported:", whisper_model)
@@ -86,10 +94,16 @@ def get_parser() -> argparse.ArgumentParser:
         help="Whisper model type",
     )
     parser.add_argument(
-        "--language",
+        "--whisper_language",
         type=str,
-        default="en",
-        help="Language of Whisper multilingual tokenizer (default is en)",
+        default=None,
+        help="Language for Whisper multilingual tokenizer",
+    )
+    parser.add_argument(
+        "--whisper_task",
+        type=str,
+        default=None,
+        help="Task for Whisper multilingual tokenizer",
     )
 
     return parser

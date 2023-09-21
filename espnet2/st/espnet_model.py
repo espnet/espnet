@@ -133,7 +133,10 @@ class ESPnetSTModel(AbsESPnetModel):
             from warprnnt_pytorch import RNNTLoss
 
             self.st_joint_network = st_joint_network
-            self.blank_id = token_list.index(tgt_sym_blank)
+            if tgt_sym_blank in token_list:
+                self.blank_id = token_list.index(tgt_sym_blank)
+            else:
+                self.blank_id = 0
             self.st_criterion_transducer = RNNTLoss(
                 blank=self.blank_id,
                 fastemit_lambda=0.0,

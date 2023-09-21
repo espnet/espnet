@@ -30,7 +30,10 @@ class ErrorCalculator(object):
         self.space = sym_space
         self.pad = sym_pad
         self.report_bleu = report_bleu
-        self.idx_blank = self.char_list.index(self.pad)
+        if self.pad in self.char_list:
+            self.idx_blank = self.char_list.index(self.pad)
+        else:
+            self.idx_blank = None
         if self.space in self.char_list:
             self.idx_space = self.char_list.index(self.space)
         else:
