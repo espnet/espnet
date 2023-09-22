@@ -3,17 +3,8 @@ import logging
 import os
 
 import numpy as np
-<<<<<<<< HEAD:egs2/TEMPLATE/asr1/pyscripts/feats/dump_feats.py
-from pyscripts.feats.feats_loader import (
-    ESPnetHubertFeatureReader,
-    HubertFeatureReader,
-    MfccFeatureReader,
-    S3PRLFeatureReader,
-)
-========
 from hubert_feature_loader import HubertFeatureReader
 from wavlm_feature_loader import WavLMFeatureReader
->>>>>>>> github/master:egs2/librispeech/asr2/local/dump_hubert_or_wavlm_feature.py
 
 from espnet.utils.cli_readers import file_reader_helper
 from espnet.utils.cli_utils import is_scipy_wav_style
@@ -29,19 +20,10 @@ logger = logging.getLogger("dump_hubert_or_wavlm_feature")
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-<<<<<<<< HEAD:egs2/TEMPLATE/asr1/pyscripts/feats/dump_feats.py
-        "--feature_type", type=str, default="mfcc", choices=["mfcc", "hubert", "s3prl"]
-    )
-    parser.add_argument("--hubert-model-url", type=str, default=None)
-    parser.add_argument("--hubert-model-path", type=str, default=None)
-    parser.add_argument("--s3prl-upstream-name", type=str, default=None)
-    parser.add_argument("--s3prl-path-or-url", type=str, default=None)
-========
         "--ssl_type", type=str, default="wavlm", choices=["wavlm", "hubert"]
     )
 
     parser.add_argument("--ckpt_path", type=str, default="", required=True, help="")
->>>>>>>> github/master:egs2/librispeech/asr2/local/dump_hubert_or_wavlm_feature.py
     parser.add_argument("--layer", type=int, default=None)
     parser.add_argument("--sample_rate", type=int, default=16000)
     parser.add_argument("--max_chunk", type=int, default=1600000)
@@ -78,7 +60,6 @@ def get_parser():
 def dump_feature(
     reader, in_filetype, rspecifier, out_filetype, wspecifier, write_num_frames=None
 ):
-    count = 0
     with file_writer_helper(
         wspecifier,
         filetype=out_filetype,
@@ -92,48 +73,12 @@ def dump_feature(
             nsample = len(mat)
             feat = reader.get_feats(mat, nsample).detach().cpu().numpy()
             writer[utt] = feat
-            count += 1
-            if count % 1000 == 0:
-                logging.info("process {}".format(count))
     logger.info("finished successfully")
 
 
 def main(args):
     np.random.seed(args.seed)
     logging.info("Loading Features")
-<<<<<<<< HEAD:egs2/TEMPLATE/asr1/pyscripts/feats/dump_feats.py
-    if args.feature_type == "mfcc":
-        reader = MfccFeatureReader(sample_rate=args.sample_rate)
-    elif args.feature_type == "hubert":
-        assert 0 < args.layer < 24
-        if args.hubert_type == "fairseq":
-            logging.warning(
-                "Fairseq based HuBERT is deprecated. Please use the torchaudio one."
-            )
-            reader = HubertFeatureReader(
-                hubert_url=args.hubert_model_url,
-                hubert_dir_path=args.hubert_model_path,
-                layer=args.layer,
-                sample_rate=args.sample_rate,
-                max_chunk=args.max_chunk,
-            )
-        elif args.hubert_type == "espnet":
-            reader = ESPnetHubertFeatureReader(
-                hubert_model_path=args.hubert_model_path,
-                layer=args.layer,
-                sample_rate=args.sample_rate,
-                max_chunk=args.max_chunk,
-            )
-        else:
-            raise ValueError(f"Unknown hubert type {args.hubert_type}")
-    elif args.feature_type == "s3prl":
-        reader = S3PRLFeatureReader(
-            s3prl_upstream_name=args.s3prl_upstream_name,
-            s3prl_path_or_url=args.s3prl_path_or_url,
-            layer=args.layer,
-            sample_rate=16000,
-            max_chunk=1600000,
-========
     if args.ssl_type == "wavlm":
         reader = WavLMFeatureReader(args.ckpt_path, args.layer, args.max_chunk)
     elif args.ssl_type == "hubert":
@@ -143,7 +88,6 @@ def main(args):
             layer=args.layer,
             sample_rate=args.sample_rate,
             max_chunk=args.max_chunk,
->>>>>>>> github/master:egs2/librispeech/asr2/local/dump_hubert_or_wavlm_feature.py
         )
     else:
         raise ValueError(f"Unknown feature type {args.feature_type}.")
