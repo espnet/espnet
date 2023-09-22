@@ -372,17 +372,11 @@ def make_labs(args):
         # Generate labs according to text file
         with open(dset / "text", encoding="utf-8") as reader:
             for line in reader:
-<<<<<<< HEAD
-                key = line.split()[0]
-                text = " ".join(line.split()[1:])
+                utt, text = line.strip().split(maxsplit=1)
                 if cleaner is not None:
                     text = cleaner(text).lower()
                 else:
                     text = text.lower()
-=======
-                utt, text = line.strip().split(maxsplit=1)
-                text = cleaner(text).lower()
->>>>>>> github/master
                 # Convert single quotes into double quotes
                 #   so that MFA doesn't confuse them with clitics.
                 # Find ' not preceded by a letter to the last ' not followed by a letter
