@@ -698,14 +698,10 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                         delimiter=delimiter,
                         space_symbol=space_symbol,
                         non_linguistic_symbols=non_linguistic_symbols,
-<<<<<<< HEAD
                         g2p_type=g2p_type[i],
-=======
-                        g2p_type=g2p_type,
                         encode_kwargs=tokenizer_encode_conf[i]
                         if i < len(tokenizer_encode_conf)
                         else None,
->>>>>>> github/master
                     )
                 )
                 self.token_id_converter.append(
