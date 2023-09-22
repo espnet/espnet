@@ -150,6 +150,7 @@ class BatchBeamSearch(BeamSearch):
                     score=0.0,
                     scores=init_scores,
                     states=init_states,
+                    hs=[],
                     yseq=torch.tensor(primer, device=x.device),
                     hs=[],
                 )
@@ -167,8 +168,14 @@ class BatchBeamSearch(BeamSearch):
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
+<<<<<<< HEAD
             pre_x (torch.Tensor): Encoded speech feature for
                 sequential attention (T, D)
+=======
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
+>>>>>>> github/master
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -182,7 +189,11 @@ class BatchBeamSearch(BeamSearch):
         states = dict()
         for k, d in self.full_scorers.items():
             if "decoder" in k and self.return_hs:
+<<<<<<< HEAD
                 (scores[k], hs), states[k] = d.batch_score(
+=======
+                scores[k], hs, states[k] = d.batch_score(
+>>>>>>> github/master
                     hyp.yseq, hyp.states[k], x, return_hs=self.return_hs
                 )
             elif "decoder" in k and pre_x is not None:
@@ -207,7 +218,13 @@ class BatchBeamSearch(BeamSearch):
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             ids (torch.Tensor): 2D tensor of new partial tokens to score
             x (torch.Tensor): Corresponding input feature
+<<<<<<< HEAD
             pre_x (torch.Tensor): Encoded speech feature for sequential attention (T, D)
+=======
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
+>>>>>>> github/master
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -252,7 +269,14 @@ class BatchBeamSearch(BeamSearch):
         return new_states
 
     def search(
+<<<<<<< HEAD
         self, running_hyps: BatchHypothesis, x: torch.Tensor, pre_x: torch.Tensor = None
+=======
+        self,
+        running_hyps: BatchHypothesis,
+        x: torch.Tensor,
+        pre_x: torch.Tensor = None,
+>>>>>>> github/master
     ) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
 
@@ -287,6 +311,10 @@ class BatchBeamSearch(BeamSearch):
                 if pre_x is not None
                 else None,
             )
+<<<<<<< HEAD
+=======
+
+>>>>>>> github/master
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]
         # partial scoring

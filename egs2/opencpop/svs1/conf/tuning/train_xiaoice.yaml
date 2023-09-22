@@ -3,11 +3,10 @@
 ##########################################################
 #                  SVS MODEL SETTING                     #
 ##########################################################
-svs: xiaoice                   # model architecture
+svs: xiaoice                     # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi embedding range (note number + silence)
-    tempo_dim: 512               # tempo embedding range
-    embed_dim: 384               # char or phn embedding range
+    duration_dim: 512            # duration embedding range
     adim: 384
     aheads: 4
     elayers: 6                   # number of lstm layers in encoder
@@ -23,7 +22,7 @@ svs_conf:                        # keyword arguments for the selected model
     init_type: pytorch           # parameter initialization
     use_masking: true            # whether to apply masking for padded part in loss calculation
     loss_function: XiaoiceSing2  # Loss funtions (FastSpeech1 or XiaoiceSing2)
-    loss_type: L2                # Loss type (L1 or L2)
+    loss_type: L1                # mel loss type ("L1", "L2" or "L1+L2")
     lambda_mel: 1                # Loss scaling coefficient for Mel loss.
     lambda_dur: 0.1              # Loss scaling coefficient for duration loss.
     lambda_pitch: 0.01           # Loss scaling coefficient for pitch loss.

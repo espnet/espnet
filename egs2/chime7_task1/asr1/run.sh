@@ -67,7 +67,7 @@ nbpe=500
 asr_max_epochs=8
 # put popcornell/chime7_task1_asr1_baseline if you want to test with pretrained model
 use_pretrained=
-decode_only=0
+decode_only=""
 diar_score=0
 
 . ./path.sh
@@ -80,9 +80,22 @@ asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
 asr_max_lr=$(calc_float $ngpu/10000.0)
 asr_warmup=$(calc_int 40000.0/$ngpu)
 
-if [ $decode_only -eq 1 ]; then
+if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n "$decode_only" ]];
+then
+  log "decode_only argument should be either dev, eval or empty"
+  exit
+fi
+
+
+if [ $decode_only == "dev" ]; then
   # apply gss only on dev
   gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
+  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
+elif
+  [ $decode_only == "eval" ]; then
+  # apply gss only on eval
+  gss_dsets="chime6_eval,dipco_eval,mixer6_eval"
+  asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/"
 fi
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
@@ -100,16 +113,24 @@ fi
 if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
   # parse all datasets to lhotse
   for dset in chime6 dipco mixer6; do
-    for dset_part in train dev; do
+    for dset_part in "train" "dev" "eval"; do
+
+
       if [ $dset == dipco ] && [ $dset_part == train ]; then
           continue # dipco has no train set
       fi
 
-      if [ $decode_only == 1 ] && [ $dset_part == train ]; then
+      if [ -n "$decode_only" ] && [ $dset_part == train ]; then
         continue
       fi
 
-      if [ $use_chime6_falign == 1 ] && [ $dset == chime6 ]; then
+      if [ ! -d $chime7_root/$dset/audio/$dset_part ]; then
+        log "Skipping $dset $dset_part because it does not exist on disk. This is
+        fine if you don't have evaluation set yet."
+        continue
+      fi
+
+      if [ $use_chime6_falign == 1 ] && [ $dset == chime6 ] && [ $dset_part != train ]; then
            if ! [ -d ./CHiME7_DASR_falign ]; then
                log "Getting forced alignment annotation for CHiME-6 Scenario"
                git clone https://github.com/chimechallenge/CHiME7_DASR_falign
@@ -153,6 +174,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     fi
 
     log "Running Guided Source Separation for ${dset_name}/${dset_part}, results will be in ${gss_dump_root}/${dset_name}/${dset_part}"
+    # shellcheck disable=SC2039
     local/run_gss.sh --manifests-dir $manifests_root --dset-name $dset_name \
           --dset-part $dset_part \
           --exp-dir $gss_dump_root \
@@ -220,6 +242,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --lm_train_text "data/${asr_train_set}/text" ${pretrained_affix}
 fi
 
+if [ ${decode_only} == "eval" ]; then
+  log "Scoring not available for eval set till the end of the challenge."
+  exit
+fi
+
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # final scoring
   log "Scoring ASR predictions for CHiME-7 DASR challenge."
@@ -256,7 +283,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # the content of this output folder is what you should send for evaluation to the
     # organizers.
   done
-  split=dev
+  split=dev # participants cannot evaluate eval
   LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
   python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
      -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d $diar_score 2>&1 | tee $LOG_OUT

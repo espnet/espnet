@@ -51,7 +51,7 @@ while IFS= read -r expdir; do
         metrics=()
         heading="\n|dataset|"
         sep="|---|"
-        for type in pesq estoi stoi sar sdr sir si_snr; do
+        for type in pesq pesq_wb pesq_nb estoi stoi sar sdr sir si_snr ovrl sig bak p808_mos; do
             if ls "${expdir}"/*/scoring/result_${type}.txt &> /dev/null; then
                 metrics+=("$type")
                 heading+="${type^^}|"

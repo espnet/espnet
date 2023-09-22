@@ -17,8 +17,7 @@ class Hypothesis:
     Args:
         score: Total log-probability.
         yseq: Label sequence as integer ID sequence.
-        dec_state: RNNDecoder or StatelessDecoder state.
-                     ((N, 1, D_dec), (N, 1, D_dec) or None) or None
+        dec_state: RNN/MEGA Decoder state (None if Stateless).
         lm_state: RNNLM state. ((N, D_lm), (N, D_lm)) or None
 
     """
@@ -51,7 +50,7 @@ class BeamSearchTransducer:
         decoder: Decoder module.
         joint_network: Joint network module.
         beam_size: Size of the beam.
-        lm: LM class.
+        lm: LM module.
         lm_weight: LM weight for soft fusion.
         search_type: Search algorithm to use during inference.
         max_sym_exp: Number of maximum symbol expansions at each time step. (TSD)
@@ -146,7 +145,7 @@ class BeamSearchTransducer:
         self.score_norm = score_norm
         self.nbest = nbest
 
-        self.reset_inference_cache()
+        self.reset_cache()
 
     def __call__(
         self,
@@ -168,7 +167,7 @@ class BeamSearchTransducer:
         hyps = self.search_algorithm(enc_out)
 
         if is_final:
-            self.reset_inference_cache()
+            self.reset_cache()
 
             return self.sort_nbest(hyps)
 
@@ -176,8 +175,8 @@ class BeamSearchTransducer:
 
         return hyps
 
-    def reset_inference_cache(self) -> None:
-        """Reset cache for decoder scoring and streaming."""
+    def reset_cache(self) -> None:
+        """Reset cache for streaming decoding."""
         self.decoder.score_cache = {}
         self.search_cache = None
 
@@ -312,14 +311,7 @@ class BeamSearchTransducer:
                 max_hyp = max(hyps, key=lambda x: x.score)
                 hyps.remove(max_hyp)
 
-                label = torch.full(
-                    (1, 1),
-                    max_hyp.yseq[-1],
-                    dtype=torch.long,
-                    device=self.decoder.device,
-                )
                 dec_out, state = self.decoder.score(
-                    label,
                     max_hyp.yseq,
                     max_hyp.dec_state,
                 )
@@ -370,6 +362,7 @@ class BeamSearchTransducer:
                     [hyp for hyp in kept_hyps if hyp.score > hyps_max],
                     key=lambda x: x.score,
                 )
+
                 if len(kept_most_prob) >= self.beam_size:
                     kept_hyps = kept_most_prob
                     break
@@ -405,6 +398,7 @@ class BeamSearchTransducer:
 
             B_ = []
             B_enc_out = []
+
             for hyp in B:
                 u = len(hyp.yseq) - 1
                 t = i - u

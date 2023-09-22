@@ -23,7 +23,7 @@
 # dataset (represented by a file list).
 #
 
-@ARGV == 1 || die "find_transcripts.pl dot_files_flist < utterance_ids > transcripts";
+@ARGV == 1 || die "find_noisy_transcripts.pl dot_files_flist < utterance_ids > transcripts";
 $dot_flist = shift @ARGV;
 
 open(L, "<$dot_flist") || die "Opening file list of dot files: $dot_flist\n";

@@ -1,4 +1,4 @@
-"""Activation functions for Transducer."""
+"""Activation functions for Transducer models."""
 
 import torch
 from packaging.version import parse as V
