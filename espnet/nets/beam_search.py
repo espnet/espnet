@@ -17,10 +17,7 @@ class Hypothesis(NamedTuple):
     score: Union[float, torch.Tensor] = 0
     scores: Dict[str, Union[float, torch.Tensor]] = dict()
     states: Dict[str, Any] = dict()
-<<<<<<< HEAD
-=======
     # dec hidden state corresponding to yseq, used for searchable hidden ints
->>>>>>> github/master
     hs: List[torch.Tensor] = []
 
     def asdict(self) -> dict:
@@ -150,7 +147,6 @@ class BeamSearch(torch.nn.Module):
                 states=init_states,
                 hs=[],
                 yseq=torch.tensor(primer, device=x.device),
-                hs=[],
             )
         ]
 
@@ -323,11 +319,8 @@ class BeamSearch(torch.nn.Module):
             running_hyps (List[Hypothesis]): Running hypotheses on beam
             x (torch.Tensor): Encoded speech feature (T, D)
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
-<<<<<<< HEAD
-=======
                 Sequential attn computes attn first on pre_x then on x,
                 thereby attending to two sources in sequence.
->>>>>>> github/master
 
         Returns:
             List[Hypotheses]: Best sorted hypotheses
@@ -400,15 +393,11 @@ class BeamSearch(torch.nn.Module):
                 If maxlenratio<0.0, its absolute value is interpreted
                 as a constant max output length.
             minlenratio (float): Input length ratio to obtain min output length.
-<<<<<<< HEAD
                 If minlenratio<0.0, its absolute value is interpreted
                 as a constant min output length.
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
-=======
-            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
                 Sequential attn computes attn first on pre_x then on x,
                 thereby attending to two sources in sequence.
->>>>>>> github/master
 
         Returns:
             list[Hypothesis]: N-best decoding results
@@ -425,14 +414,10 @@ class BeamSearch(torch.nn.Module):
             maxlen = -1 * int(maxlenratio)
         else:
             maxlen = max(1, int(maxlenratio * inp.size(0)))
-<<<<<<< HEAD
         if minlenratio < 0:
             minlen = -1 * int(minlenratio)
         else:
             minlen = int(minlenratio * inp.size(0))
-=======
-        minlen = int(minlenratio * inp.size(0))
->>>>>>> github/master
         logging.info("decoder input length: " + str(inp.shape[0]))
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))

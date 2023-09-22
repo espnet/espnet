@@ -97,10 +97,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         ys_in_pad: torch.Tensor,
         ys_in_lens: torch.Tensor,
         return_hs: bool = False,
-<<<<<<< HEAD
         return_all_hs: bool = False,
-=======
->>>>>>> github/master
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward decoder.
 
@@ -112,14 +109,9 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                 if input_layer == "embed"
                 input tensor (batch, maxlen_out, #mels) in the other cases
             ys_in_lens: (batch)
-<<<<<<< HEAD
             return_hs: (bool) whether to return the last hidden output
                                   before output layer
             return_all_hs: (bool) whether to return all the hidden intermediates
-=======
-            return_hs: dec hidden state corresponding to ys,
-                used for searchable hidden ints
->>>>>>> github/master
         Returns:
             (tuple): tuple containing:
 
@@ -127,8 +119,6 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
                 if use_output_layer is True,
             olens: (batch, )
         """
-        import logging
-
         tgt = ys_in_pad
         # tgt_mask: (B, 1, L)
         tgt_mask = (~make_pad_mask(ys_in_lens)[:, None, :]).to(tgt.device)
@@ -159,25 +149,15 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         if self.normalize_before:
             x = self.after_norm(x)
         if return_hs:
-<<<<<<< HEAD
             hidden = x
-=======
-            hs_asr = x
->>>>>>> github/master
         if self.output_layer is not None:
             x = self.output_layer(x)
 
         olens = tgt_mask.sum(1)
-<<<<<<< HEAD
         if return_hs:
             return (x, hidden), olens
         elif return_all_hs:
             return (x, intermediate_outs), olens
-=======
-
-        if return_hs:
-            return x, olens, hs_asr
->>>>>>> github/master
         return x, olens
 
     def forward_one_step(
@@ -218,31 +198,19 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         else:
             y = x[:, -1]
         if return_hs:
-<<<<<<< HEAD
             hidden = y
-=======
-            h_asr = y
->>>>>>> github/master
         if self.output_layer is not None:
             y = torch.log_softmax(self.output_layer(y), dim=-1)
 
         if return_hs:
-<<<<<<< HEAD
             return (y, hidden), new_cache
-=======
-            return y, h_asr, new_cache
->>>>>>> github/master
         return y, new_cache
 
     def score(self, ys, state, x, return_hs=False):
         """Score."""
         ys_mask = subsequent_mask(len(ys), device=x.device).unsqueeze(0)
         if return_hs:
-<<<<<<< HEAD
-            logp, state = self.forward_one_step(
-=======
-            logp, hs, state = self.forward_one_step(
->>>>>>> github/master
+            (logp, hs), state = self.forward_one_step(
                 ys.unsqueeze(0),
                 ys_mask,
                 x.unsqueeze(0),
@@ -296,14 +264,8 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
 
         # batch decoding
         ys_mask = subsequent_mask(ys.size(-1), device=xs.device).unsqueeze(0)
-<<<<<<< HEAD
         if return_hs:
             (logp, hs), states = self.forward_one_step(
-=======
-
-        if return_hs:
-            logp, hs, states = self.forward_one_step(
->>>>>>> github/master
                 ys, ys_mask, xs, cache=batch_state, return_hs=return_hs
             )
         else:
@@ -314,11 +276,7 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
         # transpose state of [layer, batch] into [batch, layer]
         state_list = [[states[i][b] for i in range(n_layers)] for b in range(n_batch)]
         if return_hs:
-<<<<<<< HEAD
             return (logp, hs), state_list
-=======
-            return logp, hs, state_list
->>>>>>> github/master
         return logp, state_list
 
 
