@@ -390,11 +390,7 @@ if ! "${skip_train}"; then
                 _opts+="--layer ${layer} "
             fi
 
-<<<<<<< HEAD
-            ./scripts/feats/perform_kmeans.sh \
-=======
             scripts/feats/perform_kmeans.sh \
->>>>>>> github/master
                 --stage 1 \
                 --stop_stage 5 \
                 --train_set "${train_set}" \
