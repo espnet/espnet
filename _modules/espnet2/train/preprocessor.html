@@ -155,6 +155,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.optimizers.html">espnet2.optimizers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.spk.html">espnet2.spk package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.lm.html">espnet2.lm package</a></li>
@@ -906,9 +907,11 @@
                         <span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">,</span>
                         <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
                         <span class="n">g2p_type</span><span class="o">=</span><span class="n">g2p_type</span><span class="p">,</span>
-                        <span class="n">encode_kwargs</span><span class="o">=</span><span class="n">tokenizer_encode_conf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                        <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokenizer_encode_conf</span><span class="p">)</span>
-                        <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">encode_kwargs</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">tokenizer_encode_conf</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokenizer_encode_conf</span><span class="p">)</span>
+                            <span class="k">else</span> <span class="kc">None</span>
+                        <span class="p">),</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
@@ -1811,7 +1814,6 @@
 
 <div class="viewcode-block" id="SpkPreprocessor"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.preprocessor.SpkPreprocessor">[docs]</a><span class="k">class</span> <span class="nc">SpkPreprocessor</span><span class="p">(</span><span class="n">CommonPreprocessor</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Preprocessor for Speaker tasks.</span>
-
 <span class="sd">    Args:</span>
 <span class="sd">        train (bool): Whether to use in training mode.</span>
 <span class="sd">        spk2utt (str): Path to the `spk2utt` file.</span>
@@ -2077,6 +2079,183 @@
 
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_text_process</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_speech_process</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="S2TPreprocessor"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.preprocessor.S2TPreprocessor">[docs]</a><span class="k">class</span> <span class="nc">S2TPreprocessor</span><span class="p">(</span><span class="n">CommonPreprocessor</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">token_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">token_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">bpemodel</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">text_cleaner</span><span class="p">:</span> <span class="n">Collection</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">g2p_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">unk_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;unk&gt;&quot;</span><span class="p">,</span>
+        <span class="n">space_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
+        <span class="n">non_linguistic_symbols</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">delimiter</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rir_scp</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">rir_apply_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">noise_scp</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">noise_apply_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">noise_db_range</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;3_10&quot;</span><span class="p">,</span>
+        <span class="n">short_noise_thres</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">speech_volume_normalize</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">speech_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;speech&quot;</span><span class="p">,</span>
+        <span class="n">text_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;text&quot;</span><span class="p">,</span>
+        <span class="n">text_prev_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;text_prev&quot;</span><span class="p">,</span>
+        <span class="n">text_ctc_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;text_ctc&quot;</span><span class="p">,</span>
+        <span class="n">fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span>
+        <span class="n">na_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;na&gt;&quot;</span><span class="p">,</span>  <span class="c1"># text is not available e.g. for prev or ctc</span>
+        <span class="n">speech_length</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mi">30</span><span class="p">,</span>  <span class="c1"># pad or trim speech to this value in seconds</span>
+        <span class="n">speech_resolution</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.02</span><span class="p">,</span>  <span class="c1"># speech time resolution</span>
+        <span class="n">speech_init_silence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1.0</span><span class="p">,</span>  <span class="c1"># max silence before speech for data aug</span>
+        <span class="n">text_prev_apply_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>  <span class="c1"># whether to condition on text_prev</span>
+        <span class="n">time_apply_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>  <span class="c1"># whether to include timestamps</span>
+        <span class="n">notime_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;notimestamps&gt;&quot;</span><span class="p">,</span>
+        <span class="n">first_time_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;0.00&gt;&quot;</span><span class="p">,</span>
+        <span class="n">last_time_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;30.00&gt;&quot;</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
+            <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
+            <span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">,</span>
+            <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
+            <span class="n">bpemodel</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">,</span>
+            <span class="n">text_cleaner</span><span class="o">=</span><span class="n">text_cleaner</span><span class="p">,</span>
+            <span class="n">g2p_type</span><span class="o">=</span><span class="n">g2p_type</span><span class="p">,</span>
+            <span class="n">unk_symbol</span><span class="o">=</span><span class="n">unk_symbol</span><span class="p">,</span>
+            <span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">,</span>
+            <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
+            <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">,</span>
+            <span class="n">rir_scp</span><span class="o">=</span><span class="n">rir_scp</span><span class="p">,</span>
+            <span class="n">rir_apply_prob</span><span class="o">=</span><span class="n">rir_apply_prob</span><span class="p">,</span>
+            <span class="n">noise_scp</span><span class="o">=</span><span class="n">noise_scp</span><span class="p">,</span>
+            <span class="n">noise_apply_prob</span><span class="o">=</span><span class="n">noise_apply_prob</span><span class="p">,</span>
+            <span class="n">noise_db_range</span><span class="o">=</span><span class="n">noise_db_range</span><span class="p">,</span>
+            <span class="n">short_noise_thres</span><span class="o">=</span><span class="n">short_noise_thres</span><span class="p">,</span>
+            <span class="n">speech_volume_normalize</span><span class="o">=</span><span class="n">speech_volume_normalize</span><span class="p">,</span>
+            <span class="n">speech_name</span><span class="o">=</span><span class="n">speech_name</span><span class="p">,</span>
+            <span class="n">text_name</span><span class="o">=</span><span class="n">text_name</span><span class="p">,</span>
+            <span class="n">fs</span><span class="o">=</span><span class="n">fs</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_prev_name</span> <span class="o">=</span> <span class="n">text_prev_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_ctc_name</span> <span class="o">=</span> <span class="n">text_ctc_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">speech_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">speech_length</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">speech_resolution</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">speech_resolution</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">speech_init_silence</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">speech_init_silence</span> <span class="o">*</span> <span class="n">fs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">text_prev_apply_prob</span> <span class="o">=</span> <span class="n">text_prev_apply_prob</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time_apply_prob</span> <span class="o">=</span> <span class="n">time_apply_prob</span>
+
+        <span class="c1"># Obtain the token id of special tokens</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">na_symbol</span> <span class="o">=</span> <span class="n">na_symbol</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">notime</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">token2id</span><span class="p">[</span><span class="n">notime_symbol</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">token2id</span><span class="p">[</span><span class="n">first_time_symbol</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">token2id</span><span class="p">[</span><span class="n">last_time_symbol</span><span class="p">]</span>
+
+    <span class="k">def</span> <span class="nf">_pad_or_trim_speech</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]],</span> <span class="nb">int</span><span class="p">]:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="n">init_pad</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">speech</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span>
+
+            <span class="c1"># speech: (Nmic, Time)</span>
+            <span class="k">if</span> <span class="n">speech</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="p">:]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">T</span>
+
+            <span class="c1"># Add silence to the left</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train</span> <span class="ow">and</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_length</span><span class="p">:</span>
+                <span class="n">init_pad</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                    <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_length</span> <span class="o">-</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_init_silence</span><span class="p">)</span>
+                    <span class="o">+</span> <span class="mi">1</span>
+                <span class="p">)</span>
+                <span class="n">speech</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="n">init_pad</span><span class="p">,</span> <span class="mi">0</span><span class="p">)))</span>
+
+            <span class="c1"># Pad or trim to max_samples</span>
+            <span class="k">if</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_length</span><span class="p">:</span>
+                <span class="n">speech</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+                    <span class="n">speech</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_length</span> <span class="o">-</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="p">[:,</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_length</span><span class="p">]</span>
+
+            <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">T</span>  <span class="c1"># convert back to time first</span>
+
+        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">((</span><span class="n">data</span><span class="p">,</span> <span class="n">init_pad</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">data</span><span class="p">,</span> <span class="n">init_pad</span>
+
+    <span class="k">def</span> <span class="nf">_text_process</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]],</span> <span class="n">time_shift</span><span class="p">:</span> <span class="nb">int</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="n">text_names</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_prev_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_ctc_name</span><span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">text_names</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="n">text</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+
+                    <span class="c1"># Remove prev text by setting it to &lt;na&gt;</span>
+                    <span class="k">if</span> <span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">train</span>
+                        <span class="ow">and</span> <span class="n">name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_prev_name</span>
+                        <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_prev_apply_prob</span>
+                    <span class="p">):</span>
+                        <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">na_symbol</span>
+
+                    <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_cleaner</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                    <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">text2tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                    <span class="n">text_ints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokens2ids</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
+                    <span class="n">text_ints</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">text_ints</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+
+                    <span class="c1"># Augment text</span>
+                    <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">text_name</span><span class="p">:</span>
+                        <span class="c1"># NOTE(yifan): The first token is always space</span>
+                        <span class="c1"># which should be removed.</span>
+                        <span class="c1"># No space is allowed between special tokens.</span>
+                        <span class="c1"># This works for bpe, but maybe not for the other types.</span>
+                        <span class="n">text_ints</span> <span class="o">=</span> <span class="n">text_ints</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+                        <span class="c1"># Remove timestamps</span>
+                        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">()</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">time_apply_prob</span><span class="p">:</span>
+                            <span class="c1"># Timestamps are continuous ints</span>
+                            <span class="n">text_ints</span> <span class="o">=</span> <span class="n">text_ints</span><span class="p">[</span>
+                                <span class="n">np</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                                    <span class="n">text_ints</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_time</span><span class="p">,</span>
+                                    <span class="n">text_ints</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_time</span><span class="p">,</span>
+                                <span class="p">)</span>
+                            <span class="p">]</span>
+                            <span class="c1"># First two tokens are &lt;category&gt; and &lt;task&gt;</span>
+                            <span class="n">text_ints</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">text_ints</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">notime</span><span class="p">)</span>
+
+                        <span class="c1"># Shift timestamps</span>
+                        <span class="n">text_ints</span><span class="p">[</span>
+                            <span class="n">np</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+                                <span class="n">text_ints</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_time</span><span class="p">,</span>
+                                <span class="n">text_ints</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_time</span><span class="p">,</span>
+                            <span class="p">)</span>
+                        <span class="p">]</span> <span class="o">+=</span> <span class="n">time_shift</span>
+
+                    <span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">text_ints</span>
+
+        <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">uid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_speech_process</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">data</span><span class="p">,</span> <span class="n">init_pad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pad_or_trim_speech</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_text_process</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">init_pad</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_resolution</span><span class="p">))</span>
 
         <span class="k">return</span> <span class="n">data</span></div>
 </pre></div>

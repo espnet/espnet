@@ -136,6 +136,17 @@ espnet2.bin.asr_train
     :show-inheritance:
 
 
+.. _espnet2.bin.s2t_inference_language:
+
+espnet2.bin.s2t_inference_language
+----------------------------------
+
+.. automodule:: espnet2.bin.s2t_inference_language
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.launch:
 
 espnet2.bin.launch
@@ -444,6 +455,17 @@ espnet2.bin.asr_inference_streaming
     :show-inheritance:
 
 
+.. _espnet2.bin.s2t_inference:
+
+espnet2.bin.s2t_inference
+-------------------------
+
+.. automodule:: espnet2.bin.s2t_inference
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.diar_inference:
 
 espnet2.bin.diar_inference
@@ -483,6 +505,17 @@ espnet2.bin.enh_scoring
 -----------------------
 
 .. automodule:: espnet2.bin.enh_scoring
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.s2t_train:
+
+espnet2.bin.s2t_train
+---------------------
+
+.. automodule:: espnet2.bin.s2t_train
     :members:
     :undoc-members:
     :show-inheritance:

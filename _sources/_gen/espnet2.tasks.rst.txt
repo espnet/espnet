@@ -191,6 +191,17 @@ espnet2.tasks.gan_svs
     :show-inheritance:
 
 
+.. _espnet2.tasks.s2t:
+
+espnet2.tasks.s2t
+-----------------
+
+.. automodule:: espnet2.tasks.s2t
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.enh_tse:
 
 espnet2.tasks.enh_tse

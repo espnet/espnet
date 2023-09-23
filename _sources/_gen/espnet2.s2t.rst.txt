@@ -1,0 +1,27 @@
+
+espnet2.s2t package
+===================
+
+
+
+.. _espnet2.s2t.espnet_model:
+
+espnet2.s2t.espnet_model
+------------------------
+
+.. automodule:: espnet2.s2t.espnet_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.s2t.__init__:
+
+espnet2.s2t.__init__
+--------------------
+
+.. automodule:: espnet2.s2t.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+

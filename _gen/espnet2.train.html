@@ -153,6 +153,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.optimizers.html">espnet2.optimizers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.spk.html">espnet2.spk package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.text.html">espnet2.text package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.s2t.html">espnet2.s2t package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asvspoof.html">espnet2.asvspoof package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.lm.html">espnet2.lm package</a></li>
@@ -248,6 +249,12 @@
 </dd></dl>
 
 <dl class="class">
+<dt id="espnet2.train.preprocessor.S2TPreprocessor">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">S2TPreprocessor</code><span class="sig-paren">(</span><em class="sig-param">train: bool</em>, <em class="sig-param">token_type: str = None</em>, <em class="sig-param">token_list: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">bpemodel: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">text_cleaner: Collection[str] = None</em>, <em class="sig-param">g2p_type: str = None</em>, <em class="sig-param">unk_symbol: str = '&lt;unk&gt;'</em>, <em class="sig-param">space_symbol: str = '&lt;space&gt;'</em>, <em class="sig-param">non_linguistic_symbols: Union[pathlib.Path</em>, <em class="sig-param">str</em>, <em class="sig-param">Iterable[str]] = None</em>, <em class="sig-param">delimiter: str = None</em>, <em class="sig-param">rir_scp: str = None</em>, <em class="sig-param">rir_apply_prob: float = 1.0</em>, <em class="sig-param">noise_scp: str = None</em>, <em class="sig-param">noise_apply_prob: float = 1.0</em>, <em class="sig-param">noise_db_range: str = '3_10'</em>, <em class="sig-param">short_noise_thres: float = 0.5</em>, <em class="sig-param">speech_volume_normalize: float = None</em>, <em class="sig-param">speech_name: str = 'speech'</em>, <em class="sig-param">text_name: str = 'text'</em>, <em class="sig-param">text_prev_name: str = 'text_prev'</em>, <em class="sig-param">text_ctc_name: str = 'text_ctc'</em>, <em class="sig-param">fs: int = 16000</em>, <em class="sig-param">na_symbol: str = '&lt;na&gt;'</em>, <em class="sig-param">speech_length: float = 30</em>, <em class="sig-param">speech_resolution: float = 0.02</em>, <em class="sig-param">speech_init_silence: float = 1.0</em>, <em class="sig-param">text_prev_apply_prob: float = 0.5</em>, <em class="sig-param">time_apply_prob: float = 0.5</em>, <em class="sig-param">notime_symbol: str = '&lt;notimestamps&gt;'</em>, <em class="sig-param">first_time_symbol: str = '&lt;0.00&gt;'</em>, <em class="sig-param">last_time_symbol: str = '&lt;30.00&gt;'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#S2TPreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.S2TPreprocessor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.train.preprocessor.CommonPreprocessor" title="espnet2.train.preprocessor.CommonPreprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.preprocessor.CommonPreprocessor</span></code></a></p>
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet2.train.preprocessor.SLUPreprocessor">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">SLUPreprocessor</code><span class="sig-paren">(</span><em class="sig-param">train: bool, token_type: str = None, token_list: Union[pathlib.Path, str, Iterable[str]] = None, transcript_token_list: Union[pathlib.Path, str, Iterable[str]] = None, bpemodel: Union[pathlib.Path, str, Iterable[str]] = None, text_cleaner: Collection[str] = None, g2p_type: str = None, unk_symbol: str = '&lt;unk&gt;', space_symbol: str = '&lt;space&gt;', non_linguistic_symbols: Union[pathlib.Path, str, Iterable[str]] = None, delimiter: str = None, rir_scp: str = None, rir_apply_prob: float = 1.0, noise_scp: str = None, noise_apply_prob: float = 1.0, noise_db_range: str = '3_10', short_noise_thres: float = 0.5, speech_volume_normalize: float = None, speech_name: str = 'speech', text_name: str = 'text', fs: int = 0, data_aug_effects: List = None, data_aug_num: List[int] = [1, 1], data_aug_prob: float = 0.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#SLUPreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.SLUPreprocessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.train.preprocessor.CommonPreprocessor" title="espnet2.train.preprocessor.CommonPreprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.preprocessor.CommonPreprocessor</span></code></a></p>
@@ -264,21 +271,25 @@
 <dt id="espnet2.train.preprocessor.SpkPreprocessor">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.train.preprocessor.</code><code class="sig-name descname">SpkPreprocessor</code><span class="sig-paren">(</span><em class="sig-param">train: bool, spk2utt: str, target_duration: float, sample_rate: int = 16000, num_eval: int = 10, rir_scp: str = None, rir_apply_prob: float = 1.0, noise_info: List[Tuple[float, str, Tuple[int, int], Tuple[float, float]]] = None, noise_apply_prob: float = 1.0, short_noise_thres: float = 0.5</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/train/preprocessor.html#SpkPreprocessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.train.preprocessor.SpkPreprocessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.train.preprocessor.CommonPreprocessor" title="espnet2.train.preprocessor.CommonPreprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.train.preprocessor.CommonPreprocessor</span></code></a></p>
-<p>Preprocessor for Speaker tasks.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>train</strong> (<em>bool</em>) – Whether to use in training mode.</p></li>
-<li><p><strong>spk2utt</strong> (<em>str</em>) – Path to the <cite>spk2utt</cite> file.</p></li>
-<li><p><strong>target_duration</strong> (<em>float</em>) – Target duration in seconds.</p></li>
-<li><p><strong>sample_rate</strong> (<em>int</em>) – Sampling rate.</p></li>
-<li><p><strong>num_eval</strong> (<em>int</em>) – Number of utterances to be used for evaluation.</p></li>
-<li><p><strong>rir_scp</strong> (<em>str</em>) – Path to the RIR scp file.</p></li>
-<li><p><strong>rir_apply_prob</strong> (<em>float</em>) – Probability of applying RIR.</p></li>
-<li><p><strong>noise_info</strong> (<em>List</em><em>[</em><em>Tuple</em><em>[</em><em>float</em><em>, </em><em>str</em><em>, </em><em>Tuple</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>, </em><em>Tuple</em><em>[</em><em>float</em><em>, </em><em>float</em><em>]</em><em>]</em><em>]</em>) – <p>List of tuples of noise information. Each tuple represents a noise type.
-Each tuple consists of <cite>(prob, noise_scp, num_to_mix, db_range)</cite>.</p>
+<p>Preprocessor for Speaker tasks.
+:param train: Whether to use in training mode.
+:type train: bool
+:param spk2utt: Path to the <cite>spk2utt</cite> file.
+:type spk2utt: str
+:param target_duration: Target duration in seconds.
+:type target_duration: float
+:param sample_rate: Sampling rate.
+:type sample_rate: int
+:param num_eval: Number of utterances to be used for evaluation.
+:type num_eval: int
+:param rir_scp: Path to the RIR scp file.
+:type rir_scp: str
+:param rir_apply_prob: Probability of applying RIR.
+:type rir_apply_prob: float
+:param noise_info: List of tuples of noise information. Each tuple represents a noise type.</p>
 <blockquote>
-<div><ul>
+<div><dl class="simple">
+<dt>Each tuple consists of <cite>(prob, noise_scp, num_to_mix, db_range)</cite>.</dt><dd><ul class="simple">
 <li><p><cite>prob</cite> (float) is the probability of applying the noise type.</p></li>
 <li><p><cite>noise_scp</cite> (str) is the path to the noise scp file.</p></li>
 <li><dl class="simple">
@@ -288,8 +299,12 @@ Each tuple consists of <cite>(prob, noise_scp, num_to_mix, db_range)</cite>.</p>
 </li>
 <li><p><cite>db_range</cite> (Tuple[float, float]) is the range of noise levels in dB.</p></li>
 </ul>
+</dd>
+</dl>
 </div></blockquote>
-</p></li>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
 <li><p><strong>noise_apply_prob</strong> (<em>float</em>) – Probability of applying noise.</p></li>
 <li><p><strong>short_noise_thres</strong> (<em>float</em>) – Threshold of short noise.</p></li>
 </ul>
