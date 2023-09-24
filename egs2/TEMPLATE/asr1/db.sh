@@ -193,6 +193,12 @@ if [[ `hostname` == libra_tyx_2227 ]]; then
     OPENCPOP=/data10/tyx/dataset/Opencpop/
     CSD=/data10/tyx/dataset/CSD
     NATSUME=/data10/tyx/dataset/Natsume_Singing_DB
+fi
+
+if [[ `hostname` == libra_tyx_2227 ]]; then
+    OPENCPOP=/data10/tyx/dataset/Opencpop/
+    CSD=/data10/tyx/dataset/CSD
+    NATSUME=/data10/tyx/dataset/Natsume_Singing_DB
     M4SINGER=/data10/tyx/dataset/m4singer
     POPCS=/data10/tyx/dataset/popcs
     ONIKU=/data10/tyx/dataset/ONIKU_KURUMI_UTAGOE_DB

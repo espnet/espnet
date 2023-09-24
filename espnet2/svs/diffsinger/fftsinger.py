@@ -46,8 +46,9 @@ class FFTSinger(XiaoiceSing):
     Here we use XiaoiceSing to substitute for Fastspeech2.
     """
 
-    def init(
+    def __init__(
         self,
+        # network structure related
         idim: int,
         odim: int,
         midi_dim: int = 129,
@@ -105,8 +106,16 @@ class FFTSinger(XiaoiceSing):
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
+        loss_function: str = "XiaoiceSing2",  # FastSpeech1, XiaoiceSing2
         loss_type: str = "L1",
+        lambda_mel: float = 1,
+        lambda_dur: float = 0.1,
+        lambda_pitch: float = 0.01,
+        lambda_vuv: float = 0.01,
     ):
+        """ 
+        See more parameters details in XiaoiceSing
+        """
         super().__init__(
             idim,
             odim,
@@ -127,10 +136,15 @@ class FFTSinger(XiaoiceSing):
             reduction_factor=reduction_factor,
             init_type=init_type,
             use_masking=use_masking,
+            loss_function=loss_function,
             loss_type=loss_type,
-            encoder_type=encoder_type,
-            decoder_type=decoder_type,
+            lambda_mel=lambda_mel,
+            lambda_dur=lambda_dur,
+            lambda_pitch=lambda_pitch,
+            lambda_vuv=lambda_vuv,
         )
+        self.postnet = None
+
 
     def forward(
         self,
@@ -144,6 +158,8 @@ class FFTSinger(XiaoiceSing):
         melody_lengths: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
+        slur: torch.LongTensor = None,
+        slur_lengths: torch.Tensor = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         duration_lengths: Optional[Dict[str, torch.Tensor]] = None,
         feats_minmax: Optional[Dict[str, torch.Tensor]] = None,
@@ -154,7 +170,7 @@ class FFTSinger(XiaoiceSing):
         skip_decoder: bool = False,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Get Info that Diffsinger needs.
+        """Get Info that Diffsinger needs. (Modified from XiaoiceSing)
 
         Args:
             text (LongTensor): Batch of padded character ids (B, T_text).
@@ -175,19 +191,19 @@ class FFTSinger(XiaoiceSing):
                 value (LongTensor): Batch of padded duration (B, Tmax).
             duration_length (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of the lengths of padded duration (B, ).
+            slur (LongTensor): Batch of padded slur (B, Tmax).
+            slur_lengths (LongTensor): Batch of the lengths of padded slur (B, ).
             spembs (Optional[Tensor]): Batch of speaker embeddings (B, spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (B, 1).
             lids (Optional[Tensor]): Batch of language IDs (B, 1).
-            skip_decoder (bool): Whether to skip decoder part to provide hidden information
             joint_training (bool): Whether to perform joint training with vocoder.
+            skip_decoder (bool): Whether to skip decoder part
 
         Returns:
-            Tensor: Hidden representation.
-            Tensor: Mel-spectrogram.
+            Tensor: Loss scalar value.
+            Dict: Statistics to be monitored.
+            Tensor: Weight value if not joint training else model outputs.
         """
-
-        # T_feats -> frame
-        # T_text -> phoneme
 
         if joint_training:
             label = label
@@ -211,7 +227,10 @@ class FFTSinger(XiaoiceSing):
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
         label = label[:, : label_lengths.max()]  # for data-parallel
         tempo = tempo[:, : tempo_lengths.max()]  # for data-parallel
-
+        if self.loss_function == "XiaoiceSing2":
+            pitch = pitch[:, : pitch_lengths.max()]
+            log_f0 = torch.clamp(pitch, min=0)
+            vuv = log_f0 != 0
         batch_size = text.size(0)
 
         label_emb = self.phone_encode_layer(label)
@@ -239,16 +258,16 @@ class FFTSinger(XiaoiceSing):
         d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
 
         hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
-
         if skip_decoder:
-            return hs, d_outs
+            return hs, ds
 
         # forward decoder
         h_masks = self._source_mask(feats_lengths)
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs = self.feat_out(zs).view(
-            zs.size(0), -1, self.odim
-        )  # (B, T_feats, odim)
+        before_outs, log_f0_outs, vuv_outs = self.linear_projection(
+            zs
+        ).split_with_sizes([self.odim * self.reduction_factor, 1, 1], dim=2)
+        before_outs = before_outs.view(zs.size(0), -1, self.odim)  # (B. T_feats, odim)
 
         # postnet -> (B, Lmax//r * r, odim)
         if self.postnet is None:
@@ -258,7 +277,76 @@ class FFTSinger(XiaoiceSing):
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
 
-        return hs, after_outs if after_outs is not None else before_outs
+        # modifiy mod part of groundtruth
+        if self.reduction_factor > 1:
+            assert feats_lengths.ge(
+                self.reduction_factor
+            ).all(), "Output length must be greater than or equal to reduction factor."
+            olens = feats_lengths.new(
+                [olen - olen % self.reduction_factor for olen in feats_lengths]
+            )
+            max_olen = max(olens)
+            ys = feats[:, :max_olen]
+            if self.loss_function == "XiaoiceSing2":
+                log_f0 = log_f0[:, :max_olen]
+                vuv = vuv[:, :max_olen]
+        else:
+            ys = feats
+            olens = feats_lengths
+
+        ilens = label_lengths
+        if self.loss_function == "FastSpeech1":
+            mel_loss, duration_loss = self.criterion(
+                after_outs, before_outs, d_outs, ys, ds, ilens, olens
+            )
+        elif self.loss_function == "XiaoiceSing2":
+            mel_loss, duration_loss, pitch_loss, vuv_loss = self.criterion(
+                after_outs=after_outs,
+                before_outs=before_outs,
+                d_outs=d_outs,
+                p_outs=log_f0_outs,
+                v_outs=vuv_outs,
+                ys=ys,
+                ds=ds,
+                ps=log_f0,
+                vs=vuv,
+                ilens=ilens,
+                olens=olens,
+                loss_type=self.loss_type,
+            )
+
+        mel_loss = mel_loss * self.lambda_mel
+        duration_loss = duration_loss * self.lambda_dur
+        loss = mel_loss + duration_loss
+        stats = dict(mel_loss=mel_loss.item(), duration_loss=duration_loss.item())
+        if self.loss_function == "XiaoiceSing2":
+            pitch_loss = pitch_loss * self.lambda_pitch
+            vuv_loss = vuv_loss * self.lambda_vuv
+            loss += pitch_loss + vuv_loss
+            stats["pitch_loss"] = pitch_loss.item()
+            stats["vuv_loss"] = vuv_loss.item()
+        stats["loss"] = loss.item()
+
+        # report extra information
+        if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
+            stats.update(
+                encoder_alpha=self.encoder.embed[-1].alpha.data.item(),
+            )
+        if self.decoder_type == "transformer" and self.use_scaled_pos_enc:
+            stats.update(
+                decoder_alpha=self.decoder.embed[-1].alpha.data.item(),
+            )
+
+        loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
+
+        if joint_training:
+            return loss, stats, after_outs if after_outs is not None else before_outs
+        else:
+            if flag_IsValid is False:
+                return loss, stats, weight
+            else:
+                return loss, stats, weight, after_outs[:, : olens.max()], ys, olens
+
 
     def inference(
         self,
@@ -267,6 +355,7 @@ class FFTSinger(XiaoiceSing):
         label: Optional[Dict[str, torch.Tensor]] = None,
         melody: Optional[Dict[str, torch.Tensor]] = None,
         pitch: Optional[torch.Tensor] = None,
+        slur: Optional[Dict[str, torch.Tensor]] = None,
         duration: Optional[Dict[str, torch.Tensor]] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
@@ -336,8 +425,20 @@ class FFTSinger(XiaoiceSing):
         # forward decoder
         h_masks = None  # self._source_mask(feats_lengths)
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs = self.feat_out(zs).view(
-            zs.size(0), -1, self.odim
-        )  # (B, T_feats, odim)
+        before_outs, _, _ = self.linear_projection(zs).split_with_sizes(
+            [self.odim * self.reduction_factor, 1, 1], dim=2
+        )
+        before_outs = before_outs.view(zs.size(0), -1, self.odim)  # (B. T_feats, odim)
+        # (B, T_feats, odim)
 
-        return hs, before_outs
+        # postnet -> (B, Lmax//r * r, odim)
+        if self.postnet is None:
+            after_outs = before_outs
+        else:
+            after_outs = before_outs + self.postnet(
+                before_outs.transpose(1, 2)
+            ).transpose(1, 2)
+
+        return dict(
+            feat_gen=after_outs[0], prob=None, att_w=None
+        )  # outs, probs, att_ws

@@ -685,11 +685,6 @@ class XiaoiceSing(AbsSVS):
         d_outs = self.duration_predictor.inference(hs, d_masks)  # (B, T_text)
         d_outs_int = torch.floor(d_outs + 0.5).to(dtype=torch.long)  # (B, T_text)
 
-        logging.info(f"ds: {ds}")
-        logging.info(f"ds.shape: {ds.shape}")
-        logging.info(f"d_outs: {d_outs}")
-        logging.info(f"d_outs.shape: {d_outs.shape}")
-
         # use duration model output
         hs = self.length_regulator(hs, d_outs_int)  # (B, T_feats, adim)
 
