@@ -1,7 +1,7 @@
 import pytest
 
-from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
+from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.layers.create_lora_adapter import create_lora_adapter
 
 pytest.importorskip("lora")
