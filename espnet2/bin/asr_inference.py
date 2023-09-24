@@ -365,10 +365,10 @@ class Speech2Text:
             bpemodel = asr_train_args.bpemodel
 
         # compatibility for whisper tokenizer
-        whisper_language = asr_train_args.preprocessor_conf.get(
-            "whisper_language", None
-        )
-        whisper_task = asr_train_args.preprocessor_conf.get("whisper_task", None)
+        preprocessor_conf = getattr(asr_train_args, "preprocessor_conf", {})
+        whisper_language = preprocessor_conf.get("whisper_language", None)
+        whisper_task = preprocessor_conf.get("whisper_task", None)
+
         if token_type is None:
             tokenizer = None
         elif (
