@@ -21,7 +21,7 @@ def whisper_tokenizer(request):
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
 def test_init_en():
-    tokenizer = OpenAIWhisperTokenizer("whisper_en", "en")
+    tokenizer = OpenAIWhisperTokenizer("whisper_en", "en", "transcribe")
     assert tokenizer.tokenizer.tokenizer.vocab_size == 50257
 
 
@@ -29,16 +29,24 @@ def test_init_en():
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
 def test_init_multilingual():
-    tokenizer = OpenAIWhisperTokenizer("whisper_multilingual", "zh")
+    tokenizer = OpenAIWhisperTokenizer("whisper_multilingual", "zh", "transcribe")
     assert tokenizer.tokenizer.tokenizer.vocab_size == 50257
 
 
 @pytest.mark.skipif(
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
-def test_init_invalid():
+def test_init_translation():
+    tokenizer = OpenAIWhisperTokenizer("whisper_multilingual", "zh", "translate")
+    assert tokenizer.tokenizer.tokenizer.vocab_size == 50257
+
+
+@pytest.mark.skipif(
+    not is_python_3_8_plus, reason="whisper not supported on python<3.8"
+)
+def test_init_model_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenizer("whisper_aaa", "en")
+        OpenAIWhisperTokenizer("whisper_aaa", "en", "transcribe")
 
 
 @pytest.mark.skipif(
@@ -46,7 +54,15 @@ def test_init_invalid():
 )
 def test_init_lang_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenizer("whisper_multilingual", "abc")
+        OpenAIWhisperTokenizer("whisper_multilingual", "abc", "transcribe")
+
+
+@pytest.mark.skipif(
+    not is_python_3_8_plus, reason="whisper not supported on python<3.8"
+)
+def test_init_task_invalid():
+    with pytest.raises(ValueError):
+        OpenAIWhisperTokenizer("whisper_multilingual", "abc", "asr")
 
 
 @pytest.mark.skipif(

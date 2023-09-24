@@ -18,8 +18,8 @@ class OpenAIWhisperTokenIDConverter:
     def __init__(
         self,
         model_type: str,
-        language: str,
-        task: str,
+        language: str = "en",
+        task: str = "transcribe",
     ):
         assert check_argument_types()
 

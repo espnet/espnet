@@ -13,9 +13,9 @@ from espnet.utils.cli_utils import get_commandline_args
 def export_vocabulary(
     output: str,
     whisper_model: str,
-    log_level: str,
-    whisper_language: str = None,
-    whisper_task: str = None,
+    whisper_language: str = "en",
+    whisper_task: str = "transcribe",
+    log_level: str = "INFO",
 ):
     try:
         import whisper.tokenizer
@@ -96,13 +96,13 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--whisper_language",
         type=str,
-        default=None,
+        default="en",
         help="Language for Whisper multilingual tokenizer",
     )
     parser.add_argument(
         "--whisper_task",
         type=str,
-        default=None,
+        default="transcribe",
         help="Task for Whisper multilingual tokenizer",
     )
 
