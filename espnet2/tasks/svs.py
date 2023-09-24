@@ -25,6 +25,7 @@ from espnet2.svs.naive_rnn.naive_rnn import NaiveRNN
 from espnet2.svs.naive_rnn.naive_rnn_dp import NaiveRNNDP
 from espnet2.svs.xiaoice.XiaoiceSing import XiaoiceSing
 from espnet2.svs.diffsinger.diffsinger import DiffSinger
+from espnet2.svs.diffsinger.fftsinger import FFTSinger
 
 # TODO(Yuning): Models to be added
 # from espnet2.svs.singing_tacotron2.singing_tacotron2 import singing_tacotron2
@@ -127,6 +128,7 @@ svs_choices = ClassChoices(
         xiaoice=XiaoiceSing,
         # xiaoice_noDP=XiaoiceSing_noDP,
         vits=VITS,
+        fftsinger=FFTSinger,
         diffsinger=DiffSinger,
         joint_score2wav=JointScore2Wav,
         # mlp=MLPSinger,

@@ -80,26 +80,17 @@ class DiffSinger(AbsSVS):
             "postnet_filts": 5,
             "postnet_dropout_rate": 0.5,
             "use_batch_norm": True,
-            "encoder_normalize_before": True,
-            "decoder_normalize_before": True,
-            "encoder_concat_after": False,
-            "decoder_concat_after": False,
-            "feats_minmax": None,
+            "encoder_type": "transformer",
+            "decoder_type": "transformer",
+            "init_type": "pytorch",
+            "reduction_factor": 1,
+            "loss_function": "XiaoiceSing2", 
+            "loss_type": "L2",
+            "lambda_mel": 1,
+            "lambda_dur": 0.1,
+            "lambda_pitch": 0.01,
+            "lambda_vuv": 0.01,
         },
-        
-        aheads: int = 4,
-        elayers: int = 6,
-        eunits: int = 1536,
-        dlayers: int = 6,
-        dunits: int = 1536,
-        postnet_layers: int = 5,
-        postnet_chans: int = 512,
-        postnet_filts: int = 5,
-        postnet_dropout_rate: float = 0.5,
-        use_batch_norm: bool = True,
-        reduction_factor: int = 1,
-        encoder_type: str = "transformer",
-        decoder_type: str = "transformer",
         denoiser_type: str = "wavenet",
         feats_minmax: Optional[Dict[str, torch.Tensor]] = None,
         # diffnet
@@ -132,29 +123,14 @@ class DiffSinger(AbsSVS):
         self.shallow_diffusion = shallow_diffusion
         self.mel_bins = mel_bins
         self.loss_type = loss_type
-
+        
         self.fftsinger = FFTSinger(
             idim,
             odim,
-            midi_dim=midi_dim,
-            tempo_dim=tempo_dim,
-            embed_dim=embed_dim,
-            adim=adim,
-            aheads=aheads,
-            elayers=elayers,
-            eunits=eunits,
-            dlayers=dlayers,
-            dunits=dunits,
-            postnet_layers=postnet_layers,
-            postnet_chans=postnet_chans,
-            use_batch_norm=use_batch_norm,
-            reduction_factor=reduction_factor,
-            init_type=init_type,
+            **fftsinger_params,
             use_masking=use_masking,
-            loss_type=loss_type,
-            encoder_type=encoder_type,
-            decoder_type=decoder_type,
         )
+        
         for k, v in self.fftsinger.named_parameters():
             v.requires_grad = False
 
@@ -226,27 +202,6 @@ class DiffSinger(AbsSVS):
             self.register_buffer(
                 "spec_max", feats_minmax["feats_max"][None, None, :mel_bins]
             )
-
-        # define spk and lang embedding
-        self.spks = None
-        if spks is not None and spks > 1:
-            self.spks = spks
-            self.sid_emb = torch.nn.Embedding(spks, adim)
-        self.langs = None
-        if langs is not None and langs > 1:
-            self.langs = langs
-            self.lid_emb = torch.nn.Embedding(langs, adim)
-
-        # define additional projection for speaker embedding
-        self.spk_embed_dim = None
-        if spk_embed_dim is not None and spk_embed_dim > 0:
-            self.spk_embed_dim = spk_embed_dim
-            self.spk_embed_integration_type = spk_embed_integration_type
-        if self.spk_embed_dim is not None:
-            if self.spk_embed_integration_type == "add":
-                self.projection = torch.nn.Linear(self.spk_embed_dim, adim)
-            else:
-                self.projection = torch.nn.Linear(adim + self.spk_embed_dim, adim)
 
         self.postnet = None
         # # define postnet
