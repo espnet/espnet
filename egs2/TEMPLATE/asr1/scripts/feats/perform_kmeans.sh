@@ -24,7 +24,6 @@ other_sets=         # Name of other sets
 datadir=dump/raw    # Directory for the source speech data used to dump feature and label.
 featdir=dump/hubert_feats   # Directory for the dumped features and labels.
 km_dir=             # Directory for the kmeans models
-km_tag=             # kmeans model tag, defaults to the basename of km_dir
 dictdir=            # Directory for the fairseq dictionary (only used for hubert training)
 alignment_phoneme_dir="data/mfa_phoneme_alignment"  # Directory for alignment labels
 phn_sets="dev-other dev-clean"      # Datasets of alignment used to measure the pseudo-label quality
@@ -173,8 +172,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [
 
 fi
 
+
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [[:space:]]2[[:space:]] ]]; then
-    log "stage 2: Learn K-means with ${feature_type} feature based on scikit-learn/cuml/faiss"
+    log "stage 2: Learn K-means with ${feature_type} feature based on scikit-learn"
 
     _logdir="${km_dir}/logdir"
     mkdir -p ${_logdir}
@@ -280,9 +280,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
     done
 fi
 
-if [ -z "${km_tag}" ]; then
-    km_tag=$(basename ${km_dir})
-fi
+
+km_tag=$(basename ${km_dir})
 
 if [ -n "${alignment_phoneme_dir}" ]; then
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then

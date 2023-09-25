@@ -889,7 +889,6 @@ if ! "${skip_data_prep}"; then
                 --layer "${feature_layer}" \
                 --feature_conf "${kmeans_feature_conf}" \
                 --km_dir "${km_dir}" \
-                --km_tag "${km_tag}.${tgt_lang}" \
                 --portion "${clustering_portion}" \
                 --nclusters "${feature_num_clusters}" \
                 --storage_save_mode ${storage_save_mode} \
