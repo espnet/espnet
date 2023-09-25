@@ -34,7 +34,7 @@ inference_config=conf/decode_s2st.yaml
     --tgt_lang en \
     --feature_layer 6 \
     --s3prl_upstream_name hubert \
-    --clustering_portion 0.5 \
+    --clustering_portion 0.1 \
     --feature_num_clusters 500 \
     --src_token_type "char" \
     --tgt_token_type "char" \

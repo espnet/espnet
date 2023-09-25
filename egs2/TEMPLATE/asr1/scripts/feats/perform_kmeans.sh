@@ -24,6 +24,7 @@ other_sets=         # Name of other sets
 datadir=dump/raw    # Directory for the source speech data used to dump feature and label.
 featdir=dump/hubert_feats   # Directory for the dumped features and labels.
 km_dir=             # Directory for the kmeans models
+km_tag=             # kmeans model tag, defaults to the basename of km_dir
 dictdir=            # Directory for the fairseq dictionary (only used for hubert training)
 alignment_phoneme_dir="data/mfa_phoneme_alignment"  # Directory for alignment labels
 phn_sets="dev-other dev-clean"      # Datasets of alignment used to measure the pseudo-label quality
@@ -279,8 +280,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
     done
 fi
 
-
-km_tag=$(basename ${km_dir})
+if [ -z "${km_tag}" ]; then
+    km_tag=$(basename ${km_dir})
+fi
 
 if [ -n "${alignment_phoneme_dir}" ]; then
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then

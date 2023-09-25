@@ -76,10 +76,10 @@ tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for targe
 tgt_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE for target language.
 tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target language.
 
-# Discrette unit-related
+# Discrete unit-related
 use_discrete_unit=false         # Whether to use discrete unit
 clustering_stage=1              # clustering stage
-clustering_stop_stage=4         # clustering stop stage
+clustering_stop_stage=100         # clustering stop stage
 feature_dir="dump/feats"        # Feature directory for dumped feature
 km_tag=                         # KMeans tagging
 use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
@@ -88,6 +88,8 @@ s3prl_upstream_name=hubert      # S3PRL upstream name for feature extraction
 feature_clustering_tool="sklearn" # Tool for feature clustering (sklearn or faiss or cuml)
 clustering_portion=0.1          # the portion of data used for clustering
 feature_num_clusters=500        # Number of feature clusters
+storage_save_mode=true          # Save storage on SSL feature extraction
+                                # If true, feature extraction and kmeans clustering on the fly
 
 
 # S2ST model related
@@ -217,6 +219,8 @@ Options:
     --s3prl_upstream_name      # S3PRL upstream name for feature extraction (default="${s3prl_upstream_name}")
     --feature_clustering_tool  # Tool to do feature clustering (default="${feature_clustering_tool}")
     --feature_num_clusters     # Number of clusters for feature clustering pooling (default="${feature_num_clusters}").
+    --storage_save_mode=true   # Save storage on SSL feature extraction
+                               # If true, feature extraction and kmeans clustering on the fly
 
 
     # S2ST model related
@@ -855,26 +859,52 @@ if ! "${skip_data_prep}"; then
         if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             log "Stage 5: S2ST discrete unit extraction"
 
+            s3prl_conf="{upstream=${s3prl_upstream_name}}"
+            kmeans_feature_type=s3prl
+            kmeans_feature_conf="{type=${kmeans_feature_type},conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${feature_layer}}}"
+
+            # NOTE(jiyang): Make new data dirs that only contains the target language
+            # We're doing this cuz perform_kmeans.sh doesn't distinguish languages
+            kmeans_data_dir=${feature_dir}/tmp
+            mkdir -p ${kmeans_data_dir}
+            for dset in ${train_set} ${valid_set} ${test_sets}; do
+                _dir=${kmeans_data_dir}/${dset}
+                mkdir -p ${_dir}
+                cp ${data_feats}/${dset}/{feats_type,spk2utt,utt2spk} ${_dir}
+                cp ${data_feats}/${dset}/text.${tgt_lang} ${_dir}/text
+                cp ${data_feats}/${dset}/utt2num_samples.${tgt_lang} ${_dir}/utt2num_samples
+                cp ${data_feats}/${dset}/wav.scp.${tgt_lang} ${_dir}/wav.scp
+            done
+
             scripts/feats/perform_kmeans.sh \
-                --nj ${nj} \
                 --stage ${clustering_stage} \
                 --stop_stage ${clustering_stop_stage} \
-                --scp_suffix ".${tgt_lang}" \
-                --feature_type "s3prl" \
                 --train_set "${train_set}" \
                 --dev_set "${valid_set}" \
-                --test_sets "${test_sets}" \
-                --datadir "${data_feats}" \
-                --feat_dir "${feature_dir}" \
-                --km_dir "${km_dir}" \
-                --km_tag "${km_tag}" \
-                --s3prl_upstream_name "${s3prl_upstream_name}" \
-                --use_gpu "${use_gpu_feat_extract}" \
+                --other_sets "${test_sets}" \
+                --datadir "${kmeans_data_dir}" \
+                --featdir "${feature_dir}" \
+                --audio_format "${audio_format}" \
+                --feature_type ${kmeans_feature_type} \
                 --layer "${feature_layer}" \
+                --feature_conf "${kmeans_feature_conf}" \
+                --km_dir "${km_dir}" \
+                --km_tag "${km_tag}.${tgt_lang}" \
                 --portion "${clustering_portion}" \
-                --clustering_method "${feature_clustering_tool}" \
                 --nclusters "${feature_num_clusters}" \
+                --storage_save_mode ${storage_save_mode} \
+                --use_gpu "${use_gpu_feat_extract}" \
+                --nj 1 \
+                --cpu_cmd "${train_cmd}" \
+                --cuda_cmd "${cuda_cmd}" \
                 --dictdir "${unit_tokendir}"
+
+            # Copy generated pseudo labels to original dump dir
+            for dset in ${train_set} ${valid_set} ${test_sets}; do
+                _out_dir=${feature_dir}/${kmeans_feature_type}/layer${feature_layer}/${dset}
+                cp ${_out_dir}/pseudo_labels_km${feature_num_clusters}.txt \
+                    "${data_feats}/${dset}/text.km.${km_tag}.${tgt_lang}"
+            done
 
             # NOTE(jiatong): use the pseudo label without unique to train the vocoder
             log "Saving training pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}.${tgt_lang}"
