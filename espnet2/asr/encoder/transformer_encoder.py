@@ -79,6 +79,7 @@ class TransformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
+        layer_drop_rate: float = 0.0,
     ):
         assert check_argument_types()
         super().__init__()
@@ -159,6 +160,7 @@ class TransformerEncoder(AbsEncoder):
                 normalize_before,
                 concat_after,
             ),
+            layer_drop_rate,
         )
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
