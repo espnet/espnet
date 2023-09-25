@@ -17,7 +17,7 @@ def test_get_parser():
 
 def test_export_vocabulary_to_stdout():
     try:
-        export_vocabulary("-", "whisper_en", "INFO", "en", "transcribe")
+        export_vocabulary("-", "whisper_en", "en", "transcribe", "INFO")
     except Exception as e:
         pytest.fail(f"exception thrown: {e}")
 
@@ -27,7 +27,7 @@ def test_export_vocabulary_en(tmp_path):
     tknlist_path.parent.mkdir()
     tknlist_path.touch()
 
-    export_vocabulary(str(tknlist_path), "whisper_en", "INFO", "en", "transcribe")
+    export_vocabulary(str(tknlist_path), "whisper_en", "en", "transcribe", "INFO")
 
     with open(tknlist_path) as f:
         lines = f.readlines()
@@ -41,7 +41,7 @@ def test_export_vocabulary_zh(tmp_path):
     tknlist_path.touch()
 
     export_vocabulary(
-        str(tknlist_path), "whisper_multilingual", "INFO", "zh", "transcribe"
+        str(tknlist_path), "whisper_multilingual", "zh", "transcribe", "INFO"
     )
 
     with open(tknlist_path) as f:
@@ -56,7 +56,7 @@ def test_export_vocabulary_translation(tmp_path):
     tknlist_path.touch()
 
     export_vocabulary(
-        str(tknlist_path), "whisper_multilingual", "INFO", "zh", "translate"
+        str(tknlist_path), "whisper_multilingual", "zh", "translate", "INFO"
     )
 
     with open(tknlist_path) as f:
@@ -67,17 +67,17 @@ def test_export_vocabulary_translation(tmp_path):
 
 def test_export_vocabulary_model_invalid():
     with pytest.raises(ValueError):
-        export_vocabulary("-", "whisper_aaa", "INFO", "en", "transcribe")
+        export_vocabulary("-", "whisper_aaa", "en", "transcribe", "INFO")
 
 
 def test_export_vocabulary_lang_invalid():
     with pytest.raises(ValueError):
-        export_vocabulary("-", "whisper_multilingual", "INFO", "abc", "transcribe")
+        export_vocabulary("-", "whisper_multilingual", "abc", "transcribe", "INFO")
 
 
 def test_export_vocabulary_task_invalid():
     with pytest.raises(ValueError):
-        export_vocabulary("-", "whisper_multilingual", "INFO", "zh", "asr")
+        export_vocabulary("-", "whisper_multilingual", "zh", "asr", "INFO")
 
 
 def test_main(tmp_path):
