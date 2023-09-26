@@ -13,6 +13,7 @@ feats_type="raw"
 
 ./spk.sh \
     --spk_config ${spk_config} \
+    --feats_type ${feats_type} \
     --train_set ${train_set} \
     --valid_set ${valid_set} \
     --test_sets ${test_sets} \
