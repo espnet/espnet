@@ -46,7 +46,7 @@ inference_config=conf/decode.yaml # Inference configuration
 local_data_opts= # The options given to local/data.sh
 
 # Speed perturbation related
-speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
+speed_perturb_factors="0.9 1.0 1.1" # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
 
 # Feature extraction related
 feats_type=raw_copy   # Feature type (raw, raw_copy, fbank_pitch, or extracted).
@@ -212,6 +212,10 @@ if [ -n "${speed_perturb_factors}" ]; then
     spk_stats_dir="${spk_stats_dir}_sp"
     spk_exp="${spk_exp}_sp"
 fi
+
+echo ${speed_perturb_factors}
+echo ${spk_stats_dir}
+exit()
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Format wav.scp: data/ -> ${data_feats}"
