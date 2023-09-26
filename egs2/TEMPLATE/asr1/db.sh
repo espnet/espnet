@@ -190,6 +190,7 @@ KIRITAN=
 NAMINE=
 KATHBATH=downloads
 GRAMVAANI=downloads
+WAV2GLOSS=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
