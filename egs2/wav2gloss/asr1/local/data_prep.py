@@ -21,11 +21,11 @@ def get_parser():
     )
     parser.add_argument(
         "--langs",
-        type=str, # comma separated values
+        type=str,  # comma separated values
     )
     parser.add_argument(
         "--tasks",
-        type=str, # comma separated values
+        type=str,  # comma separated values
     )
     return parser
 
@@ -85,7 +85,11 @@ if __name__ == "__main__":
 
     for lang in args.langs:
         for split in ("train", "dev", "test"):
-            metadata = json.load(open(args.source_dir / "data" / lang / f"{split}.json", encoding="utf-8"))
+            metadata = json.load(
+                open(
+                    args.source_dir / "data" / lang / f"{split}.json", encoding="utf-8"
+                )
+            )
             for task in args.tasks:
                 target_dir = build_dir(task, lang, split)
                 write_dir(target_dir, metadata)
@@ -93,21 +97,24 @@ if __name__ == "__main__":
     for split in ("train", "dev"):
         for lang in args.langs:
             target_dir = build_dir("all", lang, split)
-            merge_dir(target_dir, [
-                args.target_dir / f"w2g_{task}_{lang}_{split}"
-                for task in args.tasks
-            ])
+            merge_dir(
+                target_dir,
+                [args.target_dir / f"w2g_{task}_{lang}_{split}" for task in args.tasks],
+            )
         for task in args.tasks:
             target_dir = build_dir(task, "full", split)
-            merge_dir(target_dir, [
+            merge_dir(
+                target_dir,
+                [args.target_dir / f"w2g_{task}_{lang}_{split}" for lang in args.langs],
+            )
+        target_dir = build_dir("all", "full", split)
+        merge_dir(
+            target_dir,
+            [
                 args.target_dir / f"w2g_{task}_{lang}_{split}"
                 for lang in args.langs
-            ])
-        target_dir = build_dir("all", "full", split)
-        merge_dir(target_dir, [
-            args.target_dir / f"w2g_{task}_{lang}_{split}"
-            for lang in args.langs
-            for task in args.tasks
-        ])
+                for task in args.tasks
+            ],
+        )
 
     print("pre-processing finished.")
