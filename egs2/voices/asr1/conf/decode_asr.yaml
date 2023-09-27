@@ -1,0 +1,3 @@
+beam_size: 60
+ctc_weight: 0.3
+lm_weight: 0.6
