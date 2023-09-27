@@ -85,8 +85,10 @@ def build_batch_sampler(
     """Helper function to instantiate BatchSampler.
 
     Args:
-        type: mini-batch type. "unsorted", "sorted", "folded", "numel", or, "length"
-        batch_size: The mini-batch size. Used for "unsorted", "sorted", "folded" mode
+        type: mini-batch type. "unsorted", "sorted", "folded", "numel",
+            "length", or "catbel"
+        batch_size: The mini-batch size. Used for "unsorted", "sorted",
+            "folded", "catbel" mode
         batch_bins: Used for "numel" model
         shape_files: Text files describing the length and dimension
             of each features. e.g. uttA 1330,80

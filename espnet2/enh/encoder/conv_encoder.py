@@ -44,7 +44,9 @@ class ConvEncoder(AbsEncoder):
         feature = torch.nn.functional.relu(feature)
         feature = feature.transpose(1, 2)
 
-        flens = (ilens - self.kernel_size) // self.stride + 1
+        flens = (
+            torch.div(ilens - self.kernel_size, self.stride, rounding_mode="trunc") + 1
+        )
 
         return feature, flens
 

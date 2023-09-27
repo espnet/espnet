@@ -7,7 +7,6 @@ svs: xiaoice                   # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi embedding range (note number + silence)
     tempo_dim: 500               # tempo embedding range
-    embed_dim: 384               # char or phn embedding range
     adim: 384
     aheads: 4
     elayers: 6                   # number of lstm layers in encoder
@@ -22,10 +21,20 @@ svs_conf:                        # keyword arguments for the selected model
     reduction_factor: 1          # reduction factor
     init_type: pytorch           # parameter initialization
     use_masking: true            # whether to apply masking for padded part in loss calculation
-    loss_type: L1
+    loss_function: XiaoiceSing2  # Loss funtions (FastSpeech1 or XiaoiceSing2)
+    loss_type: L1                # mel loss type ("L1", "L2" or "L1+L2")
     encoder_type: "conformer"
     decoder_type: "conformer"
+    lambda_mel: 1                # Loss scaling coefficient for Mel loss.
+    lambda_dur: 0.1              # Loss scaling coefficient for duration loss.
+    lambda_pitch: 0.01           # Loss scaling coefficient for pitch loss.
+    lambda_vuv: 0.01             # Loss scaling coefficient for VUV loss.
 
+# extra module for additional inputs
+pitch_extract: dio           # pitch extractor type
+pitch_extract_conf:
+    use_token_averaged_f0: false
+pitch_normalize: global_mvn  # normalizer for the pitch feature
 
 ##########################################################
 #                  OPTIMIZER SETTING                     #
@@ -51,12 +60,8 @@ grad_clip: 1.0              # gradient clipping norm
 grad_noise: false           # whether to use gradient noise injection
 accum_grad: 1               # gradient accumulation
 
-# batch_bins: 1000000       # batch bins (for feats_type=fbank)
-# batch_bins: 10000000         # batch bins (for feats_type=raw, *= n_shift / n_mels)
-# batch_type: numel           # how to make batch
-
 batch_type: sorted
-batch_size: 14
+batch_size: 16
 
 pitch_aug_min: 0            # Default: 0, [-1,-2,-3]
 pitch_aug_max: 0            # Default: 0, [1,2,3]

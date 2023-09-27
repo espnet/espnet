@@ -1,0 +1,48 @@
+name: ci on debian11
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  unit_test_espnet1_and_espnet2_on_debian11:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    container:
+      image: debian:11
+      env:
+        ESPNET_PYTHON_VERSION: "3.10"
+        TH_VERSION: 1.13.1
+        CHAINER_VERSION: 6.0.0
+        USE_CONDA: true
+        # To avoid UnicodeEncodeError for python<=3.6
+        LC_ALL: en_US.UTF-8
+    steps:
+      - uses: actions/checkout@master
+      - name: check OS
+        run: cat /etc/os-release
+      - name: install dependencies
+        run: |
+          apt-get update -qq
+          # NOTE(kamo): cmake sndfile will be download using anacond:
+          apt-get install -qq -y \
+            build-essential git unzip bzip2 wget curl bc locales make sox \
+            libncurses5-dev automake libtool pkg-config
+          localedef -f UTF-8 -i en_US en_US
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
+      - name: install espnet
+        run: ./ci/install.sh
+      - name: test shell
+        run: |
+          ./ci/test_shell_espnet1.sh
+          ./ci/test_shell_espnet2.sh
+      - name: test python
+        run: |
+          ./ci/test_python_espnet1.sh
+          ./ci/test_python_espnet2.sh

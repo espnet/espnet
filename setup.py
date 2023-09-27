@@ -21,7 +21,7 @@ requirements = {
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
         "kaldiio>=2.18.0",
-        "torch>=1.3.0",
+        "torch>=1.11.0",
         "torch_complex",
         "nltk>=3.4.5",
         # fix CI error due to the use of deprecated aliases
@@ -41,6 +41,8 @@ requirements = {
         "ci_sdr",
         "pytorch_wpe",
         "fast-bss-eval==0.1.3",
+        # SPK
+        "asteroid_filterbanks==0.4.0",
         # UASR
         "editdistance",
         # fix CI error due to the use of deprecated functions
@@ -85,6 +87,7 @@ requirements = {
         "fairscale",
         "transformers",
         "gtn==0.0.0",
+        "evaluate",
     ],
     "setup": [
         "pytest-runner",

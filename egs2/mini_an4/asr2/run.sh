@@ -6,6 +6,8 @@ set -u
 set -o pipefail
 
 ./asr2.sh \
+    --nj 2 \
+    --inference_nj 2 \
     --kmeans_feature "mfcc" \
     --nclusters "10" \
     --kmeans_opts "--nj 1" \
@@ -13,7 +15,8 @@ set -o pipefail
     --src_lang "mfcc_km10" \
     --src_token_type "char" \
     --tgt_token_type "char" \
-    --asr_config conf/train_asr_transformer.yaml \
+    --asr_config conf/train_asr_transformer_debug.yaml \
+    --inference_config conf/decode_asr_debug.yaml \
     --train_set train_nodev \
     --valid_set train_dev \
     --test_sets "train_dev test test_seg" \
