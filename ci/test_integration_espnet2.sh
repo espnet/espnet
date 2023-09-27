@@ -285,6 +285,15 @@ echo "==== [ESPnet2] SPK ==="
 rm -rf exp dump data
 cd "${cwd}"
 
+# [ESPnet2] test s2t1 recipe
+cd ./egs2/mini_an4/s2t1
+gen_dummy_coverage
+echo "==== [ESPnet2] S2T ==="
+./run.sh --ngpu 0 --stage 1 --stop_stage 13 --use_lm false --feats_type raw --audio_format flac.ark --token_type bpe --python "${python}"
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
+cd "${cwd}"
+
 echo "=== report ==="
 coverage combine egs2/*/*/.coverage
 coverage report

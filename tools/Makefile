@@ -93,7 +93,14 @@ packaging.done: activate_python.sh
 	. ./activate_python.sh && python3 -m pip install packaging
 	touch packaging.done
 
-numba.done: activate_python.sh
+numpy.done: activate_python.sh
+ifeq ($(strip $(USE_CONDA)),)
+	. ./activate_python.sh && python3 -m pip install "numpy<1.24"
+else
+	. ./activate_python.sh && conda install -y "numpy<1.24"
+endif
+
+numba.done: numpy.done
 	. ./activate_python.sh && python3 -m pip install -U numba
 	touch numba.done
 
