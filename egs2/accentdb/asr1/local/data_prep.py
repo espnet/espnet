@@ -29,9 +29,11 @@ for r, ds, fs in os.walk(acc_db_root):
 print("total utt: ", len(list_utts))
 
 list_train, list_test = train_test_split(
-    list_utts, test_size=0.2, shuffle=True, random_state=seed)
+    list_utts, test_size=0.2, shuffle=True, random_state=seed
+)
 list_train, list_val = train_test_split(
-    list_train, test_size=0.2, shuffle=True, random_state=seed)
+    list_train, test_size=0.2, shuffle=True, random_state=seed
+)
 print("train, val, test", len(list_train), len(list_val), len(list_test))
 
 dir_dict = {
@@ -42,19 +44,14 @@ dir_dict = {
 
 
 for x in dir_dict:
-    with open(
-        os.path.join("data", x, "wav.scp"), "w"
-    ) as wav_scp_f, open(
+    with open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
         os.path.join("data", x, "utt2spk"), "w"
-    ) as f_utt2spk, open(
-        os.path.join("data", x, "text"), "w"
-    ) as text_f, open(
+    ) as f_utt2spk, open(os.path.join("data", x, "text"), "w") as text_f, open(
         os.path.join("data", x, "words"), "w"
     ) as f_words:
         cls_set = set()
 
         lines = dir_dict[x]
-        print(len(lines))
         for line in lines:
             utt_id = os.path.basename(line)
             speaker = "_".join(utt_id.split("_")[:2])
@@ -68,4 +65,4 @@ for x in dir_dict:
                 cls_set.add(cls)
         cls_set = sorted(list(cls_set))
         for cls in cls_set:
-            f_words.write(cls+"\n")
+            f_words.write(cls + "\n")

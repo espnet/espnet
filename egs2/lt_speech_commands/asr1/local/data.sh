@@ -20,7 +20,6 @@ log "$0 $*"
 . ./db.sh
 . ./path.sh
 . ./cmd.sh
-LT_SPEECH_CMD=/scratch/bbjs/shared/corpora/lt_speech_commands/
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
@@ -28,7 +27,7 @@ if [ $# -ne 0 ]; then
 fi
 
 if [ -z "${LT_SPEECH_CMD}" ]; then
-    log "Fill the value of 'FSC' of db.sh"
+    log "Fill the value of 'LT_SPEECH_CMD' of db.sh"
     exit 1
 fi
 
@@ -42,7 +41,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     cur_dir=$(pwd)
     cd ${LT_SPEECH_CMD}
-    if [ ! ${LT_SPEECH_CMD}/SpeechAdvReprogram ]; then
+    if [ ! -d "${LT_SPEECH_CMD}/SpeechAdvReprogram" ]; then
         git clone https://github.com/dodohow1011/SpeechAdvReprogram.git
     fi
     cd ${cur_dir}
@@ -54,12 +53,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     python3 local/data_prep.py ${LT_SPEECH_CMD}
     for x in test valid train; do
         for f in text wav.scp utt2spk; do
-            echo ${x}, ${f}
-            echo "?"
-            head data/${x}/${f}
             sort data/${x}/${f} -o data/${x}/${f}
-            echo "====="
-            head data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
         utils/validate_data_dir.sh --no-feats data/${x} || exit 1

@@ -1256,8 +1256,8 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     if ${use_prompt}; then
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/prompt,prompt,text "
         _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/prompt,prompt,text "
-        _opts+="--use_lang_prompt "${use_lang_prompt}" "
-        _opts+="--use_nlp_prompt "${use_nlp_prompt}" "
+        _opts+="--use_lang_prompt ${use_lang_prompt} "
+        _opts+="--use_nlp_prompt ${use_nlp_prompt} "
     fi
 
     # shellcheck disable=SC2046,SC2086
@@ -1401,8 +1401,8 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         _opts+="--train_shape_file ${asr_stats_dir}/train/prompt_shape "
         _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/prompt,prompt,text "
         _opts+="--valid_shape_file ${asr_stats_dir}/valid/prompt_shape "
-        _opts+="--use_lang_prompt "${use_lang_prompt}" "
-        _opts+="--use_nlp_prompt "${use_nlp_prompt}" "
+        _opts+="--use_lang_prompt ${use_lang_prompt} "
+        _opts+="--use_nlp_prompt ${use_nlp_prompt} "
     fi
     log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 11 using this script"
     mkdir -p "${asr_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${asr_exp}/run.sh"; chmod +x "${asr_exp}/run.sh"

@@ -109,9 +109,10 @@ class Speech2Text:
         hugging_face_decoder_conf: Dict[str, Any] = {},
         time_sync: bool = False,
         multi_asr: bool = False,
+        lid_prompt: bool = False,
         lang_prompt_token: Optional[str] = None,
         nlp_prompt_token: Optional[str] = None,
-        prompt_token_file: str = "/projects/bbjs/arora1/new_download/espnet/egs2/stop/asr2_combined/add_tokens-Copy1.txt",
+        prompt_token_file: str = "add_tokens-Copy1.txt",
     ):
         assert check_argument_types()
 
@@ -376,9 +377,15 @@ class Speech2Text:
         ):
             if bpemodel is not None:
                 if "whisper" in token_type:
-                    tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel,non_linguistic_symbols=prompt_token_file)
+                    tokenizer = build_tokenizer(
+                        token_type=token_type,
+                        bpemodel=bpemodel,
+                        non_linguistic_symbols=prompt_token_file,
+                    )
                 else:
-                    tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
+                    tokenizer = build_tokenizer(
+                        token_type=token_type, bpemodel=bpemodel
+                    )
             else:
                 tokenizer = None
         else:
@@ -389,22 +396,31 @@ class Speech2Text:
         elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
-            converter = OpenAIWhisperTokenIDConverter(model_type=bpemodel,added_tokens_txt=prompt_token_file)
+            converter = OpenAIWhisperTokenIDConverter(
+                model_type=bpemodel, added_tokens_txt=prompt_token_file
+            )
             if lang_prompt_token is not None:
-                a1=converter.tokenizer.tokenizer.convert_ids_to_tokens(converter.tokenizer.sot_sequence_including_notimestamps)
-                # a1[2]="<|ic|>"
-                a1=a1[:1]+lang_prompt_token.split()+a1[3:]
+                a1 = converter.tokenizer.tokenizer.convert_ids_to_tokens(
+                    converter.tokenizer.sot_sequence_including_notimestamps
+                )
+                a1 = a1[:1] + lang_prompt_token.split() + a1[3:]
                 beam_search.set_hyp_primer(
                     list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
                 )
             elif nlp_prompt_token is not None:
-                a1=converter.tokenizer.tokenizer.convert_ids_to_tokens(converter.tokenizer.sot_sequence_including_notimestamps)
-                # a1[2]="<|ic|>"
-                # import pdb;pdb.set_trace()
+                a1 = converter.tokenizer.tokenizer.convert_ids_to_tokens(
+                    converter.tokenizer.sot_sequence_including_notimestamps
+                )
                 prompt_tokens = tokenizer.text2tokens(nlp_prompt_token)
-                # print(prompt_tokens)
-                # actual_token=[actual_token[0]]+prompt_tokens+actual_token[2:]
-                a1=a1[:2]+prompt_tokens+a1[3:]
+                a1 = a1[:2] + prompt_tokens + a1[3:]
+                beam_search.set_hyp_primer(
+                    list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
+                )
+            elif lid_prompt:
+                a1 = converter.tokenizer.tokenizer.convert_ids_to_tokens(
+                    converter.tokenizer.sot_sequence_including_notimestamps
+                )
+                a1 = a1[:1]
                 beam_search.set_hyp_primer(
                     list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
                 )
@@ -695,7 +711,7 @@ def inference(
     multi_asr: bool,
     lang_prompt_token: Optional[str],
     nlp_prompt_token: Optional[str],
-    prompt_token_file:str,
+    prompt_token_file: str,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -1063,7 +1079,7 @@ def get_parser():
     group.add_argument(
         "--prompt_token_file",
         type=str,
-        default="/projects/bbjs/arora1/new_download/espnet/egs2/stop/asr2_combined/add_tokens-Copy1.txt",
+        default="add_tokens-Copy1.txt",
         help="Prompt token file",
     )
     return parser

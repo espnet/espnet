@@ -4,9 +4,12 @@ from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 import os
+
 dirname = os.path.dirname(__file__)
+
+
 class OpenAIWhisperTokenizer(AbsTokenizer):
-    def __init__(self, model_type: str,added_tokens_txt: str = None):
+    def __init__(self, model_type: str, added_tokens_txt: str = None):
         assert check_argument_types()
 
         try:
@@ -33,8 +36,8 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
                 _added_tokens = []
                 with open(added_tokens_txt) as f:
                     lines = f.readlines()
-                    for l in lines:
-                        _added_tokens.append(l.rstrip())
+                    for line in lines:
+                        _added_tokens.append(line.rstrip())
                 self.tokenizer.tokenizer.add_tokens(_added_tokens)
         else:
             raise ValueError("tokenizer unsupported:", model_type)

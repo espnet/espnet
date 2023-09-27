@@ -2,6 +2,7 @@
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
 ACCENTED_FR=downloads
+ACCENT_DB=
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL2=
@@ -12,7 +13,9 @@ AMERICASNLP22=downloads
 AN4=downloads
 ASVTutorial=espnet_tutorial_asvspoof
 APHASIABANK=
+AR_SC=
 AUDIOSET=
+ASVSpoof_CMD=
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
@@ -21,6 +24,7 @@ DNS2=
 DNS3=
 DNS4=downloads
 DSING=downloads
+ESC50=
 WSJ0=
 WSJ1=
 WSJCAM0=
@@ -54,6 +58,7 @@ TEDXJP=
 LIBRISPEECH=downloads
 LIBRILIGHT_LIMITED=
 FSC=
+FREESOUND=
 MELD=downloads
 SLURP=
 SLURP_S= # Output file path
@@ -72,6 +77,8 @@ LJSPEECH=downloads
 MUSAN=
 MUSDB18=downloads
 MUST_C=downloads
+MUSTARD=
+MUSTARD_PLUS=
 NSC=
 NIT_SONG070=
 JMD=downloads
@@ -84,6 +91,8 @@ KSS=
 QASR_TTS=downloads
 SNIPS= # smart-light-en-closed-field data path
 SPGISPEECH=
+SPEECH_PROMPT_v2=
+STOP=
 SWBD=
 SWBD_NXT=
 THCHS30=downloads
@@ -189,7 +198,7 @@ NATSUME=
 KIRITAN=
 NAMINE=
 GRAMVAANI=downloads
-
+VOXCELEB=
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
     BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/

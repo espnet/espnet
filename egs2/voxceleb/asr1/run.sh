@@ -19,7 +19,6 @@ fi
     --lang en \
     --ngpu 1 \
     --use_lm false \
-    --nbpe 5000 \
     --token_type word\
     --audio_format "flac.ark" \
     --feats_type raw\

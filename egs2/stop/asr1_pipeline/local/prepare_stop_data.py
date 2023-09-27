@@ -34,18 +34,23 @@ for x in dir_dict:
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
-        transcript_df = pd.read_csv(os.path.join(stop_root, dir_dict[x]),sep = '\t')
+        transcript_df = pd.read_csv(os.path.join(stop_root, dir_dict[x]), sep="\t")
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
-            if str(row[-1])=="nan":
+            if str(row[-1]) == "nan":
                 continue
-            words = (
-                row[-3].lower()
-            )
+            words = row[-3].lower()
             # print(words)
-            path_arr = row[0]. split("/")
+            path_arr = row[0].split("/")
             utt_id = path_arr[-2] + "_" + path_arr[-1]
             # print(utt_id + " " + words + "\n")
             text_f.write(utt_id + " " + words + "\n")
-            wav_scp_f.write(utt_id + " " + stop_root + "/" + row[0].replace("_eval_0","_eval").replace("_test_0","_test") + "\n")
-            utt2spk_f.write(utt_id + " "+utt_id+"_1 \n")
+            wav_scp_f.write(
+                utt_id
+                + " "
+                + stop_root
+                + "/"
+                + row[0].replace("_eval_0", "_eval").replace("_test_0", "_test")
+                + "\n"
+            )
+            utt2spk_f.write(utt_id + " " + utt_id + "_1 \n")

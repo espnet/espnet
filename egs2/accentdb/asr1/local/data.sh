@@ -45,12 +45,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     python3 local/data_prep.py ${ACCENT_DB}
     for x in test valid train; do
         for f in text utt2spk words wav.scp; do
-            echo ${x}, ${f}
-            echo "?"
-            head data/${x}/${f}
             sort data/${x}/${f} -o data/${x}/${f}
-            echo "====="
-            head data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
         utils/validate_data_dir.sh --no-feats --no-text data/${x} || exit 1

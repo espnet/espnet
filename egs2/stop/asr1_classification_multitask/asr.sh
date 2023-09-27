@@ -1,1 +1,0 @@
-/projects/bbjs/arora1/new_download/espnet/egs2/TEMPLATE/asr1/asr.sh

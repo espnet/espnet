@@ -76,7 +76,7 @@ def build_tokenizer(
         )
 
     elif "whisper" in token_type:
-        return OpenAIWhisperTokenizer(bpemodel,added_tokens_txt=non_linguistic_symbols)
+        return OpenAIWhisperTokenizer(bpemodel, added_tokens_txt=non_linguistic_symbols)
 
     else:
         raise ValueError(

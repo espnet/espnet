@@ -41,7 +41,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     cur_dir=$(pwd)
     cd ${AR_SC}
-    if [ ! -d ${AR_SC}/SpeechAdvReprogram ]; then
+    if [ ! -d "${AR_SC}/SpeechAdvReprogram" ]; then
         git clone https://github.com/dodohow1011/SpeechAdvReprogram.git
     fi
     cd ${cur_dir}
@@ -51,16 +51,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     mkdir -p data/{train,valid,test}
     python3 local/data_prep.py ${AR_SC}
+    python3 local/create_utt2spk.py
     for x in test valid train; do
-        for f in text wav.scp; do
-            echo ${x}, ${f}
-            echo "?"
-            head data/${x}/${f}
+        for f in text wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
-            echo "====="
-            head data/${x}/${f}
         done
-        #utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
+        utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
         utils/validate_data_dir.sh --no-feats --no-text data/${x} || exit 1
     done
 fi

@@ -8,9 +8,13 @@ from typeguard import check_argument_types
 
 from espnet.utils.cli_utils import get_commandline_args
 import os
+
 dirname = os.path.dirname(__file__)
 
-def export_vocabulary(output: str, whisper_model: str, log_level: str, add_token_file_name: str):
+
+def export_vocabulary(
+    output: str, whisper_model: str, log_level: str, add_token_file_name: str
+):
     try:
         import whisper.tokenizer
     except Exception as e:
@@ -41,12 +45,12 @@ def export_vocabulary(output: str, whisper_model: str, log_level: str, add_token
     elif whisper_model == "whisper_multilingual":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=True, language=None)
         # import pdb;pdb.set_trace()
-        if add_token_file_name!="none":
+        if add_token_file_name != "none":
             _added_tokens = []
             with open(add_token_file_name) as f:
                 lines = f.readlines()
-                for l in lines:
-                    _added_tokens.append(l.rstrip())
+                for line in lines:
+                    _added_tokens.append(line.rstrip())
             tokenizer.tokenizer.add_tokens(_added_tokens)
     else:
         raise ValueError("tokenizer unsupported:", whisper_model)

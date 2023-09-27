@@ -20,39 +20,33 @@ log "$0 $*"
 . ./db.sh
 . ./path.sh
 . ./cmd.sh
-ASVSpoof_CMD=/scratch/bbjs/shared/corpora/esc_master/ESC-50-master
+ESC50=/scratch/bbjs/shared/corpora/esc_master/ESC-50-master
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."
     exit 2
 fi
 
-if [ -z "${ASVSpoof_CMD}" ]; then
-    log "Fill the value of 'ASVSpoof' of db.sh"
+if [ -z "${ESC50}" ]; then
+    log "Fill the value of 'ESC50' of db.sh"
     exit 1
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${ASVSpoof_CMD}/LICENSE" ]; then
-	    echo "stage 1: Download data to ${ASVSpoof_CMD}"
-        # git clone https://github.com/kolesov93/lt_speech_commands.git ${LT_SPEECH_CMD}
+    if [ ! -e "${ESC50}/LICENSE" ]; then
+	    echo "stage 1: Download data to ${ESC50}"
     else
-        log "stage 1: ${ASVSpoof_CMD}/LICENSE is already existing. Skip data downloading"
+        log "stage 1: ${ESC50}/LICENSE is already existing. Skip data downloading"
     fi
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     mkdir -p data/{train,valid,test}
-    python3 local/data_prep.py ${ASVSpoof_CMD}
+    python3 local/data_prep.py ${ESC50}
     for x in test valid train; do
         for f in text wav.scp utt2spk; do
-            echo ${x}, ${f}
-            echo "?"
-            head data/${x}/${f}
             sort data/${x}/${f} -o data/${x}/${f}
-            echo "====="
-            head data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"
         utils/validate_data_dir.sh --no-feats data/${x} || exit 1
