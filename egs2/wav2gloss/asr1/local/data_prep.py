@@ -101,7 +101,9 @@ if __name__ == "__main__":
     args.tasks = args.tasks.split(",")
 
     args.target_dir.mkdir(parents=True)
-    with open(args.target_dir / "non_linguistic_symbols.txt", "w", encoding="utf-8") as f:
+    with open(
+        args.target_dir / "non_linguistic_symbols.txt", "w", encoding="utf-8"
+    ) as f:
         for lang in args.langs:
             f.write(f"<lang|{lang}\n")
         for task in args.tasks:
