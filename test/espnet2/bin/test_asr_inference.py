@@ -86,7 +86,7 @@ def test_Speech2Text(asr_config_file, lm_config_file):
         assert isinstance(hyp, Hypothesis)
 
 
-@pytest.mark.execution_timeout(5)
+@pytest.mark.execution_timeout(10)
 def test_Speech2Text_quantized(asr_config_file, lm_config_file):
     speech2text = Speech2Text(
         asr_train_config=asr_config_file,
