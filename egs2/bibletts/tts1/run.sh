@@ -5,6 +5,8 @@ set -e
 set -u
 set -o pipefail
 
+lang=Yoruba
+
 fs=22050
 n_fft=1024
 n_shift=256
@@ -18,22 +20,22 @@ else
 fi
 
 train_set=tr_no_dev
-valid_set=dev
-test_sets="dev eval1"
+valid_set=dev1
+test_sets="dev1 eval1"
 
 train_config=conf/train.yaml
 inference_config=conf/decode.yaml
 
 # g2p=g2p_en # Include word separator
-g2p=g2p_en_no_space # Include no word separator
+g2p=none # Include no word separator
 
 ./tts.sh \
-    --lang en \
+    --lang ${lang} \
     --feats_type raw \
     --fs "${fs}" \
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
-    --token_type phn \
+    --token_type char \
     --cleaner tacotron \
     --g2p "${g2p}" \
     --train_config "${train_config}" \

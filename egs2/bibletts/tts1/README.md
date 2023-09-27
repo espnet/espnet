@@ -27,6 +27,7 @@ If you want to train from scratch, run:
 $ lang=Yoruba
 $ cd egs2/bibletts/tts1
 $ ./run.sh \
+    --lang ${lang}
     --train_set ${lang}/tr_no_dev \
     --valid_set ${lang}/dev1 \
     --test_sets "${lang}/dev1 ${lang}/eval1" \
