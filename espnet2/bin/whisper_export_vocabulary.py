@@ -68,7 +68,7 @@ def export_vocabulary(
     full_vocab_size = 51865 if whisper_model == "whisper_multilingual" else 51864
 
     for i in range(full_vocab_size - vocab_size):
-        fout.write("()" + "\n")
+        fout.write(f"<|{i*0.02:.2f}|>" + "\n")
 
     if sot_asr:
         full_vocab_size += 1
