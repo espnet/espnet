@@ -193,6 +193,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "stage 3: Combine all training and development sets"
     utils/combine_data.sh data/${train_set} data/${train_set}_distant data/${train_set}_source
     utils/combine_data.sh data/${valid_set} data/${valid_set}_distant data/${valid_set}_source
+    utils/combine_data.sh data/${test_set} data/${test_set}_distant data/${test_set}_source
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
