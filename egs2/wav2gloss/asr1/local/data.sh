@@ -25,6 +25,7 @@ log() {
 set -e
 set -u
 set -o pipefail
+set -x
 
 . ./utils/parse_options.sh
 
@@ -52,14 +53,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Preparing Data for wav2gloss"
 
     python3 local/data_prep.py --source ${WAV2GLOSS} --langs ${langs} --tasks ${tasks}
-    for f in data/*; do
+    for f in data/w2g_*; do
         utils/fix_data_dir.sh ${f}
     done
-
-    for lang in $(dict_keys lang_dict); do
-        lang_name=$(dict_get lang_dict ${lang})
-        sed -r '/^\s*$/d' ${MLS}/mls_lm_${lang_name}/data.txt
-    done | awk '{printf("%.9d %s\n"), NR-1, $0}' > data/all_lm_train.txt
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

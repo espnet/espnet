@@ -37,6 +37,10 @@ def build_dir(task, lang, split):
     return target_dir
 
 
+def _cleaner(s):
+    return "".join([chr(ord(c)) for c in s if ord(c) != 160])
+
+
 def write_dir(target_dir, metadata):
     wavscp = open(target_dir / "wav.scp", "w", encoding="utf-8")
     text = open(target_dir / "text", "w", encoding="utf-8")
@@ -47,14 +51,22 @@ def write_dir(target_dir, metadata):
     count = 0
     spk2utt.write("dummy")
     for fname, meta in metadata.items():
-        _id = f"{lang}_{task}_{meta['id']}"
-        content = f"<lang|{lang}> <task|{task}> {meta[task]}"
+        if len(meta[task]) < 1:
+            continue
+        if " " in fname:
+            continue
 
-        wavscp.write(f"{_id} data/{lang}/audio/{split}/{fname}\n")
+        _id = f"dummy_{lang}_{task}_{meta['id']}"
+        _id = "".join(_id.split())
+
+        content = f"<lang|{lang}> <task|{task}> {meta[task]}"
+        content = _cleaner(content)
+
+        wavscp.write(f"{_id} downloads/data/{lang}/audio/{split}/{fname}\n")
         text.write(f"{_id} {content}\n")
         utt2spk.write(f"{_id} dummy\n")
         spk2utt.write(f" {_id}")
-        lm.write(f"{content}\n")
+        lm.write(f"{count:010} {content}\n")
 
         count += 1
 
@@ -69,10 +81,15 @@ def write_dir(target_dir, metadata):
 def merge_dir(target_dir, source_dirs):
     for fname in ("wav.scp", "text", "utt2spk", "spk2utt", "lm.txt"):
         target = open(target_dir / fname, "w", encoding="utf-8")
+        count = 0
         for d in source_dirs:
             with open(d / fname, encoding="utf-8") as f:
                 for line in f:
-                    target.write(line)
+                    if fname == "lm.txt":
+                        target.write(f"{count:010}{line[10:]}")
+                    else:
+                        target.write(line)
+                    count += 1
     print(f"{target_dir}: merged {source_dirs}")
 
 
@@ -82,6 +99,13 @@ if __name__ == "__main__":
 
     args.langs = args.langs.split(",")
     args.tasks = args.tasks.split(",")
+
+    args.target_dir.mkdir(parents=True)
+    with open(args.target_dir / "non_linguistic_symbols.txt", "w", encoding="utf-8") as f:
+        for lang in args.langs:
+            f.write(f"<lang|{lang}\n")
+        for task in args.tasks:
+            f.write(f"<task|{task}\n")
 
     for lang in args.langs:
         for split in ("train", "dev", "test"):
