@@ -1,0 +1,9 @@
+beam_size: 1
+penalty: 0.0
+maxlenratio: 0.4
+minlenratio: 0.0
+ctc_weight: 0.0
+lm_weight: 0.0
+category_sym: <en>
+task_sym: <asr>
+time_sym: <notimestamps>
