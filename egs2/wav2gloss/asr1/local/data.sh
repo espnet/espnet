@@ -4,7 +4,6 @@
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-source ./utils/simple_dict.sh
 
 # general configuration
 stage=1       # start from 0 if you need to start from data preparation
@@ -25,7 +24,6 @@ log() {
 set -e
 set -u
 set -o pipefail
-set -x
 
 . ./utils/parse_options.sh
 

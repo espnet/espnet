@@ -1,7 +1,7 @@
 batch_type: numel
-batch_bins: 16000000
+batch_bins: 12000000
 accum_grad: 4
-max_epoch: 200
+max_epoch: 10
 patience: none
 # The initialization method for model parameters
 init: xavier_uniform
@@ -9,9 +9,9 @@ best_model_criterion:
 -   - valid
     - acc
     - max
-keep_nbest_models: 10
+keep_nbest_models: 3
 
-encoder: transformer
+encoder: conformer
 encoder_conf:
     output_size: 512
     attention_heads: 8
@@ -19,9 +19,15 @@ encoder_conf:
     num_blocks: 12
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    attention_dropout_rate: 0.0
-    input_layer: conv2d
+    attention_dropout_rate: 0.1
+    input_layer: conv2d2
     normalize_before: true
+    macaron_style: true
+    pos_enc_layer_type: "rel_pos"
+    selfattention_layer_type: "rel_selfattn"
+    activation_type: "swish"
+    use_cnn_module:  true
+    cnn_module_kernel: 31
 
 decoder: transformer
 decoder_conf:
@@ -30,8 +36,8 @@ decoder_conf:
     num_blocks: 6
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
-    self_attention_dropout_rate: 0.0
-    src_attention_dropout_rate: 0.0
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
 
 model_conf:
     ctc_weight: 0.3
@@ -69,7 +75,8 @@ freeze_param: [
 frontend: s3prl
 frontend_conf:
     frontend_conf:
-        upstream: hubert_large_ll60k  # Note: If the upstream is changed, please change the input_size in the preencoder.
+        upstream: wav2vec2_url  # Note: If the upstream is changed, please change the input_size in the preencoder.
+        path_or_url: https://huggingface.co/s3prl/converted_ckpts/resolve/main/xlsr2_300m.pt
     download_dir: ./hub
     multilayer_feature: True
 

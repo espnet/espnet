@@ -15,7 +15,7 @@ lm_train_text=data/w2g_${task}_${lang}_train/lm.txt
 
 # number of test sets = number of tasks x number of langs
 if [ "$lang" == "full" ]; then
-    lang="ady,bej,ers,ixc,kab,kke,kkt,nee,nru,nxq,rmn,say,svm,swb,sxg,tvk"
+    lang="ady,bej,ers,ixc,kab,kke,kkt,nee,rmn,say,svm,swb,sxg,tvk"
 fi
 if [ "$task" == "all" ]; then
     task="transcription,surface,underlying,gloss"
@@ -36,13 +36,16 @@ done
     --nlsyms_txt "data/non_linguistic_symbols.txt" \
     --bpe_nlsyms "data/non_linguistic_symbols.txt" \
     --feats_type raw \
+    --feats_normalize utt_mvn \
     --min_wav_duration 1 \
     --max_wav_duration 20 \
     --audio_format wav \
-    --nbpe 300 \
+    --nbpe 6500 \
     --speed_perturb_factors "0.9 1.0 1.1" \
+    --asr_config conf/tuning/train_xls_r_conformer.yaml \
     --inference_config conf/tuning/decode_transformer.yaml \
-    --lm_config config/tuning/train_lm.yaml \
+    --lm_config conf/tuning/train_lm_4layers.yaml \
     --use_lm true \
+    --ngpu 4 \
     --bpe_train_text "${lm_train_text}" \
     --lm_train_text "${lm_train_text}" "$@"

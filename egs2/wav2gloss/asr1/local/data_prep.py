@@ -32,8 +32,7 @@ def get_parser():
 
 def build_dir(task, lang, split):
     target_dir = args.target_dir / f"w2g_{task}_{lang}_{split}"
-    if not target_dir.exists():
-        target_dir.mkdir(parents=True)
+    target_dir.mkdir(parents=True, exist_ok=True)
     return target_dir
 
 
@@ -100,12 +99,12 @@ if __name__ == "__main__":
     args.langs = args.langs.split(",")
     args.tasks = args.tasks.split(",")
 
-    args.target_dir.mkdir(parents=True)
+    args.target_dir.mkdir(parents=True, exist_ok=True)
     with open(args.target_dir / "non_linguistic_symbols.txt", "w", encoding="utf-8") as f:
         for lang in args.langs:
-            f.write(f"<lang|{lang}\n")
+            f.write(f"<lang|{lang}>\n")
         for task in args.tasks:
-            f.write(f"<task|{task}\n")
+            f.write(f"<task|{task}>\n")
 
     for lang in args.langs:
         for split in ("train", "dev", "test"):
