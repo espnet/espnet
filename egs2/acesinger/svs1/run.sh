@@ -13,7 +13,6 @@ n_fft=2048
 n_shift=512
 win_length=2048
 use_sid=true
-ns=31
 
 
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats

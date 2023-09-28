@@ -80,7 +80,8 @@ def load_and_process_transcriptions(src_data, transcriptions_path, song_folder):
         midi_notes.append((start_time, end_time))
         pitch = note.pitch
         midis.append(pitch)
-    # Step 2: Split the content in each row to name, lyrics, phns, pitch, duration, is_slur by |
+    # Step 2: Split the content in each row to name, lyrics, phns, pitch, duration,
+    # is_slur by |
     parsed_transcriptions = [row.split("|") for row in transcriptions]
 
     # Step 3: Find all the rows' corresponding name in the txt file starting with 2001
@@ -104,7 +105,8 @@ def load_and_process_transcriptions(src_data, transcriptions_path, song_folder):
             duration = duration[1:]
             pitches = pitches[1:]
 
-        # sum duration by the string of durations, first split the string by space, then convert the string to float, then sum the float
+        # sum duration by the string of durations, first split the string by space,
+        # then convert the string to float, then sum the float
         total_durations[name] = (
             sum(float(d) for d in duration) * 1000
         )  # Convert to milliseconds
@@ -161,10 +163,8 @@ def segment_audio(
                         min_distance = distance
                         nearest_note_idx = i
                 if nearest_note_idx is not None:
-                    # print(f"Nearest note for {name} found, midi: {midis[nearest_note_idx]}, midi_mapping: {target_midi}")
                     note_idx = nearest_note_idx
                 else:
-                    # print(f"{name} is out of range, midi_mapping: {target_midi}")
                     note_idx = orginal_note_idx
             previous_note_idx = note_idx
             start_time = midi_notes[note_idx][0]
