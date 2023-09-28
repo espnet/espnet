@@ -1,23 +1,48 @@
 ARG FROM_TAG
-FROM espnet/espnet:${FROM_TAG} as devel
+ARG FROM_STAGE=builder
+FROM espnet/espnet:${FROM_TAG} as builder
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
-ARG CUDA_VER
-ENV CUDA_VER ${CUDA_VER}
-
-ARG TH_VERSION
-ENV TH_VERSION ${TH_VERSION}
 WORKDIR /
 
 ARG ESPNET_LOCATION=https://github.com/espnet/espnet
-
-ENV PATH=/opt/miniconda/bin:${PATH}
 
 # Download ESPnet
 RUN git clone ${ESPNET_LOCATION} && \
     cd espnet && \
     rm -rf docker egs egs2 test utils && \
     rm -rf .git
+
+#### For local docker
+FROM espnet/espnet:${FROM_TAG} as builder_local
+LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
+
+WORKDIR /
+
+# IF using a local ESPnet repository, a temporary file containing the ESPnet git repo is copied over
+ARG ESPNET_ARCHIVE=./espnet-local.tar
+COPY  ${ESPNET_ARCHIVE} /espnet-local.tar
+
+# Download ESPnet
+RUN echo "Getting ESPnet sources from local repository, in temporary file: " ${ESPNET_ARCHIVE}
+RUN mkdir /espnet
+RUN tar xf espnet-local.tar -C /espnet/
+RUN rm espnet-local.tar
+
+RUN cd espnet && \
+    rm -rf docker egs test utils
+
+
+# For devel docker
+FROM ${FROM_STAGE} as devel
+
+ARG CUDA_VER
+ENV CUDA_VER ${CUDA_VER}
+
+ARG TH_VERSION
+ENV TH_VERSION ${TH_VERSION}
+
+ENV PATH=/opt/miniconda/bin:${PATH}
 
 # Install espnet
 WORKDIR /espnet/tools
@@ -44,7 +69,7 @@ RUN if [ -z "${CUDA_VER}" ]; then \
     ln -s /opt/kaldi ./ && \
     rm -f activate_python.sh && touch activate_python.sh && \
     conda install -y conda "python=3.9" && \
-    make KALDI=/opt/kaldi ${MY_OPTS}  && \
+    make KALDI=/opt/kaldi ${MY_OPTS} USE_CONDA=1 && \
     conda clean --all && \
     rm -f *.tar.*  && \
     pip cache purge
@@ -52,28 +77,3 @@ RUN if [ -z "${CUDA_VER}" ]; then \
 RUN rm -rf ../espnet*
 
 WORKDIR /
-
-
-#### For local docker
-FROM devel as espnet_local
-LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
-
-ARG CUDA_VER
-WORKDIR /
-
-# IF using a local ESPNet repository, a temporary file containing the ESPnet git repo is copied over
-ARG ESPNET_ARCHIVE=./espnet-local.tar
-COPY  ${ESPNET_ARCHIVE} /espnet-local.tar
-
-
-# Download ESPnet
-RUN echo "Getting ESPnet sources from local repository, in temporary file: " ${ESPNET_ARCHIVE}
-RUN mkdir /espnet
-RUN tar xf espnet-local.tar -C /espnet/
-RUN rm espnet-local.tar
-
-RUN cd espnet && \
-    rm -rf docker egs test utils
-
-# Install espnet
-WORKDIR /espnet/tools

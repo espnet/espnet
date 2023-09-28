@@ -27,7 +27,11 @@ def test_forward(
     if not use_token_averaged_f0:
         layer(xs, torch.LongTensor([384, 128]))
     else:
-        ds = torch.LongTensor([[3, 3, 1], [3, 0, 0]]) // reduction_factor
+        ds = torch.div(
+            torch.LongTensor([[3, 3, 1], [3, 0, 0]]),
+            reduction_factor,
+            rounding_mode="trunc",
+        )
         dlens = torch.LongTensor([3, 1])
         ps, _ = layer(
             xs, torch.LongTensor([384, 128]), durations=ds, durations_lengths=dlens

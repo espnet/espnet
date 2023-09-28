@@ -20,7 +20,11 @@ def test_forward(use_token_averaged_energy, reduction_factor):
         es, elens = layer(xs, torch.LongTensor([384, 128]))
         assert es.shape[1] == max(elens)
     else:
-        ds = torch.LongTensor([[3, 3, 1], [3, 0, 0]]) // reduction_factor
+        ds = torch.div(
+            torch.LongTensor([[3, 3, 1], [3, 0, 0]]),
+            reduction_factor,
+            rounding_mode="trunc",
+        )
         dlens = torch.LongTensor([3, 1])
         es, _ = layer(
             xs, torch.LongTensor([384, 128]), durations=ds, durations_lengths=dlens
