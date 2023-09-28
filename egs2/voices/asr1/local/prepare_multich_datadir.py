@@ -5,7 +5,9 @@ from pathlib import Path
 def prepare_multich_datadir(datadir_1ch, outdir):
     def parse_noisy_audio_uid(uid):
         # Noisy audio file name format:
-        # Lab41-SRI-VOiCES-< room >-< distractor_noise >-sp< speaker_ID >-ch< chapter_ID >-seg< segment_ID >-mc< mic_ID >-< mic_type >-< mic_location >-dg< degree >.wav
+        # Lab41-SRI-VOiCES-< room >-< distractor_noise >-
+        #   sp< speaker_ID >-ch< chapter_ID >-seg< segment_ID >-
+        #   mc< mic_ID >-< mic_type >-< mic_location >-dg< degree >.wav
         tup = uid.split("-")
         assert len(tup) == 12, tup
         sid = tup[5]
