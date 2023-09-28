@@ -6,6 +6,7 @@ from pathlib import Path
 
 from typeguard import check_argument_types
 
+from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet.utils.cli_utils import get_commandline_args
 import os
 
@@ -13,7 +14,11 @@ dirname = os.path.dirname(__file__)
 
 
 def export_vocabulary(
-    output: str, whisper_model: str, log_level: str, add_token_file_name: str
+    output: str,
+    whisper_model: str,
+    language: str,
+    log_level: str,
+    add_token_file_name: str = "none",
 ):
     try:
         import whisper.tokenizer
@@ -38,12 +43,15 @@ def export_vocabulary(
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
+    language = LANGUAGES_CODE_MAPPING.get(language)
+    if language is None:
+        raise ValueError("language unsupported for Whisper model")
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-    # TODO(Shih-Lun): should support feeding in
-    #                  different languages (default is en)
     elif whisper_model == "whisper_multilingual":
-        tokenizer = whisper.tokenizer.get_tokenizer(multilingual=True, language=None)
+        tokenizer = whisper.tokenizer.get_tokenizer(
+            multilingual=True, language=language
+        )
         # import pdb;pdb.set_trace()
         if add_token_file_name != "none":
             _added_tokens = []
@@ -96,8 +104,14 @@ def get_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--add_token_file_name",
         type=str,
-        default=None,
+        default="none",
         help="File name for added tokens",
+    )
+    parser.add_argument(
+        "--language",
+        type=str,
+        default="en",
+        help="Language of Whisper multilingual tokenizer (default is en)",
     )
 
     return parser

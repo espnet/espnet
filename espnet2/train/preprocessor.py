@@ -354,48 +354,45 @@ class CommonPreprocessor(AbsPreprocessor):
                     "which may cause OOM on the GPU."
                     "Please ensure that the data processing is correct and verify it."
                 )
-            actual_token = (
-                self.token_id_converter.tokenizer.tokenizer.convert_ids_to_tokens(
-                    text_ints
-                )
-            )
-            if self.use_lang_prompt:
-                if data["prompt"] == "<|nospeech|>":
-                    actual_token = [data["prompt"]]
-                else:
-                    actual_token = data["prompt"].split() + actual_token[2:]
-            elif self.use_nlp_prompt:
-                prompt_tokens = self.tokenizer.text2tokens(data["prompt"])
-                actual_token = [actual_token[0]] + prompt_tokens + actual_token[2:]
-            elif "prompt" in data:
-                if len(data["prompt"].split()) > 1:
-                    actual_token = (
-                        [actual_token[0]] + data["prompt"].split() + actual_token[2:]
+            if "prompt" in data:
+                actual_token = (
+                    self.token_id_converter.tokenizer.tokenizer.convert_ids_to_tokens(
+                        text_ints
                     )
-                else:
-                    actual_token[1] = data["prompt"]
-            text_ints = (
-                self.token_id_converter.tokenizer.tokenizer.convert_tokens_to_ids(
-                    actual_token
                 )
-            )
+                if self.use_lang_prompt:
+                    if data["prompt"] == "<|nospeech|>":
+                        actual_token = [data["prompt"]]
+                    else:
+                        actual_token = data["prompt"].split() + actual_token[2:]
+                elif self.use_nlp_prompt:
+                    prompt_tokens = self.tokenizer.text2tokens(data["prompt"])
+                    actual_token = [actual_token[0]] + prompt_tokens + actual_token[2:]
+                else:
+                    if len(data["prompt"].split()) > 1:
+                        actual_token = (
+                            [actual_token[0]]
+                            + data["prompt"].split()
+                            + actual_token[2:]
+                        )
+                    else:
+                        actual_token[1] = data["prompt"]
+                text_ints = (
+                    self.token_id_converter.tokenizer.tokenizer.convert_tokens_to_ids(
+                        actual_token
+                    )
+                )
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
             if "prompt" in data:
                 whisper_tokenizer = self.token_id_converter.tokenizer.tokenizer
                 if len(data["prompt"].split()) > 1:
                     data["prompt"] = np.array(
-                        whisper_tokenizer.convert_tokens_to_ids(
-                            data["prompt"].split()
-                        ),
+                        whisper_tokenizer.convert_tokens_to_ids(data["prompt"].split()),
                         dtype=np.int64,
                     )
                 else:
                     data["prompt"] = np.array(
-                        [
-                            whisper_tokenizer.convert_tokens_to_ids(
-                                data["prompt"]
-                            )
-                        ],
+                        [whisper_tokenizer.convert_tokens_to_ids(data["prompt"])],
                         dtype=np.int64,
                     )
         if self.aux_task_names is not None and self.tokenizer is not None:
