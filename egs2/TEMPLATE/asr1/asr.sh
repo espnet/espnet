@@ -957,7 +957,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             log "Error: not supported SOT training for whisper token_list"
             exit 2
         fi
-        
+    
         _opts=""
         if [ "${token_type}" = "whisper_multilingual" ]; then
             _opts+=" --language ${lang}"
@@ -1251,7 +1251,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
     #       but it's used only for deciding the sample ids.
-    
+
     _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${_scp},speech,${_type} "
     _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${_scp},speech,${_type} "
     # shellcheck disable=SC2068
@@ -1667,6 +1667,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             for ref_txt in ${ref_text_files[@]}; do
                 # Note(simpleoier): to get the suffix after text, e.g. "text_spk1" -> "_spk1"
                 suffix=$(echo ${ref_txt} | sed 's/text//')
+
                 # Tokenize text to ${_tok_type} level
                 paste \
                     <(<"${_data}/${ref_txt}" \

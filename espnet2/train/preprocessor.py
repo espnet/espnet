@@ -1020,14 +1020,14 @@ class EnhPreprocessor(CommonPreprocessor):
                     f"'{speech_volume_normalize}'"
                 )
 
-    if (self.rirs is not None and self.rir_apply_prob > 0) or (
-        self.noises is not None and self.noise_apply_prob > 0
-    ):
-        logging.warning(
-            "Note: Please ensure the sampling rates of all data, including audios "
-            f"and RIRs, are all equal to {self.sample_rate} Hz when applying "
-            "dynamic mixing."
-        )
+        if (self.rirs is not None and self.rir_apply_prob > 0) or (
+            self.noises is not None and self.noise_apply_prob > 0
+        ):
+            logging.warning(
+                "Note: Please ensure the sampling rates of all data, including audios "
+                f"and RIRs, are all equal to {self.sample_rate} Hz when applying "
+                "dynamic mixing."
+            )
 
     def __basic_str__(self):
         msg = f", num_spk={self.num_spk}"
@@ -1247,6 +1247,16 @@ class EnhPreprocessor(CommonPreprocessor):
         if self.force_single_channel:
             self._apply_to_all_signals(data, lambda x: x if x.ndim == 1 else x[:, 0])
 
+        if self.speech_volume_normalize is not None:
+            if self.train:
+                volume_scale = np.random.uniform(self.volume_low, self.volume_high)
+            else:
+                # use a fixed scale to make it deterministic
+                volume_scale = self.volume_low
+            speech_mix = data[self.speech_name]
+            ma = np.max(np.abs(speech_mix))
+            self._apply_to_all_signals(data, lambda x: x * volume_scale / ma)
+
         speech_mix = data[self.speech_name]
         # Reorder channels of the multi-channel signals
         if speech_mix.ndim > 1 and self.channel_reordering and self.train:
@@ -1259,16 +1269,6 @@ class EnhPreprocessor(CommonPreprocessor):
                 if data[k].ndim > 1:
                     assert data[k].shape == speech_mix.shape
                     data[k] = data[k][..., chs]
-
-        if self.speech_volume_normalize is not None:
-            if self.train:
-                volume_scale = np.random.uniform(self.volume_low, self.volume_high)
-            else:
-                # use a fixed scale to make it deterministic
-                volume_scale = self.volume_low
-            speech_mix = data[self.speech_name]
-            ma = np.max(np.abs(speech_mix))
-            self._apply_to_all_signals(data, lambda x: x * volume_scale / ma)
 
         assert check_return_type(data)
         return data
