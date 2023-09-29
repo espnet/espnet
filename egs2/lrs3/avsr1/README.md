@@ -27,4 +27,3 @@
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
 |---|---|---|---|---|---|---|---|---|
 |inference_asr_model_valid.acc.ave/test|1321|14940|98.8|0.8|0.4|0.3|1.5|8.8|
-

@@ -31,7 +31,7 @@ encoder_conf:
 
 decoder: transformer
 decoder_conf:
-    attention_heads: 4 #8 
+    attention_heads: 4 #8
     linear_units: 4096
     num_blocks: 6 #9
     dropout_rate: 0.1
