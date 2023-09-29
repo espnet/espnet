@@ -12,6 +12,7 @@ import copy
 import logging
 import math
 import os
+import random
 from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
@@ -24,8 +25,6 @@ from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
-
-import random
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +57,8 @@ def time_masking(xs_pad):
     for b in range(batch_size):
         width = min(random.randint(5, 20), xs_pad.size(1))
         start = random.randint(0, xs_pad.size(1) - width)
-        xs_pad[b, start:start + width] = 0.
-    return xs_pad 
+        xs_pad[b, start : start + width] = 0.0
+    return xs_pad
 
 
 # avhubert_url(noise_large): 'https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/noise-pretrain/large_vox_iter5.pt'
@@ -213,10 +212,9 @@ class FairseqAVHubertEncoder(AbsEncoder):
     def forward_fusion(
         self,
         xs_pad: Dict[str, torch.Tensor],
-        ) -> torch.Tensor:
-
-        audio_feats = self.encoders.forward_audio(xs_pad['audio'])
-        video_feats = self.encoders.forward_video(xs_pad['video'])
+    ) -> torch.Tensor:
+        audio_feats = self.encoders.forward_audio(xs_pad["audio"])
+        video_feats = self.encoders.forward_video(xs_pad["video"])
         return self.encoders.modality_fusion(audio_feats, video_feats)
 
     def reload_pretrained_parameters(self):
@@ -653,7 +651,7 @@ class AVHubertModel(nn.Module):
         else:
             ValueError(f"unknown fusion method: {self.modality_fuse}")
 
-        features = features.transpose(1, 2) #B, 2F, T -> B, T, 2F
+        features = features.transpose(1, 2)  # B, 2F, T -> B, T, 2F
         features = self.layer_norm(features)
 
         if padding_mask is not None:

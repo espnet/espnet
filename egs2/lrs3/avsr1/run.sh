@@ -24,4 +24,4 @@ av_hubert_model="large" #select large or base
     --use_lm false \
     --asr_config conf/train_avsr_avhubert_${av_hubert_model}.yaml \
     --ngpu 1 \
-    --gpu_inference false 
+    --gpu_inference false
