@@ -1,3 +1,4 @@
+import copy
 from typing import Iterable, List
 
 from typeguard import check_argument_types
@@ -37,6 +38,12 @@ dirname = os.path.dirname(__file__)
 class OpenAIWhisperTokenizer(AbsTokenizer):
     def __init__(
         self, model_type: str, language: str = "en", added_tokens_txt: str = None
+        self,
+        model_type: str,
+        language: str = "en",
+        sot: bool = False,
+        speaker_change_symbol: str = "<sc>",
+        added_tokens_txt: str = None,
     ):
         assert check_argument_types()
 
@@ -72,6 +79,17 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
                 self.tokenizer.tokenizer.add_tokens(_added_tokens)
         else:
             raise ValueError("tokenizer unsupported:", model_type)
+
+        self.tokenizer = copy.deepcopy(self.tokenizer)
+        # Whisper uses discrete tokens (20ms) to encode timestamp
+        timestamps = [f"<|{i*0.02:.2f}|>" for i in range(0, 1501)]
+        sc = [speaker_change_symbol] if sot else []
+        special_tokens = (
+            self.tokenizer.tokenizer.additional_special_tokens + timestamps + sc
+        )
+        self.tokenizer.tokenizer.add_special_tokens(
+            dict(additional_special_tokens=special_tokens)
+        )
 
     def __repr__(self):
         return (

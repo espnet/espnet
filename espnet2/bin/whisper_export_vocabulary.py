@@ -12,13 +12,14 @@ import os
 
 dirname = os.path.dirname(__file__)
 
-
 def export_vocabulary(
     output: str,
     whisper_model: str,
     language: str,
     log_level: str,
     add_token_file_name: str = "none",
+    sot_asr: bool = False,
+    speaker_change_symbol: str = "<sc>",
 ):
     try:
         import whisper.tokenizer
@@ -75,8 +76,13 @@ def export_vocabulary(
     # NOTE (Shih-Lun): extra tokens (for timestamped ASR) not
     #                  stored in the wrapped tokenizer
     full_vocab_size = 51865 if whisper_model == "whisper_multilingual" else 51864
+
     for i in range(full_vocab_size - vocab_size):
-        fout.write("()" + "\n")
+        fout.write(f"<|{i*0.02:.2f}|>" + "\n")
+
+    if sot_asr:
+        full_vocab_size += 1
+        fout.write(speaker_change_symbol + "\n")
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -112,6 +118,22 @@ def get_parser() -> argparse.ArgumentParser:
         type=str,
         default="en",
         help="Language of Whisper multilingual tokenizer (default is en)",
+    )
+
+    parser.add_argument(
+        "--sot_asr",
+        type=bool,
+        default=False,
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
+    )
+
+    parser.add_argument(
+        "--speaker_change_symbol",
+        type=str,
+        default="<sc>",
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
     )
 
     return parser

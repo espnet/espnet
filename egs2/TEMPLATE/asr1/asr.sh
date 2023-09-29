@@ -953,11 +953,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
     elif grep -q "whisper" <<< ${token_type}; then
         log "Stage 5: Generate whisper token_list from ${token_type} tokenizer"
 
-        if ${sot_asr}; then
-            log "Error: not supported SOT training for whisper token_list"
-            exit 2
-        fi
-    
+
         _opts=""
         if [ "${token_type}" = "whisper_multilingual" ]; then
             _opts+=" --language ${lang}"
@@ -969,7 +965,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
         ${python} -m espnet2.bin.whisper_export_vocabulary  \
             --whisper_model "${token_type}" \
             --add_token_file_name "${nlsyms_txt}" \
+            --sot_asr "${sot_asr}" \
             --output "${token_list}" ${_opts}
+
     elif [ "${token_type}" = hugging_face ]; then
         log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
 
