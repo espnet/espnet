@@ -188,7 +188,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         done
 
         paste -d "" \
-            <(<data/${dset}/text_spk1 awk '{$0=$0" <sc>"; print($0)}') \
+            <(<data/${dset}/text_spk1 awk '{$0=$0" <sc> "; print($0)}') \
             <(<data/${dset}/text_spk2 cut -d" " -f 2-) > data/${dset}/text
 
     done

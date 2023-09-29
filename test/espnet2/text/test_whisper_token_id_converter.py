@@ -38,7 +38,7 @@ def test_init_lang_invalid():
 )
 def test_init_en():
     id_converter = OpenAIWhisperTokenIDConverter("whisper_en")
-    assert id_converter.get_num_vocabulary_size() == 50363
+    assert id_converter.get_num_vocabulary_size() == 51864
 
 
 @pytest.mark.skipif(

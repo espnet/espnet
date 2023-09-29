@@ -2,6 +2,7 @@
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
 ACCENTED_FR=downloads
+ACESINGER=downloads
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL2=
@@ -58,6 +59,7 @@ MELD=downloads
 SLURP=
 SLURP_S= # Output file path
 LIBRITRANS_S= # Output file path
+VOICES=downloads
 VOXCELEB=
 MAGICDATA=downloads
 MEDIASPEECH=downloads
