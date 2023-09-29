@@ -89,7 +89,8 @@ class CutoutHole(object):
 
 
 class NormalizeUtterance():
-    """Normalize per raw audio by removing the mean and divided by the standard deviation
+    """Normalize per raw audio by removing the 
+    mean and divided by the standard deviation
     """
 
     def __call__(self, signal):

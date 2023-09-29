@@ -17,8 +17,9 @@ from scipy.io import wavfile
 import torch.nn.functional as F
 from face_alignment import VideoProcess
 
-base_url = 'https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/noise-pretrain/base_vox_iter5.pt'
-large_url = 'https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/noise-pretrain/large_vox_iter5.pt'
+url = 'https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/'
+base_url = url + 'noise-pretrain/base_vox_iter5.pt'
+large_url = url + 'noise-pretrain/large_vox_iter5.pt'
 
 def build_file_list(file_list):
     with open(file_list, 'r') as txt:
