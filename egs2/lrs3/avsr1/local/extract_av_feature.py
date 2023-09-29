@@ -14,6 +14,7 @@ from espnet.utils.cli_writers import file_writer_helper
 from python_speech_features import logfbank
 from scipy.io import wavfile
 import torch.nn.functional as F
+from face_alignment import VideoProcess
 
 def build_file_list(file_list):
     with open(file_list, 'r') as txt:
