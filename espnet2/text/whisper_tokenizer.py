@@ -37,7 +37,6 @@ dirname = os.path.dirname(__file__)
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
     def __init__(
-        self, model_type: str, language: str = "en", added_tokens_txt: str = None
         self,
         model_type: str,
         language: str = "en",
