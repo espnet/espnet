@@ -1,10 +1,10 @@
 import copy
+import os
 from typing import Iterable, List
 
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
-import os
 
 LANGUAGES_CODE_MAPPING = {
     "noinfo": "english",  # default, English

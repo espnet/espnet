@@ -27,7 +27,6 @@ for x in dir_dict:
         os.path.join(ASVSpoof_root, "LA/ASVspoof2019_LA_cm_protocols/", dir_dict[x]),
         "r",
     ) as f_meta:
-
         lines = f_meta.readlines()
         print(len(lines))
         split_path = Path(ASVSpoof_root, f"LA/ASVspoof2019_LA_{mapping[x]}", "flac")

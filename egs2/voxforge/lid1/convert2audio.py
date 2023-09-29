@@ -1,8 +1,9 @@
+import argparse
+import os
+
 import ffmpeg
 import nlp2
 from tqdm import tqdm
-import os
-import argparse
 from tqdm.contrib.concurrent import process_map
 
 

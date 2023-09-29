@@ -4,13 +4,14 @@
 #           2023  Carnegie Mellon University
 # Apache 2.0
 
-import os
-import sys
-import nlp2
-from pathlib import Path
-import pandas as pd
-import pickle
 import json
+import os
+import pickle
+import sys
+from pathlib import Path
+
+import nlp2
+import pandas as pd
 from torch.utils.data import random_split
 
 if len(sys.argv) != 2:

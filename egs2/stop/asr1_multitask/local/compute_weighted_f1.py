@@ -9,8 +9,9 @@ import argparse
 import os
 import re
 import sys
-from sklearn.metrics import f1_score
+
 import pandas as pd
+from sklearn.metrics import f1_score
 
 
 def get_classification_result(hyp_file, ref_file, hyp_write, ref_write):

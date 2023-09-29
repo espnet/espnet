@@ -1648,7 +1648,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
                     log "Non linguistic_symbols used for prompting"
                 else
                     _opts+="--remove_non_linguistic_symbols true "
-                fi                
+                fi
 
             elif [ "${_tok_type}" = "bpe" ]; then
                 _type="ter"

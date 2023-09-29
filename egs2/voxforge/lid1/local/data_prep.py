@@ -6,8 +6,8 @@
 
 
 import os
-import sys
 import random
+import sys
 from pathlib import Path
 
 if len(sys.argv) != 2:

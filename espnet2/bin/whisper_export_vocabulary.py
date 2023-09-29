@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -8,9 +9,9 @@ from typeguard import check_argument_types
 
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet.utils.cli_utils import get_commandline_args
-import os
 
 dirname = os.path.dirname(__file__)
+
 
 def export_vocabulary(
     output: str,

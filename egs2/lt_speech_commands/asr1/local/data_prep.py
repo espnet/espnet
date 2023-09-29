@@ -8,7 +8,6 @@
 import os
 import sys
 
-
 if len(sys.argv) != 2:
     print("Usage: python data_prep.py [lt_speech_cmd_root]")
     sys.exit(1)
@@ -29,7 +28,6 @@ for x in dir_dict:
         ),
         "r",
     ) as f_meta:
-
         lines = f_meta.readlines()
         print(len(lines))
         for line in lines[1:]:

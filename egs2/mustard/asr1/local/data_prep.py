@@ -4,11 +4,12 @@
 #           2023  Carnegie Mellon University
 # Apache 2.0
 
+import json
 import os
+import pickle
 import sys
 from pathlib import Path
-import pickle
-import json
+
 from torch.utils.data import random_split
 
 if len(sys.argv) != 2:

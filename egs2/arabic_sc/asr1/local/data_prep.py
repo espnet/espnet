@@ -8,7 +8,6 @@
 import os
 import sys
 
-
 if len(sys.argv) != 2:
     print("Usage: python data_prep.py [ar_sc]")
     sys.exit(1)

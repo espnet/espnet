@@ -1,9 +1,9 @@
 import copy
+import os
 from typing import Iterable, List, Union
 
 import numpy as np
 from typeguard import check_argument_types
-import os
 
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 

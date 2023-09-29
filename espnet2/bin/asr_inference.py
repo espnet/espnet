@@ -404,7 +404,10 @@ class Speech2Text:
             else:
                 sot_asr = False
             converter = OpenAIWhisperTokenIDConverter(
-                model_type=bpemodel, added_tokens_txt=prompt_token_file, language=tokenizer_language, sot=sot_asr
+                model_type=bpemodel,
+                added_tokens_txt=prompt_token_file,
+                language=tokenizer_language,
+                sot=sot_asr,
             )
             beam_search.set_hyp_primer(
                 list(converter.tokenizer.sot_sequence_including_notimestamps)
