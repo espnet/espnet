@@ -97,6 +97,18 @@ $(if [ "${espnet_task}" == "TTS" ]; then
   organization={IEEE}
 }';
 fi)
+
+$(if [ "${espnet_task}" == "SVS" ]; then
+  echo '
+@inproceedings{shi22d_interspeech,
+  author={Jiatong Shi and Shuai Guo and Tao Qian and Tomoki Hayashi and Yuning Wu and Fangzheng Xu and Xuankai Chang and Huazhe Li and Peter Wu and Shinji Watanabe and Qin Jin},
+  title={{Muskits: an End-to-end Music Processing Toolkit for Singing Voice Synthesis}},
+  year=2022,
+  booktitle={Proc. Interspeech 2022},
+  pages={4277--4281},
+  doi={10.21437/Interspeech.2022-10039}
+}';
+fi)
 \`\`\`
 
 or arXiv:

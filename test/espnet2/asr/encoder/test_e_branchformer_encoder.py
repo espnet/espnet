@@ -7,7 +7,16 @@ from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 
 @pytest.mark.parametrize(
     "input_layer",
-    ["linear", "conv2d", "conv2d1", "conv2d2", "conv2d6", "conv2d8", "embed"],
+    [
+        "linear",
+        "conv1d2",
+        "conv2d",
+        "conv2d1",
+        "conv2d2",
+        "conv2d6",
+        "conv2d8",
+        "embed",
+    ],
 )
 @pytest.mark.parametrize("use_linear_after_conv", [True, False])
 @pytest.mark.parametrize(

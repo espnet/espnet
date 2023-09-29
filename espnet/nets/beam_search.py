@@ -17,6 +17,7 @@ class Hypothesis(NamedTuple):
     score: Union[float, torch.Tensor] = 0
     scores: Dict[str, Union[float, torch.Tensor]] = dict()
     states: Dict[str, Any] = dict()
+    # dec hidden state corresponding to yseq, used for searchable hidden ints
     hs: List[torch.Tensor] = []
 
     def asdict(self) -> dict:
@@ -144,8 +145,8 @@ class BeamSearch(torch.nn.Module):
                 score=0.0,
                 scores=init_scores,
                 states=init_states,
-                yseq=torch.tensor(primer, device=x.device),
                 hs=[],
+                yseq=torch.tensor(primer, device=x.device),
             )
         ]
 
@@ -172,6 +173,9 @@ class BeamSearch(torch.nn.Module):
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -315,6 +319,8 @@ class BeamSearch(torch.nn.Module):
             running_hyps (List[Hypothesis]): Running hypotheses on beam
             x (torch.Tensor): Encoded speech feature (T, D)
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             List[Hypotheses]: Best sorted hypotheses
@@ -390,6 +396,8 @@ class BeamSearch(torch.nn.Module):
                 If minlenratio<0.0, its absolute value is interpreted
                 as a constant min output length.
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             list[Hypothesis]: N-best decoding results
@@ -433,6 +441,7 @@ class BeamSearch(torch.nn.Module):
                 logging.debug(f"remained hypotheses: {len(running_hyps)}")
 
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
             logging.warning(

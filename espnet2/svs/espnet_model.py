@@ -224,6 +224,8 @@ class ESPnetSVSModel(AbsESPnetModel):
                 ]
                 duration_score_syb = duration_syb[:, : duration_score_syb_lengths.max()]
                 slur = slur[:, : slur_lengths.max()]
+            else:
+                raise RuntimeError("Cannot understand score_feats extract type")
 
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(

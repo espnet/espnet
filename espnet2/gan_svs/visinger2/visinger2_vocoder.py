@@ -103,7 +103,7 @@ class VISinger2VocoderGenerator(torch.nn.Module):
                 n_harmonic + 2,
                 k,
                 u,
-                padding=k // 2,
+                padding=k // 2 + k % 2,
             )
             self.downs.append(down)
 
@@ -231,7 +231,7 @@ class VISinger2VocoderGenerator(torch.nn.Module):
 
             cs = 0.0  # initialize
             for j in range(self.num_blocks):
-                cs += self.blocks[i * self.num_blocks + j](c)
+                cs = cs + self.blocks[i * self.num_blocks + j](c)
             c = cs / self.num_blocks
         c = self.output_conv(c)
 
@@ -598,7 +598,7 @@ class BaseFrequenceDiscriminator(torch.nn.Module):
         outs = []
         for f in self.discriminators:
             x = f(x)
-            outs += [x]
+            outs = outs + [x]
 
         return outs
 

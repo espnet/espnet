@@ -62,7 +62,8 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
 
         Args:
             x: Input sequence. (B, H, T_1, 2 * T_1 - 1)
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames to use for current chunk
+                          attention computation.
 
         Returns:
             x: Output sequence. (B, H, T_1, T_2)
@@ -94,7 +95,8 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
             query: Transformed query tensor. (B, H, T_1, d_k)
             key: Transformed key tensor. (B, H, T_2, d_k)
             pos_enc: Positional embedding tensor. (B, 2 * T_1 - 1, size)
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames to use for current chunk
+                          attention computation.
 
         Returns:
             : Attention score. (B, H, T_1, T_2)
@@ -124,7 +126,8 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
             query: Transformed query tensor. (B, H, T_1, d_k)
             key: Transformed key tensor. (B, H, T_2, d_k)
             pos_enc: Positional embedding tensor. (B, 2 * T_1 - 1, size)
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames to use for current chunk
+                          attention computation.
 
         Returns:
             : Attention score. (B, H, T_1, T_2)
@@ -237,7 +240,8 @@ class RelPositionMultiHeadedAttention(torch.nn.Module):
             pos_enc: Positional embedding tensor. (B, 2 * T_1 - 1, size)
             mask: Source mask. (B, T_2)
             chunk_mask: Chunk mask. (T_1, T_1)
-            left_context: Number of frames in left context.
+            left_context: Number of previous frames to use for current chunk
+                          attention computation.
 
         Returns:
             : Output tensor. (B, T_1, H * d_k)

@@ -1,0 +1,45 @@
+# RawNet3 reproduce recipe configuration.
+frontend: raw
+
+encoder: rawnet3
+encoder_conf:
+  model_scale: 4
+  ndim: 16
+
+pooling: chn_attn_stat
+pooling_conf:
+  input_size: 24
+
+projector: rawnet3
+projector_conf:
+  input_size: 48
+  output_size: 8
+
+preprocessor: spk
+preprocessor_conf:
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
+  num_eval: 1
+  rir_scp: dump/raw/rirs.scp
+  rir_apply_prob: 1.0
+  noise_info:
+    - [0.4, "dump/raw/musan_music.scp", [1, 1], [0, 10]]
+    - [0.5, "dump/raw/musan_speech.scp", [1, 2], [10, 20]]
+  noise_apply_prob: 1.0
+  short_noise_thres: 0.5
+
+model_conf:
+  extract_feats_in_collect_stats: false
+
+loss: aamsoftmax
+loss_conf:
+  nout: 8
+  nclasses: 10
+  margin: 0.3
+  scale: 15
+
+optim: adam
+num_att_plot: 0
+
+max_epoch: 1
+num_iters_per_epoch: 1

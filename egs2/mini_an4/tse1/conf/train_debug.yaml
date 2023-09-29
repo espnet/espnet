@@ -1,0 +1,58 @@
+# This is a debug config for CI
+encoder: conv
+encoder_conf:
+    channel: 2
+    kernel_size: 2
+    stride: 8
+
+decoder: conv
+decoder_conf:
+    channel: 2
+    kernel_size: 2
+    stride: 8
+
+extractor: td_speakerbeam
+extractor_conf:
+    layer: 2
+    stack: 2
+    bottleneck_dim: 2
+    hidden_dim: 4
+    skip_dim: 2
+    kernel: 3
+    causal: false
+    norm_type: gLN
+    nonlinear: relu
+    # enrollment related
+    i_adapt_layer: 1
+    adapt_layer_type: mul
+    adapt_enroll_dim: 2
+
+optim: adam
+
+model_conf:
+    num_spk: 1
+    share_encoder: true
+
+train_spk2enroll: null
+enroll_segment: 5000
+load_spk_embedding: false
+load_all_speakers: false
+
+criterions:
+  # The first criterion
+  - name: snr
+    conf:
+      eps: 1.0e-7
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
+
+iterator_type: chunk
+chunk_length: 5000
+# exclude keys "enroll_ref", "enroll_ref1", "enroll_ref2", ...
+# from the length consistency check in ChunkIterFactory
+chunk_excluded_key_prefixes:
+- "enroll_ref"
+
+max_epoch: 1
+num_iters_per_epoch: 1

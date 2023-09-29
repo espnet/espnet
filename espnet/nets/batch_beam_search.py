@@ -150,8 +150,8 @@ class BatchBeamSearch(BeamSearch):
                     score=0.0,
                     scores=init_scores,
                     states=init_states,
-                    yseq=torch.tensor(primer, device=x.device),
                     hs=[],
+                    yseq=torch.tensor(primer, device=x.device),
                 )
             ]
         )
@@ -167,8 +167,9 @@ class BatchBeamSearch(BeamSearch):
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
-            pre_x (torch.Tensor): Encoded speech feature for
-                sequential attention (T, D)
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -207,7 +208,9 @@ class BatchBeamSearch(BeamSearch):
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             ids (torch.Tensor): 2D tensor of new partial tokens to score
             x (torch.Tensor): Corresponding input feature
-            pre_x (torch.Tensor): Encoded speech feature for sequential attention (T, D)
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -252,7 +255,10 @@ class BatchBeamSearch(BeamSearch):
         return new_states
 
     def search(
-        self, running_hyps: BatchHypothesis, x: torch.Tensor, pre_x: torch.Tensor = None
+        self,
+        running_hyps: BatchHypothesis,
+        x: torch.Tensor,
+        pre_x: torch.Tensor = None,
     ) -> BatchHypothesis:
         """Search new tokens for running hypotheses and encoded speech x.
 
@@ -287,6 +293,7 @@ class BatchBeamSearch(BeamSearch):
                 if pre_x is not None
                 else None,
             )
+
         for k in self.full_scorers:
             weighted_scores += self.weights[k] * scores[k]
         # partial scoring

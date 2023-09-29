@@ -678,7 +678,7 @@ class VISingerGenerator(torch.nn.Module):
                 z_start_idxs * self.hop_length,
                 self.segment_size * self.hop_length,
             )
-            wav = self.decoder(z_segments, condition_slice)
+            wav = self.decoder(z_segments, condition_slice, g=g)
         else:
             wav = self.decoder(z_segments, g=g)
 
@@ -701,10 +701,9 @@ class VISingerGenerator(torch.nn.Module):
         output = (wav, z_start_idxs, x_mask, y_mask, common_tuple)
 
         if self.vocoder_generator_type == "visinger2":
-            output += (dsp_slice.sum(1),)
+            output = output + (dsp_slice.sum(1),)
         if self.generator_type == "visinger2":
-            output += (predict_mel,)
-
+            output = output + (predict_mel,)
         return output
 
     def inference(

@@ -188,10 +188,10 @@ Since we use the same language data for fine-tuning, we need to use the token li
 The downloaded pretrained model has `tokens_list` in the config, so first we create `tokens.txt` (`token_list`) from the config.
 
 ```sh
-$ pyscripts/utils/make_token_list_from_config.py downloads/f3698edf589206588f58f5ec837fa516/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_with_accent/config.yaml
+$ pyscripts/utils/make_token_list_from_config.py downloads/f3698edf589206588f58f5ec837fa516/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause/config.yaml
 
 # tokens.txt is created in model directory
-$ ls downloads/f3698edf589206588f58f5ec837fa516/exp/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause
+$ ls downloads/f3698edf589206588f58f5ec837fa516/exp/tts_train_vits_raw_phn_jaconv_pyopenjtalk_accent_with_pause
 config.yaml  images  train.total_count.ave_10best.pth
 ```
 

@@ -4,32 +4,41 @@ This is a template of SVS recipe for ESPnet2.
 
 ## Table of Contents
 
-* [ESPnet2 SVS Recipe TEMPLATE](#espnet2-svs-recipe-template)
-  * [Table of Contents](#table-of-contents)
-  * [Recipe flow](#recipe-flow)
-    * [1\. Database-dependent data preparation](#1-database\-dependent-data-preparation)
-    * [2\. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
-    * [3\. Filtering](#3-filtering)
-    * [4\. Token list generation](#4-token-list-generation)
-    * [5\. SVS statistics collection](#5-svs-statistics-collection)
-    * [6\. SVS training](#6-svs-training)
-    * [7\. SVS inference](#7-svs-inference)
-    * [8\. Objective evaluation](#8-objective-evaluation)
-    * [9\. Model packing](#9-model-packing)
-  * [How to run](#how-to-run)
-    * [Naive_RNN training](#naive_rnn-training)
-    * [XiaoiceSing training](#xiaoicesing-training)
-    * [Diffsinger training](#diffsinger-training)
-    * [VISinger training](#visinger-training)
-    * [Multi speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
-    * [Multi language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
-    * [Vocoder training](#vocoder-training)
-    * [Evaluation](#evaluation)
-  * [About data directory](#about-data-directory)
-  * [Score preparation](#score-preparation)
-  * [Supported text frontend](#supported-text-frontend)
-  * [Supported text cleaner](#supported-text-cleaner)
-  * [Supported Models](#supported-models)
+- [ESPnet2 SVS Recipe TEMPLATE](#espnet2-svs-recipe-template)
+  - [Table of Contents](#table-of-contents)
+  - [Recipe flow](#recipe-flow)
+    - [1. Database-dependent data preparation](#1-database-dependent-data-preparation)
+    - [2. Wav dump / Embedding preparation](#2-wav-dump--embedding-preparation)
+    - [3. Filtering](#3-filtering)
+    - [4. Token list generation](#4-token-list-generation)
+    - [5. SVS statistics collection](#5-svs-statistics-collection)
+    - [6. SVS training](#6-svs-training)
+    - [7. SVS inference](#7-svs-inference)
+    - [8. Objective evaluation](#8-objective-evaluation)
+    - [9. Model packing](#9-model-packing)
+  - [How to run](#how-to-run)
+    - [Naive\_RNN training](#naive_rnn-training)
+    - [Naive\_RNN\_DP training](#naive_rnn_dp-training)
+    - [XiaoiceSing training](#xiaoicesing-training)
+    - [Diffsinger training](#diffsinger-training)
+    - [VISinger (1+2) training](#visinger-12-training)
+    - [Singing Tacotron training](#singing-tacotron-training)
+    - [Multi-speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
+    - [Multi-language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
+    - [Vocoder training](#vocoder-training)
+    - [Evaluation](#evaluation)
+  - [About data directory](#about-data-directory)
+  - [Score preparation](#score-preparation)
+      - [Case 1: phoneme annotation and standardized score](#case-1-phoneme-annotation-and-standardized-score)
+      - [Case 2: phoneme annotation only](#case-2-phoneme-annotation-only)
+    - [Problems you might meet](#problems-you-might-meet)
+      - [1. Wrong segmentation point](#1-wrong-segmentation-point)
+      - [2. Wrong lyric / midi annotation](#2-wrong-lyric--midi-annotation)
+      - [3. Different lyric-phoneme pairs against the given g2p](#3-different-lyric-phoneme-pairs-against-the-given-g2p)
+      - [4. Special marks in MusicXML](#4-special-marks-in-musicxml)
+  - [Supported text cleaner](#supported-text-cleaner)
+  - [Supported text frontend](#supported-text-frontend)
+  - [Supported Models](#supported-models)
 
 
 ## Recipe flow
@@ -104,7 +113,7 @@ You can change the decoding setting via `--inference_config` and `--inference_ar
 Compatible vocoder can be trained and loaded.
 
 See also:
-- [Vocoder trainging](#vocoder-training)
+- [Vocoder training](#vocoder-training)
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 
 ### 8. Objective evaluation
@@ -196,14 +205,14 @@ Then, you can get the following directories in the recipe directory.
 
 In decoding, you can see [vocoder training](#vocoder-training) to set vocoder.
 
-For the first time, we recommend performing each stage step-by-step via `--stage` and `--stop-stage` options.
+For the first time, we recommend performing each stage step-by-step via `--stage` and `--stop_stage` options.
 ```sh
-$ ./run.sh --stage 1 --stop-stage 1
-$ ./run.sh --stage 2 --stop-stage 2
+$ ./run.sh --stage 1 --stop_stage 1
+$ ./run.sh --stage 2 --stop_stage 2
 ...
-$ ./run.sh --stage 7 --stop-stage 7
+$ ./run.sh --stage 7 --stop_stage 7
 ```
-This might helps you to understand each stage's processing and directory structure.
+This might help you understand each stage's processing and directory structure.
 
 ### Naive_RNN training
 First, complete the data preparation:
@@ -232,7 +241,7 @@ Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" 
 ```sh
 $ ./run.sh --stage 5 \
     --train_config conf/tuning/train_naive_rnn.yaml \
-    --score_feats_extract syllabel_score_feats \
+    --score_feats_extract syllable_score_feats \
     --pitch_extract dio \
     --vocoder_file ${your vocoder path} \
 ```
@@ -244,7 +253,7 @@ $ ./run.sh \
     --stage 1 \
     --stop_stage 4 \
 ```
-Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllabel level* in XiaoiceSing) and modify "vocoder_file" with your own vocoder path.
+Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllable level* in XiaoiceSing) and modify "vocoder_file" with your own vocoder path.
 ```sh
 $ ./run.sh --stage 5 \
     --train_config conf/tuning/train_naive_rnn.yaml \
@@ -277,23 +286,23 @@ $   ./run.sh \
     --pretrained_model ${your pretrained model path} \
     --use_feats_minmax true \
 
-# for exmaple
+# for example
 $  --pretrained_model /exp/xiaoice-2-24-250k/500epoch.pth:svs:svs.fftsinger \
 ```
 
 
 ### VISinger (1+2) training
-The VISinger / VISinger 2 configs are hard coded for 22.05 khz or 44.1 khz and use different feature extraction method. (Note that you can use any feature extraction method but the default method is `fbank`.) If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
+The VISinger / VISinger 2 configs are hard coded for 22.05 khz or 44.1 khz and use different feature extraction method. (Note that you can use any feature extraction method but the default method is `fbank`.) If you want to use it with 24 khz or 16 khz dataset, please be careful about these points.
 
 First, check "fs" (Sampling Rate) and complete the data preparation:
 ```sh
 $ ./run.sh \
     --stage 1 \
     --stop_stage 4 \
-    --fs 44100 \
+    --fs 44100
 ```
 
-Second, check "train_config" (default `conf/train.yaml`, you can also use `--train_config ./conf/tuning/train_visinger2.yaml` to train VISinger 2), "score_feats_extract" (*syllabel level* in VISinger), "svs_task" (*gan_svs* in VISinger).
+Second, check "train_config" (default `conf/train.yaml`, you can also use `--train_config ./conf/tuning/train_visinger2.yaml` to train VISinger 2), "score_feats_extract" (*syllable level* in VISinger), "svs_task" (*gan_svs* in VISinger).
 
 ```sh
 
@@ -316,12 +325,27 @@ Second, check "train_config" (default `conf/train.yaml`, you can also use `--tra
 
 ```
 
+### Singing Tacotron training
+First, complete the data preparation:
+```sh
+$ ./run.sh \
+    --stage 1 \
+    --stop_stage 4 \
+```
+Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllable level* in Singing Tacotron) and modify "vocoder_file" with your own vocoder path.
+```sh
+$ ./run.sh --stage 5 \
+    --train_config conf/tuning/train_singing_tacotron.yaml \
+    --inference_config conf/tuning/decode_singing_tacotron.yaml \
+    --score_feats_extract syllable_score_feats \
+    --vocoder_file ${your vocoder path} \
+```
 
 ### Multi-speaker model with speaker ID embedding training
 
 First, you need to run from the stage 2 and 3 with `--use_sid true` to extract speaker ID.
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_sid true
+$ ./run.sh --stage 2 --stop_stage 3 --use_sid true
 ```
 You can find the speaker ID file in `dump/raw/*/utt2sid`.
 Note that you need to correctly create `utt2spk` in data prep stage to generate `utt2sid`.
@@ -340,7 +364,7 @@ $ ./run.sh --stage 6 --use_sid true --train_config /path/to/your_multi_spk_confi
 
 First, you need to run from the stage 2 and 3 with `--use_lid true` to extract speaker ID.
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_lid true
+$ ./run.sh --stage 2 --stop_stage 3 --use_lid true
 ```
 You can find the speaker ID file in `dump/raw/*/utt2lid`.
 **Note that you need to additionally create `utt2lang` file in stage 1 to generate `utt2lid`.**
@@ -358,7 +382,7 @@ $ ./run.sh --stage 6 --use_lid true --train_config /path/to/your_multi_lang_conf
 Of course you can further combine with speaker ID embedding.
 If you want to use both sid and lid, the process should be like this:
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_lid true --use_sid true
+$ ./run.sh --stage 2 --stop_stage 3 --use_lid true --use_sid true
 ```
 Make your config.
 ```yaml
@@ -400,6 +424,7 @@ We provide four objective evaluation metrics:
 - Logarithmic rooted mean square error of the fundamental frequency (log-F0 RMSE)
 - Semitone accuracy (Semitone ACC)
 - Voiced / unvoiced error rate (VUV_E)
+- Word/character error rate (WER/CER, optional executated by users)
 
 For MCD, we apply dynamic time-warping (DTW) to match the length difference between ground-truth singing and generated singing.
 
@@ -412,6 +437,33 @@ cd egs2/<recipe_name>/svs1
 ./pyscripts/utils/evaluate_*.py \
     exp/<model_dir_name>/<decode_dir_name>/eval/wav/gen_wavdir_or_wavscp.scp \
     dump/raw/eval/gt_wavdir_or_wavscp.scp
+
+# Evaluate CER
+./scripts/utils/evaluate_asr.sh \
+    --model_tag <asr_model_tag> \
+    --nj 1 \
+    --inference_args "--beam_size 10 --ctc_weight 0.4 --lm_weight 0.0" \
+    --gt_text "dump/raw/eval1/text" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+# Since ASR model does not use punctuation, it is better to remove punctuations if it contains
+./scripts/utils/remove_punctuation.pl < dump/raw/eval1/text > dump/raw/eval1/text.no_punc
+./scripts/utils/evaluate_asr.sh \
+    --model_tag <asr_model_tag> \
+    --nj 1 \
+    --inference_args "--beam_size 10 --ctc_weight 0.4 --lm_weight 0.0" \
+    --gt_text "dump/raw/eval1/text.no_punc" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
+
+# You can also use openai whisper for evaluation
+./scripts/utils/evaluate_asr.sh \
+    --whisper_tag base \
+    --nj 1 \
+    --gt_text "dump/raw/eval1/text" \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    exp/<model_dir_name>/<decode_dir_name>/asr_results
 ```
 
 While these objective metrics can estimate the quality of synthesized singing, it is still difficult to fully determine human perceptual quality from these values, especially with high-fidelity generated singing.
@@ -555,7 +607,7 @@ utils/validate_data_dir.sh --no-feats data/test
 
 ## Score preparation
 
-To prepara a new recipe, we first split songs into segments via `--silence` option if no official segmentation provided.
+To prepare a new recipe, we first split songs into segments via `--silence` option if no official segmentation provided.
 
 Then, we transfer the raw data into `score.json`, where situations can be categorized into two cases depending on the annotation:
 
@@ -564,6 +616,8 @@ Then, we transfer the raw data into `score.json`, where situations can be catego
 - If the phonemes and notes are aligned in time domain, convert the raw data directly. (eg. [Opencpop](https://github.com/espnet/espnet/tree/master/egs2/opencpop/svs1))
 
 - If the phoneme annotation are misaligned with notes in time domain, align phonemes (from `label`) and note-lyric pairs (from `musicXML`) through g2p. (eg. [Ofuton](https://github.com/espnet/espnet/tree/master/egs2/ofuton_p_utagoe_db/svs1))
+
+- We also offer some automatic fixes for missing silences in the dataset. During the stage1, when you encounter errors such as "Lyrics are longer than phones" or "Phones are longer than lyrics", the scripts will auto-generated the fixing code. You may need to put the code into the `get_error_dict` method in `egs2/[dataset name]/svs1/local/prep_segments.py`. Noted that depending on the suggested input_type, you may want to copy it into either the `hts` or `xml`'s error_dict. (For more information, please check [namine](https://github.com/espnet/espnet/tree/master/egs2/namine_ritsu_utagoe_db/svs1) or [natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1)
 
 Specially, the note-lyric pairs can be rebuilt through other melody files, like `MIDI`, if there's something wrong with the note duration. (eg. [Natsume](https://github.com/espnet/espnet/tree/master/egs2/natsume/svs1))
 
@@ -608,6 +662,12 @@ Below are some common errors to watch out for:
     > pypinyin.pinyin("情意深重爱恨两重", style=Style.NORMAL)
     [['qing'], ['shen'], ['yi'], ['zhong'], ['ai'], ['hen'], ['liang'], ['zhong']]
     ```
+#### 4. Special marks in MusicXML
+* Breath:
+  * `breath mark` in note.articulations: usually appears at the end of the sentence. In some situations, `breath mark` doesn't take effect in its belonging note. Please handle them under local/.
+  * `br` in note.lyric. (solved in XMLReader)
+  * Special note with a fixed special pitch. (solved in XMLReader)
+* Staccato: In some situations, there is a break when `staccato` occurs in note.articulations. We let users to decide whether to perform segmentation under local/.
 
 ## Supported text cleaner
 
@@ -638,5 +698,6 @@ You can train the following models by changing `*.yaml` config for `--train_conf
 - [XiaoiceSing](https://arxiv.org/abs/2006.06261)
 - [VISinger](https://arxiv.org/abs/2110.08813)
 - [VISinger 2](https://arxiv.org/abs/2211.02903)
+- [Singing Tacotron](https://arxiv.org/pdf/2202.07907v1.pdf)
 
 You can find example configs of the above models in [`egs/ofuton_p_utagoe_db/svs1/conf/tuning`](../../ofuton_p_utagoe_db/svs1/conf/tuning).
