@@ -19,9 +19,9 @@ from scipy.io import wavfile
 from espnet2.asr.encoder.avhubert_encoder import FairseqAVHubertEncoder
 from espnet.utils.cli_writers import file_writer_helper
 
-url = 'https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/'
-base_url = url + 'noise-pretrain/base_vox_iter5.pt'
-large_url = url + 'noise-pretrain/large_vox_iter5.pt'
+url = "https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/"
+base_url = url + "noise-pretrain/base_vox_iter5.pt"
+large_url = url + "noise-pretrain/large_vox_iter5.pt"
 
 
 def build_file_list(file_list):

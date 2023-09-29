@@ -96,8 +96,8 @@ class CutoutHole(object):
         return img
 
 
-class NormalizeUtterance():
-    """Normalize per raw audio by removing the 
+class NormalizeUtterance:
+    """Normalize per raw audio by removing the
     mean and divided by the standard deviation
     """
 

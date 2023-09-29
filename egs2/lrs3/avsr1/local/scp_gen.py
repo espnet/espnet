@@ -42,37 +42,42 @@ def main():
         for line in train_file_lists + pretrain_file_lists:
             txt.write(
                 f'{"_".join(line.split(os.sep))} \
-                    {os.path.join(args.data_dir, line)}.mp4\n')
-            
-    val_out_dir = f'data/val/video.scp'
+                    {os.path.join(args.data_dir, line)}.mp4\n'
+            )
+
+    val_out_dir = f"data/val/video.scp"
     os.makedirs(os.path.dirname(val_out_dir), exist_ok=True)
     with open(val_out_dir, "w") as txt:
         for line in val_file_lists:
             txt.write(
                 f'{"_".join(line.split(os.sep))} \
-                    {os.path.join(args.data_dir, line)}.mp4\n')
-            
-    test_out_dir = f'data/test/video.scp'
+                    {os.path.join(args.data_dir, line)}.mp4\n'
+            )
+
+    test_out_dir = f"data/test/video.scp"
     os.makedirs(os.path.dirname(test_out_dir), exist_ok=True)
     with open(test_out_dir, "w") as txt:
         for line in test_file_lists:
             txt.write(
                 f'{"_".join(line.split(os.sep))} \
-                    {os.path.join(args.data_dir, line)}.mp4\n')
+                    {os.path.join(args.data_dir, line)}.mp4\n'
+            )
 
     with open(f"data/val/text", "w") as txtw:
         for line in val_file_lists:
             with open(os.path.join(args.data_dir, line) + ".txt", "r") as txt:
                 txtw.write(
                     f'{"_".join(line.split(os.sep))}\
-                        \t{txt.readlines()[0][7:].strip()}\n')
+                        \t{txt.readlines()[0][7:].strip()}\n'
+                )
 
     with open(f"data/test/text", "w") as txtw:
         for line in test_file_lists:
             with open(os.path.join(args.data_dir, line) + ".txt", "r") as txt:
                 txtw.write(
                     f'{"_".join(line.split(os.sep))}\
-                        \t{txt.readlines()[0][7:].strip()}\n')
+                        \t{txt.readlines()[0][7:].strip()}\n'
+                )
 
 
 def get_parser():
