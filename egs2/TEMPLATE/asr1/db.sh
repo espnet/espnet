@@ -2,6 +2,7 @@
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
 ACCENTED_FR=downloads
+ACESINGER=downloads
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL2=
