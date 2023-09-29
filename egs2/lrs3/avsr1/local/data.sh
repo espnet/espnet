@@ -15,7 +15,7 @@ log() {
 . ./cmd.sh
 
 cmd=run.pl
-ngpu=4 # number of GPUs to extract features
+ngpu=1 # number of GPUs to extract features
 stage=1
 stop_stage=4
 model_conf=$1
