@@ -5,6 +5,8 @@
 #
 # Usage: data_prep.pl /export/data/cv_corpus_v1/cv-valid-train valid_train
 
+use open ':std', ':encoding(UTF-8)'; # Use UTF-8 encoding for all standard streams
+
 if (@ARGV != 3) {
   print STDERR "Usage: $0 <path-to-commonvoice-corpus> <dataset> <valid-train|valid-dev|valid-test>\n";
   print STDERR "e.g. $0 /export/data/cv_corpus_v1 cv-valid-train valid-train\n";
@@ -48,7 +50,7 @@ while(<CSV>) {
   $uttId =~ tr/\//-/;
   # speaker information should be suffix of the utterance Id
   $uttId = "$spkr-$uttId";
-  $text =~ tr/a-z/A-Z/;
+  $text = uc($text);
   if (index($text, "{") != -1 and index($text, "}" != -1)) {
     next;
   }
