@@ -573,6 +573,8 @@ class CommonPreprocessor_multi(CommonPreprocessor):
     def __init__(
         self,
         train: bool,
+        use_lang_prompt: bool = False,
+        use_nlp_prompt: bool = False,
         token_type: str = None,
         token_list: Union[Path, str, Iterable[str]] = None,
         bpemodel: Union[Path, str, Iterable[str]] = None,
