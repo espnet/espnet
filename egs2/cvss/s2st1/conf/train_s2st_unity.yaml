@@ -108,7 +108,7 @@ scheduler_conf:
 
 # Batching
 batch_type: sorted
-batch_size: 100
+batch_size: 110
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
 
