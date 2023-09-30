@@ -39,6 +39,7 @@ inference_config=conf/decode_s2st.yaml
     --feature_layer ${feature_layer} \
     --s3prl_upstream_name hubert \
     --storage_save_mode false \
+    --clustering_num_threads 60 \
     --clustering_portion ${clustering_portion} \
     --feature_num_clusters ${clustering_num_clusters} \
     --src_token_type "char" \

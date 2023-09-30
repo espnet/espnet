@@ -79,7 +79,8 @@ tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target langua
 # Discrete unit-related
 use_discrete_unit=false         # Whether to use discrete unit
 clustering_stage=1              # clustering stage
-clustering_stop_stage=100         # clustering stop stage
+clustering_stop_stage=100       # clustering stop stage
+clustering_num_threads=20       # Number of threads used for kmeans clustering
 feature_dir="dump/feats"        # Feature directory for dumped feature
 km_tag=                         # KMeans tagging
 use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
@@ -894,6 +895,7 @@ if ! "${skip_data_prep}"; then
                 --storage_save_mode ${storage_save_mode} \
                 --use_gpu "${use_gpu_feat_extract}" \
                 --nj 1 \
+                --num_threads ${clustering_num_threads} \
                 --cpu_cmd "${train_cmd}" \
                 --cuda_cmd "${cuda_cmd}" \
                 --dictdir "${unit_tokendir}"
