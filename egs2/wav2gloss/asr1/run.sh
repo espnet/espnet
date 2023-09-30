@@ -35,6 +35,7 @@ done
     --test_sets "${test_sets}" \
     --nlsyms_txt "data/non_linguistic_symbols.txt" \
     --bpe_nlsyms "data/non_linguistic_symbols.txt" \
+    --token_type char \
     --feats_type raw \
     --feats_normalize utt_mvn \
     --min_wav_duration 1 \

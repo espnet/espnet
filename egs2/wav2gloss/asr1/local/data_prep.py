@@ -46,6 +46,7 @@ def write_dir(target_dir, metadata):
     utt2spk = open(target_dir / "utt2spk", "w", encoding="utf-8")
     spk2utt = open(target_dir / "spk2utt", "w", encoding="utf-8")
     lm = open(target_dir / "lm.txt", "w", encoding="utf-8")
+    prev_text = open(target_dir / "prev_text", "w", encoding="utf-8")
 
     count = 0
     spk2utt.write("dummy")
@@ -58,14 +59,15 @@ def write_dir(target_dir, metadata):
         _id = f"dummy_{lang}_{task}_{meta['id']}"
         _id = "".join(_id.split())
 
-        content = f"<lang|{lang}> <task|{task}> {meta[task]}"
-        content = _cleaner(content)
+        header = f"<task|{task}> <lang|{lang}>"
+        content = _cleaner(meta[task])
 
         wavscp.write(f"{_id} downloads/data/{lang}/audio/{split}/{fname}\n")
         text.write(f"{_id} {content}\n")
         utt2spk.write(f"{_id} dummy\n")
         spk2utt.write(f" {_id}")
-        lm.write(f"{count:010} {content}\n")
+        lm.write(f"{count:010} {header} {content}\n")
+        prev_text.write(f"{_id} {header}\n")
 
         count += 1
 
@@ -78,7 +80,7 @@ def write_dir(target_dir, metadata):
 
 
 def merge_dir(target_dir, source_dirs):
-    for fname in ("wav.scp", "text", "utt2spk", "spk2utt", "lm.txt"):
+    for fname in ("wav.scp", "text", "utt2spk", "spk2utt", "lm.txt", "prev_text"):
         target = open(target_dir / fname, "w", encoding="utf-8")
         count = 0
         for d in source_dirs:
