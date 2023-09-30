@@ -1289,7 +1289,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     if ${use_text_prev}; then
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text_prev,text_prev,text "
     fi
-    
+
 
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
