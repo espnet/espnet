@@ -16,6 +16,8 @@ def export_vocabulary(
     whisper_language: str = "en",
     whisper_task: str = "transcribe",
     log_level: str = "INFO",
+    sot_asr: bool = False,
+    speaker_change_symbol: str = "<sc>",
 ):
     try:
         import whisper.tokenizer
@@ -67,8 +69,13 @@ def export_vocabulary(
     # NOTE (Shih-Lun): extra tokens (for timestamped ASR) not
     #                  stored in the wrapped tokenizer
     full_vocab_size = 51865 if whisper_model == "whisper_multilingual" else 51864
+
     for i in range(full_vocab_size - vocab_size):
-        fout.write("()" + "\n")
+        fout.write(f"<|{i*0.02:.2f}|>" + "\n")
+
+    if sot_asr:
+        full_vocab_size += 1
+        fout.write(speaker_change_symbol + "\n")
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -104,6 +111,20 @@ def get_parser() -> argparse.ArgumentParser:
         type=str,
         default="transcribe",
         help="Task for Whisper multilingual tokenizer",
+    )
+    parser.add_argument(
+        "--sot_asr",
+        type=bool,
+        default=False,
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
+    )
+    parser.add_argument(
+        "--speaker_change_symbol",
+        type=str,
+        default="<sc>",
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
     )
 
     return parser

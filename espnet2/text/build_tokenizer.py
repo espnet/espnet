@@ -26,6 +26,7 @@ def build_tokenizer(
     # only use for whisper
     whisper_language: str = None,
     whisper_task: str = None,
+    sot_asr: bool = False,
 ) -> AbsTokenizer:
     """A helper function to instantiate Tokenizer"""
     assert check_argument_types()
@@ -83,6 +84,7 @@ def build_tokenizer(
             model_type=bpemodel,
             language=whisper_language or "en",
             task=whisper_task or "transcribe",
+            sot=sot_asr,
         )
 
     else:

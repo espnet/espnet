@@ -947,10 +947,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
     elif grep -q "whisper" <<< ${token_type}; then
         log "Stage 5: Generate whisper token_list from ${token_type} tokenizer"
 
-        if ${sot_asr}; then
-            log "Error: not supported SOT training for whisper token_list"
-            exit 2
-        fi
 
         # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
         # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
@@ -959,7 +955,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             --whisper_model "${token_type}" \
             --whisper_language "${lang}" \
             --whisper_task "transcribe" \
+            --sot_asr "${sot_asr}" \
             --output "${token_list}"
+
     elif [ "${token_type}" = hugging_face ]; then
         log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
 

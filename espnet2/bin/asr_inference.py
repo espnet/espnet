@@ -393,10 +393,18 @@ class Speech2Text:
         elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
+            if (
+                hasattr(asr_train_args, "preprocessor_conf")
+                and "speaker_change_symbol" in asr_train_args.preprocessor_conf
+            ):
+                sot_asr = True
+            else:
+                sot_asr = False
             converter = OpenAIWhisperTokenIDConverter(
                 model_type=bpemodel,
                 language=whisper_language or "en",
                 task=whisper_task or "transcribe",
+                sot=sot_asr,
             )
             beam_search.set_hyp_primer(
                 list(converter.tokenizer.sot_sequence_including_notimestamps)
@@ -927,7 +935,6 @@ def get_parser():
         help="Whether we are using a monolithic multi-speaker ASR model "
         "(This flag should be False if a speech separation model is used before ASR)",
     )
-
     group = parser.add_argument_group("Quantization related")
     group.add_argument(
         "--quantize_asr_model",

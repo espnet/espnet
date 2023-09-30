@@ -36,19 +36,27 @@ def test_init_lang_invalid():
 @pytest.mark.skipif(
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
-def test_init_en():
-    id_converter = OpenAIWhisperTokenIDConverter("whisper_en", "en", "transcribe")
-    assert id_converter.get_num_vocabulary_size() == 50363
+def test_init_task_invalid():
+    with pytest.raises(ValueError):
+        OpenAIWhisperTokenIDConverter("whisper_multilingual", "zh", "transcribe_abc")
 
 
 @pytest.mark.skipif(
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
-def test_init_zh():
+def test_init_en():
+    id_converter = OpenAIWhisperTokenIDConverter("whisper_en", "en", "transcribe")
+    assert id_converter.get_num_vocabulary_size() == 51864
+
+
+@pytest.mark.skipif(
+    not is_python_3_8_plus, reason="whisper not supported on python<3.8"
+)
+def test_init_multilingual():
     id_converter = OpenAIWhisperTokenIDConverter(
         "whisper_multilingual", "zh", "transcribe"
     )
-    assert id_converter.get_num_vocabulary_size() == 50364
+    assert id_converter.get_num_vocabulary_size() == 51865
 
 
 @pytest.mark.skipif(
@@ -56,9 +64,9 @@ def test_init_zh():
 )
 def test_init_translation():
     id_converter = OpenAIWhisperTokenIDConverter(
-        "whisper_multilingual", "zh", "transcribe"
+        "whisper_multilingual", "zh", "translate"
     )
-    assert id_converter.get_num_vocabulary_size() == 50364
+    assert id_converter.get_num_vocabulary_size() == 51865
 
 
 @pytest.mark.skipif(
