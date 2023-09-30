@@ -46,7 +46,7 @@ def write_dir(target_dir, metadata):
     utt2spk = open(target_dir / "utt2spk", "w", encoding="utf-8")
     spk2utt = open(target_dir / "spk2utt", "w", encoding="utf-8")
     lm = open(target_dir / "lm.txt", "w", encoding="utf-8")
-    prev_text = open(target_dir / "prev_text", "w", encoding="utf-8")
+    text_prev = open(target_dir / "text_prev", "w", encoding="utf-8")
 
     count = 0
     spk2utt.write("dummy")
@@ -67,7 +67,7 @@ def write_dir(target_dir, metadata):
         utt2spk.write(f"{_id} dummy\n")
         spk2utt.write(f" {_id}")
         lm.write(f"{count:010} {header} {content}\n")
-        prev_text.write(f"{_id} {header}\n")
+        text_prev.write(f"{_id} {header}\n")
 
         count += 1
 
@@ -80,7 +80,7 @@ def write_dir(target_dir, metadata):
 
 
 def merge_dir(target_dir, source_dirs):
-    for fname in ("wav.scp", "text", "utt2spk", "spk2utt", "lm.txt", "prev_text"):
+    for fname in ("wav.scp", "text", "utt2spk", "spk2utt", "lm.txt", "text_prev"):
         target = open(target_dir / fname, "w", encoding="utf-8")
         count = 0
         for d in source_dirs:

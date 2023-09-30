@@ -52,7 +52,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     python3 local/data_prep.py --source ${WAV2GLOSS} --langs ${langs} --tasks ${tasks}
     for f in data/w2g_*; do
-        utils/fix_data_dir.sh ${f}
+        utils/fix_data_dir.sh --utt_extra_files prev_text ${f}
     done
 fi
 

@@ -48,5 +48,6 @@ done
     --lm_config conf/tuning/train_lm_4layers.yaml \
     --use_lm true \
     --ngpu 4 \
+    --use_text_prev true \
     --bpe_train_text "${lm_train_text}" \
     --lm_train_text "${lm_train_text}" "$@"
