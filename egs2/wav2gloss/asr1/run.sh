@@ -12,6 +12,11 @@ train_set="w2g_${task}_${lang}_train"
 valid_set="w2g_${task}_${lang}_dev"
 lm_train_text=data/w2g_${task}_${lang}_train/lm.txt
 
+asr_config="conf/tuning/train_xls_r_conformer.yaml"
+asr_tag="${task}_${lang}_xls_r_conformer"
+
+lm_config="conf/tuning/train_lm_4layers.yaml"
+lm_tag="${task}_${lang}_4layer"
 
 # number of test sets = number of tasks x number of langs
 if [ "$lang" == "full" ]; then
@@ -33,8 +38,6 @@ done
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --asr_tag "${task}_${lang}_xls_r_conformer" \
-    --lm_tag "${task}_${lang}_4layer" \
     --nlsyms_txt "data/non_linguistic_symbols.txt" \
     --bpe_nlsyms "data/non_linguistic_symbols.txt" \
     --token_type char \
@@ -45,11 +48,14 @@ done
     --audio_format wav \
     --nbpe 6500 \
     --speed_perturb_factors "0.9 1.0 1.1" \
-    --asr_config conf/tuning/train_xls_r_conformer.yaml \
+    --asr_config ${asr_config} \
+    --asr_tag ${asr_tag} \
+    --lm_config ${lm_config} \
+    --lm_tag ${lm_tag} \
     --inference_config conf/tuning/decode_transformer.yaml \
-    --lm_config conf/tuning/train_lm_4layers.yaml \
     --use_lm true \
     --ngpu 4 \
+    --gpu_inference true \
     --use_text_prev true \
     --bpe_train_text "${lm_train_text}" \
     --lm_train_text "${lm_train_text}" "$@"
