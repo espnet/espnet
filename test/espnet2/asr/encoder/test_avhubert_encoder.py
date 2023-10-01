@@ -35,8 +35,8 @@ def test_Encoder_forward_backward(extracted, freeze_finetune_updates):
             y.sum()  # requires_grad=False if freezing
     else:
         x = {
-            'video': torch.randn(2, 1, 10, 88, 88),
-            'audio': torch.randn(2, 26 * 4, 10),
+            "video": torch.randn(2, 1, 10, 88, 88),
+            "audio": torch.randn(2, 26 * 4, 10),
         }
         x_lens = torch.LongTensor([10, 5])
         encoder.train()
