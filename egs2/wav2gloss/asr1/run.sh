@@ -33,6 +33,8 @@ done
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
+    --asr_tag "${task}_${lang}_xls_r_conformer" \
+    --lm_tag "${task}_${lang}_4layer" \
     --nlsyms_txt "data/non_linguistic_symbols.txt" \
     --bpe_nlsyms "data/non_linguistic_symbols.txt" \
     --token_type char \

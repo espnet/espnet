@@ -366,6 +366,12 @@ if ${use_text_prev}; then
     utt_extra_files_str+="text_prev"
 fi
 
+# ref_text_files_str and utt_extra_files_str usually go together
+text_files_str="${ref_text_files_str} ${utt_extra_files_str}"
+if [[ -z ${text_files_str// /} ]]; then
+    unset ${text_files_str}
+fi
+
 # shellcheck disable=SC2206
 ref_text_files=(${ref_text_files_str// / })
 # shellcheck disable=SC2206
@@ -582,12 +588,11 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [[:space:]]2[[:space:]] ]]; then
     if [ -n "${speed_perturb_factors}" ]; then
         log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
-        text_files_str="${ref_text_files_str} ${utt_extra_files_str}"
         for factor in ${speed_perturb_factors}; do
             if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                scripts/utils/perturb_data_dir_speed.sh \
-                   ${utt_extra_files_str:+--utt_extra_files "${text_files_str}"} \
-                   "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+                    ${text_files_str:+--utt_extra_files "${text_files_str}"} \
+                    "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
                _dirs+="data/${train_set}_sp${factor} "
             else
                 # If speed factor is 1, same as the original
@@ -885,7 +890,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
         # fix_data_dir.sh leaves only utts which exist in all files
         utils/fix_data_dir.sh \
-            ${ref_text_files_str:+--utt_extra_files "${ref_text_files_str}${utt_extra_files_str}"} \
+            ${text_files_str:+--utt_extra_files "${text_files_str}"} \
             "${data_feats}/${dset}"
     done
 
@@ -1289,6 +1294,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     done
     if ${use_text_prev}; then
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text_prev,text_prev,text "
+        _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/text_prev,text_prev,text "
     fi
 
 
