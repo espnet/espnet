@@ -17,9 +17,9 @@ class MultiSoundScpReader(collections.abc.Mapping):
         wav.scp is a text file that looks like the following:
 
         key1 /some/path/a1.wav /another/path/a2.wav /yet/another/path/a3.wav
-        key2 /some/path/b1.wav /another/path/b2.wav /yet/another/path/b3.wav
+        key2 /some/path/b1.wav /another/path/b2.wav
         key3 /some/path/c1.wav /another/path/c2.wav /yet/another/path/c3.wav
-        key4 /some/path/d1.wav /another/path/d2.wav /yet/another/path/d3.wav
+        key4 /some/path/d1.wav
         ...
 
         >>> reader = SoundScpReader('wav.scp', stack_axis=0)
