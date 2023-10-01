@@ -18,6 +18,7 @@ from espnet2.text.cleaner import TextCleaner
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
+from espnet2.text.whisper_tokenizer import OpenAIWhisperTokenizer
 
 
 class AbsPreprocessor(ABC):
@@ -594,6 +595,20 @@ class CommonPreprocessor_multi(CommonPreprocessor):
             assert (
                 len(self.text_name) == 1
             ), "SOT model with speaker_change_symbol only support single text input."
+
+            if bpemodel in ["whisper_en", "whisper_multilingual"]:
+                assert (
+                    len(speaker_change_symbol) == 1
+                ), "Currently, Whisper SOT only supports one SC token"
+                speaker_change_symbol = speaker_change_symbol[0]
+                self.tokenizer = OpenAIWhisperTokenizer(
+                    bpemodel, sot=True, speaker_change_symbol=speaker_change_symbol
+                )
+                self.token_id_converter = OpenAIWhisperTokenIDConverter(
+                    model_type=bpemodel,
+                    sot=True,
+                    speaker_change_symbol=speaker_change_symbol,
+                )
 
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
