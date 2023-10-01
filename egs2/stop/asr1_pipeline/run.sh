@@ -9,7 +9,7 @@ train_set="train"
 valid_set="valid"
 test_sets="test"
 
-asr_config=conf/train_asr2_wavlm_lr0.002.yaml
+asr_config=conf/train_asr_whisper_full_correct.yaml
 
 ./asr.sh \
     --lang en \
