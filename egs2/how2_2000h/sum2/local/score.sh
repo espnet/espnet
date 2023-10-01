@@ -1,0 +1,1 @@
+../../sum1/local/score.sh
