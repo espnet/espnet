@@ -31,6 +31,11 @@ if python3 -c 'import torch as t; from packaging.version import parse as L; asse
                 continue
             fi
         fi
+        if [ "$f" == "egs2/stop/asr1/conf/train_asr_whisper_full_correct.yaml" ]; then
+            if ! python3 -c "import whisper" > /dev/null; then
+                continue
+            fi
+        fi
         ${python} -m espnet2.bin.asr_train --config "${f}" --iterator_type none --dry_run true --output_dir out --token_list dummy_token_list
     done
 

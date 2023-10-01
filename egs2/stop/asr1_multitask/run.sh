@@ -9,8 +9,7 @@ train_set="train_combined"
 valid_set="valid"
 test_sets="test_snips"
 
-asr_config=conf/train_asr2_wavlm_lr0.002.yaml
-# asr_config=conf/train_asr_whisper_full_correct_specaug.yaml
+asr_config=conf/train_asr_whisper_full_correct_specaug.yaml
 
 ./asr.sh \
     --lang en \
