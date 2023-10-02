@@ -58,6 +58,13 @@ def test_export_vocabulary_lang_invalid():
         export_vocabulary("-", "whisper_multilingual", "abc", "INFO")
 
 
+def test_export_vocabulary_to_stdout_sot():
+    try:
+        export_vocabulary("-", "whisper_en", "en", "INFO", sot_asr=True)
+    except Exception as e:
+        pytest.fail(f"exception thrown: {e}")
+
+
 def test_main(tmp_path):
     tknlist_path = tmp_path / "tmp_token_list/whisper_token_list.txt"
     tknlist_path.parent.mkdir()
