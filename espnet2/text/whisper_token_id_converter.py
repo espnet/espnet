@@ -1,7 +1,10 @@
+import copy
 from typing import Iterable, List, Union
 
 import numpy as np
 from typeguard import check_argument_types
+
+from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 
 # <sos> and <eos> for Whisper multilingual ---
 # '<|startoftranscript|>': 50258
@@ -16,6 +19,9 @@ class OpenAIWhisperTokenIDConverter:
     def __init__(
         self,
         model_type: str = "whisper_multilingual",
+        language: str = "en",
+        sot: bool = False,
+        speaker_change_symbol: str = "<sc>",
     ):
         assert check_argument_types()
 
@@ -29,16 +35,28 @@ class OpenAIWhisperTokenIDConverter:
             )
             raise e
 
+        language = LANGUAGES_CODE_MAPPING.get(language)
+        if language is None:
+            raise ValueError("language unsupported for Whisper model")
+
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-        # TODO(Shih-Lun): should support feeding in
-        #                  different languages (default is en)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=None
+                multilingual=True, language=language
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)
+
+        self.tokenizer = copy.deepcopy(self.tokenizer)
+        timestamps = [f"<|{i*30/1500:.2f}|>" for i in range(0, 1501)]
+        sc = [speaker_change_symbol] if sot else []
+        special_tokens = (
+            self.tokenizer.tokenizer.additional_special_tokens + timestamps + sc
+        )
+        self.tokenizer.tokenizer.add_special_tokens(
+            dict(additional_special_tokens=special_tokens)
+        )
 
     def get_num_vocabulary_size(self) -> int:
         return self.tokenizer.tokenizer.vocab_size + len(

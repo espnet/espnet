@@ -20,11 +20,11 @@ preprocessor_conf:
   target_duration: 3.0  # seconds
   sample_rate: 16000
   num_eval: 1
-  rir_scp: data/train_nodev/rirs.scp
+  rir_scp: dump/raw/rirs.scp
   rir_apply_prob: 1.0
   noise_info:
-    - [0.4, "data/train_nodev/noises.scp", [1, 1], [0, 10]]
-    - [0.5, "data/train_nodev/noises.scp", [1, 2], [10, 20]]
+    - [0.4, "dump/raw/musan_music.scp", [1, 1], [0, 10]]
+    - [0.5, "dump/raw/musan_speech.scp", [1, 2], [10, 20]]
   noise_apply_prob: 1.0
   short_noise_thres: 0.5
 
