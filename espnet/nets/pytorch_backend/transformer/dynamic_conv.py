@@ -49,7 +49,7 @@ class DynamicConvolution(nn.Module):
         self.linear1 = nn.Linear(n_feat, n_feat * 2)
         self.linear2 = nn.Linear(n_feat, n_feat)
         self.linear_weight = nn.Linear(n_feat, self.wshare * 1 * kernel_size)
-        nn.init.xavier_uniform(self.linear_weight.weight)
+        nn.init.xavier_uniform_(self.linear_weight.weight)
         self.act = nn.GLU()
 
         # dynamic conv related

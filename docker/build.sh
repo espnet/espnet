@@ -95,10 +95,11 @@ build(){
     docker_image=$( docker images -q  ${this_tag} )
     if ! [[ -n ${docker_image} ]]; then
         log "Now building cpu-latest with ubuntu:${default_ubuntu_ver}"
-        docker build --build-arg FROM_TAG=runtime-latest \
-                            -f prebuilt/devel.dockerfile \
-                            --target devel \
-                            -t ${this_tag} . | tee -a build_cpu.log > /dev/null
+        docker build \
+            --build-arg FROM_TAG=runtime-latest \
+            -f prebuilt/devel.dockerfile \
+            --target devel \
+            -t ${this_tag} . | tee -a build_cpu.log > /dev/null
 
         docker_image=$( docker images -q ${this_tag} )
         [ -z "${docker_image}" ] && exit 1
@@ -132,35 +133,53 @@ build_local(){
     cd ${SCRIPTPATH}
     test -r ${ESPNET_ARCHIVE} || exit 1;
     sleep 1
+    runtime_tag="runtime-latest"
 
     if [ "${build_base_image}" = true ]; then
         log "building ESPnet base image with ubuntu:${ubuntu_ver}"
         docker build --build-arg DOCKER_VER=${docker_ver} \
                     --build-arg FROM_TAG=${ubuntu_ver} \
                     --build-arg NUM_BUILD_CORES=${build_cores} \
-                    -f prebuilt/runtime/Dockerfile -t espnet/espnet:runtime-local . || exit 1
+                    -f prebuilt/runtime.dockerfile -t espnet/espnet:runtime-local . || exit 1
         sleep 1
+        runtime_tag="runtime-local"
     fi
 
     if [[ ${build_ver} == "cpu" ]]; then
         log "building ESPnet CPU Image with ubuntu:${ubuntu_ver}"
-        docker build --build-arg FROM_TAG=runtime-local  --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE} \
-                     -f prebuilt/local/Dockerfile -t espnet/espnet:cpu-local . || exit 1
+        docker build \
+            --build-arg FROM_TAG=${runtime_tag}  \
+            --build-arg FROM_STAGE=builder_local  \
+            --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE} \
+            -f prebuilt/devel.dockerfile -t espnet/espnet:cpu-local --target devel . || exit 1
     elif [[ ${build_ver} == "gpu" ]]; then
         log "building ESPnet GPU Image with ubuntu:${ubuntu_ver} and cuda:${cuda_ver}"
+        if [ "${cuda_ver}" != "${default_cuda_ver}" ]; then
+            # TODO(nelson): Check for other versions
+            log "WARNING: Currently, the only supported CUDA version is ${default_cuda_ver}"
+            exit 1;
+        fi
+
         if [ "${build_base_image}" = true ] ; then
-            docker build -f prebuilt/devel/gpu/${ver}/Dockerfile -t espnet/espnet:cuda${ver}-cudnn7 . || exit 1
+            docker build -f prebuilt/gpu.dockerfile -t espnet/espnet:cuda-local . || exit 1
+            cuda_tag="cuda-local"
         else
-            if ! [[ -n $( docker images -q espnet/espnet:cuda-latest)  ]]; then
-                docker pull espnet/espnet:cuda-latest
+            cuda_tag="cuda-latest"
+            if ! [[ -n $( docker images -q espnet/espnet:${cuda_tag})  ]]; then
+                docker pull espnet/espnet:${cuda_tag}
             fi
         fi
-        build_args="--build-arg FROM_TAG=cuda${ver}-cudnn7"
-        build_args="${build_args} --build-arg CUDA_VER=${ver}"
-        build_args="${build_args} --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE}"
-        docker build ${build_args} -f prebuilt/local/Dockerfile -t espnet/espnet:gpu-cuda${ver}-cudnn7-u18-local . || exit 1
+
+        docker build \
+            --build-arg FROM_TAG=${cuda_tag} \
+            --build-arg FROM_STAGE=builder_local \
+            --build-arg CUDA_VER=${cuda_ver} \
+            --build-arg ESPNET_ARCHIVE=${ESPNET_ARCHIVE} \
+            -f prebuilt/devel.dockerfile \
+            -t espnet/espnet:gpu-${cuda_ver}-local \
+            --target devel . || exit 1
     else
-        log "ERROR: Parameter invalid: " ${ver}
+        log "ERROR: Parameter invalid: " ${cuda_ver}
     fi
 
     log "cleanup."
