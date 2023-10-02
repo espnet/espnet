@@ -24,7 +24,3 @@ with open(output_file, "w") as f:
         for utt in utts:
             utt_id = utt.strip().split(" ")[0]
             f.write(f"{utt_id} {task_token}\n")
-
-
-
-
