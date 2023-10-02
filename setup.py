@@ -21,7 +21,7 @@ requirements = {
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
         "kaldiio>=2.18.0",
-        "torch>=1.3.0",
+        "torch>=1.11.0",
         "torch_complex",
         "nltk>=3.4.5",
         # fix CI error due to the use of deprecated aliases
@@ -34,15 +34,15 @@ requirements = {
         "sentencepiece==0.1.97",
         "ctc-segmentation>=1.6.6",
         # TTS
-        # NOTE(kan-bayashi): Should update after pyworld new release:
-        #   https://github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder/pull/90
-        "pyworld @ git+https://github.com/JeremyCCHsu/Python-Wrapper-for-World-Vocoder.git",  # noqa: E501
+        "pyworld>=0.3.4",
         "pypinyin<=0.44.0",
         "espnet_tts_frontend",
         # ENH
         "ci_sdr",
         "pytorch_wpe",
         "fast-bss-eval==0.1.3",
+        # SPK
+        "asteroid_filterbanks==0.4.0",
         # UASR
         "editdistance",
         # fix CI error due to the use of deprecated functions
@@ -87,6 +87,7 @@ requirements = {
         "fairscale",
         "transformers",
         "gtn==0.0.0",
+        "evaluate",
     ],
     "setup": [
         "pytest-runner",

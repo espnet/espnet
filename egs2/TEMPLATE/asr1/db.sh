@@ -2,6 +2,7 @@
 # "downloads" means the corpus can be downloaded by the recipe automatically
 
 ACCENTED_FR=downloads
+ACESINGER=downloads
 AIDATATANG_200ZH=downloads
 AISHELL=downloads
 AISHELL2=
@@ -13,6 +14,7 @@ AN4=downloads
 ASVTutorial=espnet_tutorial_asvspoof
 APHASIABANK=
 AUDIOSET=
+BIBLETTS=downloads
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
@@ -58,6 +60,7 @@ MELD=downloads
 SLURP=
 SLURP_S= # Output file path
 LIBRITRANS_S= # Output file path
+VOICES=downloads
 VOXCELEB=
 MAGICDATA=downloads
 MEDIASPEECH=downloads
@@ -66,9 +69,11 @@ MISP2021=
 MLSUPERB=
 L3DAS22=
 LIBRIMIX=downloads
-LIBRITTS=
+LIBRITTS=downloads
+LIBRITTS_R=downloads
 LJSPEECH=downloads
 MUSAN=
+MUSDB18=downloads
 MUST_C=downloads
 NSC=
 NIT_SONG070=
@@ -186,6 +191,8 @@ ITAKO=
 NATSUME=
 KIRITAN=
 NAMINE=
+KATHBATH=downloads
+GRAMVAANI=downloads
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then

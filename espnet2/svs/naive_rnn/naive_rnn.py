@@ -127,7 +127,45 @@ class NaiveRNN(AbsSVS):
     ):
         """Initialize NaiveRNN module.
 
-        Args: TODO(Yuning)
+        Args:
+            idim (int): Dimension of the label inputs.
+            odim (int): Dimension of the outputs.
+            midi_dim (int): Dimension of the midi inputs.
+            embed_dim (int): Dimension of the token embedding.
+            eprenet_conv_layers (int): Number of prenet conv layers.
+            eprenet_conv_filts (int): Number of prenet conv filter size.
+            eprenet_conv_chans (int): Number of prenet conv filter channels.
+            elayers (int): Number of encoder layers.
+            eunits (int): Number of encoder hidden units.
+            ebidirectional (bool): If bidirectional in encoder.
+            midi_embed_integration_type (str): how to integrate midi information,
+                ("add" or "cat").
+            dlayers (int): Number of decoder lstm layers.
+            dunits (int): Number of decoder lstm units.
+            dbidirectional (bool): if bidirectional in decoder.
+            postnet_layers (int): Number of postnet layers.
+            postnet_filts (int): Number of postnet filter size.
+            postnet_chans (int): Number of postnet filter channels.
+            use_batch_norm (bool): Whether to use batch normalization.
+            reduction_factor (int): Reduction factor.
+            # extra embedding related
+            spks (Optional[int]): Number of speakers. If set to > 1, assume that the
+                sids will be provided as the input and use sid embedding layer.
+            langs (Optional[int]): Number of languages. If set to > 1, assume that the
+                lids will be provided as the input and use sid embedding layer.
+            spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
+                assume that spembs will be provided as the input.
+            spk_embed_integration_type (str): How to integrate speaker embedding.
+            eprenet_dropout_rate (float): Prenet dropout rate.
+            edropout_rate (float): Encoder dropout rate.
+            ddropout_rate (float): Decoder dropout rate.
+            postnet_dropout_rate (float): Postnet dropout_rate.
+            init_type (str): How to initialize transformer parameters.
+            use_masking (bool): Whether to mask padded part in loss calculation.
+            use_weighted_masking (bool): Whether to apply weighted masking in
+                loss calculation.
+            loss_type (str): Loss function type ("L1", "L2", or "L1+L2").
+
         """
         assert check_argument_types()
         super().__init__()
@@ -211,7 +249,7 @@ class NaiveRNN(AbsSVS):
                 eunits * dim_direction, eunits * dim_direction
             )
         else:
-            self.midi_projection = torch.nn.linear(
+            self.midi_projection = torch.nn.Linear(
                 2 * eunits * dim_direction, eunits * dim_direction
             )
 
@@ -498,6 +536,8 @@ class NaiveRNN(AbsSVS):
         if self.langs is not None:
             lid_embs = self.lid_emb(lids.view(-1))
             hs = hs + lid_embs.unsqueeze(1)
+        if spembs is not None:
+            spembs = spembs.unsqueeze(0)
 
         # integrate speaker embedding
         if self.spk_embed_dim is not None:

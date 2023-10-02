@@ -1,4 +1,3 @@
-# This is especially useful for ST and MT
 # check extra module installation
 if ! which tokenizer.perl > /dev/null; then
     echo "Error: it seems that moses is not installed." >&2

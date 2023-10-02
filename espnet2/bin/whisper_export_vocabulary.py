@@ -6,10 +6,18 @@ from pathlib import Path
 
 from typeguard import check_argument_types
 
+from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def export_vocabulary(output: str, whisper_model: str, log_level: str):
+def export_vocabulary(
+    output: str,
+    whisper_model: str,
+    language: str,
+    log_level: str,
+    sot_asr: bool = False,
+    speaker_change_symbol: str = "<sc>",
+):
     try:
         import whisper.tokenizer
     except Exception as e:
@@ -33,12 +41,16 @@ def export_vocabulary(output: str, whisper_model: str, log_level: str):
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
+    language = LANGUAGES_CODE_MAPPING.get(language)
+    if language is None:
+        raise ValueError("language unsupported for Whisper model")
+
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-    # TODO(Shih-Lun): should support feeding in
-    #                  different languages (default is en)
     elif whisper_model == "whisper_multilingual":
-        tokenizer = whisper.tokenizer.get_tokenizer(multilingual=True, language=None)
+        tokenizer = whisper.tokenizer.get_tokenizer(
+            multilingual=True, language=language
+        )
     else:
         raise ValueError("tokenizer unsupported:", whisper_model)
 
@@ -54,8 +66,13 @@ def export_vocabulary(output: str, whisper_model: str, log_level: str):
     # NOTE (Shih-Lun): extra tokens (for timestamped ASR) not
     #                  stored in the wrapped tokenizer
     full_vocab_size = 51865 if whisper_model == "whisper_multilingual" else 51864
+
     for i in range(full_vocab_size - vocab_size):
-        fout.write("()" + "\n")
+        fout.write(f"<|{i*0.02:.2f}|>" + "\n")
+
+    if sot_asr:
+        full_vocab_size += 1
+        fout.write(speaker_change_symbol + "\n")
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -79,6 +96,28 @@ def get_parser() -> argparse.ArgumentParser:
         type=str,
         required=True,
         help="Whisper model type",
+    )
+    parser.add_argument(
+        "--language",
+        type=str,
+        default="en",
+        help="Language of Whisper multilingual tokenizer (default is en)",
+    )
+
+    parser.add_argument(
+        "--sot_asr",
+        type=bool,
+        default=False,
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
+    )
+
+    parser.add_argument(
+        "--speaker_change_symbol",
+        type=str,
+        default="<sc>",
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
     )
 
     return parser

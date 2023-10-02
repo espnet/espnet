@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from numba import jit
+from scipy.stats import betabinom
 
 
 class AlignmentModule(nn.Module):
@@ -15,8 +16,19 @@ class AlignmentModule(nn.Module):
 
     """
 
-    def __init__(self, adim, odim):
+    def __init__(self, adim, odim, cache_prior=True):
+        """Initialize AlignmentModule.
+
+        Args:
+            adim (int): Dimension of attention.
+            odim (int): Dimension of feats.
+            cache_prior (bool): Whether to cache beta-binomial prior.
+
+        """
         super().__init__()
+        self.cache_prior = cache_prior
+        self._cache = {}
+
         self.t_conv1 = nn.Conv1d(adim, adim, kernel_size=3, padding=1)
         self.t_conv2 = nn.Conv1d(adim, adim, kernel_size=1, padding=0)
 
@@ -24,12 +36,14 @@ class AlignmentModule(nn.Module):
         self.f_conv2 = nn.Conv1d(adim, adim, kernel_size=3, padding=1)
         self.f_conv3 = nn.Conv1d(adim, adim, kernel_size=1, padding=0)
 
-    def forward(self, text, feats, x_masks=None):
+    def forward(self, text, feats, text_lengths, feats_lengths, x_masks=None):
         """Calculate alignment loss.
 
         Args:
             text (Tensor): Batched text embedding (B, T_text, adim).
             feats (Tensor): Batched acoustic feature (B, T_feats, odim).
+            text_lengths (Tensor): Text length tensor (B,).
+            feats_lengths (Tensor): Feature length tensor (B,).
             x_masks (Tensor): Mask tensor (B, T_text).
 
         Returns:
@@ -56,7 +70,55 @@ class AlignmentModule(nn.Module):
             score = score.masked_fill(x_masks, -np.inf)
 
         log_p_attn = F.log_softmax(score, dim=-1)
+
+        # add beta-binomial prior
+        bb_prior = self._generate_prior(
+            text_lengths,
+            feats_lengths,
+        ).to(dtype=log_p_attn.dtype, device=log_p_attn.device)
+        log_p_attn = log_p_attn + bb_prior
+
         return log_p_attn
+
+    def _generate_prior(self, text_lengths, feats_lengths, w=1) -> torch.Tensor:
+        """Generate alignment prior formulated as beta-binomial distribution
+
+        Args:
+            text_lengths (Tensor): Batch of the lengths of each input (B,).
+            feats_lengths (Tensor): Batch of the lengths of each target (B,).
+            w (float): Scaling factor; lower -> wider the width.
+
+        Returns:
+            Tensor: Batched 2d static prior matrix (B, T_feats, T_text).
+
+        """
+        B = len(text_lengths)
+        T_text = text_lengths.max()
+        T_feats = feats_lengths.max()
+
+        bb_prior = torch.full((B, T_feats, T_text), fill_value=-np.inf)
+        for bidx in range(B):
+            T = feats_lengths[bidx].item()
+            N = text_lengths[bidx].item()
+
+            key = str(T) + "," + str(N)
+            if self.cache_prior and key in self._cache:
+                prob = self._cache[key]
+            else:
+                alpha = w * np.arange(1, T + 1, dtype=float)  # (T,)
+                beta = w * np.array([T - t + 1 for t in alpha])
+                k = np.arange(N)
+                batched_k = k[..., None]  # (N,1)
+                prob = betabinom.logpmf(batched_k, N, alpha, beta)  # (N,T)
+
+            # store cache
+            if self.cache_prior and key not in self._cache:
+                self._cache[key] = prob
+
+            prob = torch.from_numpy(prob).transpose(0, 1)  # -> (T,N)
+            bb_prior[bidx, :T, :N] = prob
+
+        return bb_prior
 
 
 @jit(nopython=True)

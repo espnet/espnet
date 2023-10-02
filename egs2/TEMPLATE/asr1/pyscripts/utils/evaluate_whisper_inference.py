@@ -5,18 +5,16 @@ import os
 import sys
 from distutils.version import LooseVersion
 from pathlib import Path
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-import numpy as np
 import torch
-import torch.quantization
 import whisper
-from typeguard import check_argument_types, check_return_type
+from typeguard import check_argument_types
 
 from espnet2.fileio.datadir_writer import DatadirWriter
-from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
+from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
@@ -27,15 +25,17 @@ class Speech2Text:
     def __init__(
         self,
         model_tag: str = "base",
+        model_dir: str = "./models",
         device: str = "cpu",
     ):
         assert check_argument_types()
 
-        self.model = whisper.load_model(model_tag).to(device)
-        self.device = device
+        self.model = whisper.load_model(
+            name=model_tag, download_root=model_dir, device=device
+        )
 
     @torch.no_grad()
-    def __call__(self, speech: str) -> Optional[str]:
+    def __call__(self, speech: str, **decode_options) -> Optional[str]:
         """Inference
 
         Args:
@@ -47,7 +47,7 @@ class Speech2Text:
         assert check_argument_types()
 
         # Input as audio signal
-        result = self.model.transcribe(speech)
+        result = self.model.transcribe(speech, **decode_options)
 
         return result["text"]
 
@@ -61,7 +61,9 @@ def inference(
     data_path_and_name_and_type: str,
     key_file: Optional[str],
     model_tag: Optional[str],
+    model_dir: Optional[str],
     allow_variable_data_keys: bool,
+    decode_options: Dict,
 ):
     assert check_argument_types()
     if ngpu > 1:
@@ -83,12 +85,13 @@ def inference(
     # 2. Build speech2text
     speech2text = Speech2Text(
         model_tag=model_tag,
+        model_dir=model_dir,
         device=device,
     )
 
     # 3. Build data-iterator
     info_list = []
-    wavscp = open(data_path_and_name_and_type, "r", encoding="utf-8")
+    wavscp = open(key_file, "r", encoding="utf-8")
     for line in wavscp.readlines():
         info_list.append(line.split(maxsplit=1))
 
@@ -97,7 +100,7 @@ def inference(
     with DatadirWriter(output_dir) as writer:
         for key, audio_file in info_list:
             # N-best list of (text, token, token_int, hyp_object)
-            results = speech2text(os.path.abspath(audio_file.strip()))
+            results = speech2text(os.path.abspath(audio_file.strip()), **decode_options)
 
             # Normal ASR
             ibest_writer = writer[f"1best_recog"]
@@ -150,8 +153,31 @@ def get_parser():
     group.add_argument(
         "--model_tag",
         type=str,
-        help="Pretrained model tag. If specify this option, *_train_config and "
-        "*_file will be overwritten",
+        default="base",
+        choices=[
+            "base.en",
+            "base",
+            "small.en",
+            "small",
+            "medium.en",
+            "medium",
+            "large",
+        ],
+        help="Model tag of the released whisper models.",
+    )
+    group.add_argument(
+        "--model_dir",
+        type=str_or_none,
+        default="./models",
+        help="The directory to download whisper models.",
+    )
+
+    group = parser.add_argument_group("Decoding options related")
+    group.add_argument(
+        "--decode_options",
+        action=NestedDictAction,
+        default=dict(),
+        help="Decode options for whisper transcribe.",
     )
     return parser
 

@@ -166,6 +166,6 @@ def test_tcn_streaming():
             stream_outputs.append(frame_out)
         for i in range(SEQ_LEN):
             for s in range(num_spk):
-                torch.testing.assert_allclose(
+                torch.testing.assert_close(
                     stream_outputs[i][s], seq_output[s][:, i : i + 1, :]
                 )

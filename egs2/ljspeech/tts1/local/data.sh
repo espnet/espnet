@@ -26,7 +26,7 @@ fi
 . ./db.sh || exit 1;
 
 if [ -z "${LJSPEECH}" ]; then
-   log "Fill the value of 'JSUT' of db.sh"
+   log "Fill the value of 'LJSPEECH' of db.sh"
    exit 1
 fi
 db_root=${LJSPEECH}

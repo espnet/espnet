@@ -1,12 +1,46 @@
+import copy
 from typing import Iterable, List
 
 from typeguard import check_argument_types
 
 from espnet2.text.abs_tokenizer import AbsTokenizer
 
+LANGUAGES_CODE_MAPPING = {
+    "noinfo": "english",  # default, English
+    "ca": "catalan",
+    "cs": "czech",
+    "cy": "welsh",
+    "de": "german",
+    "en": "english",
+    "eu": "basque",
+    "es": "spanish",
+    "fa": "persian",
+    "fr": "french",
+    "it": "italian",
+    "ja": "japanese",
+    "jpn": "japanese",
+    "ko": "korean",
+    "kr": "korean",
+    "nl": "dutch",
+    "pl": "polish",
+    "pt": "portuguese",
+    "ru": "russian",
+    "tt": "tatar",
+    "zh": "chinese",
+    "zh-TW": "chinese",
+    "zh-CN": "chinese",
+    "zh-HK": "chinese",
+}
+
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
-    def __init__(self, model_type: str):
+    def __init__(
+        self,
+        model_type: str,
+        language: str = "en",
+        sot: bool = False,
+        speaker_change_symbol: str = "<sc>",
+    ):
         assert check_argument_types()
 
         try:
@@ -20,19 +54,36 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
             raise e
 
         self.model = model_type
+
+        self.language = LANGUAGES_CODE_MAPPING.get(language)
+        if self.language is None:
+            raise ValueError("language unsupported for Whisper model")
+
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
-        # TODO(Shih-Lun): should support feeding in
-        #                  different languages (default is en)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=None
+                multilingual=True, language=self.language
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 
+        self.tokenizer = copy.deepcopy(self.tokenizer)
+        # Whisper uses discrete tokens (20ms) to encode timestamp
+        timestamps = [f"<|{i*0.02:.2f}|>" for i in range(0, 1501)]
+        sc = [speaker_change_symbol] if sot else []
+        special_tokens = (
+            self.tokenizer.tokenizer.additional_special_tokens + timestamps + sc
+        )
+        self.tokenizer.tokenizer.add_special_tokens(
+            dict(additional_special_tokens=special_tokens)
+        )
+
     def __repr__(self):
-        return f'{self.__class__.__name__}(model="{self.model}")'
+        return (
+            f"{self.__class__.__name__}(model_type={self.model}, "
+            f"language={self.language})"
+        )
 
     def text2tokens(self, line: str) -> List[str]:
         return self.tokenizer.tokenizer.tokenize(line, add_special_tokens=False)
