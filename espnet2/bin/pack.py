@@ -58,6 +58,7 @@ class VADPackedContents(PackedContents):
     files = ["model_file"]
     yaml_files = ["train_config"]
 
+
 class S2TPackedContents(PackedContents):
     # These names must be consistent with the argument of inference functions
     files = ["s2t_model_file", "lm_file"]
