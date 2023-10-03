@@ -1,7 +1,10 @@
 import sys
-import numpy as np
 from typing import List, Tuple
+
+import numpy as np
+
 from espnet2.utils.eer import ComputeErrorRates, ComputeMinDcf, tuneThresholdfromScore
+
 
 def load_scorefile(scorefile: str) -> Tuple[List[float], List[int]]:
     with open(scorefile, "r") as f:
@@ -13,6 +16,7 @@ def load_scorefile(scorefile: str) -> Tuple[List[float], List[int]]:
         labels.append(int(label))
 
     return scores, labels
+
 
 def main(args):
     scorefile = args[0]
@@ -50,6 +54,7 @@ def main(args):
         f.write(f"trg_mean: {trg_mean}, trg_std: {trg_std}\n")
         f.write(f"nontrg_mean: {nontrg_mean}, nontrg_std: {nontrg_std}\n")
         f.write(f"eer: {eer}, mindcf: {mindcf}")
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

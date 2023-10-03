@@ -1,4 +1,6 @@
-import os, sys
+import os
+import sys
+
 import numpy as np
 import torch
 
@@ -6,8 +8,10 @@ import torch
 def load_embeddings(embd_dir: str) -> dict:
     return dict(np.load(embd_dir))
 
-#def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+
+# def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
 #    return np.dot(a,b)/(norm(a)*norm(b))
+
 
 def main(args):
     embd_dir = args[0]
@@ -24,7 +28,7 @@ def main(args):
     tests = [trial.split("*")[1] for trial in trial_ids]
     assert len(enrolls) == len(tests) == len(labels)
 
-    #scores = [cosine_similarity(embd_dic[e], embd_dic[t]) for e, t in zip(enrolls, tests)]
+    # scores = [cosine_similarity(embd_dic[e], embd_dic[t]) for e, t in zip(enrolls, tests)]
     scores = []
     for e, t in zip(enrolls, tests):
         enroll = torch.from_numpy(embd_dic[e])
@@ -45,5 +49,3 @@ def main(args):
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
-
-
