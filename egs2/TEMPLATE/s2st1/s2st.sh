@@ -912,7 +912,7 @@ if ! "${skip_data_prep}"; then
             log "Saving dev pseudo_labels at ${data_feats}/${valid_set}/text.km.${km_tag}.${tgt_lang}"
 
             # NOTE(jiatong): use the pseudo label with unique to train s2st
-            for dset in ${train_set} ${valid_set}; do
+            for dset in ${train_set} ${valid_set} ${test_sets}; do
                 python pyscripts/feats/unique_pseudo_labels.py \
                     --input_label ${data_feats}/${dset}/text.km.${km_tag}.${tgt_lang} \
                     --output_label ${data_feats}/${dset}/text.km.${km_tag}.${tgt_lang}.unique
