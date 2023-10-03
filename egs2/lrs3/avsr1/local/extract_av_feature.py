@@ -70,7 +70,7 @@ def stacker(feats, stack_order):
 def per_file(f, args, video_process, model, writer):
     id, f = f
     f_name = f"{os.sep}".join(os.path.normpath(f).split(os.sep)[-3:])[:-4]
-    temp_aud_path = os.path.join(f"./data/temp/{args.job}", f_name)
+    temp_aud_path = os.path.join(f"./data/temp/{args.gpu}", f_name)
     if not os.path.exists(os.path.dirname(temp_aud_path)):
         os.makedirs(os.path.dirname(temp_aud_path), exist_ok=True)
     if os.path.exists(os.path.join(args.landmark_path, f_name + ".pkl")):
@@ -138,21 +138,18 @@ def per_file(f, args, video_process, model, writer):
 def main():
     parser = get_parser()
     args = parser.parse_args()
-    torch.cuda.set_device(args.job - 1)
-    output_dir = os.path.split(args.file_list)[0]
-    output_ark = os.path.join(output_dir, f"feature.{args.job}.ark")
-    output_scp = os.path.join(output_dir, f"feature.{args.job}.scp")
+    torch.cuda.set_device(args.gpu - 1)
     writer = file_writer_helper(
-        wspecifier=f"ark,scp:{output_ark},{output_scp}",
+        wspecifier=args.wspecifier,
         filetype="mat",
-        write_num_frames=f"ark,t:{output_dir}/num_frames.{args.job}.txt",
+        write_num_frames=args.write_num_frames,
         compress=False,
     )
 
     if args.model == "base":
         model = FairseqAVHubertEncoder(
             avhubert_url=base_url,
-            avhubert_dir_path=f"./local/pre-trained",
+            avhubert_dir_path=args.pretrained_model_dir,
             encoder_embed_dim=768,
             encoder_layers=12,
             encoder_ffn_embed_dim=3072,
@@ -161,7 +158,7 @@ def main():
     else:
         model = FairseqAVHubertEncoder(
             avhubert_url=large_url,
-            avhubert_dir_path=f"./local/pre-trained",
+            avhubert_dir_path=args.pretrained_model_dir,
             encoder_embed_dim=1024,
             encoder_layers=24,
             encoder_ffn_embed_dim=4096,
@@ -183,17 +180,28 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="Command-line script for preprocessing."
     )
-    parser.add_argument("--file_list", type=str, required=True, help="file_list (scp)")
+    parser.add_argument(
+        "--file_list", type=str, required=True, help="file_list (scp)")
     parser.add_argument(
         "--model", type=str, required=True, help="AV-HuBERT model config"
     )
-    parser.add_argument("--job", type=int, required=True, help="job number")
+    parser.add_argument(
+        "--pretrained_model_dir", type=str, default="./local/pre-trained", help="AV-HuBERT pretrained model path"
+    )
+    parser.add_argument(
+        "--gpu", type=int, required=True, help="GPU number (job - 1)")
     parser.add_argument(
         "--landmark_path",
         type=str,
         default="./local/LRS3_landmarks",
         help="path including landmark files",
     )
+    parser.add_argument(
+        "--write_num_frames", 
+        type=str, 
+        help="specify wspecifer for num frames")
+    parser.add_argument(
+        "wspecifier", type=str, help="Write specifier")
     return parser
 
 

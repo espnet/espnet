@@ -17,15 +17,15 @@ def test_Encoder_forward_backward(extracted, freeze_finetune_updates):
     encoder = FairseqAVHubertEncoder(
         20,
         freeze_finetune_updates=freeze_finetune_updates,
-        encoder_embed_dim=10,
+        encoder_embed_dim=16,
         encoder_layers=2,
-        encoder_ffn_embed_dim=40,
+        encoder_ffn_embed_dim=64,
         encoder_attention_heads=2,
         extracted=extracted,
         pretrain=False,
     )
     if extracted:
-        x = torch.randn(2, 10, 20, requires_grad=True)
+        x = torch.randn(2, 10, 32, requires_grad=True)
         x_lens = torch.LongTensor([10, 5])
         encoder.train()
         y, _, _ = encoder(x, x_lens)
@@ -52,7 +52,7 @@ def test_Encoder_output_size():
         20,
         encoder_embed_dim=16,
         encoder_layers=2,
-        encoder_ffn_embed_dim=40,
+        encoder_ffn_embed_dim=64,
         encoder_attention_heads=2,
         extracted=True,
         pretrain=False,
@@ -65,7 +65,7 @@ def test_Encoder_reload_params():
         20,
         encoder_embed_dim=16,
         encoder_layers=2,
-        encoder_ffn_embed_dim=40,
+        encoder_ffn_embed_dim=64,
         encoder_attention_heads=2,
         extracted=True,
         pretrain=False,
@@ -77,11 +77,10 @@ def test_Encoder_invalid_type():
     with pytest.raises(ValueError):
         FairseqAVHubertEncoder(
             20,
-            encoder_embed_dim=16,
+            encoder_embed_dim=10,
             encoder_layers=2,
             encoder_ffn_embed_dim=40,
             encoder_attention_heads=2,
             extracted=True,
             pretrain=False,
-            freeze_finetune_updates=False,
         )

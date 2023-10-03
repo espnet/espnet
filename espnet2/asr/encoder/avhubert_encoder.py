@@ -54,11 +54,12 @@ def downsample_basic_block_v2(inplanes, outplanes, stride):
 
 def time_masking(xs_pad):
     batch_size = xs_pad.size(0)
+    mask = torch.ones_like(xs_pad)
     for b in range(batch_size):
         width = min(random.randint(5, 20), xs_pad.size(1))
         start = random.randint(0, xs_pad.size(1) - width)
-        xs_pad[b, start : start + width] = 0.0
-    return xs_pad
+        mask[b, start : start + width] = 0.0
+    return xs_pad * mask.to(xs_pad.device)
 
 
 # avhubert_url(noise_large):
