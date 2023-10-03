@@ -27,7 +27,7 @@ log "$0 $*"
 
 if [ -z "${LRS3}" ]; then
     log "Fill the value of 'LRS3' of db.sh"
-    log "Dataset can be download from 'https://mmai.io/datasets/lip_reading/'"
+    log "Dataset can be download from https://mmai.io/datasets/lip_reading/"
     exit 1
 fi
 
@@ -68,9 +68,9 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     # https://github.com/mpc001/Visual_Speech_Recognition_for_Multiple_Languages
     if [ ! -e local/LRS3_landmarks ]; then
         if python -c "import gdown" &> /dev/null; then
-            echo 'requirements installed'
+            echo "requirements installed"
         else
-            echo 'please install required packages by run "cd ../../../tools; installers/install_visual.sh;"'
+            echo "please install required packages by run 'cd ../../../tools; installers/install_visual.sh;'"
             exit 1;
         fi
         echo "Download extracted landmark from https://drive.google.com/uc?id=1QRdOgeHvmKK8t4hsceFVf_BSpidQfUyW"
@@ -85,14 +85,14 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # Extract audio visual features and fuse the two features using pre-trained AV-HuBERT front-ends
     if python -c "import skvideo, skimage, cv2, python_speech_features" &> /dev/null; then
-        echo 'requirements installed'
+        echo "requirements installed"
     else
-        echo 'please install required packages by run "cd ../../../tools; installers/install_visual.sh;"'
+        echo "please install required packages by run 'cd ../../../tools; installers/install_visual.sh;'"
         exit 1;
     fi
 
     tempfile=data/temp
-    trap "rm -rf $tempfile" EXIT
+    trap 'rm -rf $tempfile' EXIT
     for dataset in train val test; do
         if [ -e data/${dataset}/feats.scp ]; then
             continue
