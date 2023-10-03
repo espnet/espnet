@@ -41,7 +41,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         fi
         cp data/${dataset}/video.scp  data/${dataset}/wav.scp
         awk '{print $1, $1}' data/${dataset}/wav.scp > data/${dataset}/utt2spk
-        awk '{print $1, $1}' data/${dataset}/wav.scp > data/${dataset}/spk2utt
+        utils/utt2spk_to_spk2utt.pl data/${dataset}/utt2spk > data/${dataset}/spk2utt || exit 1;
     done
 fi
 

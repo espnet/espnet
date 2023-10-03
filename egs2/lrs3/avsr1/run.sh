@@ -20,8 +20,7 @@ av_hubert_model="large" #select large or base
     --local_data_opts ${av_hubert_model} \
     --token_type bpe \
     --nbpe 1000 \
-    --bpe_train_text "data/${train_set}/text" "$@" \
+    --bpe_train_text "data/${train_set}/text" \
     --use_lm false \
     --asr_config conf/train_avsr_avhubert_${av_hubert_model}.yaml \
-    --ngpu 1 \
-    --gpu_inference false
+    --ngpu 1  "$@"
