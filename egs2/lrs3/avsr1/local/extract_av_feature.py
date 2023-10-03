@@ -180,16 +180,17 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="Command-line script for preprocessing."
     )
-    parser.add_argument(
-        "--file_list", type=str, required=True, help="file_list (scp)")
+    parser.add_argument("--file_list", type=str, required=True, help="file_list (scp)")
     parser.add_argument(
         "--model", type=str, required=True, help="AV-HuBERT model config"
     )
     parser.add_argument(
-        "--pretrained_model_dir", type=str, default="./local/pre-trained", help="AV-HuBERT pretrained model path"
+        "--pretrained_model_dir",
+        type=str,
+        default="./local/pre-trained",
+        help="AV-HuBERT pretrained model path",
     )
-    parser.add_argument(
-        "--gpu", type=int, required=True, help="GPU number (job - 1)")
+    parser.add_argument("--gpu", type=int, required=True, help="GPU number (job - 1)")
     parser.add_argument(
         "--landmark_path",
         type=str,
@@ -197,11 +198,9 @@ def get_parser():
         help="path including landmark files",
     )
     parser.add_argument(
-        "--write_num_frames", 
-        type=str, 
-        help="specify wspecifer for num frames")
-    parser.add_argument(
-        "wspecifier", type=str, help="Write specifier")
+        "--write_num_frames", type=str, help="specify wspecifer for num frames"
+    )
+    parser.add_argument("wspecifier", type=str, help="Write specifier")
     return parser
 
 
