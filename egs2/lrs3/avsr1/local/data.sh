@@ -12,7 +12,6 @@ log() {
 
 . ./db.sh
 . ./path.sh
-. ./cmd.sh
 
 cmd=run.pl
 nj=4 # number of GPUs to extract features
