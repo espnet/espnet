@@ -243,3 +243,101 @@ class SpkTrainer(Trainer):
         # added to reduce GRAM usage. May have minor speed boost when
         # this line is commented in case GRAM is not fully used.
         torch.cuda.empty_cache()
+
+    @classmethod
+    @torch.no_grad()
+    def extract_embed(
+        cls,
+        model: torch.nn.Module,
+        iterator: Iterable[Dict[str, torch.Tensor]],
+        reporter: SubReporter,
+        options: TrainerOptions,
+        distributed_option: DistributedOption,
+        output_dir: str,
+        average: bool = False,
+    ) -> None:
+        assert check_argument_types()
+        ngpu = options.ngpu
+        no_forward_run = options.no_forward_run
+        distributed = distributed_option.distributed
+
+        model.eval()
+
+        scores = []
+        labels = []
+        spk_embd_dic = {}
+        bs = 0
+
+        # [For distributed] Because iteration counts are not always equals between
+        # processes, send stop-flag to the other processes if iterator is finished
+        iterator_stop = torch.tensor(0).to("cuda" if ngpu > 0 else "cpu")
+
+        # fill dictionary with speech samples
+        utt_id_list = []
+        speech_list = []
+        task_token = None
+        for utt_id, batch in iterator:
+            bs = max(bs, len(utt_id))
+            if "task_tokens" in batch:
+                task_token = batch["task_tokens"][0]
+
+            assert isinstance(batch, dict), type(batch)
+            for _utt_id, _speech, _speech2 in zip(
+                utt_id, batch["speech"], batch["speech2"]
+            ):
+                _utt_id_1, _utt_id_2 = _utt_id.split("*")
+                if _utt_id_1 not in utt_id_list:
+                    utt_id_list.append(_utt_id_1)
+                    speech_list.append(
+                        to_device(_speech, "cuda" if ngpu > 0 else "cpu")
+                    )
+                if _utt_id_2 not in utt_id_list:
+                    utt_id_list.append(_utt_id_2)
+                    speech_list.append(
+                        to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
+                    )
+        logging.info(f"# utts: {len(utt_id_list)}")
+        if distributed:
+            rank = torch.distributed.get_rank()
+            world_size = torch.distributed.get_world_size()
+            utt_id_list = utt_id_list[rank::world_size]
+            speech_list = speech_list[rank::world_size]
+        else:
+            rank = ""
+            world_size = 1
+        logging.info(f"bs, {bs}")
+
+        # extract speaker embeddings.
+        n_utt = len(utt_id_list)
+        logging.info(f"# utts: {n_utt}")
+        for ii in range(0, n_utt, bs//world_size):
+            _utt_ids = utt_id_list[ii : ii + bs//world_size]
+            _speechs = speech_list[ii : ii + bs//world_size]
+            _speechs = torch.stack(_speechs, dim=0)
+            org_shape = (_speechs.size(0), _speechs.size(1))
+            _speechs = _speechs.flatten(0, 1)
+            _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
+
+            if task_token is None:
+                task_tokens = None
+            else:
+                task_tokens = to_device(
+                    task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu"
+                ).unsqueeze(1)
+            spk_embds = model(
+                speech=_speechs,
+                spk_labels=None,
+                extract_embd=True,
+                task_tokens=task_tokens,
+            )
+            spk_embds = F.normalize(spk_embds, p=2, dim=1)
+            spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
+
+            for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
+                if average:
+                    spk_embd_dic[_utt_id] = _spk_embd.mean(0).detach().cpu().numpy()
+                else:
+                    spk_embd_dic[_utt_id] = _spk_embd.detach().cpu().numpy()
+
+        np.savez(output_dir+f"/embeddings{rank}", **spk_embd_dic)
+

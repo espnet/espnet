@@ -39,8 +39,10 @@ gpu_inference=false   # Whether to perform gpu decoding.
 dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
 python=python3        # Specify python to execute espnet commands.
-fold_length=120000    # fold_length for speech data during enhancement training
-inference_config=conf/decode.yaml # Inference configuration
+fold_length=120000    # fold_length for speech data during enhancement training.
+inference_config=conf/decode.yaml # Inference configuration.
+score_norm=true       # Apply score normalization in inference.
+qmf_func=true         # Apply quality measurement based calibration in inference.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh
@@ -144,7 +146,7 @@ elif [ "${feats_type}" = raw_copy  ]; then
     data_feats=${dumpdir}/raw_copy
 elif [ "${feats_type}" = fbank  ]; then
     data_feats=${dumpdir}/fbank
-elif [ "${feats_type}" == extracted  ]; then
+elif [ "${feats_type}" = extracted  ]; then
     data_feats=${dumpdir}/extracted
 else
     log "${help_message}"
@@ -193,7 +195,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
         _scp_list="wav.scp "
 
         for factor in ${speed_perturb_factors}; do
-            if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
+            if ${python} -c "assert ${factor} != 1.0" 2>/dev/null; then
                 scripts/utils/perturb_enh_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
                 _dirs+="data/${train_set}_sp${factor} "
             else
@@ -212,10 +214,6 @@ if [ -n "${speed_perturb_factors}" ]; then
     spk_stats_dir="${spk_stats_dir}_sp"
     spk_exp="${spk_exp}_sp"
 fi
-
-echo ${speed_perturb_factors}
-echo ${spk_stats_dir}
-exit()
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Format wav.scp: data/ -> ${data_feats}"
@@ -443,26 +441,26 @@ fi
 
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "Stage 6: Inference."
+    echo "Stage 6: Speaker embedding extraction."
 
     infer_exp="${spk_exp}/inference"
     _inference_dir=${data_feats}/${test_sets}
-    log "Spk inference started... log: '${infer_exp}/inference.log'"
+    log "Extracting speaker embeddings for inference... log: '${infer_exp}/spk_embed_extraction.log'"
     if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
         # SGE can't include "/" in a job name
         jobname="$(basename ${infer_exp})"
     else
-        jobname="${infer_exp}/inference.log"
+        jobname="${infer_exp}/spk_embed_extraction.log"
     fi
 
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
-        --log ${infer_exp}/inference.log \
+        --log ${infer_exp}/spk_embed_extraction.log \
         --ngpu ${ngpu} \
         --num_nodes ${num_nodes} \
         --init_file_prefix ${spk_exp}/.dist_init_ \
         --multiprocessing_distributed true -- \
-        ${python} -m espnet2.bin.spk_inference \
+        ${python} -m espnet2.bin.spk_embed_extract \
             --use_preprocessor true \
             --output_dir ${infer_exp} \
             --data_path_and_name_and_type ${_inference_dir}/trial.scp,speech,sound \
@@ -474,4 +472,62 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
             --spk_train_config "${spk_exp}/config.yaml" \
             --spk_model_file "${spk_exp}"/${inference_model} \
             ${spk_args}
+
+    # extract embeddings for cohort set
+    if [ "$score_norm" == true  ] || [ "$qmf_func" == true  ]; then
+        _spk_train_dir="${data_feats}/${train_set}"
+        if [ ! -e "${_spk_train_dir}/cohort.scp"  ]; then
+            pyscripts/utils/generate_cohort_list.py ${num_cohort_spk} ${num_utt_per_cohort_spk} ${_spk_train_dir}/cohort.scp
+        fi
+        ${python} -m espnet2.bin.launch \
+            --cmd "${cuda_cmd} --name ${jobname}" \
+            --log ${infer_exp}/spk_embed_extraction.log \
+            --ngpu ${ngpu} \
+            --num_nodes ${num_nodes} \
+            --init_file_prefix ${spk_exp}/.dist_init_ \
+            --multiprocessing_distributed true -- \
+            ${python} -m espnet2.bin.spk_embed_extract \
+                --use_preprocessor true \
+                --output_dir ${infer_exp} \
+                --data_path_and_name_and_type ${_inference_dir}/trial.scp,speech,sound \
+                --data_path_and_name_and_type ${_inference_dir}/trial2.scp,speech2,sound \
+                --data_path_and_name_and_type ${_inference_dir}/trial_label,spk_labels,text \
+                --shape_file ${spk_stats_dir}/valid/speech_shape \
+                --fold_length ${fold_length} \
+                --config ${inference_config} \
+                --spk_train_config "${spk_exp}/config.yaml" \
+                --spk_model_file "${spk_exp}"/${inference_model} \
+                ${spk_args}
+
+    fi
+fi
+
+if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
+    echo "Stage 7: Score calculation and post-processing."
+
+    infer_exp="${spk_exp}/inference"
+    _inference_dir=${data_feats}/${test_sets}
+
+    # get scores for the test set
+    ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
+
+    if [ "$score_norm" = false ] && [ "$qmf_func" = false  ]; then
+        ln -s ${test_sets}_raw_trial_scores ${infer_exp}/${test_sets}_final_trial_scores
+    else
+        ln -s ${test_sets}_raw_trial_scores ${infer_exp}/${test_sets}_current_trial_scores
+    fi
+
+    # apply score normalization
+
+    # apply QMF calibration
+fi
+
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    echo "Stage 8: Calculate metrics."
+    infer_exp="${spk_exp}/inference"
+    _inference_dir=${data_feats}/${test_sets}
+
+    ${python} pyscripts/utils/calculate_eer_mindcf.py ${infer_exp}/${test_sets}_final_trial_scores ${infer_exp}/${test_sets}_metrics
+
+    echo $(cat ${infer_exp}/${test_sets}_metrics)
 fi
