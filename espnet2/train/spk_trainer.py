@@ -310,9 +310,9 @@ class SpkTrainer(Trainer):
         # extract speaker embeddings.
         n_utt = len(utt_id_list)
         logging.info(f"# utts: {n_utt}")
-        for ii in range(0, n_utt, bs//world_size):
-            _utt_ids = utt_id_list[ii : ii + bs//world_size]
-            _speechs = speech_list[ii : ii + bs//world_size]
+        for ii in range(0, n_utt, bs // world_size):
+            _utt_ids = utt_id_list[ii : ii + bs // world_size]
+            _speechs = speech_list[ii : ii + bs // world_size]
             _speechs = torch.stack(_speechs, dim=0)
             org_shape = (_speechs.size(0), _speechs.size(1))
             _speechs = _speechs.flatten(0, 1)
@@ -339,5 +339,4 @@ class SpkTrainer(Trainer):
                 else:
                     spk_embd_dic[_utt_id] = _spk_embd.detach().cpu().numpy()
 
-        np.savez(output_dir+f"/embeddings{rank}", **spk_embd_dic)
-
+        np.savez(output_dir + f"/embeddings{rank}", **spk_embd_dic)

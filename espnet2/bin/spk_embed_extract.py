@@ -1,16 +1,15 @@
 #!/usr/bin/env python3
-import os
 import argparse
 import logging
+import os
 import sys
+from glob import glob
 
 import humanfriendly
 import numpy as np
 import torch
-from typeguard import check_argument_types, check_return_type
 from torch.multiprocessing.spawn import ProcessContext
-from glob import glob
-
+from typeguard import check_argument_types, check_return_type
 
 from espnet2.samplers.build_batch_sampler import BATCH_TYPES
 from espnet2.tasks.spk import SpeakerTask
@@ -127,17 +126,17 @@ def extract_embed(args):
         )
 
     if not distributed_option.distributed or distributed_option.dist_rank == 0:
-        #logging.info(reporter.log_message())
+        # logging.info(reporter.log_message())
 
         # Combine dictionaries into one
-        npzs = glob(args.output_dir+"/embeddings*.npz")
+        npzs = glob(args.output_dir + "/embeddings*.npz")
         embd_dic = {}
         for npz in npzs:
             tmp_dic = dict(np.load(npz))
             embd_dic.update(tmp_dic)
         set_name = args.data_path_and_name_and_type[0][0].split("/")[-2]
         logging.info(f"set {set_name}")
-        np.savez(args.output_dir+f"/{set_name}_embeddings", **embd_dic)
+        np.savez(args.output_dir + f"/{set_name}_embeddings", **embd_dic)
         for npz in npzs:
             os.remove(npz)
 
@@ -647,6 +646,7 @@ def main(cmd=None):
         # Loop on join until it returns True or raises an exception.
         while not ProcessContext(processes, error_queues).join():
             pass
+
 
 if __name__ == "__main__":
     main()
