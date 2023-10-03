@@ -50,7 +50,7 @@ def load_video(data_filename):
 def stacker(feats, stack_order):
     """
     Concatenating consecutive audio (100 fps) frames
-    To match with video frame rate (25 fps), 
+    To match with video frame rate (25 fps),
     the 4 audio frames are concatenated in spectral dimension.
     T' = T / 4, F' = F * 4
     Args:
