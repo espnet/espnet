@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import logging
-import os
 import sys
 from pathlib import Path
 
@@ -10,15 +9,12 @@ from typeguard import check_argument_types
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet.utils.cli_utils import get_commandline_args
 
-dirname = os.path.dirname(__file__)
-
 
 def export_vocabulary(
     output: str,
     whisper_model: str,
     language: str,
     log_level: str,
-    add_token_file_name: str = "none",
     sot_asr: bool = False,
     speaker_change_symbol: str = "<sc>",
 ):
@@ -54,14 +50,6 @@ def export_vocabulary(
         tokenizer = whisper.tokenizer.get_tokenizer(
             multilingual=True, language=language
         )
-        # import pdb;pdb.set_trace()
-        if add_token_file_name != "none":
-            _added_tokens = []
-            with open(add_token_file_name) as f:
-                lines = f.readlines()
-                for line in lines:
-                    _added_tokens.append(line.rstrip())
-            tokenizer.tokenizer.add_tokens(_added_tokens)
     else:
         raise ValueError("tokenizer unsupported:", whisper_model)
 
@@ -107,12 +95,6 @@ def get_parser() -> argparse.ArgumentParser:
         type=str,
         required=True,
         help="Whisper model type",
-    )
-    parser.add_argument(
-        "--add_token_file_name",
-        type=str,
-        default="none",
-        help="File name for added tokens",
     )
     parser.add_argument(
         "--language",
