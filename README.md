@@ -882,4 +882,10 @@ Also, we can use this tool to provide token-level segmentation information if we
   journal={arXiv preprint arXiv:2211.17196},
   year={2022}
 }
+@article{peng2023reproducing,
+  title={Reproducing Whisper-Style Training Using an Open-Source Toolkit and Publicly Available Data},
+  author={Peng, Yifan and Tian, Jinchuan and Yan, Brian and Berrebbi, Dan and Chang, Xuankai and Li, Xinjian and Shi, Jiatong and Arora, Siddhant and Chen, William and Sharma, Roshan and others},
+  journal={arXiv preprint arXiv:2309.13876},
+  year={2023}
+}
 ```
