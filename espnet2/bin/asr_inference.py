@@ -422,7 +422,9 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        text_prev: Optional[Union[torch.Tensor, np.ndarray, str]] = None,
     ) -> Union[
         ListOfHypothesis,
         Tuple[
@@ -433,12 +435,24 @@ class Speech2Text:
         """Inference
 
         Args:
-            data: Input speech data
+            speech: Input speech data
+            text_prev: Previous text used as condition (optional)
         Returns:
             text, token, token_int, hyp
 
         """
         assert check_argument_types()
+
+        # Prepare hyp_primer
+        if text_prev is not None:
+            if isinstance(text_prev, str):
+                hyp_primer = self.converter.tokens2ids(
+                    self.tokenizer.text2tokens(text_prev)
+                )
+            else:
+                hyp_primer = text_prev.tolist()
+
+            self.beam_search.set_hyp_primer(hyp_primer)
 
         # Input as audio signal
         if isinstance(speech, np.ndarray):

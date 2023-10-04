@@ -127,6 +127,8 @@ use_streaming=false # Whether to use streaming decoding
 
 use_maskctc=false # Whether to use maskctc decoding
 
+use_text_prev=false # Whether to use the prefix text prompt
+
 batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_config= # Config for decoding.
@@ -252,6 +254,7 @@ Options:
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
     --use_streaming       # Whether to use streaming decoding (default="${use_streaming}").
     --use_maskctc         # Whether to use maskctc decoding (default="${use_streaming}").
+    --use_text_prev       # Whether to use the prefix text prompt (default="${use_text_prev}").
 
     # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
@@ -356,6 +359,19 @@ else
         ref_text_names_str+="text_spk${n} "
     done
 fi
+
+# Use prefix prompt if needed, file name has to be always "text_prev"
+utt_extra_files_str=""
+if ${use_text_prev}; then
+    utt_extra_files_str+="text_prev"
+fi
+
+# ref_text_files_str and utt_extra_files_str usually go together
+text_files_str="${ref_text_files_str} ${utt_extra_files_str}"
+if [[ -z ${text_files_str// /} ]]; then
+    unset ${text_files_str}
+fi
+
 # shellcheck disable=SC2206
 ref_text_files=(${ref_text_files_str// / })
 # shellcheck disable=SC2206
@@ -571,20 +587,20 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [[:space:]]2[[:space:]] ]]; then
     if [ -n "${speed_perturb_factors}" ]; then
-       log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
-       for factor in ${speed_perturb_factors}; do
-           if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
+        log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
+        for factor in ${speed_perturb_factors}; do
+            if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                scripts/utils/perturb_data_dir_speed.sh \
-                   ${ref_text_files_str:+--utt_extra_files "${ref_text_files_str}"} \
-                   "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
+                    ${text_files_str:+--utt_extra_files "${text_files_str}"} \
+                    "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
                _dirs+="data/${train_set}_sp${factor} "
-           else
-               # If speed factor is 1, same as the original
-               _dirs+="data/${train_set} "
-           fi
+            else
+                # If speed factor is 1, same as the original
+                _dirs+="data/${train_set} "
+            fi
         done
         utils/combine_data.sh \
-            ${ref_text_files_str:+--extra_files "${ref_text_files_str}"} \
+            ${text_files_str:+--extra_files "${text_files_str}"} \
             "data/${train_set}_sp" ${_dirs}
     else
        log "Skip stage 2: Speed perturbation"
@@ -624,6 +640,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             fi
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
             rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp,reco2file_and_channel,reco2dur}
+
+            # Copy extra text files
+            if ${use_text_prev}; then
+                [ -f data/${dset}/text_prev ] && cp data/${dset}/text_prev ${data_feats}${_suf}/${dset}
+            fi
 
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
@@ -686,6 +707,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 fi
             fi
 
+            # Copy extra text files
+            if ${use_text_prev}; then
+                [ -f data/${dset}/text_prev ] && cp data/${dset}/text_prev ${data_feats}${_suf}/${dset}
+            fi
+
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
                 # shellcheck disable=SC2068
@@ -713,6 +739,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             fi
             # 1. Copy datadir
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+
+            # Copy extra text files
+            if ${use_text_prev}; then
+                [ -f data/${dset}/text_prev ] && cp data/${dset}/text_prev ${data_feats}${_suf}/${dset}
+            fi
 
             # Copy reference text files if there is more than 1 reference
             if [ ${#ref_text_files[@]} -gt 1 ]; then
@@ -763,6 +794,11 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                 fi
             fi
             utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_feats}${_suf}/${dset}"
+
+            # Copy extra text files
+            if ${use_text_prev}; then
+                [ -f data/${dset}/text_prev ] && cp data/${dset}/text_prev ${data_feats}${_suf}/${dset}
+            fi
 
             # Copy reference text files if there is more than 1 reference
             # shellcheck disable=SC2068
@@ -843,6 +879,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
         # Remove empty text
         # shellcheck disable=SC2068
+        if ${use_text_prev}; then
+            <"${data_feats}/org/${dset}/text_prev" \
+                awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/text_prev"
+        fi
         for ref_txt in ${ref_text_files[@]}; do
             <"${data_feats}/org/${dset}/${ref_txt}" \
                 awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/${dset}/${ref_txt}"
@@ -850,7 +890,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
         # fix_data_dir.sh leaves only utts which exist in all files
         utils/fix_data_dir.sh \
-            ${ref_text_files_str:+--utt_extra_files "${ref_text_files_str}"} \
+            ${text_files_str:+--utt_extra_files "${text_files_str}"} \
             "${data_feats}/${dset}"
     done
 
@@ -1250,6 +1290,11 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
         _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
     done
+    if ${use_text_prev}; then
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text_prev,text_prev,text "
+        _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/text_prev,text_prev,text "
+    fi
+
 
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -1281,6 +1326,15 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
 
     # Append the num-tokens at the last dimensions. This is used for batch-bins count
     # shellcheck disable=SC2068
+    if ${use_text_prev}; then
+        <"${asr_stats_dir}/train/text_prev_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${asr_stats_dir}/train/text_prev_shape.${token_type}"
+
+        <"${asr_stats_dir}/valid/text_prev_shape" \
+            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+            >"${asr_stats_dir}/valid/text_prev_shape.${token_type}"
+    fi
     for ref_txt in ${ref_text_names[@]}; do
         <"${asr_stats_dir}/train/${ref_txt}_shape" \
             awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
@@ -1338,14 +1392,15 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         # so the memory footprint can be limited to the memory required for each dataset.
 
         _split_dir="${asr_stats_dir}/splits${num_splits_asr}"
+        _all_scps="${_asr_train_dir}/${_scp} ${_asr_train_dir}/text ${asr_stats_dir}/train/speech_shape ${asr_stats_dir}/train/text_shape.${token_type} "
+        if ${use_text_prev}; then
+            _all_scps+="${_asr_train_dir}/text_prev ${asr_stats_dir}/train/text_prev_shape.${token_type}"
+        fi
+
         if [ ! -f "${_split_dir}/.done" ]; then
             rm -f "${_split_dir}/.done"
             ${python} -m espnet2.bin.split_scps \
-              --scps \
-                  "${_asr_train_dir}/${_scp}" \
-                  "${_asr_train_dir}/text" \
-                  "${asr_stats_dir}/train/speech_shape" \
-                  "${asr_stats_dir}/train/text_shape.${token_type}" \
+              --scps ${_all_scps} \
               --num_splits "${num_splits_asr}" \
               --output_dir "${_split_dir}"
             touch "${_split_dir}/.done"
@@ -1387,6 +1442,11 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
         _opts+="--valid_shape_file ${asr_stats_dir}/valid/${ref_text_names[$i]}_shape.${token_type} "
     done
+
+    if ${use_text_prev}; then
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text_prev,text_prev,text "
+        _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/text_prev,text_prev,text "
+    fi
 
     log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 11 using this script"
     mkdir -p "${asr_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${asr_exp}/run.sh"; chmod +x "${asr_exp}/run.sh"
