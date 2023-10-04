@@ -232,6 +232,14 @@ Demonstration
   - wav2vec-U 2.0 (in progress)
 - Support PrefixBeamSearch and K2-based WFST decoding
 
+### S2T: Speech-to-text with Whisper-style multilingual multitask models
+- Reproduces Whisper-style training from scratch using public data: [OWSM](https://arxiv.org/abs/2309.13876)
+- Supports multiple tasks in a single model
+  - Multilingual speech recognition
+  - Any-to-any speech translation
+  - Language identification
+  - Utterance-level timestamp prediction (segmentation)
+
 ### DNN Framework
 - Flexible network architecture thanks to Chainer and PyTorch
 - Flexible front-end processing thanks to [kaldiio](https://github.com/nttcslab-sp/kaldiio) and HDF5 support
