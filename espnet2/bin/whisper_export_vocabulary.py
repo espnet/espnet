@@ -44,6 +44,7 @@ def export_vocabulary(
     language = LANGUAGES_CODE_MAPPING.get(language)
     if language is None:
         raise ValueError("language unsupported for Whisper model")
+
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
     elif whisper_model == "whisper_multilingual":
