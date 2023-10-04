@@ -37,12 +37,14 @@ fi
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Download Data to ${WAV2GLOSS}"
 
-    git lfs clone https://huggingface.co/datasets/taiqihe/cocoon-gloss ${WAV2GLOSS}
+    git lfs clone https://huggingface.co/datasets/wav2gloss/fieldwork ${WAV2GLOSS}
 
     # untar everything
     for f in ${WAV2GLOSS}/data/*/audio; do
         for split in train dev test; do
-            tar -xvf "${f}/${split}.tar.gz" -C "${f}"
+            if [ -f "${f}/${split}.tar.gz" ]; then
+                tar -xvf "${f}/${split}.tar.gz" -C "${f}"
+            fi
         done
     done
 fi
@@ -51,6 +53,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Preparing Data for wav2gloss"
 
     python3 local/data_prep.py --source ${WAV2GLOSS} --langs ${langs} --tasks ${tasks}
+    find data -type f -empty -delete
+    find data -type d -empty -delete
     for f in data/w2g_*; do
         utils/fix_data_dir.sh --utt_extra_files text_prev ${f}
     done
