@@ -68,12 +68,12 @@ for x in dir_dict:
                     else:
                         utt_id_dict[utt_id] = line
                         break
-
+            wav_path1 = str(wav_path).replace('"', '\\"')
             wav = (
-                f'"| sox {str(wav_path)} -r 16k -t wav'
-                + f' trim {str(offset)} {str(duration)}"'
+                f' "{wav_path1}" -r 16k -t wav -'
+                + f" trim {str(offset)} {str(duration)} | "
             )
 
-            wav_scp_f.write(utt_id + "  sox " + wav + " -t wav - |\n")
+            wav_scp_f.write(utt_id + "  sox " + wav + "\n")
             text_f.write(utt_id + " " + cls + "\n")
             utt2spk_f.write(utt_id + " " + utt_id + "\n")

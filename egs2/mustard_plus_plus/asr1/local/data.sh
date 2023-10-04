@@ -20,7 +20,6 @@ log "$0 $*"
 . ./db.sh
 . ./path.sh
 . ./cmd.sh
-MUSTARD_PLUS=/scratch/bbjs/shared/corpora/Mustard_plus_plus
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."

@@ -32,9 +32,8 @@ if [ -z "${ASVSpoof_CMD}" ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${ASVSpoof_CMD}/README.LA.txt" ]; then
+    if [ ! -e "${ASVSpoof_CMD}/README.txt" ]; then
 	    echo "stage 1: Download data to ${ASVSpoof_CMD}"
-        git clone https://github.com/kolesov93/lt_speech_commands.git ${LT_SPEECH_CMD}
     else
         log "stage 1: ${ASVSpoof_CMD}/README.LA.txt is already existing. Skip data downloading"
     fi

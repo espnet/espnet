@@ -20,7 +20,6 @@ log "$0 $*"
 . ./db.sh
 . ./path.sh
 . ./cmd.sh
-ESC50=/scratch/bbjs/shared/corpora/esc_master/ESC-50-master
 
 if [ $# -ne 0 ]; then
     log "Error: No positional arguments are required."

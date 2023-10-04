@@ -12,7 +12,7 @@ from pathlib import Path
 
 from torch.utils.data import random_split
 
-if len(sys.argv) != 2:
+if len(sys.argv) != 3:
     print("Usage: python data_prep.py [mustard_root] [speech_prompt_v2_root]")
     sys.exit(1)
 mustard_root = sys.argv[1]

@@ -33,9 +33,7 @@ for x in dir_dict:
     ) as utt2spk_f, open(os.path.join("data", x, "text"), "w") as text_f:
         dir_list = os.listdir(voxceleb_root + dir_dict[x])
         for dir_name in dir_list:
-            print(dir_name)
             if dir_name == "txt":
-                print("yes")
                 continue
             file_list = os.listdir(voxceleb_root + dir_dict[x] + "/" + dir_name)
             for dir1 in file_list:
