@@ -77,19 +77,17 @@ def write_dir(target_dir, metadata):
 
 def merge_dir(target_dir, source_dirs):
     for fname in ("wav.scp", "text", "utt2spk", "lm.txt", "text_prev"):
-        target = open(target_dir / fname, "w", encoding="utf-8")
-        count = 0
-        for d in source_dirs:
-            try:
-                with open(d / fname, encoding="utf-8") as f:
-                    for line in f:
-                        if fname == "lm.txt":
-                            target.write(f"{count:010}{line[10:]}")
-                        else:
-                            target.write(line)
-                        count += 1
-            except FileNotFoundError:
-                continue
+        with open(target_dir / fname, "w", encoding="utf-8") as target:
+            count = 0
+            for d in source_dirs:
+                if (d / fname).exists():
+                    with open(d / fname, encoding="utf-8") as f:
+                        for line in f:
+                            if fname == "lm.txt":
+                                target.write(f"{count:010}{line[10:]}")
+                            else:
+                                target.write(line)
+                            count += 1
     print(f"{target_dir}: merged {source_dirs}")
 
 
@@ -111,17 +109,12 @@ if __name__ == "__main__":
 
     for lang in args.langs:
         for split in ("train", "dev", "test"):
-            try:
-                metadata = json.load(
-                    open(
-                        args.source_dir / "data" / lang / f"{split}.json", encoding="utf-8"
-                    )
-                )
+            metafile = args.source_dir / "data" / lang / f"{split}.json"
+            if metafile.exists():
+                metadata = json.load(open(metafile, encoding="utf-8"))
                 for task in args.tasks:
                     target_dir = build_dir(task, lang, split)
                     write_dir(target_dir, metadata)
-            except FileNotFoundError:
-                continue
 
     for split in ("train", "dev"):
         for lang in args.langs:
