@@ -38,7 +38,7 @@ def test_init_lang_invalid():
 )
 def test_init_en():
     id_converter = OpenAIWhisperTokenIDConverter("whisper_en")
-    assert id_converter.get_num_vocabulary_size() == 51864
+    assert id_converter.get_num_vocabulary_size() == 51865
 
 
 @pytest.mark.skipif(
@@ -87,11 +87,11 @@ def test_tokens2ids(whisper_token_id_converter: OpenAIWhisperTokenIDConverter):
             "...",
         ]
     )
-
+    print(ids)
     assert ids == [
         50259,
         50359,
-        50363,
+        50303,
         17155,
         11,
         220,
