@@ -1,6 +1,6 @@
 # ESPnet2 S2T1 Recipe TEMPLATE
 
-This is a template of S2T1 recipe for ESPnet2. It is based on ASR1, but follows the style of OpenAI's Whisper to train a single encoder-decoder model for various speech processing tasks. 
+This is a template of S2T1 recipe for ESPnet2. It is based on ASR1, but follows the style of OpenAI's Whisper to train a single encoder-decoder model for various speech processing tasks.
 Specifically, it uses special tokens as task specifiers (e.g., transcribe, translate) or prediction targets (e.g., language ID) so that a single model can perform multiple tasks for multiple languages. It further supports conditional generation where the condition is the previous sentence within the long talk.
 
 More details can be found in our [OWSM](https://arxiv.org/abs/2309.13876) paper (ASRU 2023).
