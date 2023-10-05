@@ -30,8 +30,6 @@ nbpe=500
 ./asr.sh \
     --ngpu 4 \
     --lang "${lang}" \
-    --stage 11 \
-    --stop_stage 100 \
     --local_data_opts "--lang ${lang}" \
     --use_lm true \
     --lm_config "${lm_config}" \
