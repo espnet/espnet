@@ -25,8 +25,6 @@ else
   nbpe=150
 fi
 
-nbpe=500
-
 ./asr.sh \
     --ngpu 4 \
     --lang "${lang}" \
