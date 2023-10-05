@@ -77,7 +77,7 @@ def test_Speech2Text(asr_config_file, lm_config_file):
     speech2text = Speech2Text(
         asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
     )
-    speech = np.random.randn(100000)
+    speech = np.random.randn(1000)
     results = speech2text(speech)
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)
@@ -95,7 +95,7 @@ def test_Speech2Text_quantized(asr_config_file, lm_config_file):
         quantize_asr_model=True,
         quantize_lm=True,
     )
-    speech = np.random.randn(100000)
+    speech = np.random.randn(1000)
     results = speech2text(speech)
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)
@@ -287,7 +287,7 @@ def test_Speech2Text_hugging_face(
         hugging_face_decoder_conf={"num_beams": 2, "max_new_tokens": 4},
         ctc_weight=0.0,
     )
-    speech = np.random.randn(100000)
+    speech = np.random.randn(1000)
     results = speech2text(speech)
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)
@@ -335,7 +335,7 @@ def test_Speech2Text_hugging_face_causal_lm(
         hugging_face_decoder_conf={"num_beams": 2, "max_new_tokens": 4},
         ctc_weight=0.0,
     )
-    speech = np.random.randn(100000)
+    speech = np.random.randn(1000)
     results = speech2text(speech)
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)
@@ -413,7 +413,7 @@ def test_Speech2Text_interctc(asr_config_file, lm_config_file, encoder_class):
     speech2text = Speech2Text(
         asr_train_config=asr_config_file, lm_train_config=lm_config_file, beam_size=1
     )
-    speech = np.random.randn(100000)
+    speech = np.random.randn(1000)
     results, interctc_res = speech2text(speech)
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)
