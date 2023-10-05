@@ -98,7 +98,6 @@ def extract_embed(args):
     args = argparse.Namespace(**merged_args)
 
     # 4. Build data-iterator
-    logging.info(f"c, {distributed_option}")
     distributed_option.distributed = False
     iterator = SpeakerTask.build_iter_factory(
         args=args,
@@ -106,9 +105,7 @@ def extract_embed(args):
         mode="valid",
     )
     distributed_option.distributed = True
-    logging.info(f"b, {iterator}")
     loader = iterator.build_iter(0)
-    logging.info(f"a, {len(loader), {loader}}")
 
     trainer_options = SpeakerTask.trainer.build_options(args)
     reporter = Reporter()
@@ -125,17 +122,19 @@ def extract_embed(args):
             average=args.average_embd,
         )
 
+    if distributed_option.distributed:
+        torch.distributed.barrier()
     if not distributed_option.distributed or distributed_option.dist_rank == 0:
         # logging.info(reporter.log_message())
 
         # Combine dictionaries into one
         npzs = glob(args.output_dir + "/embeddings*.npz")
+        logging.info(f"{npzs}")
         embd_dic = {}
         for npz in npzs:
             tmp_dic = dict(np.load(npz))
             embd_dic.update(tmp_dic)
         set_name = args.data_path_and_name_and_type[0][0].split("/")[-2]
-        logging.info(f"set {set_name}")
         np.savez(args.output_dir + f"/{set_name}_embeddings", **embd_dic)
         for npz in npzs:
             os.remove(npz)
@@ -238,6 +237,48 @@ def get_parser():
         type=int_or_none,
         default=None,
         help="The number of input dimension of the feature",
+    )
+    group.add_argument(
+        "--n_spk",
+        type=int,
+        default=5994,
+        help="The number of speakers in score norm",
+    )
+    group.add_argument(
+        "--n_utt_per_spk",
+        type=int,
+        default=10,
+        help="The number of utterances per speaker in score norm",
+    )
+    group.add_argument(
+        "--utt_select_sec",
+        type=int,
+        default=8,
+        help="Minimum duration for including the utt in cohort set in score norm",
+    )
+    group.add_argument(
+        "--average_spk",
+        type=str2bool,
+        default=False,
+        help="whether to average cohort embeds per speaker in score norm",
+    )
+    group.add_argument(
+        "--adaptive_cohort_size",
+        type=int,
+        default=400,
+        help="top-k cohort size in score norm",
+    )
+    group.add_argument(
+        "--qmf_dur_thresh",
+        type=int,
+        default=6,
+        help="threshold of duration to be considered as long in qmf trainset",
+    )
+    group.add_argument(
+        "--qmf_n_trial_per_condition",
+        type=int,
+        default=5000,
+        help="number of trials per condition in qmf trainset",
     )
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
     group.add_argument("--average_embd", type=str2bool, default=False)

@@ -3,10 +3,23 @@ import sys
 
 import numpy as np
 import torch
+from collections import OrderedDict
 
 
 def load_embeddings(embd_dir: str) -> dict:
-    return dict(np.load(embd_dir))
+    embd_dic = OrderedDict(np.load(embd_dir))
+    #keys = list(embd_dic.keys())
+    #values = torch.from_numpy(np.stack(list(embd_dic.values()), axis=0))
+    #values = torch.nn.functional.normalize(values, p=2, dim=1).numpy()
+    embd_dic2 = {}
+    for k, v in embd_dic.items():
+        if len(v.shape) == 1:
+            v = v[None, :]
+        embd_dic2[k] = torch.nn.functional.normalize(torch.from_numpy(v), p=2, dim=1).numpy()
+
+
+    #return {k: v for k, v in zip(keys, values)}
+    return embd_dic2
 
 
 # def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:

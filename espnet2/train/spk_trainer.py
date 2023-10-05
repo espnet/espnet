@@ -274,10 +274,19 @@ class SpkTrainer(Trainer):
 
         # fill dictionary with speech samples
         utt_id_list = []
+        utt_id_whole_list = []
         speech_list = []
+        task_token_list = []
         task_token = None
+        if distributed:
+            rank = torch.distributed.get_rank()
+            world_size = torch.distributed.get_world_size()
+        else:
+            rank = 0
+            world_size = 1
+        idx = 0
         for utt_id, batch in iterator:
-            bs = max(bs, len(utt_id))
+            bs = max(bs, len(utt_id) // world_size)
             if "task_tokens" in batch:
                 task_token = batch["task_tokens"][0]
 
@@ -286,46 +295,92 @@ class SpkTrainer(Trainer):
                 utt_id, batch["speech"], batch["speech2"]
             ):
                 _utt_id_1, _utt_id_2 = _utt_id.split("*")
-                if _utt_id_1 not in utt_id_list:
-                    utt_id_list.append(_utt_id_1)
-                    speech_list.append(
-                        to_device(_speech, "cuda" if ngpu > 0 else "cpu")
-                    )
-                if _utt_id_2 not in utt_id_list:
-                    utt_id_list.append(_utt_id_2)
-                    speech_list.append(
-                        to_device(_speech2, "cuda" if ngpu > 0 else "cpu")
-                    )
-        logging.info(f"# utts: {len(utt_id_list)}")
-        if distributed:
-            rank = torch.distributed.get_rank()
-            world_size = torch.distributed.get_world_size()
-            utt_id_list = utt_id_list[rank::world_size]
-            speech_list = speech_list[rank::world_size]
-        else:
-            rank = ""
-            world_size = 1
-        logging.info(f"bs, {bs}")
+                if _utt_id_1 not in utt_id_whole_list:
+                    utt_id_whole_list.append(_utt_id_1)
+                    if idx % world_size == rank:
+                        utt_id_list.append(_utt_id_1)
+                        speech_list.append(_speech)
 
-        # extract speaker embeddings.
-        n_utt = len(utt_id_list)
-        logging.info(f"# utts: {n_utt}")
-        for ii in range(0, n_utt, bs // world_size):
-            _utt_ids = utt_id_list[ii : ii + bs // world_size]
-            _speechs = speech_list[ii : ii + bs // world_size]
-            _speechs = torch.stack(_speechs, dim=0)
-            org_shape = (_speechs.size(0), _speechs.size(1))
-            _speechs = _speechs.flatten(0, 1)
-            _speechs = to_device(_speechs, "cuda" if ngpu > 0 else "cpu")
+                    if len(utt_id_list) == bs:
+                        speech_list = torch.stack(speech_list, dim=0)
+                        org_shape = (speech_list.size(0), speech_list.size(1))
+                        speech_list = speech_list.flatten(0, 1)
+                        speech_list = to_device(speech_list, "cuda" if ngpu > 0 else "cpu")
+                        if task_token is None:
+                            task_tokens = None
+                        else:
+                            task_tokens = to_device(
+                                task_token.repeat(speech_list.size(0)), "cuda" if ngpu > 0 else "cpu"
+                            ).unsqueeze(1)
+                        spk_embds = model(
+                            speech=speech_list,
+                            spk_labels=None,
+                            extract_embd=True,
+                            task_tokens=task_tokens,
+                        )
+                        #spk_embds = F.normalize(spk_embds, p=2, dim=1)
+                        spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
+                        for uid, _spk_embd in zip(utt_id_list, spk_embds):
+                            if average:
+                                spk_embd_dic[uid] = _spk_embd.mean(0).detach().cpu().numpy()
+                            else:
+                                spk_embd_dic[uid] = _spk_embd.detach().cpu().numpy()
+
+                        utt_id_list = []
+                        speech_list = []
+
+                    idx += 1
+                if _utt_id_2 not in utt_id_whole_list:
+                    utt_id_whole_list.append(_utt_id_2)
+                    if idx % world_size == rank:
+                        utt_id_list.append(_utt_id_2)
+                        speech_list.append(_speech2)
+
+                    if len(utt_id_list) == bs:
+                        speech_list = torch.stack(speech_list, dim=0)
+                        org_shape = (speech_list.size(0), speech_list.size(1))
+                        speech_list = speech_list.flatten(0, 1)
+                        speech_list = to_device(speech_list, "cuda" if ngpu > 0 else "cpu")
+                        if task_token is None:
+                            task_tokens = None
+                        else:
+                            task_tokens = to_device(
+                                task_token.repeat(speech_list.size(0)), "cuda" if ngpu > 0 else "cpu"
+                            ).unsqueeze(1)
+                        spk_embds = model(
+                            speech=speech_list,
+                            spk_labels=None,
+                            extract_embd=True,
+                            task_tokens=task_tokens,
+                        )
+                        #spk_embds = F.normalize(spk_embds, p=2, dim=1)
+                        spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
+
+                        for uid, _spk_embd in zip(utt_id_list, spk_embds):
+                            if average:
+                                spk_embd_dic[uid] = _spk_embd.mean(0).detach().cpu().numpy()
+                            else:
+                                spk_embd_dic[uid] = _spk_embd.detach().cpu().numpy()
+
+                        utt_id_list = []
+                        speech_list = []
+
+                    idx += 1
+
+        if len(utt_id_list) != 0:
+            speech_list = torch.stack(speech_list, dim=0)
+            org_shape = (speech_list.size(0), speech_list.size(1))
+            speech_list = speech_list.flatten(0, 1)
+            speech_list = to_device(speech_list, "cuda" if ngpu > 0 else "cpu")
             if task_token is None:
                 task_tokens = None
             else:
                 task_tokens = to_device(
-                    task_token.repeat(_speechs.size(0)), "cuda" if ngpu > 0 else "cpu"
+                    task_token.repeat(speech_list.size(0)), "cuda" if ngpu > 0 else "cpu"
                 ).unsqueeze(1)
             spk_embds = model(
-                speech=_speechs,
+                speech=speech_list,
                 spk_labels=None,
                 extract_embd=True,
                 task_tokens=task_tokens,
@@ -333,10 +388,10 @@ class SpkTrainer(Trainer):
             spk_embds = F.normalize(spk_embds, p=2, dim=1)
             spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
-            for _utt_id, _spk_embd in zip(_utt_ids, spk_embds):
+            for uid, _spk_embd in zip(utt_id_list, spk_embds):
                 if average:
-                    spk_embd_dic[_utt_id] = _spk_embd.mean(0).detach().cpu().numpy()
+                    spk_embd_dic[uid] = _spk_embd.mean(0).detach().cpu().numpy()
                 else:
-                    spk_embd_dic[_utt_id] = _spk_embd.detach().cpu().numpy()
+                    spk_embd_dic[uid] = _spk_embd.detach().cpu().numpy()
 
         np.savez(output_dir + f"/embeddings{rank}", **spk_embd_dic)
