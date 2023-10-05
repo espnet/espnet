@@ -524,6 +524,53 @@ class SLUPreprocessor(CommonPreprocessor):
         return data
 
 
+class VADPreprocessor(CommonPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        rir_scp: str = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: str = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
+        speech_volume_normalize: float = None,
+        speech_name: str = "speech",
+        text_name: str = "text",
+        segment_length=10.0,
+    ):
+        super().__init__(
+            train=train,
+            rir_scp=rir_scp,
+            rir_apply_prob=rir_apply_prob,
+            noise_scp=noise_scp,
+            noise_apply_prob=noise_apply_prob,
+            noise_db_range=noise_db_range,
+            short_noise_thres=short_noise_thres,
+            speech_volume_normalize=speech_volume_normalize,
+            speech_name=speech_name,
+            text_name=text_name,
+        )
+        self.segment_length = segment_length
+
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        if self.text_name in data:
+            # transform float time intervals to integers of length len(speech)
+            text = data[self.text_name]
+            text_split = [float(item) * 100 for item in text.split(" ")]
+            # input is split to chunks of length segment_length
+            # multiply the original timestamp by 100
+            # need extra 1 because of the residual of feature extraction
+            text_array = np.zeros([int(self.segment_length * 100) + 1], dtype=np.int64)
+            if len(text_split) != 0:
+                for i in range(0, len(text_split), 2):
+                    text_array[int(text_split[i]) : int(text_split[i + 1])] = 1
+            data[self.text_name] = text_array
+        return data
+
+
 class CommonPreprocessor_multi(CommonPreprocessor):
     def __init__(
         self,

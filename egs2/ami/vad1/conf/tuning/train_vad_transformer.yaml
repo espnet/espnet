@@ -1,0 +1,42 @@
+# network architecture
+# encoder related
+encoder: transformer
+encoder_conf:
+    input_layer: "linear"
+    num_blocks: 12
+    linear_units: 2048
+    dropout_rate: 0.1
+    output_size: 256  # dimension of attention
+    attention_heads: 4
+    attention_dropout_rate: 0.0
+
+model_conf:
+    length_normalized_loss: false
+
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+# minibatch related
+batch_type: folded
+batch_size: 128
+
+# optimization related
+optim: adam
+accum_grad: 2
+grad_clip: 5
+patience: none
+max_epoch: 70
+optim_conf:
+    lr: 10.0
+scheduler: noamlr
+scheduler_conf:
+    warmup_steps: 25000
+
+
+best_model_criterion:
+    -   - valid
+        - frame_error
+        - min
+keep_nbest_models: 10

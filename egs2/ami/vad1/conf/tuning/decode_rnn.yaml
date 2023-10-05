@@ -1,0 +1,3 @@
+threshold: 0.5
+silence_to_speech_thresh: 3
+speech_to_silence_thresh: 15

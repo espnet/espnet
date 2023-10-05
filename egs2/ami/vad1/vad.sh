@@ -1,0 +1,1 @@
+../../TEMPLATE/vad1/vad.sh

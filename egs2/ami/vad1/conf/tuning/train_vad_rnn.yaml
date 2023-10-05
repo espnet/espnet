@@ -1,0 +1,53 @@
+batch_type: numel
+batch_bins: 14000000
+accum_grad: 1
+max_epoch: 15
+patience: none
+# The initialization method for model parameters
+init: none
+best_model_criterion:
+-   - valid
+    - frame_error
+    - max
+keep_nbest_models: 5
+
+encoder: rnn
+encoder_conf:
+    rnn_type: gru
+    bidirectional: true
+    use_projection: true
+    num_layers: 4
+    hidden_size: 320
+    output_size: 320
+    dropout: 0.2
+    subsample: [1, 1, 1, 1]
+
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+optim: adam
+optim_conf:
+    lr: 0.003
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 25000
+
+num_workers: 3
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
