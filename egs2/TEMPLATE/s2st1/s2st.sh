@@ -996,8 +996,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${s2st_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${s2st_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${s2st_stats_dir}/run.sh"; chmod +x "${s2st_stats_dir}/run.sh"
+        log "Generate '${s2st_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${s2st_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${s2st_stats_dir}/run.sh"; chmod +x "${s2st_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "S2ST collect-stats started... log: '${_logdir}/stats.*.log'"
@@ -1305,8 +1305,8 @@ if ! "${skip_eval}"; then
         fi
 
         # 2. Generate run.sh
-        log "Generate '${s2st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${s2st_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${s2st_exp}/${inference_tag}/run.sh"; chmod +x "${s2st_exp}/${inference_tag}/run.sh"
+        log "Generate '${s2st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
+        mkdir -p "${s2st_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${s2st_exp}/${inference_tag}/run.sh"; chmod +x "${s2st_exp}/${inference_tag}/run.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
