@@ -107,6 +107,7 @@ def test_tokens2ids(whisper_token_id_converter: OpenAIWhisperTokenIDConverter):
         485,
     ]
 
+
 @pytest.mark.skipif(
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
@@ -114,9 +115,11 @@ def test_tokens2ids_add_tokens(tmp_path):
     tknlist_path = tmp_path / "tmp_token_list/add_token_list.txt"
     tknlist_path.parent.mkdir()
     tknlist_path.touch()
-    with open(tknlist_path,"w") as f:
+    with open(tknlist_path, "w") as f:
         f.write("command:yes\n")
-    id_converter = OpenAIWhisperTokenIDConverter("whisper_multilingual",added_tokens_txt=str(tknlist_path))
+    id_converter = OpenAIWhisperTokenIDConverter(
+        "whisper_multilingual", added_tokens_txt=str(tknlist_path)
+    )
     ids = id_converter.tokens2ids(
         [
             "command:yes",

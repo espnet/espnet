@@ -35,6 +35,7 @@ def test_print_config_and_load_it(tmp_path):
     parser = ASRTask.get_parser()
     parser.parse_args(["--config", str(config_file)])
 
+
 @pytest.mark.parametrize("inference", [True, False])
 def test_optional_data_names(inference):
     retval = ASRTask.optional_data_names(True, inference)

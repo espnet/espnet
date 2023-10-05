@@ -21,11 +21,13 @@ def test_export_vocabulary_to_stdout():
     except Exception as e:
         pytest.fail(f"exception thrown: {e}")
 
+
 def test_export_multilinugal_vocabulary_to_stdout():
     try:
         export_vocabulary("-", "whisper_multilingual", "en", "INFO")
     except Exception as e:
         pytest.fail(f"exception thrown: {e}")
+
 
 def test_export_vocabulary_en(tmp_path):
     tknlist_path = tmp_path / "tmp_token_list/whisper_token_list.txt"
@@ -91,12 +93,13 @@ def test_main(tmp_path):
 
     assert len(lines) == VOCAB_SIZE_MULTILINGUAL
 
+
 def test_main_add_token(tmp_path):
     tknlist_path = tmp_path / "tmp_token_list/whisper_token_list.txt"
     tknlist_path.parent.mkdir()
     tknlist_path.touch()
     add_tknlist_path = tmp_path / "tmp_token_list/add_token_list.txt"
-    with open(add_tknlist_path,"w") as f:
+    with open(add_tknlist_path, "w") as f:
         f.write("command:yes\n")
 
     main(
@@ -112,11 +115,11 @@ def test_main_add_token(tmp_path):
         ]
     )
 
-    found=False
+    found = False
     with open(tknlist_path) as f:
         lines = f.readlines()
         for line in lines:
-            if line.strip()=="command:yes":
-                found=True
+            if line.strip() == "command:yes":
+                found = True
 
-    assert found==True
+    assert found == True

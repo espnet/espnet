@@ -72,9 +72,11 @@ class OpenAIWhisperTokenIDConverter:
 
     def get_num_vocabulary_size(self) -> int:
         if self.model_type == "whisper_en":
-            return self.tokenizer.tokenizer.vocab_size + len(
-                self.tokenizer.tokenizer.get_added_vocab()
-            ) - 1
+            return (
+                self.tokenizer.tokenizer.vocab_size
+                + len(self.tokenizer.tokenizer.get_added_vocab())
+                - 1
+            )
         return self.tokenizer.tokenizer.vocab_size + len(
             self.tokenizer.tokenizer.get_added_vocab()
         )
