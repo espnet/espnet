@@ -10,6 +10,7 @@ batch_size: 64   # batch size in LM training
 max_epoch: 15     # if the data size is large, we can reduce this
 patience: 3
 
+init: xavier_uniform
 best_model_criterion:
 -   - valid
     - loss
