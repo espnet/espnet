@@ -22,11 +22,13 @@ st_config=conf/train_s2st_discrete_unit.yaml
 use_src_lang=true
 use_tgt_lang=true
 inference_config=conf/decode_s2st.yaml
+vocoder_file=
+score_asr_model_tag=
 
 ./s2st.sh \
     --ngpu 2 \
     --nj 64 \
-    --inference_nj 1 \
+    --inference_nj 64 \
     --use_discrete_unit true \
     --local_data_opts "--stage 0 --src_lang ${src_lang} --version ${version}" \
     --feats_type raw \
@@ -46,7 +48,8 @@ inference_config=conf/decode_s2st.yaml
     --tgt_token_type "char" \
     --s2st_config "${st_config}" \
     --inference_config "${inference_config}" \
-    --vocoder_file unit_pretrained_vocoder/checkpoint-350000steps.pkl \
+    --vocoder_file "${vocoder_file}" \
+    --score_asr_model_tag "${score_asr_model_tag}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_sets}" "$@"
