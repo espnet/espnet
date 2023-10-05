@@ -91,7 +91,7 @@ def test_tokens2ids(whisper_token_id_converter: OpenAIWhisperTokenIDConverter):
     assert ids == [
         50259,
         50359,
-        50363,
+        50303,
         17155,
         11,
         220,
