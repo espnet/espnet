@@ -18,7 +18,6 @@ inference_config=conf/decode_asr.yaml
 ./asr.sh \
     --lang en \
     --ngpu 1 \
-    --stage 11 \
     --nbpe 7000 \
     --max_wav_duration 30 \
     --asr_config "${asr_config}" \
