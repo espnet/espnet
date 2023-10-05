@@ -6,6 +6,7 @@ import yaml
 
 np.random.seed(0)
 
+
 def load_yaml(yamlfile):
     with open(yamlfile, "r") as stream:
         try:
@@ -30,7 +31,7 @@ def main(args):
     }
 
     with open(spk2utt, "r") as f:
-        spk2utt = f.readlines()[:cfg["n_spk"]]
+        spk2utt = f.readlines()[: cfg["n_spk"]]
 
     out_utts = set()
 
@@ -77,13 +78,12 @@ def main(args):
     spk_list_short = list(spk2utt_short.keys())
     spk_list_long = list(spk2utt_long.keys())
 
-
-    with open(out_dir+"/qmf_train.scp", "w") as f_qmf, \
-        open(out_dir+"/qmf_train2.scp", "w") as f_qmf2, \
-        open(out_dir+"/qmf_train_speech_shape", "w") as f_shape, \
-        open(out_dir+"/qmf_train_label", "w") as f_lbl:
-
-        #replace = True if len(spk_list) >= cfg["qmf_n_trial_per_condition"] else False
+    with open(out_dir + "/qmf_train.scp", "w") as f_qmf, open(
+        out_dir + "/qmf_train2.scp", "w"
+    ) as f_qmf2, open(out_dir + "/qmf_train_speech_shape", "w") as f_shape, open(
+        out_dir + "/qmf_train_label", "w"
+    ) as f_lbl:
+        # replace = True if len(spk_list) >= cfg["qmf_n_trial_per_condition"] else False
         spk2utt_short_used = {}
         spk2utt_long_used = {}
         for spk in spk_list_whole:
@@ -91,7 +91,9 @@ def main(args):
             spk2utt_long_used[spk] = set()
 
         # generate short-short target trials
-        sel_spks = np.random.choice(spk_list_short, cfg["qmf_n_trial_per_condition"], replace=True)
+        sel_spks = np.random.choice(
+            spk_list_short, cfg["qmf_n_trial_per_condition"], replace=True
+        )
         for spk in sel_spks:
             utt1, utt2 = np.random.choice(spk2utt_short[spk], 2, replace=False)
             spk2utt_short_used[spk].add(utt1)
@@ -106,7 +108,9 @@ def main(args):
             f_lbl.write(f"{utt1}*{utt2} 1\n")
 
         # generate long-long target trials
-        sel_spks = np.random.choice(spk_list_long, cfg["qmf_n_trial_per_condition"], replace=True)
+        sel_spks = np.random.choice(
+            spk_list_long, cfg["qmf_n_trial_per_condition"], replace=True
+        )
         for spk in sel_spks:
             utt1, utt2 = np.random.choice(spk2utt_long[spk], 2, replace=False)
             spk2utt_long_used[spk].add(utt1)
@@ -120,7 +124,9 @@ def main(args):
             f_shape.write(f"{utt1}*{utt2} {int(cfg['target_duration']*16000)}\n")
             f_lbl.write(f"{utt1}*{utt2} 1\n")
 
-        sel_spks = np.random.choice(spk_list_whole, cfg["qmf_n_trial_per_condition"], replace=True)
+        sel_spks = np.random.choice(
+            spk_list_whole, cfg["qmf_n_trial_per_condition"], replace=True
+        )
         # generate short-long target trials
         for spk in sel_spks:
             if spk not in spk_list_short or spk not in spk_list_long:
@@ -196,6 +202,7 @@ def main(args):
             f_qmf2.write(f"{utt1}*{utt2} {wav2dir_dic[utt2]}\n")
             f_shape.write(f"{utt1}*{utt2} {int(cfg['target_duration']*16000)}\n")
             f_lbl.write(f"{utt1}*{utt2} 0\n")
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))

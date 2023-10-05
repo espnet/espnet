@@ -1,23 +1,29 @@
 import sys
-import yaml
-import torch
-import numpy as np
 from collections import OrderedDict
+
+import numpy as np
+import torch
+import yaml
+
 
 def load_embeddings(embd_dir: str) -> dict:
     embd_dic = OrderedDict(np.load(embd_dir))
-    #keys = list(embd_dic.keys())
-    #values = torch.from_numpy(np.stack(list(embd_dic.values()), axis=0))
-    #values = torch.nn.functional.normalize(values, p=2, dim=1).numpy()
+    # keys = list(embd_dic.keys())
+    # values = torch.from_numpy(np.stack(list(embd_dic.values()), axis=0))
+    # values = torch.nn.functional.normalize(values, p=2, dim=1).numpy()
     embd_dic2 = {}
     for k, v in embd_dic.items():
         if len(v.shape) == 1:
             v = v[None, :]
-        embd_dic2[k] = torch.nn.functional.normalize(torch.from_numpy(v), p=2, dim=1).squeeze().numpy()
+        embd_dic2[k] = (
+            torch.nn.functional.normalize(torch.from_numpy(v), p=2, dim=1)
+            .squeeze()
+            .numpy()
+        )
 
-
-    #return {k: v for k, v in zip(keys, values)}
+    # return {k: v for k, v in zip(keys, values)}
     return embd_dic2
+
 
 def load_yaml(yamlfile):
     with open(yamlfile, "r") as stream:
@@ -26,6 +32,7 @@ def load_yaml(yamlfile):
             return data
         except yaml.YAMLError as exc:
             print(exc)
+
 
 def main(args):
     org_scores = args[0]
@@ -41,7 +48,9 @@ def main(args):
         org_scores = f.readlines()
     with open(utt2spk) as f:
         utt2spk = f.readlines()
-    utt2spk = {line.strip().split(" ")[0]: line.strip().split(" ")[1] for line in utt2spk}
+    utt2spk = {
+        line.strip().split(" ")[0]: line.strip().split(" ")[1] for line in utt2spk
+    }
     org_embds = load_embeddings(org_embds)
     cohort_embds = load_embeddings(cohort_embds)
 
@@ -66,13 +75,13 @@ def main(args):
             tst = torch.from_numpy(org_embds[tst])
             score = float(score)
 
-            e_c = -1. * torch.cdist(enr, cohort_embds).mean(0)
+            e_c = -1.0 * torch.cdist(enr, cohort_embds).mean(0)
             e_c = torch.topk(e_c, k=cfg["adaptive_cohort_size"])[0]
 
             e_c_m = torch.mean(e_c)
             e_c_s = torch.std(e_c)
 
-            t_c = -1. * torch.cdist(tst, cohort_embds).mean(0)
+            t_c = -1.0 * torch.cdist(tst, cohort_embds).mean(0)
             t_c = torch.topk(t_c, k=cfg["adaptive_cohort_size"])[0]
 
             t_c_m = torch.mean(t_c)
@@ -83,15 +92,11 @@ def main(args):
 
             newscore = (normscore_e + normscore_t) / 2
             newscore = newscore.item()
-            #print("score", score, "newscore", newscore, "label", lab)
+            # print("score", score, "newscore", newscore, "label", lab)
 
             f.write(f"{utts} {newscore} {lab}\n")
-            stat_dic = {
-                "e_c_m": e_c_m,
-                "e_c_s": e_c_s,
-                "t_c_m": t_c_m,
-                "t_c_s": t_c_s
-            }
+            stat_dic = {"e_c_m": e_c_m, "e_c_s": e_c_s, "t_c_m": t_c_m, "t_c_s": t_c_s}
+
 
 if __name__ == "__main__":
     sys.exit(main(sys.argv[1:]))
