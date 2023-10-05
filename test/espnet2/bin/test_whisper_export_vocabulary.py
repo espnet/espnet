@@ -122,4 +122,4 @@ def test_main_add_token(tmp_path):
             if line.strip() == "command:yes":
                 found = True
 
-    assert found == True
+    assert found is True
