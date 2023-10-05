@@ -79,7 +79,8 @@ tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target langua
 # Discrete unit-related
 use_discrete_unit=false         # Whether to use discrete unit
 clustering_stage=1              # clustering stage
-clustering_stop_stage=100         # clustering stop stage
+clustering_stop_stage=100       # clustering stop stage
+clustering_num_threads=20       # Number of threads used for kmeans clustering
 feature_dir="dump/feats"        # Feature directory for dumped feature
 km_tag=                         # KMeans tagging
 use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
@@ -894,6 +895,7 @@ if ! "${skip_data_prep}"; then
                 --storage_save_mode ${storage_save_mode} \
                 --use_gpu "${use_gpu_feat_extract}" \
                 --nj 1 \
+                --num_threads ${clustering_num_threads} \
                 --cpu_cmd "${train_cmd}" \
                 --cuda_cmd "${cuda_cmd}" \
                 --dictdir "${unit_tokendir}"
@@ -910,7 +912,7 @@ if ! "${skip_data_prep}"; then
             log "Saving dev pseudo_labels at ${data_feats}/${valid_set}/text.km.${km_tag}.${tgt_lang}"
 
             # NOTE(jiatong): use the pseudo label with unique to train s2st
-            for dset in ${train_set} ${valid_set}; do
+            for dset in ${train_set} ${valid_set} ${test_sets}; do
                 python pyscripts/feats/unique_pseudo_labels.py \
                     --input_label ${data_feats}/${dset}/text.km.${km_tag}.${tgt_lang} \
                     --output_label ${data_feats}/${dset}/text.km.${km_tag}.${tgt_lang}.unique
@@ -994,8 +996,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${s2st_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${s2st_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${s2st_stats_dir}/run.sh"; chmod +x "${s2st_stats_dir}/run.sh"
+        log "Generate '${s2st_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${s2st_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${s2st_stats_dir}/run.sh"; chmod +x "${s2st_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "S2ST collect-stats started... log: '${_logdir}/stats.*.log'"
@@ -1303,8 +1305,8 @@ if ! "${skip_eval}"; then
         fi
 
         # 2. Generate run.sh
-        log "Generate '${s2st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${s2st_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${s2st_exp}/${inference_tag}/run.sh"; chmod +x "${s2st_exp}/${inference_tag}/run.sh"
+        log "Generate '${s2st_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
+        mkdir -p "${s2st_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${s2st_exp}/${inference_tag}/run.sh"; chmod +x "${s2st_exp}/${inference_tag}/run.sh"
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
