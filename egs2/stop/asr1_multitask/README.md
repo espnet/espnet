@@ -1,5 +1,4 @@
 # STEPS TO RUN WHISPER MULTITASK
-- Change whisper/tokenize.py in your installation of whisper to  local/whisper_tokenizer.py
 - Create dump directory using ``./run.sh --stop_stage 4`` in the following recipes i.e. ``asvspoof,speechcommands,grabo,lt_speech_commands,arabic_sc,fsc,voxforge/lid1,iemocap,accentdb,Mustard,Mustard_plus_plus,voxceleb1,freesound esc50``. You will have to download all the dataset zip files first before creating dump directory. Please refer to ``https://github.com/ga642381/SpeechPrompt-v2/blob/main/docs/dataset.md`` to download all datasets.
 - Run ``python create_better_*.py`` and ``python create_*_prompt.py`` to ensure that none of task labels overlap
 - Concatenate ``wav.scp,prompt,text,utt2spk,spk2utt,utt2num_samples`` of all train and valid dump folder in each of the directory and create   ``dump/raw/train_combined`` and ``dump/raw/valid`` in this recipe.
