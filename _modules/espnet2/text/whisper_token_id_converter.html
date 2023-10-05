@@ -269,8 +269,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">add_special_tokens</span><span class="p">(</span>
             <span class="nb">dict</span><span class="p">(</span><span class="n">additional_special_tokens</span><span class="o">=</span><span class="n">special_tokens</span><span class="p">)</span>
         <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">=</span> <span class="n">model_type</span>
 
 <div class="viewcode-block" id="OpenAIWhisperTokenIDConverter.get_num_vocabulary_size"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.whisper_token_id_converter.OpenAIWhisperTokenIDConverter.get_num_vocabulary_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_vocabulary_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_type</span> <span class="o">==</span> <span class="s2">&quot;whisper_en&quot;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span>
+                <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">get_added_vocab</span><span class="p">())</span>
+                <span class="o">-</span> <span class="mi">1</span>
+            <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">get_added_vocab</span><span class="p">()</span>
         <span class="p">)</span></div>

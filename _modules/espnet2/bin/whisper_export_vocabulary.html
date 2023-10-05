@@ -269,6 +269,8 @@
     <span class="n">vocab_size</span> <span class="o">=</span> <span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span>
         <span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">get_added_vocab</span><span class="p">()</span>
     <span class="p">)</span>
+    <span class="k">if</span> <span class="n">whisper_model</span> <span class="o">==</span> <span class="s2">&quot;whisper_en&quot;</span><span class="p">:</span>
+        <span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span>
 
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">vocab_size</span><span class="p">):</span>
         <span class="c1"># take care of special char for &lt;space&gt;</span>
