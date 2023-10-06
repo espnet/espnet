@@ -8,6 +8,7 @@ import yaml
 
 from espnet2.bin.asr_inference import Speech2Text, get_parser, main
 from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
+from espnet2.bin.whisper_export_vocabulary import export_vocabulary
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
@@ -253,6 +254,40 @@ def token_list_hugging_face(tmp_path: Path):
     return tmp_path / "tokens_hugging_face.txt"
 
 
+@pytest.fixture()
+def token_list_whisper(tmp_path: Path):
+    pytest.importorskip("whisper")
+    tknlist_path = tmp_path / "token_whisper.txt"
+    tknlist_path.touch()
+
+    export_vocabulary(str(tknlist_path), "whisper_multilingual", "en", "INFO")
+    return tmp_path / "token_whisper.txt"
+
+
+@pytest.fixture()
+def token_list_whisper_lang_add(tmp_path: Path):
+    add_tknlist_path = tmp_path / "add_token_list.txt"
+    with open(add_tknlist_path, "w") as f:
+        f.write("<|er|>\n")
+    return tmp_path / "add_token_list.txt"
+
+
+@pytest.fixture()
+def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
+    pytest.importorskip("whisper")
+    tknlist_path = tmp_path / "token_whisper_lang.txt"
+    tknlist_path.touch()
+
+    export_vocabulary(
+        str(tknlist_path),
+        "whisper_multilingual",
+        "en",
+        "INFO",
+        str(token_list_whisper_lang_add),
+    )
+    return tmp_path / "token_whisper_lang.txt"
+
+
 @pytest.mark.parametrize(
     "model_name_or_path",
     [
@@ -426,3 +461,137 @@ def test_Speech2Text_interctc(asr_config_file, lm_config_file, encoder_class):
         assert isinstance(k, int)
         assert isinstance(tokens, list)
         assert isinstance(tokens[0], str)
+
+
+@pytest.mark.execution_timeout(10)
+def test_Speech2Text_whisper(
+    asr_config_file,
+    token_list_whisper,
+):
+    file = open(asr_config_file, "r", encoding="utf-8")
+    asr_train_config = file.read()
+    asr_train_config = yaml.full_load(asr_train_config)
+    asr_train_config["token_type"] = "whisper"
+    asr_train_config["bpemodel"] = "whisper_multilingual"
+    asr_train_config["token_list"] = str(token_list_whisper)
+    asr_train_config["model_conf"]["ignore_id"] = 1
+    asr_train_config["model_conf"]["sym_blank"] = "<pad>"
+    asr_train_config["model_conf"]["sym_sos"] = "<s>"
+    asr_train_config["model_conf"]["sym_eos"] = "</s>"
+    # Change the configuration file
+    with open(asr_config_file, "w", encoding="utf-8") as files:
+        yaml.dump(asr_train_config, files)
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        ctc_weight=0.0,
+        maxlenratio=-1,
+    )
+    speech = np.random.randn(1000)
+    results = speech2text(speech)
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], int)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(50)
+def test_Speech2Text_whisper_prompt(
+    asr_config_file, token_list_whisper_lang, token_list_whisper_lang_add
+):
+    pytest.importorskip("whisper")
+    file = open(asr_config_file, "r", encoding="utf-8")
+    asr_train_config = file.read()
+    asr_train_config = yaml.full_load(asr_train_config)
+    asr_train_config["token_type"] = "whisper"
+    asr_train_config["bpemodel"] = "whisper_multilingual"
+    asr_train_config["token_list"] = str(token_list_whisper_lang)
+    asr_train_config["model_conf"]["ignore_id"] = 1
+    asr_train_config["model_conf"]["sym_blank"] = "<pad>"
+    asr_train_config["model_conf"]["sym_sos"] = "<s>"
+    asr_train_config["model_conf"]["sym_eos"] = "</s>"
+    # Change the configuration file
+    with open(asr_config_file, "w", encoding="utf-8") as files:
+        yaml.dump(asr_train_config, files)
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        ctc_weight=0.0,
+        maxlenratio=-1,
+        lang_prompt_token="<|en|> <|er|>",
+        prompt_token_file=str(token_list_whisper_lang_add),
+    )
+    speech = np.random.randn(1000)
+    results = speech2text(speech)
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], int)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(50)
+def test_Speech2Text_whisper_nlp_prompt(
+    asr_config_file,
+    token_list_whisper,
+):
+    pytest.importorskip("whisper")
+    file = open(asr_config_file, "r", encoding="utf-8")
+    asr_train_config = file.read()
+    asr_train_config = yaml.full_load(asr_train_config)
+    asr_train_config["token_type"] = "whisper"
+    asr_train_config["bpemodel"] = "whisper_multilingual"
+    asr_train_config["token_list"] = str(token_list_whisper)
+    asr_train_config["model_conf"]["ignore_id"] = 1
+    asr_train_config["model_conf"]["sym_blank"] = "<pad>"
+    asr_train_config["model_conf"]["sym_sos"] = "<s>"
+    asr_train_config["model_conf"]["sym_eos"] = "</s>"
+    # Change the configuration file
+    with open(asr_config_file, "w", encoding="utf-8") as files:
+        yaml.dump(asr_train_config, files)
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        ctc_weight=0.0,
+        maxlenratio=-1,
+        nlp_prompt_token="Emotion Recognition",
+    )
+    speech = np.random.randn(1000)
+    results = speech2text(speech)
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], int)
+        assert isinstance(hyp, Hypothesis)
+
+
+@pytest.mark.execution_timeout(50)
+def test_Speech2Text_whisper_lid_prompt(
+    asr_config_file,
+    token_list_whisper,
+):
+    pytest.importorskip("whisper")
+    file = open(asr_config_file, "r", encoding="utf-8")
+    asr_train_config = file.read()
+    asr_train_config = yaml.full_load(asr_train_config)
+    asr_train_config["token_type"] = "whisper"
+    asr_train_config["bpemodel"] = "whisper_multilingual"
+    asr_train_config["token_list"] = str(token_list_whisper)
+    asr_train_config["model_conf"]["ignore_id"] = 1
+    asr_train_config["model_conf"]["sym_blank"] = "<pad>"
+    asr_train_config["model_conf"]["sym_sos"] = "<s>"
+    asr_train_config["model_conf"]["sym_eos"] = "</s>"
+    # Change the configuration file
+    with open(asr_config_file, "w", encoding="utf-8") as files:
+        yaml.dump(asr_train_config, files)
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        ctc_weight=0.0,
+        maxlenratio=-1,
+        lid_prompt=True,
+    )
+    speech = np.random.randn(1000)
+    results = speech2text(speech)
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], int)
+        assert isinstance(hyp, Hypothesis)

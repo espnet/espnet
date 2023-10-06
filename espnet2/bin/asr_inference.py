@@ -112,7 +112,7 @@ class Speech2Text:
         lid_prompt: bool = False,
         lang_prompt_token: Optional[str] = None,
         nlp_prompt_token: Optional[str] = None,
-        prompt_token_file: str = "add_tokens-Copy1.txt",
+        prompt_token_file: Optional[str] = None,
     ):
         assert check_argument_types()
 
@@ -370,24 +370,21 @@ class Speech2Text:
 
         if token_type is None:
             tokenizer = None
-        elif (
-            token_type == "bpe"
-            or token_type == "hugging_face"
-            or "whisper" in token_type
-        ):
+        elif token_type == "bpe" or token_type == "hugging_face":
             if bpemodel is not None:
-                if "whisper" in token_type:
-                    tokenizer = build_tokenizer(
-                        token_type=token_type,
-                        bpemodel=bpemodel,
-                        non_linguistic_symbols=prompt_token_file,
-                    )
-                else:
-                    tokenizer = build_tokenizer(
-                        token_type=token_type, bpemodel=bpemodel
-                    )
+                tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
             else:
                 tokenizer = None
+        elif "whisper" in token_type:
+            tokenizer_language = asr_train_args.preprocessor_conf.get(
+                "tokenizer_language", "en"
+            )
+            tokenizer = build_tokenizer(
+                token_type=token_type,
+                bpemodel=bpemodel,
+                tokenizer_language=tokenizer_language,
+                non_linguistic_symbols=prompt_token_file,
+            )
         else:
             tokenizer = build_tokenizer(token_type=token_type)
 
@@ -436,10 +433,6 @@ class Speech2Text:
                 a1 = a1[:1]
                 beam_search.set_hyp_primer(
                     list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
-                )
-            else:
-                beam_search.set_hyp_primer(
-                    list(converter.tokenizer.sot_sequence_including_notimestamps)
                 )
         logging.info(f"Text tokenizer: {tokenizer}")
 
@@ -1091,7 +1084,7 @@ def get_parser():
     group.add_argument(
         "--prompt_token_file",
         type=str,
-        default="add_tokens-Copy1.txt",
+        default=None,
         help="Prompt token file",
     )
     return parser
