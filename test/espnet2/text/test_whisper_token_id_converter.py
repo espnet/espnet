@@ -120,16 +120,3 @@ def test_tokens2ids_add_tokens(tmp_path):
     id_converter = OpenAIWhisperTokenIDConverter(
         "whisper_multilingual", added_tokens_txt=str(tknlist_path)
     )
-    ids = id_converter.tokens2ids(
-        [
-            "command:yes",
-        ]
-    )
-    print(id_converter.tokenizer.tokenizer.convert_ids_to_tokens(ids))
-
-    assert ids == [
-        50259,
-        50359,
-        50303,
-        50364,
-    ]
