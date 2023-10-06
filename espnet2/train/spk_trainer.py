@@ -305,12 +305,15 @@ class SpkTrainer(Trainer):
                         speech_list = torch.stack(speech_list, dim=0)
                         org_shape = (speech_list.size(0), speech_list.size(1))
                         speech_list = speech_list.flatten(0, 1)
-                        speech_list = to_device(speech_list, "cuda" if ngpu > 0 else "cpu")
+                        speech_list = to_device(
+                            speech_list, "cuda" if ngpu > 0 else "cpu"
+                        )
                         if task_token is None:
                             task_tokens = None
                         else:
                             task_tokens = to_device(
-                                task_token.repeat(speech_list.size(0)), "cuda" if ngpu > 0 else "cpu"
+                                task_token.repeat(speech_list.size(0)),
+                                "cuda" if ngpu > 0 else "cpu",
                             ).unsqueeze(1)
                         spk_embds = model(
                             speech=speech_list,
@@ -318,12 +321,14 @@ class SpkTrainer(Trainer):
                             extract_embd=True,
                             task_tokens=task_tokens,
                         )
-                        #spk_embds = F.normalize(spk_embds, p=2, dim=1)
+                        # spk_embds = F.normalize(spk_embds, p=2, dim=1)
                         spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
                         for uid, _spk_embd in zip(utt_id_list, spk_embds):
                             if average:
-                                spk_embd_dic[uid] = _spk_embd.mean(0).detach().cpu().numpy()
+                                spk_embd_dic[uid] = (
+                                    _spk_embd.mean(0).detach().cpu().numpy()
+                                )
                             else:
                                 spk_embd_dic[uid] = _spk_embd.detach().cpu().numpy()
 
@@ -341,12 +346,15 @@ class SpkTrainer(Trainer):
                         speech_list = torch.stack(speech_list, dim=0)
                         org_shape = (speech_list.size(0), speech_list.size(1))
                         speech_list = speech_list.flatten(0, 1)
-                        speech_list = to_device(speech_list, "cuda" if ngpu > 0 else "cpu")
+                        speech_list = to_device(
+                            speech_list, "cuda" if ngpu > 0 else "cpu"
+                        )
                         if task_token is None:
                             task_tokens = None
                         else:
                             task_tokens = to_device(
-                                task_token.repeat(speech_list.size(0)), "cuda" if ngpu > 0 else "cpu"
+                                task_token.repeat(speech_list.size(0)),
+                                "cuda" if ngpu > 0 else "cpu",
                             ).unsqueeze(1)
                         spk_embds = model(
                             speech=speech_list,
@@ -354,12 +362,14 @@ class SpkTrainer(Trainer):
                             extract_embd=True,
                             task_tokens=task_tokens,
                         )
-                        #spk_embds = F.normalize(spk_embds, p=2, dim=1)
+                        # spk_embds = F.normalize(spk_embds, p=2, dim=1)
                         spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
                         for uid, _spk_embd in zip(utt_id_list, spk_embds):
                             if average:
-                                spk_embd_dic[uid] = _spk_embd.mean(0).detach().cpu().numpy()
+                                spk_embd_dic[uid] = (
+                                    _spk_embd.mean(0).detach().cpu().numpy()
+                                )
                             else:
                                 spk_embd_dic[uid] = _spk_embd.detach().cpu().numpy()
 
@@ -377,7 +387,8 @@ class SpkTrainer(Trainer):
                 task_tokens = None
             else:
                 task_tokens = to_device(
-                    task_token.repeat(speech_list.size(0)), "cuda" if ngpu > 0 else "cpu"
+                    task_token.repeat(speech_list.size(0)),
+                    "cuda" if ngpu > 0 else "cpu",
                 ).unsqueeze(1)
             spk_embds = model(
                 speech=speech_list,
