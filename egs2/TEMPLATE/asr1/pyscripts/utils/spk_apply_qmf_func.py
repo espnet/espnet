@@ -1,7 +1,10 @@
-import os, sys
-import soundfile as sf
+import os
+import sys
+
 import numpy as np
+import soundfile as sf
 from sklearn.linear_model import LogisticRegression
+
 
 def generate_data(utt2dur, scores, embed_dic):
     data = []
@@ -16,20 +19,20 @@ def generate_data(utt2dur, scores, embed_dic):
         labels.append(int(lab))
 
         # add durations
-        #data_cur.append(np.log(sf.info(utt2dur[utt1]).duration))
-        #data_cur.append(np.log(sf.info(utt2dur[utt2]).duration))
+        # data_cur.append(np.log(sf.info(utt2dur[utt1]).duration))
+        # data_cur.append(np.log(sf.info(utt2dur[utt2]).duration))
 
         # add embedding norms
         embed1 = embed_dic[utt1]
         embed2 = embed_dic[utt2]
-        #l1norms = np.mean(np.linalg.norm(embed1, ord=1, axis=1))
-        #data_cur.append(l1norms)
-        #l1norms = np.mean(np.linalg.norm(embed2, ord=1, axis=1))
-        #data_cur.append(l1norms)
-        #l2norms = np.mean(np.linalg.norm(embed1, ord=2, axis=1))
-        #data_cur.append(l2norms)
-        #l2norms = np.mean(np.linalg.norm(embed2, ord=2, axis=1))
-        #data_cur.append(l2norms)
+        # l1norms = np.mean(np.linalg.norm(embed1, ord=1, axis=1))
+        # data_cur.append(l1norms)
+        # l1norms = np.mean(np.linalg.norm(embed2, ord=1, axis=1))
+        # data_cur.append(l1norms)
+        # l2norms = np.mean(np.linalg.norm(embed1, ord=2, axis=1))
+        # data_cur.append(l2norms)
+        # l2norms = np.mean(np.linalg.norm(embed2, ord=2, axis=1))
+        # data_cur.append(l2norms)
 
         # add std as proposed in The ID R&D VoxCeleb Speaker Recognition
         # Challenge 2023 System Description
@@ -37,10 +40,10 @@ def generate_data(utt2dur, scores, embed_dic):
         data_cur.append(std)
         std = np.std(np.mean(embed2, axis=0))
         data_cur.append(std)
-        #std2 = list(np.std(embed1, axis=0))
-        #data_cur.extend(std2)
-        #std2 = list(np.std(embed2, axis=0))
-        #data_cur.extend(std2)
+        # std2 = list(np.std(embed1, axis=0))
+        # data_cur.extend(std2)
+        # std2 = list(np.std(embed2, axis=0))
+        # data_cur.extend(std2)
 
         data.append(data_cur)
     data = np.array(data, dtype=np.float32)
@@ -49,15 +52,22 @@ def generate_data(utt2dur, scores, embed_dic):
     print(f"labels shape: {labels.shape}")
     return data, labels
 
+
 def load_values(trial, trial2, scores, embed_dic):
     utt2dir = {}
     with open(trial) as f:
         lines = f.readlines()
-    tmp_dic = {line.strip().split(" ")[0].split("*")[0]: line.strip().split(" ")[1] for line in lines}
+    tmp_dic = {
+        line.strip().split(" ")[0].split("*")[0]: line.strip().split(" ")[1]
+        for line in lines
+    }
     utt2dir.update(tmp_dic)
     with open(trial2) as f:
         lines = f.readlines()
-    tmp_dic = {line.strip().split(" ")[0].split("*")[1]: line.strip().split(" ")[1] for line in lines}
+    tmp_dic = {
+        line.strip().split(" ")[0].split("*")[1]: line.strip().split(" ")[1]
+        for line in lines
+    }
     utt2dir.update(tmp_dic)
 
     with open(scores) as f:
@@ -66,6 +76,7 @@ def load_values(trial, trial2, scores, embed_dic):
     embed_dic = dict(np.load(embed_dic))
 
     return utt2dir, scores, embed_dic
+
 
 def main(args):
     qmf_train_trial = args[0]
@@ -86,7 +97,9 @@ def main(args):
         qmf_train_scores,
         qmf_train_embed_dic,
     )
-    train_data, train_labels = generate_data(qmf_utt2dir, qmf_train_scores, qmf_train_embed_dic)
+    train_data, train_labels = generate_data(
+        qmf_utt2dir, qmf_train_scores, qmf_train_embed_dic
+    )
 
     test_utt2dir, test_scores, test_embed_dic = load_values(
         test_trial,
