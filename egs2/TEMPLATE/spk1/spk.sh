@@ -42,7 +42,7 @@ python=python3        # Specify python to execute espnet commands.
 fold_length=120000    # fold_length for speech data during enhancement training.
 inference_config=conf/decode.yaml # Inference configuration.
 score_norm=true       # Apply score normalization in inference.
-qmf_func=true         # Apply quality measurement based calibration in inference.
+qmf_func=false        # Apply quality measurement based calibration in inference.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh
@@ -51,7 +51,7 @@ local_data_opts= # The options given to local/data.sh
 speed_perturb_factors="0.9 1.0 1.1" # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
 
 # Feature extraction related
-feats_type=raw_copy   # Feature type (raw, raw_copy, fbank_pitch, or extracted).
+feats_type=raw      # Feature type (raw, raw_copy, fbank_pitch, or extracted).
 audio_format=wav    # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw).
 multi_columns_input_wav_scp=false  # Enable multi columns mode for input wav.scp for format_wav_scp.py
 multi_columns_output_wav_scp=false # Enable multi columns mode for output wav.scp for format_wav_scp.py
