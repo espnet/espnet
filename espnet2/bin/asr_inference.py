@@ -717,7 +717,7 @@ def inference(
     multi_asr: bool,
     lang_prompt_token: Optional[str],
     nlp_prompt_token: Optional[str],
-    prompt_token_file: str,
+    prompt_token_file: Optional[str],
 ):
     assert check_argument_types()
     if batch_size > 1:
