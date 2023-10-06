@@ -11,6 +11,8 @@ from espnet.nets.beam_search import BeamSearch, Hypothesis
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 
+logger = logging.getLogger(__name__)
+
 
 class BatchHypothesis(NamedTuple):
     """Batchfied/Vectorized hypothesis data type."""
@@ -382,9 +384,9 @@ class BatchBeamSearch(BeamSearch):
 
         """
         n_batch = running_hyps.yseq.shape[0]
-        logging.debug(f"the number of running hypothes: {n_batch}")
+        logger.debug(f"the number of running hypothes: {n_batch}")
         if self.token_list is not None:
-            logging.debug(
+            logger.debug(
                 "best hypo: "
                 + "".join(
                     [
@@ -395,7 +397,7 @@ class BatchBeamSearch(BeamSearch):
             )
         # add eos in the final loop to avoid that there are no ended hyps
         if i == maxlen - 1:
-            logging.info("adding <eos> in the last position in the loop")
+            logger.info("adding <eos> in the last position in the loop")
             yseq_eos = torch.cat(
                 (
                     running_hyps.yseq,

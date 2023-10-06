@@ -57,6 +57,8 @@ def export_vocabulary(
     vocab_size = tokenizer.tokenizer.vocab_size + len(
         tokenizer.tokenizer.get_added_vocab()
     )
+    if whisper_model == "whisper_en":
+        vocab_size = vocab_size - 1
 
     for i in range(vocab_size):
         # take care of special char for <space>
