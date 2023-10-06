@@ -14,7 +14,7 @@ for split in ["train", "valid"]:
         # print(line1.split("em:"))
         assert len(line1.split("em:")) == 2
         line1_arr.append(line1)
-    file_write = open("dump_iemocap/dump/raw/" + split + "/text_new", "w")
+    file_write = open("dump_iemocap/dump/raw/" + split + "/text", "w")
     for line in line1_arr:
         file_write.write(line)
 

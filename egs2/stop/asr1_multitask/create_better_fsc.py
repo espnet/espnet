@@ -15,7 +15,7 @@ for split in ["train", "valid"]:
             + "\n"
         )
         line1_arr.append(line1)
-    file_write = open("dump_fsc/dump/raw/" + split + "/text_new", "w")
+    file_write = open("dump_fsc/dump/raw/" + split + "/text", "w")
     for line in line1_arr:
         file_write.write(line)
     print(intent_dict)

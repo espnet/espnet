@@ -46,6 +46,7 @@ def test_optional_data_names(inference):
 
 
 def get_dummy_namespace():
+    pytest.importorskip("whisper")
     return Namespace(
         token_type="whisper_multilingual",
         token_list=["<blank>", "a", "b", "c", "<space>", "<unk>"],
@@ -74,6 +75,7 @@ def get_dummy_namespace():
 
 
 def test_build_preprocess_fn_prompt():
+    pytest.importorskip("whisper")
     args = get_dummy_namespace()
 
     new_args = {
@@ -95,6 +97,7 @@ def test_build_preprocess_fn_prompt():
 
 
 def test_build_preprocess_fn_nlp_prompt():
+    pytest.importorskip("whisper")
     args = get_dummy_namespace()
 
     new_args = {

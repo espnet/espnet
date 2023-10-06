@@ -2,7 +2,7 @@ accent_dict = {}
 for split in ["train", "valid"]:
     file = open("dump_accentdb/dump/raw/" + split + "/text")
     line_arr = [line for line in file]
-    file_write = open("dump_accentdb/dump/raw/" + split + "/text_new", "w")
+    file_write = open("dump_accentdb/dump/raw/" + split + "/text", "w")
     for line in line_arr:
         file_write.write(line.split()[0] + " accent:" + line.split()[1] + "\n")
         if "accent:" + line.split()[1] not in accent_dict:

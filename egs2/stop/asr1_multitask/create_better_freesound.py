@@ -2,7 +2,7 @@ accent_dict = {}
 for split in ["train", "valid"]:
     file = open("dump_freesound/dump/raw/" + split + "/text")
     line_arr = [line for line in file]
-    file_write = open("dump_freesound/dump/raw/" + split + "/text_new", "w")
+    file_write = open("dump_freesound/dump/raw/" + split + "/text", "w")
     line1_arr = []
     for line in line_arr:
         file_write.write(line)
