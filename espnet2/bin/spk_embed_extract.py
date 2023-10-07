@@ -108,7 +108,11 @@ def extract_embed(args):
     )
     distributed_option.distributed = org_distributed
     loader = iterator.build_iter(0)
-    bs = args.valid_batch_size // args.ngpu if distributed_option.distributed else args.valid_batch_size
+    bs = (
+        args.valid_batch_size // args.ngpu
+        if distributed_option.distributed
+        else args.valid_batch_size
+    )
 
     trainer_options = SpeakerTask.trainer.build_options(args)
     reporter = Reporter()
