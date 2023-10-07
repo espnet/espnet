@@ -98,14 +98,17 @@ def extract_embed(args):
     args = argparse.Namespace(**merged_args)
 
     # 4. Build data-iterator
+    # Temporarily disable distributed to let loader include all trials
+    org_distributed = distributed_option.distributed
     distributed_option.distributed = False
     iterator = SpeakerTask.build_iter_factory(
         args=args,
         distributed_option=distributed_option,
         mode="valid",
     )
-    distributed_option.distributed = True
+    distributed_option.distributed = org_distributed
     loader = iterator.build_iter(0)
+    bs = args.valid_batch_size // args.ngpu if distributed_option.distributed else args.valid_batch_size
 
     trainer_options = SpeakerTask.trainer.build_options(args)
     reporter = Reporter()
@@ -119,6 +122,7 @@ def extract_embed(args):
             options=trainer_options,
             distributed_option=distributed_option,
             output_dir=args.output_dir,
+            custom_bs=bs,
             average=args.average_embd,
         )
 

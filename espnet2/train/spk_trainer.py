@@ -254,6 +254,7 @@ class SpkTrainer(Trainer):
         options: TrainerOptions,
         distributed_option: DistributedOption,
         output_dir: str,
+        custom_bs: int,
         average: bool = False,
     ) -> None:
         assert check_argument_types()
@@ -266,7 +267,6 @@ class SpkTrainer(Trainer):
         scores = []
         labels = []
         spk_embd_dic = {}
-        bs = 0
 
         # [For distributed] Because iteration counts are not always equals between
         # processes, send stop-flag to the other processes if iterator is finished
@@ -286,7 +286,6 @@ class SpkTrainer(Trainer):
             world_size = 1
         idx = 0
         for utt_id, batch in iterator:
-            bs = max(bs, len(utt_id) // world_size)
             if "task_tokens" in batch:
                 task_token = batch["task_tokens"][0]
 
@@ -301,7 +300,7 @@ class SpkTrainer(Trainer):
                         utt_id_list.append(_utt_id_1)
                         speech_list.append(_speech)
 
-                    if len(utt_id_list) == bs:
+                    if len(utt_id_list) == custom_bs:
                         speech_list = torch.stack(speech_list, dim=0)
                         org_shape = (speech_list.size(0), speech_list.size(1))
                         speech_list = speech_list.flatten(0, 1)
@@ -321,6 +320,7 @@ class SpkTrainer(Trainer):
                             extract_embd=True,
                             task_tokens=task_tokens,
                         )
+                        # removed to be use magnitude in qmf
                         # spk_embds = F.normalize(spk_embds, p=2, dim=1)
                         spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
@@ -342,7 +342,7 @@ class SpkTrainer(Trainer):
                         utt_id_list.append(_utt_id_2)
                         speech_list.append(_speech2)
 
-                    if len(utt_id_list) == bs:
+                    if len(utt_id_list) == custom_bs:
                         speech_list = torch.stack(speech_list, dim=0)
                         org_shape = (speech_list.size(0), speech_list.size(1))
                         speech_list = speech_list.flatten(0, 1)
@@ -362,6 +362,7 @@ class SpkTrainer(Trainer):
                             extract_embd=True,
                             task_tokens=task_tokens,
                         )
+                        # removed to be use magnitude in qmf
                         # spk_embds = F.normalize(spk_embds, p=2, dim=1)
                         spk_embds = spk_embds.view(org_shape[0], org_shape[1], -1)
 
