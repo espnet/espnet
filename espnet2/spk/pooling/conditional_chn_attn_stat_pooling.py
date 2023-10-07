@@ -81,8 +81,7 @@ class ConditionalChnAttnStatPooling(AbsPooling):
     def forward(self, x, task_tokens: torch.Tensor = None):
         if task_tokens is None:
             raise ValueError(
-                "ConcitionalChannelAttentiveStatisticsPooling requires"
-                "task_tokens"
+                "ConcitionalChannelAttentiveStatisticsPooling requires" "task_tokens"
             )
 
         # manipulate tokens to (bs, dim, seq)
