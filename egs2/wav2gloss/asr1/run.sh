@@ -43,7 +43,7 @@ done
     --token_type char \
     --feats_type raw \
     --feats_normalize utt_mvn \
-    --min_wav_duration 1 \
+    --min_wav_duration 0.5 \
     --max_wav_duration 20 \
     --audio_format wav \
     --speed_perturb_factors "0.9 1.0 1.1" \

@@ -27,6 +27,11 @@ def get_parser():
         "--tasks",
         type=str,  # comma separated values
     )
+    parser.add_argument(
+        "--min_wav_length",
+        type=str,  # float
+        default="0.5",
+    )
     return parser
 
 
@@ -41,7 +46,7 @@ def _cleaner(s):
     return "".join([chr(ord(c)) for c in s if ord(c) != 160])
 
 
-def write_dir(target_dir, metadata):
+def write_dir(target_dir, metadata, min_wav_length):
     wavscp = open(target_dir / "wav.scp", "w", encoding="utf-8")
     text = open(target_dir / "text", "w", encoding="utf-8")
     utt2spk = open(target_dir / "utt2spk", "w", encoding="utf-8")
@@ -54,7 +59,7 @@ def write_dir(target_dir, metadata):
             continue
         if " " in fname:
             continue
-        if meta["length"] < 1000:
+        if meta["length"] < min_wav_length * 1000:
             continue
 
         header = f"<task|{task}> <lang|{lang}>"
@@ -100,6 +105,7 @@ if __name__ == "__main__":
 
     args.langs = args.langs.split(",")
     args.tasks = args.tasks.split(",")
+    min_wav_length = float(args.min_wav_length)
 
     args.target_dir.mkdir(parents=True, exist_ok=True)
     with open(
@@ -117,7 +123,7 @@ if __name__ == "__main__":
                 metadata = json.load(open(metafile, encoding="utf-8"))
                 for task in args.tasks:
                     target_dir = build_dir(task, lang, split)
-                    write_dir(target_dir, metadata)
+                    write_dir(target_dir, metadata, min_wav_length)
 
     for split in ("train", "dev"):
         for lang in args.langs:
