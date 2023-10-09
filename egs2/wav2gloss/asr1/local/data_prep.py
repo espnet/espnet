@@ -37,6 +37,7 @@ def build_dir(task, lang, split):
 
 
 def _cleaner(s):
+    s = " ".join(s.split())
     return "".join([chr(ord(c)) for c in s if ord(c) != 160])
 
 
@@ -52,6 +53,8 @@ def write_dir(target_dir, metadata):
         if len(meta[task]) < 1:
             continue
         if " " in fname:
+            continue
+        if meta["length"] < 1000:
             continue
 
         header = f"<task|{task}> <lang|{lang}>"
