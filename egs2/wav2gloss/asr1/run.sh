@@ -12,7 +12,7 @@ train_set="w2g_${task}_${lang}_train"
 valid_set="w2g_${task}_${lang}_dev"
 lm_train_text=data/w2g_${task}_${lang}_train/lm.txt
 
-asr_config="conf/tuning/train_xls_r_conformer.yaml"
+asr_config="conf/tuning/train_xls_r_conformer_c6_t6.yaml"
 asr_tag="${task}_${lang}_xls_r_conformer"
 
 lm_config="conf/tuning/train_lm_4layers.yaml"
