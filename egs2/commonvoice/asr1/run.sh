@@ -5,7 +5,7 @@ set -e
 set -u
 set -o pipefail
 
-lang=de # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
+lang=cy # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
 
 train_set=train_"$(echo "${lang}" | tr - _)"
 train_dev=dev_"$(echo "${lang}" | tr - _)"
@@ -34,6 +34,7 @@ fi
     --token_type bpe \
     --nbpe $nbpe \
     --feats_type raw \
+    --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
