@@ -16,6 +16,7 @@ asr_config=conf/train_asr_whisper_full_correct_specaug.yaml
     --ngpu 1 \
     --use_lm false \
     --use_prompt true \
+    --use_lang_prompt true \
     --token_type whisper_multilingual \
     --feats_normalize '' \
     --feats_type raw\

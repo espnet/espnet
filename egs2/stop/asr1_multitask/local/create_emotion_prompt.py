@@ -25,11 +25,3 @@ for split in ["train", "valid"]:
     file_write = open("dump_iemocap/dump/raw/" + split + "/prompt", "w")
     for line in line1_arr:
         file_write.write(line)
-
-for split in ["train", "valid"]:
-    file = open("dump_fsc/dump/raw/" + split + "/text")
-    line_arr = [line for line in file]
-    line1_arr = [line.split()[0] + " <|en|> <|ic|> <|fsc|>\n" for line in line_arr]
-    file_write = open("dump_fsc/dump/raw/" + split + "/prompt", "w")
-    for line in line1_arr:
-        file_write.write(line)
