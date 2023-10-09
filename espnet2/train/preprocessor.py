@@ -715,7 +715,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                         delimiter=delimiter,
                         space_symbol=space_symbol,
                         non_linguistic_symbols=non_linguistic_symbols,
-                        g2p_type=g2p_type[i],
+                        g2p_type=g2p_type[i] if g2p_type is not None else g2p_type,
                         encode_kwargs=(
                             tokenizer_encode_conf[i]
                             if i < len(tokenizer_encode_conf)
