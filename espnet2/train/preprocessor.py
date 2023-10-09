@@ -671,7 +671,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
             bpemodel=bpemodel[0],
             text_cleaner=text_cleaner,
             g2p_type=g2p_type[0]
-            if type(g2p_type) is not str and type(g2p_type) is not None
+            if type(g2p_type) is not str and g2p_type is not None
             else g2p_type,
             unk_symbol=unk_symbol,
             space_symbol=space_symbol,
