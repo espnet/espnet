@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Copyright 2023  Jee-weon Jung
+# Copyright 2023  Siddhant Arora
 #           2023  Carnegie Mellon University
 # Apache 2.0
 

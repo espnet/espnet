@@ -5,4 +5,4 @@ maxlenratio: -20
 minlenratio: 0.
 penalty: 0.
 lang_prompt_token: "<|audio|> <|auc|> <|esc50|>"
-prompt_token_file: /projects/bbjs/arora1/new_download/espnet/egs2/stop/asr3_less_combined2_more_multilingual_data2/add_tokens-Copy1.txt
+prompt_token_file: local/add_tokens-Copy1.txt

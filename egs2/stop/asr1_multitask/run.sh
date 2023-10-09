@@ -20,7 +20,7 @@ asr_config=conf/train_asr_whisper_full_correct_specaug.yaml
     --feats_normalize '' \
     --feats_type raw\
     --max_wav_duration 30 \
-    --nlsyms_txt add_tokens-Copy1.txt \
+    --nlsyms_txt local/add_tokens-Copy1.txt \
     --inference_nj 8 \
     --audio_format "flac.ark" \
     --inference_asr_model valid.acc.ave.pth\

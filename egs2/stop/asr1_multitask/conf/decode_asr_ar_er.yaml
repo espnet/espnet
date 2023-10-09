@@ -1,8 +1,0 @@
-beam_size: 1
-ctc_weight: 0.0
-lm_weight: 0.
-maxlenratio: -20
-minlenratio: 0.
-penalty: 0.
-lang_prompt_token: "<|ar|> <|er|>"
-prompt_token_file: /projects/bbjs/arora1/new_download/espnet/egs2/stop/asr3_less_combined2_more_multilingual/add_tokens-Copy1.txt
