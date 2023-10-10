@@ -64,6 +64,7 @@ class BeamSearch(torch.nn.Module):
             pre_beam_score_key (str): key of scores to perform pre-beam search
             pre_beam_ratio (float): beam size in the pre-beam search
                 will be `int(pre_beam_ratio * beam_size)`
+            return_hs (bool): Whether to return hidden intermediates
 
         """
         super().__init__()
@@ -394,6 +395,8 @@ class BeamSearch(torch.nn.Module):
                 If maxlenratio<0.0, its absolute value is interpreted
                 as a constant max output length.
             minlenratio (float): Input length ratio to obtain min output length.
+                If minlenratio<0.0, its absolute value is interpreted
+                as a constant min output length.
             pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
                 Sequential attn computes attn first on pre_x then on x,
                 thereby attending to two sources in sequence.
@@ -413,7 +416,11 @@ class BeamSearch(torch.nn.Module):
             maxlen = -1 * int(maxlenratio)
         else:
             maxlen = max(1, int(maxlenratio * inp.size(0)))
-        minlen = int(minlenratio * inp.size(0))
+
+        if minlenratio < 0:
+            minlen = -1 * int(minlenratio)
+        else:
+            minlen = int(minlenratio * inp.size(0))
         logger.info("decoder input length: " + str(inp.shape[0]))
         logger.info("max output length: " + str(maxlen))
         logger.info("min output length: " + str(minlen))
