@@ -4,6 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import torch
 import yaml
+from espnet2.torch_utils.device_funcs import to_device
 
 
 def load_embeddings(embd_dir: str) -> dict:
@@ -18,7 +19,6 @@ def load_embeddings(embd_dir: str) -> dict:
         embd_dic2[k] = (
             torch.nn.functional.normalize(torch.from_numpy(v), p=2, dim=1)
             .squeeze()
-            .numpy()
         )
 
     # return {k: v for k, v in zip(keys, values)}
@@ -41,8 +41,9 @@ def main(args):
     utt2spk = args[3]
     out_dir = args[4]
     cfg = load_yaml(args[5])
-    print(args)
-    print(cfg)
+    ngpu = int(args[6])
+    print("args,", args)
+    print("cfg,", cfg)
 
     with open(org_scores) as f:
         org_scores = f.readlines()
@@ -55,24 +56,33 @@ def main(args):
     cohort_embds = load_embeddings(cohort_embds)
 
     if cfg["average_spk"]:
+        print(f"Averaging cohort embeddings per speaker")
         spk_embds_dic = {}
         for k, v in cohort_embds.items():
             spk = utt2spk[k]
             if spk not in spk_embds_dic:
                 spk_embds_dic[spk] = []
             spk_embds_dic[spk].append(v)
-        for spk in spk_embds_dic:
-            spk_embds_dic[spk] = np.mean(spk_embds_dic[spk], axis=0)
         cohort_embds = spk_embds_dic
-    cohort_embds = torch.from_numpy(np.array(list(cohort_embds.values())))
+
+        new_cohort_embds = []
+        for spk in cohort_embds:
+            new_cohort_embds.append(torch.stack(cohort_embds[spk], dim=0).mean(0))
+    else:
+        new_cohort_embds = []
+        for utt in cohort_embds:
+            new_cohort_embds.append(cohort_embds[utt])
+    cohort_embds = torch.stack(new_cohort_embds, dim=0)
+    cohort_embds = to_device(cohort_embds, "cuda" if ngpu > 0 else "cpu")
+
     print(f"{cohort_embds.size()}")
 
     with open(out_dir, "w") as f:
         for score in org_scores:
             utts, score, lab = score.strip().split(" ")
             enr, tst = utts.split("*")
-            enr = torch.from_numpy(org_embds[enr])
-            tst = torch.from_numpy(org_embds[tst])
+            enr = to_device(org_embds[enr], "cuda" if ngpu > 0 else "cpu")
+            tst = to_device(org_embds[tst], "cuda" if ngpu > 0 else "cpu")
             score = float(score)
 
             e_c = -1.0 * torch.cdist(enr, cohort_embds).mean(0)
@@ -95,7 +105,7 @@ def main(args):
             # print("score", score, "newscore", newscore, "label", lab)
 
             f.write(f"{utts} {newscore} {lab}\n")
-            stat_dic = {"e_c_m": e_c_m, "e_c_s": e_c_s, "t_c_m": t_c_m, "t_c_s": t_c_s}
+            #stat_dic = {"e_c_m": e_c_m, "e_c_s": e_c_s, "t_c_m": t_c_m, "t_c_s": t_c_s}
 
 
 if __name__ == "__main__":
