@@ -62,7 +62,7 @@ def test_init_lang_invalid():
 )
 def test_init_task_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenizer("whisper_multilingual", "aaa", "transcribe_aaa")
+        OpenAIWhisperTokenizer("whisper_multilingual", "zh", "transcribe_aaa")
 
 
 @pytest.mark.skipif(

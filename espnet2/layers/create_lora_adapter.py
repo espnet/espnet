@@ -108,20 +108,6 @@ def create_new_module(
             r=rank,
             lora_alpha=alpha,
         )
-    elif isinstance(target_module, torch.nn.Conv2d):
-        out_channels, in_channels = target_module.weight.size()[:2]
-        kernel_size = target_module.weight.size()[2:]
-        new_module = lora.Conv2d(
-            in_channels,
-            out_channels,
-            kernel_size,
-            stride=target_module.stride,
-            padding=target_module.padding,
-            bias=bias,
-            r=rank,
-            lora_alpha=alpha,
-            lora_dropout=dropout_rate,
-        )
     elif isinstance(target_module, torch.nn.Linear):
         new_module = lora.Linear(
             target_module.in_features,
