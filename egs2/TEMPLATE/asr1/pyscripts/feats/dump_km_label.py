@@ -16,6 +16,7 @@ import joblib
 import numpy as np
 import torch
 from ssl_feature_utils import (
+    ESPnetASRmodelFeatureReader,
     ESPnetHubertFeatureReader,
     HubertFeatureReader,
     MfccFeatureReader,
@@ -41,6 +42,7 @@ feature_reader_choice = dict(
     mfcc=MfccFeatureReader,
     fairseq_hubert=HubertFeatureReader,
     espnet_hubert=ESPnetHubertFeatureReader,
+    espnet_asr=ESPnetASRModelFeatureReader,
     s3prl=S3PRLFeatureReader,
 )
 
