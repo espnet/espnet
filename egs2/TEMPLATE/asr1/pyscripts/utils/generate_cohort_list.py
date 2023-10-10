@@ -1,5 +1,7 @@
 import sys
 
+import numpy as np
+np.random.seed(0)
 import soundfile as sf
 import yaml
 
@@ -33,6 +35,7 @@ def main(args):
         chunk = spk.strip().split(" ")
         spk = chunk[0]
         utts = sorted(chunk[1:])
+        np.random.shuffle(utts)
         n_selected = 0
         for utt in utts:
             utt_file = wav2dir_dic[utt]
