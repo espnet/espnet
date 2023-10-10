@@ -686,6 +686,17 @@ espnet2.asr.encoder.hubert_encoder
     :show-inheritance:
 
 
+.. _espnet2.asr.encoder.avhubert_encoder:
+
+espnet2.asr.encoder.avhubert_encoder
+------------------------------------
+
+.. automodule:: espnet2.asr.encoder.avhubert_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.encoder.hugging_face_transformers_encoder:
 
 espnet2.asr.encoder.hugging_face_transformers_encoder

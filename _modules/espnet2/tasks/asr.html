@@ -237,6 +237,7 @@
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.decoder.whisper_decoder</span> <span class="kn">import</span> <span class="n">OpenAIWhisperDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.asr.encoder.avhubert_encoder</span> <span class="kn">import</span> <span class="n">FairseqAVHubertEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.branchformer_encoder</span> <span class="kn">import</span> <span class="n">BranchformerEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.conformer_encoder</span> <span class="kn">import</span> <span class="n">ConformerEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.contextual_block_conformer_encoder</span> <span class="kn">import</span> <span class="p">(</span>
@@ -368,6 +369,7 @@
         <span class="n">branchformer</span><span class="o">=</span><span class="n">BranchformerEncoder</span><span class="p">,</span>
         <span class="n">whisper</span><span class="o">=</span><span class="n">OpenAIWhisperEncoder</span><span class="p">,</span>
         <span class="n">e_branchformer</span><span class="o">=</span><span class="n">EBranchformerEncoder</span><span class="p">,</span>
+        <span class="n">avhubert</span><span class="o">=</span><span class="n">FairseqAVHubertEncoder</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="n">type_check</span><span class="o">=</span><span class="n">AbsEncoder</span><span class="p">,</span>
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;rnn&quot;</span><span class="p">,</span>

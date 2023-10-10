@@ -195,6 +195,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-e-branchformer-encoder-1">espnet2.asr.encoder.e_branchformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-longformer-encoder-1">espnet2.asr.encoder.longformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-hubert-encoder-1">espnet2.asr.encoder.hubert_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-avhubert-encoder-1">espnet2.asr.encoder.avhubert_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-hugging-face-transformers-encoder-1">espnet2.asr.encoder.hugging_face_transformers_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-conformer-encoder-1">espnet2.asr.encoder.conformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-wav2vec2-encoder-1">espnet2.asr.encoder.wav2vec2_encoder</a></li>
@@ -5707,6 +5708,702 @@ in ASR finetuning.</p></li>
 <dl class="function">
 <dt id="espnet2.asr.encoder.hubert_encoder.download_hubert">
 <code class="sig-prename descclassname">espnet2.asr.encoder.hubert_encoder.</code><code class="sig-name descname">download_hubert</code><span class="sig-paren">(</span><em class="sig-param">model_url</em>, <em class="sig-param">dir_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/hubert_encoder.html#download_hubert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.hubert_encoder.download_hubert" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="espnet2-asr-encoder-avhubert-encoder-1">
+<span id="espnet2-asr-encoder-avhubert-encoder"></span><h2>espnet2.asr.encoder.avhubert_encoder<a class="headerlink" href="#espnet2-asr-encoder-avhubert-encoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.encoder.avhubert_encoder"></span><p>Encoder definition.</p>
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">AVHubertConfig</code><span class="sig-paren">(</span><em class="sig-param">sample_rate: int = 16000</em>, <em class="sig-param">label_rate: int = -1</em>, <em class="sig-param">encoder_layers: int = 12</em>, <em class="sig-param">encoder_embed_dim: int = 768</em>, <em class="sig-param">encoder_ffn_embed_dim: int = 3072</em>, <em class="sig-param">encoder_attention_heads: int = 12</em>, <em class="sig-param">activation_fn: str = 'gelu'</em>, <em class="sig-param">dropout: float = 0.1</em>, <em class="sig-param">attention_dropout: float = 0.1</em>, <em class="sig-param">activation_dropout: float = 0.0</em>, <em class="sig-param">encoder_layerdrop: float = 0.0</em>, <em class="sig-param">dropout_input: float = 0.0</em>, <em class="sig-param">dropout_features: float = 0.0</em>, <em class="sig-param">final_dim: int = 0</em>, <em class="sig-param">untie_final_proj: bool = False</em>, <em class="sig-param">layer_norm_first: bool = False</em>, <em class="sig-param">conv_feature_layers: str = '[(512</em>, <em class="sig-param">10</em>, <em class="sig-param">5)] + [(512</em>, <em class="sig-param">3</em>, <em class="sig-param">2)] * 4 + [(512</em>, <em class="sig-param">2</em>, <em class="sig-param">2)] * 2'</em>, <em class="sig-param">conv_bias: bool = False</em>, <em class="sig-param">logit_temp: float = 0.1</em>, <em class="sig-param">target_glu: bool = False</em>, <em class="sig-param">feature_grad_mult: float = 1.0</em>, <em class="sig-param">mask_length_audio: int = 10</em>, <em class="sig-param">mask_prob_audio: float = 0.65</em>, <em class="sig-param">mask_length_image: int = 10</em>, <em class="sig-param">mask_prob_image: float = 0.65</em>, <em class="sig-param">mask_selection: str = 'static'</em>, <em class="sig-param">mask_other: float = 0</em>, <em class="sig-param">no_mask_overlap: bool = False</em>, <em class="sig-param">mask_min_space: int = 1</em>, <em class="sig-param">mask_channel_length: int = 10</em>, <em class="sig-param">mask_channel_prob: float = 0.0</em>, <em class="sig-param">mask_channel_selection: str = 'static'</em>, <em class="sig-param">mask_channel_other: float = 0</em>, <em class="sig-param">no_mask_channel_overlap: bool = False</em>, <em class="sig-param">mask_channel_min_space: int = 1</em>, <em class="sig-param">conv_pos: int = 128</em>, <em class="sig-param">conv_pos_groups: int = 16</em>, <em class="sig-param">latent_temp: Tuple[float</em>, <em class="sig-param">float</em>, <em class="sig-param">float] = (2</em>, <em class="sig-param">0.5</em>, <em class="sig-param">0.999995)</em>, <em class="sig-param">skip_masked: bool = False</em>, <em class="sig-param">skip_nomask: bool = False</em>, <em class="sig-param">resnet_relu_type: str = 'prelu'</em>, <em class="sig-param">resnet_weights: Optional[str] = None</em>, <em class="sig-param">sim_type: str = 'cosine'</em>, <em class="sig-param">sub_encoder_layers: int = 0</em>, <em class="sig-param">audio_feat_dim: int = -1</em>, <em class="sig-param">modality_dropout: float = 0</em>, <em class="sig-param">audio_dropout: float = 0</em>, <em class="sig-param">modality_fuse: str = 'concat'</em>, <em class="sig-param">selection_type: str = 'same_other_seq'</em>, <em class="sig-param">masking_type: str = 'input'</em>, <em class="sig-param">decoder_embed_dim: int = 768</em>, <em class="sig-param">decoder_ffn_embed_dim: int = 3072</em>, <em class="sig-param">decoder_layers: int = 6</em>, <em class="sig-param">decoder_layerdrop: float = 0.0</em>, <em class="sig-param">decoder_attention_heads: int = 4</em>, <em class="sig-param">decoder_learned_pos: bool = False</em>, <em class="sig-param">decoder_normalize_before: bool = False</em>, <em class="sig-param">no_token_positional_embeddings: bool = False</em>, <em class="sig-param">decoder_dropout: float = 0.1</em>, <em class="sig-param">decoder_attention_dropout: float = 0.1</em>, <em class="sig-param">decoder_activation_dropout: float = 0.0</em>, <em class="sig-param">max_target_positions: int = 2048</em>, <em class="sig-param">share_decoder_input_output_embed: bool = False</em>, <em class="sig-param">no_scale_embedding: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Configuration from original AVHubert Github</p>
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.activation_dropout">
+<code class="sig-name descname">activation_dropout</code><em class="property"> = 0.0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.activation_dropout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.activation_fn">
+<code class="sig-name descname">activation_fn</code><em class="property"> = 'gelu'</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.activation_fn" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.attention_dropout">
+<code class="sig-name descname">attention_dropout</code><em class="property"> = 0.1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.attention_dropout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.audio_dropout">
+<code class="sig-name descname">audio_dropout</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.audio_dropout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.audio_feat_dim">
+<code class="sig-name descname">audio_feat_dim</code><em class="property"> = -1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.audio_feat_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.conv_bias">
+<code class="sig-name descname">conv_bias</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.conv_bias" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.conv_feature_layers">
+<code class="sig-name descname">conv_feature_layers</code><em class="property"> = '[(512,10,5)] + [(512,3,2)] * 4 + [(512,2,2)] * 2'</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.conv_feature_layers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.conv_pos">
+<code class="sig-name descname">conv_pos</code><em class="property"> = 128</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.conv_pos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.conv_pos_groups">
+<code class="sig-name descname">conv_pos_groups</code><em class="property"> = 16</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.conv_pos_groups" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_activation_dropout">
+<code class="sig-name descname">decoder_activation_dropout</code><em class="property"> = 0.0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_activation_dropout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_attention_dropout">
+<code class="sig-name descname">decoder_attention_dropout</code><em class="property"> = 0.1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_attention_dropout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_attention_heads">
+<code class="sig-name descname">decoder_attention_heads</code><em class="property"> = 4</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_attention_heads" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_dropout">
+<code class="sig-name descname">decoder_dropout</code><em class="property"> = 0.1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_dropout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_embed_dim">
+<code class="sig-name descname">decoder_embed_dim</code><em class="property"> = 768</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_embed_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_ffn_embed_dim">
+<code class="sig-name descname">decoder_ffn_embed_dim</code><em class="property"> = 3072</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_ffn_embed_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_layerdrop">
+<code class="sig-name descname">decoder_layerdrop</code><em class="property"> = 0.0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_layerdrop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_layers">
+<code class="sig-name descname">decoder_layers</code><em class="property"> = 6</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_layers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_learned_pos">
+<code class="sig-name descname">decoder_learned_pos</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_learned_pos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_normalize_before">
+<code class="sig-name descname">decoder_normalize_before</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.decoder_normalize_before" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.dropout">
+<code class="sig-name descname">dropout</code><em class="property"> = 0.1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.dropout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.dropout_features">
+<code class="sig-name descname">dropout_features</code><em class="property"> = 0.0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.dropout_features" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.dropout_input">
+<code class="sig-name descname">dropout_input</code><em class="property"> = 0.0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.dropout_input" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_attention_heads">
+<code class="sig-name descname">encoder_attention_heads</code><em class="property"> = 12</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_attention_heads" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_embed_dim">
+<code class="sig-name descname">encoder_embed_dim</code><em class="property"> = 768</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_embed_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_ffn_embed_dim">
+<code class="sig-name descname">encoder_ffn_embed_dim</code><em class="property"> = 3072</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_ffn_embed_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_layerdrop">
+<code class="sig-name descname">encoder_layerdrop</code><em class="property"> = 0.0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_layerdrop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_layers">
+<code class="sig-name descname">encoder_layers</code><em class="property"> = 12</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.encoder_layers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.feature_grad_mult">
+<code class="sig-name descname">feature_grad_mult</code><em class="property"> = 1.0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.feature_grad_mult" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.final_dim">
+<code class="sig-name descname">final_dim</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.final_dim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.label_rate">
+<code class="sig-name descname">label_rate</code><em class="property"> = -1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.label_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.latent_temp">
+<code class="sig-name descname">latent_temp</code><em class="property"> = (2, 0.5, 0.999995)</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.latent_temp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.layer_norm_first">
+<code class="sig-name descname">layer_norm_first</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.layer_norm_first" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.logit_temp">
+<code class="sig-name descname">logit_temp</code><em class="property"> = 0.1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.logit_temp" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_length">
+<code class="sig-name descname">mask_channel_length</code><em class="property"> = 10</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_length" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_min_space">
+<code class="sig-name descname">mask_channel_min_space</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_min_space" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_other">
+<code class="sig-name descname">mask_channel_other</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_other" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_prob">
+<code class="sig-name descname">mask_channel_prob</code><em class="property"> = 0.0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_prob" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_selection">
+<code class="sig-name descname">mask_channel_selection</code><em class="property"> = 'static'</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_channel_selection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_length_audio">
+<code class="sig-name descname">mask_length_audio</code><em class="property"> = 10</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_length_audio" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_length_image">
+<code class="sig-name descname">mask_length_image</code><em class="property"> = 10</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_length_image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_min_space">
+<code class="sig-name descname">mask_min_space</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_min_space" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_other">
+<code class="sig-name descname">mask_other</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_other" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_prob_audio">
+<code class="sig-name descname">mask_prob_audio</code><em class="property"> = 0.65</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_prob_audio" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_prob_image">
+<code class="sig-name descname">mask_prob_image</code><em class="property"> = 0.65</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_prob_image" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_selection">
+<code class="sig-name descname">mask_selection</code><em class="property"> = 'static'</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.mask_selection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.masking_type">
+<code class="sig-name descname">masking_type</code><em class="property"> = 'input'</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.masking_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.max_target_positions">
+<code class="sig-name descname">max_target_positions</code><em class="property"> = 2048</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.max_target_positions" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.modality_dropout">
+<code class="sig-name descname">modality_dropout</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.modality_dropout" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.modality_fuse">
+<code class="sig-name descname">modality_fuse</code><em class="property"> = 'concat'</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.modality_fuse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.no_mask_channel_overlap">
+<code class="sig-name descname">no_mask_channel_overlap</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.no_mask_channel_overlap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.no_mask_overlap">
+<code class="sig-name descname">no_mask_overlap</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.no_mask_overlap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.no_scale_embedding">
+<code class="sig-name descname">no_scale_embedding</code><em class="property"> = True</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.no_scale_embedding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.no_token_positional_embeddings">
+<code class="sig-name descname">no_token_positional_embeddings</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.no_token_positional_embeddings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.resnet_relu_type">
+<code class="sig-name descname">resnet_relu_type</code><em class="property"> = 'prelu'</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.resnet_relu_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.resnet_weights">
+<code class="sig-name descname">resnet_weights</code><em class="property"> = None</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.resnet_weights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.sample_rate">
+<code class="sig-name descname">sample_rate</code><em class="property"> = 16000</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.sample_rate" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.selection_type">
+<code class="sig-name descname">selection_type</code><em class="property"> = 'same_other_seq'</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.selection_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.share_decoder_input_output_embed">
+<code class="sig-name descname">share_decoder_input_output_embed</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.share_decoder_input_output_embed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.sim_type">
+<code class="sig-name descname">sim_type</code><em class="property"> = 'cosine'</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.sim_type" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.skip_masked">
+<code class="sig-name descname">skip_masked</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.skip_masked" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.skip_nomask">
+<code class="sig-name descname">skip_nomask</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.skip_nomask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.sub_encoder_layers">
+<code class="sig-name descname">sub_encoder_layers</code><em class="property"> = 0</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.sub_encoder_layers" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.target_glu">
+<code class="sig-name descname">target_glu</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.target_glu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.untie_final_proj">
+<code class="sig-name descname">untie_final_proj</code><em class="property"> = False</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertConfig.untie_final_proj" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">AVHubertModel</code><span class="sig-paren">(</span><em class="sig-param">cfg: espnet2.asr.encoder.avhubert_encoder.AVHubertConfig</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.build_model">
+<em class="property">classmethod </em><code class="sig-name descname">build_model</code><span class="sig-paren">(</span><em class="sig-param">cfg: espnet2.asr.encoder.avhubert_encoder.AVHubertConfig</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.build_model"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.build_model" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build a new model instance.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.extract_finetune">
+<code class="sig-name descname">extract_finetune</code><span class="sig-paren">(</span><em class="sig-param">source</em>, <em class="sig-param">padding_mask=None</em>, <em class="sig-param">mask=False</em>, <em class="sig-param">ret_conv=False</em>, <em class="sig-param">output_layer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.extract_finetune"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.extract_finetune" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward AVHubert Pretrain Encoder.
+:param source[‘video’]: input tensor (B, 1, L, H, W)
+:param source[‘audio’]: input tensor (B, F, L)
+:param padding_mask: input tensor (B, L)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>encoded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_audio">
+<code class="sig-name descname">forward_audio</code><span class="sig-paren">(</span><em class="sig-param">source_audio</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.forward_audio"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_audio" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_features">
+<code class="sig-name descname">forward_features</code><span class="sig-paren">(</span><em class="sig-param">source: torch.Tensor</em>, <em class="sig-param">modality: str</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.forward_features"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_features" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_padding_mask">
+<code class="sig-name descname">forward_padding_mask</code><span class="sig-paren">(</span><em class="sig-param">features: torch.Tensor</em>, <em class="sig-param">padding_mask: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.forward_padding_mask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_padding_mask" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_transformer">
+<code class="sig-name descname">forward_transformer</code><span class="sig-paren">(</span><em class="sig-param">source</em>, <em class="sig-param">padding_mask=None</em>, <em class="sig-param">output_layer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.forward_transformer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_transformer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward AVHubert Pretrain Encoder (without frontend).
+Assume the source is already fused feature.
+:param source: input tensor (B, L, D*2)
+:param padding_mask: input tensor (B, L)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>encoded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_video">
+<code class="sig-name descname">forward_video</code><span class="sig-paren">(</span><em class="sig-param">source_video</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.forward_video"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.forward_video" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.AVHubertModel.modality_fusion">
+<code class="sig-name descname">modality_fusion</code><span class="sig-paren">(</span><em class="sig-param">features_audio</em>, <em class="sig-param">features_video</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#AVHubertModel.modality_fusion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.modality_fusion" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.BasicBlock">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">BasicBlock</code><span class="sig-paren">(</span><em class="sig-param">inplanes</em>, <em class="sig-param">planes</em>, <em class="sig-param">stride=1</em>, <em class="sig-param">downsample=None</em>, <em class="sig-param">relu_type='relu'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#BasicBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.BasicBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="attribute">
+<dt id="espnet2.asr.encoder.avhubert_encoder.BasicBlock.expansion">
+<code class="sig-name descname">expansion</code><em class="property"> = 1</em><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.BasicBlock.expansion" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.BasicBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#BasicBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.BasicBlock.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">FairseqAVHubertEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int = 1</em>, <em class="sig-param">avhubert_url: str = './'</em>, <em class="sig-param">avhubert_dir_path: str = './'</em>, <em class="sig-param">freeze_finetune_updates: int = 0</em>, <em class="sig-param">encoder_embed_dim: int = 1024</em>, <em class="sig-param">encoder_layerdrop: float = 0.05</em>, <em class="sig-param">dropout_input: float = 0.1</em>, <em class="sig-param">dropout_features: float = 0.1</em>, <em class="sig-param">dropout: float = 0.1</em>, <em class="sig-param">attention_dropout: float = 0.1</em>, <em class="sig-param">feature_grad_mult: float = 0.1</em>, <em class="sig-param">activation_dropout: float = 0.0</em>, <em class="sig-param">wav_input: bool = False</em>, <em class="sig-param">layer_norm_first: bool = True</em>, <em class="sig-param">audio_feat_dim: int = 104</em>, <em class="sig-param">encoder_layers: int = 24</em>, <em class="sig-param">encoder_ffn_embed_dim: int = 4096</em>, <em class="sig-param">encoder_attention_heads: int = 16</em>, <em class="sig-param">extracted: bool = False</em>, <em class="sig-param">pretrain: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#FairseqAVHubertEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>FairSeq AVHubert pretrained encoder module</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> – input dim</p></li>
+<li><p><strong>avhubert_url</strong> – download link for pre-trained avhubert model</p></li>
+<li><p><strong>avhubert_dir_path</strong> – dir_path for downloading pre-trained avhubert model</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: Dict[str, torch.Tensor], ilens: torch.Tensor, prev_states: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#FairseqAVHubertEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forward AVHubert Encoder.
+:param xs_pad[video]: input tensor (B, 1, L, H, W)
+:param xs_pad[audio]: input tensor (B, D, L)
+:param ilens: input length (B)
+:param prev_states: Not to be used now.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>position embedded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.forward_fusion">
+<code class="sig-name descname">forward_fusion</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: Dict[str, torch.Tensor]</em><span class="sig-paren">)</span> &#x2192; torch.Tensor<a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#FairseqAVHubertEncoder.forward_fusion"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.forward_fusion" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#FairseqAVHubertEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.reload_pretrained_parameters">
+<code class="sig-name descname">reload_pretrained_parameters</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#FairseqAVHubertEncoder.reload_pretrained_parameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.reload_pretrained_parameters" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.GradMultiply">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">GradMultiply</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#GradMultiply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.GradMultiply" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.autograd.function.Function</span></code></p>
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.GradMultiply.backward">
+<em class="property">static </em><code class="sig-name descname">backward</code><span class="sig-paren">(</span><em class="sig-param">ctx</em>, <em class="sig-param">grad</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#GradMultiply.backward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.GradMultiply.backward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a formula for differentiating the operation with backward mode
+automatic differentiation (alias to the vjp function).</p>
+<p>This function is to be overridden by all subclasses.</p>
+<p>It must accept a context <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx</span></code> as the first argument, followed by
+as many outputs as the <a class="reference internal" href="#espnet2.asr.encoder.avhubert_encoder.GradMultiply.forward" title="espnet2.asr.encoder.avhubert_encoder.GradMultiply.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> returned (None will be passed in
+for non tensor outputs of the forward function),
+and it should return as many tensors, as there were inputs to
+<a class="reference internal" href="#espnet2.asr.encoder.avhubert_encoder.GradMultiply.forward" title="espnet2.asr.encoder.avhubert_encoder.GradMultiply.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a>. Each argument is the gradient w.r.t the given output,
+and each returned value should be the gradient w.r.t. the
+corresponding input. If an input is not a Tensor or is a Tensor not
+requiring grads, you can just pass None as a gradient for that input.</p>
+<p>The context can be used to retrieve tensors saved during the forward
+pass. It also has an attribute <code class="xref py py-attr docutils literal notranslate"><span class="pre">ctx.needs_input_grad</span></code> as a tuple
+of booleans representing whether each input needs gradient. E.g.,
+<a class="reference internal" href="#espnet2.asr.encoder.avhubert_encoder.GradMultiply.backward" title="espnet2.asr.encoder.avhubert_encoder.GradMultiply.backward"><code class="xref py py-func docutils literal notranslate"><span class="pre">backward()</span></code></a> will have <code class="docutils literal notranslate"><span class="pre">ctx.needs_input_grad[0]</span> <span class="pre">=</span> <span class="pre">True</span></code> if the
+first input to <a class="reference internal" href="#espnet2.asr.encoder.avhubert_encoder.GradMultiply.forward" title="espnet2.asr.encoder.avhubert_encoder.GradMultiply.forward"><code class="xref py py-func docutils literal notranslate"><span class="pre">forward()</span></code></a> needs gradient computated w.r.t. the
+output.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.GradMultiply.forward">
+<em class="property">static </em><code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">ctx</em>, <em class="sig-param">x</em>, <em class="sig-param">scale</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#GradMultiply.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.GradMultiply.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>This function is to be overridden by all subclasses. There are two ways
+to define forward:</p>
+<p>Usage 1 (Combined forward and ctx):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>It must accept a context ctx as the first argument, followed by any
+number of arguments (tensors or other types).</p></li>
+<li><p>See <span class="xref std std-ref">combining-forward-context</span> for more details</p></li>
+</ul>
+<p>Usage 2 (Separate forward and ctx):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+    <span class="k">pass</span>
+
+<span class="nd">@staticmethod</span>
+<span class="k">def</span> <span class="nf">setup_context</span><span class="p">(</span><span class="n">ctx</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">inputs</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Any</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">output</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">pass</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>The forward no longer accepts a ctx argument.</p></li>
+<li><p>Instead, you must also override the <code class="xref py py-meth docutils literal notranslate"><span class="pre">torch.autograd.Function.setup_context()</span></code>
+staticmethod to handle setting up the <code class="docutils literal notranslate"><span class="pre">ctx</span></code> object.
+<code class="docutils literal notranslate"><span class="pre">output</span></code> is the output of the forward, <code class="docutils literal notranslate"><span class="pre">inputs</span></code> are a Tuple of inputs
+to the forward.</p></li>
+<li><p>See <span class="xref std std-ref">extending-autograd</span> for more details</p></li>
+</ul>
+<p>The context can be used to store arbitrary data that can be then
+retrieved during the backward pass. Tensors should not be stored
+directly on <cite>ctx</cite> (though this is not currently enforced for
+backward compatibility). Instead, tensors should be saved either with
+<code class="xref py py-func docutils literal notranslate"><span class="pre">ctx.save_for_backward()</span></code> if they are intended to be used in
+<code class="docutils literal notranslate"><span class="pre">backward</span></code> (equivalently, <code class="docutils literal notranslate"><span class="pre">vjp</span></code>) or <code class="xref py py-func docutils literal notranslate"><span class="pre">ctx.save_for_forward()</span></code>
+if they are intended to be used for in <code class="docutils literal notranslate"><span class="pre">jvp</span></code>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.ResEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">ResEncoder</code><span class="sig-paren">(</span><em class="sig-param">relu_type</em>, <em class="sig-param">weights</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#ResEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.ResEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.ResEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#ResEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.ResEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.ResEncoder.threeD_to_2D_tensor">
+<code class="sig-name descname">threeD_to_2D_tensor</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#ResEncoder.threeD_to_2D_tensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.ResEncoder.threeD_to_2D_tensor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.ResNet">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">ResNet</code><span class="sig-paren">(</span><em class="sig-param">block</em>, <em class="sig-param">layers</em>, <em class="sig-param">num_classes=1000</em>, <em class="sig-param">relu_type='relu'</em>, <em class="sig-param">gamma_zero=False</em>, <em class="sig-param">avg_pool_downsample=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#ResNet"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.ResNet" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.ResNet.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#ResNet.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.ResNet.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.SamePad">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">SamePad</code><span class="sig-paren">(</span><em class="sig-param">kernel_size</em>, <em class="sig-param">causal=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#SamePad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.SamePad" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.SamePad.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#SamePad.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.SamePad.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.SubModel">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">SubModel</code><span class="sig-paren">(</span><em class="sig-param">resnet=None</em>, <em class="sig-param">input_dim=None</em>, <em class="sig-param">cfg=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#SubModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.SubModel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.SubModel.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#SubModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.SubModel.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.asr.encoder.avhubert_encoder.TransformerEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">TransformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#TransformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.TransformerEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>From AVHubert github</p>
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.TransformerEncoder.extract_features">
+<code class="sig-name descname">extract_features</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">padding_mask=None</em>, <em class="sig-param">tgt_layer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#TransformerEncoder.extract_features"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.TransformerEncoder.extract_features" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.TransformerEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">padding_mask=None</em>, <em class="sig-param">layer=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#TransformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.TransformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.TransformerEncoder.max_positions">
+<code class="sig-name descname">max_positions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#TransformerEncoder.max_positions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.TransformerEncoder.max_positions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maximum output length supported by the encoder.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.avhubert_encoder.TransformerEncoder.upgrade_state_dict_named">
+<code class="sig-name descname">upgrade_state_dict_named</code><span class="sig-paren">(</span><em class="sig-param">state_dict</em>, <em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#TransformerEncoder.upgrade_state_dict_named"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.TransformerEncoder.upgrade_state_dict_named" title="Permalink to this definition">¶</a></dt>
+<dd><p>Upgrade a (possibly old) state dict for new versions of fairseq.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.encoder.avhubert_encoder.conv3x3">
+<code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">conv3x3</code><span class="sig-paren">(</span><em class="sig-param">in_planes</em>, <em class="sig-param">out_planes</em>, <em class="sig-param">stride=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#conv3x3"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.conv3x3" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.encoder.avhubert_encoder.download_avhubert">
+<code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">download_avhubert</code><span class="sig-paren">(</span><em class="sig-param">model_url</em>, <em class="sig-param">dir_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#download_avhubert"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.download_avhubert" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.encoder.avhubert_encoder.downsample_basic_block">
+<code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">downsample_basic_block</code><span class="sig-paren">(</span><em class="sig-param">inplanes</em>, <em class="sig-param">outplanes</em>, <em class="sig-param">stride</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#downsample_basic_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.downsample_basic_block" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.encoder.avhubert_encoder.downsample_basic_block_v2">
+<code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">downsample_basic_block_v2</code><span class="sig-paren">(</span><em class="sig-param">inplanes</em>, <em class="sig-param">outplanes</em>, <em class="sig-param">stride</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#downsample_basic_block_v2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.downsample_basic_block_v2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.encoder.avhubert_encoder.index_put">
+<code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">index_put</code><span class="sig-paren">(</span><em class="sig-param">tensor</em>, <em class="sig-param">indices</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#index_put"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.index_put" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.encoder.avhubert_encoder.is_xla_tensor">
+<code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">is_xla_tensor</code><span class="sig-paren">(</span><em class="sig-param">tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#is_xla_tensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.is_xla_tensor" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.asr.encoder.avhubert_encoder.time_masking">
+<code class="sig-prename descclassname">espnet2.asr.encoder.avhubert_encoder.</code><code class="sig-name descname">time_masking</code><span class="sig-paren">(</span><em class="sig-param">xs_pad</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/avhubert_encoder.html#time_masking"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.avhubert_encoder.time_masking" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </section>
