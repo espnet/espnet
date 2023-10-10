@@ -167,7 +167,7 @@ Options:
                           # Note that it will overwrite args in inference config.
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
-   
+
    # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).
@@ -184,7 +184,7 @@ Options:
     --lang          # The language type of corpus (default=${lang}).
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
-    
+
 EOF
 )
 
@@ -360,7 +360,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
 
             echo "${feats_type}" > "${data_audio}/${dset}/feats_type"
             echo "${audio_format}" > "${data_audio}/${dset}/audio_format"
-            
+
         done
     else
         log "Error: not supported: --feats_type ${feats_type}"
