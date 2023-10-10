@@ -383,6 +383,13 @@ class STTask(AbsTask):
             help="Specify g2p method if --token_type=phn",
         )
         group.add_argument(
+            "--src_g2p",
+            type=str_or_none,
+            choices=g2p_choices,
+            default=None,
+            help="Specify g2p method if --token_type=phn",
+        )
+        group.add_argument(
             "--speech_volume_normalize",
             type=float_or_none,
             default=None,
@@ -464,7 +471,7 @@ class STTask(AbsTask):
                 bpemodel=[args.bpemodel, args.src_bpemodel],
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
-                g2p_type=args.g2p,
+                g2p_type=[args.g2p, args.src_g2p],
                 # NOTE(kamo): Check attribute existence for backward compatibility
                 rir_scp=getattr(args, "rir_scp", None),
                 rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
