@@ -22,6 +22,13 @@ def test_export_vocabulary_to_stdout():
         pytest.fail(f"exception thrown: {e}")
 
 
+def test_export_multilinugal_vocabulary_to_stdout():
+    try:
+        export_vocabulary("-", "whisper_multilingual", "en", "INFO")
+    except Exception as e:
+        pytest.fail(f"exception thrown: {e}")
+
+
 def test_export_vocabulary_en(tmp_path):
     tknlist_path = tmp_path / "tmp_token_list/whisper_token_list.txt"
     tknlist_path.parent.mkdir()
