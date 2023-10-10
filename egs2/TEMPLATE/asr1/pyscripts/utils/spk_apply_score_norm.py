@@ -4,6 +4,7 @@ from collections import OrderedDict
 import numpy as np
 import torch
 import yaml
+
 from espnet2.torch_utils.device_funcs import to_device
 
 
@@ -16,10 +17,9 @@ def load_embeddings(embd_dir: str) -> dict:
     for k, v in embd_dic.items():
         if len(v.shape) == 1:
             v = v[None, :]
-        embd_dic2[k] = (
-            torch.nn.functional.normalize(torch.from_numpy(v), p=2, dim=1)
-            .squeeze()
-        )
+        embd_dic2[k] = torch.nn.functional.normalize(
+            torch.from_numpy(v), p=2, dim=1
+        ).squeeze()
 
     # return {k: v for k, v in zip(keys, values)}
     return embd_dic2
@@ -105,7 +105,7 @@ def main(args):
             # print("score", score, "newscore", newscore, "label", lab)
 
             f.write(f"{utts} {newscore} {lab}\n")
-            #stat_dic = {"e_c_m": e_c_m, "e_c_s": e_c_s, "t_c_m": t_c_m, "t_c_s": t_c_s}
+            # stat_dic = {"e_c_m": e_c_m, "e_c_s": e_c_s, "t_c_m": t_c_m, "t_c_s": t_c_s}
 
 
 if __name__ == "__main__":

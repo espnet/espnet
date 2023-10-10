@@ -11,37 +11,40 @@ import torch.nn.functional as F
 
 from espnet2.spk.loss.abs_loss import AbsLoss
 
+
 class ArcMarginProduct_intertopk_subcenter(AbsLoss):
     r"""Implement of large margin arc distance with intertopk and subcenter:
-        Reference:
-            MULTI-QUERY MULTI-HEAD ATTENTION POOLING AND INTER-TOPK PENALTY
-            FOR SPEAKER VERIFICATION.
-            https://arxiv.org/pdf/2110.05042.pdf
-            Sub-center ArcFace: Boosting Face Recognition by
-            Large-Scale Noisy Web Faces.
-            https://ibug.doc.ic.ac.uk/media/uploads/documents/eccv_1445.pdf
-        Args:
-            in_features: size of each input sample
-            out_features: size of each output sample
-            scale: norm of input feature
-            margin: margin
-            cos(theta + margin)
-            K: number of sub-centers
-            k_top: number of hard samples
-            mp: margin penalty of hard samples
-            do_lm: whether do large margin finetune
-        """
+    Reference:
+        MULTI-QUERY MULTI-HEAD ATTENTION POOLING AND INTER-TOPK PENALTY
+        FOR SPEAKER VERIFICATION.
+        https://arxiv.org/pdf/2110.05042.pdf
+        Sub-center ArcFace: Boosting Face Recognition by
+        Large-Scale Noisy Web Faces.
+        https://ibug.doc.ic.ac.uk/media/uploads/documents/eccv_1445.pdf
+    Args:
+        in_features: size of each input sample
+        out_features: size of each output sample
+        scale: norm of input feature
+        margin: margin
+        cos(theta + margin)
+        K: number of sub-centers
+        k_top: number of hard samples
+        mp: margin penalty of hard samples
+        do_lm: whether do large margin finetune
+    """
 
-    def __init__(self,
-                 nout,
-                 nclasses,
-                 scale=32.0,
-                 margin=0.2,
-                 easy_margin=False,
-                 K=3,
-                 mp=0.06,
-                 k_top=5,
-                 do_lm=False):
+    def __init__(
+        self,
+        nout,
+        nclasses,
+        scale=32.0,
+        margin=0.2,
+        easy_margin=False,
+        K=3,
+        mp=0.06,
+        k_top=5,
+        do_lm=False,
+    ):
         super().__init__(nout)
         self.in_features = nout
         self.out_features = nclasses
@@ -59,8 +62,7 @@ class ArcMarginProduct_intertopk_subcenter(AbsLoss):
             self.k_top = k_top
 
         # initial classifier
-        self.weight = nn.Parameter(
-            torch.FloatTensor(self.K * nclasses, nout))
+        self.weight = nn.Parameter(torch.FloatTensor(self.K * nclasses, nout))
         nn.init.xavier_uniform_(self.weight)
 
         self.easy_margin = easy_margin
@@ -69,7 +71,8 @@ class ArcMarginProduct_intertopk_subcenter(AbsLoss):
         self.th = math.cos(math.pi - margin)
         self.mm = math.sin(math.pi - margin) * margin
         self.mmm = 1.0 + math.cos(
-            math.pi - margin)  # this can make the output more continuous
+            math.pi - margin
+        )  # this can make the output more continuous
         ########
         self.m = self.margin
         ########
@@ -98,10 +101,12 @@ class ArcMarginProduct_intertopk_subcenter(AbsLoss):
     def forward(self, input, label):
         if len(label.size()) == 2:
             label = label.squeeze(1)
-        cosine = F.linear(F.normalize(input),
-                          F.normalize(self.weight))  # (batch, out_dim * k)
+        cosine = F.linear(
+            F.normalize(input), F.normalize(self.weight)
+        )  # (batch, out_dim * k)
         cosine = torch.reshape(
-            cosine, (-1, self.out_features, self.K))  # (batch, out_dim, k)
+            cosine, (-1, self.out_features, self.K)
+        )  # (batch, out_dim, k)
         cosine, _ = torch.max(cosine, 2)  # (batch, out_dim)
 
         sine = torch.sqrt(1.0 - torch.pow(cosine, 2))
@@ -121,14 +126,17 @@ class ArcMarginProduct_intertopk_subcenter(AbsLoss):
 
         if self.k_top > 0:
             # topk (j != y_i)
-            _, top_k_index = torch.topk(cosine - 2 * one_hot,
-                                        self.k_top)  # exclude j = y_i
-            top_k_one_hot = input.new_zeros(cosine.size()).scatter_(
-                1, top_k_index, 1)
+            _, top_k_index = torch.topk(
+                cosine - 2 * one_hot, self.k_top
+            )  # exclude j = y_i
+            top_k_one_hot = input.new_zeros(cosine.size()).scatter_(1, top_k_index, 1)
 
             # sum
-            output = (one_hot * phi) + (top_k_one_hot * phi_mp) + (
-                (1.0 - one_hot - top_k_one_hot) * cosine)
+            output = (
+                (one_hot * phi)
+                + (top_k_one_hot * phi_mp)
+                + ((1.0 - one_hot - top_k_one_hot) * cosine)
+            )
         else:
             output = (one_hot * phi) + ((1.0 - one_hot) * cosine)
         output *= self.scale

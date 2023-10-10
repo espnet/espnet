@@ -1,6 +1,7 @@
 import sys
 
 import numpy as np
+
 np.random.seed(0)
 import soundfile as sf
 import yaml
