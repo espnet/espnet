@@ -146,7 +146,40 @@ Upload the trained model to Hugging Face for sharing. Additional information at 
 ## How to run
 
 ### SLU-Multi-task-training
-Please refer to the procedure described in `egs2/librispeech/asr1_multitask/README.md` to run multi-tasking learning across 14 speech classification tasks.
+Here, we show the procedure to run multi-tasking learning across 14 speech classification tasks.
+
+
+Create a dump directory using the following recipes: . ``asvspoof, speechcommands, grabo, lt_speech_commands, arabic_sc, fsc, voxforge/lid1, iemocap, accentdb, mustard, mustard_plus_plus, voxceleb1, freesound and esc50``. You can do this by running the following command in each of these recipes:
+```sh
+$ ./run.sh --stop_stage 4
+```
+Note: Download all the dataset zip files first before creating dump directory. Please refer to ``https://github.com/ga642381/SpeechPrompt-v2/blob/main/docs/dataset.md`` to download all datasets.
+
+
+Move to the `egs2/uslu14/asr1` recipe directory. Generate the `prompt` file by running
+```sh
+$ python local/create_*_prompt.py
+```
+
+
+Concatenate ``wav.scp, prompt, text, utt2spk, spk2utt, utt2num_samples`` from all train and valid dump folders in each of the dump directories and create two new directories, ``dump/raw/train_combined`` and ``dump/raw/valid`` to contain the combined data. Start training using:
+```sh
+$ ./run.sh --stage 5 --stop_stage 11
+```
+
+
+Run decoding for each of the datasets, i.e., ``test_<dataset>``, with the specified inference_config, e.g., ``conf/decode_asr_<task>.yaml``, using the following command:
+```sh
+$ ./run.sh --stage 12 --stop_stage 12  --inference_config conf/decode_asr_<task>.yaml --test_sets test_<dataset>
+```
+
+
+For some tasks, you need to clean prediction files using ``python local/clean_emotion_pred.py``, ``python local/check_lid_results.py``, ``python local/check_vad_results.py``. To get accuracy, run
+```sh
+$ ./run.sh --stage 13 --stop_stage 13  --inference_config conf/decode_asr_<task>.yaml --test_sets test_<dataset>
+```
+For tasks where you need to compute f1 or weighted_f1, run ``python local/compute_f1.py`` and ``python local/compute_weighted_f1.py``.
+
 
 ## Related works
 ```
