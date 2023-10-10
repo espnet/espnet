@@ -57,6 +57,8 @@ def write_dir(target_dir, metadata, min_wav_length):
     for fname, meta in metadata.items():
         if len(meta[task]) < 1:
             continue
+        if meta["discard"]:
+            continue
         if " " in fname:
             continue
         if meta["length"] < min_wav_length * 1000:
