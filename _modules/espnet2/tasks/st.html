@@ -169,6 +169,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -595,6 +596,13 @@
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify g2p method if --token_type=phn&quot;</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--src_g2p&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
+            <span class="n">choices</span><span class="o">=</span><span class="n">g2p_choices</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify g2p method if --token_type=phn&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
             <span class="s2">&quot;--speech_volume_normalize&quot;</span><span class="p">,</span>
             <span class="nb">type</span><span class="o">=</span><span class="n">float_or_none</span><span class="p">,</span>
             <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -676,7 +684,7 @@
                 <span class="n">bpemodel</span><span class="o">=</span><span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">bpemodel</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">src_bpemodel</span><span class="p">],</span>
                 <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
                 <span class="n">text_cleaner</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cleaner</span><span class="p">,</span>
-                <span class="n">g2p_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">g2p</span><span class="p">,</span>
+                <span class="n">g2p_type</span><span class="o">=</span><span class="p">[</span><span class="n">args</span><span class="o">.</span><span class="n">g2p</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">src_g2p</span><span class="p">],</span>
                 <span class="c1"># NOTE(kamo): Check attribute existence for backward compatibility</span>
                 <span class="n">rir_scp</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_scp&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
                 <span class="n">rir_apply_prob</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;rir_apply_prob&quot;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>

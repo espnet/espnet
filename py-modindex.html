@@ -172,6 +172,7 @@
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -1512,6 +1513,11 @@
      <tr class="cg-2">
        <td></td>
        <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.linear_encoder"><code class="xref">espnet2.asr.encoder.linear_encoder</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.asr.html#module-espnet2.asr.encoder.longformer_encoder"><code class="xref">espnet2.asr.encoder.longformer_encoder</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
@@ -2218,6 +2224,16 @@
        <td></td>
        <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.bin.html#module-espnet2.bin.pack"><code class="xref">espnet2.bin.pack</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.bin.html#module-espnet2.bin.s2st_inference"><code class="xref">espnet2.bin.s2st_inference</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.bin.html#module-espnet2.bin.s2st_train"><code class="xref">espnet2.bin.s2st_train</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
        <td></td>
@@ -3337,6 +3353,116 @@
      <tr class="cg-2">
        <td></td>
        <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.__init__"><code class="xref">espnet2.s2st.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.aux_attention.__init__"><code class="xref">espnet2.s2st.aux_attention.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.aux_attention.abs_aux_attention"><code class="xref">espnet2.s2st.aux_attention.abs_aux_attention</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.aux_attention.multihead"><code class="xref">espnet2.s2st.aux_attention.multihead</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.espnet_model"><code class="xref">espnet2.s2st.espnet_model</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.losses.__init__"><code class="xref">espnet2.s2st.losses.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.losses.abs_loss"><code class="xref">espnet2.s2st.losses.abs_loss</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.losses.attention_loss"><code class="xref">espnet2.s2st.losses.attention_loss</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.losses.ctc_loss"><code class="xref">espnet2.s2st.losses.ctc_loss</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.losses.guided_attention_loss"><code class="xref">espnet2.s2st.losses.guided_attention_loss</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.losses.tacotron_loss"><code class="xref">espnet2.s2st.losses.tacotron_loss</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.synthesizer.__init__"><code class="xref">espnet2.s2st.synthesizer.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.synthesizer.abs_synthesizer"><code class="xref">espnet2.s2st.synthesizer.abs_synthesizer</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.synthesizer.discrete_synthesizer"><code class="xref">espnet2.s2st.synthesizer.discrete_synthesizer</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.synthesizer.translatotron"><code class="xref">espnet2.s2st.synthesizer.translatotron</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.synthesizer.unity_synthesizer"><code class="xref">espnet2.s2st.synthesizer.unity_synthesizer</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.tgt_feats_extract.__init__"><code class="xref">espnet2.s2st.tgt_feats_extract.__init__</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract"><code class="xref">espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.tgt_feats_extract.discrete_unit"><code class="xref">espnet2.s2st.tgt_feats_extract.discrete_unit</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.tgt_feats_extract.linear_spectrogram"><code class="xref">espnet2.s2st.tgt_feats_extract.linear_spectrogram</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.tgt_feats_extract.log_mel_fbank"><code class="xref">espnet2.s2st.tgt_feats_extract.log_mel_fbank</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.s2st.html#module-espnet2.s2st.tgt_feats_extract.log_spectrogram"><code class="xref">espnet2.s2st.tgt_feats_extract.log_spectrogram</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.s2t.html#module-espnet2.s2t.__init__"><code class="xref">espnet2.s2t.__init__</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
@@ -3693,6 +3819,11 @@
        <td></td>
        <td>&#160;&#160;&#160;
        <a href="_gen/espnet2.tasks.html#module-espnet2.tasks.mt"><code class="xref">espnet2.tasks.mt</code></a></td><td>
+       <em></em></td></tr>
+     <tr class="cg-2">
+       <td></td>
+       <td>&#160;&#160;&#160;
+       <a href="_gen/espnet2.tasks.html#module-espnet2.tasks.s2st"><code class="xref">espnet2.tasks.s2st</code></a></td><td>
        <em></em></td></tr>
      <tr class="cg-2">
        <td></td>

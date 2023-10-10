@@ -205,6 +205,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-abs-encoder-1">espnet2.asr.encoder.abs_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-branchformer-encoder-1">espnet2.asr.encoder.branchformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-transformer-encoder-1">espnet2.asr.encoder.transformer_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-linear-encoder-1">espnet2.asr.encoder.linear_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-transformer-encoder-multispkr-1">espnet2.asr.encoder.transformer_encoder_multispkr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-rnn-encoder-1">espnet2.asr.encoder.rnn_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-layers-init-1">espnet2.asr.layers.__init__</a></li>
@@ -234,6 +235,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.s2st.html">espnet2.s2st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -992,7 +994,7 @@ and next state list for ys.</p>
 
 <dl class="method">
 <dt id="espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs_pad: torch.Tensor</em>, <em class="sig-param">hlens: torch.Tensor</em>, <em class="sig-param">ys_in_pad: torch.Tensor</em>, <em class="sig-param">ys_in_lens: torch.Tensor</em>, <em class="sig-param">return_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">hs_pad: torch.Tensor</em>, <em class="sig-param">hlens: torch.Tensor</em>, <em class="sig-param">ys_in_pad: torch.Tensor</em>, <em class="sig-param">ys_in_lens: torch.Tensor</em>, <em class="sig-param">return_hs: bool = False</em>, <em class="sig-param">return_all_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/decoder/transformer_decoder.html#BaseTransformerDecoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.decoder.transformer_decoder.BaseTransformerDecoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward decoder.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1003,8 +1005,9 @@ and next state list for ys.</p>
 if input_layer == “embed”
 input tensor (batch, maxlen_out, #mels) in the other cases</p></li>
 <li><p><strong>ys_in_lens</strong> – (batch)</p></li>
-<li><p><strong>return_hs</strong> – dec hidden state corresponding to ys,
-used for searchable hidden ints</p></li>
+<li><p><strong>return_hs</strong> – (bool) whether to return the last hidden output
+before output layer</p></li>
+<li><p><strong>return_all_hs</strong> – (bool) whether to return all the hidden intermediates</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -5456,7 +5459,7 @@ Choose ‘n2’, ‘tvm’ or ‘sliding_chunks’. More details in
 </dl>
 <dl class="method">
 <dt id="espnet2.asr.encoder.longformer_encoder.LongformerEncoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">ctc: espnet2.asr.ctc.CTC = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/longformer_encoder.html#LongformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.longformer_encoder.LongformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">ctc: espnet2.asr.ctc.CTC = None</em>, <em class="sig-param">return_all_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/longformer_encoder.html#LongformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.longformer_encoder.LongformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -5464,6 +5467,8 @@ Choose ‘n2’, ‘tvm’ or ‘sliding_chunks’. More details in
 <li><p><strong>xs_pad</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, L, input_size).</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – Input length (#batch).</p></li>
 <li><p><strong>prev_states</strong> (<em>torch.Tensor</em>) – Not to be used now.</p></li>
+<li><p><strong>ctc</strong> (<a class="reference internal" href="espnet.nets.html#espnet.nets.pytorch_backend.ctc.CTC" title="espnet.nets.pytorch_backend.ctc.CTC"><em>CTC</em></a>) – ctc module for intermediate CTC loss</p></li>
+<li><p><strong>return_all_hs</strong> (<em>bool</em>) – whether to return all hidden states</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -5778,7 +5783,7 @@ in the future. More Details can be found in
 </dl>
 <dl class="method">
 <dt id="espnet2.asr.encoder.conformer_encoder.ConformerEncoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">ctc: espnet2.asr.ctc.CTC = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/conformer_encoder.html#ConformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.conformer_encoder.ConformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">ctc: espnet2.asr.ctc.CTC = None</em>, <em class="sig-param">return_all_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/conformer_encoder.html#ConformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.conformer_encoder.ConformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate forward propagation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -5786,6 +5791,8 @@ in the future. More Details can be found in
 <li><p><strong>xs_pad</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, L, input_size).</p></li>
 <li><p><strong>ilens</strong> (<em>torch.Tensor</em>) – Input length (#batch).</p></li>
 <li><p><strong>prev_states</strong> (<em>torch.Tensor</em>) – Not to be used now.</p></li>
+<li><p><strong>ctc</strong> (<a class="reference internal" href="espnet.nets.html#espnet.nets.pytorch_backend.ctc.CTC" title="espnet.nets.pytorch_backend.ctc.CTC"><em>CTC</em></a>) – ctc module for intermediate CTC loss</p></li>
+<li><p><strong>return_all_hs</strong> (<em>bool</em>) – whether to return all hidden states</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -6218,7 +6225,56 @@ i.e. x -&gt; x + att(x)</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet2.asr.encoder.transformer_encoder.TransformerEncoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">ctc: espnet2.asr.ctc.CTC = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/transformer_encoder.html#TransformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.transformer_encoder.TransformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em>, <em class="sig-param">ctc: espnet2.asr.ctc.CTC = None</em>, <em class="sig-param">return_all_hs: bool = False</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/transformer_encoder.html#TransformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.transformer_encoder.TransformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Embed positions in tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xs_pad</strong> – input tensor (B, L, D)</p></li>
+<li><p><strong>ilens</strong> – input length (B)</p></li>
+<li><p><strong>prev_states</strong> – Not to be used now.</p></li>
+<li><p><strong>ctc</strong> (<a class="reference internal" href="espnet.nets.html#espnet.nets.pytorch_backend.ctc.CTC" title="espnet.nets.pytorch_backend.ctc.CTC"><em>CTC</em></a>) – ctc module for intermediate CTC loss</p></li>
+<li><p><strong>return_all_hs</strong> (<em>bool</em>) – whether to return all hidden states</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>position embedded tensor and mask</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.encoder.transformer_encoder.TransformerEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/transformer_encoder.html#TransformerEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.transformer_encoder.TransformerEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-asr-encoder-linear-encoder-1">
+<span id="espnet2-asr-encoder-linear-encoder"></span><h2>espnet2.asr.encoder.linear_encoder<a class="headerlink" href="#espnet2-asr-encoder-linear-encoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.encoder.linear_encoder"></span><p>Linear encoder definition.</p>
+<dl class="class">
+<dt id="espnet2.asr.encoder.linear_encoder.LinearEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.encoder.linear_encoder.</code><code class="sig-name descname">LinearEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">input_layer: Optional[str] = 'conv2d'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">padding_idx: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/encoder/linear_encoder.html#LinearEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.linear_encoder.LinearEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>Linear encoder module.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> – input dim</p></li>
+<li><p><strong>output_size</strong> – dimension of attention</p></li>
+<li><p><strong>linear_units</strong> – the number of units of position-wise feed forward</p></li>
+<li><p><strong>dropout_rate</strong> – dropout rate</p></li>
+<li><p><strong>input_layer</strong> – input layer type</p></li>
+<li><p><strong>normalize_before</strong> – whether to use layer_norm before the first block</p></li>
+<li><p><strong>padding_idx</strong> – padding_idx for input_layer=embed</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.encoder.linear_encoder.LinearEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">xs_pad: torch.Tensor</em>, <em class="sig-param">ilens: torch.Tensor</em>, <em class="sig-param">prev_states: torch.Tensor = None</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/asr/encoder/linear_encoder.html#LinearEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.linear_encoder.LinearEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Embed positions in tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -6235,8 +6291,8 @@ i.e. x -&gt; x + att(x)</p></li>
 </dd></dl>
 
 <dl class="method">
-<dt id="espnet2.asr.encoder.transformer_encoder.TransformerEncoder.output_size">
-<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/transformer_encoder.html#TransformerEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.transformer_encoder.TransformerEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.asr.encoder.linear_encoder.LinearEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/encoder/linear_encoder.html#LinearEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.encoder.linear_encoder.LinearEncoder.output_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

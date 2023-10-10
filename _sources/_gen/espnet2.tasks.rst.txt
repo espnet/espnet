@@ -4,6 +4,17 @@ espnet2.tasks package
 
 
 
+.. _espnet2.tasks.s2st:
+
+espnet2.tasks.s2st
+------------------
+
+.. automodule:: espnet2.tasks.s2st
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.tasks.asr_transducer:
 
 espnet2.tasks.asr_transducer

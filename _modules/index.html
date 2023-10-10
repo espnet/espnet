@@ -169,6 +169,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -426,6 +427,7 @@
 <li><a href="espnet2/asr/encoder/e_branchformer_encoder.html">espnet2.asr.encoder.e_branchformer_encoder</a></li>
 <li><a href="espnet2/asr/encoder/hubert_encoder.html">espnet2.asr.encoder.hubert_encoder</a></li>
 <li><a href="espnet2/asr/encoder/hugging_face_transformers_encoder.html">espnet2.asr.encoder.hugging_face_transformers_encoder</a></li>
+<li><a href="espnet2/asr/encoder/linear_encoder.html">espnet2.asr.encoder.linear_encoder</a></li>
 <li><a href="espnet2/asr/encoder/longformer_encoder.html">espnet2.asr.encoder.longformer_encoder</a></li>
 <li><a href="espnet2/asr/encoder/rnn_encoder.html">espnet2.asr.encoder.rnn_encoder</a></li>
 <li><a href="espnet2/asr/encoder/transformer_encoder.html">espnet2.asr.encoder.transformer_encoder</a></li>
@@ -542,6 +544,8 @@
 <li><a href="espnet2/bin/mt_inference.html">espnet2.bin.mt_inference</a></li>
 <li><a href="espnet2/bin/mt_train.html">espnet2.bin.mt_train</a></li>
 <li><a href="espnet2/bin/pack.html">espnet2.bin.pack</a></li>
+<li><a href="espnet2/bin/s2st_inference.html">espnet2.bin.s2st_inference</a></li>
+<li><a href="espnet2/bin/s2st_train.html">espnet2.bin.s2st_train</a></li>
 <li><a href="espnet2/bin/s2t_inference.html">espnet2.bin.s2t_inference</a></li>
 <li><a href="espnet2/bin/s2t_inference_language.html">espnet2.bin.s2t_inference_language</a></li>
 <li><a href="espnet2/bin/s2t_train.html">espnet2.bin.s2t_train</a></li>
@@ -724,6 +728,22 @@
 <li><a href="espnet2/mt/frontend/embedding.html">espnet2.mt.frontend.embedding</a></li>
 <li><a href="espnet2/optimizers/optim_groups.html">espnet2.optimizers.optim_groups</a></li>
 <li><a href="espnet2/optimizers/sgd.html">espnet2.optimizers.sgd</a></li>
+<li><a href="espnet2/s2st/aux_attention/abs_aux_attention.html">espnet2.s2st.aux_attention.abs_aux_attention</a></li>
+<li><a href="espnet2/s2st/aux_attention/multihead.html">espnet2.s2st.aux_attention.multihead</a></li>
+<li><a href="espnet2/s2st/espnet_model.html">espnet2.s2st.espnet_model</a></li>
+<li><a href="espnet2/s2st/losses/abs_loss.html">espnet2.s2st.losses.abs_loss</a></li>
+<li><a href="espnet2/s2st/losses/attention_loss.html">espnet2.s2st.losses.attention_loss</a></li>
+<li><a href="espnet2/s2st/losses/ctc_loss.html">espnet2.s2st.losses.ctc_loss</a></li>
+<li><a href="espnet2/s2st/losses/guided_attention_loss.html">espnet2.s2st.losses.guided_attention_loss</a></li>
+<li><a href="espnet2/s2st/losses/tacotron_loss.html">espnet2.s2st.losses.tacotron_loss</a></li>
+<li><a href="espnet2/s2st/synthesizer/abs_synthesizer.html">espnet2.s2st.synthesizer.abs_synthesizer</a></li>
+<li><a href="espnet2/s2st/synthesizer/discrete_synthesizer.html">espnet2.s2st.synthesizer.discrete_synthesizer</a></li>
+<li><a href="espnet2/s2st/synthesizer/translatotron.html">espnet2.s2st.synthesizer.translatotron</a></li>
+<li><a href="espnet2/s2st/synthesizer/unity_synthesizer.html">espnet2.s2st.synthesizer.unity_synthesizer</a></li>
+<li><a href="espnet2/s2st/tgt_feats_extract/abs_tgt_feats_extract.html">espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract</a></li>
+<li><a href="espnet2/s2st/tgt_feats_extract/linear_spectrogram.html">espnet2.s2st.tgt_feats_extract.linear_spectrogram</a></li>
+<li><a href="espnet2/s2st/tgt_feats_extract/log_mel_fbank.html">espnet2.s2st.tgt_feats_extract.log_mel_fbank</a></li>
+<li><a href="espnet2/s2st/tgt_feats_extract/log_spectrogram.html">espnet2.s2st.tgt_feats_extract.log_spectrogram</a></li>
 <li><a href="espnet2/s2t/espnet_model.html">espnet2.s2t.espnet_model</a></li>
 <li><a href="espnet2/samplers/abs_sampler.html">espnet2.samplers.abs_sampler</a></li>
 <li><a href="espnet2/samplers/build_batch_sampler.html">espnet2.samplers.build_batch_sampler</a></li>
@@ -777,6 +797,7 @@
 <li><a href="espnet2/tasks/hubert.html">espnet2.tasks.hubert</a></li>
 <li><a href="espnet2/tasks/lm.html">espnet2.tasks.lm</a></li>
 <li><a href="espnet2/tasks/mt.html">espnet2.tasks.mt</a></li>
+<li><a href="espnet2/tasks/s2st.html">espnet2.tasks.s2st</a></li>
 <li><a href="espnet2/tasks/s2t.html">espnet2.tasks.s2t</a></li>
 <li><a href="espnet2/tasks/slu.html">espnet2.tasks.slu</a></li>
 <li><a href="espnet2/tasks/spk.html">espnet2.tasks.spk</a></li>

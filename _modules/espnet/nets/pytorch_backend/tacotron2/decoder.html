@@ -169,6 +169,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -645,6 +646,10 @@
                 <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prev_att_w</span><span class="p">,</span> <span class="n">prev_out</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">att_c</span><span class="p">,</span> <span class="n">att_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">att</span><span class="p">(</span><span class="n">hs</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">prev_att_w</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="nb">type</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span>
+            <span class="p">):</span>  <span class="c1"># for multihead attention (used for translatotron in s2st)</span>
+                <span class="n">att_w</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">prenet_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span><span class="p">(</span><span class="n">prev_out</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prev_out</span>
             <span class="n">xs</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">cat</span><span class="p">([</span><span class="n">att_c</span><span class="p">,</span> <span class="n">prenet_out</span><span class="p">],</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lstm</span><span class="p">[</span><span class="mi">0</span><span class="p">](</span><span class="n">xs</span><span class="p">,</span> <span class="p">(</span><span class="n">z_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">c_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
@@ -781,6 +786,11 @@
                     <span class="n">backward_window</span><span class="o">=</span><span class="n">backward_window</span><span class="p">,</span>
                     <span class="n">forward_window</span><span class="o">=</span><span class="n">forward_window</span><span class="p">,</span>
                 <span class="p">)</span>
+
+            <span class="k">if</span> <span class="p">(</span>
+                <span class="nb">type</span><span class="p">(</span><span class="n">att_w</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span>
+            <span class="p">):</span>  <span class="c1"># for multihead attention (used for translatotron in s2st)</span>
+                <span class="n">att_w</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">att_w</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
             <span class="n">att_ws</span> <span class="o">+=</span> <span class="p">[</span><span class="n">att_w</span><span class="p">]</span>
             <span class="n">prenet_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span><span class="p">(</span><span class="n">prev_out</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prenet</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">prev_out</span>

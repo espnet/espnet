@@ -305,6 +305,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.s2st.html">espnet2.s2st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -1073,6 +1074,7 @@ The scorer will be ignored if its weight is 0</p></li>
 <li><p><strong>pre_beam_score_key</strong> (<em>str</em>) – key of scores to perform pre-beam search</p></li>
 <li><p><strong>pre_beam_ratio</strong> (<em>float</em>) – beam size in the pre-beam search
 will be <cite>int(pre_beam_ratio * beam_size)</cite></p></li>
+<li><p><strong>return_hs</strong> (<em>bool</em>) – Whether to return hidden intermediates</p></li>
 </ul>
 </dd>
 </dl>
@@ -1668,6 +1670,7 @@ The scorer will be ignored if its weight is 0</p></li>
 <li><p><strong>pre_beam_score_key</strong> (<em>str</em>) – key of scores to perform pre-beam search</p></li>
 <li><p><strong>pre_beam_ratio</strong> (<em>float</em>) – beam size in the pre-beam search
 will be <cite>int(pre_beam_ratio * beam_size)</cite></p></li>
+<li><p><strong>return_hs</strong> (<em>bool</em>) – Whether to return hidden intermediates</p></li>
 </ul>
 </dd>
 </dl>
@@ -1853,6 +1856,8 @@ to automatically find maximum hypothesis lengths</p></li>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>hyp</strong> (<a class="reference internal" href="#espnet.nets.transducer_decoder_interface.Hypothesis" title="espnet.nets.transducer_decoder_interface.Hypothesis"><em>Hypothesis</em></a>) – Hypothesis with prefix tokens to score</p></li>
 <li><p><strong>x</strong> (<em>torch.Tensor</em>) – Corresponding input feature</p></li>
+<li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for
+sequential attention (T, D)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2271,6 +2276,7 @@ The scorer will be ignored if its weight is 0</p></li>
 <li><p><strong>pre_beam_score_key</strong> (<em>str</em>) – key of scores to perform pre-beam search</p></li>
 <li><p><strong>pre_beam_ratio</strong> (<em>float</em>) – beam size in the pre-beam search
 will be <cite>int(pre_beam_ratio * beam_size)</cite></p></li>
+<li><p><strong>return_hs</strong> (<em>bool</em>) – Whether to return hidden intermediates</p></li>
 </ul>
 </dd>
 </dl>
@@ -2329,7 +2335,9 @@ If maxlenratio=0.0 (default), it uses a end-detect function
 to automatically find maximum hypothesis lengths
 If maxlenratio&lt;0.0, its absolute value is interpreted
 as a constant max output length.</p></li>
-<li><p><strong>minlenratio</strong> (<em>float</em>) – Input length ratio to obtain min output length.</p></li>
+<li><p><strong>minlenratio</strong> (<em>float</em>) – Input length ratio to obtain min output length.
+If minlenratio&lt;0.0, its absolute value is interpreted
+as a constant min output length.</p></li>
 <li><p><strong>pre_x</strong> (<em>torch.Tensor</em>) – Encoded speech feature for sequential attn (T, D)
 Sequential attn computes attn first on pre_x then on x,
 thereby attending to two sources in sequence.</p></li>
@@ -8450,7 +8458,7 @@ and not store pre_compute_k and pre_compute_v</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadAdd.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#AttMultiHeadAdd.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadAdd.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#AttMultiHeadAdd.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadAdd.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>AttMultiHeadAdd forward</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -8508,7 +8516,7 @@ and not store pre_compute_k and pre_compute_v</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadDot.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#AttMultiHeadDot.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadDot.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#AttMultiHeadDot.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadDot.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>AttMultiHeadDot forward</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -8569,7 +8577,7 @@ and not store pre_compute_k and pre_compute_v</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadLoc.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em>, <em class="sig-param">scaling=2.0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#AttMultiHeadLoc.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadLoc.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em>, <em class="sig-param">scaling=2.0</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#AttMultiHeadLoc.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadLoc.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>AttMultiHeadLoc forward</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -8634,7 +8642,7 @@ and not store pre_compute_k and pre_compute_v</p></li>
 </dl>
 <dl class="method">
 <dt id="espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadMultiResLoc.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#AttMultiHeadMultiResLoc.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadMultiResLoc.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">enc_hs_pad</em>, <em class="sig-param">enc_hs_len</em>, <em class="sig-param">dec_z</em>, <em class="sig-param">att_prev</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/rnn/attentions.html#AttMultiHeadMultiResLoc.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadMultiResLoc.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>AttMultiHeadMultiResLoc forward</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>

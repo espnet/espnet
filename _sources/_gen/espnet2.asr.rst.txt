@@ -796,6 +796,17 @@ espnet2.asr.encoder.transformer_encoder
     :show-inheritance:
 
 
+.. _espnet2.asr.encoder.linear_encoder:
+
+espnet2.asr.encoder.linear_encoder
+----------------------------------
+
+.. automodule:: espnet2.asr.encoder.linear_encoder
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.encoder.transformer_encoder_multispkr:
 
 espnet2.asr.encoder.transformer_encoder_multispkr

@@ -169,6 +169,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -1098,7 +1099,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_v</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="AttMultiHeadDot.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadDot.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">):</span>
+<div class="viewcode-block" id="AttMultiHeadDot.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadDot.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;AttMultiHeadDot forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
@@ -1212,7 +1213,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_v</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="AttMultiHeadAdd.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadAdd.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">):</span>
+<div class="viewcode-block" id="AttMultiHeadAdd.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadAdd.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;AttMultiHeadAdd forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
@@ -1349,7 +1350,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_v</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="AttMultiHeadLoc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadLoc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">):</span>
+<div class="viewcode-block" id="AttMultiHeadLoc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadLoc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="n">scaling</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;AttMultiHeadLoc forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>
@@ -1502,7 +1503,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pre_compute_v</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask</span> <span class="o">=</span> <span class="kc">None</span></div>
 
-<div class="viewcode-block" id="AttMultiHeadMultiResLoc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadMultiResLoc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">):</span>
+<div class="viewcode-block" id="AttMultiHeadMultiResLoc.forward"><a class="viewcode-back" href="../../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.rnn.attentions.AttMultiHeadMultiResLoc.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc_hs_pad</span><span class="p">,</span> <span class="n">enc_hs_len</span><span class="p">,</span> <span class="n">dec_z</span><span class="p">,</span> <span class="n">att_prev</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;AttMultiHeadMultiResLoc forward</span>
 
 <span class="sd">        :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)</span>

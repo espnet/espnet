@@ -151,6 +151,7 @@
 <li class="toctree-l1"><a class="reference internal" href="espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="espnet2.s2st.html">espnet2.s2st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -162,6 +163,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-s2t-train-1">espnet2.bin.enh_s2t_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-asr-inference-streaming-1">espnet2.bin.asr_inference_streaming</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-uasr-inference-k2-1">espnet2.bin.uasr_inference_k2</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-s2st-inference-1">espnet2.bin.s2st_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-inference-1">espnet2.bin.enh_inference</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-train-1">espnet2.bin.enh_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-tts-train-1">espnet2.bin.tts_train</a></li>
@@ -205,6 +207,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-split-scps-1">espnet2.bin.split_scps</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-enh-inference-streaming-1">espnet2.bin.enh_inference_streaming</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-svs-inference-1">espnet2.bin.svs_inference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-s2st-train-1">espnet2.bin.s2st_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-s2t-train-1">espnet2.bin.s2t_train</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-bin-slu-inference-1">espnet2.bin.slu_inference</a></li>
 </ul>
@@ -612,6 +615,85 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 <dt id="espnet2.bin.uasr_inference_k2.main">
 <code class="sig-prename descclassname">espnet2.bin.uasr_inference_k2.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/uasr_inference_k2.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.uasr_inference_k2.main" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+</section>
+<section id="espnet2-bin-s2st-inference-1">
+<span id="espnet2-bin-s2st-inference"></span><h2>espnet2.bin.s2st_inference<a class="headerlink" href="#espnet2-bin-s2st-inference-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.s2st_inference"></span><p>Script to run the inference of speech-to-speech translation model.</p>
+<dl class="class">
+<dt id="espnet2.bin.s2st_inference.Speech2Speech">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.s2st_inference.</code><code class="sig-name descname">Speech2Speech</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">threshold: float = 0.5</em>, <em class="sig-param">minlenratio: float = 0.0</em>, <em class="sig-param">maxlenratio: float = 10.0</em>, <em class="sig-param">st_subtask_maxlenratio: float = 1.5</em>, <em class="sig-param">st_subtask_minlenratio: float = 0.0</em>, <em class="sig-param">use_teacher_forcing: bool = False</em>, <em class="sig-param">use_att_constraint: bool = False</em>, <em class="sig-param">backward_window: int = 1</em>, <em class="sig-param">forward_window: int = 3</em>, <em class="sig-param">nbest: int = 1</em>, <em class="sig-param">beam_size: int = 5</em>, <em class="sig-param">penalty: float = 0.0</em>, <em class="sig-param">st_subtask_beam_size: int = 5</em>, <em class="sig-param">st_subtask_penalty: float = 0.0</em>, <em class="sig-param">st_subtask_nbest: int = 1</em>, <em class="sig-param">st_subtask_token_type: str = None</em>, <em class="sig-param">st_subtask_bpemodel: str = None</em>, <em class="sig-param">vocoder_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">vocoder_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">dtype: str = 'float32'</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">seed: int = 777</em>, <em class="sig-param">always_fix_seed: bool = False</em>, <em class="sig-param">prefer_normalized_feats: bool = False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/s2st_inference.html#Speech2Speech"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.s2st_inference.Speech2Speech" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Speech2Speech class.</p>
+<p>Initialize Speech2Speech module.</p>
+<dl class="method">
+<dt id="espnet2.bin.s2st_inference.Speech2Speech.from_pretrained">
+<em class="property">static </em><code class="sig-name descname">from_pretrained</code><span class="sig-paren">(</span><em class="sig-param">vocoder_tag: Optional[str] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/s2st_inference.html#Speech2Speech.from_pretrained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.s2st_inference.Speech2Speech.from_pretrained" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build Text2Speech instance from the pretrained model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>vocoder_tag</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Vocoder tag of the pretrained vocoders.
+Currently, the tags of parallel_wavegan are supported, which should
+start with the prefix “parallel_wavegan/”.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Text2Speech instance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet2.bin.tts_inference.Text2Speech" title="espnet2.bin.tts_inference.Text2Speech">Text2Speech</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.s2st_inference.Speech2Speech.fs">
+<em class="property">property </em><code class="sig-name descname">fs</code><a class="headerlink" href="#espnet2.bin.s2st_inference.Speech2Speech.fs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return sampling rate.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.s2st_inference.Speech2Speech.use_lids">
+<em class="property">property </em><code class="sig-name descname">use_lids</code><a class="headerlink" href="#espnet2.bin.s2st_inference.Speech2Speech.use_lids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return sid is needed or not in the inference.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.s2st_inference.Speech2Speech.use_sids">
+<em class="property">property </em><code class="sig-name descname">use_sids</code><a class="headerlink" href="#espnet2.bin.s2st_inference.Speech2Speech.use_sids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return sid is needed or not in the inference.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.s2st_inference.Speech2Speech.use_speech">
+<em class="property">property </em><code class="sig-name descname">use_speech</code><a class="headerlink" href="#espnet2.bin.s2st_inference.Speech2Speech.use_speech" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return speech is needed or not in the inference.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.bin.s2st_inference.Speech2Speech.use_spembs">
+<em class="property">property </em><code class="sig-name descname">use_spembs</code><a class="headerlink" href="#espnet2.bin.s2st_inference.Speech2Speech.use_spembs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return spemb is needed or not in the inference.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.s2st_inference.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.s2st_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/s2st_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.s2st_inference.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get argument parser.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.s2st_inference.inference">
+<code class="sig-prename descclassname">espnet2.bin.s2st_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], threshold: float, minlenratio: float, maxlenratio: float, st_subtask_minlenratio: float, st_subtask_maxlenratio: float, use_teacher_forcing: bool, use_att_constraint: bool, backward_window: int, forward_window: int, always_fix_seed: bool, nbest: int, beam_size: int, penalty: float, st_subtask_nbest: int, st_subtask_beam_size: int, st_subtask_penalty: float, st_subtask_token_type: Optional[str], st_subtask_bpemodel: Optional[str], allow_variable_data_keys: bool, vocoder_config: Optional[str], vocoder_file: Optional[str], vocoder_tag: Optional[str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/s2st_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.s2st_inference.inference" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run text-to-speech inference.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.s2st_inference.main">
+<code class="sig-prename descclassname">espnet2.bin.s2st_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/s2st_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.s2st_inference.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run S2ST model inference.</p>
+</dd></dl>
 
 </section>
 <section id="espnet2-bin-enh-inference-1">
@@ -1903,6 +1985,22 @@ with their new values. Unknown properties are ignored.</p>
 </dd></dl>
 
 <dl class="class">
+<dt id="espnet2.bin.pack.S2STPackedContents">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">S2STPackedContents</code><a class="reference internal" href="../_modules/espnet2/bin/pack.html#S2STPackedContents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.S2STPackedContents" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.bin.pack.PackedContents" title="espnet2.bin.pack.PackedContents"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.bin.pack.PackedContents</span></code></a></p>
+<dl class="attribute">
+<dt id="espnet2.bin.pack.S2STPackedContents.files">
+<code class="sig-name descname">files</code><em class="property"> = ['s2st_model_file']</em><a class="headerlink" href="#espnet2.bin.pack.S2STPackedContents.files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="espnet2.bin.pack.S2STPackedContents.yaml_files">
+<code class="sig-name descname">yaml_files</code><em class="property"> = ['s2st_train_config']</em><a class="headerlink" href="#espnet2.bin.pack.S2STPackedContents.yaml_files" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="espnet2.bin.pack.S2TPackedContents">
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.pack.</code><code class="sig-name descname">S2TPackedContents</code><a class="reference internal" href="../_modules/espnet2/bin/pack.html#S2TPackedContents"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.pack.S2TPackedContents" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.bin.pack.PackedContents" title="espnet2.bin.pack.PackedContents"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.bin.pack.PackedContents</span></code></a></p>
@@ -2718,6 +2816,26 @@ start with the prefix “parallel_wavegan/”.</p></li>
 <dt id="espnet2.bin.svs_inference.main">
 <code class="sig-prename descclassname">espnet2.bin.svs_inference.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/svs_inference.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.svs_inference.main" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run SVS model decoding.</p>
+</dd></dl>
+
+</section>
+<section id="espnet2-bin-s2st-train-1">
+<span id="espnet2-bin-s2st-train"></span><h2>espnet2.bin.s2st_train<a class="headerlink" href="#espnet2-bin-s2st-train-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.bin.s2st_train"></span><dl class="function">
+<dt id="espnet2.bin.s2st_train.get_parser">
+<code class="sig-prename descclassname">espnet2.bin.s2st_train.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/s2st_train.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.s2st_train.get_parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="espnet2.bin.s2st_train.main">
+<code class="sig-prename descclassname">espnet2.bin.s2st_train.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">cmd=None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/s2st_train.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.s2st_train.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>S2ST training.</p>
+<p class="rubric">Example</p>
+<dl class="simple">
+<dt>% python s2st_train.py s2st –print_config –optim adadelta </dt><dd><p>&gt; conf/train_s2st.yaml</p>
+</dd>
+</dl>
+<p>% python s2st_train.py –config conf/train_s2st.yaml</p>
 </dd></dl>
 
 </section>

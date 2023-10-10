@@ -169,6 +169,7 @@
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.asr_transducer.html">espnet2.asr_transducer package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.gan_tts.html">espnet2.gan_tts package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.s2t.html">espnet2.s2t package</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.s2st.html">espnet2.s2st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.layers.html">espnet2.layers package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.st.html">espnet2.st package</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../../_gen/espnet2.hubert.html">espnet2.hubert package</a></li>
@@ -276,6 +277,7 @@
 <span class="sd">            pre_beam_score_key (str): key of scores to perform pre-beam search</span>
 <span class="sd">            pre_beam_ratio (float): beam size in the pre-beam search</span>
 <span class="sd">                will be `int(pre_beam_ratio * beam_size)`</span>
+<span class="sd">            return_hs (bool): Whether to return hidden intermediates</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -606,6 +608,8 @@
 <span class="sd">                If maxlenratio&lt;0.0, its absolute value is interpreted</span>
 <span class="sd">                as a constant max output length.</span>
 <span class="sd">            minlenratio (float): Input length ratio to obtain min output length.</span>
+<span class="sd">                If minlenratio&lt;0.0, its absolute value is interpreted</span>
+<span class="sd">                as a constant min output length.</span>
 <span class="sd">            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)</span>
 <span class="sd">                Sequential attn computes attn first on pre_x then on x,</span>
 <span class="sd">                thereby attending to two sources in sequence.</span>
@@ -625,7 +629,11 @@
             <span class="n">maxlen</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">maxlenratio</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">maxlen</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">maxlenratio</span> <span class="o">*</span> <span class="n">inp</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)))</span>
-        <span class="n">minlen</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">minlenratio</span> <span class="o">*</span> <span class="n">inp</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">minlenratio</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">minlen</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">minlenratio</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">minlen</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">minlenratio</span> <span class="o">*</span> <span class="n">inp</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;decoder input length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">inp</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;max output length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">maxlen</span><span class="p">))</span>
         <span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;min output length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">minlen</span><span class="p">))</span>
