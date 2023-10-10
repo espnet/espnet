@@ -537,48 +537,35 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _inference_dir=${data_feats}/${test_sets}
     _spk_train_dir="${data_feats}/${train_set}"
 
-    # get scores for the test set
-    ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
+    echo "Stage 7-a: get scores for the test set."
+    #${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
+    scorefile_cur=${infer_exp}/${test_sets}_raw_trial_scores
 
-    if [ "$score_norm" = false ] && [ "$qmf_func" = false  ]; then
-        if [ -e ${infer_exp}/${test_sets}_final_trial_scores ]; then
-            rm ${infer_exp}/${test_sets}_final_trial_scores
-        fi
-        ln -s ${test_sets}_raw_trial_scores ${infer_exp}/${test_sets}_final_trial_scores
-    else
-        if [ -e ${infer_exp}/${test_sets}_current_trial_scores ]; then
-            rm ${infer_exp}/${test_sets}_current_trial_scores
-        fi
-        ln -s ${test_sets}_raw_trial_scores ${infer_exp}/${test_sets}_current_trial_scores
-    fi
-
-    # apply score normalization
     if [ "$score_norm" = true ]; then
-        ${python} pyscripts/utils/spk_apply_score_norm.py ${infer_exp}/${test_sets}_current_trial_scores ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/${test_sets}_scorenormed_scores ${inference_config}
-        rm ${infer_exp}/${test_sets}_current_trial_scores
-        if [ "$qmf_func" = true ]; then
-            rm ${infer_exp}/${test_sets}_current_trial_scores
-            ln -s ${test_sets}_scorenormed_scores ${infer_exp}/${test_sets}_current_trial_scores
-        else
-            ln -s ${test_sets}_scorenormed_scores ${infer_exp}/${test_sets}_final_trial_scores
-        fi
+        echo "Stage 7-b: apply score normalization."
+        ${python} pyscripts/utils/spk_apply_score_norm.py ${scorefile_cur} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/${test_sets}_scorenormed_scores ${inference_config} ${ngpu}
+        scorefile_cur=${infer_exp}/${test_sets}_scorenormed_scores
     fi
 
-    # apply QMF calibration
     if [ "$qmf_func" = true ]; then
-        echo "get raw scores for the qmf train set"
+        echo "Stage 7-c: apply QMF calibration."
+        echo "get raw scores for the qmf train set."
         ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/qmf/${train_set}_embeddings.npz ${_spk_train_dir}/qmf_train_label ${infer_exp}/qmf/${train_set}_raw_trial_scores
 
-        echo "normalize qmf train set scores"
-        ${python} pyscripts/utils/spk_apply_score_norm.py ${infer_exp}/qmf/${train_set}_raw_trial_scores ${infer_exp}/qmf/${train_set}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/qmf/${train_set}_scorenormed_scores ${inference_config}
-        qmf_train_scores=${infer_exp}/qmf/${train_set}_scorenormed_scores
-        test_scores=${infer_exp}/${test_sets}_scorenormed_scores
-    else
-        qmf_train_scores=${infer_exp}/qmf/${train_set}_raw_trial_scores
-        test_scores=${infer_exp}/${test_sets}_raw_trial_scores
+        if [ "$score_norm" = true ]; then
+            echo "normalize qmf train set scores."
+            ${python} pyscripts/utils/spk_apply_score_norm.py ${infer_exp}/qmf/${train_set}_raw_trial_scores ${infer_exp}/qmf/${train_set}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/qmf/${train_set}_scorenormed_scores ${inference_config} ${ngpu}
+            qmf_train_scores=${infer_exp}/qmf/${train_set}_scorenormed_scores
+            test_scores=${infer_exp}/${test_sets}_scorenormed_scores
+        else
+            qmf_train_scores=${infer_exp}/qmf/${train_set}_raw_trial_scores
+            test_scores=${infer_exp}/${test_sets}_raw_trial_scores
+        fi
+
+        echo "Apply qmf function."
+        ${python} pyscripts/utils/spk_apply_qmf_func.py ${_spk_train_dir}/qmf_train.scp ${_spk_train_dir}/qmf_train2.scp ${qmf_train_scores} ${infer_exp}/qmf/${train_set}_embeddings.npz ${_inference_dir}/trial.scp ${_inference_dir}/trial2.scp ${test_scores} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/qmf/${test_sets}_qmf_scores
     fi
 
-    ${python} pyscripts/utils/spk_apply_qmf_func.py ${_spk_train_dir}/qmf_train.scp ${_spk_train_dir}/qmf_train2.scp ${qmf_train_scores} ${infer_exp}/qmf/${train_set}_embeddings.npz ${_inference_dir}/trial.scp ${_inference_dir}/trial2.scp ${test_scores} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/qmf/${test_sets}_qmf_scores
 fi
 
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
@@ -600,6 +587,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         fi
     fi
 
+    echo "calculate score with ${score_dir}"
     ${python} pyscripts/utils/calculate_eer_mindcf.py ${score_dir} ${infer_exp}/${test_sets}_metrics
 
     echo $(cat ${infer_exp}/${test_sets}_metrics)
