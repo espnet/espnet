@@ -360,12 +360,13 @@ class Speech2Text:
 
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
         # compatibility for whisper tokenizer
-        whisper_language = st_train_args.preprocessor_conf.get("whisper_language", None)
+        preprocessor_conf = getattr(st_train_args, "preprocessor_conf", {})
+        whisper_language = preprocessor_conf.get("whisper_language", None)
+        whisper_task = preprocessor_conf.get("whisper_task", None)
         if whisper_language:
             src_token_lang, token_lang = whisper_language
         else:
             src_token_lang, token_lang = None, None
-        whisper_task = st_train_args.preprocessor_conf.get("whisper_task", None)
 
         if token_type is None:
             token_type = st_train_args.token_type
@@ -383,7 +384,6 @@ class Speech2Text:
                 tokenizer = build_tokenizer(
                     token_type=token_type,
                     bpemodel=bpemodel,
-                    # Whisper model only support X -> En translation
                     whisper_language=token_lang,
                     whisper_task=whisper_task,
                 )
@@ -396,6 +396,9 @@ class Speech2Text:
                 model_type=bpemodel,
                 language=token_lang or "en",
                 task=whisper_task or "translate",
+            )
+            beam_search.set_hyp_primer(
+                list(converter.tokenizer.sot_sequence_including_notimestamps)
             )
         else:
             converter = TokenIDConverter(token_list=token_list)
@@ -425,6 +428,9 @@ class Speech2Text:
                 model_type=src_bpemodel,
                 language=src_token_lang or "en",
                 task=whisper_task or "translate",
+            )
+            asr_beam_search.set_hyp_primer(
+                list(src_converter.tokenizer.sot_sequence_including_notimestamps)
             )
         else:
             src_converter = TokenIDConverter(token_list=src_token_list)

@@ -2,6 +2,7 @@ import sys
 
 import pytest
 import torch
+from packaging.version import parse as V
 
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder
 from espnet2.layers.create_lora_adapter import create_lora_adapter

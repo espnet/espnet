@@ -24,7 +24,7 @@ def test_export_vocabulary_to_stdout():
 
 def test_export_multilinugal_vocabulary_to_stdout():
     try:
-        export_vocabulary("-", "whisper_multilingual", "en", "INFO")
+        export_vocabulary("-", "whisper_multilingual", "en", "transcribe", "INFO")
     except Exception as e:
         pytest.fail(f"exception thrown: {e}")
 

@@ -33,6 +33,7 @@ class ErrorCalculator(object):
         if self.pad in self.char_list:
             self.idx_blank = self.char_list.index(self.pad)
         else:
+            # for OpenAI Whisper model, which doesn't use <blank> token
             self.idx_blank = None
         if self.space in self.char_list:
             self.idx_space = self.char_list.index(self.space)

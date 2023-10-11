@@ -136,6 +136,7 @@ class ESPnetSTModel(AbsESPnetModel):
             if tgt_sym_blank in token_list:
                 self.blank_id = token_list.index(tgt_sym_blank)
             else:
+                # OpenAI Whisper model doesn't <blank> token
                 self.blank_id = 0
             self.st_criterion_transducer = RNNTLoss(
                 blank=self.blank_id,

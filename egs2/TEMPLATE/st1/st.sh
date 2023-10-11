@@ -383,7 +383,7 @@ elif [ "${tgt_token_type}" = char ]; then
 elif [ "${tgt_token_type}" = word ]; then
     tgt_token_list="${tgt_wordtoken_list}"
     tgt_bpemodel=none
-elif [ "${tgt_token_type}" = whisper_en ]; then # should make token_list an output filepath here
+elif [ "${tgt_token_type}" = whisper_en ]; then
     tgt_token_list="${token_listdir}"/tgt_whisper_en/tokens.txt
     tgt_bpemodel=whisper_en
     hyp_cleaner=${cleaner}
@@ -830,8 +830,6 @@ if ! "${skip_data_prep}"; then
         elif grep -q "whisper" <<< ${tgt_token_type}; then
             log "Stage 5a: Generate whisper token_list from ${tgt_token_type} tokenizer"
 
-            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
             echo ${tgt_token_list}
             ${python} -m espnet2.bin.whisper_export_vocabulary  \
                 --whisper_model "${tgt_token_type}" \
@@ -927,8 +925,6 @@ if ! "${skip_data_prep}"; then
             elif grep -q "whisper" <<< ${src_token_type}; then
                 log "Stage 5b: Generate whisper token_list from ${src_token_type} tokenizer"
 
-                # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-                # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
                 echo ${src_token_list}
                 ${python} -m espnet2.bin.whisper_export_vocabulary  \
                     --whisper_model "${src_token_type}" \

@@ -393,10 +393,7 @@ class Speech2Text:
         elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
-            if (
-                hasattr(asr_train_args, "preprocessor_conf")
-                and "speaker_change_symbol" in asr_train_args.preprocessor_conf
-            ):
+            if "speaker_change_symbol" in preprocessor_conf:
                 sot_asr = True
             else:
                 sot_asr = False
