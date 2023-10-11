@@ -10,6 +10,7 @@ set -o pipefail
     --inference_nj 2 \
     --kmeans_feature "mfcc" \
     --nclusters "10" \
+    --kmeans_opts "--nj 1" \
     --use_lm false \
     --src_lang "mfcc_km10" \
     --src_token_type "char" \

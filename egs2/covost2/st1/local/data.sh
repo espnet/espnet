@@ -14,7 +14,7 @@ SECONDS=0
 src_lang=es
 tgt_lang=en
 
- . utils/parse_options.sh || exit 1;
+. utils/parse_options.sh || exit 1;
 
 
 log() {

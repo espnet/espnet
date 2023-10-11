@@ -2,11 +2,14 @@
 import argparse
 import logging
 import sys
+from distutils.version import LooseVersion
+from itertools import groupby
 from pathlib import Path
 from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
+import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
 from espnet2.fileio.datadir_writer import DatadirWriter
@@ -25,6 +28,16 @@ from espnet.nets.scorer_interface import BatchScorerInterface
 from espnet.nets.scorers.ctc import CTCPrefixScorer
 from espnet.nets.scorers.length_bonus import LengthBonus
 from espnet.utils.cli_utils import get_commandline_args
+
+# Alias for typing
+ListOfHypothesis = List[
+    Tuple[
+        Optional[str],
+        List[str],
+        List[int],
+        Hypothesis,
+    ]
+]
 
 
 class Text2Text:
@@ -58,8 +71,16 @@ class Text2Text:
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        task_id: str = None,
+        quantize_mt_model: bool = False,
+        quantize_lm: bool = False,
+        quantize_modules: List[str] = ["Linear"],
+        quantize_dtype: str = "qint8",
     ):
         assert check_argument_types()
+
+        quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
+        quantize_dtype = getattr(torch, quantize_dtype)
 
         # 1. Build MT model
         scorers = {}
@@ -68,7 +89,15 @@ class Text2Text:
         )
         mt_model.to(dtype=getattr(torch, dtype)).eval()
 
+        if quantize_mt_model:
+            logging.info("Use quantized asr model for decoding.")
+
+            asr_model = torch.quantization.quantize_dynamic(
+                asr_model, qconfig_spec=quantize_modules, dtype=quantize_dtype
+            )
+
         decoder = mt_model.decoder
+
         ctc = (
             CTCPrefixScorer(ctc=mt_model.ctc, eos=mt_model.eos)
             if ctc_weight != 0.0
@@ -86,6 +115,14 @@ class Text2Text:
             lm, lm_train_args = LMTask.build_model_from_file(
                 lm_train_config, lm_file, device
             )
+
+            if quantize_lm:
+                logging.info("Use quantized lm for decoding.")
+
+                lm = torch.quantization.quantize_dynamic(
+                    lm, qconfig_spec=quantize_modules, dtype=quantize_dtype
+                )
+
             scorers["lm"] = lm.lm
 
         # 3. Build ngram model
@@ -136,6 +173,7 @@ class Text2Text:
                     f"As non-batch scorers {non_batch} are found, "
                     f"fall back to non-batch implementation."
                 )
+
         beam_search.to(device=device, dtype=getattr(torch, dtype)).eval()
         for scorer in scorers.values():
             if isinstance(scorer, torch.nn.Module):
@@ -158,6 +196,7 @@ class Text2Text:
                 tokenizer = None
         else:
             tokenizer = build_tokenizer(token_type=token_type)
+
         converter = TokenIDConverter(token_list=token_list)
         logging.info(f"Text tokenizer: {tokenizer}")
 
@@ -171,11 +210,12 @@ class Text2Text:
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
+        self.task_id = task_id
 
     @torch.no_grad()
     def __call__(
-        self, src_text: Union[torch.Tensor, np.ndarray]
-    ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
+        self, src_text: Union[torch.Tensor, np.ndarray], **kwargs
+    ) -> ListOfHypothesis:
         """Inference
 
         Args:
@@ -195,6 +235,7 @@ class Text2Text:
         # lengths: (1,)
         lengths = src_text.new_full([1], dtype=torch.long, fill_value=src_text.size(1))
         batch = {"src_text": src_text, "src_text_lengths": lengths}
+        logging.info("src_text length: " + str(src_text.size(1)))
 
         # a. To device
         batch = to_device(batch, device=self.device)
@@ -205,6 +246,13 @@ class Text2Text:
         if isinstance(enc, tuple):
             enc = enc[0]
         assert len(enc) == 1, len(enc)
+
+        # c(a). Prepare the hyp_primer.
+        hyp_primer = [self.mt_model.sos]
+        if self.task_id is not None:
+            tokens = self.tokenizer.text2tokens(self.task_id)
+            hyp_primer += self.converter.tokens2ids(tokens)
+        self.beam_search.set_hyp_primer(hyp_primer)
 
         # c. Passed the encoder result and the beam search
         nbest_hyps = self.beam_search(
@@ -222,6 +270,12 @@ class Text2Text:
             token_int = hyp.yseq.tolist()
             token_int = list(filter(lambda x: x != self.mt_model.sos, token_int))
             token_int = list(filter(lambda x: x != self.mt_model.eos, token_int))
+            if self.task_id is not None:
+                token_int = list(
+                    filter(
+                        lambda x: x != self.converter.token2id[self.task_id], token_int
+                    )
+                )
 
             # remove blank symbol id, which is assumed to be 0
             token_int = list(filter(lambda x: x != 0, token_int))
@@ -297,6 +351,11 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
+    quantize_mt_model: bool,
+    quantize_lm: bool,
+    quantize_modules: List[str],
+    quantize_dtype: str,
+    task_id: Optional[str],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -338,6 +397,11 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        quantize_mt_model=quantize_mt_model,
+        quantize_lm=quantize_lm,
+        quantize_modules=quantize_modules,
+        quantize_dtype=quantize_dtype,
+        task_id=task_id,
     )
     text2text = Text2Text.from_pretrained(
         model_tag=model_tag,
@@ -366,6 +430,8 @@ def inference(
             _bs = len(next(iter(batch.values())))
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+            assert len(keys) == 1
+            batch["utt_id"] = keys[0]
 
             # N-best list of (text, token, token_int, hyp_object)
             try:
@@ -480,6 +546,37 @@ def get_parser():
         "*_file will be overwritten",
     )
 
+    group = parser.add_argument_group("Quantization related")
+    group.add_argument(
+        "--quantize_mt_model",
+        type=str2bool,
+        default=False,
+        help="Apply dynamic quantization to MT model.",
+    )
+    group.add_argument(
+        "--quantize_lm",
+        type=str2bool,
+        default=False,
+        help="Apply dynamic quantization to LM.",
+    )
+    group.add_argument(
+        "--quantize_modules",
+        type=str,
+        nargs="*",
+        default=["Linear"],
+        help="""List of modules to be dynamically quantized.
+        E.g.: --quantize_modules=[Linear,LSTM,GRU].
+        Each specified module should be an attribute of 'torch.nn', e.g.:
+        torch.nn.Linear, torch.nn.LSTM, torch.nn.GRU, ...""",
+    )
+    group.add_argument(
+        "--quantize_dtype",
+        type=str,
+        default="qint8",
+        choices=["float16", "qint8"],
+        help="Dtype for dynamic quantization.",
+    )
+
     group = parser.add_argument_group("Beam-search related")
     group.add_argument(
         "--batch_size",
@@ -531,6 +628,13 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--task_id",
+        type=str_or_none,
+        default=None,
+        help="Task identification (whisper style). "
+        "If not given, no task id is used.",
     )
 
     return parser
