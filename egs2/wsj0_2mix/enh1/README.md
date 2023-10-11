@@ -204,13 +204,15 @@ config: conf/tuning/train_enh_dptnet.yaml
 |enhanced_tt_min_8k|98.68|23.23|22.90|35.30|22.81|
 
 
-## TF-GridNetV2
+## enh_train_enh_tfgridnetv2_tf_lr-patience3_patience5_I_1_J_1_D_128_raw
 
- - config: conf/tuning/train_enh_tfgridnetv2_tf_lr-patience3_patience5.yaml
- - Pretrained model: 
+ - config: conf/tuning/train_enh_tfgridnetv2_tf_lr-patience3_patience5_I_1_J_1_D_128.yaml
+ - Pretrained model: https://zenodo.org/record/8433041
 
 |dataset|STOI|SAR|SDR|SIR|SI_SNR|
 |---|---|---|---|---|---|
+|enhanced_cv_min_8k|98.06|22.46|22.14|34.50|22.37|
+|enhanced_tt_min_8k|98.85|23.02|22.71|35.28|23.10|
 
 
 ## enh_train_enh_skim_causal_small_raw

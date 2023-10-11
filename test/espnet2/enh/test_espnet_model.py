@@ -24,8 +24,7 @@ from espnet2.enh.separator.neural_beamformer import NeuralBeamformer
 from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
-from espnet2.enh.separator.tfgridnet_separator import TFGridNet
-from espnet2.enh.separator.tfgridnet_separator import TFGridNetV2
+from espnet2.enh.separator.tfgridnet_separator import TFGridNet, TFGridNetV2
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
