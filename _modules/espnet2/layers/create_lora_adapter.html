@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>espnet2.text.build_tokenizer &mdash; ESPnet 202308 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <title>espnet2.layers.create_lora_adapter &mdash; ESPnet 202308 documentation</title><link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
     <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
       <link rel="stylesheet" href="../../../_static/nbsphinx-code-cells.css" type="text/css" />
@@ -201,7 +201,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="../../index.html">Module code</a></li>
-      <li class="breadcrumb-item active">espnet2.text.build_tokenizer</li>
+      <li class="breadcrumb-item active">espnet2.layers.create_lora_adapter</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -210,100 +210,154 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <h1>Source code for espnet2.text.build_tokenizer</h1><div class="highlight"><pre>
-<span></span><span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Union</span>
+  <h1>Source code for espnet2.layers.create_lora_adapter</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Definition of the low-rank adaptation (LoRA) for large models.</span>
 
+<span class="sd">References:</span>
+<span class="sd">    1. LoRA: Low-Rank Adaptation of Large Language Models</span>
+<span class="sd">       (https://arxiv.org/pdf/2106.09685.pdf)</span>
+<span class="sd">    2. https://github.com/microsoft/LoRA.git</span>
+<span class="sd">    3. https://github.com/huggingface/peft/blob/main/src/peft/tuners/lora.py</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
-<span class="kn">from</span> <span class="nn">espnet2.text.abs_tokenizer</span> <span class="kn">import</span> <span class="n">AbsTokenizer</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.char_tokenizer</span> <span class="kn">import</span> <span class="n">CharTokenizer</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.hugging_face_tokenizer</span> <span class="kn">import</span> <span class="n">HuggingFaceTokenizer</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">PhonemeTokenizer</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.sentencepiece_tokenizer</span> <span class="kn">import</span> <span class="n">SentencepiecesTokenizer</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.whisper_tokenizer</span> <span class="kn">import</span> <span class="n">OpenAIWhisperTokenizer</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.word_tokenizer</span> <span class="kn">import</span> <span class="n">WordTokenizer</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">loralib</span> <span class="k">as</span> <span class="nn">lora</span>
+<span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+    <span class="n">lora</span> <span class="o">=</span> <span class="kc">None</span>
 
 
-<div class="viewcode-block" id="build_tokenizer"><a class="viewcode-back" href="../../../_gen/espnet2.text.html#espnet2.text.build_tokenizer.build_tokenizer">[docs]</a><span class="k">def</span> <span class="nf">build_tokenizer</span><span class="p">(</span>
-    <span class="n">token_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">bpemodel</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">non_linguistic_symbols</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">remove_non_linguistic_symbols</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="n">space_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">,</span>
-    <span class="n">delimiter</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">g2p_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">nonsplit_symbol</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="c1"># tokenization encode (text2token) args, e.g. BPE dropout, only applied in training</span>
-    <span class="n">encode_kwargs</span><span class="p">:</span> <span class="n">Dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="c1"># only use for whisper</span>
-    <span class="n">whisper_language</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">whisper_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-    <span class="n">sot_asr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AbsTokenizer</span><span class="p">:</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;A helper function to instantiate Tokenizer&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="create_lora_adapter"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_lora_adapter.create_lora_adapter">[docs]</a><span class="k">def</span> <span class="nf">create_lora_adapter</span><span class="p">(</span>
+    <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="n">alpha</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
+    <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">target_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">],</span>
+    <span class="n">bias_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create LoRA adapter for the base model.</span>
+
+<span class="sd">    See: https://arxiv.org/pdf/2106.09685.pdf</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        model (torch.nn.Module): Base model to be adapted.</span>
+<span class="sd">        rank (int): Rank of LoRA matrices. Defaults to 8.</span>
+<span class="sd">        alpha (int): Constant number for LoRA scaling. Defaults to 8.</span>
+<span class="sd">        dropout_rate (float): Dropout probability for LoRA layers. Defaults to 0.0.</span>
+<span class="sd">        target_modules (List[str]): List of module(s) to apply LoRA adaptation.</span>
+<span class="sd">            e.g. [&quot;query&quot;, &quot;key&quot;, &quot;value&quot;] for all layers,</span>
+<span class="sd">            while [&quot;encoder.encoders.blocks.0.attn.key&quot;] for a specific layer.</span>
+<span class="sd">        bias_type (str): Bias training type for LoRA adaptaion, can be</span>
+<span class="sd">            one of [&quot;none&quot;, &quot;all&quot;, &quot;lora_only&quot;].</span>
+<span class="sd">            &quot;none&quot; means not training any bias vectors;</span>
+<span class="sd">            &quot;all&quot; means training all bias vectors, include LayerNorm biases;</span>
+<span class="sd">            &quot;lora_only&quot; means only training bias vectors in LoRA adapted modules.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        torch.nn.Module: The LoRA adapted model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;bpe&quot;</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;bpemodel is required if token_type = &quot;bpe&quot;&#39;</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="n">remove_non_linguistic_symbols</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="s2">&quot;remove_non_linguistic_symbols is not implemented for token_type=bpe&quot;</span>
-            <span class="p">)</span>
-        <span class="k">if</span> <span class="n">encode_kwargs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">encode_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
-        <span class="k">return</span> <span class="n">SentencepiecesTokenizer</span><span class="p">(</span><span class="n">bpemodel</span><span class="p">,</span> <span class="n">encode_kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">lora</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">&quot;Requiring loralib. Install loralib following: &quot;</span>
+            <span class="s2">&quot;https://github.com/microsoft/LoRA&quot;</span>
+        <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;hugging_face&quot;</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;bpemodel is required if token_type = &quot;hugging_face&quot;&#39;</span><span class="p">)</span>
+    <span class="n">is_traget_module_exists</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">key_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">named_modules</span><span class="p">()]</span>
 
-        <span class="k">if</span> <span class="n">remove_non_linguistic_symbols</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
-                <span class="s2">&quot;remove_non_linguistic_symbols is not &quot;</span>
-                <span class="o">+</span> <span class="s2">&quot;implemented for token_type=hugging_face&quot;</span>
-            <span class="p">)</span>
-        <span class="k">return</span> <span class="n">HuggingFaceTokenizer</span><span class="p">(</span><span class="n">bpemodel</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">key_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">check_target_module_exists</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">target_modules</span><span class="p">):</span>
+            <span class="k">continue</span>
 
-    <span class="k">elif</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;word&quot;</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">remove_non_linguistic_symbols</span> <span class="ow">and</span> <span class="n">non_linguistic_symbols</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">WordTokenizer</span><span class="p">(</span>
-                <span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">,</span>
-                <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
-                <span class="n">remove_non_linguistic_symbols</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="p">)</span>
+        <span class="n">is_traget_module_exists</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">parent_module</span><span class="p">,</span> <span class="n">target_name</span><span class="p">,</span> <span class="n">target_module</span> <span class="o">=</span> <span class="n">get_submodules</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_module</span><span class="p">,</span> <span class="n">lora</span><span class="o">.</span><span class="n">LoRALayer</span><span class="p">):</span>
+            <span class="n">new_module</span> <span class="o">=</span> <span class="n">create_new_module</span><span class="p">(</span><span class="n">target_module</span><span class="p">,</span> <span class="n">rank</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">)</span>
+            <span class="n">replace_module</span><span class="p">(</span><span class="n">parent_module</span><span class="p">,</span> <span class="n">target_name</span><span class="p">,</span> <span class="n">target_module</span><span class="p">,</span> <span class="n">new_module</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">WordTokenizer</span><span class="p">(</span><span class="n">delimiter</span><span class="o">=</span><span class="n">delimiter</span><span class="p">)</span>
+            <span class="k">continue</span>
 
-    <span class="k">elif</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;char&quot;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">CharTokenizer</span><span class="p">(</span>
-            <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
-            <span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">,</span>
-            <span class="n">remove_non_linguistic_symbols</span><span class="o">=</span><span class="n">remove_non_linguistic_symbols</span><span class="p">,</span>
-            <span class="n">nonsplit_symbols</span><span class="o">=</span><span class="n">nonsplit_symbol</span><span class="p">,</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_traget_module_exists</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Target modules </span><span class="si">{</span><span class="n">target_modules</span><span class="si">}</span><span class="s2"> not found in the base model.&quot;</span>
         <span class="p">)</span>
 
-    <span class="k">elif</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;phn&quot;</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">PhonemeTokenizer</span><span class="p">(</span>
-            <span class="n">g2p_type</span><span class="o">=</span><span class="n">g2p_type</span><span class="p">,</span>
-            <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
-            <span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">,</span>
-            <span class="n">remove_non_linguistic_symbols</span><span class="o">=</span><span class="n">remove_non_linguistic_symbols</span><span class="p">,</span>
-        <span class="p">)</span>
+    <span class="n">lora</span><span class="o">.</span><span class="n">mark_only_lora_as_trainable</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">bias_type</span><span class="p">)</span></div>
 
-    <span class="k">elif</span> <span class="s2">&quot;whisper&quot;</span> <span class="ow">in</span> <span class="n">token_type</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">OpenAIWhisperTokenizer</span><span class="p">(</span>
-            <span class="n">model_type</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">,</span>
-            <span class="n">language</span><span class="o">=</span><span class="n">whisper_language</span> <span class="ow">or</span> <span class="s2">&quot;en&quot;</span><span class="p">,</span>
-            <span class="n">task</span><span class="o">=</span><span class="n">whisper_task</span> <span class="ow">or</span> <span class="s2">&quot;transcribe&quot;</span><span class="p">,</span>
-            <span class="n">sot</span><span class="o">=</span><span class="n">sot_asr</span><span class="p">,</span>
-        <span class="p">)</span>
 
+<div class="viewcode-block" id="check_target_module_exists"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_lora_adapter.check_target_module_exists">[docs]</a><span class="k">def</span> <span class="nf">check_target_module_exists</span><span class="p">(</span><span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">target_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Check if the target_modules matchs the given key.&quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="n">target_key</span><span class="p">)</span> <span class="k">for</span> <span class="n">target_key</span> <span class="ow">in</span> <span class="n">target_modules</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="get_submodules"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_lora_adapter.get_submodules">[docs]</a><span class="k">def</span> <span class="nf">get_submodules</span><span class="p">(</span><span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the submodules of the given key.&quot;&quot;&quot;</span>
+
+    <span class="n">parent_module</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_submodule</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="n">target_name</span> <span class="o">=</span> <span class="n">key</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;.&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">target_module</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_submodule</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">parent_module</span><span class="p">,</span> <span class="n">target_name</span><span class="p">,</span> <span class="n">target_module</span></div>
+
+
+<div class="viewcode-block" id="create_new_module"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_lora_adapter.create_new_module">[docs]</a><span class="k">def</span> <span class="nf">create_new_module</span><span class="p">(</span>
+    <span class="n">target_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">rank</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">alpha</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">:</span> <span class="nb">float</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Create a new module for the given target module.&quot;&quot;&quot;</span>
+
+    <span class="n">bias</span> <span class="o">=</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">target_module</span><span class="p">,</span> <span class="s2">&quot;bias&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">target_module</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_module</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Embedding</span><span class="p">):</span>
+        <span class="n">new_module</span> <span class="o">=</span> <span class="n">lora</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span>
+            <span class="n">target_module</span><span class="o">.</span><span class="n">num_embeddings</span><span class="p">,</span>
+            <span class="n">target_module</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span>
+            <span class="n">r</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span>
+            <span class="n">lora_alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target_module</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Linear</span><span class="p">):</span>
+        <span class="n">new_module</span> <span class="o">=</span> <span class="n">lora</span><span class="o">.</span><span class="n">Linear</span><span class="p">(</span>
+            <span class="n">target_module</span><span class="o">.</span><span class="n">in_features</span><span class="p">,</span>
+            <span class="n">target_module</span><span class="o">.</span><span class="n">out_features</span><span class="p">,</span>
+            <span class="n">bias</span><span class="o">=</span><span class="n">bias</span><span class="p">,</span>
+            <span class="n">r</span><span class="o">=</span><span class="n">rank</span><span class="p">,</span>
+            <span class="n">lora_alpha</span><span class="o">=</span><span class="n">alpha</span><span class="p">,</span>
+            <span class="n">lora_dropout</span><span class="o">=</span><span class="n">dropout_rate</span><span class="p">,</span>
+        <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;token_mode must be one of bpe, word, char or phn: &quot;</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">token_type</span><span class="si">}</span><span class="s2">&quot;</span>
-        <span class="p">)</span></div>
+            <span class="sa">f</span><span class="s2">&quot;Target module </span><span class="si">{</span><span class="n">target_module</span><span class="si">}</span><span class="s2"> is not supported. &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;Currently, only `torch.nn.Embedding`, `torch.nn.Conv2d` &quot;</span>
+            <span class="sa">f</span><span class="s2">&quot;`torch.nn.Linear` and are supported.&quot;</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_module</span></div>
+
+
+<div class="viewcode-block" id="replace_module"><a class="viewcode-back" href="../../../_gen/espnet2.layers.html#espnet2.layers.create_lora_adapter.replace_module">[docs]</a><span class="k">def</span> <span class="nf">replace_module</span><span class="p">(</span>
+    <span class="n">parent_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">child_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">old_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+    <span class="n">new_module</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Replace the target module with the new module.&quot;&quot;&quot;</span>
+
+    <span class="n">device</span> <span class="o">=</span> <span class="n">old_module</span><span class="o">.</span><span class="n">weight</span><span class="o">.</span><span class="n">device</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">parent_module</span><span class="p">,</span> <span class="n">child_name</span><span class="p">,</span> <span class="n">new_module</span><span class="p">)</span>
+
+    <span class="c1"># copy weight and bias from the target module</span>
+    <span class="n">new_module</span><span class="o">.</span><span class="n">weight</span> <span class="o">=</span> <span class="n">old_module</span><span class="o">.</span><span class="n">weight</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">old_module</span><span class="p">,</span> <span class="s2">&quot;bias&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">old_module</span><span class="o">.</span><span class="n">bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">new_module</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">old_module</span><span class="o">.</span><span class="n">bias</span>
+
+    <span class="c1"># move the new_module to the same device as the old_module</span>
+    <span class="n">new_module</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span></div>
 </pre></div>
 
            </div>

@@ -92,6 +92,17 @@ espnet2.layers.__init__
     :show-inheritance:
 
 
+.. _espnet2.layers.create_lora_adapter:
+
+espnet2.layers.create_lora_adapter
+----------------------------------
+
+.. automodule:: espnet2.layers.create_lora_adapter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.layers.inversible_interface:
 
 espnet2.layers.inversible_interface

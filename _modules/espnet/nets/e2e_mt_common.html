@@ -243,7 +243,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">space</span> <span class="o">=</span> <span class="n">sym_space</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="o">=</span> <span class="n">sym_pad</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">report_bleu</span> <span class="o">=</span> <span class="n">report_bleu</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">idx_blank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">pad</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">idx_blank</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">pad</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># for OpenAI Whisper model, which doesn&#39;t use &lt;blank&gt; token</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">idx_blank</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">space</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">idx_space</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">space</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>

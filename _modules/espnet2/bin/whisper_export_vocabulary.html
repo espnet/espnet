@@ -226,8 +226,9 @@
 <div class="viewcode-block" id="export_vocabulary"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.whisper_export_vocabulary.export_vocabulary">[docs]</a><span class="k">def</span> <span class="nf">export_vocabulary</span><span class="p">(</span>
     <span class="n">output</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
     <span class="n">whisper_model</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">language</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-    <span class="n">log_level</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">whisper_language</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;en&quot;</span><span class="p">,</span>
+    <span class="n">whisper_task</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;transcribe&quot;</span><span class="p">,</span>
+    <span class="n">log_level</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
     <span class="n">sot_asr</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="n">speaker_change_symbol</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;sc&gt;&quot;</span><span class="p">,</span>
 <span class="p">):</span>
@@ -254,15 +255,17 @@
         <span class="n">p</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">fout</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="s2">&quot;w&quot;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
 
-    <span class="n">language</span> <span class="o">=</span> <span class="n">LANGUAGES_CODE_MAPPING</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">language</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">language</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">whisper_language</span> <span class="o">=</span> <span class="n">LANGUAGES_CODE_MAPPING</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">whisper_language</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">whisper_language</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;language unsupported for Whisper model&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">whisper_task</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;transcribe&quot;</span><span class="p">,</span> <span class="s2">&quot;translate&quot;</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;task: </span><span class="si">{</span><span class="n">whisper_task</span><span class="si">}</span><span class="s2"> unsupported for Whisper model&quot;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">whisper_model</span> <span class="o">==</span> <span class="s2">&quot;whisper_en&quot;</span><span class="p">:</span>
         <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">whisper</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">get_tokenizer</span><span class="p">(</span><span class="n">multilingual</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">elif</span> <span class="n">whisper_model</span> <span class="o">==</span> <span class="s2">&quot;whisper_multilingual&quot;</span><span class="p">:</span>
         <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">whisper</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">get_tokenizer</span><span class="p">(</span>
-            <span class="n">multilingual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="n">language</span>
+            <span class="n">multilingual</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">language</span><span class="o">=</span><span class="n">whisper_language</span><span class="p">,</span> <span class="n">task</span><span class="o">=</span><span class="n">whisper_task</span>
         <span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;tokenizer unsupported:&quot;</span><span class="p">,</span> <span class="n">whisper_model</span><span class="p">)</span>
@@ -313,12 +316,17 @@
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whisper model type&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--language&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--whisper_language&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="s2">&quot;en&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Language of Whisper multilingual tokenizer (default is en)&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Language for Whisper multilingual tokenizer&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--whisper_task&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;transcribe&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Task for Whisper multilingual tokenizer&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--sot_asr&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">bool</span><span class="p">,</span>
@@ -326,7 +334,6 @@
         <span class="n">required</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether SOT-style training is used in Whisper&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--speaker_change_symbol&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>

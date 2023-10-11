@@ -276,7 +276,8 @@ asr_train.py
                         [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                         [--wandb_name WANDB_NAME]
                         [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                        [--detect_anomaly DETECT_ANOMALY]
+                        [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                        [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                         [--pretrain_path PRETRAIN_PATH]
                         [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                         [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -459,6 +460,11 @@ asr_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -952,6 +958,9 @@ asr_transducer_train.py
                                    [--wandb_name WANDB_NAME]
                                    [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
                                    [--detect_anomaly DETECT_ANOMALY]
+                                   [--use_lora USE_LORA]
+                                   [--save_lora_only SAVE_LORA_ONLY]
+                                   [--lora_conf LORA_CONF]
                                    [--pretrain_path PRETRAIN_PATH]
                                    [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                                    [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -1123,6 +1132,11 @@ asr_transducer_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -1559,7 +1573,8 @@ diar_train.py
                          [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                          [--wandb_name WANDB_NAME]
                          [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                         [--detect_anomaly DETECT_ANOMALY]
+                         [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                         [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                          [--pretrain_path PRETRAIN_PATH]
                          [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                          [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -1721,6 +1736,11 @@ diar_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -2222,6 +2242,9 @@ enh_s2t_train.py
                             [--wandb_name WANDB_NAME]
                             [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
                             [--detect_anomaly DETECT_ANOMALY]
+                            [--use_lora USE_LORA]
+                            [--save_lora_only SAVE_LORA_ONLY]
+                            [--lora_conf LORA_CONF]
                             [--pretrain_path PRETRAIN_PATH]
                             [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                             [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -2302,11 +2325,11 @@ enh_s2t_train.py
                             [--asr_decoder_conf ASR_DECODER_CONF]
                             [--st_preencoder {sinc,linear,None}]
                             [--st_preencoder_conf ST_PREENCODER_CONF]
-                            [--st_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer}]
+                            [--st_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer,whisper}]
                             [--st_encoder_conf ST_ENCODER_CONF]
                             [--st_postencoder {hugging_face_transformers,length_adaptor,None}]
                             [--st_postencoder_conf ST_POSTENCODER_CONF]
-                            [--st_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,hugging_face_transformers}]
+                            [--st_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,whisper,hugging_face_transformers}]
                             [--st_decoder_conf ST_DECODER_CONF]
                             [--st_extra_asr_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}]
                             [--st_extra_asr_decoder_conf ST_EXTRA_ASR_DECODER_CONF]
@@ -2438,6 +2461,11 @@ enh_s2t_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -2782,7 +2810,7 @@ enh_s2t_train.py
                             The st_preencoder type (default: None)
       --st_preencoder_conf ST_PREENCODER_CONF
                             The keyword arguments for st_preencoder (default: {})
-      --st_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer}
+      --st_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer,whisper}
                             The st_encoder type (default: rnn)
       --st_encoder_conf ST_ENCODER_CONF
                             The keyword arguments for st_encoder (default: {})
@@ -2790,7 +2818,7 @@ enh_s2t_train.py
                             The st_postencoder type (default: None)
       --st_postencoder_conf ST_POSTENCODER_CONF
                             The keyword arguments for st_postencoder (default: {})
-      --st_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,hugging_face_transformers}
+      --st_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,whisper,hugging_face_transformers}
                             The st_decoder type (default: rnn)
       --st_decoder_conf ST_DECODER_CONF
                             The keyword arguments for st_decoder (default: {})
@@ -2937,7 +2965,8 @@ enh_train.py
                         [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                         [--wandb_name WANDB_NAME]
                         [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                        [--detect_anomaly DETECT_ANOMALY]
+                        [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                        [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                         [--pretrain_path PRETRAIN_PATH]
                         [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                         [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -3108,6 +3137,11 @@ enh_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -3558,6 +3592,9 @@ enh_tse_train.py
                             [--wandb_name WANDB_NAME]
                             [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
                             [--detect_anomaly DETECT_ANOMALY]
+                            [--use_lora USE_LORA]
+                            [--save_lora_only SAVE_LORA_ONLY]
+                            [--lora_conf LORA_CONF]
                             [--pretrain_path PRETRAIN_PATH]
                             [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                             [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -3729,6 +3766,11 @@ enh_tse_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -4091,6 +4133,9 @@ gan_svs_train.py
                             [--wandb_name WANDB_NAME]
                             [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
                             [--detect_anomaly DETECT_ANOMALY]
+                            [--use_lora USE_LORA]
+                            [--save_lora_only SAVE_LORA_ONLY]
+                            [--lora_conf LORA_CONF]
                             [--pretrain_path PRETRAIN_PATH]
                             [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                             [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -4277,6 +4322,11 @@ gan_svs_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -4635,6 +4685,9 @@ gan_tts_train.py
                             [--wandb_name WANDB_NAME]
                             [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
                             [--detect_anomaly DETECT_ANOMALY]
+                            [--use_lora USE_LORA]
+                            [--save_lora_only SAVE_LORA_ONLY]
+                            [--lora_conf LORA_CONF]
                             [--pretrain_path PRETRAIN_PATH]
                             [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                             [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -4815,6 +4868,11 @@ gan_tts_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -5163,8 +5221,9 @@ hubert_train.py
                            [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                            [--wandb_name WANDB_NAME]
                            [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                           [--detect_anomaly DETECT_ANOMALY]
-                           [--pretrain_path PRETRAIN_PATH]
+                           [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                           [--save_lora_only SAVE_LORA_ONLY]
+                           [--lora_conf LORA_CONF] [--pretrain_path PRETRAIN_PATH]
                            [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                            [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
                            [--freeze_param [FREEZE_PARAM [FREEZE_PARAM ...]]]
@@ -5346,6 +5405,11 @@ hubert_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -5828,7 +5892,8 @@ lm_train.py
                        [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                        [--wandb_name WANDB_NAME]
                        [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                       [--detect_anomaly DETECT_ANOMALY]
+                       [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                       [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                        [--pretrain_path PRETRAIN_PATH]
                        [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                        [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -5989,6 +6054,11 @@ lm_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -6399,7 +6469,8 @@ mt_train.py
                        [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                        [--wandb_name WANDB_NAME]
                        [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                       [--detect_anomaly DETECT_ANOMALY]
+                       [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                       [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                        [--pretrain_path PRETRAIN_PATH]
                        [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                        [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -6579,6 +6650,11 @@ mt_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -7061,7 +7137,8 @@ s2st_train.py
                          [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                          [--wandb_name WANDB_NAME]
                          [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                         [--detect_anomaly DETECT_ANOMALY]
+                         [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                         [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                          [--pretrain_path PRETRAIN_PATH]
                          [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                          [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -7260,6 +7337,11 @@ s2st_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -7672,7 +7754,8 @@ s2t_train.py
                         [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                         [--wandb_name WANDB_NAME]
                         [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                        [--detect_anomaly DETECT_ANOMALY]
+                        [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                        [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                         [--pretrain_path PRETRAIN_PATH]
                         [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                         [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -7851,6 +7934,11 @@ s2t_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -8215,7 +8303,8 @@ spk_train.py
                         [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                         [--wandb_name WANDB_NAME]
                         [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                        [--detect_anomaly DETECT_ANOMALY]
+                        [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                        [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                         [--pretrain_path PRETRAIN_PATH]
                         [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                         [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -8379,6 +8468,11 @@ spk_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -8909,7 +9003,8 @@ st_train.py
                        [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                        [--wandb_name WANDB_NAME]
                        [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                       [--detect_anomaly DETECT_ANOMALY]
+                       [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                       [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                        [--pretrain_path PRETRAIN_PATH]
                        [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                        [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -8950,11 +9045,11 @@ st_train.py
                        [--st_joint_net_conf ST_JOINT_NET_CONF]
                        [--model_conf MODEL_CONF]
                        [--use_preprocessor USE_PREPROCESSOR]
-                       [--token_type {bpe,char,word,phn,hugging_face}]
-                       [--src_token_type {bpe,char,word,phn,none}]
+                       [--token_type {bpe,char,word,phn,hugging_face,whisper_en,whisper_multilingual}]
+                       [--src_token_type {bpe,char,word,phn,none,whisper_en,whisper_multilingual}]
                        [--bpemodel BPEMODEL] [--src_bpemodel SRC_BPEMODEL]
                        [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
-                       [--cleaner {None,tacotron,jaconv,vietnamese}]
+                       [--cleaner {None,tacotron,jaconv,vietnamese,whisper_en,whisper_basic}]
                        [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
                        [--src_g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
                        [--speech_volume_normalize SPEECH_VOLUME_NORMALIZE]
@@ -8971,11 +9066,11 @@ st_train.py
                        [--normalize_conf NORMALIZE_CONF]
                        [--preencoder {sinc,linear,None}]
                        [--preencoder_conf PREENCODER_CONF]
-                       [--encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer}]
+                       [--encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer,whisper}]
                        [--encoder_conf ENCODER_CONF]
                        [--postencoder {hugging_face_transformers,length_adaptor,None}]
                        [--postencoder_conf POSTENCODER_CONF]
-                       [--decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,hugging_face_transformers}]
+                       [--decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,whisper,hugging_face_transformers}]
                        [--decoder_conf DECODER_CONF]
                        [--extra_asr_decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,None}]
                        [--extra_asr_decoder_conf EXTRA_ASR_DECODER_CONF]
@@ -8987,6 +9082,8 @@ st_train.py
                        [--hier_encoder_conf HIER_ENCODER_CONF]
                        [--extra_mt_encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,branchformer,e_branchformer,hugging_face_transformers,None}]
                        [--extra_mt_encoder_conf EXTRA_MT_ENCODER_CONF]
+                       [--preprocessor {default}]
+                       [--preprocessor_conf PREPROCESSOR_CONF]
     
     base parser
     
@@ -9099,6 +9196,11 @@ st_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH
@@ -9366,16 +9468,16 @@ st_train.py
     
       --use_preprocessor USE_PREPROCESSOR
                             Apply preprocessing to data or not (default: True)
-      --token_type {bpe,char,word,phn,hugging_face}
+      --token_type {bpe,char,word,phn,hugging_face,whisper_en,whisper_multilingual}
                             The target text will be tokenized in the specified level token (default: bpe)
-      --src_token_type {bpe,char,word,phn,none}
+      --src_token_type {bpe,char,word,phn,none,whisper_en,whisper_multilingual}
                             The source text will be tokenized in the specified level token (default: bpe)
       --bpemodel BPEMODEL   The model file of sentencepiece (for target language) (default: None)
       --src_bpemodel SRC_BPEMODEL
                             The model file of sentencepiece (for source language) (default: None)
       --non_linguistic_symbols NON_LINGUISTIC_SYMBOLS
                             non_linguistic_symbols file path (default: None)
-      --cleaner {None,tacotron,jaconv,vietnamese}
+      --cleaner {None,tacotron,jaconv,vietnamese,whisper_en,whisper_basic}
                             Apply text cleaning (default: None)
       --g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}
                             Specify g2p method if --token_type=phn (default: None)
@@ -9412,7 +9514,7 @@ st_train.py
                             The preencoder type (default: None)
       --preencoder_conf PREENCODER_CONF
                             The keyword arguments for preencoder (default: {})
-      --encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer}
+      --encoder {conformer,transformer,contextual_block_transformer,contextual_block_conformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,branchformer,e_branchformer,whisper}
                             The encoder type (default: rnn)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
@@ -9420,7 +9522,7 @@ st_train.py
                             The postencoder type (default: None)
       --postencoder_conf POSTENCODER_CONF
                             The keyword arguments for postencoder (default: {})
-      --decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,hugging_face_transformers}
+      --decoder {transformer,transformer_md,lightweight_conv,lightweight_conv2d,dynamic_conv,dynamic_conv2d,rnn,transducer,whisper,hugging_face_transformers}
                             The decoder type (default: rnn)
       --decoder_conf DECODER_CONF
                             The keyword arguments for decoder (default: {})
@@ -9444,6 +9546,10 @@ st_train.py
                             The extra_mt_encoder type (default: None)
       --extra_mt_encoder_conf EXTRA_MT_ENCODER_CONF
                             The keyword arguments for extra_mt_encoder (default: {})
+      --preprocessor {default}
+                            The preprocessor type (default: default)
+      --preprocessor_conf PREPROCESSOR_CONF
+                            The keyword arguments for preprocessor (default: {})
     /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
       def backtrace(trace: np.ndarray):
 .. _tts_inference.py:
@@ -9596,7 +9702,8 @@ tts_train.py
                         [--wandb_id WANDB_ID] [--wandb_entity WANDB_ENTITY]
                         [--wandb_name WANDB_NAME]
                         [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
-                        [--detect_anomaly DETECT_ANOMALY]
+                        [--detect_anomaly DETECT_ANOMALY] [--use_lora USE_LORA]
+                        [--save_lora_only SAVE_LORA_ONLY] [--lora_conf LORA_CONF]
                         [--pretrain_path PRETRAIN_PATH]
                         [--init_param [INIT_PARAM [INIT_PARAM ...]]]
                         [--ignore_init_mismatch IGNORE_INIT_MISMATCH]
@@ -9769,6 +9876,11 @@ tts_train.py
                             Set the model log period (default: -1)
       --detect_anomaly DETECT_ANOMALY
                             Set torch.autograd.set_detect_anomaly (default: False)
+      --use_lora USE_LORA   Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) for large pre-trained foundation models, like Whisper (default: False)
+      --save_lora_only SAVE_LORA_ONLY
+                            Only save LoRA parameters or save all model parameters (default: True)
+      --lora_conf LORA_CONF
+                            Configuration for LoRA based finetuning (default: {})
     
     Pretraining model related:
       --pretrain_path PRETRAIN_PATH

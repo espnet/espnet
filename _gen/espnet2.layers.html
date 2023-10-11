@@ -161,6 +161,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-mask-along-axis-1">espnet2.layers.mask_along_axis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-utterance-mvn-1">espnet2.layers.utterance_mvn</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-init-1">espnet2.layers.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-create-lora-adapter-1">espnet2.layers.create_lora_adapter</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-inversible-interface-1">espnet2.layers.inversible_interface</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-stft-1">espnet2.layers.stft</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-layers-log-mel-1">espnet2.layers.log_mel</a></li>
@@ -1057,6 +1058,72 @@ strings are acceptable.</p>
 <section id="espnet2-layers-init-1">
 <span id="espnet2-layers-init"></span><h2>espnet2.layers.__init__<a class="headerlink" href="#espnet2-layers-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.__init__"></span></section>
+<section id="espnet2-layers-create-lora-adapter-1">
+<span id="espnet2-layers-create-lora-adapter"></span><h2>espnet2.layers.create_lora_adapter<a class="headerlink" href="#espnet2-layers-create-lora-adapter-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.layers.create_lora_adapter"></span><p>Definition of the low-rank adaptation (LoRA) for large models.</p>
+<p class="rubric">References</p>
+<ol class="arabic simple">
+<li><p>LoRA: Low-Rank Adaptation of Large Language Models
+(<a class="reference external" href="https://arxiv.org/pdf/2106.09685.pdf">https://arxiv.org/pdf/2106.09685.pdf</a>)</p></li>
+<li><p><a class="reference external" href="https://github.com/microsoft/LoRA.git">https://github.com/microsoft/LoRA.git</a></p></li>
+<li><p><a class="reference external" href="https://github.com/huggingface/peft/blob/main/src/peft/tuners/lora.py">https://github.com/huggingface/peft/blob/main/src/peft/tuners/lora.py</a></p></li>
+</ol>
+<dl class="function">
+<dt id="espnet2.layers.create_lora_adapter.check_target_module_exists">
+<code class="sig-prename descclassname">espnet2.layers.create_lora_adapter.</code><code class="sig-name descname">check_target_module_exists</code><span class="sig-paren">(</span><em class="sig-param">key: str, target_modules: List[str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/create_lora_adapter.html#check_target_module_exists"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.create_lora_adapter.check_target_module_exists" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the target_modules matchs the given key.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.create_lora_adapter.create_lora_adapter">
+<code class="sig-prename descclassname">espnet2.layers.create_lora_adapter.</code><code class="sig-name descname">create_lora_adapter</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module, rank: int = 8, alpha: int = 8, dropout_rate: float = 0.0, target_modules: List[str] = ['query'], bias_type: str = 'none'</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/create_lora_adapter.html#create_lora_adapter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.create_lora_adapter.create_lora_adapter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create LoRA adapter for the base model.</p>
+<p>See: <a class="reference external" href="https://arxiv.org/pdf/2106.09685.pdf">https://arxiv.org/pdf/2106.09685.pdf</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – Base model to be adapted.</p></li>
+<li><p><strong>rank</strong> (<em>int</em>) – Rank of LoRA matrices. Defaults to 8.</p></li>
+<li><p><strong>alpha</strong> (<em>int</em>) – Constant number for LoRA scaling. Defaults to 8.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout probability for LoRA layers. Defaults to 0.0.</p></li>
+<li><p><strong>target_modules</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of module(s) to apply LoRA adaptation.
+e.g. [“query”, “key”, “value”] for all layers,
+while [“encoder.encoders.blocks.0.attn.key”] for a specific layer.</p></li>
+<li><p><strong>bias_type</strong> (<em>str</em>) – Bias training type for LoRA adaptaion, can be
+one of [“none”, “all”, “lora_only”].
+“none” means not training any bias vectors;
+“all” means training all bias vectors, include LayerNorm biases;
+“lora_only” means only training bias vectors in LoRA adapted modules.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The LoRA adapted model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.nn.Module</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.create_lora_adapter.create_new_module">
+<code class="sig-prename descclassname">espnet2.layers.create_lora_adapter.</code><code class="sig-name descname">create_new_module</code><span class="sig-paren">(</span><em class="sig-param">target_module: torch.nn.modules.module.Module</em>, <em class="sig-param">rank: int</em>, <em class="sig-param">alpha: int</em>, <em class="sig-param">dropout_rate: float</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/create_lora_adapter.html#create_new_module"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.create_lora_adapter.create_new_module" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new module for the given target module.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.create_lora_adapter.get_submodules">
+<code class="sig-prename descclassname">espnet2.layers.create_lora_adapter.</code><code class="sig-name descname">get_submodules</code><span class="sig-paren">(</span><em class="sig-param">model: torch.nn.modules.module.Module</em>, <em class="sig-param">key: str</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/create_lora_adapter.html#get_submodules"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.create_lora_adapter.get_submodules" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the submodules of the given key.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="espnet2.layers.create_lora_adapter.replace_module">
+<code class="sig-prename descclassname">espnet2.layers.create_lora_adapter.</code><code class="sig-name descname">replace_module</code><span class="sig-paren">(</span><em class="sig-param">parent_module: torch.nn.modules.module.Module</em>, <em class="sig-param">child_name: str</em>, <em class="sig-param">old_module: torch.nn.modules.module.Module</em>, <em class="sig-param">new_module: torch.nn.modules.module.Module</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/layers/create_lora_adapter.html#replace_module"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.layers.create_lora_adapter.replace_module" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replace the target module with the new module.</p>
+</dd></dl>
+
+</section>
 <section id="espnet2-layers-inversible-interface-1">
 <span id="espnet2-layers-inversible-interface"></span><h2>espnet2.layers.inversible_interface<a class="headerlink" href="#espnet2-layers-inversible-interface-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.layers.inversible_interface"></span><dl class="class">

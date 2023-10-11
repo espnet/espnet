@@ -239,6 +239,7 @@
 <span class="kn">from</span> <span class="nn">espnet2.iterators.chunk_iter_factory</span> <span class="kn">import</span> <span class="n">ChunkIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.multiple_iter_factory</span> <span class="kn">import</span> <span class="n">MultipleIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.iterators.sequence_iter_factory</span> <span class="kn">import</span> <span class="n">SequenceIterFactory</span>
+<span class="kn">from</span> <span class="nn">espnet2.layers.create_lora_adapter</span> <span class="kn">import</span> <span class="n">create_lora_adapter</span>
 <span class="kn">from</span> <span class="nn">espnet2.main_funcs.collect_stats</span> <span class="kn">import</span> <span class="n">collect_stats</span>
 <span class="kn">from</span> <span class="nn">espnet2.optimizers.optim_groups</span> <span class="kn">import</span> <span class="n">configure_optimizer</span>
 <span class="kn">from</span> <span class="nn">espnet2.optimizers.sgd</span> <span class="kn">import</span> <span class="n">SGD</span>
@@ -854,6 +855,25 @@
             <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
             <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set torch.autograd.set_detect_anomaly&quot;</span><span class="p">,</span>
         <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--use_lora&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) &quot;</span>
+            <span class="s2">&quot;for large pre-trained foundation models, like Whisper&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--save_lora_only&quot;</span><span class="p">,</span>
+            <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Only save LoRA parameters or save all model parameters&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+            <span class="s2">&quot;--lora_conf&quot;</span><span class="p">,</span>
+            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
+            <span class="n">default</span><span class="o">=</span><span class="nb">dict</span><span class="p">(),</span>
+            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Configuration for LoRA based finetuning&quot;</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Pretraining model related&quot;</span><span class="p">)</span>
         <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--pretrain_path&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;This option is obsoleted&quot;</span><span class="p">)</span>
@@ -1417,6 +1437,10 @@
                     <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">k</span> <span class="o">==</span> <span class="n">t</span><span class="p">:</span>
                         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Setting </span><span class="si">{</span><span class="n">k</span><span class="si">}</span><span class="s2">.requires_grad = False&quot;</span><span class="p">)</span>
                         <span class="n">p</span><span class="o">.</span><span class="n">requires_grad</span> <span class="o">=</span> <span class="kc">False</span>
+
+            <span class="c1"># Use LoRA to finetune the large pre-trained foundation models, like Whisper</span>
+            <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_lora&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
+                <span class="n">create_lora_adapter</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">lora_conf</span><span class="p">)</span>
 
             <span class="c1"># 3. Build optimizer</span>
             <span class="n">optimizers</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">build_optimizers</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="n">model</span><span class="p">)</span>
@@ -2212,13 +2236,22 @@
                 <span class="sa">f</span><span class="s2">&quot;model must inherit </span><span class="si">{</span><span class="n">AbsESPnetModel</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, but got </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">model</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="p">)</span>
         <span class="n">model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># For LoRA finetuned model, create LoRA adapter</span>
+        <span class="n">use_lora</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;use_lora&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">use_lora</span><span class="p">:</span>
+            <span class="n">create_lora_adapter</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">lora_conf</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">model_file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">device</span> <span class="o">==</span> <span class="s2">&quot;cuda&quot;</span><span class="p">:</span>
                 <span class="c1"># NOTE(kamo): &quot;cuda&quot; for torch.load always indicates cuda:0</span>
                 <span class="c1">#   in PyTorch&lt;=1.4</span>
                 <span class="n">device</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;cuda:</span><span class="si">{</span><span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">current_device</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">))</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">model_file</span><span class="p">,</span> <span class="n">map_location</span><span class="o">=</span><span class="n">device</span><span class="p">),</span>
+                    <span class="n">strict</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_lora</span><span class="p">,</span>
+                <span class="p">)</span>
             <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
                 <span class="c1"># Note(simpleoier): the following part is to be compatible with</span>
                 <span class="c1">#   pretrained model using earlier versions before `0a625088`</span>
@@ -2237,7 +2270,7 @@
                             <span class="p">):</span> <span class="n">v</span>
                             <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
                         <span class="p">}</span>
-                        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
+                        <span class="n">model</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">strict</span><span class="o">=</span><span class="ow">not</span> <span class="n">use_lora</span><span class="p">)</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="k">raise</span>
                 <span class="k">else</span><span class="p">:</span>
