@@ -8,6 +8,7 @@ from ssl_feature_utils import (
     HubertFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
+    MERTFeatureReader,
     dump_feature,
     format_feature_conf_str,
 )
@@ -26,6 +27,7 @@ feature_reader_choice = dict(
     fairseq_hubert=HubertFeatureReader,
     espnet_hubert=ESPnetHubertFeatureReader,
     s3prl=S3PRLFeatureReader,
+    mert=MERTFeatureReader,
 )
 
 

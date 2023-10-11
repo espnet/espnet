@@ -80,7 +80,7 @@ sos_eos="<sos/eos>" # sos and eos symbols.
 # Kmeans related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
 kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
-portion=0.1
+portion=1.0
 nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
@@ -371,7 +371,7 @@ else
     exit 2
 fi
 
-
+mert_url="m-a-p/MERT-v1-330M"
 if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=
@@ -380,8 +380,12 @@ else
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
     # TODO(simpleoier): to support features beyond s3prl
-    s3prl_conf="{upstream=${kmeans_feature_type}}"
-    kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
+    if [ ${kmeans_feature_type} = "mert" ]; then
+        kmeans_feature_conf="{type=mert,conf={fs=24000,multilayer_feature=False,layer=${layer},download_path=${mert_url}}}"
+    else
+        s3prl_conf="{upstream=${kmeans_feature_type}}"
+        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
+    fi
 fi
 km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
 

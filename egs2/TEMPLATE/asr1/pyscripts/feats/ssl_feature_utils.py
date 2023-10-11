@@ -302,3 +302,40 @@ class S3PRLFeatureReader(BaseFeatureReader):
         feats = feats.cpu()
         feats_lens = feats_lens.cpu()
         return feats, feats_lens
+
+
+class MERTFeatureReader(BaseFeatureReader):
+    def __init__(
+        self,
+        fs: Union[int, str] = 24000,
+        mert_conf: Optional[dict] = None,
+        download_path: str = None,
+        multilayer_feature: bool = False,
+        layer: int = -1,
+        use_gpu: bool = True,
+    ):
+        from espnet2.svs.discrete.frontend import MERTFrontend
+        self.model = MERTFrontend(
+            fs=fs,
+            frontend_conf=mert_conf,
+            download_path=download_path,
+            multilayer_feature=multilayer_feature,
+            layer=layer,
+        )
+        self.device = "cuda" if use_gpu and torch.cuda.is_available() else "cpu"
+        self.model = self.model.to(self.device)
+
+    def get_feats(
+        self,
+        data: torch.Tensor,
+        data_lens: torch.Tensor,
+        ref_len: Optional[int] = None,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        with torch.no_grad():
+            x, x_lens = self.preprocess_data(data, data_lens)
+            x = x.to(self.device)
+            x_lens = x_lens.to(self.device)
+            feats, feats_lens = self.model(x, x_lens)
+        feats = feats.cpu()
+        feats_lens = feats_lens.cpu()
+        return feats, feats_lens
