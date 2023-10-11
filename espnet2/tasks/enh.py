@@ -332,7 +332,7 @@ class EnhancementTask(AbsTask):
             "--speech_segment",
             type=int_or_none,
             default=None,
-            help="Truncate the audios to the specified length if not None",
+            help="Truncate the audios to the specified length (in samples) if not None",
         )
         group.add_argument(
             "--avoid_allzero_segment",

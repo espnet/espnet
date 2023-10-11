@@ -66,11 +66,12 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
                     f"Unexpected type: {type(retval[0])}, {type(retval[1])}"
                 )
 
-            if not self.allow_multi_rates:
-                if self.rate is not None and self.rate != rate:
-                    raise RuntimeError(
-                        f"Sampling rates are mismatched: {self.rate} != {rate}"
-                    )
+            if not self.allow_multi_rates and (
+                self.rate is not None and self.rate != rate
+            ):
+                raise RuntimeError(
+                    f"Sampling rates are mismatched: {self.rate} != {rate}"
+                )
             self.rate = rate
             # Multichannel wave fie
             # array: (NSample, Channel) or (Nsample)
