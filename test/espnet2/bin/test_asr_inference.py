@@ -260,7 +260,12 @@ def token_list_whisper(tmp_path: Path):
     tknlist_path = tmp_path / "token_whisper.txt"
     tknlist_path.touch()
 
-    export_vocabulary(str(tknlist_path), "whisper_multilingual", "en", "INFO")
+    export_vocabulary(
+        output=str(tknlist_path),
+        whisper_model="whisper_multilingual",
+        whisper_language="en",
+        log_level="INFO",
+    )
     return tmp_path / "token_whisper.txt"
 
 
@@ -279,11 +284,11 @@ def token_list_whisper_lang(tmp_path: Path, token_list_whisper_lang_add):
     tknlist_path.touch()
 
     export_vocabulary(
-        str(tknlist_path),
-        "whisper_multilingual",
-        "en",
-        "INFO",
-        str(token_list_whisper_lang_add),
+        output=str(tknlist_path),
+        whisper_model="whisper_multilingual",
+        whisper_language="en",
+        log_level="INFO",
+        add_token_file_name=str(token_list_whisper_lang_add),
     )
     return tmp_path / "token_whisper_lang.txt"
 

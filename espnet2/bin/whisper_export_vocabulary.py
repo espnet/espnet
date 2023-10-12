@@ -52,7 +52,6 @@ def export_vocabulary(
     if whisper_task not in ["transcribe", "translate"]:
         raise ValueError(f"task: {whisper_task} unsupported for Whisper model")
 
-
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
     elif whisper_model == "whisper_multilingual":

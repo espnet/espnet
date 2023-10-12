@@ -29,9 +29,9 @@ def test_export_multilinugal_vocabulary_to_stdout():
         pytest.fail(f"exception thrown: {e}")
 
 
-def test_export_multilinugal_vocabulary_to_stdout():
+def test_export_multilingual_vocabulary_to_stdout():
     try:
-        export_vocabulary("-", "whisper_multilingual", "en", "INFO")
+        export_vocabulary("-", "whisper_multilingual", "en")
     except Exception as e:
         pytest.fail(f"exception thrown: {e}")
 
@@ -135,7 +135,7 @@ def test_main_add_token(tmp_path):
             "whisper_multilingual",
             "--output",
             str(tknlist_path),
-            "--language",
+            "--whisper_language",
             "en",
             "--add_token_file_name",
             str(add_tknlist_path),
