@@ -40,6 +40,7 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         self,
         model_type: str,
         language: str = "en",
+        task: str = "transcribe",
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
         added_tokens_txt: str = None,
@@ -60,13 +61,16 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
 
         self.language = LANGUAGES_CODE_MAPPING.get(language)
         if self.language is None:
-            raise ValueError("language unsupported for Whisper model")
+            raise ValueError(f"language: {self.language} unsupported for Whisper model")
+        self.task = task
+        if self.task not in ["transcribe", "translate"]:
+            raise ValueError(f"task: {self.task} unsupported for Whisper model")
 
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=self.language
+                multilingual=True, language=self.language, task=self.task
             )
             # import pdb;pdb.set_trace()
             if added_tokens_txt is not None:

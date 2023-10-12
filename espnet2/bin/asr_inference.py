@@ -368,11 +368,19 @@ class Speech2Text:
         if bpemodel is None:
             bpemodel = asr_train_args.bpemodel
 
+        # compatibility for whisper tokenizer
+        preprocessor_conf = getattr(asr_train_args, "preprocessor_conf", {})
+        whisper_language = preprocessor_conf.get("whisper_language", None)
+        whisper_task = preprocessor_conf.get("whisper_task", None)
+
         if token_type is None:
             tokenizer = None
         elif token_type == "bpe" or token_type == "hugging_face":
             if bpemodel is not None:
-                tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
+                tokenizer = build_tokenizer(
+                    token_type=token_type,
+                    bpemodel=bpemodel,
+                )
             else:
                 tokenizer = None
         elif "whisper" in token_type:
@@ -382,7 +390,8 @@ class Speech2Text:
             tokenizer = build_tokenizer(
                 token_type=token_type,
                 bpemodel=bpemodel,
-                tokenizer_language=tokenizer_language,
+                whisper_language=whisper_language,
+                whisper_task=whisper_task,
                 non_linguistic_symbols=prompt_token_file,
             )
         else:
@@ -393,17 +402,15 @@ class Speech2Text:
         elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
-            if (
-                hasattr(asr_train_args, "preprocessor_conf")
-                and "speaker_change_symbol" in asr_train_args.preprocessor_conf
-            ):
+            if "speaker_change_symbol" in preprocessor_conf:
                 sot_asr = True
             else:
                 sot_asr = False
             converter = OpenAIWhisperTokenIDConverter(
                 model_type=bpemodel,
                 added_tokens_txt=prompt_token_file,
-                language=tokenizer_language,
+                language=whisper_language or "en",
+                task=whisper_task or "transcribe",
                 sot=sot_asr,
             )
             beam_search.set_hyp_primer(

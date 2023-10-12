@@ -16,8 +16,9 @@ dirname = os.path.dirname(__file__)
 def export_vocabulary(
     output: str,
     whisper_model: str,
-    language: str,
-    log_level: str,
+    whisper_language: str = "en",
+    whisper_task: str = "transcribe",
+    log_level: str = "INFO",
     add_token_file_name: str = "none",
     sot_asr: bool = False,
     speaker_change_symbol: str = "<sc>",
@@ -45,14 +46,18 @@ def export_vocabulary(
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
-    language = LANGUAGES_CODE_MAPPING.get(language)
-    if language is None:
+    whisper_language = LANGUAGES_CODE_MAPPING.get(whisper_language)
+    if whisper_language is None:
         raise ValueError("language unsupported for Whisper model")
+    if whisper_task not in ["transcribe", "translate"]:
+        raise ValueError(f"task: {whisper_task} unsupported for Whisper model")
+
+
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
     elif whisper_model == "whisper_multilingual":
         tokenizer = whisper.tokenizer.get_tokenizer(
-            multilingual=True, language=language
+            multilingual=True, language=whisper_language, task=whisper_task
         )
         # import pdb;pdb.set_trace()
         if add_token_file_name != "none":
@@ -117,12 +122,17 @@ def get_parser() -> argparse.ArgumentParser:
         help="File name for added tokens",
     )
     parser.add_argument(
-        "--language",
+        "--whisper_language",
         type=str,
         default="en",
-        help="Language of Whisper multilingual tokenizer (default is en)",
+        help="Language for Whisper multilingual tokenizer",
     )
-
+    parser.add_argument(
+        "--whisper_task",
+        type=str,
+        default="transcribe",
+        help="Task for Whisper multilingual tokenizer",
+    )
     parser.add_argument(
         "--sot_asr",
         type=bool,
@@ -130,7 +140,6 @@ def get_parser() -> argparse.ArgumentParser:
         required=False,
         help="Whether SOT-style training is used in Whisper",
     )
-
     parser.add_argument(
         "--speaker_change_symbol",
         type=str,
