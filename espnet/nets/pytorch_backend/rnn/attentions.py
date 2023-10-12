@@ -886,7 +886,7 @@ class AttMultiHeadDot(torch.nn.Module):
         self.pre_compute_v = None
         self.mask = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, **kwargs):
         """AttMultiHeadDot forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
@@ -1000,7 +1000,7 @@ class AttMultiHeadAdd(torch.nn.Module):
         self.pre_compute_v = None
         self.mask = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, **kwargs):
         """AttMultiHeadAdd forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
@@ -1137,7 +1137,7 @@ class AttMultiHeadLoc(torch.nn.Module):
         self.pre_compute_v = None
         self.mask = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0):
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, scaling=2.0, **kwargs):
         """AttMultiHeadLoc forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)
@@ -1290,7 +1290,7 @@ class AttMultiHeadMultiResLoc(torch.nn.Module):
         self.pre_compute_v = None
         self.mask = None
 
-    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev):
+    def forward(self, enc_hs_pad, enc_hs_len, dec_z, att_prev, **kwargs):
         """AttMultiHeadMultiResLoc forward
 
         :param torch.Tensor enc_hs_pad: padded encoder hidden state (B x T_max x D_enc)

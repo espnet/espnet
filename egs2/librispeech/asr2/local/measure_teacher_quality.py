@@ -1,1 +1,1 @@
-../../ssl1/local/measure_teacher_quality.py
+../pyscripts/feats/measure_teacher_quality.py
