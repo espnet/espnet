@@ -54,6 +54,7 @@ done
     --inference_config conf/tuning/decode_transformer.yaml \
     --use_lm true \
     --ngpu 4 \
+    --inference_nj 4 \
     --gpu_inference true \
     --use_text_prev true \
     --bpe_train_text "${lm_train_text}" \
