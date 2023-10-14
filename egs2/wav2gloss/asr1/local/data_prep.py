@@ -1,5 +1,5 @@
 import argparse
-import fileinput
+import shutil
 import json
 from collections import defaultdict
 from pathlib import Path
@@ -112,7 +112,14 @@ def merge_dir(target_dir, source_dirs):
                             else:
                                 target.write(line)
                             count += 1
-    print(f"{target_dir}: merged {source_dirs}")
+            if count == 0:
+                break
+
+    if count == 0:
+        print(f"{target_dir}: No file to merge. Clean up & break.")
+        shutil.rmtree(target_dir)
+    else:
+        print(f"{target_dir}: merged {source_dirs}")
 
 
 def sanity_check(args):
