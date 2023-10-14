@@ -5,6 +5,20 @@ from collections import defaultdict
 from pathlib import Path
 
 
+LANGUAGES = (
+    "adyg1241", "ainu1240", "apah1238", "arap1274", "arta1239",
+    "balk1252", "beja1238", "bora1263", "dolg1241", "even1259",
+    "goro1270", "jeju1234", "kaby1243", "kach1280", "kaka1265",
+    "kama1378", "kara1499", "koii1238", "komn1238", "mand1415",
+    "nngg1234", "nort2641", "pnar1238", "port1286", "ruul1235",
+    "sanz1248", "savo1255", "selk1253", "slav1254", "sout2856",
+    "sumb1241", "sumi1235", "taba1259", "taul1251", "tehr1242",
+    "teop1238", "texi1237", "tond1251", "trin1278", "vera1241",
+)
+TASKS = (
+    "transcription", "underlying", "gloss", "translation",
+)
+
 def get_parser():
     parser = argparse.ArgumentParser(
         description="Process Raw data to Kaldi-like format"
@@ -29,8 +43,8 @@ def get_parser():
     )
     parser.add_argument(
         "--min_wav_length",
-        type=str,  # float
-        default="0.5",
+        type=float,
+        default=0.5,
     )
     return parser
 
@@ -101,22 +115,30 @@ def merge_dir(target_dir, source_dirs):
     print(f"{target_dir}: merged {source_dirs}")
 
 
+def sanity_check(args):
+    assert set(LANGUAGES) == {p.name for p in (args.source_dir / "data").glob("*/")}
+    assert len(set(args.langs) - set(LANGUAGES)) == 0
+    assert len(set(args.tasks) - set(TASKS)) == 0
+
+
+def write_symbols(path):
+    with open(path, "w", encoding="utf-8") as f:
+        for lang in LANGUAGES:
+            f.write(f"<lang|{lang}>\n")
+        for task in TASKS:
+            f.write(f"<task|{task}>\n")
+
+
 if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
 
     args.langs = args.langs.split(",")
     args.tasks = args.tasks.split(",")
-    min_wav_length = float(args.min_wav_length)
+    sanity_check(args)
 
     args.target_dir.mkdir(parents=True, exist_ok=True)
-    with open(
-        args.target_dir / "non_linguistic_symbols.txt", "w", encoding="utf-8"
-    ) as f:
-        for lang in args.langs:
-            f.write(f"<lang|{lang}>\n")
-        for task in args.tasks:
-            f.write(f"<task|{task}>\n")
+    write_symbols(args.target_dir / "non_linguistic_symbols.txt")
 
     for lang in args.langs:
         for split in ("train", "dev", "test"):
@@ -125,7 +147,7 @@ if __name__ == "__main__":
                 metadata = json.load(open(metafile, encoding="utf-8"))
                 for task in args.tasks:
                     target_dir = build_dir(task, lang, split)
-                    write_dir(target_dir, metadata, min_wav_length)
+                    write_dir(target_dir, metadata, args.min_wav_length)
 
     for split in ("train", "dev"):
         for lang in args.langs:
