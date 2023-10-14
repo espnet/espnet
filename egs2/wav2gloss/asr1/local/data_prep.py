@@ -4,20 +4,55 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-
 LANGUAGES = (
-    "adyg1241", "ainu1240", "apah1238", "arap1274", "arta1239",
-    "balk1252", "beja1238", "bora1263", "dolg1241", "even1259",
-    "goro1270", "jeju1234", "kaby1243", "kach1280", "kaka1265",
-    "kama1378", "kara1499", "koii1238", "komn1238", "mand1415",
-    "nngg1234", "nort2641", "pnar1238", "port1286", "ruul1235",
-    "sanz1248", "savo1255", "selk1253", "slav1254", "sout2856",
-    "sumb1241", "sumi1235", "taba1259", "taul1251", "tehr1242",
-    "teop1238", "texi1237", "tond1251", "trin1278", "vera1241",
+    "adyg1241",
+    "ainu1240",
+    "apah1238",
+    "arap1274",
+    "arta1239",
+    "balk1252",
+    "beja1238",
+    "bora1263",
+    "dolg1241",
+    "even1259",
+    "goro1270",
+    "jeju1234",
+    "kaby1243",
+    "kach1280",
+    "kaka1265",
+    "kama1378",
+    "kara1499",
+    "koii1238",
+    "komn1238",
+    "mand1415",
+    "nngg1234",
+    "nort2641",
+    "pnar1238",
+    "port1286",
+    "ruul1235",
+    "sanz1248",
+    "savo1255",
+    "selk1253",
+    "slav1254",
+    "sout2856",
+    "sumb1241",
+    "sumi1235",
+    "taba1259",
+    "taul1251",
+    "tehr1242",
+    "teop1238",
+    "texi1237",
+    "tond1251",
+    "trin1278",
+    "vera1241",
 )
 TASKS = (
-    "transcription", "underlying", "gloss", "translation",
+    "transcription",
+    "underlying",
+    "gloss",
+    "translation",
 )
+
 
 def get_parser():
     parser = argparse.ArgumentParser(
