@@ -43,4 +43,3 @@ Purpose of this system is to produce output that is suitable as a direct input f
 |decode_asr_asr_model_valid.acc.ave/dev-other|4613|316550|96.1|2.5|1.4|1.0|5.0|74.2|
 |decode_asr_asr_model_valid.acc.ave/test-clean|4837|404031|97.7|1.4|0.9|0.7|2.9|70.5|
 |decode_asr_asr_model_valid.acc.ave/test-other|5120|327248|95.4|2.8|1.8|1.1|5.7|77.1|
-
