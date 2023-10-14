@@ -1597,6 +1597,11 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
             _type=kaldi_ark
         fi
 
+        _dataset_specific_opts=""
+        if ${use_text_prev}; then
+            _dataset_specific_opts+="--data_path_and_name_and_type ${_data}/text_prev,text_prev,text "
+        fi
+
         # 1. Split the key file
         key_file=${_data}/${_scp}
         split_scps=""
@@ -1626,7 +1631,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
                 --asr_train_config "${asr_exp}"/config.yaml \
                 --asr_model_file "${asr_exp}"/"${inference_asr_model}" \
                 --output_dir "${_logdir}"/output.JOB \
-                ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
+                ${_opts} ${_dataset_specific_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/asr_inference.*.log) ; exit 1; }
 
         # 3. Calculate and report RTF based on decoding logs
         if [ ${asr_task} == "asr" ] && [ -z ${inference_bin_tag} ]; then
