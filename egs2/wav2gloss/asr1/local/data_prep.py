@@ -1,6 +1,6 @@
 import argparse
-import shutil
 import json
+import shutil
 from collections import defaultdict
 from pathlib import Path
 
