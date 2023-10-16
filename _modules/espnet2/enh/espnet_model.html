@@ -249,6 +249,7 @@
         <span class="n">stft_consistency</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mask_mse&quot;</span><span class="p">,</span>
         <span class="n">mask_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">flexible_numspk</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">extract_feats_in_collect_stats</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -260,6 +261,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask_module</span> <span class="o">=</span> <span class="n">mask_module</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">separator</span><span class="o">.</span><span class="n">num_spk</span>
+        <span class="c1"># If True, self.num_spk is regarded as the MAXIMUM possible number of speakers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span> <span class="o">=</span> <span class="n">flexible_numspk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_noise_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span> <span class="s2">&quot;num_noise_type&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_wrappers</span> <span class="o">=</span> <span class="n">loss_wrappers</span>
@@ -314,7 +317,10 @@
                 <span class="n">torch</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;speech_ref1&quot;</span><span class="p">]),</span>
             <span class="p">)</span>
             <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+            <span class="k">if</span> <span class="sa">f</span><span class="s2">&quot;speech_ref</span><span class="si">{</span><span class="n">spk</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="ow">in</span> <span class="n">kwargs</span>
         <span class="p">]</span>
+        <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_spk</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">),</span> <span class="n">num_spk</span><span class="p">)</span>
         <span class="c1"># (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)</span>
         <span class="n">speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
@@ -337,12 +343,10 @@
             <span class="c1"># frontend models with beamformering)</span>
             <span class="n">dereverb_speech_ref</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;dereverb_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
-                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)</span>
                 <span class="k">if</span> <span class="s2">&quot;dereverb_ref</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">n</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">kwargs</span>
             <span class="p">]</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">dereverb_speech_ref</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span>
-                <span class="n">dereverb_speech_ref</span>
-            <span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">dereverb_speech_ref</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">dereverb_speech_ref</span><span class="p">)</span>
             <span class="c1"># (Batch, N, samples) or (Batch, N, samples, channels)</span>
             <span class="n">dereverb_speech_ref</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">dereverb_speech_ref</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
@@ -376,6 +380,8 @@
             <span class="n">additional</span><span class="p">[</span><span class="s2">&quot;feature_ref&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">speech_ref</span>
             <span class="p">]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span><span class="p">:</span>
+            <span class="n">additional</span><span class="p">[</span><span class="s2">&quot;num_spk&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">num_spk</span>
 
         <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">speech_mix</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">speech_lengths</span><span class="o">.</span><span class="n">max</span><span class="p">()]</span>
 
@@ -394,6 +400,7 @@
             <span class="n">speech_ref</span><span class="p">,</span>
             <span class="n">noise_ref</span><span class="p">,</span>
             <span class="n">dereverb_speech_ref</span><span class="p">,</span>
+            <span class="n">num_spk</span><span class="o">=</span><span class="n">num_spk</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="n">loss</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">weight</span></div>
 
@@ -450,6 +457,7 @@
         <span class="n">speech_ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
         <span class="n">noise_ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">dereverb_speech_ref</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">num_spk</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
         <span class="c1"># for calculating loss on estimated noise signals</span>
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span> <span class="s2">&quot;predict_noise&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
@@ -462,7 +470,7 @@
         <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span> <span class="s2">&quot;predict_dereverb&quot;</span><span class="p">,</span> <span class="kc">False</span><span class="p">):</span>
             <span class="k">assert</span> <span class="s2">&quot;dereverb1&quot;</span> <span class="ow">in</span> <span class="n">others</span><span class="p">,</span> <span class="n">others</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">dereverb_speech_ref</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s2">&quot;dereverb1&quot;</span> <span class="ow">in</span> <span class="n">others</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span> <span class="k">if</span> <span class="n">num_spk</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">):</span>
                 <span class="n">key</span> <span class="o">=</span> <span class="s2">&quot;dereverb</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">others</span><span class="p">:</span>
                     <span class="n">others</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="p">(</span><span class="n">others</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">speech_lengths</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
@@ -688,7 +696,9 @@
         <span class="p">)</span>
         <span class="k">if</span> <span class="s2">&quot;mask_spk1&quot;</span> <span class="ow">in</span> <span class="n">others</span><span class="p">:</span>
             <span class="n">masks_pre</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">others</span><span class="p">[</span><span class="s2">&quot;mask_spk</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                <span class="n">others</span><span class="p">[</span><span class="s2">&quot;mask_spk</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+                <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                <span class="k">if</span> <span class="s2">&quot;mask_spk</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">others</span>
             <span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">masks_pre</span> <span class="o">=</span> <span class="n">criterion</span><span class="o">.</span><span class="n">create_mask_label</span><span class="p">(</span>

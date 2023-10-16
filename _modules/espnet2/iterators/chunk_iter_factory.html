@@ -224,6 +224,8 @@
 <span class="kn">from</span> <span class="nn">espnet2.iterators.sequence_iter_factory</span> <span class="kn">import</span> <span class="n">SequenceIterFactory</span>
 <span class="kn">from</span> <span class="nn">espnet2.samplers.abs_sampler</span> <span class="kn">import</span> <span class="n">AbsSampler</span>
 
+<span class="n">DEFAULT_EXCLUDED_KEY_PREFIXES</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;utt2category&quot;</span><span class="p">,</span> <span class="s2">&quot;utt2fs&quot;</span><span class="p">)</span>
+
 
 <div class="viewcode-block" id="ChunkIterFactory"><a class="viewcode-back" href="../../../_gen/espnet2.iterators.html#espnet2.iterators.chunk_iter_factory.ChunkIterFactory">[docs]</a><span class="k">class</span> <span class="nc">ChunkIterFactory</span><span class="p">(</span><span class="n">AbsIterFactory</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates chunks from a sequence</span>
@@ -308,9 +310,11 @@
         <span class="c1">#  - exactly match one of the prefixes in `excluded_key_prefixes`</span>
         <span class="c1">#  - have one of the prefixes in `excluded_key_prefixes` and end with numbers</span>
         <span class="k">if</span> <span class="n">excluded_key_prefixes</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">excluded_key_prefixes</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;utt2category&quot;</span><span class="p">]</span>
-        <span class="k">elif</span> <span class="s2">&quot;utt2category&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">excluded_key_prefixes</span><span class="p">:</span>
-            <span class="n">excluded_key_prefixes</span> <span class="o">=</span> <span class="n">excluded_key_prefixes</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;utt2category&quot;</span><span class="p">]</span>
+            <span class="n">excluded_key_prefixes</span> <span class="o">=</span> <span class="n">DEFAULT_EXCLUDED_KEY_PREFIXES</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">DEFAULT_EXCLUDED_KEY_PREFIXES</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">excluded_key_prefixes</span><span class="p">:</span>
+                    <span class="n">excluded_key_prefixes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">excluded_key_pattern</span> <span class="o">=</span> <span class="p">(</span>
             <span class="s2">&quot;(&quot;</span> <span class="o">+</span> <span class="s2">&quot;[0-9]*)|(&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">excluded_key_prefixes</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;[0-9]*)&quot;</span>
         <span class="p">)</span>

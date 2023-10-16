@@ -340,6 +340,12 @@
     <span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="any_allzero"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.preprocessor.any_allzero">[docs]</a><span class="k">def</span> <span class="nf">any_allzero</span><span class="p">(</span><span class="n">signal</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">([</span><span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">signal</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">allclose</span><span class="p">(</span><span class="n">signal</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="CommonPreprocessor"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.preprocessor.CommonPreprocessor">[docs]</a><span class="k">class</span> <span class="nc">CommonPreprocessor</span><span class="p">(</span><span class="n">AbsPreprocessor</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
@@ -1170,6 +1176,9 @@
         <span class="n">data_aug_effects</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">data_aug_num</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
         <span class="n">data_aug_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">speech_segment</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">avoid_allzero_segment</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">flexible_numspk</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
@@ -1209,6 +1218,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">force_single_channel</span> <span class="o">=</span> <span class="n">force_single_channel</span>
         <span class="c1"># If True, randomly reorder the channels of the multi-channel signals</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">channel_reordering</span> <span class="o">=</span> <span class="n">channel_reordering</span>
+
+        <span class="c1"># If specified, the audios will be chomped to the specified length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">speech_segment</span> <span class="o">=</span> <span class="n">speech_segment</span>
+        <span class="c1"># Only used when `speech_segment` is specified.</span>
+        <span class="c1"># If True, make sure all chomped segments are not all-zero.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">avoid_allzero_segment</span> <span class="o">=</span> <span class="n">avoid_allzero_segment</span>
+
+        <span class="c1"># If True, load variable numbers of speakers in each sample, and</span>
+        <span class="c1"># self.num_spk is regarded as the maximum possible number of speakers</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span> <span class="o">=</span> <span class="n">flexible_numspk</span>
 
         <span class="c1"># Map each category into a unique integer</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">categories</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1260,6 +1279,11 @@
             <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;, noise_db_range=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">noise_db_range</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_aug</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_aug_prob</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;, data_aug=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data_aug</span><span class="si">}</span><span class="s2">, data_aug_prob=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data_aug_prob</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_segment</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;, speech_segment=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_segment</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;, avoid_allzero_segment=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">avoid_allzero_segment</span><span class="si">}</span><span class="s2">&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span><span class="p">:</span>
+            <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;, flexible_numspk=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span><span class="si">}</span><span class="s2">&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">10</span><span class="p">:</span>
                 <span class="n">msg</span> <span class="o">+=</span> <span class="sa">f</span><span class="s2">&quot;, categories=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="si">}</span><span class="s2">&quot;</span>
@@ -1295,7 +1319,7 @@
         <span class="n">speech2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">power</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">power2</span><span class="p">,</span> <span class="mf">1e-10</span><span class="p">))</span> <span class="o">*</span> <span class="n">speech2</span>
         <span class="k">return</span> <span class="n">speech2</span>
 
-    <span class="k">def</span> <span class="nf">_apply_to_all_signals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">,</span> <span class="n">func</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_apply_to_all_signals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">):</span>
         <span class="n">data_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">data_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">])</span>
 
         <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_noise_type</span><span class="p">):</span>
@@ -1303,7 +1327,7 @@
             <span class="k">if</span> <span class="n">noise_name</span> <span class="ow">in</span> <span class="n">data_dict</span><span class="p">:</span>
                 <span class="n">data_dict</span><span class="p">[</span><span class="n">noise_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">data_dict</span><span class="p">[</span><span class="n">noise_name</span><span class="p">])</span>
 
-        <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">):</span>
             <span class="n">speech_ref_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_ref_name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train</span> <span class="ow">or</span> <span class="n">speech_ref_name</span> <span class="ow">in</span> <span class="n">data_dict</span><span class="p">:</span>
                 <span class="n">data_dict</span><span class="p">[</span><span class="n">speech_ref_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">data_dict</span><span class="p">[</span><span class="n">speech_ref_name</span><span class="p">])</span>
@@ -1311,6 +1335,37 @@
             <span class="n">dereverb_ref_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dereverb_ref_name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
             <span class="k">if</span> <span class="n">dereverb_ref_name</span> <span class="ow">in</span> <span class="n">data_dict</span><span class="p">:</span>
                 <span class="n">data_dict</span><span class="p">[</span><span class="n">dereverb_ref_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="n">data_dict</span><span class="p">[</span><span class="n">dereverb_ref_name</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="nf">_random_crop_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_dict</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_trials</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+        <span class="c1"># Randomly crop the signals to the length `self.speech_segment`</span>
+        <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_segment</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_segment</span>
+        <span class="n">speech_refs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="n">data_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_ref_name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span>
+            <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)</span>
+        <span class="p">]</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="n">speech_refs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">tgt_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_segment</span>
+        <span class="k">if</span> <span class="n">length</span> <span class="o">&lt;=</span> <span class="n">tgt_length</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">length</span> <span class="o">&lt;</span> <span class="n">tgt_length</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;The sample (</span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">) is not cropped due to its short length &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;(</span><span class="si">{</span><span class="n">length</span><span class="si">}</span><span class="s2"> &lt; </span><span class="si">{</span><span class="n">tgt_length</span><span class="si">}</span><span class="s2">).&quot;</span>
+                <span class="p">)</span>
+            <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="n">length</span>
+
+        <span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">length</span> <span class="o">-</span> <span class="n">tgt_length</span><span class="p">)</span>
+        <span class="n">count</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">avoid_allzero_segment</span><span class="p">:</span>
+            <span class="c1"># try to find a segment region that ensures all references are non-allzero</span>
+            <span class="k">while</span> <span class="n">any_allzero</span><span class="p">([</span><span class="n">sf</span><span class="p">[</span><span class="n">start</span> <span class="p">:</span> <span class="n">start</span> <span class="o">+</span> <span class="n">tgt_length</span><span class="p">]</span> <span class="k">for</span> <span class="n">sf</span> <span class="ow">in</span> <span class="n">speech_refs</span><span class="p">]):</span>
+                <span class="n">count</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="n">max_trials</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Can&#39;t find non-allzero segments for all references in </span><span class="si">{</span><span class="n">uid</span><span class="si">}</span><span class="s2">.&quot;</span>
+                    <span class="p">)</span>
+                    <span class="k">break</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">length</span> <span class="o">-</span> <span class="n">tgt_length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">start</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="n">tgt_length</span>
 
     <span class="k">def</span> <span class="nf">_speech_process</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span> <span class="n">uid</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span>
@@ -1320,6 +1375,8 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
             <span class="k">return</span> <span class="n">data</span>
+
+        <span class="n">num_spk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span>
 
         <span class="c1"># Add the category information (an integer) to `data`</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">categories</span> <span class="ow">and</span> <span class="s2">&quot;category&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
@@ -1332,21 +1389,41 @@
             <span class="k">assert</span> <span class="n">category</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="p">,</span> <span class="n">category</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;utt2category&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">categories</span><span class="p">[</span><span class="n">category</span><span class="p">]])</span>
 
+        <span class="n">sref_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_ref_name_prefix</span> <span class="o">+</span> <span class="s2">&quot;1&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span> <span class="ow">and</span> <span class="n">sref_name</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="c1"># The number of speaker varies in each sample.</span>
+            <span class="c1"># Different speaker signals are stacked in the first dimension.</span>
+            <span class="n">dref_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dereverb_ref_name_prefix</span> <span class="o">+</span> <span class="s2">&quot;1&quot;</span>
+            <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">sref_name</span><span class="p">])</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_ref_name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+                <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">dereverb_ref_name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="kc">None</span><span class="p">)</span>
+            <span class="c1"># Divide the stacked signals into single speaker signals for consistency</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                <span class="c1"># make sure no np.nan paddings are in the data</span>
+                <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">sref_name</span><span class="p">][</span><span class="n">i</span><span class="p">])),</span> <span class="n">uid</span>
+                <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_ref_name_prefix</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">sref_name</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">dref_name</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                    <span class="c1"># make sure no np.nan paddings are in the data</span>
+                    <span class="k">assert</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="n">dref_name</span><span class="p">][</span><span class="n">i</span><span class="p">])),</span> <span class="n">uid</span>
+                    <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dereverb_ref_name_prefix</span> <span class="o">+</span> <span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">dref_name</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">:</span>
             <span class="c1"># clean speech signal (Nmic, Time)</span>
             <span class="n">speech_ref</span> <span class="o">=</span> <span class="p">[</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_2d</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_ref_name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)])</span>
-                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)</span>
             <span class="p">]</span>
 
             <span class="c1"># dereverberated (noisy) signal (Nmic, Time)</span>
-            <span class="k">if</span> <span class="s2">&quot;dereverb_ref1&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dereverb_ref_name_prefix</span> <span class="o">+</span> <span class="s2">&quot;1&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
                 <span class="n">dereverb_speech_ref</span> <span class="o">=</span> <span class="p">[</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_ensure_2d</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">dereverb_ref_name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)])</span>
-                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dereverb_ref_name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">in</span> <span class="n">data</span>
                 <span class="p">]</span>
-                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">dereverb_speech_ref</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span>
+                <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">dereverb_speech_ref</span><span class="p">)</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span>
                     <span class="n">dereverb_speech_ref</span>
                 <span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
@@ -1381,7 +1458,7 @@
                     <span class="p">)</span>
 
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_reverberant_ref</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">):</span>
                         <span class="n">suffix</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
                         <span class="n">speech_ref_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_ref_name_prefix</span> <span class="o">+</span> <span class="n">suffix</span>
                         <span class="c1"># (Time, Nmic)</span>
@@ -1394,7 +1471,7 @@
                                     <span class="n">speech_ref</span><span class="p">[</span><span class="n">spk</span><span class="p">],</span> <span class="n">rir_ref</span><span class="p">[</span><span class="n">spk</span><span class="p">],</span> <span class="n">power_ref</span><span class="p">[</span><span class="n">spk</span><span class="p">]</span>
                                 <span class="p">)</span><span class="o">.</span><span class="n">T</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">):</span>
+                    <span class="k">for</span> <span class="n">spk</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">):</span>
                         <span class="n">suffix</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
                         <span class="n">speech_ref_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_ref_name_prefix</span> <span class="o">+</span> <span class="n">suffix</span>
                         <span class="c1"># clean speech with early reflections (Time, Nmic)</span>
@@ -1449,14 +1526,19 @@
 
             <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">speech_mix</span><span class="o">.</span><span class="n">T</span>
             <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">speech_mix</span>
-            <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">))</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_segment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">start</span><span class="p">,</span> <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_random_crop_range</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">,</span> <span class="n">uid</span><span class="o">=</span><span class="n">uid</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">end</span><span class="p">],</span> <span class="n">num_spk</span><span class="p">)</span>
+            <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]))</span>
             <span class="k">if</span> <span class="n">ma</span> <span class="o">&gt;</span> <span class="mf">1.0</span><span class="p">:</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="n">ma</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="n">ma</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">)</span>
 
-            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(),</span> <span class="n">num_spk</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">force_single_channel</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span>
+                <span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">ndim</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">x</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">num_spk</span>
+            <span class="p">)</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_volume_normalize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">:</span>
@@ -1466,7 +1548,7 @@
                 <span class="n">volume_scale</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">volume_low</span>
             <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span>
             <span class="n">ma</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">speech_mix</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">volume_scale</span> <span class="o">/</span> <span class="n">ma</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_apply_to_all_signals</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">volume_scale</span> <span class="o">/</span> <span class="n">ma</span><span class="p">,</span> <span class="n">num_spk</span><span class="p">)</span>
 
         <span class="n">speech_mix</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span>
         <span class="c1"># Reorder channels of the multi-channel signals</span>
@@ -1475,7 +1557,7 @@
             <span class="c1"># chs = np.random.choice(range(num_ch), size=num_ch, replace=False).tolist()</span>
             <span class="n">chs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">permutation</span><span class="p">(</span><span class="n">num_ch</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
             <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">speech_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">speech_mix</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">chs</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">):</span>
                 <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">speech_ref_name_prefix</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
                 <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
                     <span class="k">assert</span> <span class="n">data</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">speech_mix</span><span class="o">.</span><span class="n">shape</span>
@@ -1692,6 +1774,9 @@
         <span class="n">data_aug_effects</span><span class="p">:</span> <span class="n">List</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">data_aug_num</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
         <span class="n">data_aug_prob</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">speech_segment</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">avoid_allzero_segment</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">flexible_numspk</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span>
             <span class="n">train</span><span class="p">,</span>
@@ -1716,6 +1801,9 @@
             <span class="n">data_aug_effects</span><span class="o">=</span><span class="n">data_aug_effects</span><span class="p">,</span>
             <span class="n">data_aug_num</span><span class="o">=</span><span class="n">data_aug_num</span><span class="p">,</span>
             <span class="n">data_aug_prob</span><span class="o">=</span><span class="n">data_aug_prob</span><span class="p">,</span>
+            <span class="n">speech_segment</span><span class="o">=</span><span class="n">speech_segment</span><span class="p">,</span>
+            <span class="n">avoid_allzero_segment</span><span class="o">=</span><span class="n">avoid_allzero_segment</span><span class="p">,</span>
+            <span class="n">flexible_numspk</span><span class="o">=</span><span class="n">flexible_numspk</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="c1"># If specified, the enrollment will be chomped to the specified length</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enroll_segment</span> <span class="o">=</span> <span class="n">enroll_segment</span>
@@ -1785,6 +1873,33 @@
         <span class="n">num_spk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_names</span><span class="p">)</span>
 
         <span class="n">aux_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;enroll_ref\d+&quot;</span><span class="p">,</span> <span class="n">k</span><span class="p">)]</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span><span class="p">:</span>
+            <span class="c1"># The number of speaker varies in each sample.</span>
+            <span class="c1"># Different speaker signals are stacked in the first dimension.</span>
+            <span class="n">enroll_name</span> <span class="o">=</span> <span class="s2">&quot;enroll_ref1&quot;</span>
+            <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">aux_names</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">enroll_name</span><span class="p">:</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+            <span class="n">aux_names</span> <span class="o">=</span> <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;enroll_ref</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span><span class="p">)]</span>
+            <span class="c1"># Divide the concatenated enrollments into single speaker enrollments</span>
+            <span class="c1"># NOTE(wangyou): whitespace is not allowed inside each path</span>
+            <span class="n">tup</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">enroll_name</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_spk</span><span class="p">:</span>
+                <span class="c1"># normal format in `enroll_spk1.scp`:</span>
+                <span class="c1"># MIXTURE_UID /path/to/enrollment_or_embedding</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">data</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;enroll_ref</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tup</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_spk</span> <span class="o">*</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="c1"># a special format in `enroll_spk1.scp`:</span>
+                <span class="c1"># MIXTURE_UID *UID SPEAKER_ID</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_spk</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+                    <span class="n">data</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;enroll_ref</span><span class="si">{</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tup</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="mi">2</span> <span class="p">:</span> <span class="n">i</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">+</span> <span class="mi">2</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s2">&quot;Invalid format with in enroll_spk1.scp. Expected </span><span class="si">{</span><span class="n">num_spk</span><span class="si">}</span><span class="s2"> or &quot;</span>
+                    <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">num_spk</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">2</span><span class="si">}</span><span class="s2"> columns, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">tup</span><span class="p">)</span><span class="si">}</span><span class="s2"> columns:</span><span class="se">\n</span><span class="si">{</span><span class="n">tup</span><span class="si">}</span><span class="s2">&quot;</span>
+                <span class="p">)</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train</span><span class="p">:</span>
             <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">ref_names</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">aux_names</span><span class="p">),</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ref_names</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">aux_names</span><span class="p">))</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">load_all_speakers</span><span class="p">:</span>
@@ -1807,6 +1922,7 @@
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_spk2enroll</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="c1"># normal format in `enroll_spk?.scp`:</span>
                     <span class="c1"># MIXTURE_UID /path/to/enrollment_or_embedding</span>
+                    <span class="k">assert</span> <span class="ow">not</span> <span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">),</span> <span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
                     <span class="n">aux_audio</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
                 <span class="k">else</span><span class="p">:</span>
                     <span class="c1"># a special format in `enroll_spk?.scp`:</span>

@@ -305,6 +305,7 @@ asr_train.py
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
+                        [--allow_multi_rates ALLOW_MULTI_RATES]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                         [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -591,6 +592,17 @@ asr_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -695,6 +707,8 @@ asr_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -988,6 +1002,7 @@ asr_transducer_train.py
                                    [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                                    [--max_cache_size MAX_CACHE_SIZE]
                                    [--max_cache_fd MAX_CACHE_FD]
+                                   [--allow_multi_rates ALLOW_MULTI_RATES]
                                    [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                                    [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                                    [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -1263,6 +1278,17 @@ asr_transducer_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -1367,6 +1393,8 @@ asr_transducer_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -1602,6 +1630,7 @@ diar_train.py
                          [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                          [--max_cache_size MAX_CACHE_SIZE]
                          [--max_cache_fd MAX_CACHE_FD]
+                         [--allow_multi_rates ALLOW_MULTI_RATES]
                          [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                          [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                          [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -1867,6 +1896,17 @@ diar_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -1971,6 +2011,8 @@ diar_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -2272,6 +2314,7 @@ enh_s2t_train.py
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                             [--max_cache_size MAX_CACHE_SIZE]
                             [--max_cache_fd MAX_CACHE_FD]
+                            [--allow_multi_rates ALLOW_MULTI_RATES]
                             [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                             [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                             [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -2592,6 +2635,17 @@ enh_s2t_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -2696,6 +2750,8 @@ enh_s2t_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -2731,11 +2787,11 @@ enh_s2t_train.py
       --diar_input_size DIAR_INPUT_SIZE
                             The number of input dimension of the feature (default: None)
       --enh_model_conf ENH_MODEL_CONF
-                            The keyword arguments for enh submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'extract_feats_in_collect_stats': False})
+                            The keyword arguments for enh submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'flexible_numspk': False, 'extract_feats_in_collect_stats': False})
       --asr_model_conf ASR_MODEL_CONF
                             The keyword arguments for asr submodel class. (default: {'aux_ctc': None, 'ctc_weight': 0.5, 'interctc_weight': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'transducer_multi_blank_durations': [], 'transducer_multi_blank_sigma': 0.05, 'sym_sos': '<sos/eos>', 'sym_eos': '<sos/eos>', 'extract_feats_in_collect_stats': True, 'lang_token_id': -1})
       --st_model_conf ST_MODEL_CONF
-                            The keyword arguments for st submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'extract_feats_in_collect_stats': False})
+                            The keyword arguments for st submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'flexible_numspk': False, 'extract_feats_in_collect_stats': False})
       --diar_model_conf DIAR_MODEL_CONF
                             The keyword arguments for diar submodel class. (default: {'diar_weight': 1.0, 'attractor_weight': 1.0})
       --subtask_series {enh,asr,st,diar} [{enh,asr,st,diar} ...]
@@ -2994,6 +3050,7 @@ enh_train.py
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
+                        [--allow_multi_rates ALLOW_MULTI_RATES]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                         [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -3015,6 +3072,9 @@ enh_train.py
                         [--force_single_channel FORCE_SINGLE_CHANNEL]
                         [--channel_reordering CHANNEL_REORDERING]
                         [--categories CATEGORIES [CATEGORIES ...]]
+                        [--speech_segment SPEECH_SEGMENT]
+                        [--avoid_allzero_segment AVOID_ALLZERO_SEGMENT]
+                        [--flexible_numspk FLEXIBLE_NUMSPK]
                         [--dynamic_mixing DYNAMIC_MIXING] [--utt2spk UTT2SPK]
                         [--dynamic_mixing_gain_db DYNAMIC_MIXING_GAIN_DB]
                         [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
@@ -3268,6 +3328,17 @@ enh_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -3372,6 +3443,8 @@ enh_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -3394,7 +3467,7 @@ enh_train.py
       --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                             The initialization method (default: None)
       --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'extract_feats_in_collect_stats': False})
+                            The keyword arguments for model class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'flexible_numspk': False, 'extract_feats_in_collect_stats': False})
       --criterions CRITERIONS
                             The criterions binded with the loss wrappers. (default: [{'name': 'si_snr', 'conf': {}, 'wrapper': 'fixed_order', 'wrapper_conf': {}}])
     
@@ -3427,6 +3500,12 @@ enh_train.py
                             Whether to randomly reorder the channels of the multi-channel signals. (default: False)
       --categories CATEGORIES [CATEGORIES ...]
                             The set of all possible categories in the dataset. Used to add the category information to each sample (default: [])
+      --speech_segment SPEECH_SEGMENT
+                            Truncate the audios to the specified length (in samples) if not None (default: None)
+      --avoid_allzero_segment AVOID_ALLZERO_SEGMENT
+                            Only used when --speech_segment is specified. If True, make sure all truncated segments are not all-zero (default: True)
+      --flexible_numspk FLEXIBLE_NUMSPK
+                            Whether to load variable numbers of speakers in each sample. In this case, only the first-speaker files such as 'spk1.scp' and 'dereverb1.scp' are used, which are expected to have multiple columns. Other numbered files such as 'spk2.scp' and 'dereverb2.scp' are ignored. (default: False)
       --dynamic_mixing DYNAMIC_MIXING
                             Apply dynamic mixing (default: False)
       --utt2spk UTT2SPK     The file path of utt2spk file. Only used in dynamic_mixing mode. (default: None)
@@ -3622,6 +3701,7 @@ enh_tse_train.py
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                             [--max_cache_size MAX_CACHE_SIZE]
                             [--max_cache_fd MAX_CACHE_FD]
+                            [--allow_multi_rates ALLOW_MULTI_RATES]
                             [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                             [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                             [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -3647,6 +3727,9 @@ enh_tse_train.py
                             [--force_single_channel FORCE_SINGLE_CHANNEL]
                             [--channel_reordering CHANNEL_REORDERING]
                             [--categories CATEGORIES [CATEGORIES ...]]
+                            [--speech_segment SPEECH_SEGMENT]
+                            [--avoid_allzero_segment AVOID_ALLZERO_SEGMENT]
+                            [--flexible_numspk FLEXIBLE_NUMSPK]
                             [--encoder {stft,conv,same}]
                             [--encoder_conf ENCODER_CONF]
                             [--extractor {td_speakerbeam}]
@@ -3897,6 +3980,17 @@ enh_tse_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -4001,6 +4095,8 @@ enh_tse_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -4023,7 +4119,7 @@ enh_tse_train.py
       --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                             The initialization method (default: None)
       --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'num_spk': 1, 'share_encoder': True, 'extract_feats_in_collect_stats': False})
+                            The keyword arguments for model class. (default: {'num_spk': 1, 'flexible_numspk': False, 'share_encoder': True, 'extract_feats_in_collect_stats': False})
       --criterions CRITERIONS
                             The criterions binded with the loss wrappers. (default: [{'name': 'si_snr', 'conf': {}, 'wrapper': 'fixed_order', 'wrapper_conf': {}}])
     
@@ -4065,6 +4161,12 @@ enh_tse_train.py
                             Whether to randomly reorder the channels of the multi-channel signals. (default: False)
       --categories CATEGORIES [CATEGORIES ...]
                             The set of all possible categories in the dataset. Used to add the category information to each sample (default: [])
+      --speech_segment SPEECH_SEGMENT
+                            Truncate the audios (except for the enrollment) to the specified length if not None (default: None)
+      --avoid_allzero_segment AVOID_ALLZERO_SEGMENT
+                            Only used when --speech_segment is specified. If True, make sure all truncated segments are not all-zero (default: True)
+      --flexible_numspk FLEXIBLE_NUMSPK
+                            Whether to load variable numbers of speakers in each sample. In this case, only the first-speaker files such as 'spk1.scp' and 'dereverb1.scp' are used, which are expected to have multiple columns. Other numbered files such as 'spk2.scp' and 'dereverb2.scp' are ignored. (default: False)
       --encoder {stft,conv,same}
                             The encoder type (default: stft)
       --encoder_conf ENCODER_CONF
@@ -4163,6 +4265,7 @@ gan_svs_train.py
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                             [--max_cache_size MAX_CACHE_SIZE]
                             [--max_cache_fd MAX_CACHE_FD]
+                            [--allow_multi_rates ALLOW_MULTI_RATES]
                             [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                             [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                             [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -4453,6 +4556,17 @@ gan_svs_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -4557,6 +4671,8 @@ gan_svs_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -4715,6 +4831,7 @@ gan_tts_train.py
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                             [--max_cache_size MAX_CACHE_SIZE]
                             [--max_cache_fd MAX_CACHE_FD]
+                            [--allow_multi_rates ALLOW_MULTI_RATES]
                             [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                             [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                             [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -4999,6 +5116,17 @@ gan_tts_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -5103,6 +5231,8 @@ gan_tts_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -5250,6 +5380,7 @@ hubert_train.py
                            [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                            [--max_cache_size MAX_CACHE_SIZE]
                            [--max_cache_fd MAX_CACHE_FD]
+                           [--allow_multi_rates ALLOW_MULTI_RATES]
                            [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                            [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                            [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -5536,6 +5667,17 @@ hubert_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -5640,6 +5782,8 @@ hubert_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -5921,6 +6065,7 @@ lm_train.py
                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                        [--max_cache_size MAX_CACHE_SIZE]
                        [--max_cache_fd MAX_CACHE_FD]
+                       [--allow_multi_rates ALLOW_MULTI_RATES]
                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                        [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -6185,6 +6330,17 @@ lm_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -6289,6 +6445,8 @@ lm_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -6498,6 +6656,7 @@ mt_train.py
                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                        [--max_cache_size MAX_CACHE_SIZE]
                        [--max_cache_fd MAX_CACHE_FD]
+                       [--allow_multi_rates ALLOW_MULTI_RATES]
                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                        [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -6781,6 +6940,17 @@ mt_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -6885,6 +7055,8 @@ mt_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -7166,6 +7338,7 @@ s2st_train.py
                          [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                          [--max_cache_size MAX_CACHE_SIZE]
                          [--max_cache_fd MAX_CACHE_FD]
+                         [--allow_multi_rates ALLOW_MULTI_RATES]
                          [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                          [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                          [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -7468,6 +7641,17 @@ s2st_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -7572,6 +7756,8 @@ s2st_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -7783,6 +7969,7 @@ s2t_train.py
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
+                        [--allow_multi_rates ALLOW_MULTI_RATES]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                         [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -8065,6 +8252,17 @@ s2t_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -8169,6 +8367,8 @@ s2t_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -8332,6 +8532,7 @@ spk_train.py
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
+                        [--allow_multi_rates ALLOW_MULTI_RATES]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                         [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -8599,6 +8800,17 @@ spk_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -8703,6 +8915,8 @@ spk_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -9032,6 +9246,7 @@ st_train.py
                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                        [--max_cache_size MAX_CACHE_SIZE]
                        [--max_cache_fd MAX_CACHE_FD]
+                       [--allow_multi_rates ALLOW_MULTI_RATES]
                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                        [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                        [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -9327,6 +9542,17 @@ st_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -9431,6 +9657,8 @@ st_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     
@@ -9731,6 +9959,7 @@ tts_train.py
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
                         [--max_cache_size MAX_CACHE_SIZE]
                         [--max_cache_fd MAX_CACHE_FD]
+                        [--allow_multi_rates ALLOW_MULTI_RATES]
                         [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
                         [--exclude_weight_decay EXCLUDE_WEIGHT_DECAY]
                         [--exclude_weight_decay_conf EXCLUDE_WEIGHT_DECAY_CONF]
@@ -10007,6 +10236,17 @@ tts_train.py
                                utterance_id_b b.wav b2.wav
                                ...
                             
+                            "variable_columns_sound":
+                            Loading variable numbers (columns) of audios in wav.scp. The following text file can be loaded as stacked audio data
+                            
+                               utterance_id_a a1.wav a2.wav a3.wav
+                               utterance_id_b b1.wav
+                               utterance_id_c c1.wav c2.wav
+                               ...
+                            
+                            Note that audios of different lengths will be right-padded with np.nan to the longest audio in the sample.
+                            A preprocessor must be used to remove these paddings.
+                            
                             "score":
                             Return text as is. The text contains tempo and note info.
                             For each note, 'start' 'end' 'syllabel' 'midi' and 'phones' are included. 
@@ -10111,6 +10351,8 @@ tts_train.py
                             The maximum cache size for data loader. e.g. 10MB, 20GB. (default: 0.0)
       --max_cache_fd MAX_CACHE_FD
                             The maximum number of file descriptors to be kept as opened for ark files. This feature is only valid when data type is 'kaldi_ark'. (default: 32)
+      --allow_multi_rates ALLOW_MULTI_RATES
+                            Whether to allow audios to have different sampling rates (default: False)
       --valid_max_cache_size VALID_MAX_CACHE_SIZE
                             The maximum cache size for validation data loader. e.g. 10MB, 20GB. If None, the 5 percent size of --max_cache_size (default: None)
     

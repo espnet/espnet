@@ -136,6 +136,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-score-scp-1">espnet2.fileio.score_scp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-init-1">espnet2.fileio.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-vad-scp-1">espnet2.fileio.vad_scp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-multi-sound-scp-1">espnet2.fileio.multi_sound_scp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-rand-gen-dataset-1">espnet2.fileio.rand_gen_dataset</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-npy-scp-1">espnet2.fileio.npy_scp</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-fileio-datadir-writer-1">espnet2.fileio.datadir_writer</a></li>
@@ -542,6 +543,68 @@ key2 3.0000:4.5000 7.0000:9:0000
 <dt id="espnet2.fileio.vad_scp.VADScpWriter.close">
 <code class="sig-name descname">close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/vad_scp.html#VADScpWriter.close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.vad_scp.VADScpWriter.close" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-fileio-multi-sound-scp-1">
+<span id="espnet2-fileio-multi-sound-scp"></span><h2>espnet2.fileio.multi_sound_scp<a class="headerlink" href="#espnet2-fileio-multi-sound-scp-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.fileio.multi_sound_scp"></span><dl class="class">
+<dt id="espnet2.fileio.multi_sound_scp.MultiSoundScpReader">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.fileio.multi_sound_scp.</code><code class="sig-name descname">MultiSoundScpReader</code><span class="sig-paren">(</span><em class="sig-param">fname</em>, <em class="sig-param">dtype=None</em>, <em class="sig-param">always_2d: bool = False</em>, <em class="sig-param">stack_axis=0</em>, <em class="sig-param">pad=nan</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/multi_sound_scp.html#MultiSoundScpReader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.multi_sound_scp.MultiSoundScpReader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">collections.abc.Mapping</span></code></p>
+<p>Reader class for ‘wav.scp’ containing multiple sounds.</p>
+<p>This is useful when loading variable numbers of audios for different samples.</p>
+<p class="rubric">Examples</p>
+<p>wav.scp is a text file that looks like the following:</p>
+<p>key1 /some/path/a1.wav /another/path/a2.wav /yet/another/path/a3.wav
+key2 /some/path/b1.wav /another/path/b2.wav
+key3 /some/path/c1.wav /another/path/c2.wav /yet/another/path/c3.wav
+key4 /some/path/d1.wav
+…</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">reader</span> <span class="o">=</span> <span class="n">SoundScpReader</span><span class="p">(</span><span class="s1">&#39;wav.scp&#39;</span><span class="p">,</span> <span class="n">stack_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">rate</span><span class="p">,</span> <span class="n">stacked_arrays</span> <span class="o">=</span> <span class="n">reader</span><span class="p">[</span><span class="s1">&#39;key1&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">stacked_arrays</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="mi">3</span>
+</pre></div>
+</div>
+<dl>
+<dt>Note:</dt><dd><p>All audios in each sample must have the same sampling rates.
+Audios of different lengths in each sample will be right-padded with np.nan</p>
+<blockquote>
+<div><p>to the same length.</p>
+</div></blockquote>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.fileio.multi_sound_scp.MultiSoundScpReader.get_path">
+<code class="sig-name descname">get_path</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/multi_sound_scp.html#MultiSoundScpReader.get_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.multi_sound_scp.MultiSoundScpReader.get_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.fileio.multi_sound_scp.MultiSoundScpReader.keys">
+<code class="sig-name descname">keys</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a set-like object providing a view on D's keys<a class="reference internal" href="../_modules/espnet2/fileio/multi_sound_scp.html#MultiSoundScpReader.keys"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.multi_sound_scp.MultiSoundScpReader.keys" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="espnet2.fileio.multi_sound_scp.MultiSoundScpReader.pad_to_same_length">
+<code class="sig-name descname">pad_to_same_length</code><span class="sig-paren">(</span><em class="sig-param">arrays</em>, <em class="sig-param">pad=nan</em>, <em class="sig-param">axis=0</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/fileio/multi_sound_scp.html#MultiSoundScpReader.pad_to_same_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.fileio.multi_sound_scp.MultiSoundScpReader.pad_to_same_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>Right-pad arrays to the same length.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>arrays</strong> (<em>List</em><em>[</em><em>np.ndarray</em><em>]</em>) – List of arrays to pad</p></li>
+<li><p><strong>pad</strong> (<em>float</em>) – Value to pad</p></li>
+<li><p><strong>axis</strong> (<em>int</em>) – Axis to pad</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Padded array</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

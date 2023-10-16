@@ -228,6 +228,7 @@
 <span class="kn">from</span> <span class="nn">torch.utils.data.dataset</span> <span class="kn">import</span> <span class="n">Dataset</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
+<span class="kn">from</span> <span class="nn">espnet2.fileio.multi_sound_scp</span> <span class="kn">import</span> <span class="n">MultiSoundScpReader</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.npy_scp</span> <span class="kn">import</span> <span class="n">NpyScpReader</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.rand_gen_dataset</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">FloatRandomGenerateDataset</span><span class="p">,</span>
@@ -246,11 +247,12 @@
 
 
 <div class="viewcode-block" id="AdapterForSoundScpReader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.AdapterForSoundScpReader">[docs]</a><span class="k">class</span> <span class="nc">AdapterForSoundScpReader</span><span class="p">(</span><span class="n">collections</span><span class="o">.</span><span class="n">abc</span><span class="o">.</span><span class="n">Mapping</span><span class="p">):</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loader</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">allow_multi_rates</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">loader</span> <span class="o">=</span> <span class="n">loader</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allow_multi_rates</span> <span class="o">=</span> <span class="n">allow_multi_rates</span>
 
 <div class="viewcode-block" id="AdapterForSoundScpReader.keys"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.AdapterForSoundScpReader.keys">[docs]</a>    <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">loader</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span></div>
@@ -277,7 +279,9 @@
                     <span class="sa">f</span><span class="s2">&quot;Unexpected type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">retval</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
 
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">!=</span> <span class="n">rate</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_multi_rates</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rate</span> <span class="o">!=</span> <span class="n">rate</span>
+            <span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
                     <span class="sa">f</span><span class="s2">&quot;Sampling rates are mismatched: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">rate</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="n">rate</span><span class="si">}</span><span class="s2">&quot;</span>
                 <span class="p">)</span>
@@ -373,7 +377,7 @@
         <span class="k">return</span> <span class="n">sample_time</span><span class="p">,</span> <span class="n">sample_label</span></div>
 
 
-<div class="viewcode-block" id="sound_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.sound_loader">[docs]</a><span class="k">def</span> <span class="nf">sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">multi_columns</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="sound_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.sound_loader">[docs]</a><span class="k">def</span> <span class="nf">sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">multi_columns</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">allow_multi_rates</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="c1"># The file is as follows:</span>
     <span class="c1">#   utterance_id_A /some/where/a.wav</span>
     <span class="c1">#   utterance_id_B /some/where/a.flac</span>
@@ -387,11 +391,25 @@
 
     <span class="c1"># SoundScpReader.__getitem__() returns Tuple[int, ndarray],</span>
     <span class="c1"># but ndarray is desired, so Adapter class is inserted here</span>
-    <span class="k">return</span> <span class="n">AdapterForSoundScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">AdapterForSoundScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">allow_multi_rates</span><span class="o">=</span><span class="n">allow_multi_rates</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="multi_columns_sound_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.multi_columns_sound_loader">[docs]</a><span class="k">def</span> <span class="nf">multi_columns_sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="p">,</span> <span class="n">multi_columns</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+<div class="viewcode-block" id="multi_columns_sound_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.multi_columns_sound_loader">[docs]</a><span class="k">def</span> <span class="nf">multi_columns_sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">allow_multi_rates</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">sound_loader</span><span class="p">(</span>
+        <span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="p">,</span> <span class="n">multi_columns</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">allow_multi_rates</span><span class="o">=</span><span class="n">allow_multi_rates</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="variable_columns_sound_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.variable_columns_sound_loader">[docs]</a><span class="k">def</span> <span class="nf">variable_columns_sound_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">allow_multi_rates</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="c1"># The file is as follows:</span>
+    <span class="c1">#   utterance_id_A /some/where/a1.wav /some/where/a2.wav /some/where/a3.wav</span>
+    <span class="c1">#   utterance_id_B /some/where/b1.flac /some/where/b2.flac</span>
+
+    <span class="c1"># NOTE(wangyou): SoundScpReader doesn&#39;t support pipe-fashion</span>
+    <span class="c1"># like Kaldi e.g. &quot;cat a.wav |&quot;.</span>
+    <span class="c1"># NOTE(wangyou): The audio signal is normalized to [-1,1] range.</span>
+    <span class="n">loader</span> <span class="o">=</span> <span class="n">MultiSoundScpReader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">always_2d</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float_dtype</span><span class="p">,</span> <span class="n">stack_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">AdapterForSoundScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">allow_multi_rates</span><span class="o">=</span><span class="n">allow_multi_rates</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="score_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.score_loader">[docs]</a><span class="k">def</span> <span class="nf">score_loader</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
@@ -404,9 +422,13 @@
     <span class="k">return</span> <span class="n">AdapterForLabelScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="kaldi_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.kaldi_loader">[docs]</a><span class="k">def</span> <span class="nf">kaldi_loader</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_cache_fd</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="kaldi_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.kaldi_loader">[docs]</a><span class="k">def</span> <span class="nf">kaldi_loader</span><span class="p">(</span>
+    <span class="n">path</span><span class="p">,</span> <span class="n">float_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_cache_fd</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">allow_multi_rates</span><span class="o">=</span><span class="kc">False</span>
+<span class="p">):</span>
     <span class="n">loader</span> <span class="o">=</span> <span class="n">kaldiio</span><span class="o">.</span><span class="n">load_scp</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">max_cache_fd</span><span class="o">=</span><span class="n">max_cache_fd</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">AdapterForSoundScpReader</span><span class="p">(</span><span class="n">loader</span><span class="p">,</span> <span class="n">float_dtype</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">AdapterForSoundScpReader</span><span class="p">(</span>
+        <span class="n">loader</span><span class="p">,</span> <span class="n">float_dtype</span><span class="p">,</span> <span class="n">allow_multi_rates</span><span class="o">=</span><span class="n">allow_multi_rates</span>
+    <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="rand_int_loader"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.train.dataset.rand_int_loader">[docs]</a><span class="k">def</span> <span class="nf">rand_int_loader</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">loader_type</span><span class="p">):</span>
@@ -421,7 +443,7 @@
 <span class="n">DATA_TYPES</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;sound&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">func</span><span class="o">=</span><span class="n">sound_loader</span><span class="p">,</span>
-        <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float_dtype&quot;</span><span class="p">],</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float_dtype&quot;</span><span class="p">,</span> <span class="s2">&quot;allow_multi_rates&quot;</span><span class="p">],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Audio format types which supported by sndfile wav, flac, etc.&quot;</span>
         <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   utterance_id_a a.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -430,13 +452,27 @@
     <span class="p">),</span>
     <span class="s2">&quot;multi_columns_sound&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">func</span><span class="o">=</span><span class="n">multi_columns_sound_loader</span><span class="p">,</span>
-        <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float_dtype&quot;</span><span class="p">],</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float_dtype&quot;</span><span class="p">,</span> <span class="s2">&quot;allow_multi_rates&quot;</span><span class="p">],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable multi columns wav.scp. &quot;</span>
         <span class="s2">&quot;The following text file can be loaded as multi channels audio data&quot;</span>
         <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   utterance_id_a a.wav a2.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   utterance_id_b b.wav b2.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   ...&quot;</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="s2">&quot;variable_columns_sound&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">func</span><span class="o">=</span><span class="n">variable_columns_sound_loader</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float_dtype&quot;</span><span class="p">,</span> <span class="s2">&quot;allow_multi_rates&quot;</span><span class="p">],</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Loading variable numbers (columns) of audios in wav.scp. &quot;</span>
+        <span class="s2">&quot;The following text file can be loaded as stacked audio data&quot;</span>
+        <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   utterance_id_a a1.wav a2.wav a3.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   utterance_id_b b1.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   utterance_id_c c1.wav c2.wav</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;   ...</span><span class="se">\n\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;Note that audios of different lengths will be right-padded with np.nan &quot;</span>
+        <span class="s2">&quot;to the longest audio in the sample.</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="s2">&quot;A preprocessor must be used to remove these paddings.&quot;</span><span class="p">,</span>
     <span class="p">),</span>
     <span class="s2">&quot;score&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">func</span><span class="o">=</span><span class="n">score_loader</span><span class="p">,</span>
@@ -460,7 +496,7 @@
     <span class="p">),</span>
     <span class="s2">&quot;kaldi_ark&quot;</span><span class="p">:</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">func</span><span class="o">=</span><span class="n">kaldi_loader</span><span class="p">,</span>
-        <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;max_cache_fd&quot;</span><span class="p">],</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;max_cache_fd&quot;</span><span class="p">,</span> <span class="s2">&quot;allow_multi_rates&quot;</span><span class="p">],</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Kaldi-ark file type.&quot;</span>
         <span class="s2">&quot;</span><span class="se">\n\n</span><span class="s2">&quot;</span>
         <span class="s2">&quot;   utterance_id_A /some/where/a.ark:123</span><span class="se">\n</span><span class="s2">&quot;</span>
@@ -615,6 +651,7 @@
         <span class="n">int_dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;long&quot;</span><span class="p">,</span>
         <span class="n">max_cache_size</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">max_cache_fd</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="n">allow_multi_rates</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">path_name_type_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -628,6 +665,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">float_dtype</span> <span class="o">=</span> <span class="n">float_dtype</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">int_dtype</span> <span class="o">=</span> <span class="n">int_dtype</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">max_cache_fd</span> <span class="o">=</span> <span class="n">max_cache_fd</span>
+        <span class="c1"># allow audios to have different sampling rates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">allow_multi_rates</span> <span class="o">=</span> <span class="n">allow_multi_rates</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">loader_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">debug_info</span> <span class="o">=</span> <span class="p">{}</span>
@@ -674,6 +713,8 @@
                         <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;int_dtype&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">int_dtype</span>
                     <span class="k">elif</span> <span class="n">key2</span> <span class="o">==</span> <span class="s2">&quot;max_cache_fd&quot;</span><span class="p">:</span>
                         <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;max_cache_fd&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_cache_fd</span>
+                    <span class="k">elif</span> <span class="n">key2</span> <span class="o">==</span> <span class="s2">&quot;allow_multi_rates&quot;</span><span class="p">:</span>
+                        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;allow_multi_rates&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">allow_multi_rates</span>
                     <span class="k">else</span><span class="p">:</span>
                         <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Not implemented keyword argument: </span><span class="si">{</span><span class="n">key2</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
