@@ -71,24 +71,26 @@ class MelSpectrogramTorch(AbsFrontend):
             len(input.size()) == 2
         ), "The number of dimensions of input tensor must be 2!"
 
-        if self.preemp:
-            # reflect padding to match lengths of in/out
-            x = input.unsqueeze(1)
-            x = F.pad(x, (1, 0), "reflect")
+        with torch.no_grad():
+            with torch.cuda.amp.autocast(enabled=False):
+                if self.preemp:
+                    # reflect padding to match lengths of in/out
+                    x = input.unsqueeze(1)
+                    x = F.pad(x, (1, 0), "reflect")
 
-            # apply preemphasis
-            x = F.conv1d(x, self.flipped_filter).squeeze()
+                    # apply preemphasis
+                    x = F.conv1d(x, self.flipped_filter).squeeze()
 
-        # apply frame feature extraction
-        x = self.transform(x)
+                # apply frame feature extraction
+                x = self.transform(x)
 
-        if self.log:
-            x = torch.log(x + 1e-6)
-        if self.normalize is not None:
-            if self.normalize == "mn":
-                x = x - torch.mean(x, dim=-1, keepdim=True)
-            else:
-                raise NotImplementedError(f"got {self.normalize}, not implemented")
+                if self.log:
+                    x = torch.log(x + 1e-6)
+                if self.normalize is not None:
+                    if self.normalize == "mn":
+                        x = x - torch.mean(x, dim=-1, keepdim=True)
+                    else:
+                        raise NotImplementedError(f"got {self.normalize}, not implemented")
 
         input_length = torch.Tensor([x.size(-1)]).repeat(x.size(0))
 

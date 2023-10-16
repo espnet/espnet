@@ -20,7 +20,6 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
-from espnet2.spk.encoder.ecapa_tdnn_whole_encoder import EcapaTdnnWholeEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
@@ -28,7 +27,6 @@ from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
 )
 from espnet2.spk.loss.abs_loss import AbsLoss
-from espnet2.spk.loss.subcenteraamsoftmax import SubCenterAAMSoftmax
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.pooling.conditional_chn_attn_stat_pooling import (
@@ -91,7 +89,6 @@ encoder_choices = ClassChoices(
     classes=dict(
         rawnet3=RawNet3Encoder,
         ecapa_tdnn=EcapaTdnnEncoder,
-        ecapa_tdnn_whole=EcapaTdnnWholeEncoder,
         mfa_conformer=MfaConformerEncoder,
     ),
     type_check=AbsEncoder,
