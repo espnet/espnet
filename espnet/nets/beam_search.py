@@ -93,7 +93,7 @@ class BeamSearch(torch.nn.Module):
         self.eos = eos
 
         # added for OpenAI Whisper decoding
-        self.hyp_primer = hyp_primer
+        self.set_hyp_primer(hyp_primer)
 
         self.token_list = token_list
         self.pre_beam_size = int(pre_beam_ratio * beam_size)
@@ -119,6 +119,12 @@ class BeamSearch(torch.nn.Module):
         Used for OpenAI Whisper models.
         """
         self.hyp_primer = hyp_primer
+        self.hyp_primer_length = 1
+        
+        if hyp_primer is not None:
+            self.hyp_primer_length = len(hyp_primer)
+            for d in self.part_scorers.values():
+                d.set_primer_length(self.hyp_primer_length)
 
     def init_hyp(self, x: torch.Tensor) -> List[Hypothesis]:
         """Get an initial hypothesis data.
@@ -460,7 +466,7 @@ class BeamSearch(torch.nn.Module):
         if self.token_list is not None:
             logging.info(
                 "best hypo: "
-                + "".join([self.token_list[x] for x in best.yseq[1:-1]])
+                + "".join([self.token_list[x] for x in best.yseq[self.hyp_primer_length:-1]])
                 + "\n"
             )
         if best.yseq[1:-1].shape[0] == maxlen:
