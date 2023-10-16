@@ -20,9 +20,9 @@ def whisper_token_id_converter(request):
 @pytest.mark.skipif(
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
-def test_init_invalid():
+def test_init_model_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenIDConverter("whisper_aaa", "en")
+        OpenAIWhisperTokenIDConverter("whisper_aaa", "en", "transcribe")
 
 
 @pytest.mark.skipif(
@@ -30,15 +30,43 @@ def test_init_invalid():
 )
 def test_init_lang_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenIDConverter("whisper_multilingual", "abc")
+        OpenAIWhisperTokenIDConverter("whisper_multilingual", "abc", "transcribe")
+
+
+@pytest.mark.skipif(
+    not is_python_3_8_plus, reason="whisper not supported on python<3.8"
+)
+def test_init_task_invalid():
+    with pytest.raises(ValueError):
+        OpenAIWhisperTokenIDConverter("whisper_multilingual", "zh", "transcribe_abc")
 
 
 @pytest.mark.skipif(
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
 def test_init_en():
-    id_converter = OpenAIWhisperTokenIDConverter("whisper_en")
-    assert id_converter.get_num_vocabulary_size() == 50363
+    id_converter = OpenAIWhisperTokenIDConverter("whisper_en", "en", "transcribe")
+    assert id_converter.get_num_vocabulary_size() == 51864
+
+
+@pytest.mark.skipif(
+    not is_python_3_8_plus, reason="whisper not supported on python<3.8"
+)
+def test_init_multilingual():
+    id_converter = OpenAIWhisperTokenIDConverter(
+        "whisper_multilingual", "zh", "transcribe"
+    )
+    assert id_converter.get_num_vocabulary_size() == 51865
+
+
+@pytest.mark.skipif(
+    not is_python_3_8_plus, reason="whisper not supported on python<3.8"
+)
+def test_init_translation():
+    id_converter = OpenAIWhisperTokenIDConverter(
+        "whisper_multilingual", "zh", "translate"
+    )
+    assert id_converter.get_num_vocabulary_size() == 51865
 
 
 @pytest.mark.skipif(
@@ -91,7 +119,7 @@ def test_tokens2ids(whisper_token_id_converter: OpenAIWhisperTokenIDConverter):
     assert ids == [
         50259,
         50359,
-        50363,
+        50303,
         17155,
         11,
         220,

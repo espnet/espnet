@@ -1,0 +1,1 @@
+../../../../egs2/gigaspeech/asr1/local/score.sh
