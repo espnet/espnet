@@ -538,7 +538,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     _spk_train_dir="${data_feats}/${train_set}"
 
     echo "Stage 7-a: get scores for the test set."
-    #${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
+    ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
     scorefile_cur=${infer_exp}/${test_sets}_raw_trial_scores
 
     if [ "$score_norm" = true ]; then

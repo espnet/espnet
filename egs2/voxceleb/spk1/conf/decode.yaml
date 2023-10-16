@@ -7,7 +7,7 @@ num_eval: 4
 # score norm
 n_spk: 5994
 n_utt_per_spk: 20
-utt_select_sec: 8
+utt_select_sec: 2
 adaptive_cohort_size: 500
 average_spk: true
 

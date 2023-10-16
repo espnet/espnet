@@ -3,8 +3,10 @@
 # Frontend
 frontend: default
 frontend_conf:
+    win_length: 400
     hop_length: 160
     n_mels: 80
+    window: hamming
 
 # Normalizer
 normalize: utterance_mvn
@@ -37,7 +39,7 @@ pooling: chn_attn_stat
 # Projector
 projector: rawnet3
 projector_conf:
-  output_size: 256
+  output_size: 192
 
 # Preprocessor
 preprocessor: spk
@@ -64,7 +66,7 @@ loss_conf:
   scale: 30
 
 # Training related
-max_epoch: 250
+max_epoch: 48
 num_att_plot: 0
 num_workers: 8
 cudnn_deterministic: False
@@ -73,8 +75,8 @@ iterator_type: category
 valid_iterator_type: sequence
 shuffle_within_batch: False
 log_interval: 100
-batch_size: 512
-valid_batch_size: 40
+batch_size: 200
+valid_batch_size: 32
 best_model_criterion:
 - - valid
   - eer
@@ -90,11 +92,11 @@ optim_conf:
 # Scheduler
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-  first_cycle_steps: 250000
+  first_cycle_steps: 129848
   cycle_mult: 1.0
   max_lr: 0.001
   min_lr: 0.0000001
-  warmup_steps: 125000
+  warmup_steps: 10000
   gamma: 0.7
 
 unused_parameters: True

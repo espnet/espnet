@@ -1,1 +1,1 @@
-tuning/train_rawnet3_best_trnVox2_emb192.yaml
+tuning/train_rawnet3_best_trnVox12_emb192_amp_subcentertopk.yaml
