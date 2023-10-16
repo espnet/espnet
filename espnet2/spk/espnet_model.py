@@ -4,6 +4,9 @@
 from typing import Dict, Optional, Tuple, Union
 
 import torch
+from pytorch_metric_learning.losses.base_metric_loss_function import (
+    BaseMetricLossFunction,
+)
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -16,7 +19,6 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from pytorch_metric_learning.losses.base_metric_loss_function import BaseMetricLossFunction
 
 
 class ESPnetSpeakerModel(AbsESPnetModel):

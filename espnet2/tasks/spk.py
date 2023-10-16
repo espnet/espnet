@@ -10,9 +10,9 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.asteroid_frontend import AsteroidFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
+from espnet2.asr.frontend.melspec_torch import MelSpectrogramTorch
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
-from espnet2.asr.frontend.melspec_torch import MelSpectrogramTorch
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -31,7 +31,9 @@ from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.loss.subcenteraamsoftmax import SubCenterAAMSoftmax
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
-from espnet2.spk.pooling.conditional_chn_attn_stat_pooling import ConditionalChnAttnStatPooling
+from espnet2.spk.pooling.conditional_chn_attn_stat_pooling import (
+    ConditionalChnAttnStatPooling,
+)
 from espnet2.spk.pooling.transformer_decoder_pooling import TransformerDecoderPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
