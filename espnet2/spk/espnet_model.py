@@ -1,7 +1,7 @@
 # Copyright 2023 Jee-weon Jung
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 from typeguard import check_argument_types
@@ -16,6 +16,7 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
+from pytorch_metric_learning.losses.base_metric_loss_function import BaseMetricLossFunction
 
 
 class ESPnetSpeakerModel(AbsESPnetModel):
@@ -47,7 +48,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         encoder: Optional[AbsEncoder],
         pooling: Optional[AbsPooling],
         projector: Optional[AbsProjector],
-        loss: Optional[AbsLoss],
+        loss: Union[AbsLoss, BaseMetricLossFunction],
     ):
         assert check_argument_types()
 
@@ -109,7 +110,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             return spk_embd
 
         # 4. calculate loss
-        loss = self.loss(spk_embd, spk_labels)
+        loss = self.loss(spk_embd, spk_labels.squeeze())
 
         stats = dict(loss=loss.detach())
 

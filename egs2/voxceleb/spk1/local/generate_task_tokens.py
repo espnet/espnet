@@ -8,7 +8,7 @@ output_file = sys.argv[3]
 task_names = task_names.split(",")
 task_dict = dict()
 cnt = 0
-for name in task_names:
+for name in sorted(task_names):
     task_dict[name] = cnt
     cnt += 1
 

@@ -66,7 +66,7 @@ loss_conf:
   scale: 30
 
 # Training related
-max_epoch: 48
+max_epoch: 40
 num_att_plot: 0
 num_workers: 8
 cudnn_deterministic: False
@@ -92,12 +92,21 @@ optim_conf:
 # Scheduler
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
+<<<<<<< Updated upstream
   first_cycle_steps: 129848
   cycle_mult: 1.0
   max_lr: 0.001
   min_lr: 0.0000001
   warmup_steps: 10000
   gamma: 0.7
+=======
+  first_cycle_steps: 62490
+  cycle_mult: 1.0
+  max_lr: 0.001
+  min_lr: 0.0000001
+  warmup_steps: 2000
+  gamma: 0.75
+>>>>>>> Stashed changes
 
 unused_parameters: True
 grad_clip: 9999

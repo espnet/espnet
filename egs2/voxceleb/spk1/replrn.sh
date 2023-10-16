@@ -59,6 +59,7 @@ max_wav_duration=60.  # Maximum duration in second.
 
 # Speaker model related
 spk_exp=              # Specify the directory path for spk experiment.
+spk_stats_dir=        # Directory of the statistics extracted in Stage 4
 spk_tag=              # Suffix to the result dir for spk model training.
 spk_config=           # Config for the spk model training.
 spk_args=             # Arguments for spk model training.
@@ -165,7 +166,9 @@ if [ -z "${spk_tag}" ]; then
 fi
 
 # Set directory used for training commands
-spk_stats_dir="${expdir}/spk_stats_${fs}"
+if [ -z "${spk_stats_dir}"  ]; then
+    spk_stats_dir="${expdir}/spk_stats_${fs}"
+fi
 if [ -z "${spk_exp}"  ]; then
     spk_exp="${expdir}/spk_${spk_tag}"
 fi
@@ -425,12 +428,12 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
             --output_dir ${spk_exp} \
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,sound \
             --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
-            --train_data_path_and_name_and_type local/task_tokens,task_tokens,text \
+            --train_data_path_and_name_and_type ${_spk_train_dir}/task_tokens,task_tokens,text \
             --train_shape_file ${spk_stats_dir}/train/speech_shape \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial.scp,speech,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial2.scp,speech2,sound \
             --valid_data_path_and_name_and_type ${_spk_valid_dir}/trial_label,spk_labels,text \
-            --valid_data_path_and_name_and_type local/task_tokens_test,task_tokens,text \
+            --valid_data_path_and_name_and_type ${_spk_valid_dir}/task_tokens,task_tokens,text \
             --spk2utt ${_spk_train_dir}/spk2utt \
             --spk_num $(wc -l ${_spk_train_dir}/spk2utt | cut -f1 -d" ") \
             --fold_length ${fold_length} \

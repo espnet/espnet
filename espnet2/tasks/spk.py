@@ -12,6 +12,7 @@ from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.fused import FusedFrontends
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
+from espnet2.asr.frontend.melspec_torch import MelSpectrogramTorch
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -19,6 +20,7 @@ from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
+from espnet2.spk.encoder.ecapa_tdnn_whole_encoder import EcapaTdnnWholeEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
@@ -26,8 +28,10 @@ from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
     ArcMarginProduct_intertopk_subcenter,
 )
 from espnet2.spk.loss.abs_loss import AbsLoss
+from espnet2.spk.loss.subcenteraamsoftmax import SubCenterAAMSoftmax
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
+from espnet2.spk.pooling.conditional_chn_attn_stat_pooling import ConditionalChnAttnStatPooling
 from espnet2.spk.pooling.transformer_decoder_pooling import TransformerDecoderPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
@@ -54,6 +58,7 @@ frontend_choices = ClassChoices(
         asteroid_frontend=AsteroidFrontend,
         s3prl=S3prlFrontend,
         fused=FusedFrontends,
+        melspec_torch=MelSpectrogramTorch,
     ),
     type_check=AbsFrontend,
     default=None,
@@ -84,6 +89,7 @@ encoder_choices = ClassChoices(
     classes=dict(
         rawnet3=RawNet3Encoder,
         ecapa_tdnn=EcapaTdnnEncoder,
+        ecapa_tdnn_whole=EcapaTdnnWholeEncoder,
         mfa_conformer=MfaConformerEncoder,
     ),
     type_check=AbsEncoder,
@@ -94,6 +100,7 @@ pooling_choices = ClassChoices(
     name="pooling",
     classes=dict(
         chn_attn_stat=ChnAttnStatPooling,
+        cond_chn_attn_stat=ConditionalChnAttnStatPooling,
         transformer_decoder=TransformerDecoderPooling,
     ),
     type_check=AbsPooling,
@@ -127,7 +134,6 @@ loss_choices = ClassChoices(
         aamsoftmax=AAMSoftmax,
         aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
     ),
-    type_check=AbsLoss,
     default="aam",
 )
 
