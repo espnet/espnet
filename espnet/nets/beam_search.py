@@ -120,7 +120,7 @@ class BeamSearch(torch.nn.Module):
         """
         self.hyp_primer = hyp_primer
         self.hyp_primer_length = 1
-        
+
         if hyp_primer is not None:
             self.hyp_primer_length = len(hyp_primer)
             for d in self.part_scorers.values():
@@ -466,7 +466,9 @@ class BeamSearch(torch.nn.Module):
         if self.token_list is not None:
             logging.info(
                 "best hypo: "
-                + "".join([self.token_list[x] for x in best.yseq[self.hyp_primer_length:-1]])
+                + "".join(
+                    [self.token_list[x] for x in best.yseq[self.hyp_primer_length : -1]]
+                )
                 + "\n"
             )
         if best.yseq[1:-1].shape[0] == maxlen:

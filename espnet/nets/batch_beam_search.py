@@ -389,7 +389,9 @@ class BatchBeamSearch(BeamSearch):
                 + "".join(
                     [
                         self.token_list[x]
-                        for x in running_hyps.yseq[0, self.hyp_primer_length : running_hyps.length[0]]
+                        for x in running_hyps.yseq[
+                            0, self.hyp_primer_length : running_hyps.length[0]
+                        ]
                     ]
                 )
             )
