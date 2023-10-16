@@ -14,6 +14,7 @@ from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 
+
 class MelSpectrogramTorch(AbsFrontend):
     """
     Mel-Spectrogram using Torchaudio Implementation.
@@ -47,8 +48,8 @@ class MelSpectrogramTorch(AbsFrontend):
 
         if preemp:
             self.register_buffer(
-            "flipped_filter",
-            torch.FloatTensor([-0.97, 1.0]).unsqueeze(0).unsqueeze(0),
+                "flipped_filter",
+                torch.FloatTensor([-0.97, 1.0]).unsqueeze(0).unsqueeze(0),
             )
 
         self.transform = ta.transforms.MelSpectrogram(
