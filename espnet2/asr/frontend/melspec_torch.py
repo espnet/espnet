@@ -90,7 +90,9 @@ class MelSpectrogramTorch(AbsFrontend):
                     if self.normalize == "mn":
                         x = x - torch.mean(x, dim=-1, keepdim=True)
                     else:
-                        raise NotImplementedError(f"got {self.normalize}, not implemented")
+                        raise NotImplementedError(
+                            f"got {self.normalize}, not implemented"
+                        )
 
         input_length = torch.Tensor([x.size(-1)]).repeat(x.size(0))
 
