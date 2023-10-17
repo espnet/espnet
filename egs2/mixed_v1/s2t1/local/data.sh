@@ -3,6 +3,7 @@
 # -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
 
 # Centralized data preparation for OWSM (https://arxiv.org/abs/2309.13876)
+# Details of this script is also in: https://github.com/espnet/espnet/pull/5478/
 
 # Note (jinchuan): 
 # (1) please work progressively from v1 to v3: you need to 
@@ -76,19 +77,40 @@ elif [ ${VERSION} = "v2" ]; then
     train_sets="data/GigaST/XL.en-* \
                 data/MLS/train.* \
                 data/WenetSpeech/L"
-    # question (jinchuan): why don't include GigaST-dev?
     valid_sets="data/MLS/dev.* \
                 data/WenetSpeech/DEV"
 
 elif [ ${VERSION} = "v3" ]; then
-    datasets="aidatatang ami babel commonvoice swbd fisher_callhome \
+    datasets="aidatatang ami commonvoice swbd fisher_callhome \
               fleurs ksponspeech magicdata reazonspeech ru_open_stt \
               vctk voxpopuli wsj" \
-    # still working on it
-    train_sets="data/aidatatang/train \
-    "
-    valid_sets="data/aidatatang/dev \
-    "
+    train_sets="data/aidatatang/train_whisper \
+                data/ami/ihm_train_whisper \
+                data/CommonVoice/train \
+                data/swbd/train_nodup_whisper \
+                data/swbd/train_fisher_whisper \
+                data/fisher_callhome/train_whisper \
+                data/FLEURS/train \
+                data/ksponspeech/train_whisper \
+                data/magicdata/train_whisper \
+                data/ReazonSpeech/train \
+                data/ru_open_stt/train_whisper \
+                data/vctk/tr_no_dev_whisper \
+                data/VoxPopuli/train \
+                data/wsj/train_si284_whisper"
+    valid_sets="data/aidatatang/dev_whisper \
+                data/ami/ihm_dev_whisper \
+                data/CommonVoice/dev \
+                data/swbd/train_dev_whisper \
+                data/fisher_callhome/dev_whisper \
+                data/FLEURS/valid \
+                data/ksponspeech/dev_whisper \
+                data/magicdata/dev_whisper \
+                data/ReazonSpeech/valid \
+                data/ru_open_stt/dev_whisper \
+                data/vctk/dev_whisper \
+                data/VoxPopuli/dev \
+                data/wsj/test_dev93_whisper"
 else
     echo "Invalid version argument ${VERSION}." && exit 1;
 fi
@@ -99,14 +121,27 @@ utt_extra_files="text.prev text.ctc"
 train_out=data/train_${VERSION}
 valid_out=data/valid_${VERSION}
 
+# v3 data adopts ISO-639-3 langauge-IDs
+if [ ! -d ./iso639 ] && [ ${VERSION} = "v3" ]; then
+    echo "installing ISO-639 dependency"
+    git clone https://github.com/noumar/iso639
+    cd iso639; python3 setup.py install || exit 1;
+    cd ..
+fi
+
 # call data preparation script for each dataset
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for dataset in ${datasets}; do
         if [ -f data/.${dataset}.done ]; then
-            echo ${dataset} has been processed. Skip!
+            echo "${dataset} has been processed. Skip!"
         else
-            echo preparing ${dataset} dataset ...
-            ./local/prepare_${dataset}.sh && touch data/.${dataset}.done
+            if [ ! -f ./local/prepare_${dataset}.sh ]; then
+                echo "script for ${dataset} is not found." && exit 1;
+            fi
+            echo "preparing ${dataset} dataset ..."
+            ./local/prepare_${dataset}.sh || \
+                echo "preparing ${dataset} failed" && exit 1;
+            touch data/.${dataset}.done
         fi
     done
 fi
@@ -116,7 +151,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     if [ ${VERSION} = "v2" ]; then
         if [ ! -d data/train_v1 ] || [ ! -d data/valid_v1 ]; then
-            echo "Cannot find v1 data. Please link it here. Exit!" && exit 1;
+            echo "Cannot find v1 data. copy it ..."
+            cp -r ../../mixed_v1/s2t1/data/{train,valid}_v1/ ./data || exit 1;
         fi
         train_sets="${train_sets} data/train_v1"
         valid_sets="${valid_sets} data/valid_v1"
@@ -124,10 +160,21 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     if [ ${VERSION} = "v3" ]; then
         if [ ! -d data/train_v2 ] || [ ! -d data/valid_v2 ]; then
-            echo "Cannot find v2 data. Please link it here. Exit!" && exit 1;
+            echo "Cannot find v2 data. copy it ..."
+            cp -r ../../mixed_v2/s2t1/data/{train,valid}_v2/ ./data || exit 1;
         fi
         train_sets="${train_sets} data/train_v2"
         valid_sets="${valid_sets} data/valid_v2"
+
+        # v3 adopts ISO-639-3 language-IDs
+        # So change all langauge-IDs in v2 to ISO-639-3 before merging
+        for part in train valid; do
+            if [ ! -f data/${part}_v2/text_raw ]; then
+                mv data/${part}_v2/text data/${part}_v2/text_raw || exit 1;
+                python3 local/filter_lang_id.py \
+                    -i data/${part}_v2/text_raw -o data/${part}_v2/text || exit 1;
+            fi
+        done
     fi
 
     # Combine valid
@@ -150,8 +197,5 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" ${train_out} || exit 1;
     utils/validate_data_dir.sh --no-feats --non-print ${train_out} || exit 1;
 fi
-
-# todo: some v3-specific operations
-
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

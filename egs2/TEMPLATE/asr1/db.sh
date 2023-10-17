@@ -15,6 +15,7 @@ ASVTutorial=espnet_tutorial_asvspoof
 APHASIABANK=
 AUDIOSET=
 BIBLETTS=downloads
+COVOST2=
 DIRHA_ENGLISH_PHDEV=
 DIRHA_WSJ=
 DIRHA_WSJ_PROCESSED="${PWD}/data/local/dirha_wsj_processed"  # Output file path
@@ -88,6 +89,7 @@ QASR_TTS=downloads
 SNIPS= # smart-light-en-closed-field data path
 SPGISPEECH=
 SWBD=
+FISHER_CALLHOME_SPANISH=
 SWBD_NXT=
 THCHS30=downloads
 TIMIT=
@@ -139,6 +141,7 @@ RU_OPEN_STT=downloads
 RUSLAN=downloads
 SIWIS=downloads
 GIGASPEECH=
+GIGAST=
 GOOGLEI18N=downloads
 NOISY_SPEECH=
 NOISY_REVERBERANT_SPEECH=
@@ -194,6 +197,7 @@ KIRITAN=
 NAMINE=
 KATHBATH=downloads
 GRAMVAANI=downloads
+KSPONSPEECH=
 
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
