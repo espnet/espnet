@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 . ./path.sh || exit 1;
+. ./db.sh || exit 1;
 
 # Copied from utils/fix_data_dir.sh
 function check_sorted {
@@ -25,7 +26,7 @@ log() {
 }
 SECONDS=0
 
-data_dir=/scratch/bbjs/peng6/corpora/librispeech_full/LibriSpeech
+data_dir=${LIBRISPEECH}
 prefix=LibriSpeech
 output_dir=data/LibriSpeech
 splits="dev-clean dev-other train-clean-100 train-clean-360 train-other-500"

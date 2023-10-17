@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 . ./path.sh || exit 1;
+. ./db.sh || exit 1;
 
 # Copied from utils/fix_data_dir.sh
 function check_sorted {
@@ -25,7 +26,7 @@ log() {
 }
 SECONDS=0
 
-data_dir=/scratch/bbjs/peng6/espnet-whisper-public/egs2/covost2/st1/data
+data_dir=${COVOST2}
 prefix=CoVoST2
 output_dir=data/CoVoST2
 splits="dev train"

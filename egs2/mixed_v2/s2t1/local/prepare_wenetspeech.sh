@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 . ./path.sh || exit 1;
+. ./db.sh || exit 1;
 
 # Copied from utils/fix_data_dir.sh
 function check_sorted {
@@ -25,7 +26,7 @@ log() {
 }
 SECONDS=0
 
-wenetspeech_dir=/scratch/bbjs/peng6/corpora_shared/WenetSpeech/untar
+wenetspeech_dir=${WENETSPEECH}
 prefix=WenetSpeech
 output_dir=data/WenetSpeech
 splits="DEV L"

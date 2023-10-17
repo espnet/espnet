@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 . ./path.sh || exit 1;
+. ./db.sh || exit 1;
 
 # Copied from utils/fix_data_dir.sh
 function check_sorted {
@@ -25,7 +26,7 @@ log() {
 }
 SECONDS=0
 
-data_dir=/scratch/bbjs/peng6/corpora/TEDLIUM/TEDLIUM_release-3/legacy/
+data_dir=${TEDLIUM3}
 prefix=TEDLIUM3
 output_dir=data/TEDLIUM3
 splits="dev train"

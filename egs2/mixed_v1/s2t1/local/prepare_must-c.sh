@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 . ./path.sh || exit 1;
+. ./db.sh || exit 1;
 
 # Copied from utils/fix_data_dir.sh
 function check_sorted {
@@ -25,7 +26,7 @@ log() {
 }
 SECONDS=0
 
-data_dir=/scratch/bbjs/peng6/corpora/MuST-C_v1.2
+data_dir=${MUST_C}
 prefix=$(basename ${data_dir})
 output_dir=data/${prefix}
 splits="dev train"
