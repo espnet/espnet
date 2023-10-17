@@ -144,8 +144,30 @@ if ! python -c "import packaging.version" &> /dev/null; then
     python3 -m pip install packaging
 fi
 
-if $(pytorch_plus 1.13.2); then
-    log "[ERROR] This script doesn't support pytorch=${torch_version}"
+if $(pytorch_plus 2.0.2); then
+    log "[ERROR] pytorch=${torch_version} doesn't exist"
+    exit 1
+
+elif $(pytorch_plus 2.0.1); then
+    check_python_version 3.12  # Error if python>=<number>
+    if ! check_cuda_version 11.8 11.7; then
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=11.7"
+        cuda_version=11.8
+        cuda_version_without_dot="${cuda_version/\./}"
+    fi
+    install_torch 2.0.2  # install_torch <torch-audio-ver>
+
+elif $(pytorch_plus 2.0.0); then
+    check_python_version 3.12  # Error if python>=<number>
+    if ! check_cuda_version 11.8 11.7; then
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=11.7"
+        cuda_version=11.8
+        cuda_version_without_dot="${cuda_version/\./}"
+    fi
+    install_torch 2.0.0  # install_torch <torch-audio-ver>
+
+elif $(pytorch_plus 1.13.2); then
+    log "[ERROR] pytorch=${torch_version} doesn't exist"
     exit 1
 
 elif $(pytorch_plus 1.13.1); then

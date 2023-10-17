@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from typing import List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 from torch_complex.tensor import ComplexTensor
@@ -114,6 +114,7 @@ class TDSpeakerBeamExtractor(AbsExtractor):
         input_aux: torch.Tensor,
         ilens_aux: torch.Tensor,
         suffix_tag: str = "",
+        additional: Optional[Dict] = None,
     ) -> Tuple[List[Union[torch.Tensor, ComplexTensor]], torch.Tensor, OrderedDict]:
         """TD-SpeakerBeam Forward.
 
@@ -125,6 +126,8 @@ class TDSpeakerBeamExtractor(AbsExtractor):
             ilens_aux (torch.Tensor): input lengths of auxiliary input for the
                 target speaker [Batch]
             suffix_tag (str): suffix to append to the keys in `others`
+            additional (None or dict): additional parameters
+                not used in this model
 
         Returns:
             masked (List[Union(torch.Tensor, ComplexTensor)]): [(B, T, N), ...]

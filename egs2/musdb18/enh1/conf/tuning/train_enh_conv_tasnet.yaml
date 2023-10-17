@@ -36,7 +36,7 @@ decoder_conf:
     stride: 10
 separator: tcn
 separator_conf:
-    num_spk: 2
+    num_spk: 4
     layer: 8
     stack: 4
     bottleneck_dim: 256

@@ -205,14 +205,14 @@ Then, you can get the following directories in the recipe directory.
 
 In decoding, you can see [vocoder training](#vocoder-training) to set vocoder.
 
-For the first time, we recommend performing each stage step-by-step via `--stage` and `--stop-stage` options.
+For the first time, we recommend performing each stage step-by-step via `--stage` and `--stop_stage` options.
 ```sh
-$ ./run.sh --stage 1 --stop-stage 1
-$ ./run.sh --stage 2 --stop-stage 2
+$ ./run.sh --stage 1 --stop_stage 1
+$ ./run.sh --stage 2 --stop_stage 2
 ...
-$ ./run.sh --stage 7 --stop-stage 7
+$ ./run.sh --stage 7 --stop_stage 7
 ```
-This might helps you to understand each stage's processing and directory structure.
+This might help you understand each stage's processing and directory structure.
 
 ### Naive_RNN training
 First, complete the data preparation:
@@ -241,7 +241,7 @@ Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" 
 ```sh
 $ ./run.sh --stage 5 \
     --train_config conf/tuning/train_naive_rnn.yaml \
-    --score_feats_extract syllabel_score_feats \
+    --score_feats_extract syllable_score_feats \
     --pitch_extract dio \
     --vocoder_file ${your vocoder path} \
 ```
@@ -253,7 +253,7 @@ $ ./run.sh \
     --stage 1 \
     --stop_stage 4 \
 ```
-Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllabel level* in XiaoiceSing) and modify "vocoder_file" with your own vocoder path.
+Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllable level* in XiaoiceSing) and modify "vocoder_file" with your own vocoder path.
 ```sh
 $ ./run.sh --stage 5 \
     --train_config conf/tuning/train_naive_rnn.yaml \
@@ -286,23 +286,23 @@ $   ./run.sh \
     --pretrained_model ${your pretrained model path} \
     --use_feats_minmax true \
 
-# for exmaple
+# for example
 $  --pretrained_model /exp/xiaoice-2-24-250k/500epoch.pth:svs:svs.fftsinger \
 ```
 
 
 ### VISinger (1+2) training
-The VISinger / VISinger 2 configs are hard coded for 22.05 khz or 44.1 khz and use different feature extraction method. (Note that you can use any feature extraction method but the default method is `fbank`.) If you want to use it with 24 khz or 16 khz dataset, please be careful about these point.
+The VISinger / VISinger 2 configs are hard coded for 22.05 khz or 44.1 khz and use different feature extraction method. (Note that you can use any feature extraction method but the default method is `fbank`.) If you want to use it with 24 khz or 16 khz dataset, please be careful about these points.
 
 First, check "fs" (Sampling Rate) and complete the data preparation:
 ```sh
 $ ./run.sh \
     --stage 1 \
     --stop_stage 4 \
-    --fs 44100 \
+    --fs 44100
 ```
 
-Second, check "train_config" (default `conf/train.yaml`, you can also use `--train_config ./conf/tuning/train_visinger2.yaml` to train VISinger 2), "score_feats_extract" (*syllabel level* in VISinger), "svs_task" (*gan_svs* in VISinger).
+Second, check "train_config" (default `conf/train.yaml`, you can also use `--train_config ./conf/tuning/train_visinger2.yaml` to train VISinger 2), "score_feats_extract" (*syllable level* in VISinger), "svs_task" (*gan_svs* in VISinger).
 
 ```sh
 
@@ -332,7 +332,7 @@ $ ./run.sh \
     --stage 1 \
     --stop_stage 4 \
 ```
-Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllabel level* in Singing Tacotron) and modify "vocoder_file" with your own vocoder path.
+Second, check "train_config" (default `conf/train.yaml`), "score_feats_extract" (*syllable level* in Singing Tacotron) and modify "vocoder_file" with your own vocoder path.
 ```sh
 $ ./run.sh --stage 5 \
     --train_config conf/tuning/train_singing_tacotron.yaml \
@@ -345,7 +345,7 @@ $ ./run.sh --stage 5 \
 
 First, you need to run from the stage 2 and 3 with `--use_sid true` to extract speaker ID.
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_sid true
+$ ./run.sh --stage 2 --stop_stage 3 --use_sid true
 ```
 You can find the speaker ID file in `dump/raw/*/utt2sid`.
 Note that you need to correctly create `utt2spk` in data prep stage to generate `utt2sid`.
@@ -364,7 +364,7 @@ $ ./run.sh --stage 6 --use_sid true --train_config /path/to/your_multi_spk_confi
 
 First, you need to run from the stage 2 and 3 with `--use_lid true` to extract speaker ID.
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_lid true
+$ ./run.sh --stage 2 --stop_stage 3 --use_lid true
 ```
 You can find the speaker ID file in `dump/raw/*/utt2lid`.
 **Note that you need to additionally create `utt2lang` file in stage 1 to generate `utt2lid`.**
@@ -382,7 +382,7 @@ $ ./run.sh --stage 6 --use_lid true --train_config /path/to/your_multi_lang_conf
 Of course you can further combine with speaker ID embedding.
 If you want to use both sid and lid, the process should be like this:
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_lid true --use_sid true
+$ ./run.sh --stage 2 --stop_stage 3 --use_lid true --use_sid true
 ```
 Make your config.
 ```yaml
@@ -607,7 +607,7 @@ utils/validate_data_dir.sh --no-feats data/test
 
 ## Score preparation
 
-To prepara a new recipe, we first split songs into segments via `--silence` option if no official segmentation provided.
+To prepare a new recipe, we first split songs into segments via `--silence` option if no official segmentation provided.
 
 Then, we transfer the raw data into `score.json`, where situations can be categorized into two cases depending on the annotation:
 

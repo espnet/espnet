@@ -947,22 +947,17 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
     elif grep -q "whisper" <<< ${token_type}; then
         log "Stage 5: Generate whisper token_list from ${token_type} tokenizer"
 
-        if ${sot_asr}; then
-            log "Error: not supported SOT training for whisper token_list"
-            exit 2
-        fi
-
-        _opts=""
-        if [ "${token_type}" = "whisper_multilingual" ]; then
-            _opts+=" --language ${lang}"
-        fi
 
         # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
         # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
         echo ${token_list}
         ${python} -m espnet2.bin.whisper_export_vocabulary  \
             --whisper_model "${token_type}" \
-            --output "${token_list}" ${_opts}
+            --whisper_language "${lang}" \
+            --whisper_task "transcribe" \
+            --sot_asr "${sot_asr}" \
+            --output "${token_list}"
+
     elif [ "${token_type}" = hugging_face ]; then
         log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
 
