@@ -1,13 +1,14 @@
 """ Prepare ReazonSpeech for Japanese ASR """
 
 import json
-import librosa
 import logging
-from multiprocessing import Pool
 from argparse import ArgumentParser
 from collections import defaultdict
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
+
+import librosa
 
 from utils import (
     SYMBOL_NA,

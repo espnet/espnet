@@ -1,11 +1,12 @@
 """Prepare CommonVoice data for multilingual ASR"""
-import librosa
 import logging
-from multiprocessing import Pool
 from argparse import ArgumentParser
 from collections import defaultdict
+from multiprocessing import Pool
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
+
+import librosa
 from iso639 import languages as iso_languages
 
 from utils import (

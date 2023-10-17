@@ -40,7 +40,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --src eng \
             --src_field 7 \
             --num_proc 10 \
-            --lower_case 
+            --lower_case
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
           data/ami/${part}_whisper
     done

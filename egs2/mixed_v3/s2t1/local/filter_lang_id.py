@@ -1,13 +1,8 @@
 from argparse import ArgumentParser
 from collections import defaultdict
 from pathlib import Path
-from utils import TO_ISO_LANGUAGE_CODE
-from utils import (
-    SYMBOL_NA,
-    SYMBOL_NOSPEECH,
-    SYMBOLS_TIME,
-    TO_ISO_LANGUAGE_CODE,
-)
+
+from utils import SYMBOL_NA, SYMBOL_NOSPEECH, SYMBOLS_TIME, TO_ISO_LANGUAGE_CODE
 
 
 def filter_lang_id(reader, writer):
