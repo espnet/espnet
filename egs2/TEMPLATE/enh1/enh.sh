@@ -70,6 +70,7 @@ is_tse_task=false   # Whether perform the target speaker extraction task or norm
 # Training data related
 use_dereverb_ref=false
 use_noise_ref=false
+variable_num_refs=false # Whether to use variable numbers of references in spk1.scp, dereverb1.scp, enroll_spk1.scp, etc.
 extra_wav_list= # Extra list of scp files for wav formatting
 
 # Pretrained model related
@@ -156,11 +157,12 @@ Options:
     --is_tse_task     # Whether perform the target speaker extraction task or normal speech enhancement/separation tasks (default="${is_tse_task}")
 
     # Training data related
-    --use_dereverb_ref # Whether or not to use dereverberated signal as an additional reference
-                         for training a dereverberation model (default="${use_dereverb_ref}")
-    --use_noise_ref    # Whether or not to use noise signal as an additional reference
-                         for training a denoising model (default="${use_noise_ref}")
-    --extra_wav_list   # Extra list of scp files for wav formatting (default="${extra_wav_list}")
+    --use_dereverb_ref  # Whether or not to use dereverberated signal as an additional reference
+                          for training a dereverberation model (default="${use_dereverb_ref}")
+    --use_noise_ref     # Whether or not to use noise signal as an additional reference
+                          for training a denoising model (default="${use_noise_ref}")
+    --variable_num_refs # Whether or not to use variable numbers of references in spk1.scp, dereverb1.scp, enroll_spk1.scp, etc. If True, --ref_num and --dereverb_ref_num must be 1. (default="${variable_num_refs}")
+    --extra_wav_list    # Extra list of scp files for wav formatting (default="${extra_wav_list}")
 
     # Pretrained model related
     --init_param    # pretrained model path and module name (default="${init_param}")
@@ -290,6 +292,27 @@ if [ -z "${inference_tag}" ]; then
     fi
 fi
 
+if ${variable_num_refs}; then
+    # load variable numbers of speakers in spk1.scp, dereverb1.scp, enroll_spk1.scp, etc.
+    if [ "${ref_num}" -ne 1 ]; then
+        log "[ERROR] --ref_num must be 1 if --variable_num_refs is true, but got ${ref_num}"
+        exit 1
+    fi
+    if [ "${dereverb_ref_num}" -ne 1 ]; then
+        log "[ERROR] --dereverb_ref_num must be 1 if --variable_num_refs is true, but got ${dereverb_ref_num}"
+        exit 1
+    fi
+    if [ ! -e "data/${train_set}/utt2category" ] || [ ! -e "data/${valid_set}/utt2category" ]; then
+        log "[ERROR] utt2category must be prepared in data/${train_set} and data/${valid_set} if --variable_num_refs is true."
+        exit 1
+    else
+        log "[WARNING] Variable speaker number is enabled. Please ensure the utt2category file assigns the same category ID to samples with the same number of speakers."
+    fi
+    if [[ "${audio_format}" == *ark* ]]; then
+        log "[WARNING] Since audio_format=*ark* and variable_num_refs=true is applied,\nplease ensure that the first dimension of each array defined in the ark data\nfor 'spk1.scp', 'dereverb1.scp', 'enroll_spk1.scp' and so on corresponds the\nnumber of references (speakers)."
+    fi
+    log "[INFO] Variable speaker number is enabled. Please make sure the argument 'flexible_numspk' is True in the preprocessor in the model config."
+fi
 
 
 # ========================== Main stages start from here. ==========================
@@ -376,15 +399,22 @@ if ! "${skip_data_prep}"; then
                 _spk_list+=$(for n in $(seq $dereverb_ref_num); do echo -n "dereverb$n "; done)
             fi
 
-            for spk in ${_spk_list} "wav" ; do
-                if ${is_tse_task} && [[ "${spk}" == *enroll_spk* ]]; then
+            for spk in "wav" ${_spk_list}; do
+                if ${is_tse_task} && [[ "${spk}" == enroll_spk* ]]; then
                     audio_path=$(head -n 1 "data/${dset}/${spk}.scp" | awk '{print $2}')
                     if [[ ("${dset}" == "${train_set}" && "${audio_path:0:1}" == "*") || "${audio_path: -4}" == ".npy" ]]; then
                         # In case of
                         # 1. a special format in `enroll_spk?.scp`:
                         # MIXTURE_UID *UID SPEAKER_ID
                         # 2. speaker embeddings instead of enrollment audios in `enroll_spk?.scp`
-                        utils/filter_scp.pl "${data_feats}${_suf}/${dset}/spk1.scp" "data/${dset}/${spk}.scp" > "${data_feats}${_suf}/${dset}/${spk}.scp"
+                        utils/filter_scp.pl "${data_feats}${_suf}/${dset}/wav.scp" "data/${dset}/${spk}.scp" > "${data_feats}${_suf}/${dset}/${spk}.scp"
+                        continue
+                    fi
+                fi
+                if ${variable_num_refs}; then
+                    if [[ "${spk}" == spk* ]] || [[ "${spk}" == dereverb* ]] || [[ "${spk}" == enroll_spk* ]]; then
+                        # skip formatting for multi-audio-column scp files
+                        utils/filter_scp.pl "${data_feats}${_suf}/${dset}/wav.scp" "data/${dset}/${spk}.scp" > "${data_feats}${_suf}/${dset}/${spk}.scp"
                         continue
                     fi
                 fi
@@ -501,9 +531,15 @@ if ! "${skip_train}"; then
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+            _type_ref=kaldi_ark
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
+            if ${variable_num_refs}; then
+                _type_ref="variable_columns_sound"
+            else
+                _type_ref="sound"
+            fi
         fi
 
         # 1. Split the key file
@@ -540,8 +576,8 @@ if ! "${skip_train}"; then
         _train_data_param="--train_data_path_and_name_and_type ${_enh_train_dir}/wav.scp,speech_mix,${_type} "
         _valid_data_param="--valid_data_path_and_name_and_type ${_enh_valid_dir}/wav.scp,speech_mix,${_type} "
         for spk in $(seq "${ref_num}"); do
-            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type_ref} "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type_ref} "
 
             # for target-speaker extraction
             if $is_tse_task; then
@@ -553,9 +589,9 @@ if ! "${skip_train}"; then
         if $use_dereverb_ref; then
             # references for dereverberation
             _train_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
-                "--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "; done)
+                "--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},${_type_ref} "; done)
             _valid_data_param+=$(for n in $(seq $dereverb_ref_num); do echo -n \
-                "--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "; done)
+                "--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},${_type_ref} "; done)
         fi
 
         if $use_noise_ref; then
@@ -590,6 +626,35 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
+        if ${variable_num_refs}; then
+            # When variable numbers of speakers are enabled, different stats dirs may contain
+            #   different numbers of key files (with different number suffixes).
+            # So we need to manually create dummy stats files and placeholder entries to avoid
+            #   errors when using `espnet2.bin.aggregate_stats_dirs`.
+            for dset in train valid; do
+                # aggregate all batch keys in case some are missing in some stats dirs
+                for i in $(seq "${_nj}"); do
+                    ls "${_logdir}/stats.${i}/${dset}/"
+                done | sort | uniq | grep -oP '.*(?=_shape)' > "${_logdir}/${dset}_batch_keys"
+                while IFS= read -r name; do
+                    fname="${name}_shape"
+                    for i in $(seq "${_nj}"); do
+                        if [ ! -e "${_logdir}/stats.${i}/${dset}/${fname}" ]; then
+                            # create dummy stats files
+                            awk '{print $1 " 0"}' "${_logdir}/${dset}.${i}.scp" > "${_logdir}/stats.${i}/${dset}/${fname}"
+                        else
+                            # create placeholder entries for missing samples in each shape file
+                            mv "${_logdir}/stats.${i}/${dset}/${fname}" "${_logdir}/stats.${i}/${dset}/${fname}.bak"
+                            awk 'NR==FNR{a[$1]=$2; next} {if($1 in a) {print $1" "a[$1]} else {print $1" 0"}}' "${_logdir}/stats.${i}/${dset}/${fname}.bak" "${_logdir}/${dset}.${i}.scp" > "${_logdir}/stats.${i}/${dset}/${fname}"
+                            rm "${_logdir}/stats.${i}/${dset}/${fname}.bak"
+                        fi
+                    done
+                done < "${_logdir}/${dset}_batch_keys"
+                for i in $(seq "${_nj}"); do
+                    cp "${_logdir}/${dset}_batch_keys" "${_logdir}/stats.${i}/${dset}/batch_keys"
+                done
+            done
+        fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --skip_sum_stats --output_dir "${enh_stats_dir}"
 
@@ -612,9 +677,15 @@ if ! "${skip_train}"; then
         # "sound" supports "wav", "flac", etc.
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
+            _type_ref=kaldi_ark
         else
             # "sound" supports "wav", "flac", etc.
             _type=sound
+            if ${variable_num_refs}; then
+                _type_ref="variable_columns_sound"
+            else
+                _type_ref="sound"
+            fi
         fi
         _fold_length="$((enh_speech_fold_length * 100))"
 
@@ -626,7 +697,7 @@ if ! "${skip_train}"; then
         _valid_shape_param="--valid_shape_file ${enh_stats_dir}/valid/speech_mix_shape "
 
         for spk in $(seq "${ref_num}"); do
-            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/spk${spk}.scp,speech_ref${spk},${_type_ref} "
             _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/speech_ref${spk}_shape "
             _fold_length_param+="--fold_length ${_fold_length} "
 
@@ -639,7 +710,7 @@ if ! "${skip_train}"; then
         done
 
         for spk in $(seq "${ref_num}"); do
-            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type} "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/spk${spk}.scp,speech_ref${spk},${_type_ref} "
             _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/speech_ref${spk}_shape "
 
             # for target-speaker extraction
@@ -652,9 +723,9 @@ if ! "${skip_train}"; then
         if $use_dereverb_ref; then
             # references for dereverberation
             for n in $(seq "${dereverb_ref_num}"); do
-                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "
+                _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/dereverb${n}.scp,dereverb_ref${n},${_type_ref} "
                 _train_shape_param+="--train_shape_file ${enh_stats_dir}/train/dereverb_ref${n}_shape "
-                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},${_type} "
+                _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/dereverb${n}.scp,dereverb_ref${n},${_type_ref} "
                 _valid_shape_param+="--valid_shape_file ${enh_stats_dir}/valid/dereverb_ref${n}_shape "
                 _fold_length_param+="--fold_length ${_fold_length} "
             done
