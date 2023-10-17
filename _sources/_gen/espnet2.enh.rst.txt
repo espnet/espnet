@@ -741,6 +741,17 @@ espnet2.enh.separator.tcn_separator
     :show-inheritance:
 
 
+.. _espnet2.enh.separator.tfgridnetv2_separator:
+
+espnet2.enh.separator.tfgridnetv2_separator
+-------------------------------------------
+
+.. automodule:: espnet2.enh.separator.tfgridnetv2_separator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.separator.conformer_separator:
 
 espnet2.enh.separator.conformer_separator
