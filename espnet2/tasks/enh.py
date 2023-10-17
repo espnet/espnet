@@ -74,7 +74,7 @@ from espnet2.train.preprocessor import (
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
-from espnet2.utils.types import str2bool, str_or_none
+from espnet2.utils.types import int_or_none, str2bool, str_or_none
 
 encoder_choices = ClassChoices(
     name="encoder",
@@ -328,6 +328,28 @@ class EnhancementTask(AbsTask):
             help="The set of all possible categories in the dataset. Used to add the "
             "category information to each sample",
         )
+        group.add_argument(
+            "--speech_segment",
+            type=int_or_none,
+            default=None,
+            help="Truncate the audios to the specified length (in samples) if not None",
+        )
+        group.add_argument(
+            "--avoid_allzero_segment",
+            type=str2bool,
+            default=True,
+            help="Only used when --speech_segment is specified. If True, make sure "
+            "all truncated segments are not all-zero",
+        )
+        group.add_argument(
+            "--flexible_numspk",
+            type=str2bool,
+            default=False,
+            help="Whether to load variable numbers of speakers in each sample. "
+            "In this case, only the first-speaker files such as 'spk1.scp' and "
+            "'dereverb1.scp' are used, which are expected to have multiple columns. "
+            "Other numbered files such as 'spk2.scp' and 'dereverb2.scp' are ignored.",
+        )
 
         group.add_argument(
             "--dynamic_mixing",
@@ -416,6 +438,9 @@ class EnhancementTask(AbsTask):
                     force_single_channel=getattr(args, "force_single_channel", False),
                     channel_reordering=getattr(args, "channel_reordering", False),
                     categories=getattr(args, "categories", None),
+                    speech_segment=getattr(args, "speech_segment", None),
+                    avoid_allzero_segment=getattr(args, "avoid_allzero_segment", True),
+                    flexible_numspk=getattr(args, "flexible_numspk", False),
                 )
                 kwargs.update(args.preprocessor_conf)
                 retval = preprocessor_choices.get_class(args.preprocessor)(
