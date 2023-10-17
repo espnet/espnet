@@ -4,14 +4,14 @@
 
 # Centralized data preparation for OWSM (https://arxiv.org/abs/2309.13876)
 
-# Note (jinchuan): 
-# (1) please work progressively from v1 to v3: you need to 
+# Note (jinchuan):
+# (1) please work progressively from v1 to v3: you need to
 # prepare data for v1, v2 and v3 in order to obtain the full v3 data
 # (2) please revise db.sh for all datasets before running this script.
 # Some datasets cannot be downloaded and untared automatically due to
 # liscence issue. Please take care of it in advance.
 # (3) Due to the large volume of data, we can not ensure the scripts
-# will run smoothly for each dataset. Please raise an issue if you 
+# will run smoothly for each dataset. Please raise an issue if you
 # believe there is a bug.
 # (4) This script only prepare data for train and valid. Test data
 # should be prepared separately following standard Espnet2 format.
