@@ -33,6 +33,8 @@ inference_nj=8
 gpu_inference=false
 fs=16000
 
+# TODO (jiatong): Inference framework with huggingface
+
 # Model related configuration
 model_tag=""
 asr_model_file=""
@@ -158,6 +160,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: ASR inference"
+
     _opts=()
     if [ -n "${inference_config}" ]; then
         _opts+=("--config" "${inference_config}")

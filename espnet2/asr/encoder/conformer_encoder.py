@@ -303,6 +303,7 @@ class ConformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -310,6 +311,8 @@ class ConformerEncoder(AbsEncoder):
             xs_pad (torch.Tensor): Input tensor (#batch, L, input_size).
             ilens (torch.Tensor): Input length (#batch).
             prev_states (torch.Tensor): Not to be used now.
+            ctc (CTC): ctc module for intermediate CTC loss
+            return_all_hs (bool): whether to return all hidden states
 
         Returns:
             torch.Tensor: Output tensor (#batch, L, output_size).
@@ -340,7 +343,13 @@ class ConformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            xs_pad, masks = self.encoders(xs_pad, masks)
+            for layer_idx, encoder_layer in enumerate(self.encoders):
+                xs_pad, masks = encoder_layer(xs_pad, masks)
+                if return_all_hs:
+                    if isinstance(xs_pad, tuple):
+                        intermediate_outs.append(xs_pad[0])
+                    else:
+                        intermediate_outs.append(xs_pad)
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)

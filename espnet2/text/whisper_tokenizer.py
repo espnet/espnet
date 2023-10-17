@@ -1,3 +1,4 @@
+import copy
 from typing import Iterable, List
 
 from typeguard import check_argument_types
@@ -33,7 +34,14 @@ LANGUAGES_CODE_MAPPING = {
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
-    def __init__(self, model_type: str, language: str = "en"):
+    def __init__(
+        self,
+        model_type: str,
+        language: str = "en",
+        task: str = "transcribe",
+        sot: bool = False,
+        speaker_change_symbol: str = "<sc>",
+    ):
         assert check_argument_types()
 
         try:
@@ -50,16 +58,30 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
 
         self.language = LANGUAGES_CODE_MAPPING.get(language)
         if self.language is None:
-            raise ValueError("language unsupported for Whisper model")
+            raise ValueError(f"language: {self.language} unsupported for Whisper model")
+        self.task = task
+        if self.task not in ["transcribe", "translate"]:
+            raise ValueError(f"task: {self.task} unsupported for Whisper model")
 
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=self.language
+                multilingual=True, language=self.language, task=self.task
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)
+
+        self.tokenizer = copy.deepcopy(self.tokenizer)
+        # Whisper uses discrete tokens (20ms) to encode timestamp
+        timestamps = [f"<|{i*0.02:.2f}|>" for i in range(0, 1501)]
+        sc = [speaker_change_symbol] if sot else []
+        special_tokens = (
+            self.tokenizer.tokenizer.additional_special_tokens + timestamps + sc
+        )
+        self.tokenizer.tokenizer.add_special_tokens(
+            dict(additional_special_tokens=special_tokens)
+        )
 
     def __repr__(self):
         return (

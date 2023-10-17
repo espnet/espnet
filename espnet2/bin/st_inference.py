@@ -17,6 +17,7 @@ from espnet2.tasks.lm import LMTask
 from espnet2.tasks.st import STTask
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.token_id_converter import TokenIDConverter
+from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
@@ -358,6 +359,15 @@ class Speech2Text:
         logging.info(f"Decoding device={device}, dtype={dtype}")
 
         # 4. [Optional] Build Text converter: e.g. bpe-sym -> Text
+        # compatibility for whisper tokenizer
+        preprocessor_conf = getattr(st_train_args, "preprocessor_conf", {})
+        whisper_language = preprocessor_conf.get("whisper_language", None)
+        whisper_task = preprocessor_conf.get("whisper_task", None)
+        if whisper_language:
+            src_token_lang, token_lang = whisper_language
+        else:
+            src_token_lang, token_lang = None, None
+
         if token_type is None:
             token_type = st_train_args.token_type
         if bpemodel is None:
@@ -365,14 +375,33 @@ class Speech2Text:
 
         if token_type is None:
             tokenizer = None
-        elif token_type == "bpe" or token_type == "hugging_face":
+        elif (
+            token_type == "bpe"
+            or token_type == "hugging_face"
+            or "whisper" in token_type
+        ):
             if bpemodel is not None:
-                tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
+                tokenizer = build_tokenizer(
+                    token_type=token_type,
+                    bpemodel=bpemodel,
+                    whisper_language=token_lang,
+                    whisper_task=whisper_task,
+                )
             else:
                 tokenizer = None
         else:
             tokenizer = build_tokenizer(token_type=token_type)
-        converter = TokenIDConverter(token_list=token_list)
+        if "whisper" in token_type:
+            converter = OpenAIWhisperTokenIDConverter(
+                model_type=bpemodel,
+                language=token_lang or "en",
+                task=whisper_task or "translate",
+            )
+            beam_search.set_hyp_primer(
+                list(converter.tokenizer.sot_sequence_including_notimestamps)
+            )
+        else:
+            converter = TokenIDConverter(token_list=token_list)
         logging.info(f"Text tokenizer: {tokenizer}")
 
         if src_token_type is None:
@@ -382,16 +411,29 @@ class Speech2Text:
 
         if src_token_type is None:
             src_tokenizer = None
-        elif src_token_type == "bpe":
+        elif src_token_type == "bpe" or "whisper" in token_type:
             if src_bpemodel is not None:
                 src_tokenizer = build_tokenizer(
-                    token_type=src_token_type, bpemodel=src_bpemodel
+                    token_type=src_token_type,
+                    bpemodel=src_bpemodel,
+                    whisper_language=src_token_lang,
+                    whisper_task=whisper_task,
                 )
             else:
                 src_tokenizer = None
         else:
             src_tokenizer = build_tokenizer(token_type=src_token_type)
-        src_converter = TokenIDConverter(token_list=src_token_list)
+        if "whisper" in src_token_type:
+            src_converter = OpenAIWhisperTokenIDConverter(
+                model_type=src_bpemodel,
+                language=src_token_lang or "en",
+                task=whisper_task or "translate",
+            )
+            asr_beam_search.set_hyp_primer(
+                list(src_converter.tokenizer.sot_sequence_including_notimestamps)
+            )
+        else:
+            src_converter = TokenIDConverter(token_list=src_token_list)
         logging.info(f"Src Text tokenizer: {src_tokenizer}")
 
         self.st_model = st_model
