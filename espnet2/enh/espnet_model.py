@@ -402,7 +402,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                         # if no noise/dereverb signals are predicted for this batch
                         if category is not None:
                             for idx, c in self.categories.items():
-                                s[criterion.name + "_" + c] = torch.full_like(loss, np.nan)
+                                s[criterion.name + "_" + c] = torch.full_like(
+                                    loss, np.nan
+                                )
                         else:
                             s[criterion.name] = torch.full_like(loss, np.nan)
                         continue
