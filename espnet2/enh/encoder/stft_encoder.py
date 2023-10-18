@@ -54,6 +54,9 @@ class STFTEncoder(AbsEncoder):
         Args:
             input (torch.Tensor): mixed speech [Batch, sample]
             ilens (torch.Tensor): input lengths [Batch]
+        Returns:
+            spectrum (ComplexTensor): [Batch, T, (C,) F]
+            flens (torch.Tensor): [Batch]
         """
         # for supporting half-precision training
         if input.dtype in (torch.float16, torch.bfloat16):

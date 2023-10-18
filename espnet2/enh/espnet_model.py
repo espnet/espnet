@@ -484,7 +484,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             else:
                 idx = 0
             stats.update(s)
-            loss *= self.category_weights[idx]
+            loss *= self.category_weights[idx] if self.category_weights else 1.0
 
             if perm is None and "perm" in o:
                 perm = o["perm"]

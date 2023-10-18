@@ -22,6 +22,7 @@ class STFTDecoder(AbsDecoder):
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
+        default_fs: int = 16000,
     ):
         super().__init__()
         self.stft = Stft(
@@ -39,6 +40,7 @@ class STFTDecoder(AbsDecoder):
         self.hop_length = hop_length
         self.window = window
         self.center = center
+        self.default_fs = default_fs
 
     @torch.cuda.amp.autocast(enabled=False)
     def forward(self, input: ComplexTensor, ilens: torch.Tensor):
