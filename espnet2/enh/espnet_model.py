@@ -355,7 +355,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 if key in others:
                     others[key] = self.decoder(others[key], speech_lengths)[0]
 
-        loss = 0.0
+        loss = speech_ref.new_tensor(0.0)
         stats = {}
         o = {}
         perm = None
@@ -398,6 +398,13 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             if isinstance(criterion, TimeDomainLoss):
                 if signal_pre is None:
                     if is_noise_loss or is_dereverb_loss:
+                        # Skip loss computation for noise/dereverb-specific losses
+                        # if no noise/dereverb signals are predicted for this batch
+                        if category is not None:
+                            for idx, c in self.categories.items():
+                                s[criterion.name + "_" + c] = torch.full_like(loss, np.nan)
+                        else:
+                            s[criterion.name] = torch.full_like(loss, np.nan)
                         continue
                     raise ValueError(
                         "Predicted waveform is required for time-domain loss."
@@ -489,7 +496,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             if perm is None and "perm" in o:
                 perm = o["perm"]
 
-        if self.training and isinstance(loss, float):
+        if self.training and not loss.requires_grad:
             raise AttributeError(
                 "Loss must be a tensor with gradient in the training mode. "
                 "Please check the following:\n"
