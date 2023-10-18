@@ -161,8 +161,9 @@ class CommonPreprocessor(AbsPreprocessor):
         data_aug_effects: List = None,
         data_aug_num: List[int] = [1, 1],
         data_aug_prob: float = 0.0,
-        # only use for init whisper tokenizer
-        tokenizer_language: str = "en",
+        # only use for whisper
+        whisper_language: str = None,
+        whisper_task: str = None,
     ):
         super().__init__(train)
         self.train = train
@@ -187,7 +188,8 @@ class CommonPreprocessor(AbsPreprocessor):
                 non_linguistic_symbols=non_linguistic_symbols,
                 g2p_type=g2p_type,
                 nonsplit_symbol=nonsplit_symbol,
-                tokenizer_language=tokenizer_language,
+                whisper_language=whisper_language,
+                whisper_task=whisper_task,
             )
             if token_type == "hugging_face":
                 self.token_id_converter = HuggingFaceTokenIDConverter(
@@ -201,7 +203,8 @@ class CommonPreprocessor(AbsPreprocessor):
             else:
                 self.token_id_converter = OpenAIWhisperTokenIDConverter(
                     model_type=bpemodel,
-                    language=tokenizer_language,
+                    language=whisper_language or "en",
+                    task=whisper_task or "transcribe",
                 )
         else:
             self.text_cleaner = None
@@ -657,7 +660,7 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         token_list: List[Union[Path, str, Iterable[str]]] = [None],
         bpemodel: List[Union[Path, str, Iterable[str]]] = [None],
         text_cleaner: Collection[str] = None,
-        g2p_type: str = None,
+        g2p_type: Union[List[str], str] = None,
         unk_symbol: str = "<unk>",
         space_symbol: str = "<space>",
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
@@ -676,6 +679,9 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         data_aug_effects: List = None,
         data_aug_num: List[int] = [1, 1],
         data_aug_prob: float = 0.0,
+        # only use for whisper
+        whisper_language: List[str] = None,
+        whisper_task: str = None,
     ):
         # TODO(jiatong): sync with Kamo and Jing on interface for preprocessor
         super().__init__(
@@ -684,7 +690,9 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
             token_list=token_list[0],
             bpemodel=bpemodel[0],
             text_cleaner=text_cleaner,
-            g2p_type=g2p_type,
+            g2p_type=g2p_type[0]
+            if type(g2p_type) is not str and g2p_type is not None
+            else g2p_type,
             unk_symbol=unk_symbol,
             space_symbol=space_symbol,
             non_linguistic_symbols=non_linguistic_symbols,
@@ -711,6 +719,10 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
         self.tokenizer = []
         self.token_id_converter = []
 
+        if type(g2p_type) is str:
+            # NOTE(jiatong): str will repeat for every tokenizer
+            g2p_type = [g2p_type] * self.num_tokenizer
+
         for i in range(self.num_tokenizer):
             if token_type[i] is not None:
                 if token_list[i] is None:
@@ -723,20 +735,34 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                         delimiter=delimiter,
                         space_symbol=space_symbol,
                         non_linguistic_symbols=non_linguistic_symbols,
-                        g2p_type=g2p_type,
+                        g2p_type=g2p_type[i] if g2p_type is not None else g2p_type,
                         encode_kwargs=(
                             tokenizer_encode_conf[i]
                             if i < len(tokenizer_encode_conf)
                             else None
                         ),
+                        whisper_language=whisper_language[i]
+                        if "whisper" in token_type[i]
+                        else None,
+                        whisper_task=whisper_task,
                     )
                 )
-                self.token_id_converter.append(
-                    TokenIDConverter(
-                        token_list=token_list[i],
-                        unk_symbol=unk_symbol,
+
+                if "whisper" not in token_type[i]:
+                    self.token_id_converter.append(
+                        TokenIDConverter(
+                            token_list=token_list[i],
+                            unk_symbol=unk_symbol,
+                        )
                     )
-                )
+                else:
+                    self.token_id_converter.append(
+                        OpenAIWhisperTokenIDConverter(
+                            model_type=bpemodel[i],
+                            language=whisper_language[i] or "en",
+                            task=whisper_task or "translate",
+                        )
+                    )
             else:
                 self.tokenizer.append(None)
                 self.token_id_converter.append(None)
