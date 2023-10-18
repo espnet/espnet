@@ -132,7 +132,6 @@ def test_STFTDecoder_complex32_dtype(
     (y.real.pow(2) + y.imag.pow(2)).sum().backward()
 
 
-
 def test_STFTDecoder_reconfig_for_fs():
     decoder = STFTDecoder(
         n_fft=512,
