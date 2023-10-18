@@ -500,7 +500,7 @@ if ! "${skip_data_prep}"; then
                 echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
             done
         fi
-    fi   
+    fi
     # TODO(Yuning): Introducing a single new stage for conditional token generation
     if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         if "${use_sid}"; then
@@ -558,7 +558,7 @@ if ! "${skip_data_prep}"; then
             done
         fi
     fi
-        
+
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 

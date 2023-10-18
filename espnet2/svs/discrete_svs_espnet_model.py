@@ -15,13 +15,13 @@ from typeguard import check_argument_types
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
     SyllableScoreFeats,
     expand_to_frame,
 )
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
 if LooseVersion(torch.__version__) >= LooseVersion("1.6.0"):
@@ -54,18 +54,18 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
         """Initialize ESPnetSVSModel module."""
         assert check_argument_types()
         super().__init__(
-            text_extract = text_extract,
-            feats_extract = feats_extract,
-            score_feats_extract = score_feats_extract,
-            label_extract = label_extract,
-            pitch_extract = pitch_extract,
-            ying_extract = ying_extract,
-            duration_extract = duration_extract,
-            energy_extract = energy_extract,
-            normalize = normalize,
-            pitch_normalize = pitch_normalize,
-            energy_normalize = energy_normalize,
-            svs = svs,
+            text_extract=text_extract,
+            feats_extract=feats_extract,
+            score_feats_extract=score_feats_extract,
+            label_extract=label_extract,
+            pitch_extract=pitch_extract,
+            ying_extract=ying_extract,
+            duration_extract=duration_extract,
+            energy_extract=energy_extract,
+            normalize=normalize,
+            pitch_normalize=pitch_normalize,
+            energy_normalize=energy_normalize,
+            svs=svs,
         )
 
     def forward(
@@ -351,7 +351,10 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
         if discrete_token is not None:
-            batch.update(discrete_token=discrete_token, discrete_token_lengths=discrete_token_lengths)
+            batch.update(
+                discrete_token=discrete_token,
+                discrete_token_lengths=discrete_token_lengths,
+            )
 
         return self.svs(**batch)
 
@@ -420,7 +423,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             Dict[str, Tensor]: Dict of features.
         """
         feats = None
-        
+
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(singing, singing_lengths)
         else:
@@ -690,7 +693,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             input_dict.update(lids=lids)
 
         output_dict = self.svs.inference(**input_dict, **decode_config)
-        print(output_dict['feat_gen'].shape)
+        print(output_dict["feat_gen"].shape)
         """
         if self.normalize is not None and output_dict.get("feat_gen") is not None:
             # NOTE: normalize.inverse is in-place operation

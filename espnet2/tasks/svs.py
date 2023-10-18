@@ -15,8 +15,8 @@ from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.svs.abs_svs import AbsSVS
-from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.discrete_svs_espnet_model import ESPnetDiscreteSVSModel
+from espnet2.svs.espnet_model import ESPnetSVSModel
 from espnet2.svs.feats_extract.score_feats_extract import (
     FrameScoreFeats,
     SyllableScoreFeats,
@@ -143,6 +143,7 @@ model_type_choices = ClassChoices(
     type_check=AbsESPnetModel,
     default="svs",
 )
+
 
 class SVSTask(AbsTask):
     num_optimizers: int = 1
@@ -355,7 +356,15 @@ class SVSTask(AbsTask):
             )
         else:
             # Inference mode
-            retval = ("spembs", "singing", "pitch", "durations", "sids", "lids", "discrete_token")
+            retval = (
+                "spembs",
+                "singing",
+                "pitch",
+                "durations",
+                "sids",
+                "lids",
+                "discrete_token",
+            )
         return retval
 
     @classmethod
@@ -400,7 +409,7 @@ class SVSTask(AbsTask):
             feats_extract = None
             odim = args.odim
         if args.model_type == "discrete_svs":
-            odim = discrete_vocab_size 
+            odim = discrete_vocab_size
 
         # 2. Normalization layer
         if args.normalize is not None:
@@ -472,7 +481,7 @@ class SVSTask(AbsTask):
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
 
         # 5. Build model
-        if args.model_type == 'svs':
+        if args.model_type == "svs":
             model = ESPnetSVSModel(
                 text_extract=score_feats_extract,
                 feats_extract=feats_extract,
@@ -488,7 +497,7 @@ class SVSTask(AbsTask):
                 svs=svs,
                 **args.model_conf,
             )
-        elif args.model_type == 'discrete_svs':
+        elif args.model_type == "discrete_svs":
             model = ESPnetDiscreteSVSModel(
                 text_extract=score_feats_extract,
                 feats_extract=feats_extract,

@@ -51,7 +51,7 @@ class DiscreteLoss(torch.nn.Module):
 
         # define criterions
         reduction = "none" if self.use_weighted_masking else "mean"
-        #self.l1_criterion = torch.nn.L1Loss(reduction=reduction)
+        # self.l1_criterion = torch.nn.L1Loss(reduction=reduction)
         self.cross_entropy = torch.nn.CrossEntropyLoss(reduction=reduction)
         self.duration_criterion = DurationPredictorLoss(reduction=reduction)
 
@@ -110,4 +110,3 @@ class DiscreteLoss(torch.nn.Module):
             )
 
         return CE_loss, duration_loss
-       

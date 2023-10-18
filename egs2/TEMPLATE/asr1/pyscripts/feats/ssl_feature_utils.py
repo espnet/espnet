@@ -315,6 +315,7 @@ class MERTFeatureReader(BaseFeatureReader):
         use_gpu: bool = True,
     ):
         from espnet2.svs.discrete.frontend import MERTFrontend
+
         self.model = MERTFrontend(
             fs=fs,
             frontend_conf=mert_conf,

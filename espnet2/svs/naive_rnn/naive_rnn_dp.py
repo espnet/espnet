@@ -10,6 +10,7 @@ import torch.nn.functional as F
 from typeguard import check_argument_types
 
 from espnet2.svs.abs_svs import AbsSVS
+from espnet2.svs.discrete.loss import DiscreteLoss
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.torch_utils.initialize import initialize
 from espnet.nets.pytorch_backend.e2e_tts_fastspeech import (
@@ -20,7 +21,6 @@ from espnet.nets.pytorch_backend.fastspeech.length_regulator import LengthRegula
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.tacotron2.decoder import Postnet
 from espnet.nets.pytorch_backend.tacotron2.encoder import Encoder as EncoderPrenet
-from espnet2.svs.discrete.loss import DiscreteLoss
 
 
 class NaiveRNNDP(AbsSVS):
@@ -303,7 +303,9 @@ class NaiveRNNDP(AbsSVS):
 
         # define loss function
         if self.use_discrete_token:
-            self.criterion = DiscreteLoss(use_masking=use_masking, use_weighted_masking=use_weighted_masking)
+            self.criterion = DiscreteLoss(
+                use_masking=use_masking, use_weighted_masking=use_weighted_masking
+            )
         else:
             self.criterion = FastSpeechLoss(
                 use_masking=use_masking, use_weighted_masking=use_weighted_masking
@@ -340,7 +342,7 @@ class NaiveRNNDP(AbsSVS):
         lids: Optional[torch.Tensor] = None,
         joint_training: bool = False,
         discrete_token: torch.Tensor = None,
-        discrete_token_lengths: torch.Tensor = None,        
+        discrete_token_lengths: torch.Tensor = None,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -513,11 +515,15 @@ class NaiveRNNDP(AbsSVS):
 
         if self.use_discrete_token:
             stats = dict(
-                loss=loss.item(), CE_loss=out_loss.item(), duration_loss=duration_loss.item()
+                loss=loss.item(),
+                CE_loss=out_loss.item(),
+                duration_loss=duration_loss.item(),
             )
         else:
             stats = dict(
-                loss=loss.item(), l1_loss=out_loss.item(), duration_loss=duration_loss.item()
+                loss=loss.item(),
+                l1_loss=out_loss.item(),
+                duration_loss=duration_loss.item(),
             )
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
@@ -622,7 +628,7 @@ class NaiveRNNDP(AbsSVS):
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
         if self.use_discrete_token:
-            after_outs = torch.argmax(after_outs, dim = 2).unsqueeze(2)
+            after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
         return dict(
             feat_gen=after_outs[0], prob=None, att_w=None
         )  # outs, probs, att_ws

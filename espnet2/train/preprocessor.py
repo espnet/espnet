@@ -1432,7 +1432,9 @@ class SVSPreprocessor(AbsPreprocessor):
 
         if discrete_token_type is not None:
             if discrete_token_list is None:
-                raise ValueError("discrete_token_list is required if discrete_token_type is not None")
+                raise ValueError(
+                    "discrete_token_list is required if discrete_token_type is not None"
+                )
 
             self.discrete_tokenizer = build_tokenizer(
                 token_type=discrete_token_type,

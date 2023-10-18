@@ -11,6 +11,7 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
+
 class MERTFrontend(AbsFrontend):
     def __init__(
         self,
@@ -21,6 +22,7 @@ class MERTFrontend(AbsFrontend):
         layer: int = -1,
     ):
         from transformers import AutoModel
+
         assert check_argument_types()
         super().__init__()
 
@@ -74,8 +76,12 @@ class MERTFrontend(AbsFrontend):
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         input_mask = make_non_pad_mask(input_lengths)
-        feats = self.model(input_values=input, attention_mask=input_mask, output_hidden_states=True).hidden_states
-        feats_lens = torch.div(input_lengths - 1, self.stride, rounding_mode="floor") + 1
+        feats = self.model(
+            input_values=input, attention_mask=input_mask, output_hidden_states=True
+        ).hidden_states
+        feats_lens = (
+            torch.div(input_lengths - 1, self.stride, rounding_mode="floor") + 1
+        )
         feats = [h[:, : max(feats_lens), :] for h in feats]
         feats_lens = [feats_lens] * len(feats)
         if self.layer != -1:

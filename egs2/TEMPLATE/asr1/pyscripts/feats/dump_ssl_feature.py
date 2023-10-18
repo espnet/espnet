@@ -6,9 +6,9 @@ import numpy as np
 from ssl_feature_utils import (
     ESPnetHubertFeatureReader,
     HubertFeatureReader,
+    MERTFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
-    MERTFeatureReader,
     dump_feature,
     format_feature_conf_str,
 )
