@@ -101,7 +101,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         touch whamr.done
     fi
 
-    cd "cwd"
+    cd "$cwd"
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
