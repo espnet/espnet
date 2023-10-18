@@ -1,12 +1,13 @@
 """ Transform the standard kaldi data directory into whisper (OWSM) data directory """
-import librosa
-import kaldiio
 import logging
-import soundfile
-from io import BytesIO
 from argparse import ArgumentParser
-from pathlib import Path
+from io import BytesIO
 from multiprocessing import Pool
+from pathlib import Path
+
+import kaldiio
+import librosa
+import soundfile
 
 from utils import (
     SYMBOL_NA,
