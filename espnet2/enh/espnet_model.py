@@ -9,12 +9,15 @@ from typeguard import check_argument_types
 
 from espnet2.diar.layers.abs_mask import AbsMask
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
+from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
+from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
 from espnet2.enh.separator.abs_separator import AbsSeparator
 from espnet2.enh.separator.dan_separator import DANSeparator
+from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 
@@ -38,6 +41,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         mask_type: Optional[str] = None,
         flexible_numspk: bool = False,
         extract_feats_in_collect_stats: bool = False,
+        normalize_variance: bool = False,
+        normalize_variance_per_ch: bool = False,
+        categories: list = [],
+        category_weights: list = [],
     ):
         assert check_argument_types()
 
@@ -74,9 +81,30 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if self.ref_channel is None:
             self.ref_channel = 0
 
-        # Used in espnet2/tasks/abs_task.py for determining whether or not to do
+        # used in espnet2/tasks/abs_task.py for determining whether or not to do
         # collect_feats during collect stats (stage 5).
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
+
+        # normalize signal variance before model forward, and revert it back after
+        self.normalize_variance = normalize_variance
+        # normalize signal variance for each channel instead of the whole signal
+        self.normalize_variance_per_ch = normalize_variance_per_ch
+
+        # list all possible categories of the batch (order matters!)
+        # (used to convert category index to the corresponding name for logging)
+        self.categories = {}
+        if categories:
+            count = 0
+            for c in categories:
+                if c not in self.categories:
+                    self.categories[count] = c
+                    count += 1
+        # used to set loss weights for batches of different categories
+        if category_weights:
+            assert len(category_weights) == len(self.categories)
+            self.category_weights = tuple(category_weights)
+        else:
+            self.category_weights = tuple(1.0 for _ in self.categories)
 
     def forward(
         self,
@@ -161,6 +189,28 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             dereverb_speech_ref = dereverb_speech_ref[..., : speech_lengths.max()]
             dereverb_speech_ref = dereverb_speech_ref.unbind(dim=1)
 
+        # sampling frequency information about the batch
+        if "utt2fs" in kwargs:
+            # All samples must have the same sampling rate
+            fs = kwargs["utt2fs"][0].item()
+            assert all([fs == kwargs["utt2fs"][0].item() for fs in kwargs["utt2fs"]])
+
+            # Adaptively adjust the STFT encoder/decoder window/hop sizes
+            if isinstance(self.separator, USESSeparator):
+                if isinstance(self.encoder, STFTEncoder):
+                    self.encoder.reconfig_for_fs(fs)
+                if isinstance(self.decoder, STFTDecoder):
+                    self.decoder.reconfig_for_fs(fs)
+
+        # category information (integer) about the batch
+        category = kwargs.get("utt2category", None)
+        if (
+            self.categories
+            and category is not None
+            and category[0].item() not in self.categories
+        ):
+            raise ValueError(f"Category '{category}' is not listed in self.categories")
+
         additional = {}
         # Additional data is required in Deep Attractor Network
         if isinstance(self.separator, DANSeparator):
@@ -169,13 +219,47 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             ]
         if self.flexible_numspk:
             additional["num_spk"] = num_spk
+        # Additional information is required in USES for multi-condition training
+        if category is not None and isinstance(self.separator, USESSeparator):
+            cat = self.categories[category[0].item()]
+            if cat.endswith("_both"):
+                additional["mode"] = "both"
+            elif cat.endswith("_reverb"):
+                additional["mode"] = "dereverb"
+            else:
+                additional["mode"] = "no_dereverb"
 
         speech_mix = speech_mix[:, : speech_lengths.max()]
+
+        ###################################
+        # Normalize the signal variance
+        if self.normalize_variance_per_ch:
+            dim = 1
+            mix_std_ = torch.std(speech_mix, dim=dim, keepdim=True)
+            speech_mix = speech_mix / mix_std_  # RMS normalization
+        elif self.normalize_variance:
+            if speech_mix.ndim > 2:
+                dim = (1, 2)
+            else:
+                dim = 1
+            mix_std_ = torch.std(speech_mix, dim=dim, keepdim=True)
+            speech_mix = speech_mix / mix_std_  # RMS normalization
 
         # model forward
         speech_pre, feature_mix, feature_pre, others = self.forward_enhance(
             speech_mix, speech_lengths, additional
         )
+
+        ###################################
+        # De-normalize the signal variance
+        if self.normalize_variance_per_ch and speech_pre is not None:
+            if mix_std_.ndim > 2:
+                mix_std_ = mix_std_[:, :, self.ref_channel]
+            speech_pre = [sp * mix_std_ for sp in speech_pre]
+        elif self.normalize_variance and speech_pre is not None:
+            if mix_std_.ndim > 2:
+                mix_std_ = mix_std_.squeeze(2)
+            speech_pre = [sp * mix_std_ for sp in speech_pre]
 
         # loss computation
         loss, stats, weight, perm = self.forward_loss(
@@ -187,8 +271,16 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             speech_ref,
             noise_ref,
             dereverb_speech_ref,
+            category,
             num_spk=num_spk,
         )
+
+        if isinstance(self.separator, USESSeparator):
+            # Reset the STFT encoder/decoder window/hop sizes
+            if isinstance(self.encoder, STFTEncoder):
+                self.encoder.reset_config()
+            if isinstance(self.decoder, STFTDecoder):
+                self.decoder.reset_config()
         return loss, stats, weight
 
     def forward_enhance(
@@ -244,6 +336,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref: torch.Tensor,
         noise_ref: torch.Tensor = None,
         dereverb_speech_ref: torch.Tensor = None,
+        category: torch.Tensor = None,
         num_spk: int = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         # for calculating loss on estimated noise signals
@@ -268,9 +361,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         perm = None
         for loss_wrapper in self.loss_wrappers:
             criterion = loss_wrapper.criterion
-            if getattr(criterion, "only_for_test", False) and self.training:
+            only_for_test = getattr(criterion, "only_for_test", False)
+            if only_for_test and self.training:
                 continue
-            if getattr(criterion, "is_noise_loss", False):
+            is_noise_loss = getattr(criterion, "is_noise_loss", False)
+            is_dereverb_loss = getattr(criterion, "is_dereverb_loss", False)
+            if is_noise_loss:
                 if noise_ref is None:
                     raise ValueError(
                         "No noise reference for training!\n"
@@ -280,7 +376,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 signal_pre = [
                     others["noise{}".format(n + 1)] for n in range(self.num_noise_type)
                 ]
-            elif getattr(criterion, "is_dereverb_loss", False):
+            elif is_dereverb_loss:
                 if dereverb_speech_ref is None:
                     raise ValueError(
                         "No dereverberated reference for training!\n"
@@ -300,7 +396,12 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
             zero_weight = loss_wrapper.weight == 0.0
             if isinstance(criterion, TimeDomainLoss):
-                assert signal_pre is not None
+                if signal_pre is None:
+                    if is_noise_loss or is_dereverb_loss:
+                        continue
+                    raise ValueError(
+                        "Predicted waveform is required for time-domain loss."
+                    )
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=True
                 )
@@ -364,14 +465,37 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 
             loss += l * loss_wrapper.weight
+
+            # rename the loss keys with a category prefix
+            if (
+                self.categories
+                and category is not None
+                and category[0].item() not in self.categories
+            ):
+                raise ValueError(
+                    f"Category '{category}' is not listed in self.categories"
+                )
+            if category is not None:
+                for idx, c in self.categories.items():
+                    if idx == category[0].item():
+                        s[criterion.name + "_" + c] = s.pop(criterion.name)
+                    else:
+                        s[criterion.name + "_" + c] = torch.full_like(loss, np.nan)
+            else:
+                idx = 0
             stats.update(s)
+            loss *= self.category_weights[idx]
 
             if perm is None and "perm" in o:
                 perm = o["perm"]
 
         if self.training and isinstance(loss, float):
             raise AttributeError(
-                "At least one criterion must satisfy: only_for_test=False"
+                "Loss must be a tensor with gradient in the training mode. "
+                "Please check the following:\n"
+                "1. At least one criterion must satisfy: only_for_test=False"
+                "2. At least one criterion must always be computed in the training mode"
+                " regardless of is_noise_loss=True or is_dereverb_loss=True"
             )
         stats["loss"] = loss.detach()
 

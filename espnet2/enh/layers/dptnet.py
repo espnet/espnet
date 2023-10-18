@@ -64,11 +64,16 @@ class ImprovedTransformerLayer(nn.Module):
             bidirectional=bidirectional,
         )
 
-        activation = get_activation(activation)
         hdim = 2 * hidden_size if bidirectional else hidden_size
-        self.feed_forward = nn.Sequential(
-            activation, nn.Dropout(p=dropout), nn.Linear(hdim, input_size)
-        )
+        if activation.lower() == "linear":
+            self.feed_forward = nn.Sequential(
+                nn.Dropout(p=dropout), nn.Linear(hdim, input_size)
+            )
+        else:
+            activation = get_activation(activation)
+            self.feed_forward = nn.Sequential(
+                activation, nn.Dropout(p=dropout), nn.Linear(hdim, input_size)
+            )
 
         self.norm_ff = choose_norm(norm, input_size)
 

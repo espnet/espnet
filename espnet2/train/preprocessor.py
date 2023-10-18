@@ -210,25 +210,29 @@ class CommonPreprocessor(AbsPreprocessor):
 
         if train and rir_scp is not None:
             self.rirs = []
-            with open(rir_scp, "r", encoding="utf-8") as f:
-                for line in f:
-                    sps = line.strip().split(None, 1)
-                    if len(sps) == 1:
-                        self.rirs.append(sps[0])
-                    else:
-                        self.rirs.append(sps[1])
+            rir_scp = [rir_scp] if not isinstance(rir_scp, (list, tuple)) else rir_scp
+            for scp in rir_scp:
+                with open(scp, "r", encoding="utf-8") as f:
+                    for line in f:
+                        sps = line.strip().split(None, 1)
+                        if len(sps) == 1:
+                            self.rirs.append(sps[0])
+                        else:
+                            self.rirs.append(sps[1])
         else:
             self.rirs = None
 
         if train and noise_scp is not None:
             self.noises = []
-            with open(noise_scp, "r", encoding="utf-8") as f:
-                for line in f:
-                    sps = line.strip().split(None, 1)
-                    if len(sps) == 1:
-                        self.noises.append(sps[0])
-                    else:
-                        self.noises.append(sps[1])
+            noise_scp = [noise_scp] if not isinstance(noise_scp, (list, tuple)) else noise_scp
+            for scp in noise_scp:
+                with open(scp, "r", encoding="utf-8") as f:
+                    for line in f:
+                        sps = line.strip().split(None, 1)
+                        if len(sps) == 1:
+                            self.noises.append(sps[0])
+                        else:
+                            self.noises.append(sps[1])
             sps = noise_db_range.split("_")
             if len(sps) == 1:
                 self.noise_db_low = self.noise_db_high = float(sps[0])
@@ -255,6 +259,13 @@ class CommonPreprocessor(AbsPreprocessor):
         rir = None
         if rir_path is not None:
             rir, fs = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
+
+            if single_channel:
+                num_ch = rir.shape[1]
+                chs = np.random.permutation(num_ch).tolist()
+                rir = rir[:, chs]
+            # rir: (Nmic, Time)
+            rir = rir.T
             if tgt_fs and fs != tgt_fs:
                 logging.warning(
                     f"Resampling RIR to match the sampling rate ({fs} -> {tgt_fs} Hz)"
@@ -262,11 +273,6 @@ class CommonPreprocessor(AbsPreprocessor):
                 rir = librosa.resample(
                     rir, orig_sr=fs, target_sr=tgt_fs, res_type="kaiser_fast"
                 )
-
-            if single_channel:
-                rir = rir[:, :1]
-            # rir: (Nmic, Time)
-            rir = rir.T
 
             # speech: (Nmic, Time)
             # Note that this operation doesn't change the signal length
@@ -324,7 +330,9 @@ class CommonPreprocessor(AbsPreprocessor):
                     if len(noise) != nsamples_:
                         raise RuntimeError(f"Something wrong: {noise_path}")
             if single_channel:
-                noise = noise[:, :1]
+                num_ch = noise.shape[1]
+                chs = np.random.permutation(num_ch).tolist()
+                noise = noise[:, chs]
             # noise: (Nmic, Time)
             noise = noise.T
             if tgt_fs and fs != tgt_fs:
@@ -1097,15 +1105,16 @@ class EnhPreprocessor(CommonPreprocessor):
             if dereverb_ref_name in data_dict:
                 data_dict[dereverb_ref_name] = func(data_dict[dereverb_ref_name])
 
-    def _random_crop_range(self, data_dict, num_spk, uid=None, max_trials=10):
-        # Randomly crop the signals to the length `self.speech_segment`
-        assert self.speech_segment > 0, self.speech_segment
+    def _random_crop_range(
+        self, data_dict, num_spk, tgt_length, uid=None, max_trials=10
+    ):
+        # Randomly crop the signals to the length `tgt_length`
+        assert tgt_length > 0, tgt_length
         speech_refs = [
             data_dict[self.speech_ref_name_prefix + str(spk + 1)]
             for spk in range(num_spk)
         ]
         length = speech_refs[0].shape[0]
-        tgt_length = self.speech_segment
         if length <= tgt_length:
             if length < tgt_length:
                 logging.warning(
@@ -1125,7 +1134,10 @@ class EnhPreprocessor(CommonPreprocessor):
                         f"Can't find non-allzero segments for all references in {uid}."
                     )
                     break
-                start = np.random.randint(0, length - tgt_length)
+                if start > 0:
+                    start = np.random.randint(0, start)
+                else:
+                    break
         return start, start + tgt_length
 
     def _speech_process(
@@ -1149,6 +1161,13 @@ class EnhPreprocessor(CommonPreprocessor):
             category = data.pop("category")
             assert category in self.categories, category
             data["utt2category"] = np.array([self.categories[category]])
+
+        # Add the sampling rate information (an integer) to `data`
+        if "fs" in data:
+            fs = int(data.pop("fs"))
+            data["utt2fs"] = np.array([fs])
+        else:
+            fs = self.sample_rate
 
         sref_name = self.speech_ref_name_prefix + "1"
         if self.flexible_numspk and sref_name in data:
@@ -1194,6 +1213,12 @@ class EnhPreprocessor(CommonPreprocessor):
             power_ref = [
                 (sref[detect_non_silence(sref)] ** 2).mean() for sref in speech_ref
             ]
+
+            if self.speech_segment is not None:
+                start, end = self._random_crop_range(
+                    data, num_spk, self.speech_segment, uid=uid
+                )
+                self._apply_to_all_signals(data, lambda x: x[start:end], num_spk)
 
             speech_mix = self._ensure_2d(data[self.speech_name])
             # 1. Convolve RIR
@@ -1287,9 +1312,6 @@ class EnhPreprocessor(CommonPreprocessor):
 
             speech_mix = speech_mix.T
             data[self.speech_name] = speech_mix
-            if self.speech_segment is not None:
-                start, end = self._random_crop_range(data, num_spk, uid=uid)
-                self._apply_to_all_signals(data, lambda x: x[start:end], num_spk)
             ma = np.max(np.abs(data[self.speech_name]))
             if ma > 1.0:
                 self._apply_to_all_signals(data, lambda x: x / ma, num_spk)
@@ -1320,7 +1342,9 @@ class EnhPreprocessor(CommonPreprocessor):
             data[self.speech_name] = speech_mix[..., chs]
             for i in range(num_spk):
                 k = self.speech_ref_name_prefix + str(i + 1)
-                if data[k].ndim > 1:
+                if self.train:
+                    assert k in data, (data.keys(), k)
+                if k in data and data[k].ndim > 1:
                     assert data[k].shape == speech_mix.shape
                     data[k] = data[k][..., chs]
 

@@ -60,6 +60,7 @@ from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.tfgridnet_separator import TFGridNet
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
+from espnet2.enh.separator.uses_separator import USESSeparator
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
@@ -105,6 +106,7 @@ separator_choices = ClassChoices(
         tcn_nomask=TCNSeparatorNomask,
         ineube=iNeuBe,
         tfgridnet=TFGridNet,
+        uses=USESSeparator,
     ),
     type_check=AbsSeparator,
     default="rnn",

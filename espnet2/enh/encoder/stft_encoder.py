@@ -21,6 +21,7 @@ class STFTEncoder(AbsEncoder):
         normalized: bool = False,
         onesided: bool = True,
         use_builtin_complex: bool = True,
+        default_fs: int = 16000,
     ):
         super().__init__()
         self.stft = Stft(
@@ -40,11 +41,13 @@ class STFTEncoder(AbsEncoder):
         self.window = window
         self.n_fft = n_fft
         self.center = center
+        self.default_fs = default_fs
 
     @property
     def output_dim(self) -> int:
         return self._output_dim
 
+    @torch.cuda.amp.autocast(enabled=False)
     def forward(self, input: torch.Tensor, ilens: torch.Tensor):
         """Forward.
 
@@ -64,6 +67,22 @@ class STFTEncoder(AbsEncoder):
             spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
 
         return spectrum, flens
+    
+    def reset_config(self):
+        """Reset the configuration of STFT window and hop lengths."""
+        self.reconfig_for_fs(self.default_fs)
+
+    def reconfig_for_fs(self, fs):
+        """Reconfigure STFT window and hop lengths for a new sampling rate
+        while keeping their duration fixed.
+
+        Args:
+            fs (int): new sampling rate
+        """  # noqa: H405
+        assert fs % self.default_fs == 0 or self.default_fs % fs == 0
+        self.stft.n_fft = self.n_fft * fs // self.default_fs
+        self.stft.win_length = self.win_length * fs // self.default_fs
+        self.stft.hop_length = self.hop_length * fs // self.default_fs
 
     def _apply_window_func(self, input):
         B = input.shape[0]
@@ -82,6 +101,7 @@ class STFTEncoder(AbsEncoder):
 
     def forward_streaming(self, input: torch.Tensor):
         """Forward.
+
         Args:
             input (torch.Tensor): mixed speech [Batch, frame_length]
         Return:
@@ -114,7 +134,7 @@ class STFTEncoder(AbsEncoder):
             audio: (B, T)
         Returns:
             chunked: List [(B, frame_size),]
-        """
+        """  # noqa: H405
 
         if self.center:
             pad_len = int(self.win_length // 2)
