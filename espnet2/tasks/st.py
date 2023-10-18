@@ -21,6 +21,7 @@ from espnet2.asr.decoder.transformer_decoder import (
     TransformerDecoder,
     TransformerMDDecoder,
 )
+from espnet2.asr.decoder.whisper_decoder import OpenAIWhisperDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -42,6 +43,7 @@ from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
+from espnet2.asr.encoder.whisper_encoder import OpenAIWhisperEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
@@ -66,7 +68,7 @@ from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
+from espnet2.train.preprocessor import AbsPreprocessor, MutliTokenizerCommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -123,6 +125,7 @@ encoder_choices = ClassChoices(
         hubert_pretrain=FairseqHubertPretrainEncoder,
         branchformer=BranchformerEncoder,
         e_branchformer=EBranchformerEncoder,
+        whisper=OpenAIWhisperEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -148,6 +151,7 @@ decoder_choices = ClassChoices(
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
         transducer=TransducerDecoder,
+        whisper=OpenAIWhisperDecoder,
         hugging_face_transformers=HuggingFaceTransformersDecoder,
     ),
     type_check=AbsDecoder,
@@ -231,6 +235,14 @@ hier_encoder_choices = ClassChoices(
     default=None,
     optional=True,
 )
+preprocessor_choices = ClassChoices(
+    "preprocessor",
+    classes=dict(
+        default=MutliTokenizerCommonPreprocessor,
+    ),
+    type_check=AbsPreprocessor,
+    default="default",
+)
 
 
 class STTask(AbsTask):
@@ -263,6 +275,8 @@ class STTask(AbsTask):
         hier_encoder_choices,
         # --extra_mt_encoder and --extra_mt_encoder_conf
         extra_mt_encoder_choices,
+        # --preprocessor and --preprocessor_conf
+        preprocessor_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -341,14 +355,30 @@ class STTask(AbsTask):
             "--token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word", "phn", "hugging_face"],
+            choices=[
+                "bpe",
+                "char",
+                "word",
+                "phn",
+                "hugging_face",
+                "whisper_en",
+                "whisper_multilingual",
+            ],
             help="The target text will be tokenized " "in the specified level token",
         )
         group.add_argument(
             "--src_token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word", "phn", "none"],
+            choices=[
+                "bpe",
+                "char",
+                "word",
+                "phn",
+                "none",
+                "whisper_en",
+                "whisper_multilingual",
+            ],
             help="The source text will be tokenized " "in the specified level token",
         )
         group.add_argument(
@@ -371,12 +401,26 @@ class STTask(AbsTask):
         group.add_argument(
             "--cleaner",
             type=str_or_none,
-            choices=[None, "tacotron", "jaconv", "vietnamese"],
+            choices=[
+                None,
+                "tacotron",
+                "jaconv",
+                "vietnamese",
+                "whisper_en",
+                "whisper_basic",
+            ],
             default=None,
             help="Apply text cleaning",
         )
         group.add_argument(
             "--g2p",
+            type=str_or_none,
+            choices=g2p_choices,
+            default=None,
+            help="Specify g2p method if --token_type=phn",
+        )
+        group.add_argument(
+            "--src_g2p",
             type=str_or_none,
             choices=g2p_choices,
             default=None,
@@ -457,6 +501,14 @@ class STTask(AbsTask):
             args.src_token_type = None
 
         if args.use_preprocessor:
+            try:
+                _ = getattr(args, "preprocessor")
+            except AttributeError:
+                setattr(args, "preprocessor", "default")
+                setattr(args, "preprocessor_conf", dict())
+            except Exception as e:
+                raise e
+
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
                 token_type=[args.token_type, args.src_token_type],
@@ -464,7 +516,7 @@ class STTask(AbsTask):
                 bpemodel=[args.bpemodel, args.src_bpemodel],
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
-                g2p_type=args.g2p,
+                g2p_type=[args.g2p, args.src_g2p],
                 # NOTE(kamo): Check attribute existence for backward compatibility
                 rir_scp=getattr(args, "rir_scp", None),
                 rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),

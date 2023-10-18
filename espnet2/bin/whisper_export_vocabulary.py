@@ -10,7 +10,15 @@ from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def export_vocabulary(output: str, whisper_model: str, language: str, log_level: str):
+def export_vocabulary(
+    output: str,
+    whisper_model: str,
+    whisper_language: str = "en",
+    whisper_task: str = "transcribe",
+    log_level: str = "INFO",
+    sot_asr: bool = False,
+    speaker_change_symbol: str = "<sc>",
+):
     try:
         import whisper.tokenizer
     except Exception as e:
@@ -34,15 +42,17 @@ def export_vocabulary(output: str, whisper_model: str, language: str, log_level:
         p.parent.mkdir(parents=True, exist_ok=True)
         fout = p.open("w", encoding="utf-8")
 
-    language = LANGUAGES_CODE_MAPPING.get(language)
-    if language is None:
+    whisper_language = LANGUAGES_CODE_MAPPING.get(whisper_language)
+    if whisper_language is None:
         raise ValueError("language unsupported for Whisper model")
+    if whisper_task not in ["transcribe", "translate"]:
+        raise ValueError(f"task: {whisper_task} unsupported for Whisper model")
 
     if whisper_model == "whisper_en":
         tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
     elif whisper_model == "whisper_multilingual":
         tokenizer = whisper.tokenizer.get_tokenizer(
-            multilingual=True, language=language
+            multilingual=True, language=whisper_language, task=whisper_task
         )
     else:
         raise ValueError("tokenizer unsupported:", whisper_model)
@@ -50,6 +60,8 @@ def export_vocabulary(output: str, whisper_model: str, language: str, log_level:
     vocab_size = tokenizer.tokenizer.vocab_size + len(
         tokenizer.tokenizer.get_added_vocab()
     )
+    if whisper_model == "whisper_en":
+        vocab_size = vocab_size - 1
 
     for i in range(vocab_size):
         # take care of special char for <space>
@@ -59,8 +71,13 @@ def export_vocabulary(output: str, whisper_model: str, language: str, log_level:
     # NOTE (Shih-Lun): extra tokens (for timestamped ASR) not
     #                  stored in the wrapped tokenizer
     full_vocab_size = 51865 if whisper_model == "whisper_multilingual" else 51864
+
     for i in range(full_vocab_size - vocab_size):
-        fout.write("()" + "\n")
+        fout.write(f"<|{i*0.02:.2f}|>" + "\n")
+
+    if sot_asr:
+        full_vocab_size += 1
+        fout.write(speaker_change_symbol + "\n")
 
 
 def get_parser() -> argparse.ArgumentParser:
@@ -86,10 +103,30 @@ def get_parser() -> argparse.ArgumentParser:
         help="Whisper model type",
     )
     parser.add_argument(
-        "--language",
+        "--whisper_language",
         type=str,
         default="en",
-        help="Language of Whisper multilingual tokenizer (default is en)",
+        help="Language for Whisper multilingual tokenizer",
+    )
+    parser.add_argument(
+        "--whisper_task",
+        type=str,
+        default="transcribe",
+        help="Task for Whisper multilingual tokenizer",
+    )
+    parser.add_argument(
+        "--sot_asr",
+        type=bool,
+        default=False,
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
+    )
+    parser.add_argument(
+        "--speaker_change_symbol",
+        type=str,
+        default="<sc>",
+        required=False,
+        help="Whether SOT-style training is used in Whisper",
     )
 
     return parser

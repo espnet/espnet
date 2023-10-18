@@ -1,3 +1,4 @@
+import copy
 from typing import Iterable, List, Union
 
 import numpy as np
@@ -17,8 +18,11 @@ from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 class OpenAIWhisperTokenIDConverter:
     def __init__(
         self,
-        model_type: str = "whisper_multilingual",
+        model_type: str,
         language: str = "en",
+        task: str = "transcribe",
+        sot: bool = False,
+        speaker_change_symbol: str = "<sc>",
     ):
         assert check_argument_types()
 
@@ -34,18 +38,37 @@ class OpenAIWhisperTokenIDConverter:
 
         language = LANGUAGES_CODE_MAPPING.get(language)
         if language is None:
-            raise ValueError("language unsupported for Whisper model")
+            raise ValueError(f"language: {language} unsupported for Whisper model")
+        if task not in ["transcribe", "translate"]:
+            raise ValueError(f"task: {task} unsupported for Whisper model")
 
         if model_type == "whisper_en":
             self.tokenizer = whisper.tokenizer.get_tokenizer(multilingual=False)
         elif model_type == "whisper_multilingual":
             self.tokenizer = whisper.tokenizer.get_tokenizer(
-                multilingual=True, language=language
+                multilingual=True, language=language, task=task
             )
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 
+        self.tokenizer = copy.deepcopy(self.tokenizer)
+        timestamps = [f"<|{i*30/1500:.2f}|>" for i in range(0, 1501)]
+        sc = [speaker_change_symbol] if sot else []
+        special_tokens = (
+            self.tokenizer.tokenizer.additional_special_tokens + timestamps + sc
+        )
+        self.tokenizer.tokenizer.add_special_tokens(
+            dict(additional_special_tokens=special_tokens)
+        )
+        self.model_type = model_type
+
     def get_num_vocabulary_size(self) -> int:
+        if self.model_type == "whisper_en":
+            return (
+                self.tokenizer.tokenizer.vocab_size
+                + len(self.tokenizer.tokenizer.get_added_vocab())
+                - 1
+            )
         return self.tokenizer.tokenizer.vocab_size + len(
             self.tokenizer.tokenizer.get_added_vocab()
         )
