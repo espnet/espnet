@@ -8,8 +8,6 @@
 # general configuration
 stage=1       # start from 0 if you need to start from data preparation
 stop_stage=100
-langs=  # comma separated list of languages
-tasks=  # comma separated list of tasks
 min_wav_duration=0.5
 SECONDS=0
 
@@ -54,7 +52,7 @@ fi
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Preparing Data for wav2gloss"
 
-    python3 local/data_prep.py --source ${WAV2GLOSS} --langs ${langs} --tasks ${tasks} --min_wav_length ${min_wav_duration}
+    python3 local/data_prep.py --source ${WAV2GLOSS} --min_wav_length ${min_wav_duration}
     find data -type f -empty -delete
     find data -type d -empty -delete
     for f in data/w2g_*; do
