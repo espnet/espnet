@@ -189,7 +189,9 @@ class USESSeparator(AbsSeparator):
 
                 # 2. denoised output with dereverberation
                 processed2 = self.uses(feature, ref_channel=self.ref_channel, mem_idx=1)
-                processed2 = processed2.reshape(B * self.num_spk, self.enc_channels, F, T)
+                processed2 = processed2.reshape(
+                    B * self.num_spk, self.enc_channels, F, T
+                )
                 processed2 = self.pre_decoder(processed2)
                 specs2 = processed2.reshape(B, self.num_spk, 2, F, T).moveaxis(-1, -2)
                 # B, num_spk, T, F

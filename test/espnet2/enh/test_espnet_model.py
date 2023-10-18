@@ -491,9 +491,7 @@ def test_tfgridnetv2(n_mics, training, loss_wrappers):
 @pytest.mark.parametrize("num_spk", [2])
 @pytest.mark.parametrize("use_builtin_complex", [True, False])
 @pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
-def test_uses_forward(
-    training, n_mics, num_spk, use_builtin_complex, loss_wrappers
-):
+def test_uses_forward(training, n_mics, num_spk, use_builtin_complex, loss_wrappers):
     if n_mics == 1:
         inputs = torch.randn(1, 300)
     else:

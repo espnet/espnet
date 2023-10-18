@@ -67,7 +67,7 @@ class STFTEncoder(AbsEncoder):
             spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
 
         return spectrum, flens
-    
+
     def reset_config(self):
         """Reset the configuration of STFT window and hop lengths."""
         self.reconfig_for_fs(self.default_fs)

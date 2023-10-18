@@ -227,7 +227,9 @@ class CommonPreprocessor(AbsPreprocessor):
 
         if train and noise_scp is not None:
             self.noises = []
-            noise_scp = [noise_scp] if not isinstance(noise_scp, (list, tuple)) else noise_scp
+            noise_scp = (
+                [noise_scp] if not isinstance(noise_scp, (list, tuple)) else noise_scp
+            )
             for scp in noise_scp:
                 with open(scp, "r", encoding="utf-8") as f:
                     for line in f:

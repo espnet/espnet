@@ -223,14 +223,14 @@ class SeparateSpeech:
         ###################################
         # Normalize the signal variance
         if getattr(self.enh_model, "normalize_variance_per_ch", False):
-            dim=1
+            dim = 1
             mix_std_ = torch.std(speech_mix, dim=dim, keepdim=True)
             speech_mix = speech_mix / mix_std_  # RMS normalization
         elif getattr(self.enh_model, "normalize_variance", False):
             if speech_mix.ndim > 2:
-                dim=(1, 2)
+                dim = (1, 2)
             else:
-                dim=1
+                dim = 1
             mix_std_ = torch.std(speech_mix, dim=dim, keepdim=True)
             speech_mix = speech_mix / mix_std_  # RMS normalization
 
@@ -240,9 +240,7 @@ class SeparateSpeech:
             and category is not None
             and category[0].item() not in self.enh_model.categories
         ):
-            raise ValueError(
-                f"Category '{category}' is not listed in self.categories"
-            )
+            raise ValueError(f"Category '{category}' is not listed in self.categories")
 
         additional = {}
         if category is not None:
