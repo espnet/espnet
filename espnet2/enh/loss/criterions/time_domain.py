@@ -393,9 +393,16 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         reduction="sum",
         name=None,
         only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
         _name = "TD_L1_loss" if name is None else name
-        super(MultiResL1SpecLoss, self).__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         assert all([x % 2 == 0 for x in window_sz])
         self.window_sz = window_sz
