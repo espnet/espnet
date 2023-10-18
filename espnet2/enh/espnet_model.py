@@ -331,11 +331,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_pre: torch.Tensor,
         speech_lengths: torch.Tensor,
         feature_mix: torch.Tensor,
-        feature_pre: torch.Tensor,
+        feature_pre: List[torch.Tensor],
         others: OrderedDict,
-        speech_ref: torch.Tensor,
-        noise_ref: torch.Tensor = None,
-        dereverb_speech_ref: torch.Tensor = None,
+        speech_ref: List[torch.Tensor],
+        noise_ref: Optional[List[torch.Tensor]] = None,
+        dereverb_speech_ref: Optional[List[torch.Tensor]] = None,
         category: torch.Tensor = None,
         num_spk: int = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -355,7 +355,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 if key in others:
                     others[key] = self.decoder(others[key], speech_lengths)[0]
 
-        loss = speech_ref.new_tensor(0.0)
+        loss = speech_ref[0].new_tensor(0.0)
         stats = {}
         o = {}
         perm = None
