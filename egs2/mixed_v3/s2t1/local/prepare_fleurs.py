@@ -20,9 +20,6 @@ try:
 except Exception:
     traceback.print_exc()
     logging.warning("Error importing datasets library")
-    logging.warning(
-        "datasets can be installed via espnet/tools/installers/install_datasets"
-    )
     exit()
 
 
@@ -107,6 +104,7 @@ def main():
     )
 
     args = parser.parse_args()
+    logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
     fleurs_asr = load_dataset(
         "google/xtreme_s", f"fleurs.all", cache_dir=args.cache, num_proc=16
@@ -131,7 +129,8 @@ def main():
         lang_id_iso, lang_name = lang.part3, lang.name
         lang_id_dict[lang_name] = lang_id_iso
         logging.info(
-            f"Process FLEURS subset {lang_name} ({lang_id}) with ISO-693-3 id: {lang_id_iso}"
+            f"Process FLEURS subset {lang_name} ({lang_id})"
+            f"with ISO-693-3 id: {lang_id_iso}"
         )
 
     # Add missing terms manually.

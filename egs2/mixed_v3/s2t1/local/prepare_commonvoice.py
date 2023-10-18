@@ -131,6 +131,7 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+    logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
     # map CommonVoice language-id to ISO-693-3 standard code.
     language_map = open("local/cv-iso-693-3.txt").readlines()

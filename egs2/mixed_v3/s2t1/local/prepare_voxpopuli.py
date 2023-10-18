@@ -126,11 +126,12 @@ def collect_data_asr(
             continue
 
         iso_src = toiso(src)
+        path_template = "ffmpeg -i {} -ac 1 -ar 16000 -f wav - |"
         talks[event_id].append(
             Utterance(
                 utt_id=f"{prefix}_asr_{event_id}_{r['id_']}",
                 wav_id=f"{prefix}_asr_{event_id}",
-                wav_path=f"ffmpeg -i {str(audio_path.resolve())} -ac 1 -ar 16000 -f wav - |",
+                wav_path=path_template.format(str(audio_path.resolve())),
                 start_time=start_time,
                 end_time=end_time,
                 lang=f"<{iso_src}>",
@@ -232,11 +233,12 @@ def collect_data_st(
         # Note(jinchuan): Not sure if "event_id" would overlap across
         # languages. So add src2tgt tag to wav_id to exclude this risk
         iso_src, iso_tgt = toiso(src), toiso(tgt)
+        path_template = "ffmpeg -i {} -ac 1 -ar 16000 -f wav - |"
         talks[event_id].append(
             Utterance(
                 utt_id=f"{prefix}_st_{iso_src}2{iso_tgt}_{event_id}_{utt_id}",
                 wav_id=f"{prefix}_st_{iso_src}2{iso_tgt}_{event_id}",
-                wav_path=f"ffmpeg -i {str(audio_path.resolve())} -ac 1 -ar 16000 -f wav - |",
+                wav_path=path_template.format(str(audio_path.resolve())),
                 start_time=float(r["start_time"]),
                 end_time=float(r["end_time"]),
                 lang=f"<{iso_src}>",
@@ -274,6 +276,8 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
+
+    logging.basicConfig(format="%(levelname)s:%(message)s", level=logging.DEBUG)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
