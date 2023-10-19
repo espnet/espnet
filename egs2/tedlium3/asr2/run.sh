@@ -17,9 +17,9 @@ valid_set="dev"
 test_sets="test dev"
 
 asr_config=conf/tuning/train_discrete_asr_e_branchformer1.yaml
-inference_config=conf/decode_ctc0.3.yaml
+inference_config=conf/decode.yaml
 
-src_nbpe=2000   # I use src_nbpe=6000 for 2000-cluster kmeans.
+src_nbpe=2000   # I use src_nbpe=2000 for 1000-cluster kmeans.
 tgt_nbpe=500   # if token_joint is True, then only tgt_nbpe is used
 
 # ts: true sequence
@@ -30,7 +30,7 @@ tgt_case="ts"
 ./asr2.sh \
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
-    --ngpu 2 \
+    --ngpu 1 \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \
@@ -47,4 +47,5 @@ tgt_case="ts"
     --test_sets "${test_sets}" \
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$@"
+    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
+    --tgt_bpe_nlsyms "[unk]" "$@"
