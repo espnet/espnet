@@ -20,8 +20,8 @@ else
     test_sets="mls_${lang}_test"
 fi
 
-asr_config=conf/train_asr.yaml
-inference_config=conf/decode_asr.yaml
+asr_config=conf/tuning/train_asr_e_branchformer1_wavlm_lr1e-4.yaml
+inference_config=conf/tuning/decode_transformer_nolm.yaml
 
 ngpu=1
 
@@ -35,7 +35,6 @@ ngpu=1
     --token_type bpe \
     --nbpe 150 \
     --feats_type raw \
-    --asr_tag transformer \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
