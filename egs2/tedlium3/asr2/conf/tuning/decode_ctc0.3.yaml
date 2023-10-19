@@ -1,4 +1,4 @@
-beam_size: 20
+beam_size: 10
 ctc_weight: 0.3
 lm_weight: 0.0
 maxlenratio: 1.0

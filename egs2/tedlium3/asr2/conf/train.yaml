@@ -1,1 +1,1 @@
-tuning/train_discrete_asr_e_branchformer1_1gpu.yaml
+./tuning/train_discrete_asr_e_branchformer1.yaml
