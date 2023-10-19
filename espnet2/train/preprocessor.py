@@ -1185,10 +1185,6 @@ class EnhPreprocessor(CommonPreprocessor):
                 "categories must be set in the config file when utt2category files "
                 "exist in the data directory (e.g., dump/raw/*/utt2category)"
             )
-        if self.categories and "category" in data:
-            category = data.pop("category")
-            assert category in self.categories, category
-            data["utt2category"] = np.array([self.categories[category]])
 
         # Add the sampling rate information (an integer) to `data`
         if "fs" in data:
@@ -1218,6 +1214,12 @@ class EnhPreprocessor(CommonPreprocessor):
                     data[self.dereverb_ref_name_prefix + idx] = data[dref_name][i]
 
         if self.train:
+            if self.speech_segment is not None:
+                speech_segment = self.speech_segment // self.sample_rate * fs
+                start, end = self._random_crop_range(
+                    data, num_spk, speech_segment, uid=uid
+                )
+                self._apply_to_all_signals(data, lambda x: x[start:end], num_spk)
             # clean speech signal (Nmic, Time)
             speech_ref = [
                 self._ensure_2d(data[self.speech_ref_name_prefix + str(i + 1)])
@@ -1242,12 +1244,6 @@ class EnhPreprocessor(CommonPreprocessor):
                 (sref[detect_non_silence(sref)] ** 2).mean() for sref in speech_ref
             ]
 
-            if self.speech_segment is not None:
-                start, end = self._random_crop_range(
-                    data, num_spk, self.speech_segment, uid=uid
-                )
-                self._apply_to_all_signals(data, lambda x: x[start:end], num_spk)
-
             speech_mix = self._ensure_2d(data[self.speech_name])
             # 1. Convolve RIR
             if self.rirs is not None and self.rir_apply_prob >= np.random.random():
@@ -1257,7 +1253,7 @@ class EnhPreprocessor(CommonPreprocessor):
                             sp,
                             power,
                             self.rirs,
-                            tgt_fs=self.sample_rate,
+                            tgt_fs=fs,
                             single_channel=self.force_single_channel,
                         )
                         for sp, power in zip(speech_ref, power_ref)
@@ -1304,6 +1300,22 @@ class EnhPreprocessor(CommonPreprocessor):
                 else:
                     speech_mix = sum(speech_ref)
 
+                # Add category information for dynamic mixing
+                # "_reverb" means dereverberation is required
+                # "_both" means both reverberant and dereverberated signals are required
+                if "category" in data:
+                    if self.use_reverberant_ref:
+                        if dereverb_speech_ref is None:
+                            if data["category"].endswith("_reverb"):
+                                data["category"] = data["category"][:-7]
+                            if data["category"].endswith("_both"):
+                                data["category"] = data["category"][:-5]
+                        else:
+                            if not data["category"].endswith("_both"):
+                                data["category"] = data["category"] + "_both"
+                    elif not data["category"].endswith("_reverb"):
+                        data["category"] = data["category"] + "_reverb"
+
             # 2. Add Noise
             if self.noises is not None and self.noise_apply_prob >= np.random.random():
                 speech_mix = sum(speech_ref)
@@ -1315,7 +1327,7 @@ class EnhPreprocessor(CommonPreprocessor):
                     self.noises,
                     self.noise_db_low,
                     self.noise_db_high,
-                    tgt_fs=self.sample_rate,
+                    tgt_fs=fs,
                     single_channel=self.force_single_channel,
                 )
                 if self.force_single_channel:
@@ -1336,10 +1348,11 @@ class EnhPreprocessor(CommonPreprocessor):
                     # Currently, we only apply data augmentation to the mixture.
                     # So, some effects should not be used for Enh, such as pitch_shift,
                     # speed_perturb, time_stretch, polarity_inverse, reverse, etc.
-                    speech_mix = self.data_aug(speech_mix.squeeze(0), self.sample_rate)
+                    speech_mix = self.data_aug(
+                        speech_mix.T.squeeze(0), self.sample_rate
+                    )
 
-            speech_mix = speech_mix.T
-            data[self.speech_name] = speech_mix
+            data[self.speech_name] = speech_mix.T
             ma = np.max(np.abs(data[self.speech_name]))
             if ma > 1.0:
                 self._apply_to_all_signals(data, lambda x: x / ma, num_spk)
@@ -1357,9 +1370,17 @@ class EnhPreprocessor(CommonPreprocessor):
             else:
                 # use a fixed scale to make it deterministic
                 volume_scale = self.volume_low
-            speech_mix = data[self.speech_name]
-            ma = np.max(np.abs(speech_mix))
+            ma = np.max(np.abs(data[self.speech_name]))
             self._apply_to_all_signals(data, lambda x: x * volume_scale / ma, num_spk)
+
+        if self.categories and "category" in data:
+            category = data.pop("category")
+            if not re.fullmatch("\d+ch.*", category):
+                speech_mix = data[self.speech_name]
+                nch = 1 if speech_mix.ndim == 1 else speech_mix.shape[-1]
+                category = f"{nch}ch_" + category
+            assert category in self.categories, category
+            data["utt2category"] = np.array([self.categories[category]])
 
         speech_mix = data[self.speech_name]
         # Reorder channels of the multi-channel signals
@@ -1757,7 +1778,7 @@ class TSEPreprocessor(EnhPreprocessor):
             for name in aux_names:
                 if data[name].startswith("*"):
                     # in case of collecting stats for training data
-                    data[name] = np.zeros(1, dtype=data["speech_mix"].dtype)
+                    data[name] = np.zeros(1, dtype=data[self.speech_name].dtype)
                 else:
                     if getattr(self, "load_spk_embedding", False):
                         data[name] = np.load(data[name])[None, :]  # force 2D
