@@ -185,7 +185,7 @@ class VITS(AbsGANTTS):
         lambda_dur: float = 1.0,
         lambda_kl: float = 1.0,
         cache_generator_outputs: bool = True,
-        plot_pred_mos: bool = False
+        plot_pred_mos: bool = False,
     ):
         """Initialize VITS module.
 

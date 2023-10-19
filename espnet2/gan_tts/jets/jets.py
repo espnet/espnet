@@ -212,7 +212,7 @@ class JETS(AbsGANTTS):
         lambda_var: float = 1.0,
         lambda_align: float = 2.0,
         cache_generator_outputs: bool = True,
-        plot_pred_mos: bool = False
+        plot_pred_mos: bool = False,
     ):
         """Initialize JETS module.
 
@@ -297,7 +297,6 @@ class JETS(AbsGANTTS):
             self.predictor = torch.hub.load(
                 "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
             )
-
 
     @property
     def require_raw_speech(self):
