@@ -9,10 +9,10 @@ kmeans_feature=wavlm_large/21  # use model_type/layer_index
 nclusters=1000
 
 src_lang=$(echo "${kmeans_feature}_full_km${nclusters}" | tr "/" "_")
-tgt_lang=en
+tgt_lang=multi
 
 lang="all" # one of all es en fr nl it pt pl de
-data_split="full" # one of full 1h 10h
+data_split="10h" # one of full 1h 10h
 
 train_set="mls_${lang}_train"
 valid_set="mls_${lang}_dev"
@@ -52,13 +52,9 @@ tgt_case="ts"
     --tgt_nbpe $tgt_nbpe \
     --src_case ${src_case} \
     --tgt_case ${tgt_case} \
-    --speed_perturb_factors "" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     "$@"
-    # --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
-    # --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    # --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang} data/local/other_text/text" \

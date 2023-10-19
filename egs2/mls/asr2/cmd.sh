@@ -48,7 +48,7 @@ elif [ "${cmd_backend}" = stdout ]; then
     # Used for "*_train.py": "--gpu" is appended optionally by run.sh
     export cuda_cmd="stdout.pl"
     # Used for "*_recog.py"
-    export decode_cmd="run.pl"
+    export decode_cmd="stdout.pl"
 
 
 # "qsub" (Sun Grid Engine, or derivation of it)
@@ -82,7 +82,7 @@ elif [ "${cmd_backend}" = slurm ]; then
 
     export train_cmd="slurm.pl"
     export cuda_cmd="slurm.pl"
-    export decode_cmd="slurm.pl --num_threads 4 --mem 2000M"
+    export decode_cmd="slurm.pl --mem 1000M --num_threads 4"
 
 elif [ "${cmd_backend}" = ssh ]; then
     # You have to create ".queue/machines" to specify the host to execute jobs.

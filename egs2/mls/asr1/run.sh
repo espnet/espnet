@@ -6,7 +6,7 @@ set -u
 set -o pipefail
 
 lang="all" # one of all es en fr nl it pt pl de
-data_split="full" # one of full 1h 10h
+data_split="10h" # one of full 1h 10h
 
 train_set="mls_${lang}_train"
 valid_set="mls_${lang}_dev"

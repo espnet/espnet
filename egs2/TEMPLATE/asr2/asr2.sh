@@ -62,6 +62,7 @@ portion=0.1
 nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
+gpu_kmeans=true             # Whether to use gpu for kmeans.
 
 # Tokenization related
 oov="<unk>"         # Out of vocabulary symbol.
@@ -196,7 +197,8 @@ Options:
     --kmeans_feature    # The string indicates the kmeans features (default="${kmeans_feature}").
     --portion           # The portion of data used to train kmeans (default="${portion}").
     --nclusters         # The number of clusters for discrete tokens (default="${nclusters}").
-    --storage_save_mode # # Save storage on SSL feature extraction. If true, feature extraction and kmeans clustering on the fly (default="${storage_save_mode}").
+    --storage_save_mode # Save storage on SSL feature extraction. If true, feature extraction and kmeans clustering on the fly (default="${storage_save_mode}").
+    --gpu_kmeans        # Whether to use gpu for kmeans (default="${gpu_kmeans}").
 
     # Tokenization related
     --oov                     # Out of vocabulary symbol (default="${oov}").
@@ -680,12 +682,6 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then
     log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
 
-    if [ ${ngpu} -gt 0 ]; then
-        use_gpu="true"
-    else
-        use_gpu="false"
-    fi
-
     scripts/feats/perform_kmeans.sh \
         --stage 1 --stop-stage 4 \
         --train_set "${train_set}" \
@@ -701,7 +697,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
         --portion "${portion}" \
         --nclusters "${nclusters}" \
         --storage_save_mode ${storage_save_mode} \
-        --use_gpu "${use_gpu}" \
+        --use_gpu ${gpu_kmeans} \
         --nj ${nj} \
         --cpu_cmd "${train_cmd}" \
         --cuda_cmd "${cuda_cmd}" \
