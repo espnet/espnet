@@ -185,6 +185,7 @@ class VITS(AbsGANTTS):
         lambda_dur: float = 1.0,
         lambda_kl: float = 1.0,
         cache_generator_outputs: bool = True,
+        plot_pred_mos: bool = False
     ):
         """Initialize VITS module.
 
@@ -211,6 +212,7 @@ class VITS(AbsGANTTS):
             lambda_dur (float): Loss scaling coefficient for duration loss.
             lambda_kl (float): Loss scaling coefficient for KL divergence loss.
             cache_generator_outputs (bool): Whether to cache generator outputs.
+            plot_pred_mos (bool): Whether to plot predicted MOS during the training.
 
         """
         assert check_argument_types()
@@ -264,6 +266,14 @@ class VITS(AbsGANTTS):
         self.spks = self.generator.spks
         self.langs = self.generator.langs
         self.spk_embed_dim = self.generator.spk_embed_dim
+
+        # plot pseudo mos during training
+        self.plot_pred_mos = plot_pred_mos
+        if plot_pred_mos:
+            # Load predictor for UTMOS22.
+            self.predictor = torch.hub.load(
+                "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
+            )
 
     @property
     def require_raw_speech(self):
@@ -431,6 +441,13 @@ class VITS(AbsGANTTS):
             generator_adv_loss=adv_loss.item(),
             generator_feat_match_loss=feat_match_loss.item(),
         )
+
+        if self.plot_pred_mos:
+            # Caltulate predicted MOS from generated speech waveform.
+            with torch.no_grad():
+                # speech_hat_: (B, 1, T)
+                pmos = self.predictor(speech_hat_.squeeze(1), self.fs).mean()
+            stats["generator_predicted_mos"] = pmos.item()
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 

@@ -212,6 +212,7 @@ class JETS(AbsGANTTS):
         lambda_var: float = 1.0,
         lambda_align: float = 2.0,
         cache_generator_outputs: bool = True,
+        plot_pred_mos: bool = False
     ):
         """Initialize JETS module.
 
@@ -238,7 +239,7 @@ class JETS(AbsGANTTS):
             lambda_var (float): Loss scaling coefficient for variance loss.
             lambda_align (float): Loss scaling coefficient for alignment loss.
             cache_generator_outputs (bool): Whether to cache generator outputs.
-
+            plot_pred_mos (bool): Whether to plot predicted MOS during the training.
         """
         assert check_argument_types()
         super().__init__()
@@ -288,6 +289,15 @@ class JETS(AbsGANTTS):
         self.langs = self.generator.langs
         self.spk_embed_dim = self.generator.spk_embed_dim
         self.use_gst = getattr(self.generator, "use_gst", False)
+
+        # plot pseudo mos during training
+        self.plot_pred_mos = plot_pred_mos
+        if plot_pred_mos:
+            # Load predictor for UTMOS22.
+            self.predictor = torch.hub.load(
+                "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
+            )
+
 
     @property
     def require_raw_speech(self):
@@ -478,6 +488,13 @@ class JETS(AbsGANTTS):
             generator_align_forwardsum_loss=forwardsum_loss.item(),
             generator_align_bin_loss=bin_loss.item(),
         )
+
+        if self.plot_pred_mos:
+            # Caltulate predicted MOS from generated speech waveform.
+            with torch.no_grad():
+                # speech_hat_: (B, 1, T)
+                pmos = self.predictor(speech_hat_.squeeze(1), self.fs).mean()
+            stats["generator_predicted_mos"] = pmos.item()
 
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
