@@ -129,6 +129,7 @@ tts_conf:
     # others
     sampling_rate: 22050          # needed in the inference for saving wav
     cache_generator_outputs: true # whether to cache generator outputs in the training
+    plot_pred_mos: false           # whether to plot predicted MOS during training
 
 ##########################################################
 #            OPTIMIZER & SCHEDULER SETTING               #
