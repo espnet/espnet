@@ -4,12 +4,12 @@ espnet2.svs package
 
 
 
-.. _espnet2.svs.__init__:
+.. _espnet2.svs.espnet_model:
 
-espnet2.svs.__init__
---------------------
+espnet2.svs.espnet_model
+------------------------
 
-.. automodule:: espnet2.svs.__init__
+.. automodule:: espnet2.svs.espnet_model
     :members:
     :undoc-members:
     :show-inheritance:
@@ -26,12 +26,12 @@ espnet2.svs.abs_svs
     :show-inheritance:
 
 
-.. _espnet2.svs.espnet_model:
+.. _espnet2.svs.__init__:
 
-espnet2.svs.espnet_model
-------------------------
+espnet2.svs.__init__
+--------------------
 
-.. automodule:: espnet2.svs.espnet_model
+.. automodule:: espnet2.svs.__init__
     :members:
     :undoc-members:
     :show-inheritance:
@@ -43,6 +43,17 @@ espnet2.svs.singing_tacotron.singing_tacotron
 ---------------------------------------------
 
 .. automodule:: espnet2.svs.singing_tacotron.singing_tacotron
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.singing_tacotron.encoder:
+
+espnet2.svs.singing_tacotron.encoder
+------------------------------------
+
+.. automodule:: espnet2.svs.singing_tacotron.encoder
     :members:
     :undoc-members:
     :show-inheritance:
@@ -70,45 +81,12 @@ espnet2.svs.singing_tacotron.__init__
     :show-inheritance:
 
 
-.. _espnet2.svs.singing_tacotron.encoder:
+.. _espnet2.svs.naive_rnn.naive_rnn:
 
-espnet2.svs.singing_tacotron.encoder
-------------------------------------
-
-.. automodule:: espnet2.svs.singing_tacotron.encoder
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.xiaoice.XiaoiceSing:
-
-espnet2.svs.xiaoice.XiaoiceSing
+espnet2.svs.naive_rnn.naive_rnn
 -------------------------------
 
-.. automodule:: espnet2.svs.xiaoice.XiaoiceSing
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.xiaoice.__init__:
-
-espnet2.svs.xiaoice.__init__
-----------------------------
-
-.. automodule:: espnet2.svs.xiaoice.__init__
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.svs.xiaoice.loss:
-
-espnet2.svs.xiaoice.loss
-------------------------
-
-.. automodule:: espnet2.svs.xiaoice.loss
+.. automodule:: espnet2.svs.naive_rnn.naive_rnn
     :members:
     :undoc-members:
     :show-inheritance:
@@ -136,17 +114,6 @@ espnet2.svs.naive_rnn.__init__
     :show-inheritance:
 
 
-.. _espnet2.svs.naive_rnn.naive_rnn:
-
-espnet2.svs.naive_rnn.naive_rnn
--------------------------------
-
-.. automodule:: espnet2.svs.naive_rnn.naive_rnn
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.svs.feats_extract.score_feats_extract:
 
 espnet2.svs.feats_extract.score_feats_extract
@@ -164,6 +131,39 @@ espnet2.svs.feats_extract.__init__
 ----------------------------------
 
 .. automodule:: espnet2.svs.feats_extract.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.xiaoice.XiaoiceSing:
+
+espnet2.svs.xiaoice.XiaoiceSing
+-------------------------------
+
+.. automodule:: espnet2.svs.xiaoice.XiaoiceSing
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.xiaoice.loss:
+
+espnet2.svs.xiaoice.loss
+------------------------
+
+.. automodule:: espnet2.svs.xiaoice.loss
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.svs.xiaoice.__init__:
+
+espnet2.svs.xiaoice.__init__
+----------------------------
+
+.. automodule:: espnet2.svs.xiaoice.__init__
     :members:
     :undoc-members:
     :show-inheritance:
