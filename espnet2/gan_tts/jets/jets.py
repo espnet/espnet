@@ -212,7 +212,8 @@ class JETS(AbsGANTTS):
         lambda_var: float = 1.0,
         lambda_align: float = 2.0,
         cache_generator_outputs: bool = True,
-        plot_pred_mos: bool = False
+        plot_pred_mos: bool = False,
+        mos_pred_tool: str = "utmos"
     ):
         """Initialize JETS module.
 
@@ -240,6 +241,7 @@ class JETS(AbsGANTTS):
             lambda_align (float): Loss scaling coefficient for alignment loss.
             cache_generator_outputs (bool): Whether to cache generator outputs.
             plot_pred_mos (bool): Whether to plot predicted MOS during the training.
+            mos_pred_tool (str): MOS prediction tool name.
         """
         assert check_argument_types()
         super().__init__()
@@ -293,10 +295,13 @@ class JETS(AbsGANTTS):
         # plot pseudo mos during training
         self.plot_pred_mos = plot_pred_mos
         if plot_pred_mos:
-            # Load predictor for UTMOS22.
-            self.predictor = torch.hub.load(
-                "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
-            )
+            if mos_pred_tool == "utmos":
+                # Load predictor for UTMOS22 (https://arxiv.org/abs/2204.02152)
+                self.predictor = torch.hub.load(
+                    "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
+                )
+            else:
+                raise NotImplementedError(f"Not supported mos_pred_tool: {mos_pred_tool}")
 
 
     @property

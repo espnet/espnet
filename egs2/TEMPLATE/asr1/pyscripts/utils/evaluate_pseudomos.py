@@ -103,6 +103,13 @@ def get_parser() -> argparse.Namespace:
     )
     parser.add_argument("--device", type=str, default="cuda:0", help="Inference device")
     parser.add_argument(
+        "--mos_toolkit",
+        type=str,
+        default="utmos",
+        choices=["utmos"],
+        help="Toolkit to calculate pseudo MOS."
+    )
+    parser.add_argument(
         "--batchsize",
         default=4,
         type=int,
@@ -157,11 +164,14 @@ def main():
         device = torch.device(args.device)
     else:
         device = torch.device("cpu")
-
-    # Load predictor for UTMOS22.
-    predictor = torch.hub.load(
-        "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
-    ).to(device)
+    
+    if args.mos_toolkit == "utmos":
+        # Load predictor for UTMOS22.
+        predictor = torch.hub.load(
+            "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
+        ).to(device)
+    else:
+        raise NotImplementedError(f"Not supported {args.mos_toolkit}.")
 
     # Calculate pseudo MOS for all the files.
     pmos_dict = calculate(gen_files, predictor, device, args.batchsize)
