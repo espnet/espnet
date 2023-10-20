@@ -1319,6 +1319,8 @@ class EnhPreprocessor(CommonPreprocessor):
             # 2. Add Noise
             if self.noises is not None and self.noise_apply_prob >= np.random.random():
                 speech_mix = sum(speech_ref)
+                if self.force_single_channel and speech_mix.shape[0] > 1:
+                    speech_mix = speech_mix[:1]
 
                 power_mix = (speech_mix[detect_non_silence(speech_mix)] ** 2).mean()
                 speech_mix, noise = self._add_noise(
@@ -1330,11 +1332,6 @@ class EnhPreprocessor(CommonPreprocessor):
                     tgt_fs=fs,
                     single_channel=self.force_single_channel,
                 )
-                if self.force_single_channel:
-                    if speech_mix.shape[0] > 1:
-                        speech_mix = speech_mix[:1]
-                    if noise.shape[0] > 1:
-                        noise = noise[:1]
 
                 name = self.noise_ref_name_prefix + "1"
                 if name in data:
@@ -1349,7 +1346,8 @@ class EnhPreprocessor(CommonPreprocessor):
                     # So, some effects should not be used for Enh, such as pitch_shift,
                     # speed_perturb, time_stretch, polarity_inverse, reverse, etc.
                     speech_mix = self.data_aug(
-                        speech_mix.T.squeeze(0), self.sample_rate
+                        speech_mix.T if speech_mix.shape[0] > 1 else speech_mix[0],
+                        self.sample_rate,
                     )
 
             data[self.speech_name] = speech_mix.T
