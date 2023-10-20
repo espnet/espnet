@@ -295,13 +295,10 @@ class JETS(AbsGANTTS):
         # plot pseudo mos during training
         self.plot_pred_mos = plot_pred_mos
         if plot_pred_mos:
-            if mos_pred_tool == "utmos":
-                # Load predictor for UTMOS22 (https://arxiv.org/abs/2204.02152)
-                self.predictor = torch.hub.load(
-                    "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
-                )
-            else:
-                raise NotImplementedError(f"Not supported mos_pred_tool: {mos_pred_tool}")
+            # Load predictor for UTMOS22.
+            self.predictor = torch.hub.load(
+                "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
+            )
 
 
     @property
