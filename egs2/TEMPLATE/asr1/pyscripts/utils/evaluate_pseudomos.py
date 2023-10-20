@@ -107,7 +107,7 @@ def get_parser() -> argparse.Namespace:
         type=str,
         default="utmos",
         choices=["utmos"],
-        help="Toolkit to calculate pseudo MOS."
+        help="Toolkit to calculate pseudo MOS.",
     )
     parser.add_argument(
         "--batchsize",
@@ -164,7 +164,7 @@ def main():
         device = torch.device(args.device)
     else:
         device = torch.device("cpu")
-    
+
     if args.mos_toolkit == "utmos":
         # Load predictor for UTMOS22.
         predictor = torch.hub.load(

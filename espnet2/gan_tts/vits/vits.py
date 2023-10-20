@@ -278,7 +278,9 @@ class VITS(AbsGANTTS):
                     "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
                 )
             else:
-                raise NotImplementedError(f"Not supported mos_pred_tool: {mos_pred_tool}")
+                raise NotImplementedError(
+                    f"Not supported mos_pred_tool: {mos_pred_tool}"
+                )
 
     @property
     def require_raw_speech(self):
