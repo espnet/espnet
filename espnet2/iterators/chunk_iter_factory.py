@@ -11,6 +11,8 @@ from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 from espnet2.samplers.abs_sampler import AbsSampler
 
+DEFAULT_EXCLUDED_KEY_PREFIXES = ("utt2category", "utt2fs")
+
 
 class ChunkIterFactory(AbsIterFactory):
     """Creates chunks from a sequence
@@ -95,9 +97,11 @@ class ChunkIterFactory(AbsIterFactory):
         #  - exactly match one of the prefixes in `excluded_key_prefixes`
         #  - have one of the prefixes in `excluded_key_prefixes` and end with numbers
         if excluded_key_prefixes is None:
-            excluded_key_prefixes = ["utt2category"]
-        elif "utt2category" not in excluded_key_prefixes:
-            excluded_key_prefixes = excluded_key_prefixes + ["utt2category"]
+            excluded_key_prefixes = DEFAULT_EXCLUDED_KEY_PREFIXES
+        else:
+            for k in DEFAULT_EXCLUDED_KEY_PREFIXES:
+                if k not in excluded_key_prefixes:
+                    excluded_key_prefixes.append(k)
         self.excluded_key_pattern = (
             "(" + "[0-9]*)|(".join(excluded_key_prefixes) + "[0-9]*)"
         )
