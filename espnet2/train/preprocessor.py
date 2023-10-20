@@ -1375,7 +1375,7 @@ class EnhPreprocessor(CommonPreprocessor):
 
         if self.categories and "category" in data:
             category = data.pop("category")
-            if not re.fullmatch("\d+ch.*", category):
+            if not re.fullmatch(r"\d+ch.*", category):
                 speech_mix = data[self.speech_name]
                 nch = 1 if speech_mix.ndim == 1 else speech_mix.shape[-1]
                 category = f"{nch}ch_" + category
