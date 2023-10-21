@@ -57,4 +57,5 @@ tgt_case="ts"
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
+    --lm_train_text "${lm_train_text}" \
     "$@"
