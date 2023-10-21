@@ -2,7 +2,7 @@ setup() {
     load "bats-support/load"
     load "bats-assert/load"
 
-    utils=$BATS_TEST_DIRNAME/../utils
+    utils=$BATS_TEST_DIRNAME/../../egs2/TEMPLATE/asr1/scripts/utils
     echo $utils
 }
 
