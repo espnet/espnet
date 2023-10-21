@@ -34,6 +34,7 @@ model_conf:
     ctc_weight: 0.0
     lsm_weight: 0.1
     length_normalized_loss: false
+    extract_feats_in_collect_stats: false
     sym_sos: "<|startoftranscript|>"
     sym_eos: "<|endoftext|>"
     # do_pad_trim: true         # should be set when doing zero-shot inference

@@ -26,6 +26,7 @@ from espnet2.iterators.category_iter_factory import CategoryIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
+from espnet2.layers.create_lora_adapter import create_lora_adapter
 from espnet2.main_funcs.collect_stats import collect_stats
 from espnet2.optimizers.optim_groups import configure_optimizer
 from espnet2.optimizers.sgd import SGD
@@ -174,6 +175,7 @@ class IteratorOptions:
     batch_type: str
     max_cache_size: float
     max_cache_fd: int
+    allow_multi_rates: bool
     distributed: bool
     num_batches: Optional[int]
     num_iters_per_epoch: Optional[int]
@@ -641,6 +643,25 @@ class AbsTask(ABC):
             default=False,
             help="Set torch.autograd.set_detect_anomaly",
         )
+        group.add_argument(
+            "--use_lora",
+            type=str2bool,
+            default=False,
+            help="Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) "
+            "for large pre-trained foundation models, like Whisper",
+        )
+        group.add_argument(
+            "--save_lora_only",
+            type=str2bool,
+            default=True,
+            help="Only save LoRA parameters or save all model parameters",
+        )
+        group.add_argument(
+            "--lora_conf",
+            action=NestedDictAction,
+            default=dict(),
+            help="Configuration for LoRA based finetuning",
+        )
 
         group = parser.add_argument_group("Pretraining model related")
         group.add_argument("--pretrain_path", help="This option is obsoleted")
@@ -847,6 +868,12 @@ class AbsTask(ABC):
             help="The maximum number of file descriptors to be kept "
             "as opened for ark files. "
             "This feature is only valid when data type is 'kaldi_ark'.",
+        )
+        group.add_argument(
+            "--allow_multi_rates",
+            type=str2bool,
+            default=False,
+            help="Whether to allow audios to have different sampling rates",
         )
         group.add_argument(
             "--valid_max_cache_size",
@@ -1205,6 +1232,10 @@ class AbsTask(ABC):
                         logging.info(f"Setting {k}.requires_grad = False")
                         p.requires_grad = False
 
+            # Use LoRA to finetune the large pre-trained foundation models, like Whisper
+            if getattr(args, "use_lora", False):
+                create_lora_adapter(model, **args.lora_conf)
+
             # 3. Build optimizer
             optimizers = cls.build_optimizers(args, model=model)
 
@@ -1419,6 +1450,7 @@ class AbsTask(ABC):
             batch_type = args.batch_type
             max_cache_size = args.max_cache_size
             max_cache_fd = args.max_cache_fd
+            allow_multi_rates = args.allow_multi_rates
             distributed = distributed_option.distributed
             num_batches = None
             num_iters_per_epoch = args.num_iters_per_epoch
@@ -1448,6 +1480,7 @@ class AbsTask(ABC):
             else:
                 max_cache_size = args.valid_max_cache_size
             max_cache_fd = args.max_cache_fd
+            allow_multi_rates = args.allow_multi_rates
             distributed = distributed_option.distributed
             num_batches = None
             num_iters_per_epoch = None
@@ -1463,6 +1496,7 @@ class AbsTask(ABC):
             batch_bins = 0
             num_batches = args.num_att_plot
             max_cache_fd = args.max_cache_fd
+            allow_multi_rates = args.allow_multi_rates
             # num_att_plot should be a few sample ~ 3, so cache all data.
             max_cache_size = np.inf if args.max_cache_size != 0.0 else 0.0
             # always False because plot_attention performs on RANK0
@@ -1483,6 +1517,7 @@ class AbsTask(ABC):
             num_batches=num_batches,
             max_cache_size=max_cache_size,
             max_cache_fd=max_cache_fd,
+            allow_multi_rates=allow_multi_rates,
             distributed=distributed,
             num_iters_per_epoch=num_iters_per_epoch,
             train=train,
@@ -1572,6 +1607,7 @@ class AbsTask(ABC):
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
@@ -1653,6 +1689,7 @@ class AbsTask(ABC):
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
@@ -1739,6 +1776,7 @@ class AbsTask(ABC):
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
@@ -1999,13 +2037,22 @@ class AbsTask(ABC):
                 f"model must inherit {AbsESPnetModel.__name__}, but got {type(model)}"
             )
         model.to(device)
+
+        # For LoRA finetuned model, create LoRA adapter
+        use_lora = getattr(args, "use_lora", False)
+        if use_lora:
+            create_lora_adapter(model, **args.lora_conf)
+
         if model_file is not None:
             if device == "cuda":
                 # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                model.load_state_dict(torch.load(model_file, map_location=device))
+                model.load_state_dict(
+                    torch.load(model_file, map_location=device),
+                    strict=not use_lora,
+                )
             except RuntimeError:
                 # Note(simpleoier): the following part is to be compatible with
                 #   pretrained model using earlier versions before `0a625088`
@@ -2024,7 +2071,7 @@ class AbsTask(ABC):
                             ): v
                             for k, v in state_dict.items()
                         }
-                        model.load_state_dict(state_dict)
+                        model.load_state_dict(state_dict, strict=not use_lora)
                     else:
                         raise
                 else:

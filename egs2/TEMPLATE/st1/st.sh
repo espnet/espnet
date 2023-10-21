@@ -145,6 +145,7 @@ lm_dev_text=     # Text file path of language model development set.
 lm_test_text=    # Text file path of language model evaluation set.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
+hyp_cleaner=none # Text cleaner for hypotheses (may be used with external tokenizers)
 g2p=none         # g2p method (needed if token_type=phn).
 score_opts=                # The options given to sclite scoring
 local_score_opts=          # The options given to local/score.sh.
@@ -362,6 +363,14 @@ elif [ "${src_token_type}" = char ]; then
 elif [ "${src_token_type}" = word ]; then
     src_token_list="${src_wordtoken_list}"
     src_bpemodel=none
+elif [ "${src_token_type}" = whisper_en ]; then
+    src_token_list="${token_listdir}"/src_whisper_en/tokens.txt
+    src_bpemodel=whisper_en
+    hyp_cleaner=${cleaner}
+elif [ "${src_token_type}" = whisper_multilingual ]; then
+    src_token_list="${token_listdir}"/src_whisper_multilingual/tokens.txt
+    src_bpemodel=whisper_multilingual
+    hyp_cleaner=${cleaner}
 else
     log "Error: not supported --src_token_type '${src_token_type}'"
     exit 2
@@ -374,6 +383,14 @@ elif [ "${tgt_token_type}" = char ]; then
 elif [ "${tgt_token_type}" = word ]; then
     tgt_token_list="${tgt_wordtoken_list}"
     tgt_bpemodel=none
+elif [ "${tgt_token_type}" = whisper_en ]; then
+    tgt_token_list="${token_listdir}"/tgt_whisper_en/tokens.txt
+    tgt_bpemodel=whisper_en
+    hyp_cleaner=${cleaner}
+elif [ "${tgt_token_type}" = whisper_multilingual ]; then
+    tgt_token_list="${token_listdir}"/tgt_whisper_multilingual/tokens.txt
+    tgt_bpemodel=whisper_multilingual
+    hyp_cleaner=${cleaner}
 elif [ "${tgt_token_type}" = hugging_face ]; then
     tgt_token_list="${hugging_face_token_list}"
     tgt_bpemodel=${hugging_face_model_name_or_path}
@@ -810,6 +827,16 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
 
+        elif grep -q "whisper" <<< ${tgt_token_type}; then
+            log "Stage 5a: Generate whisper token_list from ${tgt_token_type} tokenizer"
+
+            echo ${tgt_token_list}
+            ${python} -m espnet2.bin.whisper_export_vocabulary  \
+                --whisper_model "${tgt_token_type}" \
+                --whisper_language "${tgt_lang}" \
+                --whisper_task "translate" \
+                --output "${tgt_token_list}"
+
         elif [ "${tgt_token_type}" = hugging_face ]; then
             log "Stage 5: Generate hugging_face token_list from ${hugging_face_model_name_or_path}"
 
@@ -894,6 +921,16 @@ if ! "${skip_data_prep}"; then
                     --add_symbol "${blank}:0" \
                     --add_symbol "${oov}:1" \
                     --add_symbol "${sos_eos}:-1"
+
+            elif grep -q "whisper" <<< ${src_token_type}; then
+                log "Stage 5b: Generate whisper token_list from ${src_token_type} tokenizer"
+
+                echo ${src_token_list}
+                ${python} -m espnet2.bin.whisper_export_vocabulary  \
+                    --whisper_model "${src_token_type}" \
+                    --whisper_language "${src_lang}" \
+                    --whisper_task "translate" \
+                    --output "${src_token_list}"
 
             else
                 log "Error: not supported --token_type '${src_token_type}'"
@@ -1543,6 +1580,7 @@ if ! "${skip_eval}"; then
                             --token_type word \
                             --non_linguistic_symbols "${nlsyms_txt}" \
                             --remove_non_linguistic_symbols true \
+                            --cleaner "${hyp_cleaner}" \
                             ) \
                 <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                     >"${_scoredir}/hyp.trn.org"
@@ -1649,6 +1687,7 @@ if ! "${skip_eval}"; then
                                 --token_type word \
                                 --non_linguistic_symbols "${nlsyms_txt}" \
                                 --remove_non_linguistic_symbols true \
+                                --cleaner "${hyp_cleaner}" \
                                 ) \
                     <(<"${_data}/utt2spk" awk '{ print "(" $2 "-" $1 ")" }') \
                         >"${_scoredir}/hyp.trn"
