@@ -8,7 +8,12 @@
 - Git hash: `a8bc43b1bfc9518da7dd8be4cad0ef346ef222fc`
   - Commit date: `Sun Aug 20 16:17:23 2023 -0400`
 
-## exp/asr_smallerbatch_wamrup10k_lr0.0001_e200_raw_wavlm_large_21_full_km1000_bpe_rm3000_bpe_ts150
+## all 10h
+- lang: `all`
+- data_split: `10h`
+- asr_config: `conf/train_discrete_asr_e_branchformer1.yaml`
+- model link: https://huggingface.co/espnet/juice500ml_mls_10h_discrete_asr
+
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|

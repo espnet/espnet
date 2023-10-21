@@ -1,5 +1,10 @@
 # RESULTS
-## Environments
+## asr_transformer_es
+- lang: `es`
+- data_split: `full`
+- asr_config: `conf/train_asr.yaml`
+- inference_config: `conf/decode_asr.yaml`
+- model link: https://zenodo.org/record/4458452
 - date: `Fri Jan 22 04:56:26 EST 2021`
 - python version: `3.8.3 (default, May 19 2020, 18:47:26)  [GCC 7.3.0]`
 - espnet version: `espnet 0.9.2`
@@ -7,12 +12,6 @@
 - Git hash: `c0c3724fe660abd205dbca9c9bbdffed1d2c79db`
   - Commit date: `Tue Jan 12 23:00:11 2021 -0500`
 
-## asr_transformer_es
-- lang: `es`
-- data_split: `full`
-- asr_config: `conf/train_asr.yaml`
-- inference_config: `conf/decode_asr.yaml`
-- model link: https://zenodo.org/record/4458452
 ### WER
 
 |dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
@@ -32,20 +31,12 @@
 |decode_asr_lm_lm_train_bpe150_valid.loss.ave_asr_model_valid.acc.best/es_test|2385|251160|88.6|7.9|3.5|2.1|13.6|98.6|
 
 
-# RESULTS
-## Environments
-- date: `Wed Sep 13 23:39:31 EDT 2023`
-- python version: `3.8.6 (default, Dec 17 2020, 16:57:01)  [GCC 10.2.0]`
-- espnet version: `espnet 202308`
-- pytorch version: `pytorch 1.13.1+cu117`
-- Git hash: `a8bc43b1bfc9518da7dd8be4cad0ef346ef222fc`
-  - Commit date: `Sun Aug 20 16:17:23 2023 -0400`
-
 ## all 10h (Fbank baseline)
 - lang: `all`
 - data_split: `10h`
 - asr_config: `conf/tuning/train_asr_e_branchformer1_fbank_lre1-3.yaml`
 - inference_config: `conf/tuning/decode_transformer_nolm.yaml`
+- model link: https://huggingface.co/espnet/juice500ml_mls_10h_asr_fbank
 - python version: `3.8.6 (default, Dec 17 2020, 16:57:01)  [GCC 10.2.0]`
 - espnet version: `espnet 202308`
 - pytorch version: `pytorch 1.13.1+cu117`
@@ -97,6 +88,7 @@
 - data_split: `10h`
 - asr_config: `conf/tuning/train_asr_e_branchformer1_wavlm_lre1-4.yaml`
 - inference_config: `conf/tuning/decode_transformer_nolm.yaml`
+- model link: https://huggingface.co/espnet/juice500ml_mls_10h_asr_ssl
 - python version: `3.8.6 (default, Dec 17 2020, 16:57:01)  [GCC 10.2.0]`
 - espnet version: `espnet 202308`
 - pytorch version: `pytorch 1.13.1+cu117`
