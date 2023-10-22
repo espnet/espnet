@@ -29,6 +29,10 @@ fi
 asr_config=conf/train_discrete_asr_e_branchformer1.yaml
 inference_config=conf/decode_ctc0.3.yaml
 
+# As mls 10h split is small, we can use the full dataset.
+# However, for the full dataset, reducing this is recommended.
+kmeans_portion=1.0
+# Also, for the full dataset, increasing the nbpe may yield better performance.
 src_nbpe=3000
 tgt_nbpe=150
 
@@ -39,7 +43,7 @@ tgt_case="ts"
 
 ./asr2.sh \
     --local_data_opts "--lang ${lang} --data_split ${data_split}" \
-    --portion 1.0 \
+    --portion ${kmeans_portion} \
     --kmeans_opts "--batch_bins 4800000" \
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
