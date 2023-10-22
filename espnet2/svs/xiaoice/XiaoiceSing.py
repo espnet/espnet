@@ -485,7 +485,7 @@ class XiaoiceSing(AbsSVS):
         duration_ = duration_[:, : duration_lengths.max()]  # for data-parallel
         olens = feats_lengths
         if self.loss_function == "XiaoiceSing2":
-            pitch = pitch[:, : pitch_lengths.max()]
+            logf0 = pitch[:, : pitch_lengths.max()]
             vuv = log_f0 != 0
         batch_size = text.size(0)
 
