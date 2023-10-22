@@ -7,6 +7,7 @@ from pathlib import Path
 from typeguard import check_argument_types
 
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
+from espnet2.utils.types import str2bool
 from espnet.utils.cli_utils import get_commandline_args
 
 
@@ -116,7 +117,7 @@ def get_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--sot_asr",
-        type=bool,
+        type=str2bool,
         default=False,
         required=False,
         help="Whether SOT-style training is used in Whisper",

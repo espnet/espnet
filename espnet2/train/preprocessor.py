@@ -561,6 +561,9 @@ class CommonPreprocessor_multi(CommonPreprocessor):
         data_aug_effects: List = None,
         data_aug_num: List[int] = [1, 1],
         data_aug_prob: float = 0.0,
+        # only use for whisper
+        whisper_language: str = None,
+        whisper_task: str = None,
     ):
         super().__init__(
             train=train,
@@ -587,6 +590,8 @@ class CommonPreprocessor_multi(CommonPreprocessor):
             data_aug_effects=data_aug_effects,
             data_aug_num=data_aug_num,
             data_aug_prob=data_aug_prob,
+            whisper_language=whisper_language,
+            whisper_task=whisper_task,
         )
         if isinstance(text_name, str):
             self.text_name = [text_name]
@@ -605,10 +610,16 @@ class CommonPreprocessor_multi(CommonPreprocessor):
                 ), "Currently, Whisper SOT only supports one SC token"
                 speaker_change_symbol = speaker_change_symbol[0]
                 self.tokenizer = OpenAIWhisperTokenizer(
-                    bpemodel, sot=True, speaker_change_symbol=speaker_change_symbol
+                    model_type=bpemodel,
+                    language=whisper_language or "en",
+                    task=whisper_task or "transcribe",
+                    sot=True,
+                    speaker_change_symbol=speaker_change_symbol,
                 )
                 self.token_id_converter = OpenAIWhisperTokenIDConverter(
                     model_type=bpemodel,
+                    language=whisper_language or "en",
+                    task=whisper_task or "transcribe",
                     sot=True,
                     speaker_change_symbol=speaker_change_symbol,
                 )
