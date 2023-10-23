@@ -93,6 +93,15 @@ class TransformerEncoder(AbsEncoder):
                 torch.nn.ReLU(),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
+        if input_layer == "linear_w2v":
+            self.embed = torch.nn.Sequential(
+                torch.nn.LayerNorm(output_size),
+                torch.nn.Linear(input_size, output_size),
+                torch.nn.Dropout(dropout_rate),
+                pos_enc_class(output_size, positional_dropout_rate),
+                torch.nn.LayerNorm(output_size),
+                torch.nn.Dropout(dropout_rate),
+            )
         elif input_layer == "conv1d2":
             self.embed = Conv1dSubsampling2(
                 input_size,
