@@ -152,7 +152,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ ${VERSION} = "v2" ]; then
         if [ ! -d data/train_v1 ] || [ ! -d data/valid_v1 ]; then
             echo "Cannot find v1 data. copy it ..."
-            cp -r ../../mixed_v1/s2t1/data/{train,valid}_v1/ ./data || exit 1;
+            cp -r ../../owsm_v1/s2t1/data/{train,valid}_v1/ ./data || exit 1;
         fi
         train_sets="${train_sets} data/train_v1"
         valid_sets="${valid_sets} data/valid_v1"
@@ -161,7 +161,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     if [ ${VERSION} = "v3" ]; then
         if [ ! -d data/train_v2 ] || [ ! -d data/valid_v2 ]; then
             echo "Cannot find v2 data. copy it ..."
-            cp -r ../../mixed_v2/s2t1/data/{train,valid}_v2/ ./data || exit 1;
+            cp -r ../../owsm_v2/s2t1/data/{train,valid}_v2/ ./data || exit 1;
         fi
         train_sets="${train_sets} data/train_v2"
         valid_sets="${valid_sets} data/valid_v2"
