@@ -13,8 +13,8 @@ from typeguard import check_argument_types
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet2.vc.abs_vc import AbsVC
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
+from espnet2.vc.abs_vc import AbsVC
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -135,7 +135,7 @@ class ESPnetVCModel(AbsESPnetModel):
 
         # Update batch for additional auxiliary inputs
         if text is not None:
-            batch.update(text=text,text_lengths=text_lengths)
+            batch.update(text=text, text_lengths=text_lengths)
         if sids is not None:
             batch.update(sids=sids)
         if lids is not None:
@@ -166,7 +166,6 @@ class ESPnetVCModel(AbsESPnetModel):
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
-        
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
         **kwargs,
@@ -174,7 +173,7 @@ class ESPnetVCModel(AbsESPnetModel):
         """Caclualte features and return them as a dict.
 
         Args:
-            
+
             speech (Tensor): Speech waveform tensor (B, T_wav).
             speech_lengths (Tensor): Speech length tensor (B,).
             spembs (Tensor): Speaker embedding tensor (B, D).
@@ -196,20 +195,24 @@ class ESPnetVCModel(AbsESPnetModel):
         """
         # feature extraction
         if self.feats_extract is not None:
-            source_feats, source_feats_lengths = self.feats_extract(source_speech, source_speech_lengths)
-            target_feats, target_feats_lengths = self.feats_extract(target_speech, target_speech_lengths)
-            
+            source_feats, source_feats_lengths = self.feats_extract(
+                source_speech, source_speech_lengths
+            )
+            target_feats, target_feats_lengths = self.feats_extract(
+                target_speech, target_speech_lengths
+            )
+
         else:
             # Use precalculated feats (feats_type != raw case)
             source_feats, source_feats_lengths = source_speech, source_speech_lengths
             target_feats, target_feats_lengths = target_speech, target_speech_lengths
-            
+
         if self.pitch_extract is not None:
             source_pitch, source_pitch_lengths = self.pitch_extract(
                 source_speech,
                 source_speech_lengths,
                 feats_lengths=source_feats_lengths,
-                durations=durations, # need to modify (duration)
+                durations=durations,  # need to modify (duration)
                 durations_lengths=durations_lengths,
             )
             target_pitch, target_pitch_lengths = self.pitch_extract(
@@ -236,8 +239,12 @@ class ESPnetVCModel(AbsESPnetModel):
             )
 
         # store in dict
-        feats_dict = dict(source_feats=source_feats, source_feats_lengths=source_feats_lengths, 
-                          target_feats=target_feats, target_feats_lengths=target_feats_lengths)
+        feats_dict = dict(
+            source_feats=source_feats,
+            source_feats_lengths=source_feats_lengths,
+            target_feats=target_feats,
+            target_feats_lengths=target_feats_lengths,
+        )
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:

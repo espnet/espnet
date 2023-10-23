@@ -11,8 +11,8 @@ import torch.nn.functional as F
 from typeguard import check_argument_types
 
 from espnet2.torch_utils.device_funcs import force_gatherable
-from espnet2.vc.abs_vc import AbsVC
 from espnet2.tts.gst.style_encoder import StyleEncoder
+from espnet2.vc.abs_vc import AbsVC
 from espnet.nets.pytorch_backend.e2e_tts_tacotron2 import (
     GuidedAttentionLoss,
     Tacotron2Loss,
@@ -183,7 +183,6 @@ class AutoVC(AbsVC):
         #     padding_idx=padding_idx,
         # )
 
-        
         self.spks = None
         if spks is not None and spks > 1:
             self.spks = spks
@@ -261,7 +260,7 @@ class AutoVC(AbsVC):
         self,
         source_feats: torch.Tensor,
         target_feats: torch.Tensor,
-        spembs: Optional[torch.Tensor] = None,  
+        spembs: Optional[torch.Tensor] = None,
         source_feats_lengths: Optional[torch.Tensor] = None,
         target_feats_lengths: Optional[torch.Tensor] = None,
         text: Optional[torch.Tensor] = None,
