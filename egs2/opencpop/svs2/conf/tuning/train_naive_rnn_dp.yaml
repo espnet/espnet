@@ -31,7 +31,15 @@ svs_conf:                        # keyword arguments for the selected model
     init_type: pytorch           # parameter initialization
     use_masking: true            # whether to apply masking for padded part in loss calculation
     use_discrete_token: true     # whether to use discrete token as target
+    predict_pitch: true          # whether to predict log_f0
 
+
+# extra module for additional inputs
+pitch_extract: dio           # pitch extractor type
+pitch_extract_conf:
+    use_token_averaged_f0: false
+    use_log_f0: true
+pitch_normalize: None  # normalizer for the pitch feature
 
 
 ##########################################################

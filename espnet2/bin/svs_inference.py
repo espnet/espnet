@@ -210,7 +210,10 @@ class SingingGenerate:
                 input_feat = output_dict["feat_gen"]
             else:
                 input_feat = output_dict["feat_gen_denorm"]
-            wav = self.vocoder(input_feat)
+            if "pitch" in output_dict:
+                wav = self.vocoder(input_feat, output_dict["pitch"])
+            else:
+                wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
         return output_dict

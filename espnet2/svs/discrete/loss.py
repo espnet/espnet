@@ -34,7 +34,7 @@ from espnet.utils.fill_missing_args import fill_missing_args
 class DiscreteLoss(torch.nn.Module):
     """Loss function module for feed-forward Transformer."""
 
-    def __init__(self, use_masking=True, use_weighted_masking=False):
+    def __init__(self, use_masking=True, use_weighted_masking=False, predict_pitch=False):
         """Initialize feed-forward Transformer loss module.
 
         Args:
@@ -42,20 +42,35 @@ class DiscreteLoss(torch.nn.Module):
                 Whether to apply masking for padded part in loss calculation.
             use_weighted_masking (bool):
                 Whether to weighted masking in loss calculation.
-
+            predict_pitch (bool):
+                Whether to predict pitch and calculate pitch loss.
         """
         super(DiscreteLoss, self).__init__()
         assert (use_masking != use_weighted_masking) or not use_masking
         self.use_masking = use_masking
         self.use_weighted_masking = use_weighted_masking
+        self.predict_pitch = predict_pitch
 
         # define criterions
         reduction = "none" if self.use_weighted_masking else "mean"
         # self.l1_criterion = torch.nn.L1Loss(reduction=reduction)
         self.cross_entropy = torch.nn.CrossEntropyLoss(reduction=reduction)
         self.duration_criterion = DurationPredictorLoss(reduction=reduction)
+        if self.predict_pitch:
+            self.pitch_criterion = torch.nn.MSELoss(reduction=reduction)
 
-    def forward(self, after_outs, before_outs, d_outs, ys, ds, ilens, olens):
+    def forward(
+        self, 
+        after_outs: torch.Tensor,
+        before_outs: torch.Tensor,
+        d_outs: torch.Tensor,
+        ys: torch.Tensor,
+        ds: torch.Tensor,
+        ilens: torch.Tensor,
+        olens: torch.Tensor,
+        p_outs: torch.Tensor = None,
+        ps: torch.Tensor = None,
+    ):
         """Calculate forward propagation.
 
         Args:
@@ -66,10 +81,13 @@ class DiscreteLoss(torch.nn.Module):
             ds (Tensor): Batch of durations (B, Tmax).
             ilens (LongTensor): Batch of the lengths of each input (B,).
             olens (LongTensor): Batch of the lengths of each target (B,).
+            p_outs (Tensor): Batch of outputs of log_f0 (B, T_text, 1).
+            ps (Tensor): Batch of target log_f0 (B, T_text, 1).
 
         Returns:
             Tensor: L1 loss value.
             Tensor: Duration predictor loss value.
+            Tensor: Pitch loss value.
 
         """
         # apply mask to remove padded part
@@ -85,12 +103,17 @@ class DiscreteLoss(torch.nn.Module):
             ).reshape(-1, dim)
             out_masks = make_non_pad_mask(olens).to(ys.device)
             ys = ys.masked_select(out_masks)
+            if self.predict_pitch:
+                p_outs = p_outs.masked_select(out_masks)
+                ps = ps.masked_select(out_masks)                
 
         # calculate loss
         CE_loss = self.cross_entropy(before_outs, ys)
         if after_outs is not None:
             CE_loss += self.cross_entropy(after_outs, ys)
         duration_loss = self.duration_criterion(d_outs, ds)
+        if self.predict_pitch:
+            pitch_loss = self.pitch_criterion(p_outs, ps)
 
         # make weighted mask and apply it
         if self.use_weighted_masking:
@@ -108,5 +131,10 @@ class DiscreteLoss(torch.nn.Module):
             duration_loss = (
                 duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
             )
+            if self.predict_pitch:
+                pitch_loss = pitch_loss.mul(out_weights).masked_select(out_masks).sum()
 
-        return CE_loss, duration_loss
+        if self.predict_pitch:
+            return CE_loss, duration_loss, pitch_loss
+        else:
+            return CE_loss, duration_loss

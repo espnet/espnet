@@ -10,6 +10,7 @@ import torch
 import yaml
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.gan_svs.joint import JointScore2Wav
 from espnet2.gan_svs.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize

@@ -72,6 +72,7 @@ class NaiveRNNDP(AbsSVS):
         use_masking: bool = False,
         use_weighted_masking: bool = False,
         use_discrete_token: bool = False,
+        predict_pitch: bool = False,
     ):
         """Initialize NaiveRNNDP module.
 
@@ -131,6 +132,7 @@ class NaiveRNNDP(AbsSVS):
         self.reduction_factor = reduction_factor
         self.midi_embed_integration_type = midi_embed_integration_type
         self.use_discrete_token = use_discrete_token
+        self.predict_pitch = predict_pitch
 
         # use idx 0 as padding idx
         self.padding_idx = 0
@@ -284,7 +286,7 @@ class NaiveRNNDP(AbsSVS):
                 )
 
         # define final projection
-        self.feat_out = torch.nn.Linear(dunits * dim_direction, odim * reduction_factor)
+        self.feat_out = torch.nn.Linear(dunits * dim_direction, (odim + 1) * reduction_factor)
 
         # define postnet
         self.postnet = (
@@ -304,7 +306,7 @@ class NaiveRNNDP(AbsSVS):
         # define loss function
         if self.use_discrete_token:
             self.criterion = DiscreteLoss(
-                use_masking=use_masking, use_weighted_masking=use_weighted_masking
+                use_masking=use_masking, use_weighted_masking=use_weighted_masking, predict_pitch=self.predict_pitch
             )
         else:
             self.criterion = FastSpeechLoss(
@@ -403,6 +405,8 @@ class NaiveRNNDP(AbsSVS):
         midi = midi[:, : midi_lengths.max()]  # for data-parallel
         label = label[:, : label_lengths.max()]  # for data-parallel
         duration_ = duration_[:, : duration_lengths.max()]  # for data-parallel
+        if self.predict_pitch:
+            log_f0 = pitch[:, : pitch_lengths.max()]
         batch_size = feats.size(0)
 
         label_emb = self.encoder_input_layer(label)  # FIX ME: label Float to Int
@@ -478,8 +482,7 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
-
+        before_outs, log_f0_outs = (F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim + 1)).split_with_sizes([self.odim, 1], dim=2))
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -498,6 +501,8 @@ class NaiveRNNDP(AbsSVS):
             )
             max_olen = max(olens)
             ys = feats[:, :max_olen]
+            if self.predict_pitch:
+                log_f0 = log_f0[:, :max_olen]        
         else:
             if self.use_discrete_token:
                 ys = discrete_token
@@ -508,10 +513,16 @@ class NaiveRNNDP(AbsSVS):
 
         # calculate loss values
         ilens = label_lengths
-        out_loss, duration_loss = self.criterion(
-            after_outs, before_outs, d_outs, ys, ds, ilens, olens
-        )
-        loss = out_loss + duration_loss
+        if self.predict_pitch:
+            out_loss, duration_loss, pitch_loss = self.criterion(
+                after_outs, before_outs, d_outs, ys, ds, ilens, olens, log_f0_outs, log_f0
+            )
+            loss = out_loss + duration_loss + pitch_loss
+        else:
+            out_loss, duration_loss = self.criterion(
+                after_outs, before_outs, d_outs, ys, ds, ilens, olens
+            )
+            loss = out_loss + duration_loss
 
         if self.use_discrete_token:
             stats = dict(
@@ -525,7 +536,8 @@ class NaiveRNNDP(AbsSVS):
                 l1_loss=out_loss.item(),
                 duration_loss=duration_loss.item(),
             )
-
+        if self.predict_pitch:
+            stats["pitch_loss"] = pitch_loss.item()
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
 
         if joint_training:
@@ -619,7 +631,7 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
+        before_outs, log_f0_outs = (F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim + 1)).split_with_sizes([self.odim, 1], dim=2))
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -630,8 +642,8 @@ class NaiveRNNDP(AbsSVS):
         if self.use_discrete_token:
             after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
         return dict(
-            feat_gen=after_outs[0], prob=None, att_w=None
-        )  # outs, probs, att_ws
+            feat_gen=after_outs[0], prob=None, att_w=None, pitch=log_f0_outs[0],
+        )  # outs, probs, att_ws, pitch_outs
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor
