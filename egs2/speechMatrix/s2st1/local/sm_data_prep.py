@@ -8,7 +8,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--datadir", type=str)
     parser.add_argument("--dest", type=str)
-    parser.add_argument("--subset", type=str)
+    # parser.add_argument("--subset", type=str)
     parser.add_argument("--src_lang", type=str, default="es")
 
     args = parser.parse_args()
@@ -21,14 +21,14 @@ if __name__ == "__main__":
 
     # Create a dictionary for mapping src_audio to ID
     src_id_mapping = {} # es
-    with open(os.path.join(args.datadir, "s2u_manifests/es_en/train_mined.tsv"), "r", encoding="utf-8") as csvfile:
+    with open(os.path.join(args.datadir, "s2u_manifests/es-en/train_mined.tsv"), "r", encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             src_id_mapping[row['src_audio']] = row['id']
 
     # Create a dictionary for mapping tgt_audio to ID
     tgt_id_mapping = {} # en
-    with open(os.path.join(args.datadir, "s2u_manifests/en_es/train_mined.tsv"), "r", encoding="utf-8") as csvfile:
+    with open(os.path.join(args.datadir, "s2u_manifests/en-es/train_mined.tsv"), "r", encoding="utf-8") as csvfile:
         reader = csv.DictReader(csvfile, delimiter='\t')
         for row in reader:
             tgt_id_mapping[row['src_audio']] = row['id']
