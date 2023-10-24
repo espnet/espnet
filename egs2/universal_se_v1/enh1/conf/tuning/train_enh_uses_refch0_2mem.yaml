@@ -1,0 +1,137 @@
+use_amp: false
+optim: adam
+init: none
+unused_parameters: true
+max_epoch: 20
+batch_type: folded
+batch_size: 4
+iterator_type: chunk
+chunk_length: 32000
+chunk_default_fs: 8000
+num_iters_per_epoch: 8000
+num_workers: 4
+grad_clip: 5.0
+optim_conf:
+    lr: 4.0e-04
+    eps: 1.0e-08
+    weight_decay: 1.0e-05
+patience: 20
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: warmupReducelronplateau
+scheduler_conf:
+    # for WarmupLR
+    warmup_steps: 25000
+    # for ReduceLROnPlateau
+    mode: min
+    factor: 0.5
+    patience: 2
+freeze_param:
+- separator.muses.blocks.0.channel_nn
+- separator.muses.blocks.1.channel_nn
+- separator.muses.blocks.2.channel_nn
+
+allow_multi_rates: true
+
+preprocessor: enh
+force_single_channel: false
+channel_reordering: true
+# The categories list order must be the same everywhere in this config
+categories:
+- 1ch_16k
+- 1ch_48k
+- 1ch_16k
+- 2ch_16k
+- 2ch_16k_both
+- 5ch_16k
+- 8ch_16k_reverb
+num_spk: 1
+
+model_conf:
+    extract_feats_in_collect_stats: false
+    normalize_variance: true
+    # The categories list order must be the same everywhere in this config
+    categories:
+    - 1ch_16k
+    - 1ch_48k
+    - 1ch_16k
+    - 2ch_16k
+    - 2ch_16k_both
+    - 5ch_16k
+    - 8ch_16k_reverb
+
+encoder: stft
+encoder_conf:
+    n_fft: 256
+    hop_length: 128
+    use_builtin_complex: false
+    default_fs: 8000
+decoder: stft
+decoder_conf:
+    n_fft: 256
+    hop_length: 128
+    default_fs: 8000
+separator: uses
+separator_conf:
+    num_spk: 1
+    enc_channels: 256
+    bottleneck_size: 64
+    num_blocks: 6
+    num_spatial_blocks: 3
+    segment_size: 64
+    ref_channel: 0
+    memory_size: 20
+    memory_types: 2
+    # Transformer-related arguments
+    rnn_type: lstm
+    bidirectional: true
+    hidden_size: 128
+    att_heads: 4
+    dropout: 0.0
+    norm_type: cLN
+    activation: relu
+    ch_mode: tac
+    ch_att_dim: 256
+    eps: 1.0e-5
+
+# A list for criterions
+# The overlall loss in the multi-task learning will be:
+# loss = weight_1 * loss_1 + ... + weight_N * loss_N
+# The default `weight` for each sub-loss is 1.0
+criterions:
+  # The first criterion
+  - name: mr_l1_tfd
+    conf:
+      window_sz: [256, 512, 768, 1024]
+      hop_sz: null
+      eps: 1.0e-8
+      time_domain_weight: 0.5
+      normalize_variance: true
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
+  # The second criterion
+  - name: mr_l1_tfd_dereverb
+    conf:
+      window_sz: [256, 512, 768, 1024]
+      hop_sz: null
+      eps: 1.0e-8
+      time_domain_weight: 0.5
+      normalize_variance: true
+      is_dereverb_loss: true
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0
+  # The third criterion
+  - name: si_snr
+    conf:
+      eps: 1.0e-7
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 0.0

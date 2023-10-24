@@ -1,0 +1,8 @@
+encoder: stft
+encoder_conf:
+    n_fft: 256
+    hop_length: 128
+decoder: stft
+decoder_conf:
+    n_fft: 256
+    hop_length: 128
