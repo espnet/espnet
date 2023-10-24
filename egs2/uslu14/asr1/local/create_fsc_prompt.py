@@ -1,6 +1,6 @@
 intent_dict = {}
 for split in ["train", "valid"]:
-    file = open("dump_fsc/dump/raw/" + split + "/text")
+    file = open("dump/dump_fsc/raw/" + split + "/text")
     line_arr = [line for line in file]
     line1_arr = []
     for line in line_arr:
@@ -15,7 +15,7 @@ for split in ["train", "valid"]:
             + "\n"
         )
         line1_arr.append(line1)
-    file_write = open("dump_fsc/dump/raw/" + split + "/text", "w")
+    file_write = open("dump/dump_fsc/raw/" + split + "/text", "w")
     for line in line1_arr:
         file_write.write(line)
     print(intent_dict)
@@ -24,9 +24,9 @@ for split in ["train", "valid"]:
     ]
 
 for split in ["train", "valid"]:
-    file = open("dump_fsc/dump/raw/" + split + "/text")
+    file = open("dump/dump_fsc/raw/" + split + "/text")
     line_arr = [line for line in file]
     line1_arr = [line.split()[0] + " <|en|> <|ic|> <|fsc|>\n" for line in line_arr]
-    file_write = open("dump_fsc/dump/raw/" + split + "/prompt", "w")
+    file_write = open("dump/dump_fsc/raw/" + split + "/prompt", "w")
     for line in line1_arr:
         file_write.write(line)

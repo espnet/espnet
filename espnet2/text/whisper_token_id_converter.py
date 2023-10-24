@@ -22,8 +22,8 @@ class OpenAIWhisperTokenIDConverter:
         self,
         model_type: str,
         language: str = "en",
-        added_tokens_txt: str = None,
         task: str = "transcribe",
+        added_tokens_txt: str = None,
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
     ):
@@ -51,7 +51,6 @@ class OpenAIWhisperTokenIDConverter:
             self.tokenizer = whisper.tokenizer.get_tokenizer(
                 multilingual=True, language=language, task=task
             )
-            # import pdb;pdb.set_trace()
             if added_tokens_txt is not None:
                 _added_tokens = []
                 with open(added_tokens_txt) as f:

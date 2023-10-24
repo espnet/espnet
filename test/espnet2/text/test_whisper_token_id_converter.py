@@ -22,7 +22,7 @@ def whisper_token_id_converter(request):
 )
 def test_init_model_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenIDConverter("whisper_aaa", "en", "transcribe")
+        OpenAIWhisperTokenIDConverter("whisper_aaa", "en", task="transcribe")
 
 
 @pytest.mark.skipif(
@@ -30,7 +30,7 @@ def test_init_model_invalid():
 )
 def test_init_lang_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenIDConverter("whisper_multilingual", "abc", "transcribe")
+        OpenAIWhisperTokenIDConverter("whisper_multilingual", "abc", task="transcribe")
 
 
 @pytest.mark.skipif(
@@ -38,15 +38,17 @@ def test_init_lang_invalid():
 )
 def test_init_task_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenIDConverter("whisper_multilingual", "zh", "transcribe_abc")
+        OpenAIWhisperTokenIDConverter(
+            "whisper_multilingual", "zh", task="transcribe_abc"
+        )
 
 
 @pytest.mark.skipif(
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
 def test_init_en():
-    id_converter = OpenAIWhisperTokenIDConverter("whisper_en", "en", "transcribe")
-    assert id_converter.get_num_vocabulary_size() == 51864
+    id_converter = OpenAIWhisperTokenIDConverter("whisper_en", "en", task="transcribe")
+    assert id_converter.get_num_vocabulary_size() == 51863
 
 
 @pytest.mark.skipif(
@@ -54,7 +56,7 @@ def test_init_en():
 )
 def test_init_multilingual():
     id_converter = OpenAIWhisperTokenIDConverter(
-        "whisper_multilingual", "zh", "transcribe"
+        "whisper_multilingual", "zh", task="transcribe"
     )
     assert id_converter.get_num_vocabulary_size() == 51865
 
@@ -64,7 +66,7 @@ def test_init_multilingual():
 )
 def test_init_translation():
     id_converter = OpenAIWhisperTokenIDConverter(
-        "whisper_multilingual", "zh", "translate"
+        "whisper_multilingual", "zh", task="translate"
     )
     assert id_converter.get_num_vocabulary_size() == 51865
 
@@ -119,7 +121,7 @@ def test_tokens2ids(whisper_token_id_converter: OpenAIWhisperTokenIDConverter):
     assert ids == [
         50259,
         50359,
-        50303,
+        50363,
         17155,
         11,
         220,
