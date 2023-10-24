@@ -171,7 +171,7 @@ Options:
                           # Note that it will overwrite args in inference config.
     --inference_lm        # Language model path for decoding (default="${inference_lm}").
     --download_model      # Download a model from Model Zoo and use it for decoding (default="${download_model}").
-   
+
    # [Task dependent] Set the datadir name created by local/data.sh
     --train_set     # Name of training set (required).
     --valid_set     # Name of validation set used for monitoring/tuning network training (required).

@@ -62,6 +62,7 @@ portion=0.1
 nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
+gpu_kmeans=true             # Whether to use gpu for kmeans.
 
 # Tokenization related
 oov="<unk>"         # Out of vocabulary symbol.
@@ -196,7 +197,8 @@ Options:
     --kmeans_feature    # The string indicates the kmeans features (default="${kmeans_feature}").
     --portion           # The portion of data used to train kmeans (default="${portion}").
     --nclusters         # The number of clusters for discrete tokens (default="${nclusters}").
-    --storage_save_mode # # Save storage on SSL feature extraction. If true, feature extraction and kmeans clustering on the fly (default="${storage_save_mode}").
+    --storage_save_mode # Save storage on SSL feature extraction. If true, feature extraction and kmeans clustering on the fly (default="${storage_save_mode}").
+    --gpu_kmeans        # Whether to use gpu for kmeans (default="${gpu_kmeans}").
 
     # Tokenization related
     --oov                     # Out of vocabulary symbol (default="${oov}").
@@ -695,7 +697,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
         --portion "${portion}" \
         --nclusters "${nclusters}" \
         --storage_save_mode ${storage_save_mode} \
-        --use_gpu true \
+        --use_gpu ${gpu_kmeans} \
         --nj ${nj} \
         --cpu_cmd "${train_cmd}" \
         --cuda_cmd "${cuda_cmd}" \
@@ -821,7 +823,18 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
         for utt_extra_file in ${utt_extra_files}; do
             cp "${data_feats}/org/${dset}/${utt_extra_file}" "${data_feats}/${dset}"
         done
-        # TODO: Maybe Remove empty text
+
+        # Remove empty text
+        cat "${data_feats}/org/${dset}/text.${tgt_case}.${tgt_lang}" | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}"
+        utils/filter_scp.pl "${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}" "${data_feats}/org/${dset}/utt2spk" > "${data_feats}/${dset}/utt2spk"
+        utils/fix_data_dir.sh \
+            --utt_extra_files "${utt_extra_files}" "${data_feats}/${dset}"
+
+        # Check how many samples are removed
+        org_num_samples=$(wc -l "${data_feats}/org/${dset}/utt2spk" | cut -d' ' -f1)
+        filtered_num_samples=$(wc -l "${data_feats}/${dset}/utt2spk" | cut -d' ' -f1)
+        echo "filter samples with empty texts: removed $((org_num_samples - filtered_num_samples)) samples with empty text"
+
         # TODO: Add other data cleaning -- currently being done as part of data.sh
     done
 
@@ -1291,16 +1304,16 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             log "${_split_dir}/.done exists. Spliting is skipped"
         fi
 
-        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
         _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
-        _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
         _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
+        _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
         _opts+="--multiple_iterator true "
     else
-        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},src_text,text "
-        _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${tgt_token_type} "
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
         _opts+="--train_shape_file ${asr_stats_dir}/train/src_text_shape.${src_token_type} "
+        _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${tgt_token_type} "
     fi
 
     log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 13 using this script"
