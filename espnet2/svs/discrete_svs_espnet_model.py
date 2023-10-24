@@ -254,7 +254,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                 pitch, pitch_lengths = self.pitch_extract(
                     input=singing,
                     input_lengths=singing_lengths,
-                    feats_lengths=feats_lengths,
+                    feats_lengths=discrete_token_lengths,
                 )
 
             if self.energy_extract is not None and energy is None:
@@ -471,7 +471,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             pitch, pitch_lengths = self.pitch_extract(
                 input=singing,
                 input_lengths=singing_lengths,
-                feats_lengths=feats_lengths,
+                feats_lengths=discrete_token_lengths,
             )
         if self.energy_extract is not None:
             energy, energy_lengths = self.energy_extract(
@@ -633,7 +633,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             if self.pitch_extract is not None:
                 pitch = self.pitch_extract(
                     singing[None],
-                    feats_lengths=torch.LongTensor([len(feats)]),
+                    feats_lengths=torch.LongTensor([len(discrete_token)]),
                 )[0][0]
             if self.pitch_normalize is not None:
                 pitch = self.pitch_normalize(pitch[None])[0][0]
@@ -693,7 +693,6 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             input_dict.update(lids=lids)
 
         output_dict = self.svs.inference(**input_dict, **decode_config)
-        print(output_dict["feat_gen"].shape)
         """
         if self.normalize is not None and output_dict.get("feat_gen") is not None:
             # NOTE: normalize.inverse is in-place operation

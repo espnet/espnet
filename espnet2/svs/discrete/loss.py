@@ -101,11 +101,11 @@ class DiscreteLoss(torch.nn.Module):
             after_outs = (
                 after_outs.masked_select(out_masks) if after_outs is not None else None
             ).reshape(-1, dim)
-            out_masks = make_non_pad_mask(olens).to(ys.device)
-            ys = ys.masked_select(out_masks)
             if self.predict_pitch:
                 p_outs = p_outs.masked_select(out_masks)
-                ps = ps.masked_select(out_masks)                
+                ps = ps.masked_select(out_masks)   
+            out_masks = make_non_pad_mask(olens).to(ys.device)
+            ys = ys.masked_select(out_masks)
 
         # calculate loss
         CE_loss = self.cross_entropy(before_outs, ys)
