@@ -7,7 +7,7 @@
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-source ./utils/simple_dict.sh
+source ./scripts/utils/simple_dict.sh
 
 # general configuration
 stage=0       # start from 0 if you need to start from data preparation
