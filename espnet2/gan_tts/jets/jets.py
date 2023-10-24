@@ -297,7 +297,7 @@ class JETS(AbsGANTTS):
         if plot_pred_mos:
             # Load predictor for UTMOS22.
             self.predictor = torch.hub.load(
-                "tarepan/SpeechMOS:v1.1.0", "utmos22_strong", trust_repo=True
+                "tarepan/SpeechMOS:v1.2.0", "utmos22_strong"
             )
 
     @property
