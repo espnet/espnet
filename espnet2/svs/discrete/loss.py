@@ -34,7 +34,9 @@ from espnet.utils.fill_missing_args import fill_missing_args
 class DiscreteLoss(torch.nn.Module):
     """Loss function module for feed-forward Transformer."""
 
-    def __init__(self, use_masking=True, use_weighted_masking=False, predict_pitch=False):
+    def __init__(
+        self, use_masking=True, use_weighted_masking=False, predict_pitch=False
+    ):
         """Initialize feed-forward Transformer loss module.
 
         Args:
@@ -60,7 +62,7 @@ class DiscreteLoss(torch.nn.Module):
             self.pitch_criterion = torch.nn.MSELoss(reduction=reduction)
 
     def forward(
-        self, 
+        self,
         after_outs: torch.Tensor,
         before_outs: torch.Tensor,
         d_outs: torch.Tensor,

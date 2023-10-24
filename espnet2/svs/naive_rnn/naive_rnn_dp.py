@@ -286,7 +286,9 @@ class NaiveRNNDP(AbsSVS):
                 )
 
         # define final projection
-        self.feat_out = torch.nn.Linear(dunits * dim_direction, (odim + 1) * reduction_factor)
+        self.feat_out = torch.nn.Linear(
+            dunits * dim_direction, (odim + 1) * reduction_factor
+        )
 
         # define postnet
         self.postnet = (
@@ -306,7 +308,9 @@ class NaiveRNNDP(AbsSVS):
         # define loss function
         if self.use_discrete_token:
             self.criterion = DiscreteLoss(
-                use_masking=use_masking, use_weighted_masking=use_weighted_masking, predict_pitch=self.predict_pitch
+                use_masking=use_masking,
+                use_weighted_masking=use_weighted_masking,
+                predict_pitch=self.predict_pitch,
             )
         else:
             self.criterion = FastSpeechLoss(
@@ -482,7 +486,9 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs, log_f0_outs = (F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim + 1)).split_with_sizes([self.odim, 1], dim=2))
+        before_outs, log_f0_outs = F.leaky_relu(
+            self.feat_out(zs).view(zs.size(0), -1, self.odim + 1)
+        ).split_with_sizes([self.odim, 1], dim=2)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -502,7 +508,7 @@ class NaiveRNNDP(AbsSVS):
             max_olen = max(olens)
             ys = feats[:, :max_olen]
             if self.predict_pitch:
-                log_f0 = log_f0[:, :max_olen]        
+                log_f0 = log_f0[:, :max_olen]
         else:
             if self.use_discrete_token:
                 ys = discrete_token
@@ -515,7 +521,15 @@ class NaiveRNNDP(AbsSVS):
         ilens = label_lengths
         if self.predict_pitch:
             out_loss, duration_loss, pitch_loss = self.criterion(
-                after_outs, before_outs, d_outs, ys, ds, ilens, olens, log_f0_outs, log_f0
+                after_outs,
+                before_outs,
+                d_outs,
+                ys,
+                ds,
+                ilens,
+                olens,
+                log_f0_outs,
+                log_f0,
             )
             loss = out_loss + duration_loss + pitch_loss
         else:
@@ -631,7 +645,9 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs, log_f0_outs = (F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim + 1)).split_with_sizes([self.odim, 1], dim=2))
+        before_outs, log_f0_outs = F.leaky_relu(
+            self.feat_out(zs).view(zs.size(0), -1, self.odim + 1)
+        ).split_with_sizes([self.odim, 1], dim=2)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -642,7 +658,10 @@ class NaiveRNNDP(AbsSVS):
         if self.use_discrete_token:
             after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
         return dict(
-            feat_gen=after_outs[0], prob=None, att_w=None, pitch=log_f0_outs[0],
+            feat_gen=after_outs[0],
+            prob=None,
+            att_w=None,
+            pitch=log_f0_outs[0],
         )  # outs, probs, att_ws, pitch_outs
 
     def _integrate_with_spk_embed(
