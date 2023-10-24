@@ -581,3 +581,43 @@ def get_activation(act):
     }
 
     return activation_funcs[act]()
+
+def trim_by_ctc_posterior(
+    h: torch.Tensor, ctc_probs: torch.Tensor, hlens: torch.Tensor, blank_id: int = 0
+):
+    """
+    Trim the encoder hidden output using CTC posterior.
+    The continuous frames in the tail that confidently represent 
+    blank symbols are trimmed.
+    """
+
+    # Empirical settings
+    frame_tolerance = 5
+    conf_tolerance = 0.95
+
+    assert h.size()[:2] == ctc_probs.size()[:2]
+    assert h.size(0) == hlens.size(0)
+
+    # blank frames    
+    max_values, max_indices = ctc_probs.max(dim=2)
+    blank_masks = torch.logical_and(
+        max_values > conf_tolerance, max_indices == blank_id
+    )
+
+    # plus ignored frames
+    masks = ~make_pad_mask(hlens).to(h.device)
+    joint_masks = torch.logical_or(blank_masks, ~masks)
+
+    # lengths after the trimming
+    B, T, _ = h.size()
+    frame_idx = torch.where(
+        joint_masks, -1, torch.arange(T).unsqueeze(0).repeat(B, 1).to(h.device)
+    )
+    after_lens = torch.where(
+        frame_idx.max(dim=-1)[0] + frame_tolerance + 1 < hlens,
+        frame_idx.max(dim=-1)[0] + frame_tolerance + 1,
+        hlens,
+    )
+    h = h[:, :max(after_lens)]
+
+    return h, after_lens

@@ -20,6 +20,7 @@ from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet.nets.e2e_asr_common import ErrorCalculator
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
+from espnet.nets.pytorch_backend.nets_utils import trim_by_ctc_posterior
 from espnet.nets.pytorch_backend.transformer.add_sos_eos import add_sos_eos
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
@@ -62,6 +63,7 @@ class ESPnetASRModel(AbsESPnetModel):
         sym_blank: str = "<blank>",
         transducer_multi_blank_durations: List = [],
         transducer_multi_blank_sigma: float = 0.05,
+        ctc_trim: bool = False,
         # In a regular ESPnet recipe, <sos> and <eos> are both "<sos/eos>"
         # Pretrained HF Tokenizer needs custom sym_sos and sym_eos
         sym_sos: str = "<sos/eos>",
@@ -186,6 +188,7 @@ class ESPnetASRModel(AbsESPnetModel):
             self.ctc = None
         else:
             self.ctc = ctc
+        self.ctc_trim = ctc_trim
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
@@ -402,6 +405,13 @@ class ESPnetASRModel(AbsESPnetModel):
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
             encoder_out = encoder_out[0]
+        if self.ctc_trim and self.ctc is not None:
+            encoder_out, encoder_out_lens = trim_by_ctc_posterior(
+                encoder_out,
+                self.ctc.softmax(encoder_out),
+                encoder_out_lens,
+                blank_id=self.blank_id
+            )
 
         # Post-encoder, e.g. NLU
         if self.postencoder is not None:

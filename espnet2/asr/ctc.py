@@ -27,6 +27,9 @@ class CTC(torch.nn.Module):
         reduce: bool = True,
         ignore_nan_grad: bool = None,
         zero_infinity: bool = True,
+        brctc_risk_strategy: str = "exp",
+        brctc_group_strategy: str = "end",
+        brctc_risk_factor: float = 0.0,
     ):
         assert check_argument_types()
         super().__init__()
@@ -36,6 +39,14 @@ class CTC(torch.nn.Module):
         self.ctc_type = ctc_type
         if ignore_nan_grad is not None:
             zero_infinity = ignore_nan_grad
+        
+        if self.ctc_type == "brctc" and not torch.cuda.is_available():
+            self.ctc_type = "builtin"
+            logging.warning(
+                "Bayes Risk CTC is specified but CUDA is not available "
+                "Switch back to the default builtin CTC "
+                "It should be ok if this is inference stage"
+                )
 
         if self.ctc_type == "builtin":
             self.ctc_loss = torch.nn.CTCLoss(
@@ -50,16 +61,32 @@ class CTC(torch.nn.Module):
             from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
 
             self.ctc_loss = GTNCTCLossFunction.apply
+
+        elif self.ctc_type == "brctc":
+            try:
+                from espnet2.asr.bayes_risk_ctc import BayesRiskCTC
+            except ImportError:
+                raise ImportError("You should install K2 to use Bayes Risk CTC")
+
+            self.ctc_loss = BayesRiskCTC(
+                brctc_risk_strategy,
+                brctc_group_strategy,
+                brctc_risk_factor
+            )
+
         else:
             raise ValueError(f'ctc_type must be "builtin" or "gtnctc": {self.ctc_type}')
 
         self.reduce = reduce
 
     def loss_fn(self, th_pred, th_target, th_ilen, th_olen) -> torch.Tensor:
-        if self.ctc_type == "builtin":
+        if self.ctc_type == "builtin" or self.ctc_type == "brctc":
             th_pred = th_pred.log_softmax(2)
             loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
-            size = th_pred.size(1)
+            if self.ctc_type == "builtin":
+                size = th_pred.size(1)
+            else:
+                size = loss.size(0)  # some invalid examples will be excluded
 
             if self.reduce:
                 # Batch-size average
@@ -142,7 +169,13 @@ class CTC(torch.nn.Module):
         # hs_pad: (B, L, NProj) -> ys_hat: (B, L, Nvocab)
         ys_hat = self.ctc_lo(F.dropout(hs_pad, p=self.dropout_rate))
 
-        if self.ctc_type == "gtnctc":
+        if self.ctc_type == "brctc":
+            loss = self.loss_fn(ys_hat, ys_pad, hlens, ys_lens).to(
+                device=hs_pad.device, dtype=hs_pad.dtype
+            )
+            return loss
+
+        elif self.ctc_type == "gtnctc":
             # gtn expects list form for ys
             ys_true = [y[y != -1] for y in ys_pad]  # parse padded ys
         else:
