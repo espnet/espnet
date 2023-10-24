@@ -40,9 +40,6 @@ dumpdir=dump          # Directory to dump features.
 expdir=exp            # Directory to save experiments.
 python=python3        # Specify python to execute espnet commands.
 fold_length=120000    # fold_length for speech data during enhancement training.
-inference_config=conf/decode.yaml # Inference configuration.
-score_norm=true       # Apply score normalization in inference.
-qmf_func=false        # Apply quality measurement based calibration in inference.
 
 # Data preparation related
 local_data_opts= # The options given to local/data.sh
@@ -64,10 +61,14 @@ spk_exp=              # Specify the directory path for spk experiment.
 spk_tag=              # Suffix to the result dir for spk model training.
 spk_config=           # Config for the spk model training.
 spk_args=             # Arguments for spk model training.
+pretrained_model=     # Pretrained model to load
+ignore_init_mismatch=false      # Ignore initial mismatch
 
 # Inference related
 inference_config=conf/decode.yaml   # Inference configuration
 inference_model=valid.eer.best.pth  # Inference model weight file
+score_norm=true       # Apply score normalization in inference.
+qmf_func=false        # Apply quality measurement based calibration in inference.
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=       # Name of training set.
@@ -112,6 +113,8 @@ Options:
     spk_tag=              # Suffix to the result dir for spk model training.
     spk_config=           # Config for the spk model training.
     spk_args=             # Arguments for spk model training.
+    pretrained_model=     # Pretrained model to load (default="${pretrained_model}").
+    --ignore_init_mismatch= # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
 
     # Inference related
     inference_config=     # Inference configuration file
@@ -424,6 +427,8 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         ${python} -m espnet2.bin.spk_train \
             --use_preprocessor true \
             --resume true \
+            ${pretrained_model:+--init_param $pretrained_model} \
+            --ignore_init_mismatch ${ignore_init_mismatch} \
             --output_dir ${spk_exp} \
             --train_data_path_and_name_and_type ${_spk_train_dir}/wav.scp,speech,sound \
             --train_data_path_and_name_and_type ${_spk_train_dir}/utt2spk,spk_labels,text \
