@@ -105,7 +105,7 @@ class DiscreteLoss(torch.nn.Module):
             ).reshape(-1, dim)
             if self.predict_pitch:
                 p_outs = p_outs.masked_select(out_masks)
-                ps = ps.masked_select(out_masks)   
+                ps = ps.masked_select(out_masks)
             out_masks = make_non_pad_mask(olens).to(ys.device)
             ys = ys.masked_select(out_masks)
 
