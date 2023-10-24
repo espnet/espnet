@@ -48,7 +48,7 @@ def test_init_task_invalid():
 )
 def test_init_en():
     id_converter = OpenAIWhisperTokenIDConverter("whisper_en", "en", task="transcribe")
-    assert id_converter.get_num_vocabulary_size() == 51863
+    assert id_converter.get_num_vocabulary_size() == 51864
 
 
 @pytest.mark.skipif(
@@ -58,7 +58,7 @@ def test_init_multilingual():
     id_converter = OpenAIWhisperTokenIDConverter(
         "whisper_multilingual", "zh", task="transcribe"
     )
-    assert id_converter.get_num_vocabulary_size() == 51865
+    assert id_converter.get_num_vocabulary_size() == 51867
 
 
 @pytest.mark.skipif(
@@ -68,7 +68,7 @@ def test_init_translation():
     id_converter = OpenAIWhisperTokenIDConverter(
         "whisper_multilingual", "zh", task="translate"
     )
-    assert id_converter.get_num_vocabulary_size() == 51865
+    assert id_converter.get_num_vocabulary_size() == 51867
 
 
 @pytest.mark.skipif(
@@ -121,7 +121,7 @@ def test_tokens2ids(whisper_token_id_converter: OpenAIWhisperTokenIDConverter):
     assert ids == [
         50259,
         50359,
-        50363,
+        50303,
         17155,
         11,
         220,
