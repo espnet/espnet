@@ -13,15 +13,15 @@ from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 frontend = AsteroidFrontend(sinc_filters=256, sinc_stride=16)
 
 rawnet3_encoder = RawNet3Encoder(
-    input_size=frontend.output_size(), model_scale=8, ndim=64, sinc_stride=16
+    input_size=frontend.output_size(), ndim=16, output_size=24
 )
 
-chn_attn_stat_pooling = ChnAttnStatPooling(input_size=96)
+chn_attn_stat_pooling = ChnAttnStatPooling(input_size=rawnet3_encoder.output_size())
 
-rawnet3_projector = RawNet3Projector(input_size=192, output_size=16)
+rawnet3_projector = RawNet3Projector(input_size=chn_attn_stat_pooling.output_size(), output_size=8)
 
-aamsoftmax_loss = AAMSoftmax(16, 108, margin=0.3, scale=15, easy_margin=False)
-aamsoftmax_em_loss = AAMSoftmax(16, 108, margin=0.3, scale=15, easy_margin=True)
+aamsoftmax_loss = AAMSoftmax(nout=rawnet3_projector.output_size(), 10, margin=0.3, scale=15, easy_margin=False)
+aamsoftmax_em_loss = AAMSoftmax(nout=rawnet3_projector.output_size(), 10, margin=0.3, scale=15, easy_margin=True)
 
 specaug = SpecAug(
     apply_time_warp=True,
@@ -45,7 +45,7 @@ normalize = UtteranceMVN()
 def test_single_channel_spk_model(frontend, encoder, pooling, projector, training):
     inputs = torch.randn(2, 8000)
     ilens = torch.LongTensor([8000, 7800])
-    spk_labels = torch.randint(0, 108, (2,))
+    spk_labels = torch.randint(0, 10, (2,))
     spk_model = ESPnetSpeakerModel(
         frontend=frontend,
         specaug=None,
@@ -73,7 +73,7 @@ def test_single_channel_spk_model(frontend, encoder, pooling, projector, trainin
 def test_spk_loss(training, loss):
     inputs = torch.randn(2, 8000)
     ilens = torch.LongTensor([8000, 7800])
-    spk_labels = torch.randint(0, 108, (2,))
+    spk_labels = torch.randint(0, 10, (2,))
     spk_model = ESPnetSpeakerModel(
         frontend=frontend,
         specaug=None,
