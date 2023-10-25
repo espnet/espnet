@@ -13,7 +13,7 @@ from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 frontend = AsteroidFrontend(sinc_filters=256, sinc_stride=16)
 
 rawnet3_encoder = RawNet3Encoder(
-    input_size=frontend.output_size, model_scale=8, ndim=64, sinc_stride=16
+    input_size=frontend.output_size(), model_scale=8, ndim=64, sinc_stride=16
 )
 
 chn_attn_stat_pooling = ChnAttnStatPooling(input_size=96)
