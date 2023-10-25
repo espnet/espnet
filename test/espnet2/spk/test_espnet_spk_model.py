@@ -2,7 +2,7 @@ import pytest
 import torch
 
 from espnet2.asr.specaug.specaug import SpecAug
-from espnet2.asr.frontend.asteriod_frontend import AsteroidFrontend
+from espnet2.asr.frontend.asteroid_frontend import AsteroidFrontend
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
