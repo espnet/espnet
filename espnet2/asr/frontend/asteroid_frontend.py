@@ -24,6 +24,10 @@ class AsteroidFrontend(AbsFrontend):
 
     NOTE(jiatong): this function is used in sentence-level classification
     tasks (e.g., spk). Other usages are not fully investigated.
+
+    NOTE(jeeweon): this function implements the parameterized analytic
+    filterbank layer in M. Pariente, S. Cornell, A. Deleforge and E. Vincent,
+    "Filterbank design for end-to-end speech separation," in Proc. ICASSP, 2020
     """
 
     def __init__(

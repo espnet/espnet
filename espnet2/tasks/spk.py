@@ -53,12 +53,12 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
-        default=DefaultFrontend,
-        sliding_window=SlidingWindow,
         asteroid_frontend=AsteroidFrontend,
-        s3prl=S3prlFrontend,
+        default=DefaultFrontend,
         fused=FusedFrontends,
         melspec_torch=MelSpectrogramTorch,
+        sliding_window=SlidingWindow,
+        s3prl=S3prlFrontend,
     ),
     type_check=AbsFrontend,
     default=None,

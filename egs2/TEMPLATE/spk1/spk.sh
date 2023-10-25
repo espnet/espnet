@@ -507,7 +507,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     fi
 
     # extract embeddings for qmf train set
-    if [ "$qmf_func" = true  ]; then
+    if "$qmf_func"; then
         _spk_train_dir="${data_feats}/${train_set}"
         if [ ! -e "${_spk_train_dir}/qmf_train.scp"  ]; then
             ${python} pyscripts/utils/generate_qmf_train_list.py ${_spk_train_dir}/spk2utt ${_spk_train_dir}/wav.scp ${_spk_train_dir} ${inference_config} ${_spk_train_dir}/utt2spk ${_spk_train_dir}/cohort_label
@@ -546,18 +546,18 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
     scorefile_cur=${infer_exp}/${test_sets}_raw_trial_scores
 
-    if [ "$score_norm" = true ]; then
+    if "$score_norm"; then
         echo "Stage 7-b: apply score normalization."
         ${python} pyscripts/utils/spk_apply_score_norm.py ${scorefile_cur} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/${test_sets}_scorenormed_scores ${inference_config} ${ngpu}
         scorefile_cur=${infer_exp}/${test_sets}_scorenormed_scores
     fi
 
-    if [ "$qmf_func" = true ]; then
+    if "$qmf_func"; then
         echo "Stage 7-c: apply QMF calibration."
         echo "get raw scores for the qmf train set."
         ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/qmf/${train_set}_embeddings.npz ${_spk_train_dir}/qmf_train_label ${infer_exp}/qmf/${train_set}_raw_trial_scores
 
-        if [ "$score_norm" = true ]; then
+        if "$score_norm"; then
             echo "normalize qmf train set scores."
             ${python} pyscripts/utils/spk_apply_score_norm.py ${infer_exp}/qmf/${train_set}_raw_trial_scores ${infer_exp}/qmf/${train_set}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/qmf/${train_set}_scorenormed_scores ${inference_config} ${ngpu}
             qmf_train_scores=${infer_exp}/qmf/${train_set}_scorenormed_scores
@@ -578,14 +578,14 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     infer_exp="${spk_exp}/inference"
     _inference_dir=${data_feats}/${test_sets}
 
-    if [ "$score_norm" = true ]; then
-        if [ "$qmf_func" = true ]; then
+    if "$score_norm"; then
+        if "$qmf_func"; then
             score_dir=${infer_exp}/qmf/${test_sets}_qmf_scores
         else
             score_dir=${infer_exp}/${test_sets}_scorenormed_scores
         fi
     else
-        if [ "$qmf_func" = true ]; then
+        if "$qmf_func"; then
             score_dir=${infer_exp}/qmf/${test_sets}_qmf_scores
         else
             score_dir=${infer_exp}/${test_sets}_raw_trial_scores

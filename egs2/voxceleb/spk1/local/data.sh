@@ -7,7 +7,7 @@ stage=1
 stop_stage=100
 n_proc=8
 
-data_dir_prefix=/home/jeeweonj/corpora/voxcelebs # root dir to save datasets.
+data_dir_prefix= # root dir to save datasets.
 
 trg_dir=data
 
@@ -74,21 +74,21 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     echo "Extracting VoxCeleb1 test set text data."
     unzip -q ${data_dir_prefix}/vox1_test_txt.zip -d ${data_dir_prefix}
     if [ ! -d "${data_dir_prefix}/voxceleb1/test" ]; then
-        mkdir -p ${data_dir_prefix}/voxceelb1/test
+        mkdir -p ${data_dir_prefix}/voxceleb1/test
     fi
     mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb1/test
 
     echo "Extracting VoxCeleb1 development set text data."
     unzip -q ${data_dir_prefix}/vox1_dev_txt.zip -d ${data_dir_prefix}
     if [ ! -d ${data_dir_prefix}/voxceleb1/dev ]; then
-        mkdir -p ${data_dir_prefix}/voxceelb1/dev
+        mkdir -p ${data_dir_prefix}/voxceleb1/dev
     fi
     mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb1/dev
 
     echo "Extracting VoxCeleb2 text data."
     unzip -q ${data_dir_prefix}/vox2_dev_txt.zip -d ${data_dir_prefix}
     if [ ! -d ${data_dir_prefix}/voxceleb2/dev ]; then
-        mkdir -p ${data_dir_prefix}/voxceelb2/dev
+        mkdir -p ${data_dir_prefix}/voxceleb2/dev
    fi
     mv ${data_dir_prefix}/txt ${data_dir_prefix}/voxceleb2/dev
 

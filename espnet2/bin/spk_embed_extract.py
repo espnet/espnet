@@ -98,7 +98,7 @@ def extract_embed(args):
     args = argparse.Namespace(**merged_args)
 
     # 4. Build data-iterator
-    # Temporarily disable distributed to let loader include all trials
+    # NOTE(jeeweon): Temporarily disable distributed to let loader include all trials
     org_distributed = distributed_option.distributed
     distributed_option.distributed = False
     iterator = SpeakerTask.build_iter_factory(
