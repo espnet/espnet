@@ -1,18 +1,14 @@
 import sys
-from collections import OrderedDict
-
-import numpy as np
-import torch
 import yaml
+import torch
+import numpy as np
 
+from collections import OrderedDict
 from espnet2.torch_utils.device_funcs import to_device
 
 
 def load_embeddings(embd_dir: str) -> dict:
     embd_dic = OrderedDict(np.load(embd_dir))
-    # keys = list(embd_dic.keys())
-    # values = torch.from_numpy(np.stack(list(embd_dic.values()), axis=0))
-    # values = torch.nn.functional.normalize(values, p=2, dim=1).numpy()
     embd_dic2 = {}
     for k, v in embd_dic.items():
         if len(v.shape) == 1:
@@ -21,7 +17,6 @@ def load_embeddings(embd_dir: str) -> dict:
             torch.from_numpy(v), p=2, dim=1
         ).squeeze()
 
-    # return {k: v for k, v in zip(keys, values)}
     return embd_dic2
 
 
@@ -67,7 +62,9 @@ def main(args):
 
         new_cohort_embds = []
         for spk in cohort_embds:
-            new_cohort_embds.append(torch.stack(cohort_embds[spk], dim=0).mean(0))
+            new_cohort_embds.append(
+                torch.stack(cohort_embds[spk], dim=0).mean(0)
+            )
     else:
         new_cohort_embds = []
         for utt in cohort_embds:
@@ -102,10 +99,8 @@ def main(args):
 
             newscore = (normscore_e + normscore_t) / 2
             newscore = newscore.item()
-            # print("score", score, "newscore", newscore, "label", lab)
 
             f.write(f"{utts} {newscore} {lab}\n")
-            # stat_dic = {"e_c_m": e_c_m, "e_c_s": e_c_s, "t_c_m": t_c_m, "t_c_s": t_c_s}
 
 
 if __name__ == "__main__":

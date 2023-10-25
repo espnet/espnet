@@ -1,11 +1,9 @@
 import sys
-
+import yaml
 import numpy as np
+import soundfile as sf
 
 np.random.seed(0)
-import soundfile as sf
-import yaml
-
 
 def load_yaml(yamlfile):
     with open(yamlfile, "r") as stream:
@@ -47,7 +45,7 @@ def main(args):
                 if n_selected == cfg["n_utt_per_spk"]:
                     break
     print(
-        f"Cohort utterances selected, {len(utt_list)} utterances, {len(spk2utt)} speakers"
+        f"Cohort utterances selected, {len(utt_list)} utts, {len(spk2utt)} spks"
     )
 
     # generate output adequate to ESPnet-SPK inference template

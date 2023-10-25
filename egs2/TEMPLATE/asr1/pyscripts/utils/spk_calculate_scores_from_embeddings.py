@@ -1,16 +1,13 @@
 import os
 import sys
-from collections import OrderedDict
-
-import numpy as np
 import torch
+import numpy as np
+
+from collections import OrderedDict
 
 
 def load_embeddings(embd_dir: str) -> dict:
     embd_dic = OrderedDict(np.load(embd_dir))
-    # keys = list(embd_dic.keys())
-    # values = torch.from_numpy(np.stack(list(embd_dic.values()), axis=0))
-    # values = torch.nn.functional.normalize(values, p=2, dim=1).numpy()
     embd_dic2 = {}
     for k, v in embd_dic.items():
         if len(v.shape) == 1:
@@ -19,12 +16,7 @@ def load_embeddings(embd_dir: str) -> dict:
             torch.from_numpy(v), p=2, dim=1
         ).numpy()
 
-    # return {k: v for k, v in zip(keys, values)}
     return embd_dic2
-
-
-# def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
-#    return np.dot(a,b)/(norm(a)*norm(b))
 
 
 def main(args):
@@ -42,7 +34,6 @@ def main(args):
     tests = [trial.split("*")[1] for trial in trial_ids]
     assert len(enrolls) == len(tests) == len(labels)
 
-    # scores = [cosine_similarity(embd_dic[e], embd_dic[t]) for e, t in zip(enrolls, tests)]
     scores = []
     for e, t in zip(enrolls, tests):
         enroll = torch.from_numpy(embd_dic[e])

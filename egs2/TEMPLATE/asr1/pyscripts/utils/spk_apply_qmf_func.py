@@ -19,20 +19,20 @@ def generate_data(utt2dur, scores, embed_dic):
         labels.append(int(lab))
 
         # add durations
-        # data_cur.append(np.log(sf.info(utt2dur[utt1]).duration))
-        # data_cur.append(np.log(sf.info(utt2dur[utt2]).duration))
+        data_cur.append(np.log(sf.info(utt2dur[utt1]).duration))
+        data_cur.append(np.log(sf.info(utt2dur[utt2]).duration))
 
         # add embedding norms
         embed1 = embed_dic[utt1]
         embed2 = embed_dic[utt2]
-        # l1norms = np.mean(np.linalg.norm(embed1, ord=1, axis=1))
-        # data_cur.append(l1norms)
-        # l1norms = np.mean(np.linalg.norm(embed2, ord=1, axis=1))
-        # data_cur.append(l1norms)
-        # l2norms = np.mean(np.linalg.norm(embed1, ord=2, axis=1))
-        # data_cur.append(l2norms)
-        # l2norms = np.mean(np.linalg.norm(embed2, ord=2, axis=1))
-        # data_cur.append(l2norms)
+        l1norms = np.mean(np.linalg.norm(embed1, ord=1, axis=1))
+        data_cur.append(l1norms)
+        l1norms = np.mean(np.linalg.norm(embed2, ord=1, axis=1))
+        data_cur.append(l1norms)
+        l2norms = np.mean(np.linalg.norm(embed1, ord=2, axis=1))
+        data_cur.append(l2norms)
+        l2norms = np.mean(np.linalg.norm(embed2, ord=2, axis=1))
+        data_cur.append(l2norms)
 
         # add std as proposed in The ID R&D VoxCeleb Speaker Recognition
         # Challenge 2023 System Description
@@ -40,10 +40,10 @@ def generate_data(utt2dur, scores, embed_dic):
         data_cur.append(std)
         std = np.std(np.mean(embed2, axis=0))
         data_cur.append(std)
-        # std2 = list(np.std(embed1, axis=0))
-        # data_cur.extend(std2)
-        # std2 = list(np.std(embed2, axis=0))
-        # data_cur.extend(std2)
+        std2 = list(np.std(embed1, axis=0))
+        data_cur.extend(std2)
+        std2 = list(np.std(embed2, axis=0))
+        data_cur.extend(std2)
 
         data.append(data_cur)
     data = np.array(data, dtype=np.float32)
@@ -107,10 +107,14 @@ def main(args):
         test_scores,
         test_embed_dic,
     )
-    test_data, test_labels = generate_data(test_utt2dir, test_scores, test_embed_dic)
+    test_data, test_labels = generate_data(
+        test_utt2dir, test_scores, test_embed_dic
+    )
 
     # solver can be also newton-cholesky, lbfgs, and more.
-    # check https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html#sklearn.linear_model.LogisticRegression.decision_function
+    # check https://scikit-learn.org/stable/modules/generated/
+    # sklearn.linear_model.LogisticRegression.html#sklearn.linear_model.
+    # LogisticRegression.decision_function
     lr = LogisticRegression(random_state=0, solver="liblinear")
     print("Logistic regression fitting started")
     lr.fit(train_data, train_labels)
