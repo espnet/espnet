@@ -2,12 +2,15 @@ import pytest
 import torch
 
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr.frontend.asteriod_frontend import AsteroidFrontend
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
+
+frontend = AsteroidFrontend(sinc_filters=256, sinc_stride=16)
 
 rawnet3_encoder = RawNet3Encoder(model_scale=8, ndim=64, sinc_stride=16)
 
@@ -33,15 +36,16 @@ specaug = SpecAug(
 normalize = UtteranceMVN()
 
 
+@pytest.mark.parametrize("frontend", [frontend])
 @pytest.mark.parametrize("encoder, projector", [(rawnet3_encoder, rawnet3_projector)])
 @pytest.mark.parametrize("pooling", [chn_attn_stat_pooling])
 @pytest.mark.parametrize("training", [True, False])
-def test_single_channel_spk_model(encoder, pooling, projector, training):
+def test_single_channel_spk_model(frontend, encoder, pooling, projector, training):
     inputs = torch.randn(2, 8000)
     ilens = torch.LongTensor([8000, 7800])
     spk_labels = torch.randint(0, 108, (2,))
     spk_model = ESPnetSpeakerModel(
-        frontend=None,
+        frontend=frontend,
         specaug=None,
         normalize=None,
         encoder=encoder,
@@ -69,7 +73,7 @@ def test_spk_loss(training, loss):
     ilens = torch.LongTensor([8000, 7800])
     spk_labels = torch.randint(0, 108, (2,))
     spk_model = ESPnetSpeakerModel(
-        frontend=None,
+        frontend=frontend,
         specaug=None,
         normalize=normalize,
         encoder=rawnet3_encoder,
