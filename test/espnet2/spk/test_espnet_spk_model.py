@@ -20,8 +20,8 @@ chn_attn_stat_pooling = ChnAttnStatPooling(input_size=rawnet3_encoder.output_siz
 
 rawnet3_projector = RawNet3Projector(input_size=chn_attn_stat_pooling.output_size(), output_size=8)
 
-aamsoftmax_loss = AAMSoftmax(nout=rawnet3_projector.output_size(), 10, margin=0.3, scale=15, easy_margin=False)
-aamsoftmax_em_loss = AAMSoftmax(nout=rawnet3_projector.output_size(), 10, margin=0.3, scale=15, easy_margin=True)
+aamsoftmax_loss = AAMSoftmax(nout=rawnet3_projector.output_size(), nclasses=10, margin=0.3, scale=15, easy_margin=False)
+aamsoftmax_em_loss = AAMSoftmax(nout=rawnet3_projector.output_size(), nclasses=10, margin=0.3, scale=15, easy_margin=True)
 
 specaug = SpecAug(
     apply_time_warp=True,
