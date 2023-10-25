@@ -137,6 +137,8 @@ class CommonPreprocessor(AbsPreprocessor):
     def __init__(
         self,
         train: bool,
+        use_lang_prompt: bool = False,
+        use_nlp_prompt: bool = False,
         token_type: str = None,
         token_list: Union[Path, str, Iterable[str]] = None,
         bpemodel: Union[Path, str, Iterable[str]] = None,
@@ -174,6 +176,8 @@ class CommonPreprocessor(AbsPreprocessor):
         self.noise_apply_prob = noise_apply_prob
         self.short_noise_thres = short_noise_thres
         self.aux_task_names = aux_task_names
+        self.use_lang_prompt = use_lang_prompt
+        self.use_nlp_prompt = use_nlp_prompt
 
         if token_type is not None:
             if token_list is None:
@@ -203,6 +207,7 @@ class CommonPreprocessor(AbsPreprocessor):
             else:
                 self.token_id_converter = OpenAIWhisperTokenIDConverter(
                     model_type=bpemodel,
+                    added_tokens_txt=non_linguistic_symbols,
                     language=whisper_language or "en",
                     task=whisper_task or "transcribe",
                 )
@@ -421,7 +426,47 @@ class CommonPreprocessor(AbsPreprocessor):
                     "which may cause OOM on the GPU."
                     "Please ensure that the data processing is correct and verify it."
                 )
+            if "prompt" in data:
+                actual_token = (
+                    self.token_id_converter.tokenizer.tokenizer.convert_ids_to_tokens(
+                        text_ints
+                    )
+                )
+                if self.use_lang_prompt:
+                    if data["prompt"] == "<|nospeech|>":
+                        actual_token = [data["prompt"]]
+                    else:
+                        actual_token = data["prompt"].split() + actual_token[2:]
+                elif self.use_nlp_prompt:
+                    prompt_tokens = self.tokenizer.text2tokens(data["prompt"])
+                    actual_token = [actual_token[0]] + prompt_tokens + actual_token[2:]
+                else:
+                    if len(data["prompt"].split()) > 1:
+                        actual_token = (
+                            [actual_token[0]]
+                            + data["prompt"].split()
+                            + actual_token[2:]
+                        )
+                    else:
+                        actual_token[1] = data["prompt"]
+                text_ints = (
+                    self.token_id_converter.tokenizer.tokenizer.convert_tokens_to_ids(
+                        actual_token
+                    )
+                )
             data[self.text_name] = np.array(text_ints, dtype=np.int64)
+            if "prompt" in data:
+                whisper_tokenizer = self.token_id_converter.tokenizer.tokenizer
+                if len(data["prompt"].split()) > 1:
+                    data["prompt"] = np.array(
+                        whisper_tokenizer.convert_tokens_to_ids(data["prompt"].split()),
+                        dtype=np.int64,
+                    )
+                else:
+                    data["prompt"] = np.array(
+                        [whisper_tokenizer.convert_tokens_to_ids(data["prompt"])],
+                        dtype=np.int64,
+                    )
         if self.aux_task_names is not None and self.tokenizer is not None:
             for name in self.aux_task_names:
                 if name in data:
@@ -537,6 +582,8 @@ class CommonPreprocessor_multi(CommonPreprocessor):
     def __init__(
         self,
         train: bool,
+        use_lang_prompt: bool = False,
+        use_nlp_prompt: bool = False,
         token_type: str = None,
         token_list: Union[Path, str, Iterable[str]] = None,
         bpemodel: Union[Path, str, Iterable[str]] = None,
