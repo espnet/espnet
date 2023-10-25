@@ -540,6 +540,8 @@ Text converter related:
                     [--input_size INPUT_SIZE] [--ctc_conf CTC_CONF]
                     [--joint_net_conf JOINT_NET_CONF]
                     [--use_preprocessor USE_PREPROCESSOR]
+                    [--use_lang_prompt USE_LANG_PROMPT]
+                    [--use_nlp_prompt USE_NLP_PROMPT]
                     [--token_type {bpe,char,word,phn,hugging_face,whisper_en,whisper_multilingual}]
                     [--bpemodel BPEMODEL]
                     [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
@@ -964,6 +966,10 @@ Optimizer related:
 
   --use_preprocessor USE_PREPROCESSOR
                         Apply preprocessing to data or not (default: True)
+  --use_lang_prompt USE_LANG_PROMPT
+                        Use language id as prompt (default: False)
+  --use_nlp_prompt USE_NLP_PROMPT
+                        Use natural language phrases as prompt (default: False)
   --token_type {bpe,char,word,phn,hugging_face,whisper_en,whisper_multilingual}
                         The text will be tokenized in the specified level token (default: bpe)
   --bpemodel BPEMODEL   The model file of sentencepiece (default: None)

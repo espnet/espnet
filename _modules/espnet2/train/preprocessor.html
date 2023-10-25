@@ -350,6 +350,8 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">use_lang_prompt</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_nlp_prompt</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">token_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">token_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">bpemodel</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -387,6 +389,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">noise_apply_prob</span> <span class="o">=</span> <span class="n">noise_apply_prob</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">short_noise_thres</span> <span class="o">=</span> <span class="n">short_noise_thres</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_names</span> <span class="o">=</span> <span class="n">aux_task_names</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_lang_prompt</span> <span class="o">=</span> <span class="n">use_lang_prompt</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">use_nlp_prompt</span> <span class="o">=</span> <span class="n">use_nlp_prompt</span>
 
         <span class="k">if</span> <span class="n">token_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">token_list</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -416,6 +420,7 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span> <span class="o">=</span> <span class="n">OpenAIWhisperTokenIDConverter</span><span class="p">(</span>
                     <span class="n">model_type</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">,</span>
+                    <span class="n">added_tokens_txt</span><span class="o">=</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
                     <span class="n">language</span><span class="o">=</span><span class="n">whisper_language</span> <span class="ow">or</span> <span class="s2">&quot;en&quot;</span><span class="p">,</span>
                     <span class="n">task</span><span class="o">=</span><span class="n">whisper_task</span> <span class="ow">or</span> <span class="s2">&quot;transcribe&quot;</span><span class="p">,</span>
                 <span class="p">)</span>
@@ -634,7 +639,47 @@
                     <span class="s2">&quot;which may cause OOM on the GPU.&quot;</span>
                     <span class="s2">&quot;Please ensure that the data processing is correct and verify it.&quot;</span>
                 <span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;prompt&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">actual_token</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">convert_ids_to_tokens</span><span class="p">(</span>
+                        <span class="n">text_ints</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_lang_prompt</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;&lt;|nospeech|&gt;&quot;</span><span class="p">:</span>
+                        <span class="n">actual_token</span> <span class="o">=</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">actual_token</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span> <span class="o">+</span> <span class="n">actual_token</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+                <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_nlp_prompt</span><span class="p">:</span>
+                    <span class="n">prompt_tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">text2tokens</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">])</span>
+                    <span class="n">actual_token</span> <span class="o">=</span> <span class="p">[</span><span class="n">actual_token</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="n">prompt_tokens</span> <span class="o">+</span> <span class="n">actual_token</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">actual_token</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="p">[</span><span class="n">actual_token</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                            <span class="o">+</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+                            <span class="o">+</span> <span class="n">actual_token</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
+                        <span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">actual_token</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]</span>
+                <span class="n">text_ints</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">convert_tokens_to_ids</span><span class="p">(</span>
+                        <span class="n">actual_token</span>
+                    <span class="p">)</span>
+                <span class="p">)</span>
             <span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">text_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">text_ints</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;prompt&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+                <span class="n">whisper_tokenizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">token_id_converter</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokenizer</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">())</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                        <span class="n">whisper_tokenizer</span><span class="o">.</span><span class="n">convert_tokens_to_ids</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">()),</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+                        <span class="p">[</span><span class="n">whisper_tokenizer</span><span class="o">.</span><span class="n">convert_tokens_to_ids</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">])],</span>
+                        <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span>
+                    <span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_names</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">aux_task_names</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
@@ -750,6 +795,8 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+        <span class="n">use_lang_prompt</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">use_nlp_prompt</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">token_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">token_list</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">bpemodel</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
