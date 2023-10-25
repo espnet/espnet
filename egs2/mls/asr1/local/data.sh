@@ -7,11 +7,14 @@
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
+source ./scripts/utils/simple_dict.sh
+
 # general configuration
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 SECONDS=0
-lang=es
+lang=all  # if set as specific language, only download that language
+data_split=full  # full/1h/10h splits (mentioned in the original MLS paper, you can use the subset of training data)
 
 
 log() {
@@ -26,7 +29,7 @@ set -e
 set -u
 set -o pipefail
 
-. utils/parse_options.sh
+. ./utils/parse_options.sh
 
 log "data preparation started"
 
@@ -35,51 +38,90 @@ if [ -z "${MLS}" ]; then
     exit 1
 fi
 
+# Languages of MLS
+langs=(es en fr nl it pt pl de)
+lang_names=(spanish english french dutch italian portuguese polish german)
 
-# Get lang's name from its id for download links
-case ${lang} in
-    "es")
-        download_id=spanish ;;
-    "en")
-        download_id=english ;;
-    "fr")
-        download_id=french ;;
-    "nl")
-        download_id=dutch ;;
-    "it")
-        download_id=italian ;;
-    "pt")
-        download_id=portuguese ;;
-    "pl")
-        download_id=polish ;;
-esac
+dict_init lang_dict
+for i in {0..7}; do
+    if [ "$lang" == "all" ] || [ "$lang" == "${langs[i]}" ]; then
+        dict_put lang_dict ${langs[i]} ${lang_names[i]}
+    fi
+done
 
-data_url=https://dl.fbaipublicfiles.com/mls/mls_${download_id}.tar.gz
-lm_data_url=https://dl.fbaipublicfiles.com/mls/mls_lm_${download_id}.tar.gz
+# Download and read md5sum.txt
+if ! which wget >/dev/null; then
+    log "$0: wget is not installed."
+    exit 1;
+fi
+url="https://dl.fbaipublicfiles.com/mls/md5sum.txt"
+if [ ! -f "${MLS}/md5sum.txt" ]; then
+    if ! wget --no-check-certificate $url -P ${MLS}; then
+        echo "$0: error executing wget $url"
+        exit 1;
+    fi
+fi
+dict_init md5_dict
+while read -r line; do
+    md5=$( echo $line | cut -d " " -f 1)
+    filename=$( echo $line | cut -d " " -f 2)
+    dict_put md5_dict $filename $md5
+done < "${MLS}/md5sum.txt"
+# Finshed: Download and read md5sum.txt
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Download Data to ${MLS}"
 
-    local/download_and_untar.sh ${MLS} ${data_url} mls_${download_id}.tar.gz
-    local/download_and_untar.sh ${MLS} ${lm_data_url} mls_lm_${download_id}.tar.gz
-    # Optional: mls corpus is large. You might want to remove them after processing
-    # rm -f ${MLS}/mls_${download_id}.tar.gz
-    # rm -f ${MLS}/mls_lm_${download_id}.tar.gz
-fi
+    for lang_name in $(dict_values lang_dict); do
+        data_filename="mls_${lang_name}.tar.gz"
+        lm_filename="mls_lm_${lang_name}.tar.gz"
 
+        local/download_and_untar.sh \
+            --md5sum "$(dict_get md5_dict ${data_filename})" \
+            "${MLS}"\
+            "https://dl.fbaipublicfiles.com/mls/${data_filename}" \
+            "${data_filename}"
+        local/download_and_untar.sh \
+            --md5sum "$(dict_get md5_dict ${lm_filename})" \
+            "${MLS}"\
+            "https://dl.fbaipublicfiles.com/mls/${lm_filename}" \
+            "${lm_filename}"
+        # Optional: mls corpus is large. You might want to remove them after processing by supplying --remove-archive.
+    done
+fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Preparing Data for MLS"
 
-    python local/data_prep.py --source ${MLS}/mls_${download_id} --lang ${lang} --prefix "mls_"
-    utils/fix_data_dir.sh data/${lang}_train
-    utils/fix_data_dir.sh data/${lang}_dev
-    utils/fix_data_dir.sh data/${lang}_test
+    for lang in $(dict_keys lang_dict); do
+        lang_name=$(dict_get lang_dict ${lang})
 
-    # add placeholder to align format with other corpora
-    sed -r '/^\s*$/d' ${MLS}/mls_lm_${download_id}/data.txt | \
-         awk '{printf("%.8d %s\n"), NR-1, $0}'  > data/${lang}_lm_train.txt
+        python local/data_prep.py --source ${MLS}/mls_${lang_name} --lang ${lang} --prefix "mls_" --data_split ${data_split}
+        for split in train dev test; do
+            utils/fix_data_dir.sh data/mls_${lang}_${split}
+        done
+
+        # add placeholder to align format with other corpora
+        sed -r '/^\s*$/d' ${MLS}/mls_lm_${lang_name}/data.txt | \
+            awk '{printf("%.9d %s\n"), NR-1, $0}'  > data/${lang}_lm_train.txt
+    done
+
+    # Merge train, dev set
+    for split in train dev; do
+        mkdir data/mls_all_${split}
+        for f in spk2utt text utt2spk wav.scp; do
+            touch data/mls_all_${split}/${f}
+            for lang in $(dict_keys lang_dict); do
+                cat data/mls_${lang}_${split}/${f} >> data/mls_all_${split}/${f}
+            done
+        done
+        utils/fix_data_dir.sh data/mls_all_${split}
+    done
+
+    for lang in $(dict_keys lang_dict); do
+        lang_name=$(dict_get lang_dict ${lang})
+        sed -r '/^\s*$/d' ${MLS}/mls_lm_${lang_name}/data.txt
+    done | awk '{printf("%.9d %s\n"), NR-1, $0}' > data/all_lm_train.txt
 fi
-
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

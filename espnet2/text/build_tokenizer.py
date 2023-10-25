@@ -23,7 +23,10 @@ def build_tokenizer(
     nonsplit_symbol: Iterable[str] = None,
     # tokenization encode (text2token) args, e.g. BPE dropout, only applied in training
     encode_kwargs: Dict = None,
-    tokenizer_language: str = "en",
+    # only use for whisper
+    whisper_language: str = None,
+    whisper_task: str = None,
+    sot_asr: bool = False,
 ) -> AbsTokenizer:
     """A helper function to instantiate Tokenizer"""
     assert check_argument_types()
@@ -77,7 +80,13 @@ def build_tokenizer(
         )
 
     elif "whisper" in token_type:
-        return OpenAIWhisperTokenizer(model_type=bpemodel, language=tokenizer_language)
+        return OpenAIWhisperTokenizer(
+            model_type=bpemodel,
+            language=whisper_language or "en",
+            task=whisper_task or "transcribe",
+            added_tokens_txt=non_linguistic_symbols,
+            sot=sot_asr,
+        )
 
     else:
         raise ValueError(
