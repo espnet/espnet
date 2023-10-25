@@ -107,9 +107,7 @@ def main(args):
         test_scores,
         test_embed_dic,
     )
-    test_data, test_labels = generate_data(
-        test_utt2dir, test_scores, test_embed_dic
-    )
+    test_data, test_labels = generate_data(test_utt2dir, test_scores, test_embed_dic)
 
     # solver can be also newton-cholesky, lbfgs, and more.
     # check https://scikit-learn.org/stable/modules/generated/

@@ -1,9 +1,9 @@
 import os
 import sys
-import torch
-import numpy as np
-
 from collections import OrderedDict
+
+import numpy as np
+import torch
 
 
 def load_embeddings(embd_dir: str) -> dict:

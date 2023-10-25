@@ -1,9 +1,10 @@
 import sys
-import yaml
-import torch
-import numpy as np
-
 from collections import OrderedDict
+
+import numpy as np
+import torch
+import yaml
+
 from espnet2.torch_utils.device_funcs import to_device
 
 
@@ -62,9 +63,7 @@ def main(args):
 
         new_cohort_embds = []
         for spk in cohort_embds:
-            new_cohort_embds.append(
-                torch.stack(cohort_embds[spk], dim=0).mean(0)
-            )
+            new_cohort_embds.append(torch.stack(cohort_embds[spk], dim=0).mean(0))
     else:
         new_cohort_embds = []
         for utt in cohort_embds:

@@ -1,7 +1,8 @@
 import sys
-import yaml
+
 import numpy as np
 import soundfile as sf
+import yaml
 
 np.random.seed(0)
 
@@ -45,9 +46,7 @@ def main(args):
                 n_selected += 1
                 if n_selected == cfg["n_utt_per_spk"]:
                     break
-    print(
-        f"Cohort utterances selected, {len(utt_list)} utts, {len(spk2utt)} spks"
-    )
+    print(f"Cohort utterances selected, {len(utt_list)} utts, {len(spk2utt)} spks")
 
     # generate output adequate to ESPnet-SPK inference template
     utt_list1 = utt_list[: len(utt_list) // 2]
