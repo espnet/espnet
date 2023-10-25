@@ -4,9 +4,6 @@
 from typing import Dict, Optional, Tuple, Union
 
 import torch
-from pytorch_metric_learning.losses.base_metric_loss_function import (
-    BaseMetricLossFunction,
-)
 from typeguard import check_argument_types
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
@@ -50,7 +47,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         encoder: Optional[AbsEncoder],
         pooling: Optional[AbsPooling],
         projector: Optional[AbsProjector],
-        loss: Union[AbsLoss, BaseMetricLossFunction],
+        loss: Optional[AbsLoss],
     ):
         assert check_argument_types()
 
