@@ -5,6 +5,7 @@ import soundfile as sf
 
 np.random.seed(0)
 
+
 def load_yaml(yamlfile):
     with open(yamlfile, "r") as stream:
         try:
