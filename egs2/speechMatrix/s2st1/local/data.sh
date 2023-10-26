@@ -42,6 +42,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         # [Ziang] no speaker information for speechMatrix, fails the fix_data_dir.sh, skip for now
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" data/${part}_${src_lang}
     done
+    for part in "dev" "test"; do
+        python local/proc_eval_data.py \
+            --datadir "${SPEECHMATRIX}" \
+            --dest data \
+            --subset $part
+    done
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
