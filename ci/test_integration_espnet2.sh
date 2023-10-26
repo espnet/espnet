@@ -285,8 +285,9 @@ cd ./egs2/mini_an4/spk1
 gen_dummy_coverage
 echo "==== [ESPnet2] SPK ==="
 ./run.sh --ngpu 0 --stage 0 --stop-stage 4 --feats-type "raw" --python "${python}" --spk-args "--num_workers 0"
-./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_dataaug_debug.yaml --spk-args "--num_workers 0"
-./run.sh --ngpu 0 --stage 4 --stop-stage 4 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_sampler.yaml --spk-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 5 --stop-stage 5 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_dataaug_debug.yaml --spk-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 5 --stop-stage 5 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_sampler.yaml --spk-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 6 --stop-stage 7 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_sampler.yaml --spk-args "--num_workers 0" --inference_model "valid.eer.ave.pth"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
 cd "${cwd}"

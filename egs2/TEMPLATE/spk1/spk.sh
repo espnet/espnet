@@ -67,7 +67,7 @@ ignore_init_mismatch=false      # Ignore initial mismatch
 # Inference related
 inference_config=conf/decode.yaml   # Inference configuration
 inference_model=valid.eer.best.pth  # Inference model weight file
-score_norm=true       # Apply score normalization in inference.
+score_norm=false      # Apply score normalization in inference.
 qmf_func=false        # Apply quality measurement based calibration in inference.
 
 # [Task dependent] Set the datadir name created by local/data.sh
