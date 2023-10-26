@@ -18,8 +18,11 @@ data_url=www.openslr.org/resources/12
 train_dev="dev"
 asr_data_dir=
 asr_stats_dir=
+token_lists=
 files=
-bpemodel=
+token_types=
+merged_token_list=
+wav_scp=wav.scp
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -29,10 +32,10 @@ log "$0 $*"
 . ./cmd.sh
 
 
-if [ $# -ne 0 ]; then
-    log "Error: No positional arguments are required."
-    exit 2
-fi
+# if [ $# -ne 0 ]; then
+#     log "Error: No positional arguments are required."
+#     exit 2
+# fi
 
 if [ -z "${LIBRISPEECH}" ]; then
     log "Fill the value of 'LIBRISPEECH' of db.sh"
@@ -78,43 +81,59 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-      log "stage 5: prepare external text data from train-clean-360 train-other-500"
-      for part in train-clean-360 train-other-500; do
-	  if [ ! -e "${LIBRISPEECH}/LibriSpeech/${part}" ]; then
-	      local/download_and_untar.sh ${LIBRISPEECH} ${data_url} ${part}
-	      local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
-	    else
-	      log "stage 5: ${LIBRISPEECH}/LibriSpeech/${part} is already existing Skip data downloading"
-	  fi
-      done
-      if [ ! -e "data/local/860_text/text" ]; then
-	  mkdir "data/local/860_text/"
+    log "stage 5: prepare external text data from train-clean-360 train-other-500"
+    for part in train-clean-360 train-other-500; do
+        if [ ! -e "${LIBRISPEECH}/LibriSpeech/${part}" ]; then
+            local/download_and_untar.sh ${LIBRISPEECH} ${data_url} ${part}
+        else
+            log "stage 5: ${LIBRISPEECH}/LibriSpeech/${part} is already existing Skip data downloading"
+        fi
 
-	  for part in train_clean_360 train_other_500; do
-	    cat "data/${part}/text" >> "data/local/860_text/text"
+        log "stage 5: Data preparation for Injected text"
+        local/data_prep.sh ${LIBRISPEECH}/LibriSpeech/${part} data/${part//-/_}
+    done
 
-	  done
-      else
-	  log "stage 5: data/local/860_text/text is already existing Skip it"
-      fi
+    if [ ! -e "data/local/860_text/text" ]; then
+        mkdir -p "data/local/860_text/"
+
+        for part in train_clean_360 train_other_500; do
+            cat "data/${part}/text" >> "data/local/860_text/text"
+        done
+    else
+        log "stage 5: data/local/860_text/text is already existing Skip it"
+    fi
 fi
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-      log "stage 6: combine training data and external text data"
-      sed -e 's/^/external-/' data/local/860_text/text > ${asr_data_dir}/text_injection
+    log "stage 6: combine training data and external data"
+    sed -e 's/^/text-injection_/' data/local/860_text/text > ${asr_data_dir}/text_injection
 
-      # utt2category
-      <${asr_data_dir}/wav.scp awk '{print($1, "SPEECH")}' > ${asr_data_dir}/utt2category
-      <${asr_data_dir}/text_injection awk '{print($1, "TEXT_INJECTION")}' >> ${asr_data_dir}/utt2category
+    # TODO(Freddy): speech injection
+    mkdir -p "data/local/860_speech"
+
+    python local/speech_injection.py
+    sed -e 's/^/speech-injection_/' data/local/860_speech/speech > ${asr_data_dir}/speech_injection
+
+    # utt2category
+    <${asr_data_dir}/"${wav_scp}" awk '{print($1, "SPEECH")}' > ${asr_data_dir}/utt2category
+    <${asr_data_dir}/text_injection awk '{print($1, "TEXT_INJECTION")}' >> ${asr_data_dir}/utt2category
+    # <${asr_data_dir}/speech_injection awk '{print($1, "SPEECH_INJECTION")}' >> ${asr_data_dir}/utt2category
 
 fi
 
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
     log "stage 7: create extra text data's shape information"
     python local/create_extra_info.py --files ${files} \
-      --asr_data_dir ${asr_data_dir} \
-      --bpe_model ${bpemodel} \
-      --asr_stats_dir ${asr_stats_dir}
+        --token_lists ${token_lists} \
+        --merged_token_list ${merged_token_list} \
+        --asr_data_dir ${asr_data_dir} \
+        --token_types ${token_types} \
+        --asr_stats_dir ${asr_stats_dir}
+fi
+
+if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
+    log "stage 8: create segmentation information"
+    python local/aligner.py
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

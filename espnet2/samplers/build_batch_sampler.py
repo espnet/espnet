@@ -84,7 +84,6 @@ def build_batch_sampler(
     fold_lengths: Sequence[int] = (),
     padding: bool = True,
     utt2category_file: str = None,
-    injected_text_frequency: int = 3,
 ) -> AbsSampler:
     """Helper function to instantiate BatchSampler.
 
@@ -159,7 +158,6 @@ def build_batch_sampler(
             drop_last=drop_last,
             padding=padding,
             min_batch_size=min_batch_size,
-            injected_text_frequency=injected_text_frequency,
         )
 
     elif type == "length":

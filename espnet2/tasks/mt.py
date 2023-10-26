@@ -17,6 +17,8 @@ from espnet2.asr.decoder.transformer_decoder import (
     TransformerDecoder,
 )
 from espnet2.asr.discrete_asr_espnet_model import ESPnetDiscreteASRModel
+from espnet2.asr.text_injected_discrete_asr_espnet_model import TextInjectedESPnetDiscreteASRModel
+from espnet2.asr.new_text_injected_discrete_asr_espnet_model import NewTextInjectedESPnetDiscreteASRModel
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
@@ -45,7 +47,11 @@ from espnet2.torch_utils.initialize import initialize
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
+from espnet2.train.preprocessor import (
+    AbsPreprocessor,
+    MutliTokenizerCommonPreprocessor,
+    TextInjectedMultiTokenizerCommonPreprocessor,
+)
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -119,9 +125,20 @@ model_choices = ClassChoices(
     classes=dict(
         mt=ESPnetMTModel,
         discrete_asr=ESPnetDiscreteASRModel,
+        text_injected_discrete_asr=TextInjectedESPnetDiscreteASRModel,
+        new_text_injected_discrete_asr=NewTextInjectedESPnetDiscreteASRModel,
     ),
     type_check=AbsESPnetModel,
     default="mt",
+)
+preprocessor_choices = ClassChoices(
+    "preprocessor",
+    classes=dict(
+        multi=MutliTokenizerCommonPreprocessor,
+        text_injected=TextInjectedMultiTokenizerCommonPreprocessor,
+    ),
+    type_check=AbsPreprocessor,
+    default="multi",
 )
 
 
@@ -145,6 +162,8 @@ class MTTask(AbsTask):
         decoder_choices,
         # --model and --model_conf
         model_choices,
+        # --preprocessor and --preprocessor_conf
+        preprocessor_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -164,6 +183,12 @@ class MTTask(AbsTask):
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token (for target language)",
+        )
+        group.add_argument(
+            "--text_injection_token_lists",
+            type=str_or_none,
+            default=None,
+            help="A text mapping int-id to token (for extra target language)",
         )
         group.add_argument(
             "--src_token_list",
@@ -214,6 +239,12 @@ class MTTask(AbsTask):
             help="The target text will be tokenized " "in the specified level token",
         )
         group.add_argument(
+            "--text_injection_token_types",
+            type=str_or_none,
+            default=None,
+            help="The target text will be tokenized " "in the specified level token",
+        )
+        group.add_argument(
             "--src_token_type",
             type=str,
             default="bpe",
@@ -222,6 +253,12 @@ class MTTask(AbsTask):
         )
         group.add_argument(
             "--bpemodel",
+            type=str_or_none,
+            default=None,
+            help="The model file of sentencepiece (for target language)",
+        )
+        group.add_argument(
+            "--text_injection_bpemodels",
             type=str_or_none,
             default=None,
             help="The model file of sentencepiece (for target language)",
@@ -288,11 +325,21 @@ class MTTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-            retval = MutliTokenizerCommonPreprocessor(
+            try:
+                _ = getattr(args, "preprocessor")
+            except AttributeError:
+                setattr(args, "preprocessor", "default")
+                setattr(args, "preprocessor_conf", dict())
+            except Exception as e:
+                raise e
+
+            preprocessor_class = preprocessor_choices.get_class(args.preprocessor)
+
+            retval = preprocessor_class(
                 train=train,
-                token_type=[args.token_type, args.src_token_type],
-                token_list=[args.token_list, args.src_token_list],
-                bpemodel=[args.bpemodel, args.src_bpemodel],
+                token_type=[args.token_type, args.src_token_type] + args.text_injection_token_types,
+                token_list=[args.token_list, args.src_token_list] + args.text_injection_token_lists,
+                bpemodel=[args.bpemodel, args.src_bpemodel] + args.text_injection_bpemodels,
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
@@ -300,9 +347,8 @@ class MTTask(AbsTask):
                 tokenizer_encode_conf=[
                     args.tokenizer_encode_conf,
                     args.src_tokenizer_encode_conf,
-                ]
-                if train
-                else [dict(), dict()],
+                ] if train else [dict(), dict()],
+                **args.preprocessor_conf,
             )
         else:
             retval = None
@@ -346,6 +392,34 @@ class MTTask(AbsTask):
             raise RuntimeError("token_list must be str or list")
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
+
+        if args.text_injection_token_types is not None:
+            if isinstance(args.text_injection_token_types, str):
+                args.text_injection_token_types = args.text_injection_token_types.split()
+        
+        if args.text_injection_token_lists is not None:
+            if isinstance(args.text_injection_token_lists, str):
+                args.text_injection_token_lists = args.text_injection_token_lists.split()
+        
+        if args.text_injection_bpemodels is not None:
+            if isinstance(args.text_injection_bpemodels, str):
+                args.text_injection_bpemodels = args.text_injection_bpemodels.split()
+
+        args.text_injection_token_types = list(map(lambda token_type: token_type.strip(), args.text_injection_token_types))
+        args.text_injection_token_lists = list(map(lambda token_list: token_list.strip(), args.text_injection_token_lists))
+
+        text_injection_token_lists = []
+        for injected_token_list in args.text_injection_token_lists:
+            if isinstance(injected_token_list, str):
+                with open(injected_token_list, encoding="utf-8") as f:
+                    injected_token_list = [line.rstrip() for line in f]
+
+                # Overwirting injected_token_list to keep it as "portable".
+                text_injection_token_lists.append(injected_token_list)
+            elif isinstance(injected_token_list, (tuple, list)):
+                injected_token_list = list(injected_token_list)
+            else:
+                raise RuntimeError("token_list must be str or list")
 
         if args.src_token_list is not None:
             if isinstance(args.src_token_list, str):
@@ -425,8 +499,11 @@ class MTTask(AbsTask):
         # 8. Build model
         try:
             model_class = model_choices.get_class(args.model)
-            if args.model == "discrete_asr":
-                extra_model_conf = dict(ctc=ctc, specaug=specaug)
+            if args.model in ["discrete_asr", "text_injected_discrete_asr"]:
+                extra_model_conf = dict(
+                    ctc=ctc,
+                    specaug=specaug,
+                )
             else:
                 extra_model_conf = dict()
         except AttributeError:

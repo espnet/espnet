@@ -82,7 +82,7 @@ from espnet2.train.preprocessor import (
     AbsPreprocessor,
     CommonPreprocessor,
     CommonPreprocessor_multi,
-    TextInjectedPreprocessor,
+    TextInjectedMultiTokenizerCommonPreprocessor,
 )
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
@@ -198,7 +198,7 @@ preprocessor_choices = ClassChoices(
     classes=dict(
         default=CommonPreprocessor,
         multi=CommonPreprocessor_multi,
-        text_injected=TextInjectedPreprocessor,
+        text_injection=TextInjectedMultiTokenizerCommonPreprocessor,
     ),
     type_check=AbsPreprocessor,
     default="default",
@@ -248,6 +248,12 @@ class ASRTask(AbsTask):
             type=str_or_none,
             default=None,
             help="A text mapping int-id to token",
+        )
+        group.add_argument(
+            "--text_injection_token_lists",
+            type=str,
+            default="",
+            help="A text mapping int-id to token (for extra target language)",
         )
         group.add_argument(
             "--init",
@@ -319,10 +325,22 @@ class ASRTask(AbsTask):
             help="The text will be tokenized " "in the specified level token",
         )
         group.add_argument(
+            "--text_injection_token_types",
+            type=str,
+            default="",
+            help="The target text will be tokenized " "in the specified level token",
+        )
+        group.add_argument(
             "--bpemodel",
             type=str_or_none,
             default=None,
             help="The model file of sentencepiece",
+        )
+        group.add_argument(
+            "--text_injection_bpemodels",
+            type=str,
+            default="",
+            help="The model file of sentencepiece (for target language)",
         )
         parser.add_argument(
             "--non_linguistic_symbols",
@@ -432,43 +450,74 @@ class ASRTask(AbsTask):
                 raise e
 
             preprocessor_class = preprocessor_choices.get_class(args.preprocessor)
-            retval = preprocessor_class(
-                train=train,
-                token_type=args.token_type,
-                token_list=args.token_list,
-                bpemodel=args.bpemodel,
-                non_linguistic_symbols=args.non_linguistic_symbols,
-                text_cleaner=args.cleaner,
-                g2p_type=args.g2p,
-                # NOTE(kamo): Check attribute existence for backward compatibility
-                rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
-                noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                short_noise_thres=args.short_noise_thres
-                if hasattr(args, "short_noise_thres")
-                else 0.5,
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
-                else None,
-                aux_task_names=args.aux_ctc_tasks
-                if hasattr(args, "aux_ctc_tasks")
-                else None,
-                use_lang_prompt=args.use_lang_prompt
-                if hasattr(args, "use_lang_prompt")
-                else None,
-                **args.preprocessor_conf,
-                use_nlp_prompt=args.use_nlp_prompt
-                if hasattr(args, "use_nlp_prompt")
-                else None,
-            )
+
+            if args.preprocessor == "text_injection":
+                retval = preprocessor_class(
+                    train=train,
+                    token_type=[args.token_type] + args.text_injection_token_types,
+                    token_list=[args.token_list] + args.text_injection_token_lists,
+                    bpemodel=[args.bpemodel] + args.text_injection_bpemodels,
+                    non_linguistic_symbols=args.non_linguistic_symbols,
+                    text_cleaner=args.cleaner,
+                    g2p_type=args.g2p,
+                    # NOTE(kamo): Check attribute existence for backward compatibility
+                    rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
+                    rir_apply_prob=args.rir_apply_prob
+                    if hasattr(args, "rir_apply_prob")
+                    else 1.0,
+                    noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
+                    noise_apply_prob=args.noise_apply_prob
+                    if hasattr(args, "noise_apply_prob")
+                    else 1.0,
+                    noise_db_range=args.noise_db_range
+                    if hasattr(args, "noise_db_range")
+                    else "13_15",
+                    short_noise_thres=args.short_noise_thres
+                    if hasattr(args, "short_noise_thres")
+                    else 0.5,
+                    speech_volume_normalize=args.speech_volume_normalize
+                    if hasattr(args, "rir_scp")
+                    else None,
+                    **args.preprocessor_conf,
+                )
+            else:
+                retval = preprocessor_class(
+                    train=train,
+                    token_type=args.token_type,
+                    token_list=args.token_list,
+                    bpemodel=args.bpemodel,
+                    non_linguistic_symbols=args.non_linguistic_symbols,
+                    text_cleaner=args.cleaner,
+                    g2p_type=args.g2p,
+                    # NOTE(kamo): Check attribute existence for backward compatibility
+                    rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
+                    rir_apply_prob=args.rir_apply_prob
+                    if hasattr(args, "rir_apply_prob")
+                    else 1.0,
+                    noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
+                    noise_apply_prob=args.noise_apply_prob
+                    if hasattr(args, "noise_apply_prob")
+                    else 1.0,
+                    noise_db_range=args.noise_db_range
+                    if hasattr(args, "noise_db_range")
+                    else "13_15",
+                    short_noise_thres=args.short_noise_thres
+                    if hasattr(args, "short_noise_thres")
+                    else 0.5,
+                    speech_volume_normalize=args.speech_volume_normalize
+                    if hasattr(args, "rir_scp")
+                    else None,
+                    aux_task_names=args.aux_ctc_tasks
+                    if hasattr(args, "aux_ctc_tasks")
+                    else None,
+                    use_lang_prompt=args.use_lang_prompt
+                    if hasattr(args, "use_lang_prompt")
+                    else None,
+                    **args.preprocessor_conf,
+                    use_nlp_prompt=args.use_nlp_prompt
+                    if hasattr(args, "use_nlp_prompt")
+                    else None,
+                )
         else:
             retval = None
         assert check_return_type(retval)
@@ -525,6 +574,34 @@ class ASRTask(AbsTask):
 
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
+
+        if args.text_injection_token_types is not None:
+            if isinstance(args.text_injection_token_types, str):
+                args.text_injection_token_types = args.text_injection_token_types.split()
+
+        if args.text_injection_token_lists is not None:
+            if isinstance(args.text_injection_token_lists, str):
+                args.text_injection_token_lists = args.text_injection_token_lists.split()
+        
+        if args.text_injection_bpemodels is not None:
+            if isinstance(args.text_injection_bpemodels, str):
+                args.text_injection_bpemodels = args.text_injection_bpemodels.split()
+
+        args.text_injection_token_types = list(map(lambda token_type: token_type.strip(), args.text_injection_token_types))
+        args.text_injection_token_lists = list(map(lambda token_list: token_list.strip(), args.text_injection_token_lists))
+
+        text_injection_token_lists = []
+        for injected_token_list in args.text_injection_token_lists:
+            if isinstance(injected_token_list, str):
+                with open(injected_token_list, encoding="utf-8") as f:
+                    injected_token_list = [line.rstrip() for line in f]
+
+                # Overwirting injected_token_list to keep it as "portable".
+                text_injection_token_lists.append(injected_token_list)
+            elif isinstance(injected_token_list, (tuple, list)):
+                injected_token_list = list(injected_token_list)
+            else:
+                raise RuntimeError("token_list must be str or list")
 
         # 1. frontend
         if args.input_size is None:
@@ -614,6 +691,7 @@ class ASRTask(AbsTask):
         # 7. Build model
         try:
             model_class = model_choices.get_class(args.model)
+
         except AttributeError:
             model_class = model_choices.get_class("espnet")
         model = model_class(

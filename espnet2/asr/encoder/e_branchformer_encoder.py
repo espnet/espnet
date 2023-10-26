@@ -41,11 +41,12 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     Conv1dSubsampling2,
     Conv1dSubsampling3,
     Conv2dSubsampling,
-    InjectedConv2dSubsampling,
     Conv2dSubsampling1,
     Conv2dSubsampling2,
     Conv2dSubsampling6,
     Conv2dSubsampling8,
+    InjectedConv2dSubsampling,
+    InjectedConv1dSubsampling2,
     TooShortUttError,
     check_short_utt,
 )
@@ -218,6 +219,7 @@ class EBranchformerEncoder(AbsEncoder):
         assert check_argument_types()
         super().__init__()
         self._output_size = output_size
+        self._input_size = input_size
 
         if rel_pos_type == "legacy":
             if pos_enc_layer_type == "rel_pos":
@@ -281,13 +283,6 @@ class EBranchformerEncoder(AbsEncoder):
                 dropout_rate,
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
             )
-        elif input_layer == "injected_conv2d":
-            self.embed = InjectedConv2dSubsampling(
-                input_size,
-                output_size,
-                dropout_rate,
-                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
-            )
         elif input_layer == "conv2d1":
             self.embed = Conv2dSubsampling1(
                 input_size,
@@ -311,6 +306,20 @@ class EBranchformerEncoder(AbsEncoder):
             )
         elif input_layer == "conv2d8":
             self.embed = Conv2dSubsampling8(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
+            )
+        elif input_layer == "injected_conv2d":
+            self.embed = InjectedConv2dSubsampling(
+                input_size,
+                output_size,
+                dropout_rate,
+                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
+            )
+        elif input_layer == "injected_conv1d2":
+            self.embed = InjectedConv1dSubsampling2(
                 input_size,
                 output_size,
                 dropout_rate,
@@ -426,6 +435,9 @@ class EBranchformerEncoder(AbsEncoder):
     def output_size(self) -> int:
         return self._output_size
 
+    def input_size(self) -> int:
+        return self._input_size
+
     def forward(
         self,
         xs_pad: torch.Tensor,
@@ -433,7 +445,7 @@ class EBranchformerEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
         max_layer: int = None,
-        pseudo_mask: torch.Tensor = None,
+        is_text_injected: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -443,7 +455,7 @@ class EBranchformerEncoder(AbsEncoder):
             prev_states (torch.Tensor): Not to be used now.
             ctc (CTC): Intermediate CTC module.
             max_layer (int): Layer depth below which InterCTC is applied.
-            pseudo_mask (torch.Tensor): The mask which indicates if the sample is a pseudo speech (#batch).
+            is_text_injected (bool): The bool indicates if the sample is a pseudo speech (#batch).
         Returns:
             torch.Tensor: Output tensor (#batch, L, output_size).
             torch.Tensor: Output length (#batch).
@@ -457,23 +469,29 @@ class EBranchformerEncoder(AbsEncoder):
             or isinstance(self.embed, Conv1dSubsampling1)
             or isinstance(self.embed, Conv1dSubsampling2)
             or isinstance(self.embed, Conv1dSubsampling3)
-            or isinstance(self.embed, InjectedConv2dSubsampling)
             or isinstance(self.embed, Conv2dSubsampling1)
             or isinstance(self.embed, Conv2dSubsampling2)
             or isinstance(self.embed, Conv2dSubsampling6)
             or isinstance(self.embed, Conv2dSubsampling8)
+            or isinstance(self.embed, InjectedConv2dSubsampling)
+            or isinstance(self.embed, InjectedConv1dSubsampling2)
         ):
             short_status, limit_size = check_short_utt(self.embed, xs_pad.size(1))
-            if short_status:
-                raise TooShortUttError(
-                    f"has {xs_pad.size(1)} frames and is too short for subsampling "
-                    + f"(it needs more than {limit_size} frames), return empty results",
-                    xs_pad.size(1),
-                    limit_size,
-                )
-            if isinstance(self.embed, InjectedConv2dSubsampling):
-                xs_pad, masks = self.embed(xs_pad, masks, pseudo_mask)
+
+            if (
+                isinstance(self.embed, InjectedConv2dSubsampling)
+                or isinstance(self.embed, InjectedConv1dSubsampling2)
+            ):
+                xs_pad, masks = self.embed(xs_pad, masks, is_text_injected)
+
             else:
+                if short_status:
+                    raise TooShortUttError(
+                        f"has {xs_pad.size(1)} frames and is too short for subsampling "
+                        + f"(it needs more than {limit_size} frames), return empty results",
+                        xs_pad.size(1),
+                        limit_size,
+                    )
                 xs_pad, masks = self.embed(xs_pad, masks)
         elif self.embed is not None:
             xs_pad = self.embed(xs_pad)

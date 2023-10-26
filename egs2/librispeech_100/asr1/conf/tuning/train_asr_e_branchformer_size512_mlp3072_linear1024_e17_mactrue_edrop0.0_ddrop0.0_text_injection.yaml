@@ -10,7 +10,7 @@ encoder_conf:
     cgmlp_conv_kernel: 31
     use_linear_after_conv: false
     gate_activation: identity
-    num_blocks: 16
+    num_blocks: 17
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
@@ -37,25 +37,28 @@ model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
-    injected_text_frequency: 3
-    injected_text_type: mean
+    injected_text_frequency: 3 # only for fixed.
+    injected_text_type: fixed
     # fixed: token repeats injected_text_frequency times
-    # random: token repeats randomly picked from [1, injected_text_frequency]
+    # random: token repeats randomly picked from [injected_text - 2, injected_text_frequency + 2]
+    # mean: token repeats mean times where mean was calculated by CTC-Segmentation.
+    # median: token repeats median times where median was calculated by CTC-Segmentation.
+    # normal: median: token repeats n times was sampled through normal distribution, where the mean and std was calculated by CTC-Segmentation.
 
 frontend_conf:
     n_fft: 512
     hop_length: 160
 
 model: text_injected_espnet
-preprocessor: text_injected
-unused_parameters: true
+preprocessor: text_injection
+
 use_amp: true
 unused_parameters: true
 num_workers: 8
 batch_type: text_injected
 iterator_type: text_injected
-batch_bins: 14000000 # 140000000
-accum_grad: 8 # 1
+batch_bins: 10000000 # 140000000
+accum_grad: 14 # 1
 max_epoch: 80
 patience: none
 init: none

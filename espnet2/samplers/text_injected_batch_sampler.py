@@ -17,7 +17,6 @@ class TextInjectedBatchSampler(AbsSampler):
         sort_batch: str = "ascending",
         drop_last: bool = False,
         padding: bool = True,
-        injected_text_frequency: int = 3,
     ):
         assert check_argument_types()
         assert batch_bins > 0
@@ -43,30 +42,43 @@ class TextInjectedBatchSampler(AbsSampler):
             load_num_sequence_text(s, loader_type="csv_int") for s in shape_files
         ]
 
-        extra_utt2shape = {}
+        extra_text_utt2shape = {}
+        extra_speech_utt2shape = {}
         speech_utt2shape = {}
         text_utt2shape = {}
 
         for utt2shape, shape_file in zip(utt2shapes, shape_files):
             file_name = shape_file.split("/")[-1]
             shape_key = file_name.split("_shape")[0]
+            shape_key = shape_key.split("-")[0]
 
-            if shape_key not in ["text", "speech"]:
-                extra_utt2shape = {**extra_utt2shape, **utt2shape}
-            elif shape_key == "speech":
+            if shape_key == "text_injection":
+                extra_text_utt2shape = {**extra_text_utt2shape, **utt2shape}
+            elif shape_key == "speech_injection":
+                extra_speech_utt2shape = {**extra_speech_utt2shape, **utt2shape}
+            elif shape_key in ["speech", "src_text"]:
                 speech_utt2shape = utt2shape
             elif shape_key == "text":
                 text_utt2shape = utt2shape
 
-        if len(extra_utt2shape) > 0:
+        # for text injection
+        # for augment the speech dimensions
+        # always keep the same dimensions as the first speech data
+        speech_dim = list(speech_utt2shape.items())[0][1][1:]
+
+        if len(extra_text_utt2shape) > 0:
             pseudo_speech_utt2shape = {}
-            for uid in extra_utt2shape.keys():
-                utt_len = extra_utt2shape[uid][0]
-                utt_dim = extra_utt2shape[uid][1]
-                pseudo_speech_utt2shape[uid] = [utt_len, utt_dim]
+            for uid in extra_text_utt2shape.keys():
+                utt_len = extra_text_utt2shape[uid][0]
+                pseudo_speech_utt2shape[uid] = [utt_len] + speech_dim
 
             speech_utt2shape = {**speech_utt2shape, **pseudo_speech_utt2shape}
-            text_utt2shape = {**text_utt2shape, **extra_utt2shape}
+            text_utt2shape = {**text_utt2shape, **extra_text_utt2shape}
+
+        if len(extra_speech_utt2shape) > 0:
+            pseudo_text_utt2shape = {}
+            for uid in extra_speech_utt2shape.keys():
+                pass
 
         utt2shapes = [speech_utt2shape, text_utt2shape]
 
@@ -83,11 +95,6 @@ class TextInjectedBatchSampler(AbsSampler):
         keys = sorted(first_utt2shape, key=lambda k: first_utt2shape[k][0])
         if len(keys) == 0:
             raise RuntimeError(f"0 lines found: {shape_files[0]}")
-
-        for uid in speech_utt2shape.keys():
-            utt_len = speech_utt2shape[uid][0]
-            utt_dim = speech_utt2shape[uid][1] if len(speech_utt2shape[uid]) > 1 else 1
-            speech_utt2shape[uid] = [utt_len * utt_dim]
 
         if padding:
             # If padding case, the feat-dim must be same over whole corpus,

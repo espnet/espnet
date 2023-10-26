@@ -2052,7 +2052,6 @@ class AbsTask(ABC):
             if iter_options.distributed
             else 1,
             utt2category_file=utt2category_file,
-            injected_text_frequency=iter_options.injected_text_frequency,
         )
 
         batches = list(batch_sampler)

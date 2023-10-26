@@ -1,4 +1,3 @@
-# Trained with A40 (48 GB) x 1 GPUs.
 encoder: e_branchformer
 encoder_conf:
     output_size: 256
@@ -48,13 +47,13 @@ frontend_conf:
     hop_length: 160
 
 model: text_injected_espnet
-preprocessor: text_injected
+preprocessor: text_injection
 unused_parameters: true
 seed: 2022
 num_workers: 4
 batch_type: text_injected
-batch_bins: 32000000 # 16000000
-accum_grad: 2 # 4
+batch_bins: 16000000 # 16000000
+accum_grad: 4 # 4
 max_epoch: 70 # 160
 iterator_type: text_injected
 patience: none

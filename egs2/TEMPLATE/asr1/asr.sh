@@ -46,8 +46,10 @@ python=python3       # Specify python to execute espnet commands.
 local_data_opts= # The options given to local/data.sh.
 post_process_local_data_opts= # The options given to local/data.sh for additional processing in stage 4.
 auxiliary_data_tags= # the names of training data for auxiliary tasks
-extra_files= # the files of extra traing data
+extra_files= # the files of extra training data.
 post_process_stats_data_opts= # The options given to local/data.sh for additional processing in stage 10.
+text_injection_extra_files= # the files of extra text relateed training data.
+speech_injection_extra_files= # the files of extra speech related training data.
 
 # Speed perturbation related
 speed_perturb_factors=  # perturbation factors, e.g. "0.9 1.0 1.1" (separated by space).
@@ -72,6 +74,7 @@ bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
 bpe_char_cover=1.0  # character coverage when modeling BPE
 hugging_face_model_name_or_path="" # Hugging Face model or path for hugging_face tokenizer
+text_injection_token_types="" # Tokenization type (char or bpe or phn) for injection token.
 
 # Ngram model related
 use_ngram=false
@@ -389,11 +392,14 @@ if [ "${lang}" != noinfo ]; then
 else
     token_listdir=data/token_list
 fi
+
 bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
 bpeprefix="${bpedir}"/bpe
 bpemodel="${bpeprefix}".model
 bpetoken_list="${bpedir}"/tokens.txt
 chartoken_list="${token_listdir}"/char/tokens.txt
+phntoken_list="${token_listdir}"/phn/tgt_tokens.txt
+merged_token_list="${token_listdir}/merged/tgt_tokens.txt"
 hugging_face_token_list="${token_listdir}/hugging_face_"${hugging_face_model_name_or_path/\//-}/tokens.txt
 # NOTE: keep for future development.
 # shellcheck disable=SC2034
@@ -422,6 +428,29 @@ else
     log "Error: not supported --token_type '${token_type}'"
     exit 2
 fi
+
+text_injection_token_lists=
+text_injection_bpemodels=
+for text_injected_token_type in ${text_injection_token_types}; do
+    echo ${text_injected_token_type}
+    if [ "${text_injected_token_type}" = bpe ]; then
+        text_injection_token_lists+="${bpetoken_list} "
+        text_injection_bpemodels+="${bpemodel} "
+    elif [ "${text_injected_token_type}" = char ]; then
+        text_injection_token_lists+="${chartoken_list} "
+        text_injection_bpemodels+="none "
+    elif [ "${text_injected_token_type}" = phn ]; then
+        text_injection_token_lists+="${phntoken_list}"
+        text_injection_bpemodels+="none "
+    elif [ -z "${text_injected_token_type}" ]; then
+        text_injection_token_lists+=""
+        text_injection_bpemodels+="none "
+    else
+        log "Error: not supported '${text_injected_token_type}' in --text_injection_token_types"
+        exit 2
+    fi
+done
+
 if ${use_word_lm}; then
     log "Error: Word LM is not supported yet"
     exit 2
@@ -864,7 +893,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
 
     if [ -n "${post_process_local_data_opts}" ]; then
         # Do any additional local data post-processing here
-        local/data.sh ${post_process_local_data_opts} --asr_data_dir "${data_feats}/${train_set}"
+
+        # text injection
+        local/data.sh ${post_process_local_data_opts} \
+            --asr_data_dir "${data_feats}/${train_set}"
     fi
 
     # shellcheck disable=SC2002,SC2068,SC2005
@@ -999,6 +1031,55 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             --add_symbol "${oov}:1" \
             --add_symbol "${sos_eos}:-1"
     fi
+
+    # Generate extra text injection tokenizer
+    for injected_token_type in ${text_injection_token_types}; do
+        log "Stage 5: Generate token_list from ${bpe_train_text} using ${injected_token_type}"
+        if [ "${injected_token_type}" = bpe ]; then
+            echo "Skip the bpe model training"
+        elif [ "${injected_token_type}" = char ]; then
+            _opts="--non_linguistic_symbols ${nlsyms_txt}"
+
+            # shellcheck disable=SC2002
+            cat ${bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/injected_token_train.txt
+
+            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+            ${python} -m espnet2.bin.tokenize_text  \
+                --token_type char \
+                --input "${data_feats}/injected_token_train.txt" \
+                --output "${chartoken_list}" ${_opts} \
+                --field 1- \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --write_vocabulary true \
+                --add_symbol "${blank}:0" \
+                --add_symbol "${oov}:1" \
+                --add_symbol "${sos_eos}:-1"
+        elif [ "${injected_token_type}" = phn ]; then
+            _opts="--non_linguistic_symbols ${nlsyms_txt}"
+
+            # shellcheck disable=SC2002
+            cat ${bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/injected_token_train.txt
+
+            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+            ${python} -m espnet2.bin.tokenize_text  \
+                --token_type phn \
+                --input "${data_feats}/injected_token_train.txt" \
+                --output "${phntoken_list}" ${_opts} \
+                --field 1- \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --write_vocabulary true \
+                --add_symbol "${blank}:0" \
+                --add_symbol "${oov}:1" \
+                --add_symbol "${sos_eos}:-1"
+        else
+            log "Error: not supported --token_type '${injected_token_type}'"
+            exit 2
+        fi
+    done
 
 fi
 
@@ -1293,22 +1374,70 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
 
     # Append the num-tokens at the last dimensions. This is used for batch-bins count
     # shellcheck disable=SC2068
-    for ref_txt in ${ref_text_names[@]}; do
-        <"${asr_stats_dir}/train/${ref_txt}_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${asr_stats_dir}/train/${ref_txt}_shape.${token_type}"
+    # for ref_txt in ${ref_text_names[@]}; do
+    #     <"${asr_stats_dir}/train/${ref_txt}_shape" \
+    #         awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+    #         >"${asr_stats_dir}/train/${ref_txt}_shape.${token_type}"
 
-        <"${asr_stats_dir}/valid/${ref_txt}_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${asr_stats_dir}/valid/${ref_txt}_shape.${token_type}"
+    #     <"${asr_stats_dir}/valid/${ref_txt}_shape" \
+    #         awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+    #         >"${asr_stats_dir}/valid/${ref_txt}_shape.${token_type}"
+    # done
+
+    # text injection
+    <"${asr_stats_dir}/train/text_injection_shape" \
+        awk -v N="$(<${merged_token_list} wc -l)" '{ print $0 "," N }' \
+        >"${asr_stats_dir}/train/text_injection_shape.merged"
+    for ref_text in ${ref_text_names[@]}; do
+        if [ -z text_injection_token_types ]; then
+            <"${asr_stats_dir}/train/${ref_txt}_shape" \
+                awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+                >"${asr_stats_dir}/train/${ref_txt}_shape.${token_type}"
+
+            <"${asr_stats_dir}/valid/${ref_txt}_shape" \
+                awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+                >"${asr_stats_dir}/valid/${ref_txt}_shape.${token_type}"
+        else
+            <"${asr_stats_dir}/train/${ref_txt}_shape" \
+                awk -v N="$(<${merged_token_list} wc -l)" '{ print $0 "," N }' \
+                >"${asr_stats_dir}/train/${ref_txt}_shape.${token_type}"
+            <"${asr_stats_dir}/valid/${ref_txt}_shape" \
+                awk -v N="$(<${merged_token_list} wc -l)" '{ print $0 "," N }' \
+                >"${asr_stats_dir}/valid/${ref_txt}_shape.${token_type}"
+        fi
     done
+
+    # speech injection, need to augment to src_text
+    # <"${asr_stats_dir}/train/speech_injection_shape" \
+    #     awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+    #     >"${asr_stats_dir}/train/speech_injection_shape.${src_token_type}"
+
+    # <"${asr_stats_dir}/train/src_text_shape" \
+    #     awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+    #     >"${asr_stats_dir}/train/src_text_shape.${src_token_type}"
+
+    # <"${asr_stats_dir}/valid/src_text_shape" \
+    #     awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+    #     >"${asr_stats_dir}/valid/src_text_shape.${src_token_type}"
 
     if [ -n "${post_process_stats_data_opts}" ]; then
         # Do any additional local data post-processing here
-        local/data.sh ${post_process_stats_data_opts} --files "${extra_files}" \
-	  --asr_data_dir "${data_feats}/${train_set}" \
-	  --asr_stats_dir "${asr_stats_dir}" \
-	  --bpemodel "${bpemodel}"
+
+        # text injection
+        local/data.sh ${post_process_stats_data_opts} --files "${text_injection_extra_files}" \
+	        --asr_data_dir "${data_feats}/${train_set}" \
+            --token_lists "${text_injection_token_lists}" \
+            --merged_token_list "${merged_token_list}" \
+	        --asr_stats_dir "${asr_stats_dir}" \
+	        --token_types ${text_injection_token_types}
+
+        # # speech injection
+        # local/data.sh ${post_process_stats_data_opts} --files "${speech_injection_extra_files}" \
+	    #     --asr_data_dir "${data_feats}/${train_set}" \
+        #     --token_lists "${text_injection_token_lists}" \
+        #     --merged_token_list "${merged_token_list}" \
+	    #     --asr_stats_dir "${asr_stats_dir}" \
+	    #     --token_types "speech"
     fi
 
 fi
@@ -1396,14 +1525,25 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
             done
         fi
 
-	read -r -a extra_file_list <<< "${extra_files}"
-	if [ ${#extra_file_list[@]} != 0 ]; then
-	    _opts+="--allow_variable_data_keys True "
-	    for extra_file in "${extra_file_list[@]}"; do
-		_opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${extra_file},${extra_file},text "
-		_opts+="--train_shape_file ${asr_stats_dir}/train/${extra_file}_shape.bpe "
-	    done
-	fi
+        # text injection
+        read -r -a extra_file_list <<< "${text_injection_extra_files}"
+        if [ ${#extra_file_list[@]} != 0 ]; then
+            _opts+="--allow_variable_data_keys True "
+            for extra_file in "${extra_file_list[@]}"; do
+                _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${extra_file},${extra_file},text "
+                _opts+="--train_shape_file ${asr_stats_dir}/train/${extra_file}_shape.merged "
+            done
+        fi
+
+        # speech injection
+        # read -r -a extra_file_list <<< "${speech_injection_extra_files}"
+        # if [ ${#extra_file_list[@]} != 0 ]; then
+        #     _opts+="--allow_variable_data_keys True "
+        #     for extra_file in "${extra_file_list[@]}"; do
+        #         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${extra_file},${extra_file},src_text "
+        #         _opts+="--train_shape_file ${asr_stats_dir}/train/${extra_file}_shape.bpe "
+        #     done
+        # fi
 
         # shellcheck disable=SC2068
         for i in ${!ref_text_names[@]}; do
@@ -1438,6 +1578,10 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         jobname="${asr_exp}/train.log"
     fi
 
+    if [ ! -z "${text_injection_token_types}" ]; then
+        token_list="${merged_token_list}"
+    fi
+
     # shellcheck disable=SC2086
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
@@ -1449,8 +1593,11 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         ${python} -m espnet2.bin.${asr_task}_train \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
+            --text_injection_bpemodels "${text_injection_bpemodels}" \
             --token_type "${token_type}" \
+            --text_injection_token_types "${text_injection_token_types}" \
             --token_list "${token_list}" \
+            --text_injection_token_lists "${text_injection_token_lists}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --cleaner "${cleaner}" \
             --g2p "${g2p}" \

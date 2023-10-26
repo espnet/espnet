@@ -647,7 +647,7 @@ class TextInjectedESPnetDataset(ESPnetDataset):
 
         self.injected_names = set(
             [path_name_type[1] for path_name_type in path_name_type_list],
-        ) - set(["speech", "text"])
+        ) - set(["src_text", "speech", "text"])
 
         self.loader_dict = {}
         self.injected_loader_dict = {}

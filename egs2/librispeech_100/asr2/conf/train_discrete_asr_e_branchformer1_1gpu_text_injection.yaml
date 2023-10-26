@@ -1,4 +1,4 @@
-# Trained with A6000 (48 GB) x 1 GPUs for Kmeans2K+nbpe5K. It takes 6 minutes per epoch.
+# Trained with V100 (32 GB) x 1 GPUs for Kmeans2K+nbpe5K. It takes  minutes per epoch.
 # BPE-Dropout (https://github.com/google/sentencepiece#subword-regularization-and-bpe-dropout)
 src_tokenizer_encode_conf:
     enable_sampling: true    # If set to true, bpe-dropout is used.
@@ -41,7 +41,7 @@ encoder_conf:
     dropout_rate: 0.1
     positional_dropout_rate: 0.1
     attention_dropout_rate: 0.1
-    input_layer: conv1d2
+    input_layer: injected_conv1d2
     layer_drop_rate: 0.0
     linear_units: 1024
     positionwise_layer_type: linear
@@ -60,21 +60,30 @@ decoder_conf:
     src_attention_dropout_rate: 0.1
     layer_drop_rate: 0.0
 
-model: discrete_asr
+model: text_injected_discrete_asr
+preprocessor: random_text_injected
 model_conf:
     ctc_weight: 0.3
     lsm_weight: 0.1
     length_normalized_loss: false
     share_decoder_input_output_embed: false
     share_encoder_decoder_input_embed: false
+    injected_text_frequency: 4 # only for fixed.
+    injected_text_type: fixed
+    # fixed: token repeats injected_text_frequency times
+    # mean: token repeats mean times where mean was calculated by CTC-Segmentation.
+    # median: token repeats median times where median was calculated by CTC-Segmentation.
+    # normal: median: token repeats n times was sampled through normal distribution, where the mean and std was calculated by CTC-Segmentation.
 
+unused_parameters: true
 use_amp: true
-num_att_plot: 1
-log_interval: 1000
-num_workers: 4
-batch_type: numel
-batch_bins: 280000000
-accum_grad: 2
+# num_att_plot: 1
+# log_interval: 1000
+num_workers: 8
+batch_type: text_injected
+iterator_type: text_injected
+batch_bins: 35000000 # 280000000
+accum_grad: 16 # 2
 max_epoch: 70
 patience: none
 init: none

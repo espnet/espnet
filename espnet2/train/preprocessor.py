@@ -4,7 +4,7 @@ import random
 import re
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Collection, Dict, Iterable, List, Tuple, Union, Optional
+from typing import Collection, Dict, Iterable, List, Optional, Tuple, Union
 
 import librosa
 import numpy as np
@@ -2196,16 +2196,8 @@ class TextInjectedPreprocessor(CommonPreprocessor):
     ) -> Dict[str, np.ndarray]:
         assert check_argument_types()
 
-        if self.utt2category is None:
-            category = self.speech_name
-        else:
-            category = self.utt2category.get(uid, self.speech_name)
-
-        if category in [self.speech_name, self.text_name]:
-            data = self._speech_process(data)
-            data = self._text_process(data)
-        else:
-            data = self._injected_text_process(data, category)
+        data = self._text_process(data)
+        data = self._speech_process(data)
 
         return data
 
@@ -2383,5 +2375,117 @@ class S2TPreprocessor(CommonPreprocessor):
         data, init_pad = self._pad_or_trim_speech(data)
 
         data = self._text_process(data, round(init_pad / self.speech_resolution))
+
+        return data
+
+
+class TextInjectedMultiTokenizerCommonPreprocessor(MutliTokenizerCommonPreprocessor):
+    def __init__(
+        self,
+        train: bool,
+        token_type: List[str] = [None],
+        token_list: List[Union[Path, str, Iterable[str]]] = [None],
+        bpemodel: List[Union[Path, str, Iterable[str]]] = [None],
+        text_cleaner: Collection[str] = None,
+        g2p_type: str = None,
+        unk_symbol: str = "<unk>",
+        space_symbol: str = "<space>",
+        non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
+        delimiter: str = None,
+        rir_scp: str = None,
+        rir_apply_prob: float = 1.0,
+        noise_scp: str = None,
+        noise_apply_prob: float = 1.0,
+        noise_db_range: str = "3_10",
+        short_noise_thres: float = 0.5,
+        speech_volume_normalize: float = None,
+        speech_name: str = "speech",
+        text_name: List[str] = ["text"],
+        tokenizer_encode_conf: List[Dict] = [dict(), dict()],
+        utt2category: Optional[Dict[str, str]] = None, 
+    ):
+        super().__init__(
+            train,
+            token_type,
+            token_list,
+            bpemodel,
+            text_cleaner,
+            g2p_type,
+            unk_symbol,
+            space_symbol,
+            non_linguistic_symbols,
+            delimiter,
+            rir_scp,
+            rir_apply_prob,
+            noise_scp,
+            noise_apply_prob,
+            noise_db_range,
+            short_noise_thres,
+            speech_volume_normalize,
+            speech_name,
+            text_name,
+            tokenizer_encode_conf,
+        )
+        self.utt2category = utt2category
+        self.random_range = range(len(self.text_name), self.num_tokenizer)
+
+    def _injected_text_process(
+        self, data: Dict[str, Union[str, np.ndarray]], injected_name: str,
+    ) -> Dict[str, np.ndarray]:
+        if injected_name in data and self.tokenizer is not None:
+            text = data[injected_name]
+            text = self.text_cleaner(text)
+
+            # tokenizer idx 0,1 are the tgt/src tokenizers, skip them
+            tokenizer_idx = random.choice(self.random_range)
+
+            tokens = self.tokenizer[tokenizer_idx].text2tokens(text)
+            text_ints = self.token_id_converter[tokenizer_idx].tokens2ids(tokens)
+
+            data["injected_text"] = np.array(text_ints, dtype=np.int64)
+
+            data[self.text_name[0]] = np.array([], dtype=np.int64)
+
+            if len(self.text_name) > 1:
+                data[self.text_name[1]] = np.array([], dtype=np.int64)
+            else:
+                data[self.speech_name] = np.array([], dtype=np.int64)
+
+            del data[injected_name]
+
+        assert check_return_type(data)
+        return data
+
+    def _text_process(
+        self, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        for i, text_name in enumerate(self.text_name):
+            if text_name in data and self.tokenizer[i] is not None:
+                text = data[text_name]
+                text = self.text_cleaner(text)
+                tokens = self.tokenizer[i].text2tokens(text)
+                text_ints = self.token_id_converter[i].tokens2ids(tokens)
+                data[text_name] = np.array(text_ints, dtype=np.int64)
+
+        data["injected_text"] = np.array([], dtype=np.int64)
+
+        assert check_return_type(data)
+        return data
+
+    def __call__(
+        self, uid: str, data: Dict[str, Union[str, np.ndarray]]
+    ) -> Dict[str, np.ndarray]:
+        assert check_argument_types()
+
+        if self.utt2category is None:
+            category = self.speech_name
+        else:
+            category = self.utt2category.get(uid, self.speech_name)
+
+        if category in [self.speech_name] + self.text_name:
+            data = self._speech_process(data)
+            data = self._text_process(data)
+        else:
+            data = self._injected_text_process(data, category)
 
         return data
