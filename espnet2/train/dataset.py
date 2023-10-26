@@ -5,7 +5,7 @@ import logging
 import numbers
 import re
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Collection, Dict, Mapping, Tuple, Union, Optional
+from typing import Any, Callable, Collection, Dict, Mapping, Optional, Tuple, Union
 
 import h5py
 import humanfriendly
@@ -693,8 +693,11 @@ class TextInjectedESPnetDataset(ESPnetDataset):
         data = {}
         category = self.utt2category.get(uid, "speech")
 
-        loaders = self.injected_loader_dict if category in self.injected_names \
+        loaders = (
+            self.injected_loader_dict
+            if category in self.injected_names
             else self.loader_dict
+        )
 
         # 1. Load data from each loaders
         for name, loader in loaders.items():

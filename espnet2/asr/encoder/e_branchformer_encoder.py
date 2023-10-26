@@ -45,8 +45,8 @@ from espnet.nets.pytorch_backend.transformer.subsampling import (
     Conv2dSubsampling2,
     Conv2dSubsampling6,
     Conv2dSubsampling8,
-    InjectedConv2dSubsampling,
     InjectedConv1dSubsampling2,
+    InjectedConv2dSubsampling,
     TooShortUttError,
     check_short_utt,
 )
@@ -478,9 +478,8 @@ class EBranchformerEncoder(AbsEncoder):
         ):
             short_status, limit_size = check_short_utt(self.embed, xs_pad.size(1))
 
-            if (
-                isinstance(self.embed, InjectedConv2dSubsampling)
-                or isinstance(self.embed, InjectedConv1dSubsampling2)
+            if isinstance(self.embed, InjectedConv2dSubsampling) or isinstance(
+                self.embed, InjectedConv1dSubsampling2
             ):
                 xs_pad, masks = self.embed(xs_pad, masks, is_text_injected)
 

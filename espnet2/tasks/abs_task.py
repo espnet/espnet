@@ -1524,7 +1524,6 @@ class AbsTask(ABC):
         else:
             raise NotImplementedError(f"mode={mode}")
 
-
         is_injected = args.iterator_type == "text_injected"
         if is_injected:
             injected_text_frequency = args.model_conf.get(

@@ -1,20 +1,20 @@
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
-import torch
 import numpy as np
+import torch
 import torch.nn.functional as F
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.discrete_asr_espnet_model import ESPnetDiscreteASRModel
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
-from espnet2.asr.discrete_asr_espnet_model import ESPnetDiscreteASRModel
 from espnet2.asr.text_injected_espnet_model import mask_input
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet.nets.pytorch_backend.nets_utils import th_accuracy
@@ -88,7 +88,9 @@ class NewTextInjectedESPnetDiscreteASRModel(ESPnetDiscreteASRModel):
 
         self.injected_statistics = None
         if self.injected_text_type in ["mean", "median", "normal", "mean_median"]:
-            injected_statistics = np.load("./exp/asr_stats_raw_rm_wavlm_large_21_km2000_bpe6000_bpe5000_sp/train/token_statistics.npy")
+            injected_statistics = np.load(
+                "./exp/asr_stats_raw_rm_wavlm_large_21_km2000_bpe6000_bpe5000_sp/train/token_statistics.npy"
+            )
             self.injected_statistics = torch.from_numpy(injected_statistics).cuda()
 
         self.injected_text_embedding = self.decoder.embed
@@ -181,8 +183,16 @@ class NewTextInjectedESPnetDiscreteASRModel(ESPnetDiscreteASRModel):
 
         # TODO: Intermediate CTC (optional)
 
-        text_injected_loss_att, speech_injected_loss_att, paired_loss_att = None, None, None
-        text_injected_acc_att, speech_injected_acc_att, paired_acc_att = None, None, None
+        text_injected_loss_att, speech_injected_loss_att, paired_loss_att = (
+            None,
+            None,
+            None,
+        )
+        text_injected_acc_att, speech_injected_acc_att, paired_acc_att = (
+            None,
+            None,
+            None,
+        )
 
         # 2a. Attention-decoder branch (MT)
         if text_injected_num > 0:
@@ -213,23 +223,37 @@ class NewTextInjectedESPnetDiscreteASRModel(ESPnetDiscreteASRModel):
 
         # 2.5 Calculate L_paired and L_unpaired
         loss_ctc = (
-            paired_loss_ctc if paired_loss_ctc is not None else 0
-            + 0.3 * (
-                speech_injected_loss_ctc if speech_injected_loss_ctc is not None else 0
-                + text_injected_loss_ctc if text_injected_loss_ctc is not None else 0
+            paired_loss_ctc
+            if paired_loss_ctc is not None
+            else 0
+            + 0.3
+            * (
+                speech_injected_loss_ctc
+                if speech_injected_loss_ctc is not None
+                else 0 + text_injected_loss_ctc
+                if text_injected_loss_ctc is not None
+                else 0
             )
         )
         loss_att = (
-            paired_loss_att if paired_loss_att is not None else 0
-            + 0.3 * (
-                speech_injected_loss_att if speech_injected_loss_att is not None else 0
-                + text_injected_loss_att if text_injected_loss_att is not None else 0
+            paired_loss_att
+            if paired_loss_att is not None
+            else 0
+            + 0.3
+            * (
+                speech_injected_loss_att
+                if speech_injected_loss_att is not None
+                else 0 + text_injected_loss_att
+                if text_injected_loss_att is not None
+                else 0
             )
         )
         acc_att = (
             (paired_acc_att if paired_acc_att is not None else 0) * paired_num
-            + (speech_injected_acc_att if speech_injected_acc_att is not None else 0) * speech_injected_num
-            + (text_injected_acc_att if text_injected_acc_att is not None else 0) * text_injected_num
+            + (speech_injected_acc_att if speech_injected_acc_att is not None else 0)
+            * speech_injected_num
+            + (text_injected_acc_att if text_injected_acc_att is not None else 0)
+            * text_injected_num
         ) / batch_size
 
         # 3. Loss computation
@@ -258,7 +282,6 @@ class NewTextInjectedESPnetDiscreteASRModel(ESPnetDiscreteASRModel):
         text: torch.Tensor,
         text_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
         with autocast(False):
             # 1. Extract feats
             feats, feats_lengths = self._text_injected_extract_feats(text, text_lengths)
@@ -306,7 +329,12 @@ class NewTextInjectedESPnetDiscreteASRModel(ESPnetDiscreteASRModel):
         )
 
         if intermediate_outs is not None:
-            return (encoder_out, intermediate_outs), encoder_out_lens, text, text_lengths
+            return (
+                (encoder_out, intermediate_outs),
+                encoder_out_lens,
+                text,
+                text_lengths,
+            )
 
         return encoder_out, encoder_out_lens
 
@@ -325,14 +353,24 @@ class NewTextInjectedESPnetDiscreteASRModel(ESPnetDiscreteASRModel):
             pseudo_feats_lengths = text_lengths * self.injected_text_frequency
         elif self.injected_text_type in ["mean", "median", "normal"]:
             if self.injected_text_type == "mean":
-                repeated_text_frequency = self.injected_statistics[text][:, :, 0].type(text.dtype)
+                repeated_text_frequency = self.injected_statistics[text][:, :, 0].type(
+                    text.dtype
+                )
             elif self.injected_text_type == "median":
-                repeated_text_frequency = self.injected_statistics[text][:, :, 2].type(text.dtype)
+                repeated_text_frequency = self.injected_statistics[text][:, :, 2].type(
+                    text.dtype
+                )
             elif self.injected_text_type == "normal":
-                mean_text_frequency = self.injected_statistics[text][:, :, 0].type(torch.float)
-                std_text_frequency = self.injected_statistics[text][:, :, 1].type(torch.float)
+                mean_text_frequency = self.injected_statistics[text][:, :, 0].type(
+                    torch.float
+                )
+                std_text_frequency = self.injected_statistics[text][:, :, 1].type(
+                    torch.float
+                )
 
-                repeated_text_frequency = torch.normal(mean_text_frequency, std_text_frequency).type(text.dtype)
+                repeated_text_frequency = torch.normal(
+                    mean_text_frequency, std_text_frequency
+                ).type(text.dtype)
                 repeated_text_frequency[repeated_text_frequency <= 0] = 0
 
             batch_size = text.size(0)
@@ -358,9 +396,9 @@ class NewTextInjectedESPnetDiscreteASRModel(ESPnetDiscreteASRModel):
                     diff = max - feats_len
                     repeated_pseudo_feats[index] = F.pad(
                         repeated_pseudo_feats[index],
-                            (0, diff),
-                            value=0,
-                        )
+                        (0, diff),
+                        value=0,
+                    )
             pseudo_feats = torch.stack(repeated_pseudo_feats, dim=0)
             pseudo_feats_lengths = torch.stack(pseudo_feats_lengths, dim=0)
 

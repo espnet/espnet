@@ -57,7 +57,6 @@ from espnet2.asr.frontend.whisper import WhisperFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.maskctc_model import MaskCTCModel
 from espnet2.asr.pit_espnet_model import ESPnetASRModel as PITESPnetModel
-from espnet2.asr.text_injected_espnet_model import TextInjectedESPnetASRModel
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
@@ -68,6 +67,7 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr.text_injected_espnet_model import TextInjectedESPnetASRModel
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -577,18 +577,26 @@ class ASRTask(AbsTask):
 
         if args.text_injection_token_types is not None:
             if isinstance(args.text_injection_token_types, str):
-                args.text_injection_token_types = args.text_injection_token_types.split()
+                args.text_injection_token_types = (
+                    args.text_injection_token_types.split()
+                )
 
         if args.text_injection_token_lists is not None:
             if isinstance(args.text_injection_token_lists, str):
-                args.text_injection_token_lists = args.text_injection_token_lists.split()
-        
+                args.text_injection_token_lists = (
+                    args.text_injection_token_lists.split()
+                )
+
         if args.text_injection_bpemodels is not None:
             if isinstance(args.text_injection_bpemodels, str):
                 args.text_injection_bpemodels = args.text_injection_bpemodels.split()
 
-        args.text_injection_token_types = list(map(lambda token_type: token_type.strip(), args.text_injection_token_types))
-        args.text_injection_token_lists = list(map(lambda token_list: token_list.strip(), args.text_injection_token_lists))
+        args.text_injection_token_types = list(
+            map(lambda token_type: token_type.strip(), args.text_injection_token_types)
+        )
+        args.text_injection_token_lists = list(
+            map(lambda token_list: token_list.strip(), args.text_injection_token_lists)
+        )
 
         text_injection_token_lists = []
         for injected_token_list in args.text_injection_token_lists:

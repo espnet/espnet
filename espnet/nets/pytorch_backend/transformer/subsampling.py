@@ -53,6 +53,7 @@ def check_short_utt(ins, size):
         return True, 15
     return False, -1
 
+
 class InjectedConv1dSubsampling2(torch.nn.Module):
     """Convolutional 1D subsampling (to 1/2 length).
 
@@ -74,7 +75,9 @@ class InjectedConv1dSubsampling2(torch.nn.Module):
             torch.nn.ReLU(),
         )
         self.out = torch.nn.Linear(odim, odim)
-        self.position_encoding = pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
+        self.position_encoding = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
+        )
 
     def forward(self, x, x_mask, is_text_injected: bool):
         """Subsample x.
@@ -95,7 +98,7 @@ class InjectedConv1dSubsampling2(torch.nn.Module):
             x = self.position_encoding(x)
             return x, x_mask
         else:
-            x = x.transpose(2, 1) # (#batch, idim, time)
+            x = x.transpose(2, 1)  # (#batch, idim, time)
             x = self.conv(x)
             x = self.out(x.transpose(1, 2).contiguous())
 
@@ -377,7 +380,9 @@ class InjectedConv2dSubsampling(torch.nn.Module):
         )
         self.out = torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim)
         self.text_injected_out = torch.nn.Linear(odim, odim)
-        self.position_encoding = pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
+        self.position_encoding = (
+            pos_enc if pos_enc is not None else PositionalEncoding(odim, dropout_rate)
+        )
 
     def forward(self, x, x_mask, is_text_injected: bool):
         """Subsample x.

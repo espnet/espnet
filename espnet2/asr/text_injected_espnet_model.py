@@ -1,12 +1,10 @@
 import random
-
 from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
-import torch
 import numpy as np
+import torch
 import torch.nn.functional as F
-
 from packaging.version import parse as V
 
 from espnet2.asr.ctc import CTC
@@ -32,9 +30,9 @@ else:
 
 def mask_input(
     input_tensor: torch.Tensor,
-    mask_prob: float=0.15,
-    mask_span: int=5,
-    mask_id: int=0
+    mask_prob: float = 0.15,
+    mask_span: int = 5,
+    mask_id: int = 0,
 ) -> torch.Tensor:
     """Masks out a percentage of the input_tensor with a specified span.
     Args:
@@ -48,7 +46,7 @@ def mask_input(
     mask_indices = torch.zeros_like(input_tensor, dtype=torch.bool)
     for index in range(input_length):
         if random.random() < mask_prob:
-            mask_indices[:, index: index + mask_span] = True
+            mask_indices[:, index : index + mask_span] = True
     masked_input = input_tensor.masked_fill(mask_indices, mask_id)
 
     return masked_input
@@ -125,7 +123,9 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
 
         self.injected_statistics = None
         if self.injected_text_type in ["mean", "median", "normal", "mean_median"]:
-            injected_statistics = np.load("./exp/asr_stats_raw_en_bpe5000_sp/train/token_statistics.npy")
+            injected_statistics = np.load(
+                "./exp/asr_stats_raw_en_bpe5000_sp/train/token_statistics.npy"
+            )
             self.injected_statistics = torch.from_numpy(injected_statistics).cuda()
 
         self.injected_text_embedding = self.decoder.embed
@@ -168,7 +168,7 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
         # for data-parallel
         text[text == -1] = self.ignore_id
         text = text[:, : text_lengths.max()]
-        
+
         injected_text[injected_text == -1] = self.ignore_id
         injected_text = injected_text[:, : injected_text_lengths.max()]
 
@@ -222,8 +222,16 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
 
         # TODO: Intermediate CTC (optional)
 
-        text_injected_loss_att, speech_injected_loss_att, paired_loss_att = None, None, None
-        text_injected_acc_att, speech_injected_acc_att, paired_acc_att = None, None, None
+        text_injected_loss_att, speech_injected_loss_att, paired_loss_att = (
+            None,
+            None,
+            None,
+        )
+        text_injected_acc_att, speech_injected_acc_att, paired_acc_att = (
+            None,
+            None,
+            None,
+        )
 
         # TODO: transducer decoder branch
 
@@ -254,26 +262,40 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
                     text,
                     text_lengths,
                 )
-        
+
         # 2.5 Calculate L_paired and L_unpaired
         loss_ctc = (
-            paired_loss_ctc if paired_loss_ctc is not None else 0
-            + 0.3 * (
-                speech_injected_loss_ctc if speech_injected_loss_ctc is not None else 0
-                + text_injected_loss_ctc if text_injected_loss_ctc is not None else 0
+            paired_loss_ctc
+            if paired_loss_ctc is not None
+            else 0
+            + 0.3
+            * (
+                speech_injected_loss_ctc
+                if speech_injected_loss_ctc is not None
+                else 0 + text_injected_loss_ctc
+                if text_injected_loss_ctc is not None
+                else 0
             )
         )
         loss_att = (
-            paired_loss_att if paired_loss_att is not None else 0
-            + 0.3 * (
-                speech_injected_loss_att if speech_injected_loss_att is not None else 0
-                + text_injected_loss_att if text_injected_loss_att is not None else 0
+            paired_loss_att
+            if paired_loss_att is not None
+            else 0
+            + 0.3
+            * (
+                speech_injected_loss_att
+                if speech_injected_loss_att is not None
+                else 0 + text_injected_loss_att
+                if text_injected_loss_att is not None
+                else 0
             )
         )
         acc_att = (
             (paired_acc_att if paired_acc_att is not None else 0) * paired_num
-            + (speech_injected_acc_att if speech_injected_acc_att is not None else 0) * speech_injected_num
-            + (text_injected_acc_att if text_injected_acc_att is not None else 0) * text_injected_num
+            + (speech_injected_acc_att if speech_injected_acc_att is not None else 0)
+            * speech_injected_num
+            + (text_injected_acc_att if text_injected_acc_att is not None else 0)
+            * text_injected_num
         ) / batch_size
 
         # 3. Loss computation
@@ -302,7 +324,6 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
         text: torch.Tensor,
         text_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        
         with autocast(False):
             # 1. Extract feats
             feats, feats_lengths = self._text_injected_extract_feats(text, text_lengths)
@@ -350,7 +371,12 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
         )
 
         if intermediate_outs is not None:
-            return (encoder_out, intermediate_outs), encoder_out_lens, text, text_lengths
+            return (
+                (encoder_out, intermediate_outs),
+                encoder_out_lens,
+                text,
+                text_lengths,
+            )
 
         return encoder_out, encoder_out_lens
 
@@ -359,7 +385,7 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
         text: torch.Tensor,
         text_lengths: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-         # repetition
+        # repetition
         if self.injected_text_type in ["fixed", "fixed_or_speech"]:
             pseudo_feats = torch.repeat_interleave(
                 text,
@@ -369,14 +395,24 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
             pseudo_feats_lengths = text_lengths * self.injected_text_frequency
         elif self.injected_text_type in ["mean", "median", "normal"]:
             if self.injected_text_type == "mean":
-                repeated_text_frequency = self.injected_statistics[text][:, :, 0].type(text.dtype)
+                repeated_text_frequency = self.injected_statistics[text][:, :, 0].type(
+                    text.dtype
+                )
             elif self.injected_text_type == "median":
-                repeated_text_frequency = self.injected_statistics[text][:, :, 2].type(text.dtype)
+                repeated_text_frequency = self.injected_statistics[text][:, :, 2].type(
+                    text.dtype
+                )
             elif self.injected_text_type == "normal":
-                mean_text_frequency = self.injected_statistics[text][:, :, 0].type(torch.float)
-                std_text_frequency = self.injected_statistics[text][:, :, 1].type(torch.float)
+                mean_text_frequency = self.injected_statistics[text][:, :, 0].type(
+                    torch.float
+                )
+                std_text_frequency = self.injected_statistics[text][:, :, 1].type(
+                    torch.float
+                )
 
-                repeated_text_frequency = torch.normal(mean_text_frequency, std_text_frequency).type(text.dtype)
+                repeated_text_frequency = torch.normal(
+                    mean_text_frequency, std_text_frequency
+                ).type(text.dtype)
                 repeated_text_frequency[repeated_text_frequency <= 0] = 0
 
             batch_size = text.size(0)
@@ -402,9 +438,9 @@ class TextInjectedESPnetASRModel(ESPnetASRModel):
                     diff = max - feats_len
                     repeated_pseudo_feats[index] = F.pad(
                         repeated_pseudo_feats[index],
-                            (0, diff),
-                            value=0,
-                        )
+                        (0, diff),
+                        value=0,
+                    )
             pseudo_feats = torch.stack(repeated_pseudo_feats, dim=0)
             pseudo_feats_lengths = torch.stack(pseudo_feats_lengths, dim=0)
 

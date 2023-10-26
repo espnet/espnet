@@ -2402,7 +2402,7 @@ class TextInjectedMultiTokenizerCommonPreprocessor(MutliTokenizerCommonPreproces
         speech_name: str = "speech",
         text_name: List[str] = ["text"],
         tokenizer_encode_conf: List[Dict] = [dict(), dict()],
-        utt2category: Optional[Dict[str, str]] = None, 
+        utt2category: Optional[Dict[str, str]] = None,
     ):
         super().__init__(
             train,
@@ -2430,7 +2430,9 @@ class TextInjectedMultiTokenizerCommonPreprocessor(MutliTokenizerCommonPreproces
         self.random_range = range(len(self.text_name), self.num_tokenizer)
 
     def _injected_text_process(
-        self, data: Dict[str, Union[str, np.ndarray]], injected_name: str,
+        self,
+        data: Dict[str, Union[str, np.ndarray]],
+        injected_name: str,
     ) -> Dict[str, np.ndarray]:
         if injected_name in data and self.tokenizer is not None:
             text = data[injected_name]

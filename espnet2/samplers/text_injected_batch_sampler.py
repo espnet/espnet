@@ -1,4 +1,4 @@
-from typing import Iterator, List, Tuple, Union, Optional
+from typing import Iterator, List, Optional, Tuple, Union
 
 import numpy as np
 from typeguard import check_argument_types

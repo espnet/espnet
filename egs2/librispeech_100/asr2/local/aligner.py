@@ -1,14 +1,14 @@
 from typing import Dict
 
 import numpy as np
-
 from rich.progress import track
 
 from espnet2.bin.asr_align import CTCSegmentation
 from espnet2.text.build_tokenizer import build_tokenizer
-from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.sentencepiece_tokenizer import SentencepiecesTokenizer
+from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.train.dataset import kaldi_loader
+
 
 def token2frames(
     speech: np.ndarray,
@@ -48,15 +48,22 @@ if __name__ == "__main__":
         ngpu=1,
     )
 
-    tokenizer = build_tokenizer(token_type="bpe", bpemodel="./data/en_token_list/tgt_bpe_unigram5000_ts_en/bpe.model")
-    converter = TokenIDConverter(token_list="./data/en_token_list/tgt_bpe_unigram5000_ts_en/tokens.txt")
+    tokenizer = build_tokenizer(
+        token_type="bpe",
+        bpemodel="./data/en_token_list/tgt_bpe_unigram5000_ts_en/bpe.model",
+    )
+    converter = TokenIDConverter(
+        token_list="./data/en_token_list/tgt_bpe_unigram5000_ts_en/tokens.txt"
+    )
     token_frames = {}
 
     scp_loader = kaldi_loader("./dump/raw/train_clean_100_sp/wav.scp", "float32")
     with open("./dump/raw/train_clean_100_sp/text", "r", encoding="utf-8") as text_file:
         text_lines = text_file.readlines()
 
-        for text_line in track(text_lines, description="Processing CTC-Segmentation..."):
+        for text_line in track(
+            text_lines, description="Processing CTC-Segmentation..."
+        ):
             text_line = text_line.strip().split()
             uid = text_line[0]
 
@@ -78,8 +85,10 @@ if __name__ == "__main__":
     np.savez_compressed(token_frames_path, **token_frames)
 
     vocab_size = converter.get_num_vocabulary_size()
-    token_statistics = np.ndarray((vocab_size, 3)) # mean, std, median
-    for text_id in track(range(vocab_size), description="Processing token2statistics..."):
+    token_statistics = np.ndarray((vocab_size, 3))  # mean, std, median
+    for text_id in track(
+        range(vocab_size), description="Processing token2statistics..."
+    ):
         text = str(text_id)
         if text in token_frames:
             frames = token_frames[text]

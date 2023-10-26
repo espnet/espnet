@@ -1439,10 +1439,10 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
         _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
         _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
 =======
-        
+
         _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
         _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
-        _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "  
+        _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
 >>>>>>> Update to multiple text formats
         _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
         _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "

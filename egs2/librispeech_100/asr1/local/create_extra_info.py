@@ -1,9 +1,9 @@
-import os
 import argparse
-
+import os
 from typing import List
 
 from tqdm import tqdm
+
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Extract shape info for extra files")
@@ -43,10 +43,11 @@ def get_args() -> argparse.Namespace:
         metavar="N",
         default=["bpe"],
         nargs="+",
-        help="The token types of the external text data"
+        help="The token types of the external text data",
     )
 
     return parser.parse_args()
+
 
 def get_vocab_size(token_list: str) -> int:
     vocab_size = 0
@@ -55,6 +56,7 @@ def get_vocab_size(token_list: str) -> int:
         vocab_size = len(lines)
 
     return vocab_size
+
 
 def text2char(text: List[str]) -> List[str]:
     text = " ".join(text)
@@ -68,6 +70,7 @@ def text2char(text: List[str]) -> List[str]:
 
     return chars
 
+
 if __name__ == "__main__":
     args = get_args()
 
@@ -75,7 +78,8 @@ if __name__ == "__main__":
         pseudo_labels = {}
         with open(
             "/ocean/projects/cis210027p/jiatong/discreate_asr/pseudo_label/wavlm_large/train_960/pseudo_labels_km1000.txt",
-            "r", encoding="utf-8"
+            "r",
+            encoding="utf-8",
         ) as pseudo_labels_file:
             pseudo_labels_lines = pseudo_labels_file.readlines()
             for pseudo_labels_line in pseudo_labels_lines:
@@ -91,10 +95,12 @@ if __name__ == "__main__":
         for file in args.files:
             with open(
                 f"{args.asr_data_dir}/{file}",
-                "r", encoding="utf-8",
+                "r",
+                encoding="utf-8",
             ) as extra_file, open(
                 f"{args.asr_stats_dir}/train/speech_injection_shape",
-                "w+", encoding="utf-8",
+                "w+",
+                encoding="utf-8",
             ) as token_stats_file:
                 lines = extra_file.readlines()
                 for line in tqdm(lines):
@@ -128,7 +134,8 @@ if __name__ == "__main__":
 
         with open(
             args.merged_token_list,
-            "w+", encoding="utf-8",
+            "w+",
+            encoding="utf-8",
         ) as merged_token_list_file:
             for token in all_token_list:
                 token = token.strip()
@@ -137,10 +144,12 @@ if __name__ == "__main__":
         for file in args.files:
             with open(
                 f"{args.asr_data_dir}/{file}",
-                "r", encoding="utf-8",
+                "r",
+                encoding="utf-8",
             ) as extra_file, open(
                 f"{args.asr_stats_dir}/train/{file}_shape",
-                "w+", encoding="utf-8",
+                "w+",
+                encoding="utf-8",
             ) as token_stats_file:
                 extra_file_lines = extra_file.readlines()
                 for extra_file_line in tqdm(extra_file_lines):
