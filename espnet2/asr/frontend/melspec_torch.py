@@ -79,7 +79,9 @@ class MelSpectrogramTorch(AbsFrontend):
                     x = F.pad(x, (1, 0), "reflect")
 
                     # apply preemphasis
-                    x = F.conv1d(x, self.flipped_filter).squeeze()
+                    x = F.conv1d(x, self.flipped_filter).squeeze(1)
+                else:
+                    x = input
 
                 # apply frame feature extraction
                 x = self.transform(x)
