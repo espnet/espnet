@@ -10,15 +10,16 @@ valid_set="dev"
 test_sets="test"
 
 nbpe=10000
+km_dir="" #Add pretrained km_directory path
 lm_config=conf/train_transformer_size768_e12.yaml
 lm_inference_asr_config=conf/decode_lm_asr.yaml
 lm_inference_tts_config=conf/decode_lm_tts.yaml
 
 ./lm.sh \
-    --stage 7 \
+    --stage 1 \
     --stop_stage 9 \
-    --num_splits_lm 30 \
-    --nj 8 \
+    --num_splits_lm 1 \
+    --nj 16 \
     --ngpu 4 \
     --gpu_inference true \
     --inference_nj 8 \
@@ -32,7 +33,7 @@ lm_inference_tts_config=conf/decode_lm_tts.yaml
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --inference_lm valid.acc.ave.pth \
-    --km_dir "/swl/home/smaiti/speechlmscore_tool/models/hubert/" \
+    --km_dir "${km_dir}" \
     --lm_inference_asr_config "${lm_inference_asr_config}" \
     --lm_inference_tts_config "${lm_inference_tts_config}" \
     --lm_test_text_asr dump/raw/${test_sets}/text.asr \

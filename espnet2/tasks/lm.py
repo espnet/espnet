@@ -196,7 +196,12 @@ class LMTask(AbsTask):
 
         # 2. Build ESPnetModel
         # Assume the last-id is sos_and_eos
-        model = ESPnetLanguageModel(lm=lm, vocab_size=vocab_size, **args.model_conf)
+        model = ESPnetLanguageModel(
+            lm=lm,
+            vocab_size=vocab_size,
+            token_list=token_list,
+            **args.model_conf
+        )
 
         # FIXME(kamo): Should be done in model?
         # 3. Initialize

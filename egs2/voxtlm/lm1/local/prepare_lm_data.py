@@ -117,16 +117,12 @@ if __name__ == "__main__":
     parser.add_argument("-p","--path", type=str, help=" ", default="dump")
     args = parser.parse_args()
     out_dir = Path(args.path)
-
-    #for dset in ['train', 'valid', 'test']:
-    #for dset in ['valid', 'test']:
-    #cur_dir = out_dir / dset
     
     # create empty file
     with (out_dir / 'lm_text').open('w') as fp:
         print("Opened file:",out_dir)
 
-    #prepare textlm
+    # prepare textlm
     prepare_textlm(out_dir/ "text/textlm", out_dir=out_dir)
 
     # process speechlm
@@ -137,14 +133,6 @@ if __name__ == "__main__":
 
     # process tts
     prepare_tts(out_dir / "speech/tts", out_dir=out_dir)
-
-        
-
     
-    # for dset in ['train', 'valid', 'test']:
-    #     cur_dir = out_dir / dset       
-    #     shutil.copyfile(cur_dir /f'text', cur_dir /f'text_old')
-    #     shutil.move(cur_dir /f'lm_text', cur_dir /f'text')
-    
-    with (out_dir / 'nlsyms.txt').open('w') as fp:
+    with (Path("data") / 'nlsyms.txt').open('w') as fp:
         fp.write('<startofspeech>\n<generatetext>\n<startoftext>\n<generatespeech>\n')

@@ -122,8 +122,8 @@ class GenerateText:
             weights=weights,
             beam_size=beam_size,
             vocab_size=len(token_list),
-            sos=lm.sos,
-            eos=lm.eos,
+            sos=lm.sos_ids[0],  # not really used
+            eos=lm.eos_id,
             token_list=token_list,
             pre_beam_score_key="full",
         )
@@ -193,7 +193,7 @@ class GenerateText:
 
     @torch.no_grad()
     def __call__(
-        self, text: Optional[Union[str, torch.Tensor, np.ndarray]] = None
+        self, text: Union[str, torch.Tensor, np.ndarray]
     ) -> ListOfHypothesis:
         """Inference
 
@@ -211,11 +211,10 @@ class GenerateText:
         if isinstance(text, str):
             tokens = self.tokenizer.text2tokens(text)
             token_ids = self.converter.tokens2ids(tokens)
-        elif text is None:
-            token_ids = []
         else:
             token_ids = text.tolist()
-        hyp_primer = [self.lm.sos] + token_ids
+        
+        hyp_primer = token_ids[1:]  # remove initial space in BPE
         self.beam_search.set_hyp_primer(hyp_primer)
         logging.info(f"hyp primer: {hyp_primer}")
 
@@ -232,7 +231,8 @@ class GenerateText:
             assert isinstance(hyp, Hypothesis), type(hyp)
 
             # remove sos/eos and convert to list
-            token_int = hyp.yseq[1:-1]
+            token_int = hyp.yseq[:-1]
+            
             if not isinstance(token_int, list):
                 token_int = token_int.tolist()
 
@@ -523,7 +523,7 @@ def get_parser():
         default=1,
         help="Minimum output length",
     )
-    group.add_argument("--ngram_weight", type=float, default=0.9, help="ngram weight")
+    group.add_argument("--ngram_weight", type=float, default=0.0, help="ngram weight")
 
     group = parser.add_argument_group("Text converter related")
     group.add_argument(

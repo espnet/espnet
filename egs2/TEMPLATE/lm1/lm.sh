@@ -103,7 +103,7 @@ lang=noinfo      # The language type of corpus.
 nlsyms_txt=none  # Non-linguistic symbol list if existing.
 cleaner=none     # Text cleaner.
 g2p=none         # g2p method (needed if token_type=phn).
-
+lm_fold_length=150      # fold_length for LM training.
 # Language Model specific parameters
 use_speech=true
 use_text=true
