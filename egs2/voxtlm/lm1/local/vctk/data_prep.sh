@@ -134,7 +134,7 @@ done
 
 utils/combine_data.sh ${dst}/${train_set} ${train_data_dirs}
 utils/fix_data_dir.sh ${dst}/${train_set}
-        
+
 if [ ! -z "${dev_set}" ]; then
     utils/combine_data.sh ${dst}/${dev_set} ${dev_data_dirs}
     utils/combine_data.sh ${dst}/${eval_set} ${eval_data_dirs}

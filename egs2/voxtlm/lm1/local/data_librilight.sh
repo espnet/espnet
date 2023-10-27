@@ -17,7 +17,7 @@ stop_stage=3
 
 librilight_data_url="https://dl.fbaipublicfiles.com/librilight/data"
 librilight_parts="small medium large"
-train_set="train" 
+train_set="train"
 train_dev="dev"
 train_eval="test"
 
@@ -82,7 +82,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     #     local/librilight/data_prep_librilight.sh ${output_dir} ${data_dir}/librilight_${part}
     # done
-    
+
     # log "combine all training and development sets"
     # utils/combine_data.sh ${data_dir}/${train_set} ${data_dir}/librilight_small ${data_dir}/librilight_medium {data_dir}/librilight_large
 

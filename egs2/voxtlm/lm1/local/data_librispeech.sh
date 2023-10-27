@@ -67,7 +67,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/combine_data.sh ${data_dir_asr}/${train_set} ${data_dir_asr}/train_clean_100 ${data_dir_asr}/train_clean_360 ${data_dir_asr}/train_other_500
     utils/combine_data.sh ${data_dir_asr}/${train_dev} ${data_dir_asr}/dev_clean ${data_dir_asr}/dev_other
     utils/combine_data.sh ${data_dir_asr}/${train_eval} ${data_dir_asr}/test_clean ${data_dir_asr}/test_other
-    
+
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then

@@ -356,7 +356,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
         _dsets="${train_set} ${valid_set} ${test_sets}"
         _dsets="${valid_set} ${test_sets}" #SM:TODO: remove this one, only added for debug
     fi
-    if "${use_speech}"; then 
+    if "${use_speech}"; then
         if [ "${feats_type}" = raw ]; then
             log "Stage 2: Format wav.scp: data/ -> ${data_audio}"
 
@@ -367,7 +367,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
             # and it can also change the audio-format and sampling rate.
             # If nothing is need, then format_wav_scp.sh does nothing:
             # i.e. the input file format and rate is same as the output.
-            
+
             for dset in ${_dsets}; do
                 for _dir in "data/${dset}/speech/"*; do
                     if [ -d "${_dir}" ]; then
@@ -378,7 +378,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
                         scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                             --audio-format "${audio_format}" --fs "${fs}" \
                             "${_dir}/wav.scp" "${data_audio}/$(basename ${_dir})/${dset}"
-                        
+
                         echo "${feats_type}" > "${data_audio}/$(basename ${_dir})/${dset}/feats_type"
                         echo "${audio_format}" > "${data_audio}/$(basename ${_dir})/${dset}/audio_format"
                     fi
@@ -392,7 +392,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [[:space:]]3[[:space:]] ]]; then
-    if "${use_speech}"; then 
+    if "${use_speech}"; then
         log "Stage 3a: Perform Kmeans using ${kmeans_feature_type} features"
 
         for _dir in "data/${dset}/speech/"*; do
@@ -428,7 +428,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         for dset in "${train_set} ${valid_set}" ${test_sets}; do
             for _dir in "data/${dset}/speech/"*; do
                 if [ -d "${_dir}" ]; then
-                    utils/copy_data_dir.sh "${data_audio}/$(basename ${_dir})/${dset}" "${data_feats}/${dset}/speech/$(basename ${_dir})" 
+                    utils/copy_data_dir.sh "${data_audio}/$(basename ${_dir})/${dset}" "${data_feats}/${dset}/speech/$(basename ${_dir})"
                     cat "${data_extract}/$(basename ${_dir})/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
                         > "${data_feats}/${dset}/speech/$(basename ${_dir})/token"
                 fi
@@ -436,7 +436,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         done
     fi
 
-    if "${use_text}"; then 
+    if "${use_text}"; then
         for dset in "${train_set} ${valid_set}" ${test_sets}; do
             for _dir in "data/${dset}/text/"*; do
                 if [ -d "${_dir}" ]; then
@@ -447,7 +447,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             done
         done
     fi
-    
+
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then
@@ -455,7 +455,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
     # NOTE(kamo): Not applying to test_sets to keep original data
     if "${use_speech}" && "${use_text}"; then
         for dset in "${train_set} ${valid_set}" ${test_sets}; do
-            python3 local/prepare_lm_data.py --path ${data_feats}/${dset} 
+            python3 local/prepare_lm_data.py --path ${data_feats}/${dset}
         done
     fi
 

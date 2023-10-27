@@ -49,7 +49,7 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    
+
     # Combine all tasks into "train/ dev/ test"
     for _dset in "train" "dev" "test"; do
         for task in "${arr_task[@]}"; do
@@ -77,7 +77,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             if [ ! -z "${speech_dirs}" ]; then
                 utils/combine_data.sh  data/${_dset}/speech/${task} ${speech_dirs}
             fi
-            
+
             # combine text
             if [ ! -z "${text_data_paths}" ]; then
                 mkdir -p data/${_dset}/text/${task}
