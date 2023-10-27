@@ -26,6 +26,7 @@ SECONDS=0
 # General configuration
 stage=1              # Processes starts from the specified stage.
 stop_stage=10000     # Processes is stopped at the specified stage.
+skip_stages=         # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
 skip_eval=false      # Skip decoding and evaluation stages
@@ -49,10 +50,11 @@ min_wav_duration=0.1 # Minimum duration in second.
 max_wav_duration=20  # Maximum duration in second.
 
 # Kmeans related
-kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
-kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
+km_dir=                     # Path to pretrained kmeans model
+kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh, needed when kmeans is trained
+kmeans_feature="hubert_base/6" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21), needed when kmeans is trained
 portion=0.1
-nclusters=2000              # The number of clusters for discrete tokenss
+nclusters=1000              # The number of clusters for discrete tokens, needed when kmeans is trained
 storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
 
@@ -63,6 +65,7 @@ nbpe=30             # The number of BPE vocabulary.
 bpemode=unigram     # Mode of BPE (unigram or bpe).
 oov="<unk>"         # Out of vocabulary symbol.
 blank="<blank>"     # CTC blank symbol
+bpe_char_cover=1.0  # character coverage when modeling BPE for source language
 sos_eos="<sos/eos>" # sos and eos symbole
 bpe_input_sentence_size=100000000 # Size of input sentence for BPE.
 bpe_nlsyms=         # non-linguistic symbols list, separated by a comma or a file containing 1 symbol per line, for BPE
@@ -103,7 +106,7 @@ g2p=none         # g2p method (needed if token_type=phn).
 
 # Language Model specific parameters
 use_speech=true
-use_text=false
+use_text=true
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -248,6 +251,9 @@ else
     exit 2
 fi
 
+lm_train_text="${data_feats}/${train_set}/lm_text"
+lm_dev_text="${data_feats}/${valid_set}/lm_text"
+
 [ -z "${bpe_train_text}" ] && bpe_train_text="${data_feats}/org/${train_set}/text"
 
 # Check tokenization type
@@ -283,7 +289,9 @@ else
     s3prl_conf="{upstream=${kmeans_feature_type}}"
     kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
 fi
-km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
+if [ -z "${km_dir}" ]; then
+    km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
+fi
 
 if [ -z "${lm_tag}" ]; then
     if [ -n "${lm_config}" ]; then
@@ -292,11 +300,11 @@ if [ -z "${lm_tag}" ]; then
         lm_tag="train"
     fi
     if [ "${lang}" != noinfo ]; then
-        lm_tag+="_${lang}_${lm_token_type}"
+        lm_tag+="_${lang}_${token_type}"
     else
-        lm_tag+="_${lm_token_type}"
+        lm_tag+="_${token_type}"
     fi
-    if [ "${lm_token_type}" = bpe ]; then
+    if [ "${token_type}" = bpe ]; then
         lm_tag+="${nbpe}"
     fi
     # Add overwritten arg's info
@@ -307,11 +315,11 @@ fi
 
 if [ -z "${lm_stats_dir}" ]; then
     if [ "${lang}" != noinfo ]; then
-        lm_stats_dir="${expdir}/lm_stats_${lang}_${lm_token_type}"
+        lm_stats_dir="${expdir}/lm_stats_${lang}_${token_type}"
     else
-        lm_stats_dir="${expdir}/lm_stats_${lm_token_type}"
+        lm_stats_dir="${expdir}/lm_stats_${token_type}"
     fi
-    if [ "${lm_token_type}" = bpe ]; then
+    if [ "${token_type}" = bpe ]; then
         lm_stats_dir+="${nbpe}"
     fi
 fi
@@ -346,8 +354,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
         _dsets="${test_sets}"
     else
         _dsets="${train_set} ${valid_set} ${test_sets}"
+        _dsets="${valid_set} ${test_sets}" #SM:TODO: remove this one, only added for debug
     fi
-    if ["${use_speech}"]; then 
+    if "${use_speech}"; then 
         if [ "${feats_type}" = raw ]; then
             log "Stage 2: Format wav.scp: data/ -> ${data_audio}"
 
@@ -358,18 +367,22 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
             # and it can also change the audio-format and sampling rate.
             # If nothing is need, then format_wav_scp.sh does nothing:
             # i.e. the input file format and rate is same as the output.
-
+            
             for dset in ${_dsets}; do
-                utils/copy_data_dir.sh --validate_opts --non-print data/"${dset}" "${data_audio}/${dset}"
-                rm -f "${data_audio}/${dset}"/{wav.scp}
+                for _dir in "data/${dset}/speech/"*; do
+                    if [ -d "${_dir}" ]; then
+                        echo "${_dir}"   # your processing here
 
-                scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
-                    --audio-format "${audio_format}" --fs "${fs}" \
-                    "data/${dset}/wav.scp" "${data_audio}/${dset}"
+                        utils/copy_data_dir.sh --validate_opts --non-print "${_dir}" "${data_audio}/$(basename ${_dir})/${dset}/"
 
-                echo "${feats_type}" > "${data_audio}/${dset}/feats_type"
-                echo "${audio_format}" > "${data_audio}/${dset}/audio_format"
-                
+                        scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
+                            --audio-format "${audio_format}" --fs "${fs}" \
+                            "${_dir}/wav.scp" "${data_audio}/$(basename ${_dir})/${dset}"
+                        
+                        echo "${feats_type}" > "${data_audio}/$(basename ${_dir})/${dset}/feats_type"
+                        echo "${audio_format}" > "${data_audio}/$(basename ${_dir})/${dset}/audio_format"
+                    fi
+                done
             done
         else
             log "Error: not supported: --feats_type ${feats_type}"
@@ -379,106 +392,83 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [[:space:]]3[[:space:]] ]]; then
-    if ["${use_speech}"]; then 
+    if "${use_speech}"; then 
         log "Stage 3a: Perform Kmeans using ${kmeans_feature_type} features"
 
-        scripts/feats/perform_kmeans.sh \
-            --stage 1 --stop-stage 4 \
-            --train_set "${train_set}" \
-            --dev_set "${valid_set}" \
-            --other_sets "${test_sets}" \
-            --datadir "${data_audio}" \
-            --featdir "${data_extract}" \
-            --audio_format "${audio_format}" \
-            --feature_type "${kmeans_feature_type}" \
-            --layer "${layer}" \
-            --feature_conf "${kmeans_feature_conf}" \
-            --km_dir "${km_dir}" \
-            --portion "${portion}" \
-            --nclusters "${nclusters}" \
-            --storage_save_mode ${storage_save_mode} \
-            --use_gpu true \
-            --nj ${nj} \
-            --cpu_cmd "${train_cmd}" \
-            --cuda_cmd "${cuda_cmd}" \
-            ${kmeans_opts}
-
-        log "Stage 3b: Prepare token_list and convert number indices to CJK tokens"
-
-        # Get uniq chars
-        if [ ! -f "${km_dir}/../"distinct_cjk_token_lists ]; then
-            if [ ${nclusters} -ge 20900 ]; then
-                echo "Warning: too many clusters, be careful with the distinct token list."
+        for _dir in "data/${dset}/speech/"*; do
+            if [ -d "${_dir}" ]; then
+                scripts/feats/perform_kmeans.sh \
+                    --stage 1 --stop-stage 4 --skip_stages 2 \
+                    --train_set "${train_set}" \
+                    --dev_set "${valid_set}" \
+                    --other_sets "${test_sets}" \
+                    --datadir "${data_audio}/$(basename ${_dir})" \
+                    --featdir "${data_extract}/$(basename ${_dir})" \
+                    --audio_format "${audio_format}" \
+                    --feature_type "${kmeans_feature_type}" \
+                    --layer "${layer}" \
+                    --feature_conf "${kmeans_feature_conf}" \
+                    --km_dir "${km_dir}" \
+                    --portion "${portion}" \
+                    --nclusters "${nclusters}" \
+                    --storage_save_mode ${storage_save_mode} \
+                    --use_gpu true \
+                    --nj ${nj} \
+                    --cpu_cmd "${train_cmd}" \
+                    --cuda_cmd "${cuda_cmd}" \
+                    ${kmeans_opts}
             fi
-            python3 -c "for i in range(${nclusters}): print(i, chr(int('4e00', 16) + i))" \
-                > "${km_dir}/../"distinct_cjk_token_lists
-        fi
+        done
 
         _suf=
         if [ -n "${layer}" ]; then
             _suf="layer${layer}/"
         fi
 
-        if [ "${token_case}" = ts ]; then
-            echo "keep the original discrete token sequence"
-            for dset in "${train_set} ${valid_set}" ${test_sets}; do
-                awk '
-                    (FILENAME==ARGV[1]) {a[$1]=$2}
-                    (FILENAME==ARGV[2]) {
-                        out="";
-                        for (i=2; i<=NF; i++) {
-                            out=out""a[$i];
-                        }
-                        print($1,out);
-                    }' "${km_dir}/../"distinct_cjk_token_lists \
-                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                    > "data/${dset}/text"
-            done
-        elif [ "${token_case}" = rm ]; then
-            echo "remove repetitions in the discrete token sequence"
-            for dset in "${train_set} ${valid_set}" ${test_sets}; do
-                awk '
-                    (FILENAME==ARGV[1]) {a[$1]=$2}
-                    (FILENAME==ARGV[2]) {
-                        out="";
-                        for (i=2; i<=NF; i++) {
-                            if ($i != $(i-1)) {out=out""a[$i]}
-                        }
-                        print($1,out);
-                    }' "${km_dir}/../"distinct_cjk_token_lists \
-                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                    > "data/${dset}/text"
-            done
-        else
-            echo "Unrecognized token_case ${token_case}" && exit 1;
-        fi
-
         for dset in "${train_set} ${valid_set}" ${test_sets}; do
-            cp data/${dset}/text data/${dset}/text
+            for _dir in "data/${dset}/speech/"*; do
+                if [ -d "${_dir}" ]; then
+                    utils/copy_data_dir.sh "${data_audio}/$(basename ${_dir})/${dset}" "${data_feats}/${dset}/speech/$(basename ${_dir})" 
+                    cat "${data_extract}/$(basename ${_dir})/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
+                        > "${data_feats}/${dset}/speech/$(basename ${_dir})/token"
+                fi
+            done
         done
     fi
 
+    if "${use_text}"; then 
+        for dset in "${train_set} ${valid_set}" ${test_sets}; do
+            for _dir in "data/${dset}/text/"*; do
+                if [ -d "${_dir}" ]; then
+                    echo "${data_feats}/${dset}/text/$(basename ${_dir})"
+                    mkdir -p "${data_feats}/${dset}/text/$(basename ${_dir})"
+                    cp "${_dir}/text" "${data_feats}/${dset}/text/$(basename ${_dir})/"
+                fi
+            done
+        done
+    fi
     
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then
     log "Stage 4a: Data filtering: ${data_feats}/org -> ${data_feats}"
     # NOTE(kamo): Not applying to test_sets to keep original data
-    for dset in "${train_set}" "${valid_set}"; do
-        # Copy data dir
-        mkdir -p "${data_feats}/${dset}"
-        cp "${data_feats}/org/${dset}/feats_type" "${data_feats}/${dset}/feats_type"
-    done
-
-    # combine speech and text data if needed
-    if ["${use_speech}"] && ["${use_text}"]; then 
-        # TODO: combine
-
-        #TODO: Combine bpe_train_text
+    if "${use_speech}" && "${use_text}"; then
+        for dset in "${train_set} ${valid_set}" ${test_sets}; do
+            python3 local/prepare_lm_data.py --path ${data_feats}/${dset} 
+        done
     fi
 
-     # shellcheck disable=SC2002
-    cat ${lm_train_text} | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
+    # Create testset
+    for _dset in ${test_sets}; do
+        python3 local/prepare_lm_test.py --test_file "${data_feats}/${_dset}/lm_text" --path "${data_feats}/${_dset}"
+    done
+
+    # Create bpe_train_text
+    python3 local/prepare_bpe_text.py -i "${data_feats}/${train_set}/lm_text" -o ${bpe_train_text}
+
+    # shellcheck disable=SC2002
+    cat  "${data_feats}/${train_set}/lm_text" | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [[:space:]]5[[:space:]] ]]; then
@@ -593,8 +583,8 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
             --collect_stats true \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
-            --token_type "${lm_token_type}"\
-            --token_list "${lm_token_list}" \
+            --token_type "${token_type}"\
+            --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --cleaner "${cleaner}" \
             --g2p "${g2p}" \
@@ -615,12 +605,12 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ] && ! [[ " ${skip_stages} " =~ [
 
     # Append the num-tokens at the last dimensions. This is used for batch-bins count
     <"${lm_stats_dir}/train/text_shape" \
-        awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
-        >"${lm_stats_dir}/train/text_shape.${lm_token_type}"
+        awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+        >"${lm_stats_dir}/train/text_shape.${token_type}"
 
     <"${lm_stats_dir}/valid/text_shape" \
-        awk -v N="$(<${lm_token_list} wc -l)" '{ print $0 "," N }' \
-        >"${lm_stats_dir}/valid/text_shape.${lm_token_type}"
+        awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
+        >"${lm_stats_dir}/valid/text_shape.${token_type}"
 fi
 
 
@@ -643,7 +633,7 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
         if [ ! -f "${_split_dir}/.done" ]; then
             rm -f "${_split_dir}/.done"
             ${python} -m espnet2.bin.split_scps \
-              --scps "${data_feats}/lm_train.txt" "${lm_stats_dir}/train/text_shape.${lm_token_type}" \
+              --scps "${data_feats}/lm_train.txt" "${lm_stats_dir}/train/text_shape.${token_type}" \
               --num_splits "${num_splits_lm}" \
               --output_dir "${_split_dir}"
             touch "${_split_dir}/.done"
@@ -652,12 +642,12 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
         fi
 
         _opts+="--train_data_path_and_name_and_type ${_split_dir}/lm_train.txt,text,text "
-        _opts+="--train_shape_file ${_split_dir}/text_shape.${lm_token_type} "
+        _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
         _opts+="--multiple_iterator true "
 
     else
         _opts+="--train_data_path_and_name_and_type ${data_feats}/lm_train.txt,text,text "
-        _opts+="--train_shape_file ${lm_stats_dir}/train/text_shape.${lm_token_type} "
+        _opts+="--train_shape_file ${lm_stats_dir}/train/text_shape.${token_type} "
     fi
 
     # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
@@ -685,13 +675,13 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
             --ngpu "${ngpu}" \
             --use_preprocessor true \
             --bpemodel "${bpemodel}" \
-            --token_type "${lm_token_type}"\
-            --token_list "${lm_token_list}" \
+            --token_type "${token_type}"\
+            --token_list "${token_list}" \
             --non_linguistic_symbols "${nlsyms_txt}" \
             --cleaner "${cleaner}" \
             --g2p "${g2p}" \
             --valid_data_path_and_name_and_type "${lm_dev_text},text,text" \
-            --valid_shape_file "${lm_stats_dir}/valid/text_shape.${lm_token_type}" \
+            --valid_shape_file "${lm_stats_dir}/valid/text_shape.${token_type}" \
             --fold_length "${lm_fold_length}" \
             --resume true \
             --output_dir "${lm_exp}" \
