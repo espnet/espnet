@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Tuple, Union, List
+from typing import Dict, List, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
@@ -7,7 +7,7 @@ from typeguard import check_argument_types
 from espnet2.lm.abs_model import AbsLM
 from espnet2.torch_utils.device_funcs import force_gatherable
 from espnet2.train.abs_espnet_model import AbsESPnetModel
-from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, th_accuracy, pad_list
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask, pad_list, th_accuracy
 from espnet.nets.pytorch_backend.transformer.label_smoothing_loss import (  # noqa: H301
     LabelSmoothingLoss,
 )
@@ -60,7 +60,7 @@ class ESPnetLanguageModel(AbsESPnetModel):
             max_lengths: int
         """
         assert max_length is None
-        
+
         batch_size = text.size(0)
         # For data parallel
         if max_length is None:
@@ -74,11 +74,11 @@ class ESPnetLanguageModel(AbsESPnetModel):
 
         # 1. Create a sentence pair like '<sos> w1 w2 w3' and 'w1 w2 w3 <eos>'
         # text: (Batch, Length) -> x, y: (Batch, Length + 1)
-        x, x_lengths = text, text_lengths   # text already has <sos>
+        x, x_lengths = text, text_lengths  # text already has <sos>
         t = F.pad(text, [0, 1], "constant", self.ignore_id)
         for i, l in enumerate(text_lengths):
             t[i, l] = self.eos_id
-        t = t[:, 1:]    # remove <sos>
+        t = t[:, 1:]  # remove <sos>
 
         # 2. Forward Language model
         # x: (Batch, Length) -> y: (Batch, Length, NVocab)
@@ -147,15 +147,13 @@ class ESPnetLanguageModel(AbsESPnetModel):
         text: torch.Tensor,
         text_lengths: torch.Tensor,
     ):
-
         # NOTE(yifan): The first token is space when using bpe
         text = text[:, 1:]
         text_lengths = text_lengths - 1
 
         # 1. Prepare input and target
         input = pad_list(
-            [t[:t_len] for t, t_len in zip(text, text_lengths)],
-            self.eos_id
+            [t[:t_len] for t, t_len in zip(text, text_lengths)], self.eos_id
         )
 
         target = []
@@ -164,10 +162,10 @@ class ESPnetLanguageModel(AbsESPnetModel):
             # mask out the condition text
             for sos in self.sos_ids:
                 if sos in cur_text:
-                    cur_text[:(cur_text == sos).nonzero()[0][0]+1] = self.ignore_id
+                    cur_text[: (cur_text == sos).nonzero()[0][0] + 1] = self.ignore_id
                     break
-            cur_text = cur_text[1:]     # left shift
-            cur_text = F.pad(cur_text, (0, 1), value=self.eos_id)   # add eos
+            cur_text = cur_text[1:]  # left shift
+            cur_text = F.pad(cur_text, (0, 1), value=self.eos_id)  # add eos
             target.append(cur_text)
         target = pad_list(target, self.ignore_id)
 
@@ -182,7 +180,6 @@ class ESPnetLanguageModel(AbsESPnetModel):
         )
 
         return loss, acc
-
 
     def forward(
         self,
@@ -203,7 +200,7 @@ class ESPnetLanguageModel(AbsESPnetModel):
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
-        #loss, stats, weight = force_gatherable((loss, stats, ntokens), loss.device)
+        # loss, stats, weight = force_gatherable((loss, stats, ntokens), loss.device)
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
