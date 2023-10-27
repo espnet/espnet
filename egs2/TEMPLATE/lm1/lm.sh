@@ -191,11 +191,11 @@ Options:
     --lang          # The language type of corpus (default=${lang}).
     --cleaner       # Text cleaner (default="${cleaner}").
     --g2p           # g2p method (default="${g2p}").
-    
+
     # Language Model specific parameters
     --use_speech    # Whether to use speech for langauge model
     --use_text      # Whether to use text for langauge model
-    
+
 EOF
 )
 
@@ -810,19 +810,19 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " =~ [
         # 4. Postprocess and score
         _scoredir="${_dir}/score_wer"
         mkdir -p "${_scoredir}"
-	
+
         python3 local/postprocess.py \
             --input ${_dir}/text \
             --output ${_scoredir}/hyp.trn \
             --sos "<generatetext>" \
             --prefix "asr_"
-        
+
         python3 local/postprocess.py \
            --input ${data_feats}/test/text \
            --output ${_scoredir}/ref.trn \
            --sos "<generatetext>" \
            --prefix "asr_"
-        
+
         sclite -r ${_scoredir}/ref.trn trn \
             -h ${_scoredir}/hyp.trn trn \
             -i rm -o all stdout > ${_scoredir}/result.txt
@@ -835,7 +835,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     if [ -f ${lm_test_text_tts} ]; then
         log "Stage 10: LM decoding for TTS: ${lm_test_text_tts}"
         _dir="${lm_exp}/decode_test_tts/$(basename ${lm_test_text_tts})"
-        
+
         _logdir="${_dir}/logdir"
         mkdir -p "${_logdir}"
 
@@ -899,7 +899,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
             --output ${_scoredir}/hyp.trn \
             --sos "<generatespeech>" \
             --prefix "tts_"
-        
+
         # Generate tokens for speech generation
         python3 local/postprocess_tts.py \
             --input ${_scoredir}/hyp.trn \
