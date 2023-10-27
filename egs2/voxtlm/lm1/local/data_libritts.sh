@@ -59,7 +59,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     for name in dev-clean dev-other test-clean test-other train-clean-100 train-clean-360 train-other-500; do
         # Create kaldi data directory with the original audio
         ${lt_dir}/data_prep.sh "${db_root}/LibriTTS/${name}" "${data_dir}/${name}"
-        
+
         utils/fix_data_dir.sh "${data_dir}/${name}"
     done
 fi
