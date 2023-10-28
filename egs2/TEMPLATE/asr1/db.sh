@@ -206,6 +206,8 @@ KATHBATH=downloads
 GRAMVAANI=downloads
 SPRING_INX=downloads
 VOXCELEB=
+SPEECHMATRIX=sm_data
+
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
     BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/
