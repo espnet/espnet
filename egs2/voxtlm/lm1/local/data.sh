@@ -74,12 +74,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             done
 
             # combine speech dirs
-            if [ ! -z "${speech_dirs}" ]; then
+            if [ -n "${speech_dirs}" ]; then
                 utils/combine_data.sh  data/${_dset}/speech/${task} ${speech_dirs}
             fi
 
             # combine text
-            if [ ! -z "${text_data_paths}" ]; then
+            if [ -n "${text_data_paths}" ]; then
                 mkdir -p data/${_dset}/text/${task}
                 echo "${_dset}: Combine text: "${text_data_paths}
                 for f in ${text_data_paths}; do

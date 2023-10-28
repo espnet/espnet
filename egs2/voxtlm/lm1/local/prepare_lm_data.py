@@ -129,6 +129,6 @@ if __name__ == "__main__":
 
     # process tts
     prepare_tts(out_dir / "speech/tts", out_dir=out_dir)
-    
+
     with (Path("data") / 'nlsyms.txt').open('w') as fp:
         fp.write('<startofspeech>\n<generatetext>\n<startoftext>\n<generatespeech>\n')

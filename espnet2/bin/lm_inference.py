@@ -213,7 +213,7 @@ class GenerateText:
             token_ids = self.converter.tokens2ids(tokens)
         else:
             token_ids = text.tolist()
-        
+
         hyp_primer = token_ids[1:]  # remove initial space in BPE
         self.beam_search.set_hyp_primer(hyp_primer)
         logging.info(f"hyp primer: {hyp_primer}")
@@ -232,7 +232,7 @@ class GenerateText:
 
             # remove sos/eos and convert to list
             token_int = hyp.yseq[:-1]
-            
+
             if not isinstance(token_int, list):
                 token_int = token_int.tolist()
 

@@ -60,7 +60,7 @@ class ESPnetLanguageModel(AbsESPnetModel):
             max_lengths: int
         """
         assert max_length is None
-        
+
         batch_size = text.size(0)
         # For data parallel
         if max_length is None:
@@ -92,7 +92,7 @@ class ESPnetLanguageModel(AbsESPnetModel):
             nll.masked_fill_(make_pad_mask(x_lengths).to(nll.device).view(-1), 0.0)
         else:
             # nll.masked_fill_(
-            #     make_pad_mask(x_lengths, maxlen=max_length + 1).to(nll.device).view(-1),
+            # make_pad_mask(x_lengths, maxlen=max_length + 1).to(nll.device).view(-1),
             #     0.0,
             # )
             raise NotImplementedError
@@ -183,7 +183,6 @@ class ESPnetLanguageModel(AbsESPnetModel):
 
         return loss, acc
 
-
     def forward(
         self,
         text: torch.Tensor,
@@ -203,7 +202,7 @@ class ESPnetLanguageModel(AbsESPnetModel):
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
-        #loss, stats, weight = force_gatherable((loss, stats, ntokens), loss.device)
+        # loss, stats, weight = force_gatherable((loss, stats, ntokens), loss.device)
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 
