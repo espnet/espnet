@@ -192,9 +192,7 @@ class GenerateText:
         self.nbest = nbest
 
     @torch.no_grad()
-    def __call__(
-        self, text: Union[str, torch.Tensor, np.ndarray]
-    ) -> ListOfHypothesis:
+    def __call__(self, text: Union[str, torch.Tensor, np.ndarray]) -> ListOfHypothesis:
         """Inference
 
         Args:
