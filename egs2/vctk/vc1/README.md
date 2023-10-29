@@ -7,7 +7,7 @@ This is the recipe of the English multi-speaker TTS model with [VCTK](http://www
 # Prep data directory
 ./run.sh --stage 1 --stop-stage 1
 ```
-Data prepare from stage 2 to stage 5 (for non-parallel training data, using x-vector, without text transcripts). 
+Data prepare from stage 2 to stage 5 (for non-parallel training data, using x-vector, without text transcripts).
 ```sh
 # Run from stage 2 to stage 5
 ./run.sh \

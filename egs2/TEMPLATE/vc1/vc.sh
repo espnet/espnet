@@ -397,7 +397,7 @@ if ! "${skip_data_prep}"; then
                         --vad-config conf/vad.conf \
                         "${dumpdir}/mfcc/${dset}"
                     utils/fix_data_dir.sh "${dumpdir}/mfcc/${dset}"
-                                    
+
                     # 4. Extract X-vector
                     echo "=====Extract x-vector====="
                     sid/nnet3/xvector/extract_xvectors.sh --nj "${_nj}" --cmd "${train_cmd}" \

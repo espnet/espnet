@@ -21,15 +21,13 @@ from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
-from espnet2.vc.abs_vc import AbsVC
-from espnet2.vc.autovc import AutoVC
-from espnet2.vc.espnet_model import ESPnetVCModel
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
 from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
+
 # from espnet2.tts.prodiff import ProDiff
 # from espnet2.tts.tacotron2 import Tacotron2
 # from espnet2.tts.transformer import Transformer
@@ -38,6 +36,9 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
+from espnet2.vc.abs_vc import AbsVC
+from espnet2.vc.autovc import AutoVC
+from espnet2.vc.espnet_model import ESPnetVCModel
 
 feats_extractor_choices = ClassChoices(
     "feats_extract",
@@ -233,10 +234,10 @@ class VCTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("source_speech","target_speech")
+            retval = ("source_speech", "target_speech")
         else:
             # Inference mode
-            retval = ("source_speech")
+            retval = "source_speech"
         return retval
 
     @classmethod
@@ -256,8 +257,7 @@ class VCTask(AbsTask):
         else:
             # Inference mode
             retval = (
-                "spembs"
-                "text",
+                "spembs" "text",
                 "speech",
                 "durations",
                 "pitch",
