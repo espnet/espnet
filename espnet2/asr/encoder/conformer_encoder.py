@@ -383,7 +383,9 @@ class ConformerEncoder(AbsEncoder):
 
                         if isinstance(xs_pad, tuple):
                             x, pos_emb = xs_pad
-                            x, masks, pos_emb = trim_by_ctc_posterior(x, ctc_out, masks, pos_emb)
+                            x, masks, pos_emb = trim_by_ctc_posterior(
+                                x, ctc_out, masks, pos_emb
+                            )
                             xs_pad = (x, pos_emb)
                         else:
                             x, masks, _ = trim_by_ctc_posterior(x, ctc_out, masks)

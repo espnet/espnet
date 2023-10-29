@@ -39,14 +39,14 @@ class CTC(torch.nn.Module):
         self.ctc_type = ctc_type
         if ignore_nan_grad is not None:
             zero_infinity = ignore_nan_grad
-        
+
         if self.ctc_type == "brctc" and not torch.cuda.is_available():
             self.ctc_type = "builtin"
             logging.warning(
                 "Bayes Risk CTC is specified but CUDA is not available "
                 "Switch back to the default builtin CTC "
                 "It should be ok if this is inference stage"
-                )
+            )
 
         if self.ctc_type == "builtin":
             self.ctc_loss = torch.nn.CTCLoss(
@@ -69,9 +69,7 @@ class CTC(torch.nn.Module):
                 raise ImportError("You should install K2 to use Bayes Risk CTC")
 
             self.ctc_loss = BayesRiskCTC(
-                brctc_risk_strategy,
-                brctc_group_strategy,
-                brctc_risk_factor
+                brctc_risk_strategy, brctc_group_strategy, brctc_risk_factor
             )
 
         else:

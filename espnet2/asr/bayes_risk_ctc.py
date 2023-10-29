@@ -32,7 +32,7 @@ class BayesRiskCTC(torch.nn.Module):
                 "All examples are invalid for Bayes Risk CTC. Skip this batch"
             )
             return torch.Tensor([0.0]).to(nnet_output.device)
-        
+
         indices = indices[valid_sample_indices]
         nnet_output, hlens, ylens = nnet_output[indices], hlens[indices], ylens[indices]
         ys = [ys[i.item()] for i in valid_sample_indices]
@@ -172,7 +172,7 @@ class BayesRiskCTC(torch.nn.Module):
         else:
             raise NotImplementedError
 
-        return - risk
+        return -risk
 
     def find_all_index(
         self, ragged_lat, ctc_graph, dense_fsa_vec, arc_map_a, arc_map_b
