@@ -2,14 +2,14 @@
 
 # ESPnet: end-to-end speech processing toolkit
 
-|system/pytorch ver.|1.10.2|1.11.0|1.12.1|1.13.1|
+|system/pytorch ver.|1.11.0|1.12.1|1.13.1|2.0.1|
 | :---- | :---: | :---: | :---: | :---: |
 |ubuntu/python3.10/pip||||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
 |ubuntu/python3.9/pip||||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
 |ubuntu/python3.8/pip||||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
-|ubuntu/python3.7/pip|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
-|debian11/python3.7/conda||||[![ci on debian11](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml?query=branch%3Amaster)|
-|centos7/python3.7/conda||||[![ci on centos7](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml?query=branch%3Amaster)|
+|ubuntu/python3.7/pip|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)||
+|debian11/python3.10/conda|||[![ci on debian11](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml?query=branch%3Amaster)||
+|centos7/python3.10/conda|||[![ci on centos7](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml?query=branch%3Amaster)||
 |windows/python3.10/pip||||[![ci on windows](https://github.com/espnet/espnet/actions/workflows/ci_on_windows.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_windows.yml?query=branch%3Amaster)|
 |macos/python3.10/pip||||[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|
 |macos/python3.10/conda||||[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|
@@ -231,6 +231,14 @@ Demonstration
   - wav2vec-U (with different self-supervised models)
   - wav2vec-U 2.0 (in progress)
 - Support PrefixBeamSearch and K2-based WFST decoding
+
+### S2T: Speech-to-text with Whisper-style multilingual multitask models
+- Reproduces Whisper-style training from scratch using public data: [OWSM](https://arxiv.org/abs/2309.13876)
+- Supports multiple tasks in a single model
+  - Multilingual speech recognition
+  - Any-to-any speech translation
+  - Language identification
+  - Utterance-level timestamp prediction (segmentation)
 
 ### DNN Framework
 - Flexible network architecture thanks to Chainer and PyTorch
@@ -873,5 +881,11 @@ Also, we can use this tool to provide token-level segmentation information if we
   author={Gao, Dongji and Shi, Jiatong and Chuang, Shun-Po and Garcia, Leibny Paola and Lee, Hung-yi and Watanabe, Shinji and Khudanpur, Sanjeev},
   journal={arXiv preprint arXiv:2211.17196},
   year={2022}
+}
+@article{peng2023reproducing,
+  title={Reproducing Whisper-Style Training Using an Open-Source Toolkit and Publicly Available Data},
+  author={Peng, Yifan and Tian, Jinchuan and Yan, Brian and Berrebbi, Dan and Chang, Xuankai and Li, Xinjian and Shi, Jiatong and Arora, Siddhant and Chen, William and Sharma, Roshan and others},
+  journal={arXiv preprint arXiv:2309.13876},
+  year={2023}
 }
 ```

@@ -114,6 +114,10 @@ class Speech2Text:
         biasinglist: str = "",
         bmaxlen: int = 100,
         bdrop: float = 0.0,
+        lid_prompt: bool = False,
+        lang_prompt_token: Optional[str] = None,
+        nlp_prompt_token: Optional[str] = None,
+        prompt_token_file: Optional[str] = None,
     ):
         assert check_argument_types()
 
@@ -395,11 +399,19 @@ class Speech2Text:
         if bpemodel is None:
             bpemodel = asr_train_args.bpemodel
 
+        # compatibility for whisper tokenizer
+        preprocessor_conf = getattr(asr_train_args, "preprocessor_conf", {})
+        whisper_language = preprocessor_conf.get("whisper_language", None)
+        whisper_task = preprocessor_conf.get("whisper_task", None)
+
         if token_type is None:
             tokenizer = None
         elif token_type == "bpe" or token_type == "hugging_face":
             if bpemodel is not None:
-                tokenizer = build_tokenizer(token_type=token_type, bpemodel=bpemodel)
+                tokenizer = build_tokenizer(
+                    token_type=token_type,
+                    bpemodel=bpemodel,
+                )
             else:
                 tokenizer = None
         elif "whisper" in token_type:
@@ -409,7 +421,9 @@ class Speech2Text:
             tokenizer = build_tokenizer(
                 token_type=token_type,
                 bpemodel=bpemodel,
-                tokenizer_language=tokenizer_language,
+                whisper_language=whisper_language,
+                whisper_task=whisper_task,
+                non_linguistic_symbols=prompt_token_file,
             )
         else:
             tokenizer = build_tokenizer(token_type=token_type)
@@ -419,12 +433,45 @@ class Speech2Text:
         elif bpemodel not in ["whisper_en", "whisper_multilingual"]:
             converter = TokenIDConverter(token_list=token_list)
         else:
+            if "speaker_change_symbol" in preprocessor_conf:
+                sot_asr = True
+            else:
+                sot_asr = False
             converter = OpenAIWhisperTokenIDConverter(
-                model_type=bpemodel, language=tokenizer_language
+                model_type=bpemodel,
+                added_tokens_txt=prompt_token_file,
+                language=whisper_language or "en",
+                task=whisper_task or "transcribe",
+                sot=sot_asr,
             )
             beam_search.set_hyp_primer(
                 list(converter.tokenizer.sot_sequence_including_notimestamps)
             )
+            if lang_prompt_token is not None:
+                a1 = converter.tokenizer.tokenizer.convert_ids_to_tokens(
+                    converter.tokenizer.sot_sequence_including_notimestamps
+                )
+                a1 = a1[:1] + lang_prompt_token.split() + a1[3:]
+                beam_search.set_hyp_primer(
+                    list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
+                )
+            elif nlp_prompt_token is not None:
+                a1 = converter.tokenizer.tokenizer.convert_ids_to_tokens(
+                    converter.tokenizer.sot_sequence_including_notimestamps
+                )
+                prompt_tokens = tokenizer.text2tokens(nlp_prompt_token)
+                a1 = a1[:2] + prompt_tokens + a1[3:]
+                beam_search.set_hyp_primer(
+                    list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
+                )
+            elif lid_prompt:
+                a1 = converter.tokenizer.tokenizer.convert_ids_to_tokens(
+                    converter.tokenizer.sot_sequence_including_notimestamps
+                )
+                a1 = a1[:1]
+                beam_search.set_hyp_primer(
+                    list(converter.tokenizer.tokenizer.convert_tokens_to_ids(a1))
+                )
         logging.info(f"Text tokenizer: {tokenizer}")
 
         self.asr_model = asr_model
@@ -716,6 +763,9 @@ def inference(
     biasinglist: str = "",
     bmaxlen: int = 0,
     bdrop: float = 0.0,
+    lang_prompt_token: Optional[str],
+    nlp_prompt_token: Optional[str],
+    prompt_token_file: Optional[str],
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -771,6 +821,9 @@ def inference(
         biasinglist=biasinglist,
         bmaxlen=bmaxlen,
         bdrop=bdrop,
+        prompt_token_file=prompt_token_file,
+        lang_prompt_token=lang_prompt_token,
+        nlp_prompt_token=nlp_prompt_token,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -976,7 +1029,6 @@ def get_parser():
         help="Whether we are using a monolithic multi-speaker ASR model "
         "(This flag should be False if a speech separation model is used before ASR)",
     )
-
     group = parser.add_argument_group("Quantization related")
     group.add_argument(
         "--quantize_asr_model",
@@ -1103,7 +1155,24 @@ def get_parser():
         default=0.0,
         help="biasing list dropout probability",
     )
-
+    group.add_argument(
+        "--lang_prompt_token",
+        type=str,
+        default=None,
+        help="Prompt token for mulitlingual prompting",
+    )
+    group.add_argument(
+        "--nlp_prompt_token",
+        type=str,
+        default=None,
+        help="Prompt token for natural language phrases as prompting",
+    )
+    group.add_argument(
+        "--prompt_token_file",
+        type=str,
+        default=None,
+        help="Prompt token file",
+    )
     return parser
 
 

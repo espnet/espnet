@@ -1,0 +1,52 @@
+batch_type: folded
+batch_size: 16
+accum_grad: 1
+max_epoch: 20
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+unused_parameters: true
+valid_batch_size: 4
+
+encoder: avhubert
+encoder_conf:
+    avhubert_url: https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/noise-pretrain/large_vox_iter5.pt
+    avhubert_dir_path: ./local/pre-trained
+    encoder_embed_dim: 1024
+    encoder_attention_heads: 16
+    encoder_ffn_embed_dim: 4096
+    encoder_layers: 24
+    dropout: 0.1
+    dropout_features: 0.1
+    encoder_layerdrop: 0.05
+    attention_dropout: 0.1
+    extracted: true
+    freeze_finetune_updates: 10000
+    feature_grad_mult: 1.0
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4 #8
+    linear_units: 4096
+    num_blocks: 6 #9
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+
+optim: adam
+optim_conf:
+    lr: 0.0003
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 8000

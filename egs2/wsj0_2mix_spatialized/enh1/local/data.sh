@@ -59,3 +59,9 @@ for x in tr_spatialized_anechoic_multich cv_spatialized_anechoic_multich tt_spat
     sed -e 's/\/mix\//\/s1\//g' ./data/$x/wav.scp > ./data/$x/spk1.scp
     sed -e 's/\/mix\//\/s2\//g' ./data/$x/wav.scp > ./data/$x/spk2.scp
 done
+
+### combine anechoic and reverberant data
+utils/combine_data.sh --extra_files "spk1.scp spk2.scp text_spk1 text_spk2" \
+    data/tr_spatialized_multi_multich_${min_or_max}_${sample_rate} data/tr_spatialized_anechoic_multich_${min_or_max}_${sample_rate} data/tr_spatialized_reverb_multich_${min_or_max}_${sample_rate}
+utils/combine_data.sh --extra_files "spk1.scp spk2.scp text_spk1 text_spk2" \
+    data/cv_spatialized_multi_multich_${min_or_max}_${sample_rate} data/cv_spatialized_anechoic_multich_${min_or_max}_${sample_rate} data/cv_spatialized_reverb_multich_${min_or_max}_${sample_rate}

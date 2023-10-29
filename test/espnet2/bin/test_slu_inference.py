@@ -58,7 +58,7 @@ def slu_config_file(tmp_path: Path, token_list):
 @pytest.mark.execution_timeout(50)
 def test_Speech2Understand(slu_config_file):
     speech2understand = Speech2Understand(slu_train_config=slu_config_file, beam_size=1)
-    speech = np.random.randn(100000)
+    speech = np.random.randn(1000)
     results = speech2understand(speech)
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)
@@ -70,7 +70,7 @@ def test_Speech2Understand(slu_config_file):
 @pytest.mark.execution_timeout(50)
 def test_Speech2Understand_transcript(slu_config_file):
     speech2understand = Speech2Understand(slu_train_config=slu_config_file)
-    speech = np.random.randn(100000)
+    speech = np.random.randn(1000)
     transcript = torch.randint(2, 4, [1, 4], dtype=torch.long)
     results = speech2understand(speech, transcript)
 
@@ -116,7 +116,7 @@ def test_Speech2Understand_lm(use_lm, token_type, slu_config_file, lm_config_fil
         beam_size=1,
         token_type=token_type,
     )
-    speech = np.random.randn(100000)
+    speech = np.random.randn(1000)
     results = speech2understand(speech)
     for text, token, token_int, hyp in results:
         assert text is None or isinstance(text, str)
@@ -134,7 +134,7 @@ def test_Speech2Understand_quantized(slu_config_file, lm_config_file):
         quantize_asr_model=True,
         quantize_lm=True,
     )
-    speech = np.random.randn(100000)
+    speech = np.random.randn(1000)
     results = speech2understand(speech)
     for text, token, token_int, hyp in results:
         assert isinstance(text, str)

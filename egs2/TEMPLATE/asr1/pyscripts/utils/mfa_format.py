@@ -106,7 +106,7 @@ def get_parser():
     parser.add_argument(
         "--text_cleaner",
         type=str,
-        default="tacotron",
+        default=None,
         help="Name of the text cleaner from ESPnet.",
     )
     parser.add_argument(
@@ -349,7 +349,9 @@ def make_labs(args):
         args.text_cleaner = None
 
     corpus_dir = Path(args.corpus_dir)
-    cleaner = TextCleaner(args.text_cleaner)
+    cleaner = None
+    if args.text_cleaner is not None:
+        cleaner = TextCleaner(args.text_cleaner)
 
     frontend = None
     if args.g2p_model.startswith("pyopenjtalk"):
@@ -371,7 +373,10 @@ def make_labs(args):
         with open(dset / "text", encoding="utf-8") as reader:
             for line in reader:
                 utt, text = line.strip().split(maxsplit=1)
-                text = cleaner(text).lower()
+                if cleaner is not None:
+                    text = cleaner(text).lower()
+                else:
+                    text = text.lower()
                 # Convert single quotes into double quotes
                 #   so that MFA doesn't confuse them with clitics.
                 # Find ' not preceded by a letter to the last ' not followed by a letter
