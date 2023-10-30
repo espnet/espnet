@@ -1,0 +1,143 @@
+# minibatch related
+batch_type: folded
+batch_size: 2  # TITAN RTX x 1
+accum_grad: 4
+grad_clip: 5
+max_epoch: 11
+patience: 10
+num_workers: 0
+num_iters_per_epoch: 20000
+# The initialization method for model parameters
+init: xavier_uniform
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - train
+    - loss
+    - min
+keep_nbest_models: 10
+num_att_plot: 0
+unused_parameters: true
+freeze_param: [
+    "s2t_model.frontend.upstream",
+]
+init_param: [
+    "../enh1/exp/enh_train_enh_tfgridnet_waspaa2023_raw/valid.loss.best.pth:separator:enh_model.separator",
+    "../../wsj/asr1/exp/asr_train_asr_conformer_s3prlfrontend_wavlm_raw_en_char/valid.acc.best.pth:frontend:s2t_model.frontend",
+    "../../wsj/asr1/exp/asr_train_asr_conformer_s3prlfrontend_wavlm_raw_en_char/valid.acc.best.pth:preencoder:s2t_model.preencoder",
+    "../../wsj/asr1/exp/asr_train_asr_conformer_s3prlfrontend_wavlm_raw_en_char/valid.acc.best.pth:encoder:s2t_model.encoder",
+    "../../wsj/asr1/exp/asr_train_asr_conformer_s3prlfrontend_wavlm_raw_en_char/valid.acc.best.pth:ctc:s2t_model.ctc",
+    "../../wsj/asr1/exp/asr_train_asr_conformer_s3prlfrontend_wavlm_raw_en_char/valid.acc.best.pth:decoder:s2t_model.decoder",
+]
+# init_param:  # use run.sh option
+# network architecture
+enh_encoder: same
+enh_decoder: same
+enh_separator: tfgridnet
+enh_separator_conf:
+    n_srcs: 2
+    n_fft: 512
+    stride: 256
+    window: "hann"
+    n_imics: 8
+    n_layers: 6
+    lstm_hidden_units: 192
+    attn_n_head: 4
+    attn_approx_qk_dim: 512
+    emb_dim: 48
+    emb_ks: 4
+    emb_hs: 2
+    activation: "gelu"
+    eps: 1.0e-5
+    ref_channel: 0
+
+enh_criterions:
+  # The first criterion
+  - name: mr_l1_tfd
+    conf:
+      window_sz: [512]
+      time_domain_weight: 1.0
+    # the wrapper for the current criterion
+    # PIT is widely used in the speech separation task
+    wrapper: pit
+    wrapper_conf:
+      weight: 1.0
+
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wavlm_large  # Note: If the upstream is changed, please change the input_size in the preencoder.
+    download_dir: ./hub
+    multilayer_feature: true
+
+asr_preencoder: linear
+asr_preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80
+
+# encoder related
+asr_encoder: conformer
+asr_encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: conv2d2
+    normalize_before: true
+    macaron_style: true
+    rel_pos_type: latest
+    pos_enc_layer_type: "rel_pos"
+    selfattention_layer_type: "rel_selfattn"
+    activation_type: "swish"
+    use_cnn_module: true
+    cnn_module_kernel: 15
+
+# decoder related
+asr_decoder: transformer
+asr_decoder_conf:
+    input_layer: embed
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.0
+    src_attention_dropout_rate: 0.0
+
+asr_model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false
+
+model_conf:
+    bypass_enh_prob: 0.0
+    calc_enh_loss: false
+
+optim: sgd
+optim_conf:
+    lr: 0.001
+    momentum: 0.9
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 100
+    num_freq_mask: 4
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2

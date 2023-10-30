@@ -701,10 +701,9 @@ class VISingerGenerator(torch.nn.Module):
         output = (wav, z_start_idxs, x_mask, y_mask, common_tuple)
 
         if self.vocoder_generator_type == "visinger2":
-            output = output + (
-                dsp_slice.sum(1),
-                predict_mel,
-            )
+            output = output + (dsp_slice.sum(1),)
+        if self.generator_type == "visinger2":
+            output = output + (predict_mel,)
         return output
 
     def inference(

@@ -1,0 +1,45 @@
+name: ci on windows
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  check_installable_on_windows:
+    runs-on: Windows-latest
+    if: github.event.pull_request.draft == false
+    strategy:
+      matrix:
+        python-version: ["3.10"]
+        pytorch-version: [2.0.1]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@master
+      - uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ matrix.pytorch-version }}-${{ hashFiles('**/setup.py') }}-${{ hashFiles('**/Makefile') }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+          architecture: 'x64'
+      - name: install dependencies
+        run: |
+          choco install -y wget
+      - name: Get PR labels
+        id: pr-labels
+        uses: joerick/pr-labels-action@v1.0.9
+      - name: install espnet
+        env:
+          ESPNET_PYTHON_VERSION: ${{ matrix.python-version }}
+          TH_VERSION: ${{ matrix.pytorch-version }}
+          CHAINER_VERSION: 6.0.0
+          USE_CONDA: false
+        run: |
+          ./ci/install.sh

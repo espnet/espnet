@@ -61,6 +61,10 @@ try:
 except ImportError:
     fairscale = None
 
+try:
+    import loralib as lora
+except Exception:
+    lora = None
 
 
 @dataclasses.dataclass
@@ -78,6 +82,8 @@ class TrainerOptions:
     use_matplotlib: bool
     use_tensorboard: bool
     use_wandb: bool
+    use_lora: bool
+    save_lora_only: bool
     output_dir: Union[Path, str]
     max_epoch: int
     seed: int
@@ -139,12 +145,13 @@ class Trainer:
         schedulers: Sequence[Optional[AbsScheduler]],
         scaler: Optional[GradScaler],
         ngpu: int = 0,
+        strict: bool = True,
     ):
         states = torch.load(
             checkpoint,
             map_location=f"cuda:{torch.cuda.current_device()}" if ngpu > 0 else "cpu",
         )
-        model.load_state_dict(states["model"])
+        model.load_state_dict(states["model"], strict=strict)
         reporter.load_state_dict(states["reporter"])
         for optimizer, state in zip(optimizers, states["optimizers"]):
             optimizer.load_state_dict(state)
@@ -203,6 +210,11 @@ class Trainer:
         else:
             scaler = None
 
+        use_lora = getattr(trainer_options, "use_lora", False)
+        save_lora_only = getattr(trainer_options, "save_lora_only", False)
+        if use_lora and lora is None:
+            raise RuntimeError("Requiring loralib. Do 'pip install loralib'")
+
         if trainer_options.resume and (output_dir / "checkpoint.pth").exists():
             cls.resume(
                 checkpoint=output_dir / "checkpoint.pth",
@@ -212,6 +224,7 @@ class Trainer:
                 reporter=reporter,
                 scaler=scaler,
                 ngpu=trainer_options.ngpu,
+                strict=not use_lora,
             )
 
         start_epoch = reporter.get_epoch() + 1
@@ -346,9 +359,16 @@ class Trainer:
                     reporter.wandb_log()
 
                 # 4. Save/Update the checkpoint
+                if use_lora and save_lora_only:
+                    # Only the LoRA realted params are saved, not the whole model
+                    model_state_dict = lora.lora_state_dict(model)
+                else:
+                    # Save all params of the model
+                    model_state_dict = model.state_dict()
+
                 torch.save(
                     {
-                        "model": model.state_dict(),
+                        "model": model_state_dict,
                         "reporter": reporter.state_dict(),
                         "optimizers": [o.state_dict() for o in optimizers],
                         "schedulers": [
@@ -361,7 +381,7 @@ class Trainer:
                 )
 
                 # 5. Save and log the model and update the link to the best model
-                torch.save(model.state_dict(), output_dir / f"{iepoch}epoch.pth")
+                torch.save(model_state_dict, output_dir / f"{iepoch}epoch.pth")
 
                 # Creates a sym link latest.pth -> {iepoch}epoch.pth
                 p = output_dir / "latest.pth"

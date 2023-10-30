@@ -1,3 +1,5 @@
+import logging
+
 import torch
 import torch.nn.functional as F
 from typeguard import check_argument_types
@@ -39,6 +41,10 @@ class CTC(torch.nn.Module):
             self.ctc_loss = torch.nn.CTCLoss(
                 reduction="none", zero_infinity=zero_infinity
             )
+        elif self.ctc_type == "builtin2":
+            self.ignore_nan_grad = True
+            logging.warning("builtin2")
+            self.ctc_loss = torch.nn.CTCLoss(reduction="none")
 
         elif self.ctc_type == "gtnctc":
             from espnet.nets.pytorch_backend.gtn_ctc import GTNCTCLossFunction
@@ -54,6 +60,61 @@ class CTC(torch.nn.Module):
             th_pred = th_pred.log_softmax(2)
             loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
             size = th_pred.size(1)
+
+            if self.reduce:
+                # Batch-size average
+                loss = loss.sum() / size
+            else:
+                loss = loss / size
+            return loss
+
+        # builtin2 ignores nan losses using the logic below, while
+        # builtin relies on the zero_infinity flag in pytorch CTC
+        elif self.ctc_type == "builtin2":
+            th_pred = th_pred.log_softmax(2)
+            loss = self.ctc_loss(th_pred, th_target, th_ilen, th_olen)
+
+            if loss.requires_grad and self.ignore_nan_grad:
+                # ctc_grad: (L, B, O)
+                ctc_grad = loss.grad_fn(torch.ones_like(loss))
+                ctc_grad = ctc_grad.sum([0, 2])
+                indices = torch.isfinite(ctc_grad)
+                size = indices.long().sum()
+                if size == 0:
+                    # Return as is
+                    logging.warning(
+                        "All samples in this mini-batch got nan grad."
+                        " Returning nan value instead of CTC loss"
+                    )
+                elif size != th_pred.size(1):
+                    logging.warning(
+                        f"{th_pred.size(1) - size}/{th_pred.size(1)}"
+                        " samples got nan grad."
+                        " These were ignored for CTC loss."
+                    )
+
+                    # Create mask for target
+                    target_mask = torch.full(
+                        [th_target.size(0)],
+                        1,
+                        dtype=torch.bool,
+                        device=th_target.device,
+                    )
+                    s = 0
+                    for ind, le in enumerate(th_olen):
+                        if not indices[ind]:
+                            target_mask[s : s + le] = 0
+                        s += le
+
+                    # Calc loss again using maksed data
+                    loss = self.ctc_loss(
+                        th_pred[:, indices, :],
+                        th_target[target_mask],
+                        th_ilen[indices],
+                        th_olen[indices],
+                    )
+            else:
+                size = th_pred.size(1)
 
             if self.reduce:
                 # Batch-size average

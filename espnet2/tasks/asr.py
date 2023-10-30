@@ -24,6 +24,7 @@ from espnet2.asr.decoder.transformer_decoder import (
 )
 from espnet2.asr.decoder.whisper_decoder import OpenAIWhisperDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.avhubert_encoder import FairseqAVHubertEncoder
 from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.contextual_block_conformer_encoder import (
@@ -60,6 +61,7 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
+from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -154,6 +156,7 @@ encoder_choices = ClassChoices(
         branchformer=BranchformerEncoder,
         whisper=OpenAIWhisperEncoder,
         e_branchformer=EBranchformerEncoder,
+        avhubert=FairseqAVHubertEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -162,6 +165,7 @@ postencoder_choices = ClassChoices(
     name="postencoder",
     classes=dict(
         hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+        length_adaptor=LengthAdaptorPostEncoder,
     ),
     type_check=AbsPostEncoder,
     default=None,
@@ -282,6 +286,18 @@ class ASRTask(AbsTask):
             type=str2bool,
             default=True,
             help="Apply preprocessing to data or not",
+        )
+        group.add_argument(
+            "--use_lang_prompt",
+            type=str2bool,
+            default=False,
+            help="Use language id as prompt",
+        )
+        group.add_argument(
+            "--use_nlp_prompt",
+            type=str2bool,
+            default=False,
+            help="Use natural language phrases as prompt",
         )
         group.add_argument(
             "--token_type",
@@ -441,7 +457,13 @@ class ASRTask(AbsTask):
                 aux_task_names=args.aux_ctc_tasks
                 if hasattr(args, "aux_ctc_tasks")
                 else None,
+                use_lang_prompt=args.use_lang_prompt
+                if hasattr(args, "use_lang_prompt")
+                else None,
                 **args.preprocessor_conf,
+                use_nlp_prompt=args.use_nlp_prompt
+                if hasattr(args, "use_nlp_prompt")
+                else None,
             )
         else:
             retval = None
@@ -466,6 +488,7 @@ class ASRTask(AbsTask):
         MAX_REFERENCE_NUM = 4
 
         retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+        retval = retval + ["prompt"]
         retval = tuple(retval)
 
         logging.info(f"Optional Data Names: {retval }")

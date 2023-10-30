@@ -9,6 +9,8 @@ import torch
 from espnet.nets.e2e_asr_common import end_detect
 from espnet.nets.scorer_interface import PartialScorerInterface, ScorerInterface
 
+logger = logging.getLogger(__name__)
+
 
 class Hypothesis(NamedTuple):
     """Hypothesis data type."""
@@ -17,6 +19,8 @@ class Hypothesis(NamedTuple):
     score: Union[float, torch.Tensor] = 0
     scores: Dict[str, Union[float, torch.Tensor]] = dict()
     states: Dict[str, Any] = dict()
+    # dec hidden state corresponding to yseq, used for searchable hidden ints
+    hs: List[torch.Tensor] = []
 
     def asdict(self) -> dict:
         """Convert data to JSON-friendly dict."""
@@ -41,6 +45,7 @@ class BeamSearch(torch.nn.Module):
         token_list: List[str] = None,
         pre_beam_ratio: float = 1.5,
         pre_beam_score_key: str = None,
+        return_hs: bool = False,
         hyp_primer: List[int] = None,
     ):
         """Initialize beam search.
@@ -59,6 +64,7 @@ class BeamSearch(torch.nn.Module):
             pre_beam_score_key (str): key of scores to perform pre-beam search
             pre_beam_ratio (float): beam size in the pre-beam search
                 will be `int(pre_beam_ratio * beam_size)`
+            return_hs (bool): Whether to return hidden intermediates
 
         """
         super().__init__()
@@ -108,6 +114,7 @@ class BeamSearch(torch.nn.Module):
             and self.pre_beam_size < self.n_vocab
             and len(self.part_scorers) > 0
         )
+        self.return_hs = return_hs
 
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.
@@ -140,6 +147,7 @@ class BeamSearch(torch.nn.Module):
                 score=0.0,
                 scores=init_scores,
                 states=init_states,
+                hs=[],
                 yseq=torch.tensor(primer, device=x.device),
             )
         ]
@@ -160,13 +168,16 @@ class BeamSearch(torch.nn.Module):
         return torch.cat((xs, x))
 
     def score_full(
-        self, hyp: Hypothesis, x: torch.Tensor
+        self, hyp: Hypothesis, x: torch.Tensor, pre_x: torch.Tensor = None
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -179,7 +190,17 @@ class BeamSearch(torch.nn.Module):
         scores = dict()
         states = dict()
         for k, d in self.full_scorers.items():
-            scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
+            if "decoder" in k and self.return_hs:
+                scores[k], hs, states[k] = d.score(
+                    hyp.yseq, hyp.states[k], x, return_hs=self.return_hs
+                )
+            elif pre_x is not None:
+                scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x, pre_x)
+            else:
+                scores[k], states[k] = d.score(hyp.yseq, hyp.states[k], x)
+
+        if self.return_hs:
+            return hs, scores, states
         return scores, states
 
     def score_partial(
@@ -289,13 +310,19 @@ class BeamSearch(torch.nn.Module):
         return new_states
 
     def search(
-        self, running_hyps: List[Hypothesis], x: torch.Tensor
+        self,
+        running_hyps: List[Hypothesis],
+        x: torch.Tensor,
+        pre_x: torch.Tensor = None,
     ) -> List[Hypothesis]:
         """Search new tokens for running hypotheses and encoded speech x.
 
         Args:
             running_hyps (List[Hypothesis]): Running hypotheses on beam
             x (torch.Tensor): Encoded speech feature (T, D)
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             List[Hypotheses]: Best sorted hypotheses
@@ -306,7 +333,10 @@ class BeamSearch(torch.nn.Module):
         for hyp in running_hyps:
             # scoring
             weighted_scores = torch.zeros(self.n_vocab, dtype=x.dtype, device=x.device)
-            scores, states = self.score_full(hyp, x)
+            if self.return_hs:
+                hs, scores, states = self.score_full(hyp, x, pre_x=pre_x)
+            else:
+                scores, states = self.score_full(hyp, x, pre_x=pre_x)
             for k in self.full_scorers:
                 weighted_scores += self.weights[k] * scores[k]
             # partial scoring
@@ -326,6 +356,10 @@ class BeamSearch(torch.nn.Module):
             # update hyps
             for j, part_j in zip(*self.beam(weighted_scores, part_ids)):
                 # will be (2 x beam at most)
+                if self.return_hs:
+                    new_hs = hyp.hs + [hs.squeeze(0)]
+                else:
+                    new_hs = []
                 best_hyps.append(
                     Hypothesis(
                         score=weighted_scores[j],
@@ -334,6 +368,7 @@ class BeamSearch(torch.nn.Module):
                             hyp.scores, scores, j, part_scores, part_j
                         ),
                         states=self.merge_states(states, part_states, part_j),
+                        hs=new_hs,
                     )
                 )
 
@@ -344,7 +379,11 @@ class BeamSearch(torch.nn.Module):
         return best_hyps
 
     def forward(
-        self, x: torch.Tensor, maxlenratio: float = 0.0, minlenratio: float = 0.0
+        self,
+        x: torch.Tensor,
+        maxlenratio: float = 0.0,
+        minlenratio: float = 0.0,
+        pre_x: torch.Tensor = None,
     ) -> List[Hypothesis]:
         """Perform beam search.
 
@@ -358,48 +397,57 @@ class BeamSearch(torch.nn.Module):
             minlenratio (float): Input length ratio to obtain min output length.
                 If minlenratio<0.0, its absolute value is interpreted
                 as a constant min output length.
+            pre_x (torch.Tensor): Encoded speech feature for sequential attn (T, D)
+                Sequential attn computes attn first on pre_x then on x,
+                thereby attending to two sources in sequence.
 
         Returns:
             list[Hypothesis]: N-best decoding results
 
         """
         # set length bounds
+        if pre_x is not None:
+            inp = pre_x
+        else:
+            inp = x
         if maxlenratio == 0:
-            maxlen = x.shape[0]
+            maxlen = inp.shape[0]
         elif maxlenratio < 0:
             maxlen = -1 * int(maxlenratio)
         else:
-            maxlen = max(1, int(maxlenratio * x.size(0)))
+            maxlen = max(1, int(maxlenratio * inp.size(0)))
+
         if minlenratio < 0:
             minlen = -1 * int(minlenratio)
         else:
-            minlen = int(minlenratio * x.size(0))
-        logging.info("decoder input length: " + str(x.shape[0]))
-        logging.info("max output length: " + str(maxlen))
-        logging.info("min output length: " + str(minlen))
+            minlen = int(minlenratio * inp.size(0))
+        logger.info("decoder input length: " + str(inp.shape[0]))
+        logger.info("max output length: " + str(maxlen))
+        logger.info("min output length: " + str(minlen))
 
         # main loop of prefix search
-        running_hyps = self.init_hyp(x)
+        running_hyps = self.init_hyp(x if pre_x is None else pre_x)
         ended_hyps = []
         for i in range(maxlen):
-            logging.debug("position " + str(i))
-            best = self.search(running_hyps, x)
+            logger.debug("position " + str(i))
+            best = self.search(running_hyps, x, pre_x=pre_x)
             # post process of one iteration
             running_hyps = self.post_process(i, maxlen, maxlenratio, best, ended_hyps)
             # end detection
             if maxlenratio == 0.0 and end_detect([h.asdict() for h in ended_hyps], i):
-                logging.info(f"end detected at {i}")
+                logger.info(f"end detected at {i}")
                 break
             if len(running_hyps) == 0:
-                logging.info("no hypothesis. Finish decoding.")
+                logger.info("no hypothesis. Finish decoding.")
                 break
             else:
-                logging.debug(f"remained hypotheses: {len(running_hyps)}")
+                logger.debug(f"remained hypotheses: {len(running_hyps)}")
 
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
-            logging.warning(
+            logger.warning(
                 "there is no N-best results, perform recognition "
                 "again with smaller minlenratio."
             )
@@ -412,25 +460,25 @@ class BeamSearch(torch.nn.Module):
         # report the best result
         best = nbest_hyps[0]
         for k, v in best.scores.items():
-            logging.info(
+            logger.info(
                 f"{v:6.2f} * {self.weights[k]:3} = {v * self.weights[k]:6.2f} for {k}"
             )
-        logging.info(f"total log probability: {best.score:.2f}")
-        logging.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
-        logging.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
+        logger.info(f"total log probability: {best.score:.2f}")
+        logger.info(f"normalized log probability: {best.score / len(best.yseq):.2f}")
+        logger.info(f"total number of ended hypotheses: {len(nbest_hyps)}")
         if self.token_list is not None:
-            logging.info(
+            logger.info(
                 "best hypo: "
                 + "".join([self.token_list[x] for x in best.yseq[1:-1]])
                 + "\n"
             )
         if best.yseq[1:-1].shape[0] == maxlen:
-            logging.warning(
+            logger.warning(
                 "best hypo length: {} == max output length: {}".format(
                     best.yseq[1:-1].shape[0], maxlen
                 )
             )
-            logging.warning(
+            logger.warning(
                 "decoding may be stopped by the max output length limitation, "
                 + "please consider to increase the maxlenratio."
             )
@@ -457,15 +505,15 @@ class BeamSearch(torch.nn.Module):
             List[Hypothesis]: The new running hypotheses.
 
         """
-        logging.debug(f"the number of running hypotheses: {len(running_hyps)}")
+        logger.debug(f"the number of running hypotheses: {len(running_hyps)}")
         if self.token_list is not None:
-            logging.debug(
+            logger.debug(
                 "best hypo: "
                 + "".join([self.token_list[x] for x in running_hyps[0].yseq[1:]])
             )
         # add eos in the final loop to avoid that there are no ended hyps
         if i == maxlen - 1:
-            logging.info("adding <eos> in the last position in the loop")
+            logger.info("adding <eos> in the last position in the loop")
             running_hyps = [
                 h._replace(yseq=self.append_token(h.yseq, self.eos))
                 for h in running_hyps

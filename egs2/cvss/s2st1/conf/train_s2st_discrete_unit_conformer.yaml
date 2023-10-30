@@ -1,0 +1,151 @@
+# =====================
+# Network Architecture
+# =====================
+
+s2st_type: discrete_unit
+
+# Frontend
+frontend: default
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+# Tgt feats extract
+tgt_feats_extract: None
+output_size: 500
+
+# Encoder
+encoder: conformer
+encoder_conf:
+    input_layer: "conv2d"
+    num_blocks: 12
+    linear_units: 1024
+    dropout_rate: 0.1
+    output_size: 256
+    attention_heads: 4
+    attention_dropout_rate: 0.0
+    normalize_before: true
+    rel_pos_type: latest
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    macaron_style: true
+    use_cnn_module: true
+    cnn_module_kernel: 31
+
+# ASR CTC
+asr_ctc: true
+
+# ASR Decoder
+asr_decoder: transformer
+asr_decoder_conf:
+    input_layer: "embed"
+    num_blocks: 2
+    linear_units: 2048
+    attention_heads: 4
+
+# ST CTC
+st_ctc: true
+
+# ST Decoder
+st_decoder: transformer
+st_decoder_conf:
+    input_layer: "embed"
+    num_blocks: 2
+    linear_units: 2048
+    attention_heads: 4
+
+# Synthesizer
+synthesizer: discrete_unit
+synthesizer_conf:
+    input_layer: "embed"
+    num_blocks: 6
+    linear_units: 2048
+    attention_heads: 8
+
+# =====================
+# Training Related
+# =====================
+
+# Loss-related
+losses:
+    - name: asr_ctc
+      type: ctc
+      conf:
+        weight: 1.6
+    - name: src_attn
+      type: attention
+      conf:
+        weight: 8.0
+        smoothing: 0.2
+        padding_idx: -1
+    - name: tgt_attn
+      type: attention
+      conf:
+        weight: 8.0
+        smoothing: 0.2
+        padding_idx: -1
+    - name: st_ctc
+      type: ctc
+      conf:
+        weight: 1.6
+    - name: synthesis
+      type: attention
+      conf:
+        weight: 1.6
+        smoothing: 0.2
+        padding_idx: -1
+
+# Optimization
+optim: adamw
+accum_grad: 4
+grad_clip: 1.0
+grad_noise: false
+optim_conf:
+    lr: 0.002
+    eps: 1.0e-02
+scheduler: warmuplr
+scheduler_conf:
+   warmup_steps: 20000
+
+# Batching
+batch_type: sorted
+batch_size: 32
+sort_in_batch: descending   # how to sort data in making batch
+sort_batch: descending      # how to sort created batches
+
+# Other Training Setting
+# num_iters_per_epoch: 1000
+max_epoch: 500
+num_workers: 2
+log_interval: null
+seed: 0
+num_att_plot: 0
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+-   - train
+    - loss
+    - min
+keep_nbest_models: 5
+
+# SpecAugment
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 10
+
+unused_parameters: true    # set as true if some params are unused in DDP

@@ -1,6 +1,8 @@
 """Enhancement model module."""
+import contextlib
 from typing import Dict, List, Optional, OrderedDict, Tuple
 
+import numpy as np
 import torch
 from packaging.version import parse as V
 from typeguard import check_argument_types
@@ -34,6 +36,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
+        flexible_numspk: bool = False,
+        extract_feats_in_collect_stats: bool = False,
     ):
         assert check_argument_types()
 
@@ -44,6 +48,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.decoder = decoder
         self.mask_module = mask_module
         self.num_spk = separator.num_spk
+        # If True, self.num_spk is regarded as the MAXIMUM possible number of speakers
+        self.flexible_numspk = flexible_numspk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
         self.loss_wrappers = loss_wrappers
@@ -67,6 +73,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.ref_channel = getattr(self.separator, "ref_channel", None)
         if self.ref_channel is None:
             self.ref_channel = 0
+
+        # Used in espnet2/tasks/abs_task.py for determining whether or not to do
+        # collect_feats during collect stats (stage 5).
+        self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
     def forward(
         self,
@@ -94,7 +104,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 torch.zeros_like(kwargs["speech_ref1"]),
             )
             for spk in range(self.num_spk)
+            if f"speech_ref{spk + 1}" in kwargs
         ]
+        num_spk = len(speech_ref) if self.flexible_numspk else self.num_spk
+        assert len(speech_ref) == num_spk, (len(speech_ref), num_spk)
         # (Batch, num_speaker, samples) or (Batch, num_speaker, samples, channels)
         speech_ref = torch.stack(speech_ref, dim=1)
 
@@ -117,12 +130,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             # frontend models with beamformering)
             dereverb_speech_ref = [
                 kwargs["dereverb_ref{}".format(n + 1)]
-                for n in range(self.num_spk)
+                for n in range(num_spk)
                 if "dereverb_ref{}".format(n + 1) in kwargs
             ]
-            assert len(dereverb_speech_ref) in (1, self.num_spk), len(
-                dereverb_speech_ref
-            )
+            assert len(dereverb_speech_ref) in (1, num_spk), len(dereverb_speech_ref)
             # (Batch, N, samples) or (Batch, N, samples, channels)
             dereverb_speech_ref = torch.stack(dereverb_speech_ref, dim=1)
         else:
@@ -156,6 +167,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             additional["feature_ref"] = [
                 self.encoder(r, speech_lengths)[0] for r in speech_ref
             ]
+        if self.flexible_numspk:
+            additional["num_spk"] = num_spk
 
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
@@ -174,6 +187,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             speech_ref,
             noise_ref,
             dereverb_speech_ref,
+            num_spk=num_spk,
         )
         return loss, stats, weight
 
@@ -230,6 +244,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref: torch.Tensor,
         noise_ref: torch.Tensor = None,
         dereverb_speech_ref: torch.Tensor = None,
+        num_spk: int = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         # for calculating loss on estimated noise signals
         if getattr(self.separator, "predict_noise", False):
@@ -242,7 +257,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if getattr(self.separator, "predict_dereverb", False):
             assert "dereverb1" in others, others.keys()
         if dereverb_speech_ref is not None and "dereverb1" in others:
-            for spk in range(self.num_spk):
+            for spk in range(num_spk if num_spk else self.num_spk):
                 key = "dereverb{}".format(spk + 1)
                 if key in others:
                     others[key] = self.decoder(others[key], speech_lengths)[0]
@@ -283,13 +298,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                 signal_ref = speech_ref
                 signal_pre = speech_pre
 
+            zero_weight = loss_wrapper.weight == 0.0
             if isinstance(criterion, TimeDomainLoss):
                 assert signal_pre is not None
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=True
                 )
                 # for the time domain criterions
-                l, s, o = loss_wrapper(sref, spre, {**others, **o})
+                with torch.no_grad() if zero_weight else contextlib.ExitStack():
+                    l, s, o = loss_wrapper(sref, spre, {**others, **o})
             elif isinstance(criterion, FrequencyDomainLoss):
                 sref, spre = self._align_ref_pre_channels(
                     signal_ref, signal_pre, ch_dim=2, force_1ch=False
@@ -341,7 +358,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                     else:
                         tf_pre = [self.encoder(sp, speech_lengths)[0] for sp in spre]
 
-                l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
+                with torch.no_grad() if zero_weight else contextlib.ExitStack():
+                    l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
             else:
                 raise NotImplementedError("Unsupported loss type: %s" % str(criterion))
 
@@ -465,7 +483,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         )
         if "mask_spk1" in others:
             masks_pre = [
-                others["mask_spk{}".format(spk + 1)] for spk in range(self.num_spk)
+                others["mask_spk{}".format(spk + 1)]
+                for spk in range(self.num_spk)
+                if "mask_spk{}".format(spk + 1) in others
             ]
         else:
             masks_pre = criterion.create_mask_label(

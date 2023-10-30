@@ -580,7 +580,7 @@ class BaseFrequenceDiscriminator(torch.nn.Module):
                     )
                 ),
             )
-            self.discriminators = self.discriminators + [seq]
+            self.discriminators += [seq]
 
     def forward(self, x):
         """Perform forward pass through the base frequency discriminator.
