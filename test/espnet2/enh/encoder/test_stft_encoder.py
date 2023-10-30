@@ -91,16 +91,13 @@ def test_STFTEncoder_reconfig_for_fs():
         default_fs=16000,
     )
 
-    encoder.reconfig_for_fs(8000)
     x = torch.rand(1, 8000, dtype=torch.float32)
     ilens = torch.tensor([8000], dtype=torch.long)
-    y_8k, _ = encoder(x, ilens)
+    y_8k, _ = encoder(x, ilens, fs=8000)
 
-    encoder.reconfig_for_fs(32000)
     x = torch.rand(1, 32000, dtype=torch.float32)
-    y_32k, _ = encoder(x, ilens * 4)
+    y_32k, _ = encoder(x, ilens * 4, fs=32000)
 
-    encoder.reset_config()
     x = torch.rand(1, 16000, dtype=torch.float32)
     y_16k, flens = encoder(x, ilens * 2)
 

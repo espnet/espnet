@@ -79,7 +79,7 @@ class STFTEncoder(AbsEncoder):
 
     def _reset_config(self):
         """Reset the configuration of STFT window and hop lengths."""
-        self.__reconfig_for_fs(self.default_fs)
+        self._reconfig_for_fs(self.default_fs)
 
     def _reconfig_for_fs(self, fs):
         """Reconfigure STFT window and hop lengths for a new sampling rate

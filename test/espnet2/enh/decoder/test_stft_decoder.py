@@ -144,15 +144,12 @@ def test_STFTDecoder_reconfig_for_fs():
         default_fs=16000,
     )
 
-    decoder.reconfig_for_fs(8000)
     x = torch.rand(1, 32, 129, dtype=torch.complex64)
     ilens = torch.tensor([8448], dtype=torch.long)
-    y_8k, _ = decoder(x, ilens)
+    y_8k, _ = decoder(x, ilens, fs=8000)
 
-    decoder.reconfig_for_fs(32000)
     x = torch.rand(1, 32, 513, dtype=torch.complex64)
-    y_32k, _ = decoder(x, ilens * 4)
+    y_32k, _ = decoder(x, ilens * 4, fs=32000)
 
-    decoder.reset_config()
     x = torch.rand(1, 32, 257, dtype=torch.complex64)
     y_16k, _ = decoder(x, ilens * 2)
