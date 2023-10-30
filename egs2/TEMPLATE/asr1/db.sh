@@ -62,7 +62,6 @@ SLURP=
 SLURP_S= # Output file path
 LIBRITRANS_S= # Output file path
 VOICES=downloads
-VOXCELEB=
 MAGICDATA=downloads
 MEDIASPEECH=downloads
 MINI_LIBRISPEECH=downloads
@@ -197,6 +196,7 @@ KIRITAN=
 NAMINE=
 KATHBATH=downloads
 GRAMVAANI=downloads
+VOXCELEB=
 KSPONSPEECH=
 
 # For only CMU TIR environment
