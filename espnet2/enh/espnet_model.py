@@ -9,9 +9,7 @@ from typeguard import check_argument_types
 
 from espnet2.diar.layers.abs_mask import AbsMask
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
-from espnet2.enh.decoder.stft_decoder import STFTDecoder
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
-from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
 from espnet2.enh.loss.wrappers.abs_wrapper import AbsLossWrapper
@@ -46,6 +44,50 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         categories: list = [],
         category_weights: list = [],
     ):
+        """Main entry of speech enhancement/separation model training.
+
+        Args:
+            encoder: waveform encoder that converts waveforms to feature representations
+            separator: separator that enhance or separate the feature representations
+            decoder: waveform decoder that converts the feature back to waveforms
+            mask_module: mask module that converts the feature to masks
+                NOTE: Only used for compatibility with joint speaker diarization.
+                See test/espnet2/enh/test_espnet_enh_s2t_model.py for details.
+            loss_wrappers: list of loss wrappers
+                Each loss wrapper contains a criterion for loss calculation and
+                the corresonding loss weight.
+                The losses will be calculated in the order of the list and summed up.
+            ------------------------------------------------------------------
+            stft_consistency: (deprecated, kept for compatibility) whether to compute
+                the TF-domain loss while enforcing STFT consistency
+                NOTE: STFT consistency is now always used for frequency-domain spectrum
+                losses.
+            loss_type: (deprecated, kept for compatibility) loss type
+            mask_type: (deprecated, kept for compatibility) mask type in TF-domain model
+            ------------------------------------------------------------------
+            flexible_numspk: whether to allow the model to predict a variable number of
+                speakers in its output.
+                NOTE: This should be used when training a speech separation model for
+                unknown number of speakers.
+            ------------------------------------------------------------------
+            extract_feats_in_collect_stats: used in espnet2/tasks/abs_task.py for
+                determining whether or not to skip model building in collect_stats stage
+                (stage 5 in egs2/*/enh1/enh.sh).
+            normalize_variance: whether to normalize the signal variance before model
+                forward, and revert it back after.
+            normalize_variance_per_ch: whether to normalize the signal variance for each
+                channel instead of the whole signal.
+                NOTE: normalize_variance and normalize_variance_per_ch cannot be True
+                at the same time.
+            ------------------------------------------------------------------
+            categories: list of all possible categories of minibatches (order matters!)
+                (e.g. ["1ch_8k_reverb", "1ch_8k_both"] for multi-condition training)
+                NOTE: this will be used to convert category index to the corresponding
+                name for logging in forward_loss.
+                Different categories will have different loss name suffixes.
+            category_weights: list of weights for each category.
+                Used to set loss weights for batches of different categories.
+        """
         assert check_argument_types()
 
         super().__init__()
@@ -64,16 +106,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if len(set(names)) != len(names):
             raise ValueError("Duplicated loss names are not allowed: {}".format(names))
 
-        # get mask type for TF-domain models
-        # (only used when loss_type="mask_*") (deprecated, keep for compatibility)
+        # kept for compatibility
         self.mask_type = mask_type.upper() if mask_type else None
-
-        # get loss type for model training (deprecated, keep for compatibility)
         self.loss_type = loss_type
-
-        # whether to compute the TF-domain loss while enforcing STFT consistency
-        # (deprecated, keep for compatibility)
-        # NOTE: STFT consistency is now always used for frequency-domain spectrum losses
         self.stft_consistency = stft_consistency
 
         # for multi-channel signal
@@ -81,14 +116,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if self.ref_channel is None:
             self.ref_channel = 0
 
-        # used in espnet2/tasks/abs_task.py for determining whether or not to do
-        # collect_feats during collect stats (stage 5).
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
-        # normalize signal variance before model forward, and revert it back after
         self.normalize_variance = normalize_variance
-        # normalize signal variance for each channel instead of the whole signal
         self.normalize_variance_per_ch = normalize_variance_per_ch
+        if normalize_variance and normalize_variance_per_ch:
+            raise ValueError(
+                "normalize_variance and normalize_variance_per_ch cannot be True "
+                "at the same time."
+            )
 
         # list all possible categories of the batch (order matters!)
         # (used to convert category index to the corresponding name for logging)
@@ -190,17 +226,15 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             dereverb_speech_ref = dereverb_speech_ref.unbind(dim=1)
 
         # sampling frequency information about the batch
+        fs = None
         if "utt2fs" in kwargs:
             # All samples must have the same sampling rate
             fs = kwargs["utt2fs"][0].item()
             assert all([fs == kwargs["utt2fs"][0].item() for fs in kwargs["utt2fs"]])
 
-            # Adaptively adjust the STFT encoder/decoder window/hop sizes
-            if isinstance(self.separator, USESSeparator):
-                if isinstance(self.encoder, STFTEncoder):
-                    self.encoder.reconfig_for_fs(fs)
-                if isinstance(self.decoder, STFTDecoder):
-                    self.decoder.reconfig_for_fs(fs)
+            # Adaptively adjust the STFT/iSTFT window/hop sizes for USESSeparator
+            if not isinstance(self.separator, USESSeparator):
+                fs = None
 
         # category information (integer) about the batch
         category = kwargs.get("utt2category", None)
@@ -215,7 +249,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         # Additional data is required in Deep Attractor Network
         if isinstance(self.separator, DANSeparator):
             additional["feature_ref"] = [
-                self.encoder(r, speech_lengths)[0] for r in speech_ref
+                self.encoder(r, speech_lengths, fs=fs)[0] for r in speech_ref
             ]
         if self.flexible_numspk:
             additional["num_spk"] = num_spk
@@ -247,7 +281,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
 
         # model forward
         speech_pre, feature_mix, feature_pre, others = self.forward_enhance(
-            speech_mix, speech_lengths, additional
+            speech_mix, speech_lengths, additional, fs=fs
         )
 
         ###################################
@@ -273,14 +307,8 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             dereverb_speech_ref,
             category,
             num_spk=num_spk,
+            fs=fs,
         )
-
-        if isinstance(self.separator, USESSeparator):
-            # Reset the STFT encoder/decoder window/hop sizes
-            if isinstance(self.encoder, STFTEncoder):
-                self.encoder.reset_config()
-            if isinstance(self.decoder, STFTDecoder):
-                self.decoder.reset_config()
         return loss, stats, weight
 
     def forward_enhance(
@@ -288,8 +316,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_mix: torch.Tensor,
         speech_lengths: torch.Tensor,
         additional: Optional[Dict] = None,
+        fs: Optional[int] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        feature_mix, flens = self.encoder(speech_mix, speech_lengths)
+        feature_mix, flens = self.encoder(speech_mix, speech_lengths, fs=fs)
         if self.mask_module is None:
             feature_pre, flens, others = self.separator(feature_mix, flens, additional)
         else:
@@ -315,11 +344,13 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             pre_is_multi_list = isinstance(feature_pre[0], (list, tuple))
             if pre_is_multi_list:
                 speech_pre = [
-                    [self.decoder(p, speech_lengths)[0] for p in ps]
+                    [self.decoder(p, speech_lengths, fs=fs)[0] for p in ps]
                     for ps in feature_pre
                 ]
             else:
-                speech_pre = [self.decoder(ps, speech_lengths)[0] for ps in feature_pre]
+                speech_pre = [
+                    self.decoder(ps, speech_lengths, fs=fs)[0] for ps in feature_pre
+                ]
         else:
             # some models (e.g. neural beamformer trained with mask loss)
             # do not predict time-domain signal in the training stage
@@ -336,8 +367,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         speech_ref: List[torch.Tensor],
         noise_ref: Optional[List[torch.Tensor]] = None,
         dereverb_speech_ref: Optional[List[torch.Tensor]] = None,
-        category: torch.Tensor = None,
-        num_spk: int = None,
+        category: Optional[torch.Tensor] = None,
+        num_spk: Optional[int] = None,
+        fs: Optional[int] = None,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         # for calculating loss on estimated noise signals
         if getattr(self.separator, "predict_noise", False):
@@ -345,7 +377,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if noise_ref is not None and "noise1" in others:
             for n in range(self.num_noise_type):
                 key = "noise{}".format(n + 1)
-                others[key] = self.decoder(others[key], speech_lengths)[0]
+                others[key] = self.decoder(others[key], speech_lengths, fs=fs)[0]
         # for calculating loss on dereverberated signals
         if getattr(self.separator, "predict_dereverb", False):
             assert "dereverb1" in others, others.keys()
@@ -353,7 +385,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             for spk in range(num_spk if num_spk else self.num_spk):
                 key = "dereverb{}".format(spk + 1)
                 if key in others:
-                    others[key] = self.decoder(others[key], speech_lengths)[0]
+                    others[key] = self.decoder(others[key], speech_lengths, fs=fs)[0]
 
         loss = speech_ref[0].new_tensor(0.0)
         stats = {}
@@ -402,11 +434,11 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                         # if no noise/dereverb signals are predicted for this batch
                         if category is not None:
                             for idx, c in self.categories.items():
-                                s[criterion.name + "_" + c] = torch.full_like(
+                                stats[criterion.name + "_" + c] = torch.full_like(
                                     loss, np.nan
                                 )
                         else:
-                            s[criterion.name] = torch.full_like(loss, np.nan)
+                            stats[criterion.name] = torch.full_like(loss, np.nan)
                         continue
                     raise ValueError(
                         "Predicted waveform is required for time-domain loss."
@@ -433,6 +465,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                             signal_pre,
                             speech_lengths,
                             others,
+                            fs=fs,
                         )
                     elif getattr(criterion, "is_dereverb_loss", False):
                         tf_ref, tf_pre = self._get_dereverb_masks(
@@ -443,6 +476,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                             signal_pre,
                             speech_lengths,
                             others,
+                            fs=fs,
                         )
                     else:
                         tf_ref, tf_pre = self._get_speech_masks(
@@ -453,20 +487,23 @@ class ESPnetEnhancementModel(AbsESPnetModel):
                             signal_pre,
                             speech_lengths,
                             others,
+                            fs=fs,
                         )
                 else:
                     # compute on spectrum
-                    tf_ref = [self.encoder(sr, speech_lengths)[0] for sr in sref]
+                    tf_ref = [self.encoder(sr, speech_lengths, fs=fs)[0] for sr in sref]
                     # for models like SVoice that output multiple lists of
                     # separated signals
                     pre_is_multi_list = isinstance(spre[0], (list, tuple))
                     if pre_is_multi_list:
                         tf_pre = [
-                            [self.encoder(sp, speech_lengths)[0] for sp in ps]
+                            [self.encoder(sp, speech_lengths, fs=fs)[0] for sp in ps]
                             for ps in spre
                         ]
                     else:
-                        tf_pre = [self.encoder(sp, speech_lengths)[0] for sp in spre]
+                        tf_pre = [
+                            self.encoder(sp, speech_lengths, fs=fs)[0] for sp in spre
+                        ]
 
                 with torch.no_grad() if zero_weight else contextlib.ExitStack():
                     l, s, o = loss_wrapper(tf_ref, tf_pre, {**others, **o})
@@ -550,12 +587,20 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         return ref, pre
 
     def _get_noise_masks(
-        self, criterion, feature_mix, speech_ref, noise_ref, noise_pre, ilens, others
+        self,
+        criterion,
+        feature_mix,
+        speech_ref,
+        noise_ref,
+        noise_pre,
+        ilens,
+        others,
+        fs=None,
     ):
-        speech_spec = self.encoder(sum(speech_ref), ilens)[0]
+        speech_spec = self.encoder(sum(speech_ref), ilens, fs=fs)[0]
         masks_ref = criterion.create_mask_label(
             feature_mix,
-            [self.encoder(nr, ilens)[0] for nr in noise_ref],
+            [self.encoder(nr, ilens, fs=fs)[0] for nr in noise_ref],
             noise_spec=speech_spec,
         )
         if "mask_noise1" in others:
@@ -566,21 +611,29 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             assert len(noise_pre) == len(noise_ref), (len(noise_pre), len(noise_ref))
             masks_pre = criterion.create_mask_label(
                 feature_mix,
-                [self.encoder(np, ilens)[0] for np in noise_pre],
+                [self.encoder(np, ilens, fs=fs)[0] for np in noise_pre],
                 noise_spec=speech_spec,
             )
         return masks_ref, masks_pre
 
     def _get_dereverb_masks(
-        self, criterion, feat_mix, noise_ref, dereverb_ref, dereverb_pre, ilens, others
+        self,
+        criterion,
+        feat_mix,
+        noise_ref,
+        dereverb_ref,
+        dereverb_pre,
+        ilens,
+        others,
+        fs=None,
     ):
         if noise_ref is not None:
-            noise_spec = self.encoder(sum(noise_ref), ilens)[0]
+            noise_spec = self.encoder(sum(noise_ref), ilens, fs=fs)[0]
         else:
             noise_spec = None
         masks_ref = criterion.create_mask_label(
             feat_mix,
-            [self.encoder(dr, ilens)[0] for dr in dereverb_ref],
+            [self.encoder(dr, ilens, fs=fs)[0] for dr in dereverb_ref],
             noise_spec=noise_spec,
         )
         if "mask_dereverb1" in others:
@@ -597,21 +650,29 @@ class ESPnetEnhancementModel(AbsESPnetModel):
             )
             masks_pre = criterion.create_mask_label(
                 feat_mix,
-                [self.encoder(dp, ilens)[0] for dp in dereverb_pre],
+                [self.encoder(dp, ilens, fs=fs)[0] for dp in dereverb_pre],
                 noise_spec=noise_spec,
             )
         return masks_ref, masks_pre
 
     def _get_speech_masks(
-        self, criterion, feature_mix, noise_ref, speech_ref, speech_pre, ilens, others
+        self,
+        criterion,
+        feature_mix,
+        noise_ref,
+        speech_ref,
+        speech_pre,
+        ilens,
+        others,
+        fs=None,
     ):
         if noise_ref is not None:
-            noise_spec = self.encoder(sum(noise_ref), ilens)[0]
+            noise_spec = self.encoder(sum(noise_ref), ilens, fs=fs)[0]
         else:
             noise_spec = None
         masks_ref = criterion.create_mask_label(
             feature_mix,
-            [self.encoder(sr, ilens)[0] for sr in speech_ref],
+            [self.encoder(sr, ilens, fs=fs)[0] for sr in speech_ref],
             noise_spec=noise_spec,
         )
         if "mask_spk1" in others:
@@ -623,7 +684,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         else:
             masks_pre = criterion.create_mask_label(
                 feature_mix,
-                [self.encoder(sp, ilens)[0] for sp in speech_pre],
+                [self.encoder(sp, ilens, fs=fs)[0] for sp in speech_pre],
                 noise_spec=noise_spec,
             )
         return masks_ref, masks_pre

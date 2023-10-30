@@ -48,16 +48,21 @@ class STFTEncoder(AbsEncoder):
         return self._output_dim
 
     @torch.cuda.amp.autocast(enabled=False)
-    def forward(self, input: torch.Tensor, ilens: torch.Tensor):
+    def forward(self, input: torch.Tensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
 
         Args:
             input (torch.Tensor): mixed speech [Batch, sample]
             ilens (torch.Tensor): input lengths [Batch]
+            fs (int): sampling rate in Hz
+                If not None, reconfigure STFT window and hop lengths for a new
+                sampling rate while keeping their duration fixed.
         Returns:
             spectrum (ComplexTensor): [Batch, T, (C,) F]
             flens (torch.Tensor): [Batch]
         """
+        if fs is not None:
+            self._reconfig_for_fs(fs)
         # for supporting half-precision training
         if input.dtype in (torch.float16, torch.bfloat16):
             spectrum, flens = self.stft(input.float(), ilens)
@@ -69,13 +74,14 @@ class STFTEncoder(AbsEncoder):
         else:
             spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
 
+        self._reset_config()
         return spectrum, flens
 
-    def reset_config(self):
+    def _reset_config(self):
         """Reset the configuration of STFT window and hop lengths."""
-        self.reconfig_for_fs(self.default_fs)
+        self.__reconfig_for_fs(self.default_fs)
 
-    def reconfig_for_fs(self, fs):
+    def _reconfig_for_fs(self, fs):
         """Reconfigure STFT window and hop lengths for a new sampling rate
         while keeping their duration fixed.
 

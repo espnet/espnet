@@ -43,17 +43,22 @@ class STFTDecoder(AbsDecoder):
         self.default_fs = default_fs
 
     @torch.cuda.amp.autocast(enabled=False)
-    def forward(self, input: ComplexTensor, ilens: torch.Tensor):
+    def forward(self, input: ComplexTensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
 
         Args:
             input (ComplexTensor): spectrum [Batch, T, (C,) F]
             ilens (torch.Tensor): input lengths [Batch]
+            fs (int): sampling rate in Hz
+                If not None, reconfigure iSTFT window and hop lengths for a new
+                sampling rate while keeping their duration fixed.
         """
         if not isinstance(input, ComplexTensor) and (
             is_torch_1_9_plus and not torch.is_complex(input)
         ):
             raise TypeError("Only support complex tensors for stft decoder")
+        if fs is not None:
+            self._reconfig_for_fs(fs)
 
         bs = input.size(0)
         if input.dim() == 4:
@@ -81,13 +86,14 @@ class STFTDecoder(AbsDecoder):
             # wav: (Batch * C, Nsamples) -> (Batch, Nsamples, C)
             wav = wav.reshape(bs, -1, wav.size(1)).transpose(1, 2)
 
+        self._reset_config()
         return wav, wav_lens
 
-    def reset_config(self):
+    def _reset_config(self):
         """Reset the configuration of iSTFT window and hop lengths."""
-        self.reconfig_for_fs(self.default_fs)
+        self._reconfig_for_fs(self.default_fs)
 
-    def reconfig_for_fs(self, fs):
+    def _reconfig_for_fs(self, fs):
         """Reconfigure iSTFT window and hop lengths for a new sampling rate
         while keeping their duration fixed.
 

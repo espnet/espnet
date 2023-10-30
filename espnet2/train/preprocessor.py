@@ -12,7 +12,7 @@ import scipy.signal
 import soundfile
 from typeguard import check_argument_types, check_return_type
 
-from espnet2.layers.augmentation import DataAugmentation, effects_dict
+from espnet2.layers.augmentation import DataAugmentation
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
@@ -267,7 +267,7 @@ class CommonPreprocessor(AbsPreprocessor):
 
             if single_channel:
                 num_ch = rir.shape[1]
-                chs = np.random.permutation(num_ch).tolist()
+                chs = [np.random.randint(num_ch)]
                 rir = rir[:, chs]
             # rir: (Nmic, Time)
             rir = rir.T
@@ -336,7 +336,7 @@ class CommonPreprocessor(AbsPreprocessor):
                         raise RuntimeError(f"Something wrong: {noise_path}")
             if single_channel:
                 num_ch = noise.shape[1]
-                chs = np.random.permutation(num_ch).tolist()
+                chs = [np.random.randint(num_ch)]
                 noise = noise[:, chs]
             # noise: (Nmic, Time)
             noise = noise.T
@@ -1804,6 +1804,7 @@ class TSEPreprocessor(EnhPreprocessor):
 
 class SpkPreprocessor(CommonPreprocessor):
     """Preprocessor for Speaker tasks.
+
     Args:
         train (bool): Whether to use in training mode.
         spk2utt (str): Path to the `spk2utt` file.
@@ -2051,9 +2052,7 @@ class SpkPreprocessor(CommonPreprocessor):
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        """
-        Make speaker labels into integers
-        """
+        """Make speaker labels into integers."""
         if self.train:
             int_label = self.spk2label[data["spk_labels"]]
             data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
