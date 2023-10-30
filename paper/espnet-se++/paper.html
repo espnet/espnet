@@ -284,7 +284,7 @@ bibliography: paper.bib</p></li>
 <section id="summary">
 <h1>Summary<a class="headerlink" href="#summary" title="Permalink to this headline">¶</a></h1>
 <p>This paper presents the software design and user interface of ESPnet-SE++, a new speech separation and enhancement (SSE) module of the ESPnet toolkit.
-ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] with several new models[&#64;Hershey:2016; &#64;Chen:2017; &#64;Hu:2020; &#64;Tan:2021; &#64;Li:2022; &#64;Dang:2022; &#64;Takahashi:2019; &#64;Luo:2019a; &#64;Lu:2022a], loss functions [&#64;Luo:2018; &#64;Le:2019; &#64;Boeddeker:2021; &#64;Scheibler:2022], and training recipes as shown in [&#64;Lu:2022b]. Crucially, it features a new, redesigned interface, which allows for a flexible combination of SSE front-ends with many downstream tasks, including automatic speech recognition (ASR), speaker diarization (SD), speech translation (ST), and spoken language understanding (SLU).</p>
+ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] with several new models[&#64;Hershey:2016; &#64;Chen:2017; &#64;Hu:2020; &#64;Tan:2021; &#64;Li:2022; &#64;Dang:2022; &#64;Takahashi:2019; &#64;Luo:2019; &#64;Lu:2022a], loss functions [&#64;Luo:2018; &#64;Le:2019; &#64;Boeddeker:2021; &#64;Scheibler:2022], and training recipes as shown in [&#64;Lu:2022b]. Crucially, it features a new, redesigned interface, which allows for a flexible combination of SSE front-ends with many downstream tasks, including automatic speech recognition (ASR), speaker diarization (SD), speech translation (ST), and spoken language understanding (SLU).</p>
 </section>
 <section id="statement-of-need">
 <h1>Statement of need<a class="headerlink" href="#statement-of-need" title="Permalink to this headline">¶</a></h1>
@@ -341,7 +341,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span>	<span class="k">def</span> <span class="nf">scoring</span><span class="p">(</span><span class="o">...</span><span class="p">,</span> <span class="n">ref_scp</span><span class="p">,</span> <span class="n">inf_scp</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The SSE scoring functions calculates several popular objective scores such as SI-SDR [&#64;le:2019], STOI [&#64;Taal:2011], SDR and PESQ [&#64;Rix:2001], based on the reference signal and processed speech pairs.</p>
+<p>The SSE scoring functions calculates several popular objective scores such as SI-SDR [&#64;Le:2019], STOI [&#64;Taal:2011], SDR and PESQ [&#64;Rix:2001], based on the reference signal and processed speech pairs.</p>
 </section>
 </section>
 <section id="sse-control-class-tasks-enh-py">
@@ -418,7 +418,7 @@ ESPnet-SE++ significantly expands the functionality of ESPnet-SE [&#64;Li:2021] 
 <h1>ESPnet-SE++ User Interface<a class="headerlink" href="#espnet-se-user-interface" title="Permalink to this headline">¶</a></h1>
 <section id="building-a-new-recipe-from-scratch">
 <h2>Building a New Recipe from Scratch<a class="headerlink" href="#building-a-new-recipe-from-scratch" title="Permalink to this headline">¶</a></h2>
-<p>Since ESPnet2 provides common scripts such as <code class="docutils literal notranslate"><span class="pre">enh.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">enh_asr.sh</span></code> for each task, users only need to create <code class="docutils literal notranslate"><span class="pre">local/data.sh</span></code>  for the data preparation of a new corpus.  The generated data follows the Kaldi-style structure:</p>
+<p>Since ESPnet2 provides common scripts such as <code class="docutils literal notranslate"><span class="pre">enh.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">enh_asr.sh</span></code> for each task, users only need to create <code class="docutils literal notranslate"><span class="pre">local/data.sh</span></code>  for the data preparation of a new corpus.  The generated data follows the Kaldi-style structure [&#64;Povey:2011]:</p>
 <p><img alt="../../_images/data_structure.png" src="../../_images/data_structure.png" /></p>
 <p>The detailed instructions for data preparation and building new recipes in espnet2 are described in the <a class="reference external" href="https://github.com/espnet/espnet/tree/master/egs2/TEMPLATE">link</a>.</p>
 </section>
