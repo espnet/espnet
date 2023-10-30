@@ -31,6 +31,14 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    # remove special tokens
+    mkdir -p data/swbd
+    nlsyms_file=data/swbd/nlsyms.txt
+    cut -f 2- ../../swbd/asr1/data/train_nodup/text \
+        ../../swbd/asr1/data/train_fisher/text | \
+        tr " " "\n" | sort | uniq | grep '\[' > ${nlsyms_file}
+    nlsyms=$(cat data/swbd/nlsyms.txt | tr '\n' ' ')
+
     utt_extra_files="text.prev text.ctc"
     for part in train_nodup train_fisher train_dev eval2000; do
         utils/fix_data_dir.sh ../../swbd/asr1/data/${part}
@@ -40,7 +48,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --prefix SWBD \
             --src eng \
             --src_field 7 \
-            --num_proc 10
+            --num_proc 10 \
+            --nlsyms ${nlsyms}
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
           data/swbd/${part}_whisper
     done
