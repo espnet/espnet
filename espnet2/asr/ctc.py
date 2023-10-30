@@ -27,12 +27,14 @@ class CTC(torch.nn.Module):
         reduce: bool = True,
         ignore_nan_grad: bool = None,
         zero_infinity: bool = True,
+        bias: bool = True,
     ):
         assert check_argument_types()
         super().__init__()
         eprojs = encoder_output_size
         self.dropout_rate = dropout_rate
-        self.ctc_lo = torch.nn.Linear(eprojs, odim)
+
+        self.ctc_lo = torch.nn.Linear(eprojs, odim, bias)
         self.ctc_type = ctc_type
         if ignore_nan_grad is not None:
             zero_infinity = ignore_nan_grad

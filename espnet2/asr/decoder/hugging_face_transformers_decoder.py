@@ -74,7 +74,7 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             ):
                 self.decoder_pad_token_id = self.decoder.config.pad_token_id
             else:
-                self.decoder_pad_token_id = 1
+                self.decoder_pad_token_id = self.decoder.config.eos_token_id
 
             tokenizer = AutoTokenizer.from_pretrained(model_name_or_path)
             self.tokenizer_padding_side = tokenizer.padding_side

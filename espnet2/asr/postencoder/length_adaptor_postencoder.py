@@ -24,6 +24,7 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
         output_size: Optional[int] = None,
         dropout_rate: float = 0.1,
         return_int_enc: bool = False,
+        output_layer: Optional[str] = None,
     ):
         """Initialize the module."""
         assert check_argument_types()
@@ -35,9 +36,17 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
                 torch.nn.LayerNorm(output_size),
                 torch.nn.Dropout(dropout_rate),
             )
+            self.out_proj = torch.nn.Identity()
+            self.in_sz = output_size
+            self.out_sz = output_size
+        elif output_layer == "linear":
+            self.embed = torch.nn.Identity()
+            self.out_proj = torch.nn.Linear(input_size, output_size)
+            self.in_sz = input_size
             self.out_sz = output_size
         else:
             self.embed = None
+            self.in_sz = input_size
             self.out_sz = input_size
 
         # Length Adaptor as in https://aclanthology.org/2021.acl-long.68.pdf
@@ -46,7 +55,7 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
             length_adaptor_layers = []
             for _ in range(length_adaptor_n_layers):
                 length_adaptor_layers.append(
-                    torch.nn.Conv1d(self.out_sz, self.out_sz, 2, 2)
+                    torch.nn.Conv1d(self.in_sz, self.in_sz, 2, 2)
                 )
                 length_adaptor_layers.append(torch.nn.ReLU())
         else:
@@ -69,12 +78,13 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
                 self.length_adaptor_ratio,
             )
 
-        if self.embed is not None:
-            input = self.embed(input)
+        input = self.embed(input)
 
         input = input.permute(0, 2, 1)
         input = self.length_adaptor(input)
         input = input.permute(0, 2, 1)
+
+        input = self.out_proj(input)
 
         input_lengths = (
             input_lengths.float().div(self.length_adaptor_ratio).floor().long()

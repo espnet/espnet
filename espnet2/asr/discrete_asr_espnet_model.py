@@ -39,18 +39,23 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
-        decoder: AbsDecoder,
+        decoder: Optional[AbsDecoder],
         ctc: Optional[CTC],
         ctc_weight: float = 0.5,
         interctc_weight: float = 0.0,
         src_vocab_size: int = 0,
         src_token_list: Union[Tuple[str, ...], List[str]] = [],
+        src_ignore_id: int = -1,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
         report_bleu: bool = True,
         sym_space: str = "<space>",
         sym_blank: str = "<blank>",
+        # In a regular ESPnet recipe, <sos> and <eos> are both "<sos/eos>"
+        # Pretrained HF Tokenizer needs custom sym_sos and sym_eos
+        sym_sos: str = "<sos/eos>",
+        sym_eos: str = "<sos/eos>",
         extract_feats_in_collect_stats: bool = True,
         share_decoder_input_output_embed: bool = False,
         share_encoder_decoder_input_embed: bool = False,
@@ -68,6 +73,7 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
             decoder=decoder,
             src_vocab_size=src_vocab_size,
             src_token_list=src_token_list,
+            src_ignore_id=src_ignore_id,
             ignore_id=ignore_id,
             lsm_weight=lsm_weight,
             length_normalized_loss=length_normalized_loss,
@@ -80,8 +86,18 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         )
 
         self.specaug = specaug
-        # note that eos is the same as sos (equivalent ID)
-        self.blank_id = 0
+        if sym_blank in token_list:
+            self.blank_id = token_list.index(sym_blank)
+        else:
+            self.blank_id = 0
+        if sym_sos in token_list:
+            self.sos = token_list.index(sym_sos)
+        else:
+            self.sos = vocab_size - 1
+        if sym_eos in token_list:
+            self.eos = token_list.index(sym_eos)
+        else:
+            self.eos = vocab_size - 1
         self.ctc_weight = ctc_weight
         self.interctc_weight = interctc_weight
 
@@ -129,6 +145,8 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
 
         batch_size = src_text.shape[0]
 
+        text[text == -1] = self.ignore_id
+
         # for data-parallel
         text = text[:, : text_lengths.max()]
         src_text = src_text[:, : src_text_lengths.max()]
@@ -139,6 +157,7 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]
             encoder_out = encoder_out[0]
+        loss_att, acc_att, cer_att, wer_att = None, None, None, None
         loss_ctc, cer_ctc = None, None
         stats = dict()
 
@@ -176,16 +195,19 @@ class ESPnetDiscreteASRModel(ESPnetMTModel):
                 1 - self.interctc_weight
             ) * loss_ctc + self.interctc_weight * loss_interctc
 
-        # 2a. Attention-decoder branch (MT)
-        loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
-            encoder_out, encoder_out_lens, text, text_lengths
-        )
+        # 2b. Attention decoder branch
+        if self.ctc_weight != 1.0:
+            loss_att, acc_att, cer_att, wer_att = self._calc_att_loss(
+                encoder_out, encoder_out_lens, text, text_lengths
+            )
 
-        # 3. Loss computation
-        if self.ctc_weight > 0.0:
-            loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
-        else:
+        # 3. CTC-Att loss definition
+        if self.ctc_weight == 0.0:
             loss = loss_att
+        elif self.ctc_weight == 1.0:
+            loss = loss_ctc
+        else:
+            loss = self.ctc_weight * loss_ctc + (1 - self.ctc_weight) * loss_att
 
         stats["loss_att"] = loss_att.detach() if loss_att is not None else None
         stats["acc"] = acc_att

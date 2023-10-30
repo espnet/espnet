@@ -40,9 +40,10 @@ class ESPnetMTModel(AbsESPnetModel):
         preencoder: Optional[AbsPreEncoder],
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
-        decoder: AbsDecoder,
+        decoder: Optional[AbsDecoder],
         src_vocab_size: int = 0,
         src_token_list: Union[Tuple[str, ...], List[str]] = [],
+        src_ignore_id: int = -1,
         ignore_id: int = -1,
         lsm_weight: float = 0.0,
         length_normalized_loss: bool = False,
@@ -63,6 +64,7 @@ class ESPnetMTModel(AbsESPnetModel):
         self.src_eos = src_vocab_size - 1 if src_vocab_size else None
         self.vocab_size = vocab_size
         self.src_vocab_size = src_vocab_size
+        self.src_ignore_id = src_ignore_id
         self.ignore_id = ignore_id
         self.token_list = token_list.copy()
 
@@ -235,7 +237,9 @@ class ESPnetMTModel(AbsESPnetModel):
 
         # for data-parallel
         src_text = src_text[:, : src_text_lengths.max()]
-        src_text, _ = add_sos_eos(src_text, self.src_sos, self.src_eos, self.ignore_id)
+        src_text, _ = add_sos_eos(
+            src_text, self.src_sos, self.src_eos, self.src_ignore_id
+        )
         src_text_lengths = src_text_lengths + 1
 
         if self.frontend is not None:

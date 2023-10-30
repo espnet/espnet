@@ -83,6 +83,7 @@ tgt_bpemode=unigram     # Mode of BPE (unigram or bpe) for target language.
 tgt_bpe_input_sentence_size=100000000 # Size of input sentence for BPE for target language.
 tgt_bpe_nlsyms=         # non-linguistic symbols list, separated by a comma, for BPE for target language.
 tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target language.
+hugging_face_model_name_or_path="" # Hugging Face model or path for hugging_face tokenizer
 
 # Ngram model related
 use_ngram=false
@@ -111,6 +112,7 @@ asr_stats_dir=  # Specify the directory path for ASR statistics.
 asr_config=     # Config for asr model training.
 asr_args=       # Arguments for asr model training, e.g., "--max_epoch 10".
                 # Note that it will overwrite args in asr config.
+pretrained_model=              # Pretrained model to load
 ignore_init_mismatch=false      # Ignore initial mismatch
 num_splits_asr=1                # Number of splitting for lm corpus.
 src_lang=wavlm_large_21_km2000  # source language abbrev. id (e.g., es)
@@ -241,6 +243,7 @@ Options:
     --asr_args          # Arguments for asr model training (default="${asr_args}").
                        # e.g., --asr_args "--max_epoch 10"
                        # Note that it will overwrite args in asr config.
+    --pretrained_model=          # Pretrained model to load (default="${pretrained_model}").
     --ignore_init_mismatch=      # Ignore mismatch parameter init with pretrained model (default="${ignore_init_mismatch}").
     --num_splits_asr    # Number of splitting for lm corpus.  (default="${num_splits_asr}").
     --src_lang=        # source language abbrev. id (e.g., es). (default="${src_lang}")
@@ -364,6 +367,7 @@ tgt_bpeprefix="${tgt_bpedir}"/bpe
 tgt_bpemodel="${tgt_bpeprefix}".model
 tgt_bpetoken_list="${tgt_bpedir}"/tokens.txt
 tgt_chartoken_list="${token_listdir}"/char/tgt_tokens.txt
+tgt_hugging_face_token_list="${token_listdir}/tgt_hugging_face_"${hugging_face_model_name_or_path/\//-}/tokens.txt
 if "${token_joint}"; then
     # if token_joint, the bpe training will use both src_lang and tgt_lang to train a single bpe model
     src_bpedir="${tgt_bpedir}"
@@ -409,6 +413,9 @@ elif [ "${tgt_token_type}" = char ]; then
 elif [ "${tgt_token_type}" = word ]; then
     tgt_token_list="${tgt_wordtoken_list}"
     tgt_bpemodel=none
+elif [ "${tgt_token_type}" = hugging_face ]; then
+    tgt_token_list="${tgt_hugging_face_token_list}"
+    tgt_bpemodel=${hugging_face_model_name_or_path}
 else
     log "Error: not supported --tgt_token_type '${tgt_token_type}'"
     exit 2
@@ -462,6 +469,9 @@ if [ -z "${asr_tag}" ]; then
     if [ "${tgt_token_type}" = bpe ]; then
         asr_tag+="${tgt_nbpe}"
     fi
+    if [ "${tgt_token_type}" = hugging_face ]; then
+        asr_tag+="_"${hugging_face_model_name_or_path/\//-}
+    fi
     # Add overwritten arg's info
     if [ -n "${asr_args}" ]; then
         asr_tag+="$(echo "${asr_args}" | sed -e "s/--/\_/g" -e "s/[ |=/]//g")"
@@ -507,6 +517,9 @@ if [ -z "${asr_stats_dir}" ]; then
     fi
     if [ "${tgt_token_type}" = bpe ]; then
         asr_stats_dir+="${tgt_nbpe}"
+    fi
+    if [ "${tgt_token_type}" = hugging_face ]; then
+        asr_stats_dir+="_"${hugging_face_model_name_or_path/\//-}
     fi
     if [ -n "${speed_perturb_factors}" ]; then
         asr_stats_dir+="_sp"
@@ -906,6 +919,14 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ] && ! [[ " ${skip_stages} " =~ [
             --add_symbol "${oov}:1" \
             --add_symbol "${sos_eos}:-1"
 
+    elif [ "${tgt_token_type}" = hugging_face ]; then
+        log "Stage 7a: Generate hugging_face token_list from ${hugging_face_model_name_or_path} for tgt_lang"
+
+        # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+        # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+        ${python} -m espnet2.bin.hugging_face_export_vocabulary  \
+            --model_name_or_path "${hugging_face_model_name_or_path}" \
+            --output "${tgt_token_list}"
     else
         log "Error: not supported --token_type '${tgt_token_type}'"
         exit 2
@@ -1353,6 +1374,7 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             --valid_shape_file "${asr_stats_dir}/valid/text_shape.${tgt_token_type}" \
             --valid_shape_file "${asr_stats_dir}/valid/src_text_shape.${src_token_type}" \
             --resume true \
+            ${pretrained_model:+--init_param $pretrained_model} \
             --ignore_init_mismatch ${ignore_init_mismatch} \
             --fold_length "${asr_text_fold_length}" \
             --fold_length "${asr_text_fold_length}" \

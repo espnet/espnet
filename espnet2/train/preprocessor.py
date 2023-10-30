@@ -799,12 +799,17 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                 )
 
                 if "whisper" not in token_type[i]:
-                    self.token_id_converter.append(
-                        TokenIDConverter(
-                            token_list=token_list[i],
-                            unk_symbol=unk_symbol,
+                    if token_type[i] == "hugging_face":
+                        self.token_id_converter.append(
+                            HuggingFaceTokenIDConverter(model_name_or_path=bpemodel[i])
                         )
-                    )
+                    else:
+                        self.token_id_converter.append(
+                            TokenIDConverter(
+                                token_list=token_list[i],
+                                unk_symbol=unk_symbol,
+                            )
+                        )
                 else:
                     self.token_id_converter.append(
                         OpenAIWhisperTokenIDConverter(

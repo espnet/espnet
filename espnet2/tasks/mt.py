@@ -8,6 +8,9 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H301
+    HuggingFaceTransformersDecoder,
+)
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,
@@ -32,6 +35,7 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
+from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
@@ -96,6 +100,7 @@ postencoder_choices = ClassChoices(
     name="postencoder",
     classes=dict(
         hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+        length_adaptor=LengthAdaptorPostEncoder,
     ),
     type_check=AbsPostEncoder,
     default=None,
@@ -110,6 +115,7 @@ decoder_choices = ClassChoices(
         dynamic_conv=DynamicConvolutionTransformerDecoder,
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
+        hugging_face_transformers=HuggingFaceTransformersDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
@@ -210,7 +216,7 @@ class MTTask(AbsTask):
             "--token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word", "phn"],
+            choices=["bpe", "char", "word", "phn", "hugging_face"],
             help="The target text will be tokenized " "in the specified level token",
         )
         group.add_argument(
@@ -335,7 +341,7 @@ class MTTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetMTModel:
         assert check_argument_types()
         if isinstance(args.token_list, str):
-            with open(args.token_list, encoding="utf-8") as f:
+            with open(args.token_list, encoding="utf-8", newline="\n") as f:
                 token_list = [line.rstrip() for line in f]
 
             # Overwriting token_list to keep it as "portable".
@@ -409,13 +415,16 @@ class MTTask(AbsTask):
             postencoder = None
 
         # 5. Decoder
-        decoder_class = decoder_choices.get_class(args.decoder)
+        if getattr(args, "decoder", None) is not None:
+            decoder_class = decoder_choices.get_class(args.decoder)
 
-        decoder = decoder_class(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder_output_size,
-            **args.decoder_conf,
-        )
+            decoder = decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.decoder_conf,
+            )
+        else:
+            decoder = None
 
         # 6. CTC
         ctc = CTC(
