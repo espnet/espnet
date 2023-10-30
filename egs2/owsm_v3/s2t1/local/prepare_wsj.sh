@@ -6,13 +6,13 @@ set -o pipefail
 # use the original espnet scripts
 pwd=${PWD}
 cd ../../wsj/asr1/
-./local/data.sh
+# ./local/data.sh
 cd ${pwd}
 
 mkdir -p data/wsj
-nlsyms=data/wsj/nlsyms.txt
-cut -f 2- ../../wsj/asr1/data/train_si284/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
-cat ${nlsyms}
+nlsyms_file=data/wsj/nlsyms.txt
+cut -f 2- ../../wsj/asr1/data/train_si284/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms_file}
+nlsyms=$(cat ${nlsyms_file} | tr '\n' ' ')
 
 utt_extra_files="text.prev text.ctc"
 for part in train_si284 test_dev93 test_eval92; do
@@ -25,7 +25,7 @@ for part in train_si284 test_dev93 test_eval92; do
         --src_field 3 \
         --num_proc 10 \
         --lower_case \
-        --nlsyms `cat $nlsyms`
+        --nlsyms ${nlsyms}
     utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" \
       data/wsj/${part}_whisper
 done
