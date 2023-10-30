@@ -18,6 +18,7 @@ if __name__ == "__main__":
     tgt_text = open(os.path.join(args.dest, "text.{}".format(TGT_LANG)), "w", encoding="utf-8")
     src_wavscp = open(os.path.join(args.dest, "wav.scp.{}".format(args.src_lang)), "w", encoding="utf-8")
     src_text = open(os.path.join(args.dest, "text.{}".format(args.src_lang)), "w", encoding="utf-8")
+    utt2spk = open(os.path.join(args.dest, "utt2spk"), "w", encoding="utf-8")
 
     # Create a dictionary for mapping src_audio to ID
     src_id_mapping = {} # es
@@ -63,6 +64,14 @@ if __name__ == "__main__":
                 )
             )
 
+            # Write to utt2spk
+            utt2spk.write(
+                "{} en\n".format(utt_id_en)
+            )
+            utt2spk.write(
+                "{} es\n".format(utt_id_es)
+            )
+
     # read src/tgt text and populate output files
     with open(os.path.join(args.datadir, "s2u_manifests/es-en/source_unit/train_mined.tsv"), "r", encoding="utf-8") as src_man:
         for line in src_man:
@@ -91,3 +100,4 @@ if __name__ == "__main__":
     tgt_text.close()
     src_wavscp.close()
     src_text.close()
+    utt2spk.close()
