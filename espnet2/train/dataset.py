@@ -15,6 +15,7 @@ import torch
 from torch.utils.data.dataset import Dataset
 from typeguard import check_argument_types, check_return_type
 
+from espnet2.fileio.multi_sound_scp import MultiSoundScpReader
 from espnet2.fileio.npy_scp import NpyScpReader
 from espnet2.fileio.rand_gen_dataset import (
     FloatRandomGenerateDataset,
@@ -33,11 +34,12 @@ from espnet2.utils.sized_dict import SizedDict
 
 
 class AdapterForSoundScpReader(collections.abc.Mapping):
-    def __init__(self, loader, dtype=None):
+    def __init__(self, loader, dtype=None, allow_multi_rates=False):
         assert check_argument_types()
         self.loader = loader
         self.dtype = dtype
         self.rate = None
+        self.allow_multi_rates = allow_multi_rates
 
     def keys(self):
         return self.loader.keys()
@@ -64,7 +66,9 @@ class AdapterForSoundScpReader(collections.abc.Mapping):
                     f"Unexpected type: {type(retval[0])}, {type(retval[1])}"
                 )
 
-            if self.rate is not None and self.rate != rate:
+            if not self.allow_multi_rates and (
+                self.rate is not None and self.rate != rate
+            ):
                 raise RuntimeError(
                     f"Sampling rates are mismatched: {self.rate} != {rate}"
                 )
@@ -160,7 +164,7 @@ class AdapterForLabelScpReader(collections.abc.Mapping):
         return sample_time, sample_label
 
 
-def sound_loader(path, float_dtype=None, multi_columns=False):
+def sound_loader(path, float_dtype=None, multi_columns=False, allow_multi_rates=False):
     # The file is as follows:
     #   utterance_id_A /some/where/a.wav
     #   utterance_id_B /some/where/a.flac
@@ -174,11 +178,25 @@ def sound_loader(path, float_dtype=None, multi_columns=False):
 
     # SoundScpReader.__getitem__() returns Tuple[int, ndarray],
     # but ndarray is desired, so Adapter class is inserted here
-    return AdapterForSoundScpReader(loader)
+    return AdapterForSoundScpReader(loader, allow_multi_rates=allow_multi_rates)
 
 
-def multi_columns_sound_loader(path, float_dtype=None):
-    return sound_loader(path, float_dtype, multi_columns=True)
+def multi_columns_sound_loader(path, float_dtype=None, allow_multi_rates=False):
+    return sound_loader(
+        path, float_dtype, multi_columns=True, allow_multi_rates=allow_multi_rates
+    )
+
+
+def variable_columns_sound_loader(path, float_dtype=None, allow_multi_rates=False):
+    # The file is as follows:
+    #   utterance_id_A /some/where/a1.wav /some/where/a2.wav /some/where/a3.wav
+    #   utterance_id_B /some/where/b1.flac /some/where/b2.flac
+
+    # NOTE(wangyou): SoundScpReader doesn't support pipe-fashion
+    # like Kaldi e.g. "cat a.wav |".
+    # NOTE(wangyou): The audio signal is normalized to [-1,1] range.
+    loader = MultiSoundScpReader(path, always_2d=False, dtype=float_dtype, stack_axis=0)
+    return AdapterForSoundScpReader(loader, allow_multi_rates=allow_multi_rates)
 
 
 def score_loader(path):
@@ -191,9 +209,13 @@ def label_loader(path):
     return AdapterForLabelScpReader(loader)
 
 
-def kaldi_loader(path, float_dtype=None, max_cache_fd: int = 0):
+def kaldi_loader(
+    path, float_dtype=None, max_cache_fd: int = 0, allow_multi_rates=False
+):
     loader = kaldiio.load_scp(path, max_cache_fd=max_cache_fd)
-    return AdapterForSoundScpReader(loader, float_dtype)
+    return AdapterForSoundScpReader(
+        loader, float_dtype, allow_multi_rates=allow_multi_rates
+    )
 
 
 def rand_int_loader(filepath, loader_type):
@@ -208,7 +230,7 @@ def rand_int_loader(filepath, loader_type):
 DATA_TYPES = {
     "sound": dict(
         func=sound_loader,
-        kwargs=["float_dtype"],
+        kwargs=["float_dtype", "allow_multi_rates"],
         help="Audio format types which supported by sndfile wav, flac, etc."
         "\n\n"
         "   utterance_id_a a.wav\n"
@@ -217,13 +239,27 @@ DATA_TYPES = {
     ),
     "multi_columns_sound": dict(
         func=multi_columns_sound_loader,
-        kwargs=["float_dtype"],
+        kwargs=["float_dtype", "allow_multi_rates"],
         help="Enable multi columns wav.scp. "
         "The following text file can be loaded as multi channels audio data"
         "\n\n"
         "   utterance_id_a a.wav a2.wav\n"
         "   utterance_id_b b.wav b2.wav\n"
         "   ...",
+    ),
+    "variable_columns_sound": dict(
+        func=variable_columns_sound_loader,
+        kwargs=["float_dtype", "allow_multi_rates"],
+        help="Loading variable numbers (columns) of audios in wav.scp. "
+        "The following text file can be loaded as stacked audio data"
+        "\n\n"
+        "   utterance_id_a a1.wav a2.wav a3.wav\n"
+        "   utterance_id_b b1.wav\n"
+        "   utterance_id_c c1.wav c2.wav\n"
+        "   ...\n\n"
+        "Note that audios of different lengths will be right-padded with np.nan "
+        "to the longest audio in the sample.\n"
+        "A preprocessor must be used to remove these paddings.",
     ),
     "score": dict(
         func=score_loader,
@@ -247,7 +283,7 @@ DATA_TYPES = {
     ),
     "kaldi_ark": dict(
         func=kaldi_loader,
-        kwargs=["max_cache_fd"],
+        kwargs=["max_cache_fd", "allow_multi_rates"],
         help="Kaldi-ark file type."
         "\n\n"
         "   utterance_id_A /some/where/a.ark:123\n"
@@ -402,6 +438,7 @@ class ESPnetDataset(AbsDataset):
         int_dtype: str = "long",
         max_cache_size: Union[float, int, str] = 0.0,
         max_cache_fd: int = 0,
+        allow_multi_rates: bool = False,
     ):
         assert check_argument_types()
         if len(path_name_type_list) == 0:
@@ -415,6 +452,8 @@ class ESPnetDataset(AbsDataset):
         self.float_dtype = float_dtype
         self.int_dtype = int_dtype
         self.max_cache_fd = max_cache_fd
+        # allow audios to have different sampling rates
+        self.allow_multi_rates = allow_multi_rates
 
         self.loader_dict = {}
         self.debug_info = {}
@@ -461,6 +500,8 @@ class ESPnetDataset(AbsDataset):
                         kwargs["int_dtype"] = self.int_dtype
                     elif key2 == "max_cache_fd":
                         kwargs["max_cache_fd"] = self.max_cache_fd
+                    elif key2 == "allow_multi_rates":
+                        kwargs["allow_multi_rates"] = self.allow_multi_rates
                     else:
                         raise RuntimeError(f"Not implemented keyword argument: {key2}")
 
