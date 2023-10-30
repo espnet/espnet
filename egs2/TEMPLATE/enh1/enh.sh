@@ -751,6 +751,14 @@ if ! "${skip_train}"; then
             _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/utt2category,category,text "
         fi
 
+        # Add the fs information at the end of the data path list
+        if [ -e "${_enh_train_dir}/utt2fs" ] && [ -e "${_enh_valid_dir}/utt2fs" ]; then
+            log "[INFO] Adding the sampling frequency information (fs) for training"
+
+            _train_data_param+="--train_data_path_and_name_and_type ${_enh_train_dir}/utt2fs,fs,text_int "
+            _valid_data_param+="--valid_data_path_and_name_and_type ${_enh_valid_dir}/utt2fs,fs,text_int "
+        fi
+
         log "Generate '${enh_exp}/run.sh'. You can resume the process from stage 6 using this script"
         mkdir -p "${enh_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${enh_exp}/run.sh"; chmod +x "${enh_exp}/run.sh"
 
