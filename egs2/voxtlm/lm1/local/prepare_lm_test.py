@@ -25,23 +25,28 @@ if __name__ == "__main__":
     parser.add_argument("-p", "--path", type=str, help=" ", default="dump")
     parser.add_argument("-t", "--test_file", type=str, help=" ")
     parser.add_argument(
-        "--start_text_token", type=str,
+        "--start_text_token",
+        type=str,
         help="Token to denote start of text as condition.",
-        default="<startoftext>"
+        default="<startoftext>",
     )
     parser.add_argument(
-        "--generate_text_token", type=str,
-        help="Token to denote generate text.", default="<generatetext>"
+        "--generate_text_token",
+        type=str,
+        help="Token to denote generate text.",
+        default="<generatetext>",
     )
     parser.add_argument(
-        "--start_speech_token", type=str,
+        "--start_speech_token",
+        type=str,
         help="Token to denote start of speech as condition.",
-        default="<startofspeech>"
+        default="<startofspeech>",
     )
     parser.add_argument(
-        "--generate_speech_token", type=str,
+        "--generate_speech_token",
+        type=str,
         help="Token to denote generate speech.",
-        default="<generatespeech>"
+        default="<generatespeech>",
     )
     args = parser.parse_args()
     out_dir = Path(args.path)
