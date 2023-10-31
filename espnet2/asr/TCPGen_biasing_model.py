@@ -393,7 +393,7 @@ class ESPnetTCPGenBiasingASRModel(ESPnetASRModel):
             joint_out, joint_acts = self.joint_network(
                 encoder_out.unsqueeze(2),
                 decoder_out.unsqueeze(1),
-                KBembedding if self.epoch >= self.biasingsche else None,
+                hptr=KBembedding if self.epoch >= self.biasingsche else None,
             )
         else:
             joint_out = self.joint_network(

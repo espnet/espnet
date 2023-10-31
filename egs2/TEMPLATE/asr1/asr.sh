@@ -296,7 +296,6 @@ fi
 
 . ./path.sh
 . ./cmd.sh
-export PYTHONPATH="/home/gs534/rds/rds-t2-cs164-KQ4S3rlDzm8/gs534/opensource/espnet:$PYTHONPATH"
 
 
 # Check required arguments
@@ -391,11 +390,9 @@ if [ "${lang}" != noinfo ]; then
 else
     token_listdir=data/token_list
 fi
-if [ -z "${suffixbpe}" ]; then
-    bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
-else
-    usesuffixbpe=true
-    bpedir="${token_listdir}/bpe_${bpemode}${nbpe}${suffixbpe}"
+bpedir="${token_listdir}/bpe_${bpemode}${nbpe}"
+if [ -n "${suffixbpe}" ]; then
+    bpedir+="${suffixbpe}"
 fi
 bpeprefix="${bpedir}"/bpe
 bpemodel="${bpeprefix}".model
@@ -912,6 +909,9 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             # The order of different texts is determined by their start times.
             _opts_spm+=" --user_defined_symbols=<sc>"
         fi
+        if [ -n "${suffixbpe}" ]; then
+            _opts_spm+="--treat_whitespace_as_suffix=${usesuffixbpe} "
+        fi
 
         spm_train \
             --input="${bpedir}"/train.txt \
@@ -920,7 +920,6 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             --model_prefix="${bpeprefix}" \
             --character_coverage=${bpe_char_cover} \
             --treat_whitespace_as_suffix=${usesuffixbpe} \
-            --input_sentence_size="${bpe_input_sentence_size}" \
             ${_opts_spm}
 
         {
@@ -1553,7 +1552,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
         mkdir -p "${_logdir}"
 
         if "${biasing}"; then
-            python local/get_perutt_blist.py data/${dset}
+            ${python} local/get_perutt_blist.py data/${dset}
             biasing_opts="--perutt_blist data/${dset}/perutt_blist.json"
         fi
 

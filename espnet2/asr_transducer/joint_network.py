@@ -55,8 +55,8 @@ class JointNetwork(torch.nn.Module):
         self,
         enc_out: torch.Tensor,
         dec_out: torch.Tensor,
-        hptr: torch.Tensor = None,
         no_projection: bool = False,
+        hptr: torch.Tensor = None,
     ) -> torch.Tensor:
         """Joint computation of encoder and decoder hidden state sequences.
 

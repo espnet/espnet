@@ -759,13 +759,13 @@ def inference(
     hugging_face_decoder_conf: Dict[str, Any],
     time_sync: bool,
     multi_asr: bool,
+    lang_prompt_token: Optional[str],
+    nlp_prompt_token: Optional[str],
+    prompt_token_file: Optional[str],
     perutt_blist: str = "",
     biasinglist: str = "",
     bmaxlen: int = 0,
     bdrop: float = 0.0,
-    lang_prompt_token: Optional[str],
-    nlp_prompt_token: Optional[str],
-    prompt_token_file: Optional[str],
 ):
     assert check_argument_types()
     if batch_size > 1:
