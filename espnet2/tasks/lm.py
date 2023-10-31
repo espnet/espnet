@@ -9,12 +9,12 @@ from typeguard import check_argument_types, check_return_type
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.espnet_model import ESPnetLanguageModel
 from espnet2.lm.multitask_espnet_model import ESPnetMultitaskLanguageModel
-from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
 from espnet2.train.preprocessor import CommonPreprocessor
@@ -223,10 +223,7 @@ class LMTask(AbsTask):
             extra_model_conf = dict()
 
         model = model_class(
-            lm=lm,
-            vocab_size=vocab_size,
-            **args.model_conf,
-            **extra_model_conf
+            lm=lm, vocab_size=vocab_size, **args.model_conf, **extra_model_conf
         )
 
         # FIXME(kamo): Should be done in model?
