@@ -8,6 +8,8 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.espnet_model import ESPnetLanguageModel
+from espnet2.lm.multitask_espnet_model import ESPnetMultitaskLanguageModel
+from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.abs_task import AbsTask
@@ -31,13 +33,27 @@ lm_choices = ClassChoices(
     default="seq_rnn",
 )
 
+model_choices = ClassChoices(
+    "model",
+    classes=dict(
+        lm=ESPnetLanguageModel,
+        lm_multitask=ESPnetMultitaskLanguageModel,
+    ),
+    type_check=AbsESPnetModel,
+    default="lm",
+)
+
 
 class LMTask(AbsTask):
     # If you need more than one optimizers, change this value
     num_optimizers: int = 1
 
     # Add variable objects configurations
-    class_choices_list = [lm_choices]
+    class_choices_list = [
+        lm_choices,
+        # --model and --model_conf
+        model_choices,
+    ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
     trainer = Trainer
@@ -196,8 +212,21 @@ class LMTask(AbsTask):
 
         # 2. Build ESPnetModel
         # Assume the last-id is sos_and_eos
-        model = ESPnetLanguageModel(
-            lm=lm, vocab_size=vocab_size, token_list=token_list, **args.model_conf
+        try:
+            model_class = model_choices.get_class(args.model)
+            if args.model == "lm_multitask":
+                extra_model_conf = dict(token_list=token_list)
+            else:
+                extra_model_conf = dict()
+        except AttributeError:
+            model_class = model_choices.get_class("lm")
+            extra_model_conf = dict()
+
+        model = model_class(
+            lm=lm,
+            vocab_size=vocab_size,
+            **args.model_conf,
+            **extra_model_conf
         )
 
         # FIXME(kamo): Should be done in model?
