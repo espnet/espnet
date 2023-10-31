@@ -25,6 +25,7 @@ from espnet2.train.distributed_utils import (
 from espnet2.train.reporter import Reporter, SubReporter
 from espnet2.utils import config_argparse
 from espnet2.utils.build_dataclass import build_dataclass
+from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import (
     humanfriendly_parse_size_or_none,
     int_or_none,
@@ -133,8 +134,6 @@ def extract_embed(args):
     if distributed_option.distributed:
         torch.distributed.barrier()
     if not distributed_option.distributed or distributed_option.dist_rank == 0:
-        # logging.info(reporter.log_message())
-
         # Combine dictionaries into one
         npzs = glob(args.output_dir + "/embeddings*.npz")
         logging.info(f"{npzs}")
@@ -233,6 +232,12 @@ def get_parser():
         "This feature is only valid when data type is 'kaldi_ark'.",
     )
     group.add_argument(
+        "--allow_multi_rates",
+        type=str2bool,
+        default=False,
+        help="Whether to allow audios to have different sampling rates",
+    )
+    group.add_argument(
         "--valid_max_cache_size",
         type=humanfriendly_parse_size_or_none,
         default=None,
@@ -291,12 +296,6 @@ def get_parser():
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
     group.add_argument("--average_embd", type=str2bool, default=False)
     group.add_argument(
-        "--spk2utt",
-        type=str,
-        default="",
-        help="Directory of spk2utt file to be used in label mapping",
-    )
-    group.add_argument(
         "--train_dtype",
         default="float32",
         choices=["float16", "float32", "float64"],
@@ -309,42 +308,11 @@ def get_parser():
         help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
     )
     group.add_argument(
-        "--grad_clip",
-        type=float,
-        default=5.0,
-        help="Gradient norm threshold to clip",
-    )
-    group.add_argument(
-        "--accum_grad",
-        type=int,
-        default=1,
-        help="The number of gradient accumulation",
-    )
-    group.add_argument(
         "--no_forward_run",
         type=str2bool,
         default=False,
         help="Just only iterating data loading without "
         "model forwarding and training",
-    )
-    group.add_argument(
-        "--grad_clip_type",
-        type=float,
-        default=2.0,
-        help="The type of the used p-norm for gradient clip. Can be inf",
-    )
-    group.add_argument(
-        "--grad_noise",
-        type=str2bool,
-        default=False,
-        help="The flag to switch to use noise injection to "
-        "gradients during training",
-    )
-    group.add_argument(
-        "--resume",
-        type=str2bool,
-        default=False,
-        help="Enable resuming if checkpoint is existing",
     )
     group.add_argument(
         "--sort_in_batch",
@@ -466,65 +434,6 @@ def get_parser():
 
     group = parser.add_argument_group("trainer initialization related")
     group.add_argument(
-        "--max_epoch",
-        type=int,
-        default=40,
-        help="The maximum number epoch to train",
-    )
-    group.add_argument(
-        "--patience",
-        type=int_or_none,
-        default=None,
-        help="Number of epochs to wait without improvement "
-        "before stopping the training",
-    )
-    group.add_argument(
-        "--val_scheduler_criterion",
-        type=str,
-        nargs=2,
-        default=("valid", "loss"),
-        help="The criterion used for the value given to the lr scheduler. "
-        'Give a pair referring the phase, "train" or "valid",'
-        'and the criterion name. The mode specifying "min" or "max" can '
-        "be changed by --scheduler_conf",
-    )
-    group.add_argument(
-        "--early_stopping_criterion",
-        type=str,
-        nargs=3,
-        default=("valid", "loss", "min"),
-        help="The criterion used for judging of early stopping. "
-        'Give a pair referring the phase, "train" or "valid",'
-        'the criterion name and the mode, "min" or "max", e.g. "acc,max".',
-    )
-    group.add_argument(
-        "--best_model_criterion",
-        type=str2triple_str,
-        nargs="+",
-        default=[
-            ("train", "loss", "min"),
-            ("valid", "loss", "min"),
-            ("train", "acc", "max"),
-            ("valid", "acc", "max"),
-        ],
-        help="The criterion used for judging of the best model. "
-        'Give a pair referring the phase, "train" or "valid",'
-        'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
-    )
-    group.add_argument(
-        "--keep_nbest_models",
-        type=int,
-        nargs="+",
-        default=[10],
-        help="Remove previous snapshots excluding the n-best scored epochs",
-    )
-    group.add_argument(
-        "--nbest_averaging_interval",
-        type=int,
-        default=0,
-        help="The epoch interval to apply model averaging and save nbest models",
-    )
-    group.add_argument(
         "--use_matplotlib",
         type=str2bool,
         default=True,
@@ -583,6 +492,25 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Set torch.autograd.set_detect_anomaly",
+    )
+    group.add_argument(
+        "--use_lora",
+        type=str2bool,
+        default=False,
+        help="Enable LoRA based finetuning, see (https://arxiv.org/abs/2106.09685) "
+        "for large pre-trained foundation models, like Whisper",
+    )
+    group.add_argument(
+        "--save_lora_only",
+        type=str2bool,
+        default=True,
+        help="Only save LoRA parameters or save all model parameters",
+    )
+    group.add_argument(
+        "--lora_conf",
+        action=NestedDictAction,
+        default=dict(),
+        help="Configuration for LoRA based finetuning",
     )
 
     group = parser.add_argument_group("cudnn mode related")

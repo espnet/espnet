@@ -201,7 +201,8 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
-            "--spk_num", type=int, default=None, help="spk number in training"
+            "--spk_num", type=int, default=None, help="specify the number of "
+            "speakers during training"
         )
 
         group.add_argument(
@@ -215,7 +216,8 @@ class SpeakerTask(AbsTask):
             "--num_eval",
             type=int,
             default=10,
-            help="Number of segments to make from one utterance in the inference phase",
+            help="Number of segments to make from one utterance in the "
+            "inference phase",
         )
 
         group.add_argument(
