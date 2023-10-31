@@ -5,10 +5,9 @@ from packaging.version import parse as V
 from espnet2.asr.frontend.s3prl import S3prlFrontend
 
 is_torch_1_8_plus = V(torch.__version__) >= V("1.8.0")
-is_torch_2_0_plus = V(torch.__version__) >= V("2.0.0")
 
 
-@pytest.mark.skipif(not is_torch_1_8_plus or is_torch_2_0_plus, reason="Not supported")
+@pytest.mark.skipif(not is_torch_1_8_plus, reason="Not supported")
 def test_frontend_init():
     frontend = S3prlFrontend(
         fs=16000,
@@ -18,7 +17,7 @@ def test_frontend_init():
     assert frontend.output_size() > 0
 
 
-@pytest.mark.skipif(not is_torch_1_8_plus or is_torch_2_0_plus, reason="Not supported")
+@pytest.mark.skipif(not is_torch_1_8_plus, reason="Not supported")
 def test_frontend_output_size():
     frontend = S3prlFrontend(
         fs=16000,
@@ -32,7 +31,7 @@ def test_frontend_output_size():
     assert feats.shape[-1] == frontend.output_size()
 
 
-@pytest.mark.skipif(not is_torch_1_8_plus or is_torch_2_0_plus, reason="Not supported")
+@pytest.mark.skipif(not is_torch_1_8_plus, reason="Not supported")
 @pytest.mark.parametrize(
     "fs, frontend_conf, multilayer_feature, layer",
     [
