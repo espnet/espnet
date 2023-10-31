@@ -40,11 +40,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
         ./utils/utt2spk_to_spk2utt.pl data/${part}_${src_lang}/utt2spk > data/${part}_${src_lang}/spk2utt
 
+        ln -sf text.en data/"${part}_${src_lang}"/text
+        ln -sf wav.scp.en data/"${part}_${src_lang}"/wav.scp
+
         utt_extra_files="wav.scp.${src_lang} wav.scp.en text.${src_lang} text.en"
         # [Ziang] no speaker information for speechMatrix, would fail the fix_data_dir.sh, creating placeholder files `utt2spk` and `spk2utt` for now.
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" data/${part}_${src_lang}
     done
     for part in "dev" "test"; do
+        log "Prepare speechMatrix ${part}"
         python local/proc_eval_data.py \
             --datadir "${SPEECHMATRIX}" \
             --dest data/"${part}_${src_lang}" \
