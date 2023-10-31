@@ -493,7 +493,9 @@ class BeamSearchTransducer:
                     hptr = hptr[0, 0]
 
                 if self.biasing and self.deepbiasing:
-                    joint_out, joint_act = self.joint_network(enc_out_t, dec_out, hptr=hptr)
+                    joint_out, joint_act = self.joint_network(
+                        enc_out_t, dec_out, hptr=hptr
+                    )
                 else:
                     joint_out = self.joint_network(enc_out_t, dec_out)
 
