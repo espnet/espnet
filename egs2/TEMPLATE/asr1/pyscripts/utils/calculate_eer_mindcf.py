@@ -53,7 +53,7 @@ def main(args):
     with open(out_dir, "w") as f:
         f.write(f"trg_mean: {trg_mean}, trg_std: {trg_std}\n")
         f.write(f"nontrg_mean: {nontrg_mean}, nontrg_std: {nontrg_std}\n")
-        f.write(f"eer: {eer}, mindcf: {mindcf}")
+        f.write(f"eer: {eer}, mindcf: {mindcf}\n")
 
 
 if __name__ == "__main__":
