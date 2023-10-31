@@ -20,6 +20,9 @@ if __name__ == "__main__":
     src_text = open(os.path.join(args.dest, "text.{}".format(args.src_lang)), "w", encoding="utf-8")
     utt2spk = open(os.path.join(args.dest, "utt2spk"), "w", encoding="utf-8")
 
+    # pre-set audio data directory
+    data_dir = os.path.join(args.datadir, "audios")
+
     # Create a dictionary for mapping src_audio to ID
     src_id_mapping = {} # es
     with open(os.path.join(args.datadir, "s2u_manifests/es-en/train_mined.tsv"), "r", encoding="utf-8") as csvfile:
@@ -52,15 +55,15 @@ if __name__ == "__main__":
                 print(f"Warning: ID for {en_audio} or {es_audio} not found in mapping. Skipping...")
                 continue
 
-            # Write to wav.scp
+            # Write to wav.scp using dd and ffmpeg
             tgt_wavscp.write(
-                "{} ffmpeg -i {} -f wav -ss {} -t {} -ar 16000 -ab 16 -ac 1 - |\n".format(
-                    utt_id_en, os.path.join(args.datadir, en_zip), en_offset, en_duration
+                "{} dd if={} bs=1 skip={} count={} iflag=skip_bytes | ffmpeg -i pipe:0 -f wav -ar 16000 -ac 1 - |\n".format(
+                    utt_id_en, os.path.realpath(os.path.join(data_dir, en_zip)), en_offset, en_duration
                 )
             )
             src_wavscp.write(
-                "{} ffmpeg -i {} -f wav -ss {} -t {} -ar 16000 -ab 16 -ac 1 - |\n".format(
-                    utt_id_es, os.path.join(args.datadir, es_zip), es_offset, es_duration
+                "{} dd if={} bs=1 skip={} count={} iflag=skip_bytes | ffmpeg -i pipe:0 -f wav -ar 16000 -ac 1 - |\n".format(
+                    utt_id_es, os.path.realpath(os.path.join(data_dir, es_zip)), es_offset, es_duration
                 )
             )
 
