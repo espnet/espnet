@@ -201,8 +201,10 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
-            "--spk_num", type=int, default=None, help="specify the number of "
-            "speakers during training"
+            "--spk_num",
+            type=int,
+            default=None,
+            help="specify the number of " "speakers during training",
         )
 
         group.add_argument(
