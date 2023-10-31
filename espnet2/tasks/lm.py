@@ -8,7 +8,7 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.lm.abs_model import AbsLM
 from espnet2.lm.espnet_model import ESPnetLanguageModel
-from espnet2.lm.multitask_espnet_model import ESPnetMultitaskLanguageModel
+from espnet2.lm.espnet_model_multitask import ESPnetMultitaskLanguageModel
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
 from espnet2.lm.transformer_lm import TransformerLM
 from espnet2.tasks.abs_task import AbsTask
