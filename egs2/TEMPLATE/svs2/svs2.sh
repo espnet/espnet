@@ -606,12 +606,12 @@ if ! "${skip_data_prep}"; then
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         if [ ${kmeans_feature_type} = "encodec" ]; then
             log "Stage 4a: Extract ${kmeans_feature_type} tokens"
-            
+
             _cmd="${cuda_cmd} --gpu 1"
 
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 _dump_dir="${data_extract}/${kmeans_feature_type}/layer${layer}/${dset}"
-                
+
                 utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/${dset}" "${_dump_dir}"
 
                 mkdir -p "${_dump_dir}"
@@ -646,7 +646,7 @@ if ! "${skip_data_prep}"; then
                         ${batch_bins:+--batch_bins ${batch_bins}} \
                         "scp:${_dump_dir}/logdir/wav.JOB.scp" \
                         "ark,t:${_dump_dir}/logdir/pseudo_labels_km${nclusters}.JOB.txt" || exit 1;
-                
+
                 # concatenate scp files
                 for n in $(seq ${_nj}); do
                     cat "${_dump_dir}"/logdir/pseudo_labels_km${nclusters}.${n}.txt || exit 1;

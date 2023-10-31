@@ -4,13 +4,14 @@ from typing import Optional, Tuple, Union
 
 import humanfriendly
 import torch
+import torchaudio
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-import torchaudio
+
 
 class MERTFrontend(AbsFrontend):
     def __init__(
@@ -99,7 +100,6 @@ class MERTFrontend(AbsFrontend):
         logging.info("Pretrained MERT frontend model parameters reloaded!")
 
 
-
 class EnCodecFrontend(AbsFrontend):
     def __init__(
         self,
@@ -110,7 +110,8 @@ class EnCodecFrontend(AbsFrontend):
         multilayer_feature: bool = False,
         layer: int = -1,
     ):
-        from transformers import EncodecModel, AutoProcessor
+        from transformers import AutoProcessor, EncodecModel
+
         assert check_argument_types()
         super().__init__()
         if isinstance(fs, str):
@@ -152,10 +153,14 @@ class EnCodecFrontend(AbsFrontend):
         # of codebooks for each is half that of the 24 kHz model as the frame rate is twice as much.
         self.n_q = {
             24000: {1.5: 2, 3: 4, 6: 8, 12: 16, 24: 32},
-            48000: {3: 2, 6: 4, 12: 8, 24: 16}
+            48000: {3: 2, 6: 4, 12: 8, 24: 16},
         }
         assert self.bandwidth in self.n_q[self.fs], "Bandwidth not supported."
-        assert self.layer < self.n_q[self.fs][self.bandwidth], "For {}kps, n_q = {}".format(self.bandwidth, self.n_q[self.fs][self.bandwidth])
+        assert (
+            self.layer < self.n_q[self.fs][self.bandwidth]
+        ), "For {}kps, n_q = {}".format(
+            self.bandwidth, self.n_q[self.fs][self.bandwidth]
+        )
 
     def _tile_representations(self, feature):
         """Tile up the representations by `tile_factor`.
@@ -189,19 +194,27 @@ class EnCodecFrontend(AbsFrontend):
             if len(input.shape) == 2:
                 input = input.unsqueeze(1)
             assert input.size(1) == 1
-        #feats = [[] for i in range(self.n_q[self.fs][self.bandwidth])]
+        # feats = [[] for i in range(self.n_q[self.fs][self.bandwidth])]
         hs = []
         feats_lens = []
         for i in range(len(input)):
-            inputs = self.processor(raw_audio=input[i][:, : input_lengths[i]].cpu(), sampling_rate=self.processor.sampling_rate, return_tensors="pt").to(input.device)
-            out = self.model.encode(inputs["input_values"], inputs["padding_mask"], bandwidth=self.bandwidth)
+            inputs = self.processor(
+                raw_audio=input[i][:, : input_lengths[i]].cpu(),
+                sampling_rate=self.processor.sampling_rate,
+                return_tensors="pt",
+            ).to(input.device)
+            out = self.model.encode(
+                inputs["input_values"], inputs["padding_mask"], bandwidth=self.bandwidth
+            )
             codes = out.audio_codes
             scales = out.audio_scales
             codes = torch.cat([c[0] for c in codes], dim=-1)
             hs.append(codes)
             feats_lens.append(codes.size(1))
 
-        feats = torch.zeros([self.n_q[self.fs][self.bandwidth], len(input), max(feats_lens)]).to(input.device)
+        feats = torch.zeros(
+            [self.n_q[self.fs][self.bandwidth], len(input), max(feats_lens)]
+        ).to(input.device)
         for i in range(self.n_q[self.fs][self.bandwidth]):
             for j in range(len(input)):
                 feats[i][j][: len(hs[j][i])] = hs[j][i]

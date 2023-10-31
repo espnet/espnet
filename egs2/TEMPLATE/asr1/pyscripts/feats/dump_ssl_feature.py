@@ -4,10 +4,10 @@ import os
 
 import numpy as np
 from ssl_feature_utils import (
+    EnCodecFeatureReader,
     ESPnetHubertFeatureReader,
     HubertFeatureReader,
     MERTFeatureReader,
-    EnCodecFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
     dump_feature,
