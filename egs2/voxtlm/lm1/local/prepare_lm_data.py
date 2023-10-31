@@ -25,9 +25,7 @@ def cjk2unit(char: str) -> str:
 
 
 def prepare_textlm(
-    root: Path,
-    out_dir=Path("data"),
-    generate_text_token="<generatetext>"
+    root: Path, out_dir=Path("data"), generate_text_token="<generatetext>"
 ):
     print("textlm:", root / "text")
     uttid2text = read_text(root / "text")
@@ -49,9 +47,7 @@ def prepare_textlm(
 
 
 def prepare_speechlm(
-    root: Path,
-    out_dir=Path("data"),
-    generate_speech_token="<generatespeech>"
+    root: Path, out_dir=Path("data"), generate_speech_token="<generatespeech>"
 ):
     res = []
     uttid2token = read_text(root / f"token")
@@ -75,7 +71,7 @@ def prepare_asr(
     root: Path,
     out_dir=Path("data"),
     start_speech_token="<startofspeech>",
-    generate_text_token="<generatetext>"
+    generate_text_token="<generatetext>",
 ):
     uttid2text = read_text(root / f"text")
     uttid2token = read_text(root / f"token")
@@ -103,7 +99,7 @@ def prepare_tts(
     root: Path,
     out_dir=Path("data"),
     start_text_token="<startoftext>",
-    generate_speech_token="<generatespeech>"
+    generate_speech_token="<generatespeech>",
 ):
     uttid2text = read_text(root / f"text")
     uttid2token = read_text(root / f"token")
@@ -130,23 +126,28 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--path", type=str, help=" ", default="dump")
     parser.add_argument(
-        "--start_text_token", type=str,
+        "--start_text_token",
+        type=str,
         help="Token to denote start of text as condition.",
-        default="<startoftext>"
+        default="<startoftext>",
     )
     parser.add_argument(
-        "--generate_text_token", type=str,
-        help="Token to denote generate text.", default="<generatetext>"
+        "--generate_text_token",
+        type=str,
+        help="Token to denote generate text.",
+        default="<generatetext>",
     )
     parser.add_argument(
-        "--start_speech_token", type=str,
+        "--start_speech_token",
+        type=str,
         help="Token to denote start of speech as condition.",
-        default="<startofspeech>"
+        default="<startofspeech>",
     )
     parser.add_argument(
-        "--generate_speech_token", type=str,
+        "--generate_speech_token",
+        type=str,
         help="Token to denote generate speech.",
-        default="<generatespeech>"
+        default="<generatespeech>",
     )
 
     args = parser.parse_args()
@@ -158,32 +159,40 @@ if __name__ == "__main__":
 
     # prepare textlm
     prepare_textlm(
-        out_dir / "text/textlm", out_dir=out_dir,
-        generate_text_token=args.generate_text_token
+        out_dir / "text/textlm",
+        out_dir=out_dir,
+        generate_text_token=args.generate_text_token,
     )
 
     # process speechlm
     prepare_speechlm(
-        out_dir / "speech/speechlm", out_dir=out_dir,
-        generate_speech_token=args.generate_speech_token
+        out_dir / "speech/speechlm",
+        out_dir=out_dir,
+        generate_speech_token=args.generate_speech_token,
     )
 
     # process asr
     prepare_asr(
-        out_dir / "speech/asr", out_dir=out_dir,
+        out_dir / "speech/asr",
+        out_dir=out_dir,
         start_speech_token=args.start_speech_token,
-        generate_text_token=args.generate_text_token
+        generate_text_token=args.generate_text_token,
     )
 
     # process tts
     prepare_tts(
-        out_dir / "speech/tts", out_dir=out_dir,
+        out_dir / "speech/tts",
+        out_dir=out_dir,
         start_text_token=args.start_text_token,
-        generate_speech_token=args.generate_speech_token
+        generate_speech_token=args.generate_speech_token,
     )
 
     with (Path("data") / "nlsyms.txt").open("w") as fp:
-        fp.write("{}\n{}\n{}\n{}\n".format(
-            args.start_text_token, args.generate_text_token,
-            args.start_speech_token, args.generate_speech_token
-        ))
+        fp.write(
+            "{}\n{}\n{}\n{}\n".format(
+                args.start_text_token,
+                args.generate_text_token,
+                args.start_speech_token,
+                args.generate_speech_token,
+            )
+        )
