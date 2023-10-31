@@ -15,6 +15,8 @@ if [ "$#" -ne 1 ]; then
     echo "Illegal number of parameters"
 fi
 
+# Example: ./local/text_normlize.sh <path_to_text_dir>
+# Search for text files with _text.txt extension and normalize.
 text_dir=$1
 
 for root in ${text_dir}/*; do

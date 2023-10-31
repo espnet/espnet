@@ -24,7 +24,11 @@ def cjk2unit(char: str) -> str:
     return str(ord(char) - int("4e00", 16))
 
 
-def prepare_textlm(root: Path, out_dir=Path("data")):
+def prepare_textlm(
+    root: Path,
+    out_dir=Path("data"),
+    generate_text_token="<generatetext>"
+):
     print("textlm:", root / "text")
     uttid2text = read_text(root / "text")
     res = []
@@ -33,7 +37,7 @@ def prepare_textlm(root: Path, out_dir=Path("data")):
         uttid = f"textlm_{uttid}"
         text = text.lower()
 
-        res.append(f"{uttid} <generatetext> {text}")
+        res.append(f"{uttid} {generate_text_token} {text}")
 
     # write res
     print("Creating textlm: ", out_dir / "lm_text")
@@ -44,7 +48,11 @@ def prepare_textlm(root: Path, out_dir=Path("data")):
     return
 
 
-def prepare_speechlm(root: Path, out_dir=Path("data")):
+def prepare_speechlm(
+    root: Path,
+    out_dir=Path("data"),
+    generate_speech_token="<generatespeech>"
+):
     res = []
     uttid2token = read_text(root / f"token")
     for uttid in uttid2token:
@@ -53,7 +61,7 @@ def prepare_speechlm(root: Path, out_dir=Path("data")):
         uttid = f"unitlm_{uttid}"
         token = "".join(token)
 
-        res.append(f"{uttid} <generatespeech>{token}")
+        res.append(f"{uttid} {generate_speech_token} {token}")
 
     print("Creating speechlm: ", out_dir / "lm_text")
     with (out_dir / "lm_text").open("a") as fp:
@@ -63,7 +71,12 @@ def prepare_speechlm(root: Path, out_dir=Path("data")):
     return
 
 
-def prepare_asr(root: Path, out_dir=Path("data")):
+def prepare_asr(
+    root: Path,
+    out_dir=Path("data"),
+    start_speech_token="<startofspeech>",
+    generate_text_token="<generatetext>"
+):
     uttid2text = read_text(root / f"text")
     uttid2token = read_text(root / f"token")
     res = []
@@ -75,7 +88,7 @@ def prepare_asr(root: Path, out_dir=Path("data")):
         text = text.lower()
         token = "".join(token)
 
-        res.append(f"{uttid} <startofspeech>{token}<generatetext> {text}")
+        res.append(f"{uttid} {start_speech_token}{token}{generate_text_token} {text}")
 
     # write res
     print("Creating asr: ", out_dir / "lm_text")
@@ -86,7 +99,12 @@ def prepare_asr(root: Path, out_dir=Path("data")):
     return
 
 
-def prepare_tts(root: Path, dset="train", out_dir=Path("data")):
+def prepare_tts(
+    root: Path,
+    out_dir=Path("data"),
+    start_text_token="<startoftext>",
+    generate_speech_token="<generatespeech>"
+):
     uttid2text = read_text(root / f"text")
     uttid2token = read_text(root / f"token")
     res = []
@@ -98,7 +116,7 @@ def prepare_tts(root: Path, dset="train", out_dir=Path("data")):
         text = text.lower()
         token = "".join(token)
 
-        res.append(f"{uttid} <startoftext> {text}<generatespeech>{token}")
+        res.append(f"{uttid} {start_text_token} {text}{generate_speech_token}{token}")
 
     print("Creating tts: ", out_dir / "lm_text")
     with (out_dir / "lm_text").open("a") as fp:
@@ -111,6 +129,26 @@ def prepare_tts(root: Path, dset="train", out_dir=Path("data")):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-p", "--path", type=str, help=" ", default="dump")
+    parser.add_argument(
+        "--start_text_token", type=str,
+        help="Token to denote start of text as condition.",
+        default="<startoftext>"
+    )
+    parser.add_argument(
+        "--generate_text_token", type=str,
+        help="Token to denote generate text.", default="<generatetext>"
+    )
+    parser.add_argument(
+        "--start_speech_token", type=str,
+        help="Token to denote start of speech as condition.",
+        default="<startofspeech>"
+    )
+    parser.add_argument(
+        "--generate_speech_token", type=str,
+        help="Token to denote generate speech.",
+        default="<generatespeech>"
+    )
+
     args = parser.parse_args()
     out_dir = Path(args.path)
 
@@ -119,16 +157,33 @@ if __name__ == "__main__":
         print("Opened file:", out_dir)
 
     # prepare textlm
-    prepare_textlm(out_dir / "text/textlm", out_dir=out_dir)
+    prepare_textlm(
+        out_dir / "text/textlm", out_dir=out_dir,
+        generate_text_token=args.generate_text_token
+    )
 
     # process speechlm
-    prepare_speechlm(out_dir / "speech/speechlm", out_dir=out_dir)
+    prepare_speechlm(
+        out_dir / "speech/speechlm", out_dir=out_dir,
+        generate_speech_token=args.generate_speech_token
+    )
 
     # process asr
-    prepare_asr(out_dir / "speech/asr", out_dir=out_dir)
+    prepare_asr(
+        out_dir / "speech/asr", out_dir=out_dir,
+        start_speech_token=args.start_speech_token,
+        generate_text_token=args.generate_text_token
+    )
 
     # process tts
-    prepare_tts(out_dir / "speech/tts", out_dir=out_dir)
+    prepare_tts(
+        out_dir / "speech/tts", out_dir=out_dir,
+        start_text_token=args.start_text_token,
+        generate_speech_token=args.generate_speech_token
+    )
 
     with (Path("data") / "nlsyms.txt").open("w") as fp:
-        fp.write("<startofspeech>\n<generatetext>\n<startoftext>\n<generatespeech>\n")
+        fp.write("{}\n{}\n{}\n{}\n".format(
+            args.start_text_token, args.generate_text_token,
+            args.start_speech_token, args.generate_speech_token
+        ))

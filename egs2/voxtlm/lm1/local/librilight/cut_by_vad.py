@@ -1,5 +1,6 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved
-# This file is from Libri-Light repo: https://github.com/facebookresearch/libri-light/blob/main/data_preparation/cut_by_vad.py
+# This file is from Libri-Light repo: https://github.com/facebookresearch/
+# libri-light/blob/main/data_preparation/cut_by_vad.py
 import argparse
 import json
 import multiprocessing
