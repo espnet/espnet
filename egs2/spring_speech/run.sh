@@ -9,7 +9,7 @@ train_set="train"
 valid_set="dev"
 test_sets="eval"
 
-#                SPRING_INX Available languages :- 
+#                SPRING_INX Available languages :-
 #assamese, bengali, gujarati, hindi, marathi, kannada, malayalam, odia, punjabi, tamil
 lang="assamese"
 

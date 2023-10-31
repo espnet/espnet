@@ -25,4 +25,3 @@ For more information you can refer the arVix paper : https://arxiv.org/abs/2310.
 ## Usage
 
  You can select the language you want by specifying the "lang" parameter in the run.sh file. By default, it is set to "assamese".
-

@@ -38,7 +38,7 @@ if [ -z "$url" ]; then
 fi
 
 if [ -f $data/${name}_${lang}_R${version}/.complete ]; then
-  echo " 
+  echo "
 '${lang}_R${version}' was already successfully extracted, nothing to do."
   exit 0
 fi
@@ -53,11 +53,11 @@ if [[ `wget -S --spider $full_url 2>&1 | grep 'HTTP/1.1 200 OK'` ]]; then
 	echo "downloading data from :
 $full_url.
 This may take some time, please be patient."
-  
+
   if [[ -f $data/${name}_${lang}_R${version}.tar.gz ]]; then
     rm $data/${name}_${lang}_R${version}.tar.gz
   fi
-    
+
   if ! wget -P $data/ --no-check-certificate $full_url; then
     echo "$0: error executing wget $full_url"
     exit 1
@@ -76,16 +76,15 @@ fi
 
 touch $data/${name}_${lang}_R${version}/.complete
 
-echo " 
+echo "
 Successfully downloaded and un-tarred $data/${name}_${lang}_R${version}.tar.gz"
 
 if $remove_archive; then
-  echo " 
+  echo "
 removing $data/${name}_${lang}_R${version}.tar.gz file since --remove-archive option was supplied.
 "
   rm $data/${name}_${lang}_R${version}.tar.gz
 fi
 
-echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 "
-
