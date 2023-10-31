@@ -395,6 +395,9 @@ class SVSTask(AbsTask):
             feats_extract = None
             odim = args.odim
 
+        if args.model_type == "discrete_svs":
+            odim = 1024 + 1
+
         # 2. Normalization layer
         if args.normalize is not None:
             normalize_class = normalize_choices.get_class(args.normalize)
