@@ -288,6 +288,18 @@ class ASRTask(AbsTask):
             help="Apply preprocessing to data or not",
         )
         group.add_argument(
+            "--use_lang_prompt",
+            type=str2bool,
+            default=False,
+            help="Use language id as prompt",
+        )
+        group.add_argument(
+            "--use_nlp_prompt",
+            type=str2bool,
+            default=False,
+            help="Use natural language phrases as prompt",
+        )
+        group.add_argument(
             "--token_type",
             type=str,
             default="bpe",
@@ -425,15 +437,33 @@ class ASRTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 # NOTE(kamo): Check attribute existence for backward compatibility
-                rir_scp=getattr(args, "rir_scp", None),
-                rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
-                noise_scp=getattr(args, "noise_scp", None),
-                noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
-                noise_db_range=getattr(args, "noise_db_range", "13_15"),
-                short_noise_thres=getattr(args, "short_noise_thres", 0.5),
-                speech_volume_normalize=getattr(args, "rir_scp", None),
-                aux_task_names=getattr(args, "aux_ctc_tasks", None),
+                rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
+                rir_apply_prob=args.rir_apply_prob
+                if hasattr(args, "rir_apply_prob")
+                else 1.0,
+                noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
+                noise_apply_prob=args.noise_apply_prob
+                if hasattr(args, "noise_apply_prob")
+                else 1.0,
+                noise_db_range=args.noise_db_range
+                if hasattr(args, "noise_db_range")
+                else "13_15",
+                short_noise_thres=args.short_noise_thres
+                if hasattr(args, "short_noise_thres")
+                else 0.5,
+                speech_volume_normalize=args.speech_volume_normalize
+                if hasattr(args, "rir_scp")
+                else None,
+                aux_task_names=args.aux_ctc_tasks
+                if hasattr(args, "aux_ctc_tasks")
+                else None,
+                use_lang_prompt=args.use_lang_prompt
+                if hasattr(args, "use_lang_prompt")
+                else None,
                 **args.preprocessor_conf,
+                use_nlp_prompt=args.use_nlp_prompt
+                if hasattr(args, "use_nlp_prompt")
+                else None,
             )
         else:
             retval = None
@@ -458,6 +488,7 @@ class ASRTask(AbsTask):
         MAX_REFERENCE_NUM = 4
 
         retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+        retval = retval + ["prompt"]
         retval = tuple(retval)
 
         logging.info(f"Optional Data Names: {retval }")

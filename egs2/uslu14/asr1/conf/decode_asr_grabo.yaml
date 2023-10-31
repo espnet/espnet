@@ -1,0 +1,8 @@
+beam_size: 20
+ctc_weight: 0.0
+lm_weight: 0.
+maxlenratio: 0.
+minlenratio: 0.
+penalty: 0.
+lang_prompt_token: "<|nl|> <|scr|> <|grabo_scr|>"
+prompt_token_file: local/add_tokens-Copy1.txt
