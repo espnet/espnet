@@ -285,6 +285,7 @@ class CommonPreprocessor(AbsPreprocessor):
                 )
 
             # speech: (Nmic, Time)
+            speech = speech[:1]
             # Note that this operation doesn't change the signal length
             speech = scipy.signal.convolve(speech, rir, mode="full")[
                 :, : speech.shape[1]
@@ -1318,12 +1319,8 @@ class EnhPreprocessor(CommonPreprocessor):
                     ]
                 )
                 if self.force_single_channel:
-                    speech_ref = list(
-                        map(lambda x: x if x.shape[0] == 1 else x[:1], speech_ref)
-                    )
-                    rir_ref = list(
-                        map(lambda x: x if x.shape[0] == 1 else x[:1], rir_ref)
-                    )
+                    speech_ref = list(map(lambda x: x[:1], speech_ref))
+                    rir_ref = list(map(lambda x: x[:1], rir_ref))
 
                 if self.use_reverberant_ref:
                     for spk in range(num_spk):
