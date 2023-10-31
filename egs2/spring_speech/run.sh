@@ -19,16 +19,6 @@ inference_config=conf/decode_asr.yaml
 ./asr.sh \
     --lang "${lang}" \
     --local_data_opts "--lang ${lang}" \
-    --ngpu 1 \
-    --nj 16 \
-    --stage 1 \
-    --stop-stage 13 \
-    --gpu_inference true \
-    --inference_nj 1 \
-    --max_wav_duration 30 \
-    --audio_format "wav" \
-    --feats_type raw \
-    --asr_tag "${lang}" \
     --use_lm false \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
