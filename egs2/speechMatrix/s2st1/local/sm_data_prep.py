@@ -58,7 +58,7 @@ if __name__ == "__main__":
             # Write to wav.scp using dd and ffmpeg
             tgt_wavscp.write(
                 "{} dd if={} bs=1 skip={} count={} iflag=skip_bytes | ffmpeg -i pipe:0 -f wav -ar 16000 -ac 1 - |\n".format(
-                    utt_id_en, os.path.realpath(os.path.join(data_dir, en_zip)), en_offset, en_duration
+                    utt_id_en.replace("en_es", "es_en"), os.path.realpath(os.path.join(data_dir, en_zip)), en_offset, en_duration
                 )
             )
             src_wavscp.write(
@@ -69,10 +69,7 @@ if __name__ == "__main__":
 
             # Write to utt2spk
             utt2spk.write(
-                "{} en\n".format(utt_id_en)
-            )
-            utt2spk.write(
-                "{} es\n".format(utt_id_es)
+                "{} {}_{}\n".format(utt_id_es, args.src_lang, TGT_LANG)
             )
 
     # read src/tgt text and populate output files
@@ -95,7 +92,7 @@ if __name__ == "__main__":
             tgt_id, tgt_txt = line.strip().split("\t")
 
             tgt_text.write(
-                "{} {}\n".format(tgt_id, tgt_txt)
+                "{} {}\n".format(tgt_id.replace("en_es", "es_en"), tgt_txt)
             )
 
     # Close the output files
