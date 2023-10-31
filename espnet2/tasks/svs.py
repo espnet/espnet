@@ -318,9 +318,6 @@ class SVSTask(AbsTask):
                 g2p_type=args.g2p,
                 fs=args.fs,
                 hop_length=args.feats_extract_conf["hop_length"],
-                discrete_token_type=args.src_token_type,
-                discrete_token_list=args.src_token_list,
-                discrete_bpemodel=args.src_bpemodel,
             )
         else:
             retval = None
@@ -385,18 +382,6 @@ class SVSTask(AbsTask):
 
         vocab_size = len(token_list)
         logging.info(f"Vocabulary size: {vocab_size }")
-
-        if args.src_token_list is not None:
-            if isinstance(args.src_token_list, str):
-                with open(args.src_token_list, encoding="utf-8") as f:
-                    discrete_token_list = [line.rstrip() for line in f]
-                args.src_token_list = discrete_token_list.copy()
-            elif isinstance(args.src_token_list, (tuple, list)):
-                discrete_token_list = args.src_token_list.copy()
-            else:
-                raise RuntimeError("discrete_token_list must be str or dict")
-            discrete_vocab_size = len(discrete_token_list)
-
         # 1. feats_extract
         if args.odim is None:
             # Extract features in the model
@@ -409,8 +394,6 @@ class SVSTask(AbsTask):
             args.feats_extract_conf = None
             feats_extract = None
             odim = args.odim
-        if args.model_type == "discrete_svs":
-            odim = discrete_vocab_size
 
         # 2. Normalization layer
         if args.normalize is not None:

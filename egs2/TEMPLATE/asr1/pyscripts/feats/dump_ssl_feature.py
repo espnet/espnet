@@ -7,6 +7,7 @@ from ssl_feature_utils import (
     ESPnetHubertFeatureReader,
     HubertFeatureReader,
     MERTFeatureReader,
+    EnCodecFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
     dump_feature,
@@ -28,6 +29,7 @@ feature_reader_choice = dict(
     espnet_hubert=ESPnetHubertFeatureReader,
     s3prl=S3PRLFeatureReader,
     mert=MERTFeatureReader,
+    encodec=EnCodecFeatureReader,
 )
 
 

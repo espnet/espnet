@@ -1450,9 +1450,6 @@ class SVSPreprocessor(AbsPreprocessor):
             4: [0.05, 0.1, 0.5, 1],
         },
         discrete_token_name: str = "discrete_token",
-        discrete_token_type: str = None,
-        discrete_token_list: Union[Path, str, Iterable[str]] = None,
-        discrete_bpemodel: Union[Path, str, Iterable[str]] = None,
     ):
         super().__init__(train)
         self.train = train
@@ -1487,28 +1484,6 @@ class SVSPreprocessor(AbsPreprocessor):
             self.text_cleaner = None
             self.tokenizer = None
             self.token_id_converter = None
-
-        if discrete_token_type is not None:
-            if discrete_token_list is None:
-                raise ValueError(
-                    "discrete_token_list is required if discrete_token_type is not None"
-                )
-
-            self.discrete_tokenizer = build_tokenizer(
-                token_type=discrete_token_type,
-                bpemodel=discrete_bpemodel,
-                delimiter=delimiter,
-                space_symbol=space_symbol,
-                non_linguistic_symbols=non_linguistic_symbols,
-                g2p_type=g2p_type,
-            )
-            self.discrete_token_id_converter = TokenIDConverter(
-                token_list=discrete_token_list,
-                unk_symbol=unk_symbol,
-            )
-        else:
-            self.discrete_tokenizer = None
-            self.discrete_token_id_converter = None
 
     def __call__(
         self,
@@ -1610,13 +1585,6 @@ class SVSPreprocessor(AbsPreprocessor):
                 tokens = self.tokenizer.text2tokens(text)
                 _text_ints = self.token_id_converter.tokens2ids(tokens)
                 data[self.text_name] = np.array(_text_ints, dtype=np.int64)
-
-        # Load discrete token
-        if self.discrete_token_name in data and self.discrete_tokenizer is not None:
-            discrete_token = data[self.discrete_token_name]
-            tokens = self.discrete_tokenizer.text2tokens(discrete_token)
-            text_ints = self.discrete_token_id_converter.tokens2ids(tokens)
-            data[self.discrete_token_name] = np.array(text_ints, dtype=np.int64)
 
         return data
 

@@ -372,6 +372,7 @@ else
 fi
 
 mert_url="m-a-p/MERT-v1-330M"
+encodec_url="facebook/encodec_48khz"
 if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
     layer=
@@ -382,6 +383,8 @@ else
     # TODO(simpleoier): to support features beyond s3prl
     if [ ${kmeans_feature_type} = "mert" ]; then
         kmeans_feature_conf="{type=mert,conf={fs=24000,multilayer_feature=False,layer=${layer},download_path=${mert_url}}}"
+    elif [ ${kmeans_feature_type} = "encodec" ]; then
+        kmeans_feature_conf="{type=encodec,conf={fs=48000,bandwidth=12,multilayer_feature=False,layer=${layer},download_path=${encodec_url}}}"
     else
         s3prl_conf="{upstream=${kmeans_feature_type}}"
         kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
@@ -601,82 +604,141 @@ if ! "${skip_data_prep}"; then
     fi
 
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-        log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
+        if [ ${kmeans_feature_type} = "encodec" ]; then
+            log "Stage 4a: Extract ${kmeans_feature_type} tokens"
+            
+            _cmd="${cuda_cmd} --gpu 1"
 
-        scripts/feats/perform_kmeans.sh \
-            --stage 1 --stop-stage 4 \
-            --train_set "${train_set}" \
-            --dev_set "${valid_set}" \
-            --other_sets "${test_sets} ${train_sp_sets}" \
-            --datadir "${data_feats}" \
-            --featdir "${data_extract}" \
-            --audio_format "${audio_format}" \
-            --feature_type "${kmeans_feature_type}" \
-            --layer "${layer}" \
-            --feature_conf "${kmeans_feature_conf}" \
-            --km_dir "${km_dir}" \
-            --portion "${portion}" \
-            --nclusters "${nclusters}" \
-            --storage_save_mode ${storage_save_mode} \
-            --use_gpu true \
-            --nj ${nj} \
-            --cpu_cmd "${train_cmd}" \
-            --cuda_cmd "${cuda_cmd}" \
-            ${kmeans_opts}
+            for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+                _dump_dir="${data_extract}/${kmeans_feature_type}/layer${layer}/${dset}"
+                
+                utils/copy_data_dir.sh --validate_opts --non-print "${data_feats}/${dset}" "${_dump_dir}"
 
-        log "Stage 4b: Prepare token_list and convert number indices to CJK tokens"
+                mkdir -p "${_dump_dir}"
+                mkdir -p "${_dump_dir}/data"
+                mkdir -p "${_dump_dir}/logdir"
+#                nj=1
+                nutt=$(<"${_dump_dir}"/wav.scp wc -l)
+                _nj=$((nj<nutt?nj:nutt))
 
-        # Get uniq chars
-        if [ ! -f "${km_dir}/../"distinct_cjk_token_lists ]; then
-            if [ ${nclusters} -ge 20900 ]; then
-                echo "Warning: too many clusters, be careful with the distinct token list."
-            fi
-            python3 -c "for i in range(${nclusters}): print(i, chr(int('4e00', 16) + i))" \
-                > "${km_dir}/../"distinct_cjk_token_lists
-        fi
+                key_file="${data_feats}/${dset}"/wav.scp
+                split_scps=""
 
-        _suf=
-        if [ -n "${layer}" ]; then
-            _suf="layer${layer}/"
-        fi
+                for n in $(seq ${_nj}); do
+                    split_scps+=" ${_dump_dir}/logdir/wav.${n}.scp"
+                done
+                # shellcheck disable=SC2086
+                utils/split_scp.pl "${key_file}" ${split_scps}
 
-        if [ "${src_case}" = ts ]; then
-            echo "keep the original discrete token sequence"
-            for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-                awk '
-                    (FILENAME==ARGV[1]) {a[$1]=$2}
-                    (FILENAME==ARGV[2]) {
-                        out="";
-                        for (i=2; i<=NF; i++) {
-                            out=out""a[$i];
-                        }
-                        print($1,out);
-                    }' "${km_dir}/../"distinct_cjk_token_lists \
-                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                    > "${data_feats}/${dset}/text.${src_case}.${src_lang}"
-            done
-        elif [ "${src_case}" = rm ]; then
-            echo "remove repetitions in the discrete token sequence"
-            for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-                awk '
-                    (FILENAME==ARGV[1]) {a[$1]=$2}
-                    (FILENAME==ARGV[2]) {
-                        out="";
-                        for (i=2; i<=NF; i++) {
-                            if ($i != $(i-1)) {out=out""a[$i]}
-                        }
-                        print($1,out);
-                    }' "${km_dir}/../"distinct_cjk_token_lists \
-                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
-                    > "${data_feats}/${dset}/text.${src_case}.${src_lang}"
+                for n in $(seq ${_nj}); do
+                    awk '(FILENAME==ARGV[1]){utt2num[$1]=$2} (FILENAME==ARGV[2]){print($1, utt2num[$1])}' \
+                        ${data_feats}/${dset}/utt2num_samples ${_dump_dir}/logdir/wav.${n}.scp > ${_dump_dir}/logdir/utt2num_samples.${n}
+                done
+
+                ${_cmd} JOB=1:${_nj} ${_dump_dir}/logdir/dump_features.JOB.log \
+                    ${python} pyscripts/feats/dump_ssl_feature.py \
+                        --feature_conf "'${kmeans_feature_conf}'" \
+                        --use_gpu true \
+                        --in_filetype "sound" \
+                        --out_filetype "mat" \
+                        --write_num_frames "ark,t:${_dump_dir}/data/utt2num_frames.JOB" \
+                        --utt2num_samples "${_dump_dir}/logdir/utt2num_samples.JOB" \
+                        ${batch_bins:+--batch_bins ${batch_bins}} \
+                        "scp:${_dump_dir}/logdir/wav.JOB.scp" \
+                        "ark,t:${_dump_dir}/logdir/pseudo_labels_km${nclusters}.JOB.txt" || exit 1;
+                
+                # concatenate scp files
+                for n in $(seq ${_nj}); do
+                    cat "${_dump_dir}"/logdir/pseudo_labels_km${nclusters}.${n}.txt || exit 1;
+                done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_km${nclusters}.txt || exit 1;
+
             done
         else
-            echo "Unrecognized src_case ${src_case}" && exit 1;
+            log "Stage 4a: Perform Kmeans using ${kmeans_feature_type} features"
+
+            scripts/feats/perform_kmeans.sh \
+                --stage 1 --stop-stage 4 \
+                --train_set "${train_set}" \
+                --dev_set "${valid_set}" \
+                --other_sets "${test_sets} ${train_sp_sets}" \
+                --datadir "${data_feats}" \
+                --featdir "${data_extract}" \
+                --audio_format "${audio_format}" \
+                --feature_type "${kmeans_feature_type}" \
+                --layer "${layer}" \
+                --feature_conf "${kmeans_feature_conf}" \
+                --km_dir "${km_dir}" \
+                --portion "${portion}" \
+                --nclusters "${nclusters}" \
+                --storage_save_mode ${storage_save_mode} \
+                --use_gpu true \
+                --nj ${nj} \
+                --cpu_cmd "${train_cmd}" \
+                --cuda_cmd "${cuda_cmd}" \
+                ${kmeans_opts}
         fi
 
-        for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
-            cp data/${dset}/text ${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            _dump_dir="${data_extract}/${kmeans_feature_type}/layer${layer}/${dset}"
+            cp "${_dump_dir}/pseudo_labels_km${nclusters}.txt" "${data_feats}/${dset}/token_${kmeans_feature_type}_${nclusters}_${layer}"
+            # fix_data_dir.sh leaves only utts which exist in all files
+            utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files} token_${kmeans_feature_type}_${nclusters}_${layer}" "${data_feats}/${dset}"
         done
+
+
+#        log "Stage 4b: Prepare token_list and convert number indices to CJK tokens"
+
+#        # Get uniq chars
+#        if [ ! -f "${km_dir}/../"distinct_cjk_token_lists ]; then
+#            if [ ${nclusters} -ge 20900 ]; then
+#                echo "Warning: too many clusters, be careful with the distinct token list."
+#            fi
+#            python3 -c "for i in range(${nclusters}): print(i, chr(int('4e00', 16) + i))" \
+#                > "${km_dir}/../"distinct_cjk_token_lists
+#        fi
+
+#        _suf=
+#        if [ -n "${layer}" ]; then
+#            _suf="layer${layer}/"
+#        fi
+
+#        if [ "${src_case}" = ts ]; then
+#            echo "keep the original discrete token sequence"
+#            for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
+#                awk '
+#                    (FILENAME==ARGV[1]) {a[$1]=$2}
+#                    (FILENAME==ARGV[2]) {
+#                        out="";
+#                        for (i=2; i<=NF; i++) {
+#                            out=out""a[$i];
+#                        }
+#                        print($1,out);
+#                    }' "${km_dir}/../"distinct_cjk_token_lists \
+#                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
+#                    > "${data_feats}/${dset}/text.${src_case}.${src_lang}"
+#            done
+#        elif [ "${src_case}" = rm ]; then
+#            echo "remove repetitions in the discrete token sequence"
+#            for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
+#                 awk '
+#                    (FILENAME==ARGV[1]) {a[$1]=$2}
+#                    (FILENAME==ARGV[2]) {
+#                        out="";
+#                        for (i=2; i<=NF; i++) {
+#                            if ($i != $(i-1)) {out=out""a[$i]}
+#                        }
+#                        print($1,out);
+#                    }' "${km_dir}/../"distinct_cjk_token_lists \
+#                    "${data_extract}/${kmeans_feature_type}/${_suf}${dset}/pseudo_labels_km${nclusters}.txt" \
+#                    > "${data_feats}/${dset}/text.${src_case}.${src_lang}"
+#            done
+#        else
+#            echo "Unrecognized src_case ${src_case}" && exit 1;
+#        fi
+
+#        for dset in "${train_set}" ${train_sp_sets} "${valid_set}" ${test_sets}; do
+#            cp data/${dset}/text ${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}
+#        done
 
 #        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
 #            cp data/${dset}/text ${data_feats}/${dset}/text.${tgt_case}.${tgt_lang}
@@ -714,151 +776,151 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
 
-        src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
-        tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
+#        src_bpe_train_text="${data_feats}/${train_set}/text.${src_case}.${src_lang}"
+#        tgt_bpe_train_text="${data_feats}/${train_set}/text.${tgt_case}.${tgt_lang}"
 
-        if "${token_joint}"; then
-            log "Merge src and target data if joint BPE"
+#        if "${token_joint}"; then
+#            log "Merge src and target data if joint BPE"
 
-            cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
-            [ -n "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
-            # Set the new text as the target text
-            tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
-        fi
+#            cat $tgt_bpe_train_text > ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+#            [ -n "${src_bpe_train_text}" ] && cat ${src_bpe_train_text} >> ${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}
+#            # Set the new text as the target text
+#            tgt_bpe_train_text="${data_feats}/${train_set}/text.${src_lang}_${tgt_lang}"
+#        fi
 
-        # First generate tgt lang
-        if [ "${tgt_token_type}" = bpe ]; then
-            log "Stage 5b: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
+#        # First generate tgt lang
+#        if [ "${tgt_token_type}" = bpe ]; then
+#            log "Stage 5b: Generate token_list from ${tgt_bpe_train_text} using BPE for tgt_lang"
 
-            mkdir -p "${tgt_bpedir}"
-            # shellcheck disable=SC2002
-            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${tgt_bpedir}"/train.txt
+#            mkdir -p "${tgt_bpedir}"
+#            # shellcheck disable=SC2002
+#            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${tgt_bpedir}"/train.txt
 
-            if [ -n "${tgt_bpe_nlsyms}" ]; then
-                _opts_spm="--user_defined_symbols=${tgt_bpe_nlsyms}"
-            else
-                _opts_spm=""
-            fi
+#            if [ -n "${tgt_bpe_nlsyms}" ]; then
+#                _opts_spm="--user_defined_symbols=${tgt_bpe_nlsyms}"
+#            else
+#                _opts_spm=""
+#            fi
 
-            spm_train \
-                --input="${tgt_bpedir}"/train.txt \
-                --vocab_size="${tgt_nbpe}" \
-                --model_type="${tgt_bpemode}" \
-                --model_prefix="${tgt_bpeprefix}" \
-                --character_coverage=${tgt_bpe_char_cover} \
-                --input_sentence_size="${tgt_bpe_input_sentence_size}" \
-                ${_opts_spm}
+#            spm_train \
+#                --input="${tgt_bpedir}"/train.txt \
+#                --vocab_size="${tgt_nbpe}" \
+#                --model_type="${tgt_bpemode}" \
+#                --model_prefix="${tgt_bpeprefix}" \
+#                --character_coverage=${tgt_bpe_char_cover} \
+#                --input_sentence_size="${tgt_bpe_input_sentence_size}" \
+#                ${_opts_spm}
 
-            {
-            echo "${blank}"
-            echo "${oov}"
-            # Remove <unk>, <s>, </s> from the vocabulary
-            <"${tgt_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
-            echo "${sos_eos}"
-            } > "${tgt_token_list}"
+#            {
+#            echo "${blank}"
+#            echo "${oov}"
+#            # Remove <unk>, <s>, </s> from the vocabulary
+#            <"${tgt_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+#            echo "${sos_eos}"
+#            } > "${tgt_token_list}"
 
-        elif [ "${tgt_token_type}" = char ] || [ "${tgt_token_type}" = word ]; then
-            log "Stage 5b: Generate character level token_list from ${tgt_bpe_train_text} for tgt_lang"
+#        elif [ "${tgt_token_type}" = char ] || [ "${tgt_token_type}" = word ]; then
+#            log "Stage 5b: Generate character level token_list from ${tgt_bpe_train_text} for tgt_lang"
 
-            _opts="--non_linguistic_symbols ${nlsyms_txt}"
+#            _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
-            # shellcheck disable=SC2002
-            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
+#            # shellcheck disable=SC2002
+#            cat ${tgt_bpe_train_text} | cut -f 2- -d" "  > "${data_feats}"/token_train.txt
 
-            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-            ${python} -m espnet2.bin.tokenize_text  \
-                --token_type "${tgt_token_type}" \
-                --input "${data_feats}/token_train.txt" --output "${tgt_token_list}" ${_opts} \
-                --field 1- \
-                --cleaner "${cleaner}" \
-                --g2p "${g2p}" \
-                --write_vocabulary true \
-                --add_symbol "${blank}:0" \
-                --add_symbol "${oov}:1" \
-                --add_symbol "${sos_eos}:-1"
+#            # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+#            # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+#            ${python} -m espnet2.bin.tokenize_text  \
+#                --token_type "${tgt_token_type}" \
+#                --input "${data_feats}/token_train.txt" --output "${tgt_token_list}" ${_opts} \
+#                --field 1- \
+#                --cleaner "${cleaner}" \
+#                --g2p "${g2p}" \
+#                --write_vocabulary true \
+#                --add_symbol "${blank}:0" \
+#                --add_symbol "${oov}:1" \
+#                --add_symbol "${sos_eos}:-1"
 
-        else
-            log "Error: not supported --token_type '${tgt_token_type}'"
-            exit 2
-        fi
+#        else
+#            log "Error: not supported --token_type '${tgt_token_type}'"
+#            exit 2
+#        fi
 
-        # Create word-list for word-LM training
-        if ${use_word_lm} && [ "${tgt_token_type}" != word ]; then
-            log "Generate word level token_list from ${data_feats}/lm_train.txt"
-            ${python} -m espnet2.bin.tokenize_text \
-                --token_type word \
-                --input "${data_feats}/lm_train.txt" --output "${lm_token_list}" \
-                --field 2- \
-                --cleaner "${cleaner}" \
-                --g2p "${g2p}" \
-                --write_vocabulary true \
-                --vocabulary_size "${word_vocab_size}" \
-                --add_symbol "${blank}:0" \
-                --add_symbol "${oov}:1" \
-                --add_symbol "${sos_eos}:-1"
-        fi
+#        # Create word-list for word-LM training
+#        if ${use_word_lm} && [ "${tgt_token_type}" != word ]; then
+#            log "Generate word level token_list from ${data_feats}/lm_train.txt"
+#            ${python} -m espnet2.bin.tokenize_text \
+#                --token_type word \
+#                --input "${data_feats}/lm_train.txt" --output "${lm_token_list}" \
+#                --field 2- \
+#                --cleaner "${cleaner}" \
+#                --g2p "${g2p}" \
+#                --write_vocabulary true \
+#                --vocabulary_size "${word_vocab_size}" \
+#                --add_symbol "${blank}:0" \
+#                --add_symbol "${oov}:1" \
+#                --add_symbol "${sos_eos}:-1"
+#        fi
 
-        # Then generate src lang
-        if "${token_joint}"; then
-            log "Stage 5c: Skip separate token construction for src_lang when setting ${token_joint} as true"
-        else
-            if [ "${src_token_type}" = bpe ]; then
-                log "Stage 5c: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
+#        # Then generate src lang
+#        if "${token_joint}"; then
+#            log "Stage 5c: Skip separate token construction for src_lang when setting ${token_joint} as true"
+#        else
+#            if [ "${src_token_type}" = bpe ]; then
+#                log "Stage 5c: Generate token_list from ${src_bpe_train_text} using BPE for src_lang"
 
-                mkdir -p "${src_bpedir}"
-                # shellcheck disable=SC2002
-                cat ${src_bpe_train_text} | cut -f 2- -d" "  > "${src_bpedir}"/train.txt
+#                mkdir -p "${src_bpedir}"
+#                # shellcheck disable=SC2002
+#                cat ${src_bpe_train_text} | cut -f 2- -d" "  > "${src_bpedir}"/train.txt
 
-                if [ -n "${src_bpe_nlsyms}" ]; then
-                    _opts_spm="--user_defined_symbols=${src_bpe_nlsyms}"
-                else
-                    _opts_spm=""
-                fi
+#                if [ -n "${src_bpe_nlsyms}" ]; then
+#                    _opts_spm="--user_defined_symbols=${src_bpe_nlsyms}"
+#                else
+#                    _opts_spm=""
+#                fi
 
-                spm_train \
-                    --input="${src_bpedir}"/train.txt \
-                    --vocab_size="${src_nbpe}" \
-                    --model_type="${src_bpemode}" \
-                    --model_prefix="${src_bpeprefix}" \
-                    --character_coverage=${src_bpe_char_cover} \
-                    --input_sentence_size="${src_bpe_input_sentence_size}" \
-                    ${_opts_spm}
+#                spm_train \
+#                    --input="${src_bpedir}"/train.txt \
+#                    --vocab_size="${src_nbpe}" \
+#                    --model_type="${src_bpemode}" \
+#                    --model_prefix="${src_bpeprefix}" \
+#                    --character_coverage=${src_bpe_char_cover} \
+#                    --input_sentence_size="${src_bpe_input_sentence_size}" \
+#                    ${_opts_spm}
 
-                {
-                echo "${blank}"
-                echo "${oov}"
-                # Remove <unk>, <s>, </s> from the vocabulary
-                <"${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
-                echo "${sos_eos}"
-                } > "${src_token_list}"
+#                {
+#                echo "${blank}"
+#                echo "${oov}"
+#                # Remove <unk>, <s>, </s> from the vocabulary
+#                <"${src_bpeprefix}".vocab awk '{ if( NR != 1 && NR != 2 && NR != 3 ){ print $1; } }'
+#                echo "${sos_eos}"
+#                } > "${src_token_list}"
 
-            elif [ "${src_token_type}" = char ] || [ "${src_token_type}" = word ]; then
-                log "Stage 5c: Generate character level token_list from ${src_bpe_train_text} for src_lang"
+#            elif [ "${src_token_type}" = char ] || [ "${src_token_type}" = word ]; then
+#                log "Stage 5c: Generate character level token_list from ${src_bpe_train_text} for src_lang"
 
-                _opts="--non_linguistic_symbols ${nlsyms_txt}"
+#                _opts="--non_linguistic_symbols ${nlsyms_txt}"
 
-                # shellcheck disable=SC2002
-                cat ${src_bpe_train_text} | tr '\t' ' ' | cut -f 2- -d" "  > "${data_feats}"/token_train_${src_lang}.txt
+#                # shellcheck disable=SC2002
+#                cat ${src_bpe_train_text} | tr '\t' ' ' | cut -f 2- -d" "  > "${data_feats}"/token_train_${src_lang}.txt
 
-                # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
-                # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
-                ${python} -m espnet2.bin.tokenize_text  \
-                    --token_type "${src_token_type}" \
-                    --input "${data_feats}/token_train_${src_lang}.txt" --output "${src_token_list}" ${_opts} \
-                    --field 1- \
-                    --cleaner "${cleaner}" \
-                    --g2p "${g2p}" \
-                    --write_vocabulary true \
-                    --add_symbol "${blank}:0" \
-                    --add_symbol "${oov}:1" \
-                    --add_symbol "${sos_eos}:-1"
+#                # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+#                # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
+#                ${python} -m espnet2.bin.tokenize_text  \
+#                    --token_type "${src_token_type}" \
+#                    --input "${data_feats}/token_train_${src_lang}.txt" --output "${src_token_list}" ${_opts} \
+#                    --field 1- \
+#                    --cleaner "${cleaner}" \
+#                    --g2p "${g2p}" \
+#                    --write_vocabulary true \
+#                    --add_symbol "${blank}:0" \
+#                    --add_symbol "${oov}:1" \
+#                    --add_symbol "${sos_eos}:-1"
 
-            else
-                log "Error: not supported --token_type '${src_token_type}'"
-                exit 2
-            fi
-        fi
+#            else
+#                log "Error: not supported --token_type '${src_token_type}'"
+#                exit 2
+#            fi
+#        fi
     fi
 else
     log "Skip the stages for data preparation"
@@ -983,9 +1045,6 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --src_bpemodel "${src_bpemodel}" \
-                --src_token_type "${src_token_type}" \
-                --src_token_list "${src_token_list}" \
                 --normalize none \
                 --pitch_normalize none \
                 --energy_normalize none \
@@ -993,12 +1052,12 @@ if ! "${skip_train}"; then
                 --train_data_path_and_name_and_type "${_train_dir}/label,label,duration" \
                 --train_data_path_and_name_and_type "${_train_dir}/score.scp,score,score" \
                 --train_data_path_and_name_and_type "${_train_dir}/${_scp},singing,${_type}" \
-                --train_data_path_and_name_and_type "${_train_dir}/text.${src_case}.${src_lang},discrete_token,text" \
+                --train_data_path_and_name_and_type "${_train_dir}/token_${kmeans_feature_type}_${nclusters}_${layer},discrete_token,text_int" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/label,label,duration" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/score.scp,score,score" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},singing,${_type}" \
-                --valid_data_path_and_name_and_type "${_valid_dir}/text.${src_case}.${src_lang},discrete_token,text" \
+                --valid_data_path_and_name_and_type "${_valid_dir}/token_${kmeans_feature_type}_${nclusters}_${layer},discrete_token,text_int" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -1111,7 +1170,7 @@ if ! "${skip_train}"; then
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},singing,${_type} "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/label,label,duration "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/score.scp,score,score "
-                _opts+="--train_data_path_and_name_and_type ${_train_dir}/text.${src_case}.${src_lang},discrete_token,text "
+                _opts+="--train_data_path_and_name_and_type ${_train_dir}/token_${kmeans_feature_type}_${nclusters}_${layer},discrete_token,text_int "
                 # echo "svs_stats_dir: ${svs_stats_dir}"
 
                 _opts+="--train_shape_file ${svs_stats_dir}/train/text_shape.${token_type} "
@@ -1121,7 +1180,7 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},singing,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/label,label,duration "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/score.scp,score,score "
-            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text.${src_case}.${src_lang},discrete_token,text "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/token_${kmeans_feature_type}_${nclusters}_${layer},discrete_token,text_int "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
         else
@@ -1279,9 +1338,6 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --src_bpemodel "${src_bpemodel}" \
-                --src_token_type "${src_token_type}" \
-                --src_token_list "${src_token_list}" \
                 --fs "${fs}" \
                 --normalize "${feats_normalize}" \
                 --resume true \
