@@ -32,7 +32,7 @@ def main(args):
         spk2utt = f.readlines()[: cfg["n_spk"]]
 
     out_utts = set()
-    trg_samp = int(cfg['target_duration'] * int(samp_rate) * 1000)
+    trg_samp = int(cfg["target_duration"] * int(samp_rate) * 1000)
 
     # get list of utterances used on cohort set to remove them from qmf trainset
     with open(cohort_list) as f:
