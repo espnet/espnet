@@ -3,7 +3,6 @@ import torch
 
 from espnet2.asr.frontend.default import DefaultFrontend
 
-
 random_speech = torch.tensor(
     [
         [
