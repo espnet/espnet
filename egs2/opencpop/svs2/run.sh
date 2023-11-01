@@ -23,11 +23,10 @@ tgt_lang=en
 
 train_set=tr_no_dev
 valid_set=dev
-test_sets="dev eval"
+test_sets="dev test"
 
 train_config=conf/tuning/train_naive_rnn_dp.yaml
 inference_config=conf/tuning/decode_rnn.yaml
-expdir=exp/test
 
 src_nbpe=5000   # I use src_nbpe=6000 for 2000-cluster kmeans.
 tgt_nbpe=5000   # if token_joint is True, then only tgt_nbpe is used
@@ -40,7 +39,7 @@ tgt_case="ts"
 # text related processing arguments
 g2p=pyopenjtalk
 cleaner=none
-pitch_extract=None
+pitch_extract=dio
 
 ./svs2.sh \
     --lang zh \
@@ -65,7 +64,6 @@ pitch_extract=None
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
-    --svs_exp "${expdir}" \
     --kmeans_opts "--batch_bins 4800000" \
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
