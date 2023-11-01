@@ -13,13 +13,16 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.conformer.convolution import ConvolutionModule
 from espnet.nets.pytorch_backend.conformer.encoder_layer import EncoderLayer
-from espnet.nets.pytorch_backend.nets_utils import get_activation, make_pad_mask
+from espnet.nets.pytorch_backend.nets_utils import (
+    get_activation,
+    make_pad_mask,
+    trim_by_ctc_posterior,
+)
 from espnet.nets.pytorch_backend.transformer.attention import (
     LegacyRelPositionMultiHeadedAttention,
     MultiHeadedAttention,
     RelPositionMultiHeadedAttention,
 )
-from espnet.nets.pytorch_backend.nets_utils import trim_by_ctc_posterior
 from espnet.nets.pytorch_backend.transformer.embedding import (
     LegacyRelPositionalEncoding,
     PositionalEncoding,
