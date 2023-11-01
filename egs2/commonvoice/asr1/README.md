@@ -279,6 +279,55 @@ For more details on how use fusion of front-ends, you can refer to this [wiki](h
 
 # RESULTS
 ## Environments
+- date: `Thu Sep 21 09:55:45 CEST 2023`
+- python version: `3.8.17 | packaged by conda-forge | (default, Jun 16 2023, 07:06:00)  [GCC 11.4.0]`
+- espnet version: `espnet 202308`
+- pytorch version: `pytorch 2.0.1`
+- Git hash: `5d0758e2a7063b82d1f10a8ac2de98eb6cf8a352`
+  - Commit date: `Wed Aug 30 18:03:42 2023 -0400`
+
+## exp/asr_train_asr_conformer5_raw_eu_bpe150_sp
+- **HuggingFace model URL: https://huggingface.co/espnet/zuazo_commonvoice_asr_train_asr_conformer5_raw_eu_bpe150_sp**
+- LM corpus: https://aholab.ehu.eus/~xzuazo/models/Basque%20LMs/corpora.txt.gz
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_eu_bpe150_valid.loss.ave_asr_model_valid.acc.ave/test_eu|6640|49267|92.8|6.8|0.4|0.8|8.0|33.3|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_eu_bpe150_valid.loss.ave_asr_model_valid.acc.ave/test_eu|6640|373913|98.8|0.6|0.7|0.4|1.6|33.3|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_lm_lm_train_lm_eu_bpe150_valid.loss.ave_asr_model_valid.acc.ave/test_eu|6640|208360|97.4|1.5|1.1|0.5|3.1|33.3|
+
+## exp/asr_train_asr_conformer5_raw_eu_bpe150_sp/decode_asr_lm_lm_train_lm_eu_bpe150_valid.loss.ave_asr_model_valid.acc.ave
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|org/dev_eu|6640|49505|93.5|6.2|0.3|0.8|7.3|31.0|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|org/dev_eu|6640|376502|99.0|0.5|0.5|0.3|1.4|31.0|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|org/dev_eu|6640|209465|97.7|1.4|1.0|0.4|2.7|31.0|
+
+# RESULTS
+## Environments
 - date: `Thu Sep  1 16:16:04 UTC 2022`
 - python version: `3.9.12 (main, Jun  1 2022, 11:38:51)  [GCC 7.5.0]`
 - espnet version: `espnet 202207`
@@ -308,3 +357,52 @@ For more details on how use fusion of front-ends, you can refer to this [wiki](h
 |---|---|---|---|---|---|---|---|---|
 |inference_asr_model_valid.acc.best/dev_zh_TW|2627|24827|98.6|1.2|0.2|0.0|1.5|4.0|
 |inference_asr_model_valid.acc.best/test_zh_TW|2627|24618|98.8|0.9|0.4|0.1|1.3|3.4|
+
+# RESULTS
+## Environments
+- date: `Wed Oct 25 12:18:16 CEST 2023`
+- python version: `3.8.17 | packaged by conda-forge | (default, Jun 16 2023, 07:06:00)  [GCC 11.4.0]`
+- espnet version: `espnet 202308`
+- pytorch version: `pytorch 2.0.1`
+- Git hash: `5d0758e2a7063b82d1f10a8ac2de98eb6cf8a352`
+  - Commit date: `Wed Aug 30 18:03:42 2023 -0400`
+
+## exp/asr_train_asr_transducer_conformer5_raw_eu_bpe150_sp
+- **HuggingFace model URL: https://huggingface.co/espnet/zuazo_commonvoice_asr_train_asr_transducer_conformer5_raw_eu_bpe150_sp**
+- LM corpus: https://aholab.ehu.eus/~xzuazo/models/Basque%20LMs/corpora.txt.gz
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transducer_lm_lm_train_lm_eu_bpe150_valid.loss.ave_asr_model_valid.loss.ave/test_eu|6640|49267|92.9|6.6|0.5|0.8|8.0|33.6|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transducer_lm_lm_train_lm_eu_bpe150_valid.loss.ave_asr_model_valid.loss.ave/test_eu|6640|373913|98.7|0.6|0.8|0.4|1.7|33.6|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_transducer_lm_lm_train_lm_eu_bpe150_valid.loss.ave_asr_model_valid.loss.ave/test_eu|6640|208360|97.3|1.5|1.2|0.5|3.2|33.6|
+
+## exp/asr_train_asr_transducer_conformer5_raw_eu_bpe150_sp/decode_transducer_lm_lm_train_lm_eu_bpe150_valid.loss.ave_asr_model_valid.loss.ave
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|org/dev_eu|6640|49505|93.5|6.1|0.4|0.8|7.3|31.7|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|org/dev_eu|6640|376502|98.9|0.5|0.6|0.3|1.4|31.7|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|org/dev_eu|6640|209465|97.7|1.3|1.1|0.4|2.8|31.7|

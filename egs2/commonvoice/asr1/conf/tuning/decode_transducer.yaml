@@ -1,0 +1,10 @@
+batch_size: 1
+beam_size: 10
+penalty: 0.0
+maxlenratio: 0.0
+minlenratio: 0.0
+ctc_weight: 0.5
+lm_weight: 0.3
+transducer_conf:
+    search_type: default
+    score_norm: True
