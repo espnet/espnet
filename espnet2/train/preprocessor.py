@@ -12,7 +12,7 @@ import scipy.signal
 import soundfile
 from typeguard import check_argument_types, check_return_type
 
-from espnet2.layers.augmentation import DataAugmentation, effects_dict
+from espnet2.layers.augmentation import DataAugmentation
 from espnet2.text.build_tokenizer import build_tokenizer
 from espnet2.text.cleaner import TextCleaner
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
@@ -218,25 +218,31 @@ class CommonPreprocessor(AbsPreprocessor):
 
         if train and rir_scp is not None:
             self.rirs = []
-            with open(rir_scp, "r", encoding="utf-8") as f:
-                for line in f:
-                    sps = line.strip().split(None, 1)
-                    if len(sps) == 1:
-                        self.rirs.append(sps[0])
-                    else:
-                        self.rirs.append(sps[1])
+            rir_scp = [rir_scp] if not isinstance(rir_scp, (list, tuple)) else rir_scp
+            for scp in rir_scp:
+                with open(scp, "r", encoding="utf-8") as f:
+                    for line in f:
+                        sps = line.strip().split(None, 1)
+                        if len(sps) == 1:
+                            self.rirs.append(sps[0])
+                        else:
+                            self.rirs.append(sps[1])
         else:
             self.rirs = None
 
         if train and noise_scp is not None:
             self.noises = []
-            with open(noise_scp, "r", encoding="utf-8") as f:
-                for line in f:
-                    sps = line.strip().split(None, 1)
-                    if len(sps) == 1:
-                        self.noises.append(sps[0])
-                    else:
-                        self.noises.append(sps[1])
+            noise_scp = (
+                [noise_scp] if not isinstance(noise_scp, (list, tuple)) else noise_scp
+            )
+            for scp in noise_scp:
+                with open(scp, "r", encoding="utf-8") as f:
+                    for line in f:
+                        sps = line.strip().split(None, 1)
+                        if len(sps) == 1:
+                            self.noises.append(sps[0])
+                        else:
+                            self.noises.append(sps[1])
             sps = noise_db_range.split("_")
             if len(sps) == 1:
                 self.noise_db_low = self.noise_db_high = float(sps[0])
@@ -263,6 +269,13 @@ class CommonPreprocessor(AbsPreprocessor):
         rir = None
         if rir_path is not None:
             rir, fs = soundfile.read(rir_path, dtype=np.float64, always_2d=True)
+
+            if single_channel:
+                num_ch = rir.shape[1]
+                chs = [np.random.randint(num_ch)]
+                rir = rir[:, chs]
+            # rir: (Nmic, Time)
+            rir = rir.T
             if tgt_fs and fs != tgt_fs:
                 logging.warning(
                     f"Resampling RIR to match the sampling rate ({fs} -> {tgt_fs} Hz)"
@@ -271,12 +284,8 @@ class CommonPreprocessor(AbsPreprocessor):
                     rir, orig_sr=fs, target_sr=tgt_fs, res_type="kaiser_fast"
                 )
 
-            if single_channel:
-                rir = rir[:, :1]
-            # rir: (Nmic, Time)
-            rir = rir.T
-
             # speech: (Nmic, Time)
+            speech = speech[:1]
             # Note that this operation doesn't change the signal length
             speech = scipy.signal.convolve(speech, rir, mode="full")[
                 :, : speech.shape[1]
@@ -332,7 +341,9 @@ class CommonPreprocessor(AbsPreprocessor):
                     if len(noise) != nsamples_:
                         raise RuntimeError(f"Something wrong: {noise_path}")
             if single_channel:
-                noise = noise[:, :1]
+                num_ch = noise.shape[1]
+                chs = [np.random.randint(num_ch)]
+                noise = noise[:, chs]
             # noise: (Nmic, Time)
             noise = noise.T
             if tgt_fs and fs != tgt_fs:
@@ -1181,15 +1192,16 @@ class EnhPreprocessor(CommonPreprocessor):
             if dereverb_ref_name in data_dict:
                 data_dict[dereverb_ref_name] = func(data_dict[dereverb_ref_name])
 
-    def _random_crop_range(self, data_dict, num_spk, uid=None, max_trials=10):
-        # Randomly crop the signals to the length `self.speech_segment`
-        assert self.speech_segment > 0, self.speech_segment
+    def _random_crop_range(
+        self, data_dict, num_spk, tgt_length, uid=None, max_trials=10
+    ):
+        # Randomly crop the signals to the length `tgt_length`
+        assert tgt_length > 0, tgt_length
         speech_refs = [
             data_dict[self.speech_ref_name_prefix + str(spk + 1)]
             for spk in range(num_spk)
         ]
         length = speech_refs[0].shape[0]
-        tgt_length = self.speech_segment
         if length <= tgt_length:
             if length < tgt_length:
                 logging.warning(
@@ -1209,7 +1221,10 @@ class EnhPreprocessor(CommonPreprocessor):
                         f"Can't find non-allzero segments for all references in {uid}."
                     )
                     break
-                start = np.random.randint(0, length - tgt_length)
+                if start > 0:
+                    start = np.random.randint(0, start)
+                else:
+                    break
         return start, start + tgt_length
 
     def _speech_process(
@@ -1229,10 +1244,13 @@ class EnhPreprocessor(CommonPreprocessor):
                 "categories must be set in the config file when utt2category files "
                 "exist in the data directory (e.g., dump/raw/*/utt2category)"
             )
-        if self.categories and "category" in data:
-            category = data.pop("category")
-            assert category in self.categories, category
-            data["utt2category"] = np.array([self.categories[category]])
+
+        # Add the sampling rate information (an integer) to `data`
+        if "fs" in data:
+            fs = int(data.pop("fs"))
+            data["utt2fs"] = np.array([fs])
+        else:
+            fs = self.sample_rate
 
         sref_name = self.speech_ref_name_prefix + "1"
         if self.flexible_numspk and sref_name in data:
@@ -1255,6 +1273,12 @@ class EnhPreprocessor(CommonPreprocessor):
                     data[self.dereverb_ref_name_prefix + idx] = data[dref_name][i]
 
         if self.train:
+            if self.speech_segment is not None:
+                speech_segment = self.speech_segment // self.sample_rate * fs
+                start, end = self._random_crop_range(
+                    data, num_spk, speech_segment, uid=uid
+                )
+                self._apply_to_all_signals(data, lambda x: x[start:end], num_spk)
             # clean speech signal (Nmic, Time)
             speech_ref = [
                 self._ensure_2d(data[self.speech_ref_name_prefix + str(i + 1)])
@@ -1288,19 +1312,15 @@ class EnhPreprocessor(CommonPreprocessor):
                             sp,
                             power,
                             self.rirs,
-                            tgt_fs=self.sample_rate,
+                            tgt_fs=fs,
                             single_channel=self.force_single_channel,
                         )
                         for sp, power in zip(speech_ref, power_ref)
                     ]
                 )
                 if self.force_single_channel:
-                    speech_ref = list(
-                        map(lambda x: x if x.shape[0] == 1 else x[:1], speech_ref)
-                    )
-                    rir_ref = list(
-                        map(lambda x: x if x.shape[0] == 1 else x[:1], rir_ref)
-                    )
+                    speech_ref = list(map(lambda x: x[:1], speech_ref))
+                    rir_ref = list(map(lambda x: x[:1], rir_ref))
 
                 if self.use_reverberant_ref:
                     for spk in range(num_spk):
@@ -1335,9 +1355,27 @@ class EnhPreprocessor(CommonPreprocessor):
                 else:
                     speech_mix = sum(speech_ref)
 
+                # Add category information for dynamic mixing
+                # "_reverb" means dereverberation is required
+                # "_both" means both reverberant and dereverberated signals are required
+                if "category" in data:
+                    if self.use_reverberant_ref:
+                        if dereverb_speech_ref is None:
+                            if data["category"].endswith("_reverb"):
+                                data["category"] = data["category"][:-7]
+                            if data["category"].endswith("_both"):
+                                data["category"] = data["category"][:-5]
+                        else:
+                            if not data["category"].endswith("_both"):
+                                data["category"] = data["category"] + "_both"
+                    elif not data["category"].endswith("_reverb"):
+                        data["category"] = data["category"] + "_reverb"
+
             # 2. Add Noise
             if self.noises is not None and self.noise_apply_prob >= np.random.random():
                 speech_mix = sum(speech_ref)
+                if self.force_single_channel and speech_mix.shape[0] > 1:
+                    speech_mix = speech_mix[:1]
 
                 power_mix = (speech_mix[detect_non_silence(speech_mix)] ** 2).mean()
                 speech_mix, noise = self._add_noise(
@@ -1346,14 +1384,9 @@ class EnhPreprocessor(CommonPreprocessor):
                     self.noises,
                     self.noise_db_low,
                     self.noise_db_high,
-                    tgt_fs=self.sample_rate,
+                    tgt_fs=fs,
                     single_channel=self.force_single_channel,
                 )
-                if self.force_single_channel:
-                    if speech_mix.shape[0] > 1:
-                        speech_mix = speech_mix[:1]
-                    if noise.shape[0] > 1:
-                        noise = noise[:1]
 
                 name = self.noise_ref_name_prefix + "1"
                 if name in data:
@@ -1367,13 +1400,12 @@ class EnhPreprocessor(CommonPreprocessor):
                     # Currently, we only apply data augmentation to the mixture.
                     # So, some effects should not be used for Enh, such as pitch_shift,
                     # speed_perturb, time_stretch, polarity_inverse, reverse, etc.
-                    speech_mix = self.data_aug(speech_mix.squeeze(0), self.sample_rate)
+                    speech_mix = self.data_aug(
+                        speech_mix.T if speech_mix.shape[0] > 1 else speech_mix[0],
+                        self.sample_rate,
+                    )
 
-            speech_mix = speech_mix.T
-            data[self.speech_name] = speech_mix
-            if self.speech_segment is not None:
-                start, end = self._random_crop_range(data, num_spk, uid=uid)
-                self._apply_to_all_signals(data, lambda x: x[start:end], num_spk)
+            data[self.speech_name] = speech_mix.T
             ma = np.max(np.abs(data[self.speech_name]))
             if ma > 1.0:
                 self._apply_to_all_signals(data, lambda x: x / ma, num_spk)
@@ -1391,9 +1423,17 @@ class EnhPreprocessor(CommonPreprocessor):
             else:
                 # use a fixed scale to make it deterministic
                 volume_scale = self.volume_low
-            speech_mix = data[self.speech_name]
-            ma = np.max(np.abs(speech_mix))
+            ma = np.max(np.abs(data[self.speech_name]))
             self._apply_to_all_signals(data, lambda x: x * volume_scale / ma, num_spk)
+
+        if self.categories and "category" in data:
+            category = data.pop("category")
+            if not re.fullmatch(r"\d+ch.*", category):
+                speech_mix = data[self.speech_name]
+                nch = 1 if speech_mix.ndim == 1 else speech_mix.shape[-1]
+                category = f"{nch}ch_" + category
+            assert category in self.categories, category
+            data["utt2category"] = np.array([self.categories[category]])
 
         speech_mix = data[self.speech_name]
         # Reorder channels of the multi-channel signals
@@ -1404,7 +1444,9 @@ class EnhPreprocessor(CommonPreprocessor):
             data[self.speech_name] = speech_mix[..., chs]
             for i in range(num_spk):
                 k = self.speech_ref_name_prefix + str(i + 1)
-                if data[k].ndim > 1:
+                if self.train:
+                    assert k in data, (data.keys(), k)
+                if k in data and data[k].ndim > 1:
                     assert data[k].shape == speech_mix.shape
                     data[k] = data[k][..., chs]
 
@@ -1789,7 +1831,7 @@ class TSEPreprocessor(EnhPreprocessor):
             for name in aux_names:
                 if data[name].startswith("*"):
                     # in case of collecting stats for training data
-                    data[name] = np.zeros(1, dtype=data["speech_mix"].dtype)
+                    data[name] = np.zeros(1, dtype=data[self.speech_name].dtype)
                 else:
                     if getattr(self, "load_spk_embedding", False):
                         data[name] = np.load(data[name])[None, :]  # force 2D
@@ -1817,6 +1859,7 @@ class TSEPreprocessor(EnhPreprocessor):
 
 class SpkPreprocessor(CommonPreprocessor):
     """Preprocessor for Speaker tasks.
+
     Args:
         train (bool): Whether to use in training mode.
         spk2utt (str): Path to the `spk2utt` file.
@@ -2064,9 +2107,7 @@ class SpkPreprocessor(CommonPreprocessor):
     def _text_process(
         self, data: Dict[str, Union[str, np.ndarray]]
     ) -> Dict[str, np.ndarray]:
-        """
-        Make speaker labels into integers
-        """
+        """Make speaker labels into integers."""
         if self.train:
             int_label = self.spk2label[data["spk_labels"]]
             data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
