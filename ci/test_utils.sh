@@ -9,8 +9,7 @@ if ! [ -x "$(command -v bats)" ]; then
     git clone https://github.com/bats-core/bats-support.git "$(pwd)"/test_utils/bats-support
     git clone https://github.com/bats-core/bats-assert.git "$(pwd)"/test_utils/bats-assert
 fi
-#bats test_utils/integration_test_*.bats
-bats test_utils/test_calculate_eer_mindcf_py.bats
+bats test_utils/integration_test_*.bats
 
 echo "=== report ==="
 
