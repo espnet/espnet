@@ -5,11 +5,13 @@ from espnet2.asr.frontend.asteroid_frontend import AsteroidFrontend
 from espnet2.asr.frontend.melspec_torch import MelSpectrogramTorch
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.utterance_mvn import UtteranceMVN
-from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
+from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
-from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import ArcMarginProduct_intertopk_subcenter
+from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
+    ArcMarginProduct_intertopk_subcenter,
+)
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 
@@ -123,7 +125,9 @@ def test_melspec_spk_model(frontend, encoder, pooling, projector):
 
 
 @pytest.mark.parametrize("training", [True, False])
-@pytest.mark.parametrize("loss", [aamsoftmax_loss, aamsoftmax_em_loss, aamsoftmax_topk_center_loss])
+@pytest.mark.parametrize(
+    "loss", [aamsoftmax_loss, aamsoftmax_em_loss, aamsoftmax_topk_center_loss]
+)
 def test_spk_loss(training, loss):
     inputs = torch.randn(2, 8000)
     ilens = torch.LongTensor([8000, 7800])

@@ -30,7 +30,7 @@ def main(args):
         spk2utt = f.readlines()[: cfg["n_spk"]]
 
     utt_list = []
-    trg_samp = int(cfg['target_duration'] * int(samp_rate) * 1000)
+    trg_samp = int(cfg["target_duration"] * int(samp_rate) * 1000)
 
     for spk in spk2utt:
         chunk = spk.strip().split(" ")
