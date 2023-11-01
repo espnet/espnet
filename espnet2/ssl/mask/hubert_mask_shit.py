@@ -73,7 +73,7 @@ class HubertMasker(AbsMasker):
             
             mask_indices = _compute_mask_indices(
                 (B, T),
-                padding_mask,
+                None,
                 self.mask_prob,
                 self.mask_length,
                 self.mask_selection,

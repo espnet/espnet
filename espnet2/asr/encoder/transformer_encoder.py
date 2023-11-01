@@ -12,7 +12,10 @@ from espnet2.asr.ctc import CTC
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.attention import MultiHeadedAttention
-from espnet.nets.pytorch_backend.transformer.embedding import PositionalEncoding
+from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
+    PositionalEncoding,
+    ConvolutionalPositionalEmbedding,
+)
 from espnet.nets.pytorch_backend.transformer.encoder_layer import EncoderLayer
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.multi_layer_conv import (
@@ -71,7 +74,7 @@ class TransformerEncoder(AbsEncoder):
         positional_dropout_rate: float = 0.1,
         attention_dropout_rate: float = 0.0,
         input_layer: Optional[str] = "conv2d",
-        pos_enc_class=PositionalEncoding,
+        pos_enc_layer_type="abs_pos",
         normalize_before: bool = True,
         concat_after: bool = False,
         positionwise_layer_type: str = "linear",
@@ -85,6 +88,11 @@ class TransformerEncoder(AbsEncoder):
         super().__init__()
         self._output_size = output_size
 
+        if pos_enc_layer_type == "conv":
+            pos_enc_class = ConvolutionalPositionalEmbedding
+        elif pos_enc_layer_type == "abs_pos":
+            pos_enc_class = PositionalEncoding
+
         if input_layer == "linear":
             self.embed = torch.nn.Sequential(
                 torch.nn.Linear(input_size, output_size),
@@ -93,13 +101,10 @@ class TransformerEncoder(AbsEncoder):
                 torch.nn.ReLU(),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
-        if input_layer == "linear_w2v":
+        elif input_layer == "linear_w2v":
             self.embed = torch.nn.Sequential(
-                torch.nn.LayerNorm(output_size),
-                torch.nn.Linear(input_size, output_size),
-                torch.nn.Dropout(dropout_rate),
                 pos_enc_class(output_size, positional_dropout_rate),
-                torch.nn.LayerNorm(output_size),
+                torch.nn.LayerNorm(output_size) if normalize_before else torch.nn.Identity(output_size),
                 torch.nn.Dropout(dropout_rate),
             )
         elif input_layer == "conv1d2":
@@ -124,7 +129,7 @@ class TransformerEncoder(AbsEncoder):
                 torch.nn.Embedding(input_size, output_size, padding_idx=padding_idx),
                 pos_enc_class(output_size, positional_dropout_rate),
             )
-        elif input_layer is None:
+        elif input_layer is None or input_layer == 'none':
             if input_size == output_size:
                 self.embed = None
             else:
@@ -132,6 +137,7 @@ class TransformerEncoder(AbsEncoder):
         else:
             raise ValueError("unknown input_layer: " + input_layer)
         self.normalize_before = normalize_before
+
         if positionwise_layer_type == "linear":
             positionwise_layer = PositionwiseFeedForward
             positionwise_layer_args = (
@@ -189,6 +195,7 @@ class TransformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
+        masks: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Embed positions in tensor.
 
@@ -199,7 +206,10 @@ class TransformerEncoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        if masks is None:
+            masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        else:
+            masks = (~masks[:, None, :])
 
         if self.embed is None:
             xs_pad = xs_pad

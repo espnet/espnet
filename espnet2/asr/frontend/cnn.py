@@ -2,13 +2,24 @@
 
 import copy
 import logging
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List
 
 import torch
-from torch import nn
+from torch import nn, Tensor
+from torch.nn import Module
+
 from typeguard import check_argument_types
 
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+
+class LayerNorm(nn.LayerNorm):
+    """Layer norm with transpose"""
+
+    def forward(self, input: Tensor) -> Tensor:
+        x = input.transpose(-2, -1)
+        x = nn.functional.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
+        x = x.transpose(-2, -1)
+        return x
 
 class ConvLayerBlock(Module):
     """Convolution unit of FeatureExtractor"""
@@ -21,7 +32,7 @@ class ConvLayerBlock(Module):
         stride: int,
         bias: bool,
         layer_norm: Optional[Module],
-        conv_mode: str
+        conv_mode: str,
     ):
         super().__init__()
         self.kernel_size = kernel_size
@@ -93,9 +104,12 @@ class CNNFrontend(AbsFrontend):
         self,
         norm_mode: str,
         conv_mode: str,
-        shapes: List[Tuple[int, int, int]],
         bias: bool,
+        shapes: List[Tuple[int, int, int]] = [(512, 10, 5), (512, 3, 2), (512, 3, 2), (512, 3, 2), (512, 3, 2), (512, 2, 2), (512, 2, 2)],
+        fs: Union[int, str] = 16000,
     ):
+
+        super().__init__()
 
         if norm_mode not in ["group_norm", "layer_norm"]:
             raise ValueError("Invalid norm mode")
@@ -103,8 +117,11 @@ class CNNFrontend(AbsFrontend):
         if conv_mode not in ["standard", "depth_only", "depth_sep"]:
             raise ValueError("Invalid cnn mode")
 
-        locks = []
+        self.output_channels = shapes[-1][0]
+
+        blocks = []
         in_channels = 1
+        self.downsampling_factor = 1
         for i, (out_channels, kernel_size, stride) in enumerate(shapes):
             normalization = None
             if norm_mode == "group_norm" and i == 0:
@@ -130,7 +147,11 @@ class CNNFrontend(AbsFrontend):
                 )
             )
             in_channels = out_channels
+            self.downsampling_factor *= stride
         self.layers = nn.Sequential(*blocks)
+
+    def output_size(self) -> int:
+        return self.output_channels
 
     def forward(
         self,
@@ -158,6 +179,6 @@ class CNNFrontend(AbsFrontend):
         for layer in self.layers:
             x, length = layer(x, length)  # (batch, feature, frame)
         x = x.transpose(1, 2)  # (batch, frame, feature)
-        return x, length
+        return x, length #// self.downsampling_factor
 
     

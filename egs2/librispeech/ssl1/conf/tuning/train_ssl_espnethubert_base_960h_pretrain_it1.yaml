@@ -1,0 +1,79 @@
+use_amp: true
+grad_clip: 5.0
+batch_type: numel
+batch_bins: 1500000
+num_workers: 8
+accum_grad: 2
+max_epoch: 250
+patience: none
+# Use self-defined function for initialization
+init: none
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+unused_parameters: false
+
+input_size: none
+
+collate_fn_conf:
+    label_downsampling: 1
+    pad: False
+    rand_crop: True
+
+encoder: transformer
+encoder_conf:
+    output_size: 768
+    attention_heads: 16
+    linear_units: 3072
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.0
+    input_layer: linear_w2v
+    normalize_before: false
+    pos_enc_layer_type: conv
+
+optim: adam
+optim_conf:
+    lr: 0.0005
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 32000
+
+frontend: cnn
+frontend_conf:
+    norm_mode: group_norm
+    conv_mode: standard
+    bias: true
+
+normalize: null
+
+specaug: null
+
+preencoder: linear
+preencoder_conf:
+    output_size: 768
+
+masker: hubert
+masker_conf:
+    mask_prob: 0.8
+    mask_selection: static
+    mask_other: 0.0
+    mask_length: 10
+    no_mask_overlap: false
+    mask_min_space: 1
+    mask_channel_prob: 0.0
+    mask_channel_selection: static
+    mask_channel_other: 0.0
+    mask_channel_length: 10
+    no_mask_channel_overlap: false
+    mask_channel_min_space: 0
+
+loss: hubert
+loss_conf:
+    num_classes: 500
+    final_dim: 256
+

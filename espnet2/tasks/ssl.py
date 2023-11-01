@@ -21,15 +21,18 @@ from espnet2.asr.frontend.cnn import CNNFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
+from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.ssl.espnet_model import (
     ESPnetSSLModel
 )
-from espnet2.ssl.loss.hubert_loss import HubertLoss
+from espnet2.ssl.loss.hubert_loss import HuBERTLoss
+from espnet2.ssl.loss.abs_loss import AbsLoss
 from espnet2.ssl.mask.abs_mask import AbsMasker
 from espnet2.ssl.mask.hubert_mask import HubertMasker
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
+from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -71,9 +74,10 @@ preencoder_choices = ClassChoices(
     name="preencoder",
     classes=dict(
         sinc=LightweightSincConvs,
+        linear=LinearProjection
     ),
     type_check=AbsPreEncoder,
-    default=None,
+    default="linear",
     optional=True,
 )
 encoder_choices = ClassChoices(
@@ -90,6 +94,14 @@ masker_choices = ClassChoices(
         hubert=HubertMasker,
     ),
     type_check=AbsMasker,
+    default="hubert",
+)
+loss_choices = ClassChoices(
+    "loss",
+    classes=dict(
+        hubert=HuBERTLoss,
+    ),
+    type_check=AbsLoss,
     default="hubert",
 )
 model_choices = ClassChoices(
@@ -119,6 +131,8 @@ class SSLTask(AbsTask):
         encoder_choices,
         # --model and --model_conf
         model_choices,
+        masker_choices,
+        loss_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -348,7 +362,7 @@ class SSLTask(AbsTask):
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
         if not inference:
-            retval = ("speech", "text")
+            retval = ("speech",)
         else:
             # Recognition mode
             retval = ("speech",)
@@ -358,14 +372,14 @@ class SSLTask(AbsTask):
     def optional_data_names(
         cls, train: bool = True, inference: bool = False
     ) -> Tuple[str, ...]:
-        retval = ()
+        retval = ("text",)
         assert check_return_type(retval)
         return retval
 
     @classmethod
     def build_model(
         cls, args: argparse.Namespace
-    ) -> Union[HubertPretrainModel, TorchAudioHubertPretrainModel]:
+    ) -> Union[ESPnetSSLModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -410,7 +424,7 @@ class SSLTask(AbsTask):
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
         if getattr(args, "preencoder", None) is not None:
             preencoder_class = preencoder_choices.get_class(args.preencoder)
-            preencoder = preencoder_class(**args.preencoder_conf)
+            preencoder = preencoder_class(input_size=input_size,**args.preencoder_conf)
             input_size = preencoder.output_size()
         else:
             preencoder = None
@@ -419,7 +433,6 @@ class SSLTask(AbsTask):
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(
             input_size=input_size,
-            num_classes=args.num_classes,
             **args.encoder_conf,
         )
 
@@ -431,10 +444,10 @@ class SSLTask(AbsTask):
         )
 
         # 6. Loss
-        loss = HuBERTLoss(
+        loss_class = loss_choices.get_class(args.loss)
+        loss = loss_class(
             encoder_embed_dim=encoder.output_size(),
-            num_classes=args.num_classes,
-            final_dim=encoder.output_size(),
+            **args.loss_conf,
         )
 
         # 8. Build model
@@ -452,7 +465,7 @@ class SSLTask(AbsTask):
             encoder=encoder,
             token_list=token_list,
             masker=masker,
-            losses=[loss]
+            losses=[loss],
             **args.model_conf,
         )
 

@@ -30,6 +30,7 @@ from espnet.nets.pytorch_backend.transformer.embedding import (  # noqa: H301
     PositionalEncoding,
     RelPositionalEncoding,
     ScaledPositionalEncoding,
+    ConvolutionalPositionalEmbedding,
 )
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
 from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
@@ -229,7 +230,9 @@ class EBranchformerEncoder(AbsEncoder):
         else:
             raise ValueError("unknown rel_pos_type: " + rel_pos_type)
 
-        if pos_enc_layer_type == "abs_pos":
+        if pos_enc_layer_type == "conv":
+            pos_enc_class = ConvolutionalPositionalEmbedding
+        elif pos_enc_layer_type == "abs_pos":
             pos_enc_class = PositionalEncoding
         elif pos_enc_layer_type == "scaled_abs_pos":
             pos_enc_class = ScaledPositionalEncoding
