@@ -135,6 +135,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [
         nutt=$(<"${_dump_dir}"/wav.scp wc -l)
         _nj=$((nj<nutt?nj:nutt))
 
+        echo ${_nj}
+
         key_file="${datadir}/${dset}"/wav.scp
         split_scps=""
         for n in $(seq ${_nj}); do

@@ -310,6 +310,7 @@ class MERTFeatureReader(BaseFeatureReader):
         fs: Union[int, str] = 24000,
         mert_conf: Optional[dict] = None,
         download_path: str = None,
+        save_dir: str = None,
         multilayer_feature: bool = False,
         layer: int = -1,
         use_gpu: bool = True,
@@ -320,6 +321,7 @@ class MERTFeatureReader(BaseFeatureReader):
             fs=fs,
             frontend_conf=mert_conf,
             download_path=download_path,
+            save_dir=save_dir,
             multilayer_feature=multilayer_feature,
             layer=layer,
         )

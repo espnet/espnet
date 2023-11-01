@@ -19,6 +19,7 @@ class MERTFrontend(AbsFrontend):
         fs: Union[int, str] = 24000,
         frontend_conf: Optional[dict] = get_default_kwargs(Frontend),
         download_path: str = None,
+        save_dir: str = None,
         multilayer_feature: bool = False,
         layer: int = -1,
     ):
@@ -33,7 +34,10 @@ class MERTFrontend(AbsFrontend):
             logging.warning(
                 "All the RVQ-based models in MERT now only support 24 kHz audio."
             )
-        model = AutoModel.from_pretrained(download_path, trust_remote_code=True)
+        if save_dir is not None:
+            model = AutoModel.from_pretrained(download_path, trust_remote_code=True, cache_dir=save_dir) 
+        else:
+            model = AutoModel.from_pretrained(download_path, trust_remote_code=True) 
         model.eval()
 
         if layer != -1:

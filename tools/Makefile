@@ -1,5 +1,5 @@
 # PyTorch version: 1.11.0, 1.12.1, 1.13.1, 2.0.1 are tested.
-TH_VERSION := 2.0.1
+TH_VERSION := 1.13.1
 
 # Use pip for pytorch installation even if you have anaconda
 ifneq ($(shell test -f ./activate_python.sh && grep 'conda activate' ./activate_python.sh),)

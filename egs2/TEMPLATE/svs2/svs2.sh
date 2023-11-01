@@ -80,7 +80,7 @@ sos_eos="<sos/eos>" # sos and eos symbols.
 # Kmeans related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
 kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
-portion=1.0
+portion=1.0                 # portion of data used after K-means 
 nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
                             # If true, feature extraction and kmeans clustering on the fly
@@ -132,6 +132,8 @@ inference_model=valid.loss.best.pth # Model path for decoding.
                                    # inference_model=valid.loss.ave.pth
 vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be used.
 download_model=""   # Download a model from Model Zoo and use it for decoding.
+download_ckpt=none
+download_dir=ckpt
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.
@@ -371,7 +373,8 @@ else
     exit 2
 fi
 
-mert_url="m-a-p/MERT-v1-330M"
+# mert_url="m-a-p/MERT-v1-330M"
+mert_url="m-a-p/MERT-v1-95M"
 encodec_url="facebook/encodec_48khz"
 if [ ${kmeans_feature} = "mfcc" ]; then  # MFCC has no layer
     kmeans_feature_type=$(echo "${kmeans_feature}" | cut -d/ -f1)
@@ -382,12 +385,17 @@ else
     layer=$(echo "${kmeans_feature}" | cut -d/ -f2)
     # TODO(simpleoier): to support features beyond s3prl
     if [ ${kmeans_feature_type} = "mert" ]; then
-        kmeans_feature_conf="{type=mert,conf={fs=24000,multilayer_feature=False,layer=${layer},download_path=${mert_url}}}"
+        kmeans_feature_conf="{type=mert,conf={fs=24000,multilayer_feature=False,layer=${layer},download_path=${mert_url},save_dir=${download_ckpt}}}"
     elif [ ${kmeans_feature_type} = "encodec" ]; then
         kmeans_feature_conf="{type=encodec,conf={fs=48000,bandwidth=12,multilayer_feature=False,layer=${layer},download_path=${encodec_url}}}"
     else
-        s3prl_conf="{upstream=${kmeans_feature_type}}"
-        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${layer}}}"
+        if [ ${download_ckpt} = none ]; then
+            s3prl_conf="{upstream=${kmeans_feature_type}}"
+        else
+            s3prl_conf="{upstream=${kmeans_feature_type},path_or_url=${download_ckpt}}"
+        fi
+        # NOTE(Yuxun) update download_dir & add download_ckpt
+        kmeans_feature_conf="{type=s3prl,conf={s3prl_conf=${s3prl_conf},download_dir=${download_dir},multilayer_feature=False,layer=${layer}}}"
     fi
 fi
 km_dir="${expdir}"/kmeans/$(echo "${kmeans_feature}" | tr "/" "_")_${nclusters}clusters
@@ -557,7 +565,7 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}${_suf}/${dset}/utt2lang" \
                     > "${data_feats}${_suf}/${dset}/utt2lid"
 
-		utt_extra_files="${utt_extra_files} utt2lid"
+		        utt_extra_files="${utt_extra_files} utt2lid"
             done
         fi
     fi
@@ -678,6 +686,8 @@ if ! "${skip_data_prep}"; then
                 ${kmeans_opts}
         fi
 
+        # NOTE(Yuxun): update ${nj}
+        log "Stage 4b: Prepare token_list and convert number indices to CJK tokens"
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             _dump_dir="${data_extract}/${kmeans_feature_type}/layer${layer}/${dset}"
             cp "${_dump_dir}/pseudo_labels_km${nclusters}.txt" "${data_feats}/${dset}/token_${kmeans_feature_type}_${nclusters}_${layer}"
@@ -1029,8 +1039,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${svs_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${svs_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${svs_stats_dir}/run.sh"; chmod +x "${svs_stats_dir}/run.sh"
+        log "Generate '${svs_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${svs_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${svs_stats_dir}/run.sh"; chmod +x "${svs_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "SVS collect_stats started... log: '${_logdir}/stats.*.log'"
@@ -1310,8 +1320,8 @@ if ! "${skip_train}"; then
             _opts+="--normalize_conf stats_file=${svs_stats_dir}/train/feats_stats.npz "
         fi
 
-        log "Generate '${svs_exp}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${svs_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${svs_exp}/run.sh"; chmod +x "${svs_exp}/run.sh"
+        log "Generate '${svs_exp}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${svs_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${svs_exp}/run.sh"; chmod +x "${svs_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
@@ -1395,8 +1405,8 @@ if ! "${skip_eval}"; then
             _type=sound
         fi
 
-        log "Generate '${svs_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${svs_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${svs_exp}/${inference_tag}/run.sh"; chmod +x "${svs_exp}/${inference_tag}/run.sh"
+        log "Generate '${svs_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
+        mkdir -p "${svs_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${svs_exp}/${inference_tag}/run.sh"; chmod +x "${svs_exp}/${inference_tag}/run.sh"
 
 
         for dset in ${test_sets}; do

@@ -204,7 +204,11 @@ KIRITAN=
 NAMINE=
 KATHBATH=downloads
 GRAMVAANI=downloads
-VOXCELEB=
+
+if [[ `hostname` == capricornus_tyx_2258 ]]; then
+    OPENCPOP=/data4/tyx/dataset/opencpop
+fi
+
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
     BABEL_101=/projects/tir5/data/speech_corpora/babel/IARPA_BABEL_BP_101/
