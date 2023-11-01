@@ -582,12 +582,16 @@ def get_activation(act):
 
     return activation_funcs[act]()
 
+
 def trim_by_ctc_posterior(
-    h: torch.Tensor, ctc_probs: torch.Tensor, masks: torch.Tensor, pos_emb: torch.Tensor = None,
+    h: torch.Tensor,
+    ctc_probs: torch.Tensor,
+    masks: torch.Tensor,
+    pos_emb: torch.Tensor = None,
 ):
     """
     Trim the encoder hidden output using CTC posterior.
-    The continuous frames in the tail that confidently represent 
+    The continuous frames in the tail that confidently represent
     blank symbols are trimmed.
     """
 
@@ -602,7 +606,7 @@ def trim_by_ctc_posterior(
     assert h.size()[:2] == ctc_probs.size()[:2]
     assert h.size(0) == hlens.size(0)
 
-    # blank frames    
+    # blank frames
     max_values, max_indices = ctc_probs.max(dim=2)
     blank_masks = torch.logical_and(
         max_values > conf_tolerance, max_indices == blank_id
@@ -622,14 +626,16 @@ def trim_by_ctc_posterior(
         hlens,
     )
 
-    h = h[:, :max(after_lens)]
+    h = h[:, : max(after_lens)]
     masks = ~make_pad_mask(after_lens).to(h.device).unsqueeze(1)
 
     if pos_emb is None:
         pos_emb = None
-    elif (hlens.max() * 2 - 1).item() == pos_emb.size(1): # RelPositionalEncoding
-        pos_emb = pos_emb[:, pos_emb.size(1) // 2 - h.size(1) + 1: pos_emb.size(1) // 2 + h.size(1)]
+    elif (hlens.max() * 2 - 1).item() == pos_emb.size(1):  # RelPositionalEncoding
+        pos_emb = pos_emb[
+            :, pos_emb.size(1) // 2 - h.size(1) + 1 : pos_emb.size(1) // 2 + h.size(1)
+        ]
     else:
-        pos_emb = pos_emb[:, :h.size(1)]
+        pos_emb = pos_emb[:, : h.size(1)]
 
     return h, masks, pos_emb

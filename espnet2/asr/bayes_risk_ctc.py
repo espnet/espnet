@@ -2,10 +2,10 @@
 # https://openreview.net/forum?id=Bd7GueaTxUz
 
 import logging
-import torch
 
 import _k2  # k2 internal APIs
 import k2
+import torch
 
 
 class BayesRiskCTC(torch.nn.Module):
