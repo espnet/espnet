@@ -22,7 +22,7 @@ def whisper_token_id_converter(request):
 )
 def test_init_model_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenIDConverter("whisper_aaa", "en", "transcribe")
+        OpenAIWhisperTokenIDConverter("whisper_aaa", "en", task="transcribe")
 
 
 @pytest.mark.skipif(
@@ -30,7 +30,7 @@ def test_init_model_invalid():
 )
 def test_init_lang_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenIDConverter("whisper_multilingual", "abc", "transcribe")
+        OpenAIWhisperTokenIDConverter("whisper_multilingual", "abc", task="transcribe")
 
 
 @pytest.mark.skipif(
@@ -38,14 +38,16 @@ def test_init_lang_invalid():
 )
 def test_init_task_invalid():
     with pytest.raises(ValueError):
-        OpenAIWhisperTokenIDConverter("whisper_multilingual", "zh", "transcribe_abc")
+        OpenAIWhisperTokenIDConverter(
+            "whisper_multilingual", "zh", task="transcribe_abc"
+        )
 
 
 @pytest.mark.skipif(
     not is_python_3_8_plus, reason="whisper not supported on python<3.8"
 )
 def test_init_en():
-    id_converter = OpenAIWhisperTokenIDConverter("whisper_en", "en", "transcribe")
+    id_converter = OpenAIWhisperTokenIDConverter("whisper_en", "en", task="transcribe")
     assert id_converter.get_num_vocabulary_size() == 51864
 
 
@@ -54,9 +56,9 @@ def test_init_en():
 )
 def test_init_multilingual():
     id_converter = OpenAIWhisperTokenIDConverter(
-        "whisper_multilingual", "zh", "transcribe"
+        "whisper_multilingual", "zh", task="transcribe"
     )
-    assert id_converter.get_num_vocabulary_size() == 51865
+    assert id_converter.get_num_vocabulary_size() == 51867
 
 
 @pytest.mark.skipif(
@@ -64,9 +66,9 @@ def test_init_multilingual():
 )
 def test_init_translation():
     id_converter = OpenAIWhisperTokenIDConverter(
-        "whisper_multilingual", "zh", "translate"
+        "whisper_multilingual", "zh", task="translate"
     )
-    assert id_converter.get_num_vocabulary_size() == 51865
+    assert id_converter.get_num_vocabulary_size() == 51867
 
 
 @pytest.mark.skipif(
@@ -134,3 +136,17 @@ def test_tokens2ids(whisper_token_id_converter: OpenAIWhisperTokenIDConverter):
         8239,
         485,
     ]
+
+
+@pytest.mark.skipif(
+    not is_python_3_8_plus, reason="whisper not supported on python<3.8"
+)
+def test_tokens2ids_add_tokens(tmp_path):
+    tknlist_path = tmp_path / "tmp_token_list/add_token_list.txt"
+    tknlist_path.parent.mkdir()
+    tknlist_path.touch()
+    with open(tknlist_path, "w") as f:
+        f.write("command:yes\n")
+    id_converter = OpenAIWhisperTokenIDConverter(
+        "whisper_multilingual", added_tokens_txt=str(tknlist_path)
+    )
