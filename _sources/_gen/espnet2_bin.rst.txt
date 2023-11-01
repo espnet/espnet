@@ -300,6 +300,7 @@ asr_train.py
                         [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
                         [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                        [--chunk_default_fs CHUNK_DEFAULT_FS]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -575,6 +576,8 @@ asr_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -1003,6 +1006,7 @@ asr_transducer_train.py
                                    [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                                    [--num_cache_chunks NUM_CACHE_CHUNKS]
                                    [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                                   [--chunk_default_fs CHUNK_DEFAULT_FS]
                                    [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                                    [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                                    [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -1265,6 +1269,8 @@ asr_transducer_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -1631,6 +1637,7 @@ diar_train.py
                          [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                          [--num_cache_chunks NUM_CACHE_CHUNKS]
                          [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                         [--chunk_default_fs CHUNK_DEFAULT_FS]
                          [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                          [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                          [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -1883,6 +1890,8 @@ diar_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -2315,6 +2324,7 @@ enh_s2t_train.py
                             [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                             [--num_cache_chunks NUM_CACHE_CHUNKS]
                             [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                            [--chunk_default_fs CHUNK_DEFAULT_FS]
                             [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                             [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -2352,7 +2362,7 @@ enh_s2t_train.py
                             [--text_name TEXT_NAME [TEXT_NAME ...]]
                             [--enh_encoder {stft,conv,same}]
                             [--enh_encoder_conf ENH_ENCODER_CONF]
-                            [--enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2}]
+                            [--enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,uses}]
                             [--enh_separator_conf ENH_SEPARATOR_CONF]
                             [--enh_decoder {stft,conv,same}]
                             [--enh_decoder_conf ENH_DECODER_CONF]
@@ -2622,6 +2632,8 @@ enh_s2t_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -2793,11 +2805,11 @@ enh_s2t_train.py
       --diar_input_size DIAR_INPUT_SIZE
                             The number of input dimension of the feature (default: None)
       --enh_model_conf ENH_MODEL_CONF
-                            The keyword arguments for enh submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'flexible_numspk': False, 'extract_feats_in_collect_stats': False})
+                            The keyword arguments for enh submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'flexible_numspk': False, 'extract_feats_in_collect_stats': False, 'normalize_variance': False, 'normalize_variance_per_ch': False, 'categories': [], 'category_weights': []})
       --asr_model_conf ASR_MODEL_CONF
                             The keyword arguments for asr submodel class. (default: {'aux_ctc': None, 'ctc_weight': 0.5, 'interctc_weight': 0.0, 'ignore_id': -1, 'lsm_weight': 0.0, 'length_normalized_loss': False, 'report_cer': True, 'report_wer': True, 'sym_space': '<space>', 'sym_blank': '<blank>', 'transducer_multi_blank_durations': [], 'transducer_multi_blank_sigma': 0.05, 'sym_sos': '<sos/eos>', 'sym_eos': '<sos/eos>', 'extract_feats_in_collect_stats': True, 'lang_token_id': -1})
       --st_model_conf ST_MODEL_CONF
-                            The keyword arguments for st submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'flexible_numspk': False, 'extract_feats_in_collect_stats': False})
+                            The keyword arguments for st submodel class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'flexible_numspk': False, 'extract_feats_in_collect_stats': False, 'normalize_variance': False, 'normalize_variance_per_ch': False, 'categories': [], 'category_weights': []})
       --diar_model_conf DIAR_MODEL_CONF
                             The keyword arguments for diar submodel class. (default: {'diar_weight': 1.0, 'attractor_weight': 1.0})
       --subtask_series {enh,asr,st,diar} [{enh,asr,st,diar} ...]
@@ -2828,7 +2840,7 @@ enh_s2t_train.py
                             The enh_encoder type (default: stft)
       --enh_encoder_conf ENH_ENCODER_CONF
                             The keyword arguments for enh_encoder (default: {})
-      --enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2}
+      --enh_separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,uses}
                             The enh_separator type (default: rnn)
       --enh_separator_conf ENH_SEPARATOR_CONF
                             The keyword arguments for enh_separator (default: {})
@@ -3051,6 +3063,7 @@ enh_train.py
                         [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
                         [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                        [--chunk_default_fs CHUNK_DEFAULT_FS]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -3084,7 +3097,7 @@ enh_train.py
                         [--dynamic_mixing DYNAMIC_MIXING] [--utt2spk UTT2SPK]
                         [--dynamic_mixing_gain_db DYNAMIC_MIXING_GAIN_DB]
                         [--encoder {stft,conv,same}] [--encoder_conf ENCODER_CONF]
-                        [--separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2}]
+                        [--separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,uses}]
                         [--separator_conf SEPARATOR_CONF]
                         [--decoder {stft,conv,same}] [--decoder_conf DECODER_CONF]
                         [--mask_module {multi_mask}]
@@ -3315,6 +3328,8 @@ enh_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -3473,7 +3488,7 @@ enh_train.py
       --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                             The initialization method (default: None)
       --model_conf MODEL_CONF
-                            The keyword arguments for model class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'flexible_numspk': False, 'extract_feats_in_collect_stats': False})
+                            The keyword arguments for model class. (default: {'stft_consistency': False, 'loss_type': 'mask_mse', 'mask_type': None, 'flexible_numspk': False, 'extract_feats_in_collect_stats': False, 'normalize_variance': False, 'normalize_variance_per_ch': False, 'categories': [], 'category_weights': []})
       --criterions CRITERIONS
                             The criterions binded with the loss wrappers. (default: [{'name': 'si_snr', 'conf': {}, 'wrapper': 'fixed_order', 'wrapper_conf': {}}])
     
@@ -3521,7 +3536,7 @@ enh_train.py
                             The encoder type (default: stft)
       --encoder_conf ENCODER_CONF
                             The keyword arguments for encoder (default: {})
-      --separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2}
+      --separator {asteroid,conformer,dan,dc_crn,dccrn,dpcl,dpcl_e2e,dprnn,dptnet,fasnet,rnn,skim,svoice,tcn,transformer,wpe_beamformer,tcn_nomask,ineube,tfgridnet,tfgridnetv2,uses}
                             The separator type (default: rnn)
       --separator_conf SEPARATOR_CONF
                             The keyword arguments for separator (default: {})
@@ -3702,6 +3717,7 @@ enh_tse_train.py
                             [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                             [--num_cache_chunks NUM_CACHE_CHUNKS]
                             [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                            [--chunk_default_fs CHUNK_DEFAULT_FS]
                             [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                             [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -3967,6 +3983,8 @@ enh_tse_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -4266,6 +4284,7 @@ gan_svs_train.py
                             [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                             [--num_cache_chunks NUM_CACHE_CHUNKS]
                             [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                            [--chunk_default_fs CHUNK_DEFAULT_FS]
                             [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                             [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -4543,6 +4562,8 @@ gan_svs_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -4832,6 +4853,7 @@ gan_tts_train.py
                             [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                             [--num_cache_chunks NUM_CACHE_CHUNKS]
                             [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                            [--chunk_default_fs CHUNK_DEFAULT_FS]
                             [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                             [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                             [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -5103,6 +5125,8 @@ gan_tts_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -5381,6 +5405,7 @@ hubert_train.py
                            [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                            [--num_cache_chunks NUM_CACHE_CHUNKS]
                            [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                           [--chunk_default_fs CHUNK_DEFAULT_FS]
                            [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                            [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                            [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -5654,6 +5679,8 @@ hubert_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -6066,6 +6093,7 @@ lm_train.py
                        [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                        [--num_cache_chunks NUM_CACHE_CHUNKS]
                        [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                       [--chunk_default_fs CHUNK_DEFAULT_FS]
                        [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                        [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -6317,6 +6345,8 @@ lm_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -6657,6 +6687,7 @@ mt_train.py
                        [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                        [--num_cache_chunks NUM_CACHE_CHUNKS]
                        [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                       [--chunk_default_fs CHUNK_DEFAULT_FS]
                        [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                        [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -6927,6 +6958,8 @@ mt_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -7339,6 +7372,7 @@ s2st_train.py
                          [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                          [--num_cache_chunks NUM_CACHE_CHUNKS]
                          [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                         [--chunk_default_fs CHUNK_DEFAULT_FS]
                          [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                          [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                          [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -7628,6 +7662,8 @@ s2st_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -7970,6 +8006,7 @@ s2t_train.py
                         [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
                         [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                        [--chunk_default_fs CHUNK_DEFAULT_FS]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -8239,6 +8276,8 @@ s2t_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -8533,6 +8572,7 @@ spk_train.py
                         [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
                         [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                        [--chunk_default_fs CHUNK_DEFAULT_FS]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -8787,6 +8827,8 @@ spk_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -9247,6 +9289,7 @@ st_train.py
                        [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                        [--num_cache_chunks NUM_CACHE_CHUNKS]
                        [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                       [--chunk_default_fs CHUNK_DEFAULT_FS]
                        [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                        [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -9529,6 +9572,8 @@ st_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE
@@ -9960,6 +10005,7 @@ tts_train.py
                         [--chunk_shift_ratio CHUNK_SHIFT_RATIO]
                         [--num_cache_chunks NUM_CACHE_CHUNKS]
                         [--chunk_excluded_key_prefixes CHUNK_EXCLUDED_KEY_PREFIXES [CHUNK_EXCLUDED_KEY_PREFIXES ...]]
+                        [--chunk_default_fs CHUNK_DEFAULT_FS]
                         [--train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE]
                         [--valid_data_path_and_name_and_type VALID_DATA_PATH_AND_NAME_AND_TYPE]
                         [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
@@ -10223,6 +10269,8 @@ tts_train.py
                             List of key prefixes. Keys that satisfy either condition below will be excluded from the length consistency check in ChunkIterFactory:
                               - exactly match one of the prefixes in `chunk_excluded_key_prefixes`
                               - have one of the prefixes in `chunk_excluded_key_prefixes` and end with numbers (default: [])
+      --chunk_default_fs CHUNK_DEFAULT_FS
+                            Default sampling rate used for the chunk length. Will be used to adaptively adjust the chunk length for data of different sampling rates. (If None, the chunk length will be fixed.) (default: None)
     
     Dataset related:
       --train_data_path_and_name_and_type TRAIN_DATA_PATH_AND_NAME_AND_TYPE

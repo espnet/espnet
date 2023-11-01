@@ -4,6 +4,17 @@ espnet.asr package
 Initialize sub package.
 
 
+.. _espnet.asr.__init__:
+
+espnet.asr.__init__
+-------------------
+
+.. automodule:: espnet.asr.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.asr.asr_utils:
 
 espnet.asr.asr_utils
@@ -26,12 +37,12 @@ espnet.asr.asr_mix_utils
     :show-inheritance:
 
 
-.. _espnet.asr.__init__:
+.. _espnet.asr.pytorch_backend.asr_mix:
 
-espnet.asr.__init__
--------------------
+espnet.asr.pytorch_backend.asr_mix
+----------------------------------
 
-.. automodule:: espnet.asr.__init__
+.. automodule:: espnet.asr.pytorch_backend.asr_mix
     :members:
     :undoc-members:
     :show-inheritance:
@@ -54,17 +65,6 @@ espnet.asr.pytorch_backend.asr
 ------------------------------
 
 .. automodule:: espnet.asr.pytorch_backend.asr
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.asr.pytorch_backend.asr_mix:
-
-espnet.asr.pytorch_backend.asr_mix
-----------------------------------
-
-.. automodule:: espnet.asr.pytorch_backend.asr_mix
     :members:
     :undoc-members:
     :show-inheritance:
