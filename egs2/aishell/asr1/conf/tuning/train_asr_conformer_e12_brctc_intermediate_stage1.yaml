@@ -11,7 +11,7 @@ encoder_conf:
     attention_dropout_rate: 0.1
     input_layer: conv2d # encoder architecture type
     normalize_before: true
-    rel_pos_type: latest
+    rel_pos_type: legacy
     pos_enc_layer_type: rel_pos
     selfattention_layer_type: rel_selfattn
     activation_type: swish
