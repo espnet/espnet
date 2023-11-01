@@ -9,11 +9,8 @@ np.random.seed(0)
 
 def load_yaml(yamlfile):
     with open(yamlfile, "r") as stream:
-        try:
-            data = yaml.safe_load(stream)
-            return data
-        except yaml.YAMLError as exc:
-            print(exc)
+        data = yaml.safe_load(stream)
+        return data
 
 
 def main(args):
@@ -23,6 +20,7 @@ def main(args):
     cfg = load_yaml(args[3])
     utt2spk = args[4]
     cohort_list = args[5]
+    samp_rate = args[6][:-1]
     print(cfg)
     with open(wav_scp) as f:
         lines = f.readlines()
@@ -34,6 +32,7 @@ def main(args):
         spk2utt = f.readlines()[: cfg["n_spk"]]
 
     out_utts = set()
+    trg_samp = int(cfg['target_duration'] * int(samp_rate) * 1000)
 
     # get list of utterances used on cohort set to remove them from qmf trainset
     with open(cohort_list) as f:
@@ -104,7 +103,7 @@ def main(args):
                 out_utts.add(f"{utt1}*{utt2}")
             f_qmf.write(f"{utt1}*{utt2} {wav2dir_dic[utt1]}\n")
             f_qmf2.write(f"{utt1}*{utt2} {wav2dir_dic[utt2]}\n")
-            f_shape.write(f"{utt1}*{utt2} {int(cfg['target_duration']*16000)}\n")
+            f_shape.write(f"{utt1}*{utt2} {trg_samp}\n")
             f_lbl.write(f"{utt1}*{utt2} 1\n")
 
         # generate long-long target trials
@@ -121,7 +120,7 @@ def main(args):
                 out_utts.add(f"{utt1}*{utt2}")
             f_qmf.write(f"{utt1}*{utt2} {wav2dir_dic[utt1]}\n")
             f_qmf2.write(f"{utt1}*{utt2} {wav2dir_dic[utt2]}\n")
-            f_shape.write(f"{utt1}*{utt2} {int(cfg['target_duration']*16000)}\n")
+            f_shape.write(f"{utt1}*{utt2} {trg_samp}\n")
             f_lbl.write(f"{utt1}*{utt2} 1\n")
 
         sel_spks = np.random.choice(
@@ -141,7 +140,7 @@ def main(args):
                 out_utts.add(f"{utt1}*{utt2}")
             f_qmf.write(f"{utt1}*{utt2} {wav2dir_dic[utt1]}\n")
             f_qmf2.write(f"{utt1}*{utt2} {wav2dir_dic[utt2]}\n")
-            f_shape.write(f"{utt1}*{utt2} {int(cfg['target_duration']*16000)}\n")
+            f_shape.write(f"{utt1}*{utt2} {trg_samp}\n")
             f_lbl.write(f"{utt1}*{utt2} 1\n")
 
         # filter out empty speakers
@@ -169,7 +168,7 @@ def main(args):
                 out_utts.add(f"{utt1}*{utt2}")
             f_qmf.write(f"{utt1}*{utt2} {wav2dir_dic[utt1]}\n")
             f_qmf2.write(f"{utt1}*{utt2} {wav2dir_dic[utt2]}\n")
-            f_shape.write(f"{utt1}*{utt2} {int(cfg['target_duration']*16000)}\n")
+            f_shape.write(f"{utt1}*{utt2} {trg_samp}\n")
             f_lbl.write(f"{utt1}*{utt2} 0\n")
 
         # generate long-long non-target trials
@@ -183,7 +182,7 @@ def main(args):
                 out_utts.add(f"{utt1}*{utt2}")
             f_qmf.write(f"{utt1}*{utt2} {wav2dir_dic[utt1]}\n")
             f_qmf2.write(f"{utt1}*{utt2} {wav2dir_dic[utt2]}\n")
-            f_shape.write(f"{utt1}*{utt2} {int(cfg['target_duration']*16000)}\n")
+            f_shape.write(f"{utt1}*{utt2} {trg_samp}\n")
             f_lbl.write(f"{utt1}*{utt2} 0\n")
 
         # generate short-long non-target trials
@@ -200,7 +199,7 @@ def main(args):
                 out_utts.add(f"{utt1}*{utt2}")
             f_qmf.write(f"{utt1}*{utt2} {wav2dir_dic[utt1]}\n")
             f_qmf2.write(f"{utt1}*{utt2} {wav2dir_dic[utt2]}\n")
-            f_shape.write(f"{utt1}*{utt2} {int(cfg['target_duration']*16000)}\n")
+            f_shape.write(f"{utt1}*{utt2} {trg_samp}\n")
             f_lbl.write(f"{utt1}*{utt2} 0\n")
 
 

@@ -79,7 +79,9 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             extract_embd: a flag which doesn't go through the classification
                 head when set True
             spk_labels: (Batch, )
+            one-hot speaker labels used in the train phase
             task_tokens: (Batch, )
+            task tokens used in case of token-based trainings
         """
         if spk_labels is not None:
             assert speech.shape[0] == spk_labels.shape[0], (

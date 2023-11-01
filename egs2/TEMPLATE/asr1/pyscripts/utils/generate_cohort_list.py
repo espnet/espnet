@@ -9,11 +9,8 @@ np.random.seed(0)
 
 def load_yaml(yamlfile):
     with open(yamlfile, "r") as stream:
-        try:
-            data = yaml.safe_load(stream)
-            return data
-        except yaml.YAMLError as exc:
-            print(exc)
+        data = yaml.safe_load(stream)
+        return data
 
 
 def main(args):
@@ -21,6 +18,7 @@ def main(args):
     wav_scp = args[1]
     out_dir = args[2]
     cfg = load_yaml(args[3])
+    samp_rate = args[4][:-1]
     print(cfg)
     with open(wav_scp) as f:
         lines = f.readlines()
@@ -32,6 +30,8 @@ def main(args):
         spk2utt = f.readlines()[: cfg["n_spk"]]
 
     utt_list = []
+    trg_samp = int(cfg['target_duration'] * int(samp_rate) * 1000)
+
     for spk in spk2utt:
         chunk = spk.strip().split(" ")
         spk = chunk[0]
@@ -59,7 +59,7 @@ def main(args):
         for utt1, utt2 in zip(utt_list1, utt_list2):
             f_coh.write(f"{utt1}*{utt2} {wav2dir_dic[utt1]}\n")
             f_coh2.write(f"{utt1}*{utt2} {wav2dir_dic[utt2]}\n")
-            f_shape.write(f"{utt1}*{utt2} {int(cfg['target_duration']*16000)}\n")
+            f_shape.write(f"{utt1}*{utt2} {trg_samp}\n")
             f_lbl.write(f"{utt1}*{utt2} 0\n")
 
 

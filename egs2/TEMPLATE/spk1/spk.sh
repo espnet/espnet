@@ -118,7 +118,9 @@ Options:
 
     # Inference related
     inference_config=     # Inference configuration file
-    inference_model= # Inference model weight file
+    inference_model=      # Inference model weight file
+    score_norm=false      # Apply score normalization in inference.
+    qmf_func=false        # Apply quality measurement based calibration in inference.
 
     # [Task dependent] Set the datadir name created by local/data.sh
     train_set=       # Name of training set.
@@ -398,7 +400,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
 fi
 
 if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
-    echo "Stage 5: Train."
+    log "Stage 5: Train."
 
     _spk_train_dir="${data_feats}/${train_set}"
     _spk_valid_dir="${data_feats}/${valid_set}"
@@ -446,7 +448,7 @@ fi
 
 
 if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
-    echo "Stage 6: Speaker embedding extraction."
+    log "Stage 6: Speaker embedding extraction."
 
     infer_exp="${spk_exp}/inference"
     _inference_dir=${data_feats}/${test_sets}
@@ -482,7 +484,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     if [ "$score_norm" = true  ] || [ "$qmf_func" = true  ]; then
         _spk_train_dir="${data_feats}/${train_set}"
         if [ ! -e "${_spk_train_dir}/cohort.scp"  ]; then
-            ${python} pyscripts/utils/generate_cohort_list.py ${_spk_train_dir}/spk2utt ${_spk_train_dir}/wav.scp ${_spk_train_dir} ${inference_config}
+            ${python} pyscripts/utils/generate_cohort_list.py ${_spk_train_dir}/spk2utt ${_spk_train_dir}/wav.scp ${_spk_train_dir} ${inference_config} ${fs}
         fi
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
@@ -510,7 +512,7 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
     if "$qmf_func"; then
         _spk_train_dir="${data_feats}/${train_set}"
         if [ ! -e "${_spk_train_dir}/qmf_train.scp"  ]; then
-            ${python} pyscripts/utils/generate_qmf_train_list.py ${_spk_train_dir}/spk2utt ${_spk_train_dir}/wav.scp ${_spk_train_dir} ${inference_config} ${_spk_train_dir}/utt2spk ${_spk_train_dir}/cohort_label
+            ${python} pyscripts/utils/generate_qmf_train_list.py ${_spk_train_dir}/spk2utt ${_spk_train_dir}/wav.scp ${_spk_train_dir} ${inference_config} ${_spk_train_dir}/utt2spk ${_spk_train_dir}/cohort_label ${fs}
             mkdir ${infer_exp}/qmf
         fi
         ${python} -m espnet2.bin.launch \
@@ -536,29 +538,29 @@ if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
 fi
 
 if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-    echo "Stage 7: Score calculation and post-processing."
+    log "Stage 7: Score calculation and post-processing."
 
     infer_exp="${spk_exp}/inference"
     _inference_dir=${data_feats}/${test_sets}
     _spk_train_dir="${data_feats}/${train_set}"
 
-    echo "Stage 7-a: get scores for the test set."
+    log "Stage 7-a: get scores for the test set."
     ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/${test_sets}_embeddings.npz ${_inference_dir}/trial_label ${infer_exp}/${test_sets}_raw_trial_scores
     scorefile_cur=${infer_exp}/${test_sets}_raw_trial_scores
 
     if "$score_norm"; then
-        echo "Stage 7-b: apply score normalization."
+        log "Stage 7-b: apply score normalization."
         ${python} pyscripts/utils/spk_apply_score_norm.py ${scorefile_cur} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/${test_sets}_scorenormed_scores ${inference_config} ${ngpu}
         scorefile_cur=${infer_exp}/${test_sets}_scorenormed_scores
     fi
 
     if "$qmf_func"; then
-        echo "Stage 7-c: apply QMF calibration."
-        echo "get raw scores for the qmf train set."
+        log "Stage 7-c: apply QMF calibration."
+        log "get raw scores for the qmf train set."
         ${python} pyscripts/utils/spk_calculate_scores_from_embeddings.py ${infer_exp}/qmf/${train_set}_embeddings.npz ${_spk_train_dir}/qmf_train_label ${infer_exp}/qmf/${train_set}_raw_trial_scores
 
         if "$score_norm"; then
-            echo "normalize qmf train set scores."
+            log "normalize qmf train set scores."
             ${python} pyscripts/utils/spk_apply_score_norm.py ${infer_exp}/qmf/${train_set}_raw_trial_scores ${infer_exp}/qmf/${train_set}_embeddings.npz ${infer_exp}/${train_set}_embeddings.npz ${_spk_train_dir}/utt2spk ${infer_exp}/qmf/${train_set}_scorenormed_scores ${inference_config} ${ngpu}
             qmf_train_scores=${infer_exp}/qmf/${train_set}_scorenormed_scores
             test_scores=${infer_exp}/${test_sets}_scorenormed_scores
@@ -567,14 +569,14 @@ if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
             test_scores=${infer_exp}/${test_sets}_raw_trial_scores
         fi
 
-        echo "Apply qmf function."
+        log "Apply qmf function."
         ${python} pyscripts/utils/spk_apply_qmf_func.py ${_spk_train_dir}/qmf_train.scp ${_spk_train_dir}/qmf_train2.scp ${qmf_train_scores} ${infer_exp}/qmf/${train_set}_embeddings.npz ${_inference_dir}/trial.scp ${_inference_dir}/trial2.scp ${test_scores} ${infer_exp}/${test_sets}_embeddings.npz ${infer_exp}/qmf/${test_sets}_qmf_scores
     fi
 
 fi
 
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-    echo "Stage 8: Calculate metrics."
+    log "Stage 8: Calculate metrics."
     infer_exp="${spk_exp}/inference"
     _inference_dir=${data_feats}/${test_sets}
 
@@ -592,8 +594,8 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         fi
     fi
 
-    echo "calculate score with ${score_dir}"
+    log "calculate score with ${score_dir}"
     ${python} pyscripts/utils/calculate_eer_mindcf.py ${score_dir} ${infer_exp}/${test_sets}_metrics
 
-    echo $(cat ${infer_exp}/${test_sets}_metrics)
+    cat $(cat ${infer_exp}/${test_sets}_metrics)
 fi
