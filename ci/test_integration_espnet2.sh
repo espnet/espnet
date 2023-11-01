@@ -202,8 +202,14 @@ if python -c 'import torch as t; from packaging.version import parse as L; asser
     for t in ${feats_types}; do
         echo "==== feats_type=${t} ==="
         ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" --enh-args "--num_workers 0"
+        ./run.sh --ngpu 0 --stage 3 --stop-stage 6 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
+            --train_set train_nodev_unk_nspk --valid_set test_unk_nspk --test_sets "train_dev_unk_nspk" \
+            --enh_config ./conf/train_variable_nspk_debug.yaml --enh-args "--num_workers 0" --variable_num_refs true
         ./run.sh --ngpu 0 --stage 1 --stop-stage 10 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
             --local_data_opts "--random-enrollment true" --enh_config ./conf/train_random_enrollment_debug.yaml --enh-args "--num_workers 0"
+        ./run.sh --ngpu 0 --stage 3 --stop-stage 6 --skip-upload false --feats-type "${t}" --ref-num 1 --python "${python}" \
+            --train_set train_nodev_unk_nspk --valid_set test_unk_nspk --test_sets "train_dev_unk_nspk" \
+            --enh_config ./conf/train_variable_nspk_random_enrollment_debug.yaml --enh-args "--num_workers 0" --variable_num_refs true
     done
     # Remove generated files in order to reduce the disk usage
     rm -rf exp dump data

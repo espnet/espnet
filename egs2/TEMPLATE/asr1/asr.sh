@@ -89,6 +89,9 @@ use_word_lm=false # Whether to use word language model.
 num_splits_lm=1   # Number of splitting for lm corpus.
 # shellcheck disable=SC2034
 word_vocab_size=10000 # Size of word vocabulary.
+use_prompt=false # Use prompt ids for multi tasking
+use_lang_prompt=false # Use language prompt ids for multi lingual multi tasking
+use_nlp_prompt=false # Use text prompt ids for multi lingual multi tasking
 
 # ASR model related
 asr_task=asr   # ASR task mode. Either 'asr' or 'asr_transducer'.
@@ -218,6 +221,9 @@ Options:
                       # e.g., --lm_args "--max_epoch 10"
                       # Note that it will overwrite args in lm config.
     --use_word_lm     # Whether to use word language model (default="${use_word_lm}").
+    --use_prompt     # Whether to use prompt for multi  tasking (default="${use_prompt}").
+    --use_lang_prompt     # Whether to use language prompt for multi  tasking (default="${use_lang_prompt}").
+    --use_nlp_prompt     # Whether to use nlp prompt for multi  tasking (default="${use_nlp_prompt}").
     --word_vocab_size # Size of word vocabulary (default="${word_vocab_size}").
     --num_splits_lm   # Number of splitting for lm corpus (default="${num_splits_lm}").
 
@@ -953,6 +959,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
         echo ${token_list}
         ${python} -m espnet2.bin.whisper_export_vocabulary  \
             --whisper_model "${token_type}" \
+            --add_token_file_name "${nlsyms_txt}" \
             --whisper_language "${lang}" \
             --whisper_task "transcribe" \
             --sot_asr "${sot_asr}" \
@@ -1247,6 +1254,12 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
         _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
     done
+    if ${use_prompt}; then
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/prompt,prompt,text "
+        _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/prompt,prompt,text "
+        _opts+="--use_lang_prompt ${use_lang_prompt} "
+        _opts+="--use_nlp_prompt ${use_nlp_prompt} "
+    fi
 
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -1384,7 +1397,14 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/${ref_text_files[$i]},${ref_text_names[$i]},text "
         _opts+="--valid_shape_file ${asr_stats_dir}/valid/${ref_text_names[$i]}_shape.${token_type} "
     done
-
+    if ${use_prompt}; then
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/prompt,prompt,text "
+        _opts+="--train_shape_file ${asr_stats_dir}/train/prompt_shape "
+        _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/prompt,prompt,text "
+        _opts+="--valid_shape_file ${asr_stats_dir}/valid/prompt_shape "
+        _opts+="--use_lang_prompt ${use_lang_prompt} "
+        _opts+="--use_nlp_prompt ${use_nlp_prompt} "
+    fi
     log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 11 using this script"
     mkdir -p "${asr_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${asr_exp}/run.sh"; chmod +x "${asr_exp}/run.sh"
 
@@ -1621,7 +1641,11 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             if [ "${_tok_type}" = "char" ] || [ "${_tok_type}" = "word" ]; then
                 _type="${_tok_type:0:1}er"
                 _opts+="--non_linguistic_symbols ${nlsyms_txt} "
-                _opts+="--remove_non_linguistic_symbols true "
+                if grep -q "whisper" <<< ${token_type}; then
+                    log "Non linguistic_symbols used for prompting"
+                else
+                    _opts+="--remove_non_linguistic_symbols true "
+                fi
 
             elif [ "${_tok_type}" = "bpe" ]; then
                 _type="ter"
