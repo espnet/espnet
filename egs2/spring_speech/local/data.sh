@@ -62,10 +62,10 @@ fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    
+
     mkdir -p data
-    
-    
+
+
     for release in $(seq 1 ${global_version}); do
     	for directory in dev eval train; do
 
@@ -78,28 +78,28 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     			cp -r ${!release_name}/${release_name}_${lang}_R${release}/${directory} data/${directory}_R${release}
 	    	else
 
-	    		cp -r ${!release_name}/${release_name}_${lang}_R${release}/${directory} data/${directory}_R${release}	    		
+	    		cp -r ${!release_name}/${release_name}_${lang}_R${release}/${directory} data/${directory}_R${release}
     		fi
     		echo "
 Copied ${directory}_R${release} to the data folder."
-			
+
 			./utils/validate_data_dir.sh  data/${directory}_R${release}  --no-feats
 
     	done
     done
-    
+
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     echo "
-stage 3: 
+stage 3:
 Combining train, dev and eval from all releases."
-    
+
     for part in dev eval train; do
     	if [[ ${global_version} -eq 1 ]]; then
     		if [[ -d data/${part} ]]; then
     			rm -r data/${part}
-    		fi 
+    		fi
     		mv data/${part}_R1 data/${part}
     	else
 			data_releases=""
@@ -107,10 +107,10 @@ Combining train, dev and eval from all releases."
 				data_releases="${data_releases} data/${part}_R${release}"
 			done
 			bash utils/combine_data.sh data/${part} ${data_releases} >/dev/null
-			
+
 			echo "
 	Combined all ${part} versions."
-	
+
 			./utils/validate_data_dir.sh  data/${directory}_R${release} --no-feats
 		fi
     done
@@ -118,4 +118,3 @@ fi
 
 echo "
 Successfully finished. [elapsed=${SECONDS}s]"
-
