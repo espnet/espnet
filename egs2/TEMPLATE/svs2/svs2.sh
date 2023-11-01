@@ -132,8 +132,8 @@ inference_model=valid.loss.best.pth # Model path for decoding.
                                    # inference_model=valid.loss.ave.pth
 vocoder_file=none  # Vocoder parameter file, If set to none, Griffin-Lim will be used.
 download_model=""   # Download a model from Model Zoo and use it for decoding.
-download_ckpt=none
-download_dir=ckpt
+download_ckpt=none  # path of pretrain model checkpoint
+download_dir=ckpt  # director of pretrain model to save
 
 # [Task dependent] Set the datadir name created by local/data.sh
 train_set=""     # Name of training set.

@@ -515,6 +515,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        discrete_token: Optional[torch.Tensor] = None,
         **decode_config,
     ) -> Dict[str, torch.Tensor]:
         """Caclualte features and return them as a dict.
