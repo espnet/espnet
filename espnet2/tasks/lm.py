@@ -1,6 +1,6 @@
 import argparse
 import logging
-from typing import Callable, Collection, Dict, List, Optional, Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -183,7 +183,9 @@ class LMTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetLanguageModel:
+    def build_model(
+        cls, args: argparse.Namespace
+    ) -> Union[ESPnetLanguageModel, ESPnetMultitaskLanguageModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
