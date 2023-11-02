@@ -5,12 +5,12 @@ target_duration: 3.0  # seconds
 num_eval: 4
 
 # score norm
-n_spk: 5994
-n_utt_per_spk: 20
+num_cohortspk: 5994
+num_utt_per_spk: 20
 utt_select_sec: 2
 adaptive_cohort_size: 500
 average_spk: true
 
 # quality measure function
 qmf_dur_thresh: 6
-qmf_n_trial_per_condition: 5000
+qmf_num_trial_per_condition: 5000
