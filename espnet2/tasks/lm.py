@@ -89,12 +89,6 @@ class LMTask(AbsTask):
                 None,
             ],
         )
-        group.add_argument(
-            "--model_conf",
-            action=NestedDictAction,
-            default=get_default_kwargs(ESPnetLanguageModel),
-            help="The keyword arguments for model class.",
-        )
 
         group = parser.add_argument_group(description="Preprocess related")
         group.add_argument(
