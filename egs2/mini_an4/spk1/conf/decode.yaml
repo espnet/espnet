@@ -5,7 +5,7 @@ target_duration: 3.0  # seconds
 num_eval: 4
 
 # score norm
-num_cohortspk: 5994
+num_cohort_spk: 5994
 num_utt_per_spk: 20
 utt_select_sec: 2
 adaptive_cohort_size: 500
