@@ -187,10 +187,6 @@ class ESPnetMultitaskLanguageModel(AbsESPnetModel):
         text_lengths: torch.Tensor,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        # nll, y_lengths = self.nll(text, text_lengths)
-        # ntokens = y_lengths.sum()
-        # loss = nll.sum() / ntokens
-        # stats = dict(loss=loss.detach())
 
         batch_size = text.shape[0]
         loss, acc = self._calc_att_loss(text, text_lengths)
