@@ -20,7 +20,8 @@ def prep(
             _id, src, _, tgt, _ = line.split('\t')
             _id = _id.split('/')[-1]
 
-            
+            if option == "voxpopuli":
+                src = f"{datadir}/voxpopuli_valid_test/{_id}.ogg"        
             # Use ffmpeg to convert audio to WAV
             src_wav_fp.write(f"{_id} ffmpeg -i {src} -acodec pcm_s16le -ac 1 -ar 16000 -f wav - |\n")
             utt2spk_fp.write(f"{_id} {src_lang}_{tgt_lang}\n")
