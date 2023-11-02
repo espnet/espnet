@@ -5,11 +5,41 @@ setup() {
     mkdir -p ${tmpdir}
     cp test_utils/spk_trial_scores ${tmpdir}/spk_trial_scores
 
-    # Create reference data
+    # Create reference data for "calculate_eermindcf"
     cat << EOF > $tmpdir/expected_output
-trg_mean: -0.8300532807187527, trg_std: 0.13157279774189995
-nontrg_mean: 0.07914457056750071, nontrg_std: 0.07914457056750071
-eer: 1.0395841663334626, mindcf: 0.05559600889536194
+trg_mean: -0.856322466135025, trg_std: 0.08600128103334274
+nontrg_mean: 0.08447770031926187, nontrg_std: 0.08447770031926187
+eer: 2.0, mindcf: 0.04
+EOF
+
+    # Create reference data for "calculate_eermindcf_eer0"
+    cat << EOF > $tmpdir/expected_output_eer0
+trg_mean: 0.95, trg_std: 0.04999999999999999
+nontrg_mean: 0.05, nontrg_std: 0.05
+eer: 0.0, mindcf: 0.0
+EOF
+
+    # Create score files for "calculate_eermindcf_eer0"
+    cat << EOF > $tmpdir/scores_eer0
+trial1 1.0 1
+trial2 0.0 0
+trial3 0.9 1
+trial4 0.1 0
+EOF
+
+    # Create reference data for "calculate_eermindcf_eer100"
+    cat << EOF > $tmpdir/expected_output_eer100
+trg_mean: 0.05, trg_std: 0.05
+nontrg_mean: 0.04999999999999999, nontrg_std: 0.04999999999999999
+eer: 100.0, mindcf: 1.0
+EOF
+
+    # Create score files for "calculate_eermindcf_eer100"
+    cat << EOF > $tmpdir/scores_eer100
+trial1 1.0 0
+trial2 0.0 1
+trial3 0.9 0
+trial4 0.1 1
 EOF
 }
 
@@ -18,6 +48,20 @@ EOF
     ${tmpdir}/spk_trial_scores ${tmpdir}/calculated_output
 
     diff "${tmpdir}"/expected_output "${tmpdir}"/calculated_output
+}
+
+@test "calculate_eermindcf_eer0" {
+    python egs2/TEMPLATE/asr1/pyscripts/utils/calculate_eer_mindcf.py \
+    ${tmpdir}/scores_eer0 ${tmpdir}/calculated_output
+
+    diff "${tmpdir}"/expected_output_eer0 "${tmpdir}"/calculated_output
+}
+
+@test "calculate_eermindcf_eer100" {
+    python egs2/TEMPLATE/asr1/pyscripts/utils/calculate_eer_mindcf.py \
+    ${tmpdir}/scores_eer100 ${tmpdir}/calculated_output
+
+    diff "${tmpdir}"/expected_output_eer100 "${tmpdir}"/calculated_output
 }
 
 teardown() {

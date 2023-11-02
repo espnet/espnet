@@ -27,7 +27,7 @@ def main(args):
     }
 
     with open(spk2utt, "r") as f:
-        spk2utt = f.readlines()[: cfg["n_spk"]]
+        spk2utt = f.readlines()[: cfg["num_cohort_spk"]]
 
     utt_list = []
     trg_samp = int(cfg["target_duration"] * int(samp_rate) * 1000)
@@ -44,7 +44,7 @@ def main(args):
             if dur >= cfg["utt_select_sec"]:
                 utt_list.append(utt)
                 n_selected += 1
-                if n_selected == cfg["n_utt_per_spk"]:
+                if n_selected == cfg["num_utt_per_spk"]:
                     break
     print(f"Cohort utterances selected, {len(utt_list)} utts, {len(spk2utt)} spks")
 

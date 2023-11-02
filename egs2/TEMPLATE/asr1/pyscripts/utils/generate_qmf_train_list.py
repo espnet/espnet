@@ -29,7 +29,7 @@ def main(args):
     }
 
     with open(spk2utt, "r") as f:
-        spk2utt = f.readlines()[: cfg["n_spk"]]
+        spk2utt = f.readlines()[: cfg["num_cohort_spk"]]
 
     out_utts = set()
     trg_samp = int(cfg["target_duration"] * int(samp_rate) * 1000)
@@ -91,7 +91,7 @@ def main(args):
 
         # generate short-short target trials
         sel_spks = np.random.choice(
-            spk_list_short, cfg["qmf_n_trial_per_condition"], replace=True
+            spk_list_short, cfg["qmf_num_trial_per_condition"], replace=True
         )
         for spk in sel_spks:
             utt1, utt2 = np.random.choice(spk2utt_short[spk], 2, replace=False)
@@ -108,7 +108,7 @@ def main(args):
 
         # generate long-long target trials
         sel_spks = np.random.choice(
-            spk_list_long, cfg["qmf_n_trial_per_condition"], replace=True
+            spk_list_long, cfg["qmf_num_trial_per_condition"], replace=True
         )
         for spk in sel_spks:
             utt1, utt2 = np.random.choice(spk2utt_long[spk], 2, replace=False)
@@ -124,7 +124,7 @@ def main(args):
             f_lbl.write(f"{utt1}*{utt2} 1\n")
 
         sel_spks = np.random.choice(
-            spk_list_whole, cfg["qmf_n_trial_per_condition"], replace=True
+            spk_list_whole, cfg["qmf_num_trial_per_condition"], replace=True
         )
         # generate short-long target trials
         for spk in sel_spks:
@@ -158,7 +158,7 @@ def main(args):
         spk_list_long_used = list(spk2utt_long_used.keys())
 
         # generate short-short non-target trials
-        for i in range(cfg["qmf_n_trial_per_condition"]):
+        for i in range(cfg["qmf_num_trial_per_condition"]):
             spk1, spk2 = np.random.choice(spk_list_short_used, 2, replace=False)
             utt1 = np.random.choice(spk2utt_short_used[spk1], 1)[0]
             utt2 = np.random.choice(spk2utt_short_used[spk2], 1)[0]
@@ -172,7 +172,7 @@ def main(args):
             f_lbl.write(f"{utt1}*{utt2} 0\n")
 
         # generate long-long non-target trials
-        for i in range(cfg["qmf_n_trial_per_condition"]):
+        for i in range(cfg["qmf_num_trial_per_condition"]):
             spk1, spk2 = np.random.choice(spk_list_long_used, 2, replace=False)
             utt1 = np.random.choice(spk2utt_long_used[spk1], 1)[0]
             utt2 = np.random.choice(spk2utt_long_used[spk2], 1)[0]
@@ -186,7 +186,7 @@ def main(args):
             f_lbl.write(f"{utt1}*{utt2} 0\n")
 
         # generate short-long non-target trials
-        for i in range(cfg["qmf_n_trial_per_condition"]):
+        for i in range(cfg["qmf_num_trial_per_condition"]):
             spk1 = np.random.choice(spk_list_short_used, 1, replace=False)[0]
             spk2 = np.random.choice(spk_list_long_used, 1, replace=False)[0]
             if spk1 == spk2:

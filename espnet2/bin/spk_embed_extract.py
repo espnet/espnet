@@ -252,13 +252,13 @@ def get_parser():
         help="The number of input dimension of the feature",
     )
     group.add_argument(
-        "--n_spk",
+        "--num_cohort_spk",
         type=int,
         default=5994,
-        help="The number of speakers in score norm",
+        help="The number of cohort speakers in score norm",
     )
     group.add_argument(
-        "--n_utt_per_spk",
+        "--num_utt_per_spk",
         type=int,
         default=10,
         help="The number of utterances per speaker in score norm",
@@ -288,7 +288,7 @@ def get_parser():
         help="threshold of duration to be considered as long in qmf trainset",
     )
     group.add_argument(
-        "--qmf_n_trial_per_condition",
+        "--qmf_num_trial_per_condition",
         type=int,
         default=5000,
         help="number of trials per condition in qmf trainset",

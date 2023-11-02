@@ -599,3 +599,5 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
 
     cat $(cat ${infer_exp}/${test_sets}_metrics)
 fi
+
+#TODO (Jee-weon): add model upload and result generation stages.
