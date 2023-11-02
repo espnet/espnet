@@ -25,7 +25,7 @@ inference_config=conf/decode_s2st.yaml
 vocoder_file=
 score_asr_model_tag=
 
-./s2st.sh \
+./s2st_local.sh \
     --ngpu 2 \
     --nj 32 \
     --inference_nj 64 \
