@@ -130,3 +130,26 @@ def test_STFTDecoder_complex32_dtype(
     x_lens = torch.tensor([300 * hop_length, 295 * hop_length], dtype=torch.long)
     y, ilens = decoder(x, x_lens)
     (y.real.pow(2) + y.imag.pow(2)).sum().backward()
+
+
+def test_STFTDecoder_reconfig_for_fs():
+    decoder = STFTDecoder(
+        n_fft=512,
+        win_length=512,
+        hop_length=256,
+        window="hann",
+        center=True,
+        normalized=False,
+        onesided=True,
+        default_fs=16000,
+    )
+
+    x = torch.rand(1, 32, 129, dtype=torch.complex64)
+    ilens = torch.tensor([8448], dtype=torch.long)
+    y_8k, _ = decoder(x, ilens, fs=8000)
+
+    x = torch.rand(1, 32, 513, dtype=torch.complex64)
+    y_32k, _ = decoder(x, ilens * 4, fs=32000)
+
+    x = torch.rand(1, 32, 257, dtype=torch.complex64)
+    y_16k, _ = decoder(x, ilens * 2)
