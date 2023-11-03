@@ -71,7 +71,7 @@ xvector_tool=rawnet  # Toolkit for extracting x-vector (speechbrain, rawnet, esp
 xvector_model=speechbrain/spkrec-ecapa-voxceleb  # For only espnet, speechbrain, or rawnet
 
 # D-Vector related
-use_dvector=false   # Whether to use x-vector.
+use_dvector=false   # Whether to use d-vector.
 dvector_tool=rawnet  # Toolkit for extracting x-vector (speechbrain, rawnet, espnet, kaldi)
 dvector_model=speechbrain/spkrec-ecapa-voxceleb  # For only espnet, speechbrain, or rawnet
 
@@ -746,6 +746,7 @@ if ! "${skip_train}"; then
         # 3. Submit jobs
         log "VC collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2046,SC2086
+        # TODO(Yihan): add parallel data processing
         if [ "${vc_task}" == "parallel_vc" ]; then
             target_scp="target_${_scp}"
             source_scp="source_${_scp}"

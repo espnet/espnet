@@ -34,15 +34,15 @@ targets=""
 
 # Copy
 for f in cmd.sh conf local; do
-    target="${dir}"/../../TEMPLATE/tts1/"${f}"
+    target="${dir}"/../../TEMPLATE/vc1/"${f}"
     cp -r "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
 
 
-# Symlinks to TEMPLATE/tts1
-for f in tts.sh path.sh sid; do
-    target=../../TEMPLATE/tts1/"${f}"
+# Symlinks to TEMPLATE/vc1
+for f in vc.sh path.sh sid; do
+    target=../../TEMPLATE/vc1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
 done
