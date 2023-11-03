@@ -4,6 +4,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+import sentencepiece as spm
 import yaml
 
 from espnet2.bin.asr_inference import Speech2Text, get_parser, main
@@ -12,6 +13,7 @@ from espnet2.bin.whisper_export_vocabulary import export_vocabulary
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
+from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TCPGenHypothesis
 from espnet.nets.beam_search import Hypothesis
 
 
@@ -600,3 +602,80 @@ def test_Speech2Text_whisper_lid_prompt(
         assert isinstance(token[0], str)
         assert isinstance(token_int[0], int)
         assert isinstance(hyp, Hypothesis)
+
+
+@pytest.fixture
+def spm_srcs(tmp_path: Path):
+    input_text = tmp_path / "text"
+    vocabsize = len(string.ascii_letters) + 4
+    model_prefix = tmp_path / "model"
+    model = str(model_prefix) + ".model"
+    input_sentence_size = 100000
+
+    with input_text.open("w") as f:
+        f.write(string.ascii_letters + "\n")
+
+    spm.SentencePieceTrainer.Train(
+        f"--input={input_text} "
+        f"--vocab_size={vocabsize} "
+        f"--model_prefix={model_prefix} "
+        f"--input_sentence_size={input_sentence_size} "
+        f"--treat_whitespace_as_suffix=true"
+    )
+    sp = spm.SentencePieceProcessor()
+    sp.load(model)
+
+    with input_text.open("r") as f:
+        vocabs = {"<unk>", "▁"}
+        for line in f:
+            tokens = sp.DecodePieces(list(line.strip()))
+        vocabs |= set(tokens)
+    return model
+
+
+@pytest.fixture()
+def tcpgen_biasing_list(tmp_path: Path):
+    biasinglist = tmp_path / "dummy.txt"
+    with biasinglist.open("w") as f:
+        f.write("A\n")
+        f.write("B\n")
+    return biasinglist
+
+
+@pytest.mark.execution_timeout(10)
+def test_Speech2Text_tcpgen_biasing(
+    asr_config_file,
+    tcpgen_biasing_list,
+    spm_srcs,
+):
+    file = open(asr_config_file, "r", encoding="utf-8")
+    asr_train_config = file.read()
+    asr_train_config = yaml.full_load(asr_train_config)
+    asr_train_config["token_type"] = "bpe"
+    asr_train_config["bpemodel"] = spm_srcs
+    asr_train_config["model"] = "tcpgen_espnet"
+    asr_train_config["model_conf"]["biasinglist"] = str(tcpgen_biasing_list)
+    asr_train_config["model_conf"]["bmaxlen"] = 1
+    asr_train_config["model_conf"]["battndim"] = 2
+    asr_train_config["model_conf"]["biasing"] = True
+    asr_train_config["model_conf"]["biasingsche"] = -1
+    asr_train_config["model_conf"]["deepbiasing"] = True
+    asr_train_config["model_conf"]["biasingGNN"] = "gcn1"
+    asr_train_config["joint_net_conf"] = {"joint_space_size": 2}
+    asr_train_config["decoder"] = "transducer"
+    # Change the configuration file
+    with open(asr_config_file, "w", encoding="utf-8") as files:
+        yaml.dump(asr_train_config, files)
+    speech2text = Speech2Text(
+        asr_train_config=asr_config_file,
+        beam_size=2,
+        bmaxlen=1,
+        biasinglist=str(tcpgen_biasing_list),
+    )
+    speech = np.random.randn(1000)
+    results = speech2text(speech, ["A"])
+    for text, token, token_int, hyp in results:
+        assert isinstance(text, str)
+        assert isinstance(token[0], str)
+        assert isinstance(token_int[0], int)
+        assert isinstance(hyp, TCPGenHypothesis)

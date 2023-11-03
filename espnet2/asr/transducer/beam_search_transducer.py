@@ -116,7 +116,7 @@ class BeamSearchTransducer:
             self.search_algorithm = self.greedy_search
         elif search_type == "default":
             if biasing:
-                self.search_algorithm = self.TCPGen_biasing_beam_search
+                self.search_algorithm = self.tcpgen_biasing_beam_search
             else:
                 self.search_algorithm = self.default_beam_search
         elif search_type == "tsd":
@@ -406,7 +406,7 @@ class BeamSearchTransducer:
 
         return self.sort_nbest(kept_hyps)
 
-    def TCPGen_biasing_beam_search(
+    def tcpgen_biasing_beam_search(
         self, enc_out: torch.Tensor, lextree: list = None
     ) -> List[Hypothesis]:
         """Beam search implementation.
@@ -494,7 +494,9 @@ class BeamSearchTransducer:
 
                 if self.biasing and self.deepbiasing:
                     joint_out, joint_act = self.joint_network(
-                        enc_out_t, dec_out, hptr=hptr
+                        enc_out_t,
+                        dec_out,
+                        hptr=hptr,
                     )
                 else:
                     joint_out = self.joint_network(enc_out_t, dec_out)

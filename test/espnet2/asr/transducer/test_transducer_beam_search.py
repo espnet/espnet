@@ -2,6 +2,7 @@ import pytest
 import torch
 
 from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
+from espnet2.asr.layers.gnn import GCN
 from espnet2.asr.transducer.beam_search_transducer import BeamSearchTransducer
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.lm.seq_rnn_lm import SequentialRNNLM
@@ -15,6 +16,7 @@ from espnet2.lm.transformer_lm import TransformerLM
     [
         {"search_type": "greedy"},
         {"search_type": "default", "score_norm": False, "nbest": 4},
+        {"search_type": "default", "biasing": True, "deepbiasing": True},
         {
             "search_type": "default",
             "score_norm": False,
@@ -49,6 +51,26 @@ def test_transducer_beam_search(rnn_type, search_params):
         vocab_size, encoder_output_size, decoder_output_size, joint_space_size=2
     )
 
+    BiasingBundle = None
+    if "biasing" in search_params:
+        BiasingBundle = {
+            "Qproj_acoustic": torch.nn.Linear(encoder_output_size, 2),
+            "Qproj_char": torch.nn.Linear(decoder_output_size, 2),
+            "Kproj": torch.nn.Linear(decoder_output_size, 2),
+            "ooKBemb": torch.nn.Embedding(1, decoder_output_size),
+            "pointer_gate": torch.nn.Linear(4, 1),
+            "gnn": GCN(decoder_output_size, decoder_output_size, 1, 0)
+        }
+        joint_net = JointNetwork(
+            vocab_size,
+            encoder_output_size,
+            decoder_output_size,
+            joint_space_size=2,
+            deepbiasing=True,
+            biasingsize=2,
+            biasing=True,
+        )
+
     lm = search_params.pop("lm", SequentialRNNLM(vocab_size, rnn_type="lstm"))
     if isinstance(lm, str) and lm == "TransformerLM":
         lm = TransformerLM(vocab_size, pos_enc=None, unit=10, layer=2)
@@ -59,10 +81,14 @@ def test_transducer_beam_search(rnn_type, search_params):
         beam_size=beam_size,
         lm=lm,
         token_list=token_list,
+        BiasingBundle=BiasingBundle,
         **search_params,
     )
 
     enc_out = torch.randn(30, encoder_output_size)
 
     with torch.no_grad():
-        _ = beam(enc_out)
+        if "biasing" in search_params:
+            _ = beam(enc_out, lextree=[{}, -1])
+        else:
+            _ = beam(enc_out)

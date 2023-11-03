@@ -910,7 +910,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             _opts_spm+=" --user_defined_symbols=<sc>"
         fi
         if [ -n "${suffixbpe}" ]; then
-            _opts_spm+="--treat_whitespace_as_suffix=${usesuffixbpe} "
+            _opts_spm+="--treat_whitespace_as_suffix=true "
         fi
 
         spm_train \
@@ -919,7 +919,7 @@ if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ] && ! [[ " ${skip_stages} " =~ [
             --model_type="${bpemode}" \
             --model_prefix="${bpeprefix}" \
             --character_coverage=${bpe_char_cover} \
-            --treat_whitespace_as_suffix=${usesuffixbpe} \
+            --input_sentence_size="${bpe_input_sentence_size}" \
             ${_opts_spm}
 
         {

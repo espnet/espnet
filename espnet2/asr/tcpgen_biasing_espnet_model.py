@@ -154,13 +154,13 @@ class ESPnetTCPGenBiasingASRModel(ESPnetASRModel):
                         residual=True,
                         tied=True,
                     )
-        else:
-            from warprnnt_pytorch import RNNTLoss
+            else:
+                from warprnnt_pytorch import RNNTLoss
 
-            self.criterion_transducer = RNNTLoss(
-                blank=self.blank_id,
-                fastemit_lambda=0.0,
-            )
+                self.criterion_transducer = RNNTLoss(
+                    blank=self.blank_id,
+                    fastemit_lambda=0.0,
+                )
         self.epoch = 0
 
     def forward(

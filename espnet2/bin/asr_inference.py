@@ -845,11 +845,11 @@ def inference(
 
     # load biasing list
     blist_perutt = None
-    if speech2text.asr_model.biasing and perutt_blist != "":
+    if getattr(speech2text.asr_model, "biasing", False) and perutt_blist != "":
         with open(perutt_blist) as fin:
             blist_perutt = json.load(fin)
     elif perutt_blist == "":
-        speech2text.asr_model.biasing = False
+        setattr(speech2text.asr_model, "biasing", False)
         if speech2text.asr_model.use_transducer_decoder:
             speech2text.beam_search_transducer.biasing = False
 
