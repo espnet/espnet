@@ -7,13 +7,13 @@ import pytest
 import sentencepiece as spm
 import yaml
 
+from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TCPGenHypothesis
 from espnet2.bin.asr_inference import Speech2Text, get_parser, main
 from espnet2.bin.asr_inference_streaming import Speech2TextStreaming
 from espnet2.bin.whisper_export_vocabulary import export_vocabulary
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
-from espnet2.asr.transducer.beam_search_transducer import Hypothesis as TCPGenHypothesis
 from espnet.nets.beam_search import Hypothesis
 
 

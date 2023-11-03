@@ -43,6 +43,7 @@ def spm_srcs(tmp_path: Path):
         vocabs |= set(tokens)
     return model, vocabs
 
+
 def pseudo_loss(joint_out, target, t_len, u_len, reduction="", blank=0, gather=True):
     return joint_out.sum() + target.sum()
 
@@ -102,7 +103,7 @@ def test_tcpgen_biasing_espnet_model(
         biasingsche=-1,
         battndim=2,
         deepbiasing=True,
-        biasingGNN='gcn1',
+        biasingGNN="gcn1",
         biasinglist=biasinglist,
         bmaxlen=1,
         bdrop=0.0,

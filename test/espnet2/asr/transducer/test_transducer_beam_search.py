@@ -59,7 +59,7 @@ def test_transducer_beam_search(rnn_type, search_params):
             "Kproj": torch.nn.Linear(decoder_output_size, 2),
             "ooKBemb": torch.nn.Embedding(1, decoder_output_size),
             "pointer_gate": torch.nn.Linear(4, 1),
-            "gnn": GCN(decoder_output_size, decoder_output_size, 1, 0)
+            "gnn": GCN(decoder_output_size, decoder_output_size, 1, 0),
         }
         joint_net = JointNetwork(
             vocab_size,
