@@ -1,0 +1,94 @@
+batch_type: numel
+batch_bins: 8000000
+accum_grad: 1
+max_epoch: 65
+patience: none
+# The initialization method for model parameters
+init: xavier_uniform
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+encoder: conformer
+encoder_conf:
+    output_size: 512
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d2
+    normalize_before: true
+    macaron_style: true
+    pos_enc_layer_type: "rel_pos"
+    selfattention_layer_type: "rel_selfattn"
+    activation_type: "swish"
+    use_cnn_module:  true
+    cnn_module_kernel: 31
+    interctc_layer_idx: [3, 6, 9]
+    interctc_use_conditioning: true
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 8
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    interctc_weight: 0.5
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false
+
+optim: adam
+optim_conf:
+    lr: 0.0025
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 8000
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
+
+freeze_param: [
+"frontend.upstream"
+]
+
+ignore_init_mismatch: true
+init_param: [
+    "/scratch/bbjs/chen26/espnet/egs2/fleurs/asr1/exp/asr_train_asr_conformer_lid_scctc_raw_all_bpe6500_train_data_path_and_name_and_typedumprawtrain_all_splid,lid,text_sp/valid.acc.ave_3best.pth"
+]
+
+frontend: s3prl
+frontend_conf:
+    frontend_conf:
+        upstream: wav2vec2_url  # Note: If the upstream is changed, please change the input_size in the preencoder.
+        path_or_url: https://huggingface.co/s3prl/converted_ckpts/resolve/main/xlsr2_300m.pt
+    download_dir: ./hub
+    multilayer_feature: True
+
+preencoder: linear
+preencoder_conf:
+    input_size: 1024  # Note: If the upstream is changed, please change this value accordingly.
+    output_size: 80

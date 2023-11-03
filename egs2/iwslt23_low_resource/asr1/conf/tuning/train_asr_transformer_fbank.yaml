@@ -1,0 +1,35 @@
+batch_type: numel
+batch_bins: 200000
+accum_grad: 1
+max_epoch: 15
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - cer_ctc
+    - min
+keep_nbest_models: 1
+
+encoder: transformer
+encoder_conf:
+    input_layer: conv2d2
+    num_blocks: 1
+    linear_units: 2048
+    dropout_rate: 0.2
+    output_size: 256  # dimension of attention
+    attention_heads: 8
+    attention_dropout_rate: 0.2
+
+model_conf:
+    ctc_weight: 1.0
+    lsm_weight: 0.0
+    length_normalized_loss: false
+    extract_feats_in_collect_stats: false   # Note: "False" means during collect stats (stage 10), generating dummy stats files rather than extract_feats by forward frontend.
+
+optim: adamw
+optim_conf:
+    lr: 0.0001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 300
+
