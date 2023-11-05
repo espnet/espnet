@@ -44,7 +44,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p wav_dump
     # we convert the music score to xml format
-    python local/data_prep.py ${ACESINGER} --midi_note_scp local/midi-note.scp \
+    python local/data_prep.py ${ACESINGER}/ACESinger --midi_note_scp local/midi-note.scp \
         --wav_dumpdir wav_dump \
         --sr ${fs} \
         --g2p ${g2p} \
