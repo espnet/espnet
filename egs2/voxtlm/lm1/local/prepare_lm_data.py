@@ -47,9 +47,10 @@ def prepare_textlm(
 
 
 def prepare_speechlm(
-    root: Path, out_dir=Path("data"),
+    root: Path,
+    out_dir=Path("data"),
     generate_speech_token="<generatespeech>",
-    use_cjk=True
+    use_cjk=True,
 ):
     res = []
     uttid2token = read_text(root / f"token")
@@ -75,7 +76,7 @@ def prepare_asr(
     out_dir=Path("data"),
     start_speech_token="<startofspeech>",
     generate_text_token="<generatetext>",
-    use_cjk=True
+    use_cjk=True,
 ):
     uttid2text = read_text(root / f"text")
     uttid2token = read_text(root / f"token")
@@ -105,7 +106,7 @@ def prepare_tts(
     out_dir=Path("data"),
     start_text_token="<startoftext>",
     generate_speech_token="<generatespeech>",
-    use_cjk=True
+    use_cjk=True,
 ):
     uttid2text = read_text(root / f"text")
     uttid2token = read_text(root / f"token")
@@ -182,7 +183,7 @@ if __name__ == "__main__":
         out_dir / "speech/speechlm",
         out_dir=out_dir,
         generate_speech_token=args.generate_speech_token,
-        use_cjk=args.use_cjk
+        use_cjk=args.use_cjk,
     )
 
     # process asr
@@ -191,7 +192,7 @@ if __name__ == "__main__":
         out_dir=out_dir,
         start_speech_token=args.start_speech_token,
         generate_text_token=args.generate_text_token,
-        use_cjk=args.use_cjk
+        use_cjk=args.use_cjk,
     )
 
     # process tts
@@ -200,7 +201,7 @@ if __name__ == "__main__":
         out_dir=out_dir,
         start_text_token=args.start_text_token,
         generate_speech_token=args.generate_speech_token,
-        use_cjk=args.use_cjk
+        use_cjk=args.use_cjk,
     )
 
     with (Path("data") / "nlsyms.txt").open("w") as fp:
