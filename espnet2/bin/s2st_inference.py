@@ -86,15 +86,16 @@ class Speech2Speech:
         self.st_subtask_minlenratio = st_subtask_minlenratio
         self.seed = seed
         self.always_fix_seed = always_fix_seed
-        self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
-        if self.model.require_vocoder:
+        if self.model.require_vocoder and vocoder_file is not None:
             vocoder = S2STTask.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
             )
             if isinstance(vocoder, torch.nn.Module):
                 vocoder.to(dtype=getattr(torch, dtype)).eval()
             self.vocoder = vocoder
+        else:
+            self.vocoder = None
         logging.info(f"S2ST:\n{self.model}")
         if self.vocoder is not None:
             logging.info(f"Vocoder:\n{self.vocoder}")
@@ -234,7 +235,7 @@ class Speech2Speech:
     def __call__(
         self,
         src_speech: Union[torch.Tensor, np.ndarray],
-        src_speech_lengths: Union[torch.Tensor, np.ndarray],
+        src_speech_lengths: Union[torch.Tensor, np.ndarray] = None,
         tgt_speech: Union[torch.Tensor, np.ndarray] = None,
         tgt_speech_lengths: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
@@ -254,6 +255,13 @@ class Speech2Speech:
             raise RuntimeError("Missing required argument: 'lids'")
         if self.use_spembs and spembs is None:
             raise RuntimeError("Missing required argument: 'spembs'")
+
+        # Input as audio signal
+        if isinstance(src_speech, np.ndarray):
+            src_speech = torch.tensor(src_speech.astype(np.float32))
+
+        if src_speech_lengths is None:
+            src_speech_lengths = src_speech.new_full([1], dtype=torch.long, fill_value=src_speech.size(1))
 
         # prepare batch
         batch = dict(src_speech=src_speech, src_speech_lengths=src_speech_lengths)
