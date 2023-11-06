@@ -261,7 +261,9 @@ class Speech2Speech:
             src_speech = torch.tensor(src_speech.astype(np.float32))
 
         if src_speech_lengths is None:
-            src_speech_lengths = src_speech.new_full([1], dtype=torch.long, fill_value=src_speech.size(1))
+            src_speech_lengths = src_speech.new_full(
+                [1], dtype=torch.long, fill_value=src_speech.size(1)
+            )
 
         # prepare batch
         batch = dict(src_speech=src_speech, src_speech_lengths=src_speech_lengths)

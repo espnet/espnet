@@ -4,8 +4,8 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
 import torch
+
 from espnet2.bin.s2st_inference import Speech2Speech, get_parser, main
 from espnet2.tasks.s2st import S2STTask
 from espnet.nets.beam_search import Hypothesis
