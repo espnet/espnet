@@ -5,7 +5,7 @@ from typing import Optional
 
 def process_text(fin: Path, fout: Path, sos: str, prefix: str):
     # Convert text (hyp or ref) to transcript format
-    with fin.open('r') as fp_in, fout.open('w') as fp_out:
+    with fin.open("r") as fp_in, fout.open("w") as fp_out:
         for line in fp_in.readlines():
             if prefix is None or line.startswith(prefix):
                 uid = line.split(maxsplit=1)[0]
@@ -14,37 +14,23 @@ def process_text(fin: Path, fout: Path, sos: str, prefix: str):
 
 
 def get_parser():
-    parser = ArgumentParser(
-        description="Convert text to transcript format"
-    )
-    
+    parser = ArgumentParser(description="Convert text to transcript format")
+
+    parser.add_argument("-i", "--input", type=Path, required=True, help="Input file")
+    parser.add_argument("-o", "--output", type=Path, required=True, help="Output file")
     parser.add_argument(
-        '-i',
-        '--input',
-        type=Path,
-        required=True,
-        help="Input file"
-    )
-    parser.add_argument(
-        '-o',
-        '--output',
-        type=Path,
-        required=True,
-        help="Output file"
-    )
-    parser.add_argument(
-        '-s',
-        '--sos',
+        "-s",
+        "--sos",
         type=str,
         required=True,
-        help="The symbol to split each line of text."
+        help="The symbol to split each line of text.",
     )
     parser.add_argument(
-        '-p',
-        '--prefix',
+        "-p",
+        "--prefix",
         type=str,
         required=True,
-        help="Only keep lines with the specified prefix."
+        help="Only keep lines with the specified prefix.",
     )
 
     return parser
