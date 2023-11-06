@@ -300,6 +300,16 @@ echo "==== [ESPnet2] S2T ==="
 rm -rf exp dump data
 cd "${cwd}"
 
+# [ESPnet2] test s2st1 recipe
+cd ./egs2/mini_an4/s2st1
+gen_dummy_coverage
+echo "==== [ESPnet2] S2ST ==="
+./run.sh --ngpu 0 --stage 1 --stop_stage 8 --use_discrete_unit false --s2st_config conf/s2st_spec_debug.yaml --python "${python}"
+./run.sh --ngpu 0 --stage 1 --stop_stage 8 --python "${python}" --use_discrete_unit true --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data ckpt .cache
+cd "${cwd}"
+
 echo "=== report ==="
 coverage combine egs2/*/*/.coverage
 coverage report
