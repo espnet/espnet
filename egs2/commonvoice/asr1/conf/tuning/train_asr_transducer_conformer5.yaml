@@ -1,0 +1,95 @@
+# Trained with NVIDIA A100 GPU (80GB)
+
+# frontend related
+frontend: default
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+# encoder related
+encoder: conformer
+encoder_conf:
+    input_layer: conv2d
+    num_blocks: 12  # Encoder Layers
+    linear_units: 2048
+    dropout_rate: 0.1
+    output_size: 256  # Encoder Dim
+    attention_heads: 4  # Attention Heads
+    attention_dropout_rate: 0.0
+    positional_dropout_rate: 0.1
+    pos_enc_layer_type: rel_pos
+    selfattention_layer_type: rel_selfattn
+    activation_type: swish
+    rel_pos_type: latest
+    macaron_style: true
+    use_cnn_module: true
+    cnn_module_kernel: 15  # Conv Kernel Size
+    # normalize_before: true
+
+# decoder related
+decoder: transducer
+decoder_conf:
+    rnn_type: lstm
+    num_layers: 1  # Decoder Layers
+    hidden_size: 640  # Decoder dim
+    dropout: 0.1
+    dropout_embed: 0.2
+
+# transducer join model
+joint_net_conf:
+    joint_space_size: 640
+
+# hybrid CTC/attention
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    report_cer: True
+    report_wer: True
+
+# optimization related
+optim: adam
+accum_grad: 1
+grad_clip: 3
+max_epoch: 50
+optim_conf:
+    lr: 4.0
+    # weight_decay: 0.000001
+scheduler: noamlr
+scheduler_conf:
+    model_size: 256
+    warmup_steps: 25000
+
+# minibatch related
+batch_type: numel
+batch_bins: 10000000
+
+# ASR model path for decoding:
+# asr.sh: inference_asr_model=valid.loss.ave.pth
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 10
+
+seed: 2022
+use_amp: false
+num_workers: 8
+init: xavier_uniform
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: true
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 30
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_range:
+    - 0
+    - 40
+    num_time_mask: 2
