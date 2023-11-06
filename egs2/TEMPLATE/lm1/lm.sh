@@ -901,9 +901,10 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
             --prefix "tts_"
 
         # Generate tokens for speech generation
-        python3 local/postprocess_tts.py \
+        python3 local/postprocess_speech.py \
             --input ${_scoredir}/hyp.trn \
-            --output ${_scoredir}/hyp.tok
+            --output ${_scoredir}/hyp.tok \
+            --prefix "tts_"
 
     fi
 

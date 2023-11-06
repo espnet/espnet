@@ -47,13 +47,16 @@ def prepare_textlm(
 
 
 def prepare_speechlm(
-    root: Path, out_dir=Path("data"), generate_speech_token="<generatespeech>"
+    root: Path, out_dir=Path("data"),
+    generate_speech_token="<generatespeech>",
+    use_cjk=True
 ):
     res = []
     uttid2token = read_text(root / f"token")
     for uttid in uttid2token:
         token = uttid2token[uttid].split()
-        token = [unit2cjk(t) for t in token]
+        if use_cjk:
+            token = [unit2cjk(t) for t in token]
         uttid = f"unitlm_{uttid}"
         token = "".join(token)
 
@@ -72,13 +75,15 @@ def prepare_asr(
     out_dir=Path("data"),
     start_speech_token="<startofspeech>",
     generate_text_token="<generatetext>",
+    use_cjk=True
 ):
     uttid2text = read_text(root / f"text")
     uttid2token = read_text(root / f"token")
     res = []
     for uttid, text in uttid2text.items():
         token = uttid2token[uttid].split()
-        token = [unit2cjk(t) for t in token]
+        if use_cjk:
+            token = [unit2cjk(t) for t in token]
 
         uttid = f"asr_{uttid}"
         text = text.lower()
@@ -100,13 +105,15 @@ def prepare_tts(
     out_dir=Path("data"),
     start_text_token="<startoftext>",
     generate_speech_token="<generatespeech>",
+    use_cjk=True
 ):
     uttid2text = read_text(root / f"text")
     uttid2token = read_text(root / f"token")
     res = []
     for uttid, text in uttid2text.items():
         token = uttid2token[uttid].split()
-        token = [unit2cjk(t) for t in token]
+        if use_cjk:
+            token = [unit2cjk(t) for t in token]
 
         uttid = f"tts_{uttid}"
         text = text.lower()
@@ -149,6 +156,12 @@ if __name__ == "__main__":
         help="Token to denote generate speech.",
         default="<generatespeech>",
     )
+    parser.add_argument(
+        "--use_cjk",
+        type=str2bool,
+        help="Whether to map speech tokens into cjk. Needed for BPE training",
+        default=True,
+    )
 
     args = parser.parse_args()
     out_dir = Path(args.path)
@@ -169,6 +182,7 @@ if __name__ == "__main__":
         out_dir / "speech/speechlm",
         out_dir=out_dir,
         generate_speech_token=args.generate_speech_token,
+        use_cjk=args.use_cjk
     )
 
     # process asr
@@ -177,6 +191,7 @@ if __name__ == "__main__":
         out_dir=out_dir,
         start_speech_token=args.start_speech_token,
         generate_text_token=args.generate_text_token,
+        use_cjk=args.use_cjk
     )
 
     # process tts
@@ -185,6 +200,7 @@ if __name__ == "__main__":
         out_dir=out_dir,
         start_text_token=args.start_text_token,
         generate_speech_token=args.generate_speech_token,
+        use_cjk=args.use_cjk
     )
 
     with (Path("data") / "nlsyms.txt").open("w") as fp:
