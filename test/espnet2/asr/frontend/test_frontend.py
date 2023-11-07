@@ -48,7 +48,7 @@ def test_frontend_backward_multi_channel(train, use_wpe, use_beamformer):
     pad = random_rir.size(1)
     x = torch.nn.functional.pad(torch.randn(2, 1, 1024), (pad, pad))
     x = torch.nn.functional.conv1d(x, random_rir.unsqueeze(1)).transpose(1, 2)
-    x = x[:, (pad - 1) // 2: (pad - 1) // 2 + 1024]
+    x = x[:, (pad - 1) // 2 : (pad - 1) // 2 + 1024]
     x.requires_grad = True
     x_lengths = torch.LongTensor([1024, 1000])
     y, y_lengths = frontend(x, x_lengths)
