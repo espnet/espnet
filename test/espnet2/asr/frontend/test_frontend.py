@@ -47,7 +47,9 @@ def test_frontend_backward_multi_channel(train, use_wpe, use_beamformer):
     else:
         frontend.eval()
     pad = random_rir.size(1)
-    x = torch.nn.functional.pad(torch.randn(2, 1, 1024), (pad, pad))
+    envelope = torch.sin(torch.linspace(0, 20 * torch.pi, 1024)) + 1.5
+    x = torch.sin(envelope * 2 * torch.pi * torch.arange(1024) / 300)
+    x = torch.nn.functional.pad(x.repeat(2, 1, 1), (pad, pad))
     x = torch.nn.functional.conv1d(x, random_rir.unsqueeze(1)).transpose(1, 2)
     x = x[:, (pad - 1) // 2 : (pad - 1) // 2 + 1024]
     x.requires_grad = True
