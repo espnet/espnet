@@ -25,6 +25,7 @@ inference_config=conf/decode_s2st.yaml
 vocoder_file=
 score_asr_model_tag=
 
+export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:1024
 ./s2st_local.sh \
     --ngpu 2 \
     --nj 32 \
@@ -41,8 +42,8 @@ score_asr_model_tag=
     --s3prl_upstream_name hubert \
     --storage_save_mode false \
     --clustering_num_threads 60 \
-    --src_token_type "char" \
-    --tgt_token_type "char" \
+    --src_token_type "word" \
+    --tgt_token_type "word" \
     --s2st_config "${st_config}" \
     --inference_config "${inference_config}" \
     --vocoder_file "${vocoder_file}" \
