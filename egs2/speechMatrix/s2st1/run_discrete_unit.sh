@@ -29,6 +29,7 @@ score_asr_model_tag=
     --ngpu 2 \
     --nj 32 \
     --inference_nj 64 \
+    --num_splits_s2st 8 \
     --use_discrete_unit true \
     --feats_type raw \
     --audio_format "wav" \
