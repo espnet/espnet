@@ -84,6 +84,7 @@ encoder_choices = ClassChoices(
     "encoder",
     classes=dict(
         transformer=TransformerEncoder,
+        ebranchformer=EBranchformerEncoder
     ),
     type_check=AbsEncoder,
     default="transformer",
