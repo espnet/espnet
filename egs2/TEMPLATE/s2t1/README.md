@@ -27,7 +27,8 @@ More details can be found in our [OWSM](https://arxiv.org/abs/2309.13876) paper 
     * [14\-16\. (Optional) Pack results for upload](#14-16-optional-pack-results-for-upload)
   * [How to run](#how-to-run)
     * [OWSM Training](#owsm-training)
-  * [Related works](#related-works)
+  * [How to fine-tune pre-trained OWSM](#how-to-fine-tune-pre-trained-owsm)
+  * [Related work](#related-work)
 
 ## Recipe flow
 
@@ -139,6 +140,9 @@ See also:
 ### OWSM training
 
 We have created several recipes for [OWSM](https://arxiv.org/abs/2309.13876) training. Please check `egs2/mixed_v1`, `egs2/mixed_v2`, `egs2/mixed_v3` for more information.
+
+## How to fine-tune pre-trained OWSM
+
 
 ## Related work
 ```
