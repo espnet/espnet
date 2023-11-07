@@ -45,6 +45,7 @@ def test_frontend_backward_multi_channel(train, use_wpe, use_beamformer):
         frontend.train()
     else:
         frontend.eval()
+    torch.random.manual_seed(0)
     pad = random_rir.size(1)
     x = torch.nn.functional.pad(torch.randn(2, 1, 1024), (pad, pad))
     x = torch.nn.functional.conv1d(x, random_rir.unsqueeze(1)).transpose(1, 2)
