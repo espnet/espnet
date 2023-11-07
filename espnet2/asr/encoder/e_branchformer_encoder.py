@@ -428,6 +428,7 @@ class EBranchformerEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
         max_layer: int = None,
+        masks: torch.Tensor = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -443,7 +444,10 @@ class EBranchformerEncoder(AbsEncoder):
             torch.Tensor: Not to be used now.
         """
 
-        masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        if masks is None:
+            masks = (~make_pad_mask(ilens)[:, None, :]).to(xs_pad.device)
+        else:
+            masks = (~masks[:, None, :])
 
         if (
             isinstance(self.embed, Conv2dSubsampling)

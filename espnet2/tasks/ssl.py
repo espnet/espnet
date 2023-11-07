@@ -49,7 +49,7 @@ from espnet2.utils.types import float_or_none, int_or_none, str2bool, str_or_non
 
 frontend_choices = ClassChoices(
     name="frontend",
-    classes=dict(cnn=CNNFrontend),
+    classes=dict(cnn=CNNFrontend, default=DefaultFrontend),
     type_check=AbsFrontend,
     default="cnn",
 )

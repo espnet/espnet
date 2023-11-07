@@ -21,6 +21,7 @@ class Stft(torch.nn.Module, InversibleInterface):
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
+        rounding: str = 'trunc'
     ):
         assert check_argument_types()
         super().__init__()
@@ -36,7 +37,7 @@ class Stft(torch.nn.Module, InversibleInterface):
         if window is not None and not hasattr(torch, f"{window}_window"):
             raise ValueError(f"{window} window is not implemented")
         self.window = window
-
+        self.rounding = rounding
     def extra_repr(self):
         return (
             f"n_fft={self.n_fft}, "
@@ -162,7 +163,7 @@ class Stft(torch.nn.Module, InversibleInterface):
                 ilens = ilens + 2 * pad
 
             olens = (
-                torch.div(ilens - self.n_fft, self.hop_length, rounding_mode="trunc")
+                torch.div(ilens - self.n_fft, self.hop_length, rounding_mode=self.rounding)
                 + 1
             )
             output.masked_fill_(make_pad_mask(olens, output, 1), 0.0)

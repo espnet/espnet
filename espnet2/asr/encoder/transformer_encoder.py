@@ -196,6 +196,7 @@ class TransformerEncoder(AbsEncoder):
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
         masks: torch.Tensor = None,
+        max_layer: int = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Embed positions in tensor.
 
@@ -235,7 +236,14 @@ class TransformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            xs_pad, masks = self.encoders(xs_pad, masks)
+            if max_layer is not None:
+                assert 0 <= max_layer < len(self.encoders)
+                for layer_idx, encoder_layer in enumerate(self.encoders):
+                    xs_pad, masks = encoder_layer(xs_pad, masks)
+                    if layer_idx >= max_layer:
+                        break
+            else:
+                xs_pad, masks = self.encoders(xs_pad, masks)
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
@@ -252,6 +260,9 @@ class TransformerEncoder(AbsEncoder):
                     if self.interctc_use_conditioning:
                         ctc_out = ctc.softmax(encoder_out)
                         xs_pad = xs_pad + self.conditioning_layer(ctc_out)
+
+                if max_layer and layer_idx >= max_layer:
+                        break
 
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)

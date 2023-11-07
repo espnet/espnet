@@ -43,7 +43,8 @@ class ESPnetSSLModel(AbsESPnetModel):
         ignore_id: int = -1,
         vocab_size: int = None,
         token_list: Union[Tuple[str, ...], List[str]] = None,
-        normalize_feats: bool = False
+        normalize_feats: bool = False,
+        feature_grad_mult: Optional[float] = 0.1,
     ):
 
         assert check_argument_types()
@@ -64,7 +65,7 @@ class ESPnetSSLModel(AbsESPnetModel):
         self.masker = masker
 
         self.nan_loss_count = 0.0
-        self.feature_grad_mult = None
+        self.feature_grad_mult = feature_grad_mult
 
     def forward(
         self,
@@ -176,7 +177,9 @@ class ESPnetSSLModel(AbsESPnetModel):
             #  e.g. STFT and Feature extract
             #       data_loader may send time-domain signal in this case
             # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
+            print(speech_lengths[0])
             feats, feats_lengths = self.frontend(speech, speech_lengths)
+            print(feats_lengths[0], flush=True)
         else:
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths
