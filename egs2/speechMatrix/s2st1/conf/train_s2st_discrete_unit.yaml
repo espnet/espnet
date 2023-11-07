@@ -1,5 +1,7 @@
 # =====================
 # Network Architecture
+# Following Section 5 of https://arxiv.org/pdf/2211.04508.pdf
+# Model size is slightly different
 # =====================
 
 s2st_type: discrete_unit
@@ -28,9 +30,10 @@ encoder_conf:
     normalize_before: true
 
 # ASR CTC
-asr_ctc: true
+asr_ctc: false
 
 # ASR Decoder
+# Predicts source discrete units
 asr_decoder: transformer
 asr_decoder_conf:
     input_layer: "embed"
@@ -39,17 +42,10 @@ asr_decoder_conf:
     attention_heads: 4
 
 # ST CTC
-st_ctc: true
-
-# ST Decoder
-st_decoder: transformer
-st_decoder_conf:
-    input_layer: "embed"
-    num_blocks: 2
-    linear_units: 2048
-    attention_heads: 4
+st_ctc: false
 
 # Synthesizer
+# Predicts target discrete units
 synthesizer: discrete_unit
 synthesizer_conf:
     input_layer: "embed"
@@ -62,31 +58,18 @@ synthesizer_conf:
 # =====================
 
 # Loss-related
+# TODO(Jiyang): weights?
 losses:
-    - name: asr_ctc
-      type: ctc
-      conf:
-        weight: 1.6
     - name: src_attn
       type: attention
       conf:
-        weight: 8.0
+        weight: 1.0
         smoothing: 0.2
         padding_idx: -1
-    - name: tgt_attn
-      type: attention
-      conf:
-        weight: 8.0
-        smoothing: 0.2
-        padding_idx: -1
-    - name: st_ctc
-      type: ctc
-      conf:
-        weight: 1.6
     - name: synthesis
       type: attention
       conf:
-        weight: 1.6
+        weight: 1.0
         smoothing: 0.2
         padding_idx: -1
 
@@ -100,17 +83,18 @@ optim_conf:
     eps: 1.0e-06
 scheduler: warmuplr
 scheduler_conf:
-   warmup_steps: 10000
+   warmup_steps: 30000
 
 # Batching
-batch_type: sorted
-batch_size: 16
+batch_type: numel
+batch_bins: 80000000
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
 
 # Other Training Setting
-# num_iters_per_epoch: 1000
-max_epoch: 500
+use_amp: true
+num_iters_per_epoch: 5000  # n-batch per epoch ~18000
+max_epoch: 70  # 20 * 18000 / 5000
 num_workers: 2
 log_interval: null
 seed: 0
@@ -122,7 +106,7 @@ best_model_criterion:
 -   - train
     - loss
     - min
-keep_nbest_models: 5
+keep_nbest_models: 10
 
 # SpecAugment
 specaug: specaug

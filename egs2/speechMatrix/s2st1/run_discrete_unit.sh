@@ -28,11 +28,11 @@ score_asr_model_tag=
 # This is word because the text files contain integer arrays and we have a dictionary of 0-100 integers
 token_type="word"
 
+# --num_splits_s2st 8
 ./s2st_local.sh \
     --ngpu 2 \
     --nj 64 \
     --inference_nj 64 \
-    --num_splits_s2st 8 \
     --use_discrete_unit true \
     --feats_type raw \
     --audio_format "wav" \
