@@ -1,0 +1,9 @@
+# path of the dataset by version (old to new)
+dataset_urls:
+  - https://www.cs.utep.edu/nigel/dral/DRAL-2.0.tgz
+  - https://www.cs.utep.edu/nigel/dral/DRAL-3.0.tgz
+  - https://www.cs.utep.edu/nigel/dral/DRAL-4.0.tgz
+  - https://www.cs.utep.edu/nigel/dral/DRAL-5.0.tgz
+  - https://www.cs.utep.edu/nigel/dral/DRAL-6.0.tgz
+  - https://www.cs.utep.edu/nigel/dral/DRAL-6.1.tgz
+  - https://www.cs.utep.edu/nigel/dral/DRAL-7.0.tar.gz

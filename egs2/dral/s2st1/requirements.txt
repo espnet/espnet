@@ -1,0 +1,5 @@
+backoff==2.2.1
+typer==0.9.0
+pydantic==1.10.13
+pyyaml
+pandas==2.0.3
