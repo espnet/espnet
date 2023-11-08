@@ -96,12 +96,12 @@ train_config=""    # Config for training.
 train_args=""      # Arguments for training, e.g., "--max_epoch 1".
                    # Note that it will overwrite args in train config.
 tag=""             # Suffix for training directory.
-tts_exp=""         # Specify the directory path for experiment. If this option is specified, tag is ignored.
-tts_stats_dir=""   # Specify the directory path for statistics. If empty, automatically decided.
-num_splits=1       # Number of splitting for tts corpus.
-teacher_dumpdir="" # Directory of teacher outputs (needed if tts=fastspeech).
+tts2_exp=""         # Specify the directory path for experiment. If this option is specified, tag is ignored.
+tts2_stats_dir=""   # Specify the directory path for statistics. If empty, automatically decided.
+num_splits=1       # Number of splitting for tts2 corpus.
+teacher_dumpdir="" # Directory of teacher outputs (needed if tts2=fastspeech).
 write_collected_feats=false # Whether to dump features in stats collection.
-tts_task=tts2                # TTS task (tts2 or gan_tts2).
+tts2_task=tts2                # Discrete TTS task (tts2 or gan_tts2).
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -121,11 +121,11 @@ download_model=""  # Download a model from Model Zoo and use it for decoding.
 train_set=""     # Name of training set.
 valid_set=""     # Name of validation set used for monitoring/tuning network training.
 test_sets=""     # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
-srctexts=""      # Texts to create token list. Multiple items can be specified.
+srctexts=""      # Texts to create src_token list. Multiple items can be specified.
 nlsyms_txt=none  # Non-linguistic symbol list (needed if existing).
-token_type=phn   # Transcription type (char or phn).
+src_token_type=phn   # Transcription type (char or phn).
 cleaner=tacotron # Text cleaner.
-g2p=g2p_en       # g2p method (needed if token_type=phn).
+g2p=g2p_en       # g2p method (needed if src_token_type=phn).
 lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 speech_fold_length=800 # fold_length for speech data.
@@ -181,20 +181,36 @@ Options:
     --blank            # CTC blank symbol (default="${blank}").
     --sos_eos          # sos and eos symbole (default="${sos_eos}").
 
+    # Discrete unit related
+    --use_discrete_unit        # Whether to use discrete unit (default="${use_discrete_unit}").
+    --discrete_stage           # The start stage of clustering stage (default="${discrete_stage}").
+    --discrete_stop_stage      # The stop stage of clustering stage (default="${discrete_stop_stage}").
+    --discrete_nj              # Number of threads of clustering process (default="${discrete_nj}").
+    --feature_dir              # Feature directory for dumped feature (default="${feature_dir}")
+    --km_tag                   # KMeans tagging (default="${km_tag}")
+    --use_gpu_feat_extract     # Whether to use gpu for feature extraction (default="${use_gpu_feat_extract}")
+    --feature_layer            # Layers for feature extraction (default="${feature_layer}")
+    --s3prl_upstream_name      # S3PRL upstream name for feature extraction (default="${s3prl_upstream_name}")
+    --feature_clustering_tool  # Tool to do feature clustering (default="${feature_clustering_tool}")
+    --clustering_portion       # The portion of data that is used for clustering (default="${clustering_portion}").
+    --feature_num_clusters     # Number of clusters for feature clustering pooling (default="${feature_num_clusters}").
+    --storage_save_mode=true   # Save storage on SSL feature extraction (default="${storage_save_mode}").
+                               # If true, feature extraction and kmeans clustering on the fly
+
     # Training related
     --train_config  # Config for training (default="${train_config}").
     --train_args    # Arguments for training (default="${train_args}").
                     # e.g., --train_args "--max_epoch 1"
                     # Note that it will overwrite args in train config.
     --tag           # Suffix for training directory (default="${tag}").
-    --tts_exp       # Specify the directory path for experiment.
-                    # If this option is specified, tag is ignored (default="${tts_exp}").
-    --tts_stats_dir # Specify the directory path for statistics.
-                    # If empty, automatically decided (default="${tts_stats_dir}").
-    --num_splits    # Number of splitting for tts corpus (default="${num_splits}").
-    --teacher_dumpdir       # Directory of teacher outputs (needed if tts=fastspeech, default="${teacher_dumpdir}").
+    --tts2_exp       # Specify the directory path for experiment.
+                    # If this option is specified, tag is ignored (default="${tts2_exp}").
+    --tts2_stats_dir # Specify the directory path for statistics.
+                    # If empty, automatically decided (default="${tts2_stats_dir}").
+    --num_splits    # Number of splitting for tts2 corpus (default="${num_splits}").
+    --teacher_dumpdir       # Directory of teacher outputs (needed if tts2=fastspeech, default="${teacher_dumpdir}").
     --write_collected_feats # Whether to dump features in statistics collection (default="${write_collected_feats}").
-    --tts_task              # TTS task {tts or gan_tts} (default="${tts_task}").
+    --tts2_task              # Discrete TTS task {tts2 or gan_tts2} (default="${tts2_task}").
 
     # Decoding related
     --inference_config  # Config for decoding (default="${inference_config}").
@@ -212,10 +228,10 @@ Options:
     --valid_set          # Name of validation set used for monitoring/tuning network training (required).
     --test_sets          # Names of test sets (required).
                          # Note that multiple items (e.g., both dev and eval sets) can be specified.
-    --srctexts           # Texts to create token list (required).
+    --srctexts           # Texts to create src_token list (required).
                          # Note that multiple items can be specified.
     --nlsyms_txt         # Non-linguistic symbol list (default="${nlsyms_txt}").
-    --token_type         # Transcription type (default="${token_type}").
+    --src_token_type         # Transcription type (default="${src_token_type}").
     --cleaner            # Text cleaner (default="${cleaner}").
     --g2p                # g2p method (default="${g2p}").
     --lang               # The language type of corpus (default="${lang}").
@@ -247,35 +263,34 @@ else
     exit 2
 fi
 
-# Check token list type
-token_listdir="${dumpdir}/token_list/${token_type}"
+# Check src_token list type
+src_token_listdir="${dumpdir}/src_token_list/${src_token_type}"
 if [ "${cleaner}" != none ]; then
-    token_listdir+="_${cleaner}"
+    src_token_listdir+="_${cleaner}"
 fi
-if [ "${token_type}" = phn ]; then
-    token_listdir+="_${g2p}"
+if [ "${src_token_type}" = phn ]; then
+    src_token_listdir+="_${g2p}"
 fi
-token_list="${token_listdir}/tokens.txt"
+src_token_list="${src_token_listdir}/src_tokens.txt"
 
-# Check old version token list dir existence
-if [ -e data/token_list ] && [ ! -e "${dumpdir}/token_list" ]; then
-    log "Default token_list directory path is changed from data to ${dumpdir}."
-    log "Copy data/token_list to ${dumpdir}/token_list for the compatibility."
-    [ ! -e ${dumpdir} ] && mkdir -p ${dumpdir}
-    cp -a "data/token_list" "${dumpdir}/token_list"
+# Set tag for KMeans directory
+if [ -z "${km_tag}" ]; then
+    km_tag="${s3prl_upstream_name}_layer${feature_layer}_${feature_num_clusters}"
 fi
+km_dir="dump/${km_tag}"
+unit_tokendir="${token_listdir}"/discrete_unit.${km_tag}
 
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
     if [ -n "${train_config}" ]; then
-        tag="$(basename "${train_config}" .yaml)_${feats_type}_${token_type}"
+        tag="$(basename "${train_config}" .yaml)_${feats_type}_${src_token_type}"
     else
-        tag="train_${feats_type}_${token_type}"
+        tag="train_${feats_type}_${src_token_type}"
     fi
     if [ "${cleaner}" != none ]; then
         tag+="_${cleaner}"
     fi
-    if [ "${token_type}" = phn ]; then
+    if [ "${src_token_type}" = phn ]; then
         tag+="_${g2p}"
     fi
     # Add overwritten arg's info
@@ -297,22 +312,22 @@ if [ -z "${inference_tag}" ]; then
 fi
 
 # The directory used for collect-stats mode
-if [ -z "${tts_stats_dir}" ]; then
-    tts_stats_dir="${expdir}/tts_stats_${feats_type}"
+if [ -z "${tts2_stats_dir}" ]; then
+    tts2_stats_dir="${expdir}/tts2_stats_${feats_type}"
     if [ "${feats_extract}" != fbank ]; then
-        tts_stats_dir+="_${feats_extract}"
+        tts2_stats_dir+="_${feats_extract}"
     fi
-    tts_stats_dir+="_${token_type}"
+    tts2_stats_dir+="_${src_token_type}"
     if [ "${cleaner}" != none ]; then
-        tts_stats_dir+="_${cleaner}"
+        tts2_stats_dir+="_${cleaner}"
     fi
-    if [ "${token_type}" = phn ]; then
-        tts_stats_dir+="_${g2p}"
+    if [ "${src_token_type}" = phn ]; then
+        tts2_stats_dir+="_${g2p}"
     fi
 fi
 # The directory used for training commands
-if [ -z "${tts_exp}" ]; then
-    tts_exp="${expdir}/tts_${tag}"
+if [ -z "${tts2_exp}" ]; then
+    tts2_exp="${expdir}/tts2_${tag}"
 fi
 
 
@@ -355,11 +370,15 @@ if ! "${skip_data_prep}"; then
                 "data/${dset}/wav.scp" "${data_feats}${_suf}/${dset}"
             echo "${feats_type}" > "${data_feats}${_suf}/${dset}/feats_type"
         done
+    fi
+
+    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ; then
+        log "Stage 3: Prepare for additional token or embedding (e.g., spk, lang)."
 
         # Extract X-vector
         if "${use_xvector}"; then
             if [ "${xvector_tool}" = "kaldi" ]; then
-                log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector (Require Kaldi)"
+                log "Stage 3.1: Extract X-vector for spk: data/ -> ${dumpdir}/xvector (Require Kaldi)"
                 # Download X-vector pretrained model
                 xvector_exp=${expdir}/xvector_nnet_1a
                 if [ ! -e "${xvector_exp}" ]; then
@@ -415,7 +434,7 @@ if ! "${skip_data_prep}"; then
                 done
             else
                 # Assume that others toolkits are python-based
-                log "Stage 2+: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
+                log "Stage 3.1: Extract X-vector: data/ -> ${dumpdir}/xvector using python toolkits"
                 for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                     if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                         _suf="/org"
@@ -436,7 +455,7 @@ if ! "${skip_data_prep}"; then
 
         # Prepare spk id input
         if "${use_sid}"; then
-            log "Stage 2+: Prepare speaker id: data/ -> ${data_feats}/"
+            log "Stage 3.2: Prepare speaker id: data/ -> ${data_feats}/"
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
@@ -459,7 +478,7 @@ if ! "${skip_data_prep}"; then
 
         # Prepare lang id input
         if "${use_lid}"; then
-            log "Stage 2+: Prepare lang id: data/ -> ${data_feats}/"
+            log "Stage 3.3: Prepare lang id: data/ -> ${data_feats}/"
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                     _suf="/org"
@@ -483,8 +502,8 @@ if ! "${skip_data_prep}"; then
     fi
 
 
-    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-        log "Stage 3: Remove long/short data: ${data_feats}/org -> ${data_feats}"
+    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
+        log "Stage 4: Remove long/short data: ${data_feats}/org -> ${data_feats}"
 
         # NOTE(kamo): Not applying to test_sets to keep original data
         for dset in "${train_set}" "${valid_set}"; do
@@ -538,19 +557,19 @@ if ! "${skip_data_prep}"; then
     fi
 
 
-    if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
-        log "Stage 4: Generate token_list from ${srctexts}"
+    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+        log "Stage 5: Generate src_token_list from ${srctexts}"
         # "nlsyms_txt" should be generated by local/data.sh if need
 
-        # The first symbol in token_list must be "<blank>" and the last must be also sos/eos:
+        # The first symbol in src_token_list must be "<blank>" and the last must be also sos/eos:
         # 0 is reserved for CTC-blank for ASR and also used as ignore-index in the other task
 
         # shellcheck disable=SC2002
         cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
 
-        ${python} -m espnet2.bin.tokenize_text \
-              --token_type "${token_type}" -f 2- \
-              --input "${data_feats}/srctexts" --output "${token_list}" \
+        ${python} -m espnet2.bin.src_tokenize_text \
+              --src_token_type "${src_token_type}" -f 2- \
+              --input "${data_feats}/srctexts" --output "${src_token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
               --cleaner "${cleaner}" \
               --g2p "${g2p}" \
@@ -571,12 +590,12 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 5: Discrete TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
             # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.tts_train --print_config --optim adam
+            #   % python3 -m espnet2.bin.tts2_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
 
@@ -635,7 +654,7 @@ if ! "${skip_train}"; then
         fi
 
         # 1. Split the key file
-        _logdir="${tts_stats_dir}/logdir"
+        _logdir="${tts2_stats_dir}/logdir"
         mkdir -p "${_logdir}"
 
         # Get the minimum number among ${nj} and the number lines of input files
@@ -658,19 +677,19 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${tts_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${tts_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${tts_stats_dir}/run.sh"; chmod +x "${tts_stats_dir}/run.sh"
+        log "Generate '${tts2_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
+        mkdir -p "${tts2_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${tts2_stats_dir}/run.sh"; chmod +x "${tts2_stats_dir}/run.sh"
 
         # 3. Submit jobs
-        log "TTS collect_stats started... log: '${_logdir}/stats.*.log'"
+        log "Discrete TTS collect_stats started... log: '${_logdir}/stats.*.log'"
         # shellcheck disable=SC2046,SC2086
         ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
-            ${python} -m "espnet2.bin.${tts_task}_train" \
+            ${python} -m "espnet2.bin.${tts2_task}_train" \
                 --collect_stats true \
                 --write_collected_feats "${write_collected_feats}" \
                 --use_preprocessor true \
-                --token_type "${token_type}" \
-                --token_list "${token_list}" \
+                --src_token_type "${src_token_type}" \
+                --src_token_list "${src_token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -695,28 +714,28 @@ if ! "${skip_train}"; then
             # Skip summerizaing stats if not using global MVN
             _opts+="--skip_sum_stats"
         fi
-        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts_stats_dir}"
+        ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts2_stats_dir}"
 
-        # Append the num-tokens at the last dimensions. This is used for batch-bins count
-        <"${tts_stats_dir}/train/text_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${tts_stats_dir}/train/text_shape.${token_type}"
+        # Append the num-src_tokens at the last dimensions. This is used for batch-bins count
+        <"${tts2_stats_dir}/train/text_shape" \
+            awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${tts2_stats_dir}/train/text_shape.${src_token_type}"
 
-        <"${tts_stats_dir}/valid/text_shape" \
-            awk -v N="$(<${token_list} wc -l)" '{ print $0 "," N }' \
-            >"${tts_stats_dir}/valid/text_shape.${token_type}"
+        <"${tts2_stats_dir}/valid/text_shape" \
+            awk -v N="$(<${src_token_list} wc -l)" '{ print $0 "," N }' \
+            >"${tts2_stats_dir}/valid/text_shape.${src_token_type}"
     fi
 
 
     if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 6: TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 6: Discrete TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
             # To generate the config file: e.g.
-            #   % python3 -m espnet2.bin.tts_train --print_config --optim adam
+            #   % python3 -m espnet2.bin.tts2_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
 
@@ -748,15 +767,15 @@ if ! "${skip_train}"; then
                 # The corpus is split into subsets and each subset is used for training one by one in order,
                 # so the memory footprint can be limited to the memory required for each dataset.
 
-                _split_dir="${tts_stats_dir}/splits${num_splits}"
+                _split_dir="${tts2_stats_dir}/splits${num_splits}"
                 if [ ! -f "${_split_dir}/.done" ]; then
                     rm -f "${_split_dir}/.done"
                     ${python} -m espnet2.bin.split_scps \
                       --scps \
                           "${_train_dir}/text" \
                           "${_train_dir}/${_scp}" \
-                          "${tts_stats_dir}/train/speech_shape" \
-                          "${tts_stats_dir}/train/text_shape.${token_type}" \
+                          "${tts2_stats_dir}/train/speech_shape" \
+                          "${tts2_stats_dir}/train/text_shape.${src_token_type}" \
                       --num_splits "${num_splits}" \
                       --output_dir "${_split_dir}"
                     touch "${_split_dir}/.done"
@@ -766,20 +785,20 @@ if ! "${skip_train}"; then
 
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
-                _opts+="--train_shape_file ${_split_dir}/text_shape.${token_type} "
+                _opts+="--train_shape_file ${_split_dir}/text_shape.${src_token_type} "
                 _opts+="--train_shape_file ${_split_dir}/speech_shape "
                 _opts+="--multiple_iterator true "
 
             else
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
-                _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
-                _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+                _opts+="--train_shape_file ${tts2_stats_dir}/train/text_shape.${src_token_type} "
+                _opts+="--train_shape_file ${tts2_stats_dir}/train/speech_shape "
             fi
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
-            _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
-            _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
+            _opts+="--valid_shape_file ${tts2_stats_dir}/valid/text_shape.${src_token_type} "
+            _opts+="--valid_shape_file ${tts2_stats_dir}/valid/speech_shape "
         else
             #####################################
             #   CASE 2: Non-AR model training   #
@@ -789,10 +808,10 @@ if ! "${skip_train}"; then
             _fold_length="${speech_fold_length}"
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
             _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/durations,durations,text_int "
-            _opts+="--train_shape_file ${tts_stats_dir}/train/text_shape.${token_type} "
+            _opts+="--train_shape_file ${tts2_stats_dir}/train/text_shape.${src_token_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
             _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations,durations,text_int "
-            _opts+="--valid_shape_file ${tts_stats_dir}/valid/text_shape.${token_type} "
+            _opts+="--valid_shape_file ${tts2_stats_dir}/valid/text_shape.${src_token_type} "
 
             if [ -e ${_teacher_train_dir}/probs ]; then
                 # Knowledge distillation case: use the outputs of the teacher model as the target
@@ -825,46 +844,46 @@ if ! "${skip_train}"; then
                     _opts+="--feats_extract_conf n_mels=${n_mels} "
                 fi
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
-                _opts+="--train_shape_file ${tts_stats_dir}/train/speech_shape "
+                _opts+="--train_shape_file ${tts2_stats_dir}/train/speech_shape "
                 _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
-                _opts+="--valid_shape_file ${tts_stats_dir}/valid/speech_shape "
+                _opts+="--valid_shape_file ${tts2_stats_dir}/valid/speech_shape "
             fi
         fi
 
         # If there are dumped files of additional inputs, we use it to reduce computational cost
         # NOTE (kan-bayashi): Use dumped files of the target features as well?
-        if [ -e "${tts_stats_dir}/train/collect_feats/pitch.scp" ]; then
+        if [ -e "${tts2_stats_dir}/train/collect_feats/pitch.scp" ]; then
             _scp=pitch.scp
             _type=npy
-            _train_collect_dir=${tts_stats_dir}/train/collect_feats
-            _valid_collect_dir=${tts_stats_dir}/valid/collect_feats
+            _train_collect_dir=${tts2_stats_dir}/train/collect_feats
+            _valid_collect_dir=${tts2_stats_dir}/valid/collect_feats
             _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},pitch,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},pitch,${_type} "
         fi
-        if [ -e "${tts_stats_dir}/train/collect_feats/energy.scp" ]; then
+        if [ -e "${tts2_stats_dir}/train/collect_feats/energy.scp" ]; then
             _scp=energy.scp
             _type=npy
-            _train_collect_dir=${tts_stats_dir}/train/collect_feats
-            _valid_collect_dir=${tts_stats_dir}/valid/collect_feats
+            _train_collect_dir=${tts2_stats_dir}/train/collect_feats
+            _valid_collect_dir=${tts2_stats_dir}/valid/collect_feats
             _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},energy,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},energy,${_type} "
         fi
 
         # Check extra statistics
-        if [ -e "${tts_stats_dir}/train/pitch_stats.npz" ]; then
+        if [ -e "${tts2_stats_dir}/train/pitch_stats.npz" ]; then
             _opts+="--pitch_extract_conf fs=${fs} "
             _opts+="--pitch_extract_conf n_fft=${n_fft} "
             _opts+="--pitch_extract_conf hop_length=${n_shift} "
             _opts+="--pitch_extract_conf f0max=${f0max} "
             _opts+="--pitch_extract_conf f0min=${f0min} "
-            _opts+="--pitch_normalize_conf stats_file=${tts_stats_dir}/train/pitch_stats.npz "
+            _opts+="--pitch_normalize_conf stats_file=${tts2_stats_dir}/train/pitch_stats.npz "
         fi
-        if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
+        if [ -e "${tts2_stats_dir}/train/energy_stats.npz" ]; then
             _opts+="--energy_extract_conf fs=${fs} "
             _opts+="--energy_extract_conf n_fft=${n_fft} "
             _opts+="--energy_extract_conf hop_length=${n_shift} "
             _opts+="--energy_extract_conf win_length=${win_length} "
-            _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
+            _opts+="--energy_normalize_conf stats_file=${tts2_stats_dir}/train/energy_stats.npz "
         fi
 
         # Add X-vector to the inputs if needed
@@ -888,33 +907,33 @@ if ! "${skip_train}"; then
         fi
 
         if [ "${feats_normalize}" = "global_mvn" ]; then
-            _opts+="--normalize_conf stats_file=${tts_stats_dir}/train/feats_stats.npz "
+            _opts+="--normalize_conf stats_file=${tts2_stats_dir}/train/feats_stats.npz "
         fi
 
-        log "Generate '${tts_exp}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${tts_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${tts_exp}/run.sh"; chmod +x "${tts_exp}/run.sh"
+        log "Generate '${tts2_exp}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${tts2_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${tts2_exp}/run.sh"; chmod +x "${tts2_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
-        log "TTS training started... log: '${tts_exp}/train.log'"
+        log "Discrete TTS training started... log: '${tts2_exp}/train.log'"
         if echo "${cuda_cmd}" | grep -e queue.pl -e queue-freegpu.pl &> /dev/null; then
             # SGE can't include "/" in a job name
-            jobname="$(basename ${tts_exp})"
+            jobname="$(basename ${tts2_exp})"
         else
-            jobname="${tts_exp}/train.log"
+            jobname="${tts2_exp}/train.log"
         fi
         # shellcheck disable=SC2086
         ${python} -m espnet2.bin.launch \
             --cmd "${cuda_cmd} --name ${jobname}" \
-            --log "${tts_exp}"/train.log \
+            --log "${tts2_exp}"/train.log \
             --ngpu "${ngpu}" \
             --num_nodes "${num_nodes}" \
-            --init_file_prefix "${tts_exp}"/.dist_init_ \
+            --init_file_prefix "${tts2_exp}"/.dist_init_ \
             --multiprocessing_distributed true -- \
-            ${python} -m "espnet2.bin.${tts_task}_train" \
+            ${python} -m "espnet2.bin.${tts2_task}_train" \
                 --use_preprocessor true \
-                --token_type "${token_type}" \
-                --token_list "${token_list}" \
+                --src_token_type "${src_token_type}" \
+                --src_token_list "${src_token_list}" \
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
@@ -922,7 +941,7 @@ if ! "${skip_train}"; then
                 --resume true \
                 --fold_length "${text_fold_length}" \
                 --fold_length "${_fold_length}" \
-                --output_dir "${tts_exp}" \
+                --output_dir "${tts2_exp}" \
                 ${_opts} ${train_args}
 
     fi
@@ -933,19 +952,19 @@ fi
 
 if [ -n "${download_model}" ]; then
     log "Use ${download_model} for decoding and evaluation"
-    tts_exp="${expdir}/${download_model}"
-    mkdir -p "${tts_exp}"
+    tts2_exp="${expdir}/${download_model}"
+    mkdir -p "${tts2_exp}"
 
     # If the model already exists, you can skip downloading
-    espnet_model_zoo_download --unpack true "${download_model}" > "${tts_exp}/config.txt"
+    espnet_model_zoo_download --unpack true "${download_model}" > "${tts2_exp}/config.txt"
 
     # Get the path of each file
-    _model_file=$(<"${tts_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
-    _train_config=$(<"${tts_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
+    _model_file=$(<"${tts2_exp}/config.txt" sed -e "s/.*'model_file': '\([^']*\)'.*$/\1/")
+    _train_config=$(<"${tts2_exp}/config.txt" sed -e "s/.*'train_config': '\([^']*\)'.*$/\1/")
 
     # Create symbolic links
-    ln -sf "${_model_file}" "${tts_exp}"
-    ln -sf "${_train_config}" "${tts_exp}"
+    ln -sf "${_model_file}" "${tts2_exp}"
+    ln -sf "${_train_config}" "${tts2_exp}"
     inference_model=$(basename "${_model_file}")
 
 fi
@@ -953,7 +972,7 @@ fi
 
 if ! "${skip_eval}"; then
     if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-        log "Stage 7: Decoding: training_dir=${tts_exp}"
+        log "Stage 7: Decoding: training_dir=${tts2_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -976,14 +995,14 @@ if ! "${skip_eval}"; then
             _type=sound
         fi
 
-        log "Generate '${tts_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${tts_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts_exp}/${inference_tag}/run.sh"; chmod +x "${tts_exp}/${inference_tag}/run.sh"
+        log "Generate '${tts2_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${tts2_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${tts2_exp}/${inference_tag}/run.sh"; chmod +x "${tts2_exp}/${inference_tag}/run.sh"
 
 
         for dset in ${test_sets}; do
             _data="${data_feats}/${dset}"
             _speech_data="${_data}"
-            _dir="${tts_exp}/${inference_tag}/${dset}"
+            _dir="${tts2_exp}/${inference_tag}/${dset}"
             _logdir="${_dir}/log"
             mkdir -p "${_logdir}"
 
@@ -1030,19 +1049,19 @@ if ! "${skip_eval}"; then
             utils/split_scp.pl "${key_file}" ${split_scps}
 
             # 2. Submit decoding jobs
-            log "Decoding started... log: '${_logdir}/tts_inference.*.log'"
+            log "Decoding started... log: '${_logdir}/tts2_inference.*.log'"
             # shellcheck disable=SC2046,SC2086
-            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts_inference.JOB.log \
-                ${python} -m espnet2.bin.tts_inference \
+            ${_cmd} --gpu "${_ngpu}" JOB=1:"${_nj}" "${_logdir}"/tts2_inference.JOB.log \
+                ${python} -m espnet2.bin.tts2_inference \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/text,text,text" \
                     --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
                     --key_file "${_logdir}"/keys.JOB.scp \
-                    --model_file "${tts_exp}"/"${inference_model}" \
-                    --train_config "${tts_exp}"/config.yaml \
+                    --model_file "${tts2_exp}"/"${inference_model}" \
+                    --train_config "${tts2_exp}"/config.yaml \
                     --output_dir "${_logdir}"/output.JOB \
                     --vocoder_file "${vocoder_file}" \
-                    ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/tts_inference.*.log) ; exit 1; }
+                    ${_opts} ${_ex_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/tts2_inference.*.log) ; exit 1; }
 
             # 3. Concatenates the output files from each jobs
             if [ -e "${_logdir}/output.${_nj}/norm" ]; then
@@ -1103,7 +1122,7 @@ else
 fi
 
 
-packed_model="${tts_exp}/${tts_exp##*/}_${inference_model%.*}.zip"
+packed_model="${tts2_exp}/${tts2_exp##*/}_${inference_model%.*}.zip"
 if [ -z "${download_model}" ]; then
     # Skip pack preparation if using a downloaded model
     if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
@@ -1111,14 +1130,14 @@ if [ -z "${download_model}" ]; then
         log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         _opts=""
-        if [ -e "${tts_stats_dir}/train/feats_stats.npz" ]; then
-            _opts+=" --option ${tts_stats_dir}/train/feats_stats.npz"
+        if [ -e "${tts2_stats_dir}/train/feats_stats.npz" ]; then
+            _opts+=" --option ${tts2_stats_dir}/train/feats_stats.npz"
         fi
-        if [ -e "${tts_stats_dir}/train/pitch_stats.npz" ]; then
-            _opts+=" --option ${tts_stats_dir}/train/pitch_stats.npz"
+        if [ -e "${tts2_stats_dir}/train/pitch_stats.npz" ]; then
+            _opts+=" --option ${tts2_stats_dir}/train/pitch_stats.npz"
         fi
-        if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
-            _opts+=" --option ${tts_stats_dir}/train/energy_stats.npz"
+        if [ -e "${tts2_stats_dir}/train/energy_stats.npz" ]; then
+            _opts+=" --option ${tts2_stats_dir}/train/energy_stats.npz"
         fi
         if "${use_xvector}"; then
             for dset in "${train_set}" ${test_sets}; do
@@ -1132,16 +1151,16 @@ if [ -z "${download_model}" ]; then
         if "${use_lid}"; then
             _opts+=" --option ${data_feats}/org/${train_set}/lang2lid"
         fi
-        ${python} -m espnet2.bin.pack tts \
-            --train_config "${tts_exp}"/config.yaml \
-            --model_file "${tts_exp}"/"${inference_model}" \
-            --option "${tts_exp}"/images  \
+        ${python} -m espnet2.bin.pack tts2 \
+            --train_config "${tts2_exp}"/config.yaml \
+            --model_file "${tts2_exp}"/"${inference_model}" \
+            --option "${tts2_exp}"/images  \
             --outpath "${packed_model}" \
             ${_opts}
 
         # NOTE(kamo): If you'll use packed model to inference in this script, do as follows
         #   % unzip ${packed_model}
-        #   % ./run.sh --stage 8 --tts_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
+        #   % ./run.sh --stage 8 --tts2_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
     fi
 fi
 
@@ -1162,14 +1181,14 @@ git checkout $(git show -s --format=%H)"
             _creator_name="$(whoami)"
             _checkout=""
         fi
-        # /some/where/espnet/egs2/foo/tts1/ -> foo/tt1
+        # /some/where/espnet/egs2/foo/tts2/ -> foo/tts2
         _task="$(pwd | rev | cut -d/ -f1-2 | rev)"
         # foo/asr1 -> foo
         _corpus="${_task%/*}"
         _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
         # Generate description file
-        cat << EOF > "${tts_exp}"/description
+        cat << EOF > "${tts2_exp}"/description
 This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
@@ -1182,7 +1201,7 @@ cd $(pwd | rev | cut -d/ -f1-3 | rev)
 # Download the model file here
 ./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
 </pre></li>
-<li><strong>Config</strong><pre><code>$(cat "${tts_exp}"/config.yaml)</code></pre></li>
+<li><strong>Config</strong><pre><code>$(cat "${tts2_exp}"/config.yaml)</code></pre></li>
 </ul>
 EOF
 
@@ -1193,7 +1212,7 @@ EOF
         espnet_model_zoo_upload \
             --file "${packed_model}" \
             --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
-            --description_file "${tts_exp}"/description \
+            --description_file "${tts2_exp}"/description \
             --creator_name "${_creator_name}" \
             --license "CC-BY-4.0" \
             --use_sandbox false \
@@ -1237,9 +1256,9 @@ if ! "${skip_upload_hf}"; then
         # shellcheck disable=SC2034
         hf_task=text-to-speech
         # shellcheck disable=SC2034
-        espnet_task=TTS
+        espnet_task=TTS2
         # shellcheck disable=SC2034
-        task_exp=${tts_exp}
+        task_exp=${tts2_exp}
         eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
         this_folder=${PWD}
