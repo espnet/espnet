@@ -270,7 +270,122 @@ python -c "import yaml; config = yaml.safe_load(open('exp/espnet/owsm_v2_ebranch
 #### 3. Fine-tune the model
 
 We create a training config file for fine-tuning. It is modified from the original config in `config.yaml`.
+Note that you may need to tune the training hyperparameters such as learning rate. The model might easily overfit to a small training set.
+
 ```yaml
+preprocessor: s2t
+preprocessor_conf:
+    text_prev_name: text_prev
+    text_ctc_name: text_ctc
+    fs: 16000
+    na_symbol: "<na>"
+    speech_length: 30
+    speech_resolution: 0.02
+    speech_init_silence: 30
+    text_prev_apply_prob: 0.0   # we do not use previous prompt
+    time_apply_prob: 0.0    # we do not use any timestamp for fine-tuning
+    notime_symbol: "<notimestamps>"
+    first_time_symbol: "<0.00>"
+    last_time_symbol: "<30.00>"
+
+frontend_conf:
+    n_fft: 512
+    win_length: 400
+    hop_length: 160
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: true
+    freq_mask_width_range:
+    - 0
+    - 27
+    num_freq_mask: 2
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 10
+
+encoder: e_branchformer
+encoder_conf:
+    output_size: 1024
+    attention_heads: 16
+    attention_layer_type: selfattn
+    pos_enc_layer_type: abs_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 4096
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv2d
+    layer_drop_rate: 0.0
+    linear_units: 4096
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 16
+    linear_units: 4096
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    sym_na: "<na>"
+
+# NOTE: you may need to tune these hyperparams
+optim: adamw
+optim_conf:
+    lr: 1.0e-04
+    betas:
+    - 0.9
+    - 0.98
+    eps: 1.0e-06
+    weight_decay: 0.0
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 5000
+
+# NOTE: we are using 4 GPUs with 48GB memory
+batch_type: unsorted
+batch_size: 16
+accum_grad: 4
+max_epoch: 20
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+-   - valid
+    - total_count
+    - max
+keep_nbest_models: 5
+use_amp: true
+num_workers: 4
+unused_parameters: false
+seed: 2023
+num_att_plot: 1
+
+# fine-tune
+init_param: 
+- exp/espnet/owsm_v2_ebranchformer/valid.total_count.ave_5best.till25epoch.pth
+ignore_init_mismatch: false
 
 ```
 
