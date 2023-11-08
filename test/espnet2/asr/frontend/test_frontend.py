@@ -3,44 +3,10 @@ import torch
 
 from espnet2.asr.frontend.default import DefaultFrontend
 
-random_speech = torch.tensor(
+random_rir = torch.tensor(
     [
-        [
-            [0.026, 0.031],
-            [0.027, 0.031],
-            [0.026, 0.030],
-            [0.024, 0.028],
-            [0.025, 0.027],
-            [0.027, 0.026],
-            [0.028, 0.026],
-            [0.029, 0.024],
-            [0.028, 0.024],
-            [0.029, 0.026],
-            [0.029, 0.027],
-            [0.029, 0.031],
-            [0.030, 0.038],
-            [0.029, 0.040],
-            [0.028, 0.040],
-            [0.028, 0.041],
-        ],
-        [
-            [0.015, 0.021],
-            [0.005, 0.034],
-            [0.011, 0.029],
-            [0.031, 0.036],
-            [0.031, 0.031],
-            [0.050, 0.038],
-            [0.025, 0.054],
-            [0.042, 0.056],
-            [0.053, 0.048],
-            [0.054, 0.044],
-            [0.053, 0.036],
-            [0.039, 0.025],
-            [0.053, 0.032],
-            [0.054, 0.034],
-            [0.031, 0.025],
-            [0.008, 0.023],
-        ],
+        [0.0291, -0.0318, 0.0325, -0.0298, 0.0216, -0.0057, -0.0263, 0.0989],
+        [-0.0564, 0.1428, -0.2752, 0.4941, -0.5598, 1.2620, 0.6407, -1.7159],
     ]
 )
 
@@ -69,17 +35,28 @@ def test_frontend_backward():
 @pytest.mark.parametrize("use_beamformer", [True, False])
 @pytest.mark.parametrize("train", [True, False])
 def test_frontend_backward_multi_channel(train, use_wpe, use_beamformer):
+    torch.random.manual_seed(14)
     frontend = DefaultFrontend(
         fs=300,
         n_fft=128,
         win_length=128,
         frontend_conf={"use_wpe": use_wpe, "use_beamformer": use_beamformer},
     )
+    for name, p in frontend.named_parameters():
+        if ".bias" in name and p.dim() == 1:
+            p.data.fill_(1)
+        else:
+            p.data.zero_()
     if train:
         frontend.train()
     else:
         frontend.eval()
-    x = random_speech.repeat(1, 1024, 1)
+    pad = random_rir.size(1)
+    envelope = torch.sin(torch.linspace(0, 20 * torch.pi, 1024)) + 1.5
+    x = torch.sin(envelope * 2 * torch.pi * torch.arange(1024) / 300)
+    x = torch.nn.functional.pad(x.repeat(2, 1, 1), (pad, pad))
+    x = torch.nn.functional.conv1d(x, random_rir.unsqueeze(1)).transpose(1, 2)
+    x = x[:, (pad - 1) // 2 : (pad - 1) // 2 + 1024]
     x.requires_grad = True
     x_lengths = torch.LongTensor([1024, 1000])
     y, y_lengths = frontend(x, x_lengths)
