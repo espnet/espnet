@@ -1,9 +1,15 @@
-# RawNet3 reproduce recipe configuration.
-frontend: asteroid_frontend
+# ECAPA-TDNN reproduce recipe configuration.
+frontend: melspec_torch
 frontend_conf:
-  sinc_stride: 48
+  preemp: true
+  n_fft: 512
+  log: true
+  win_length: 400
+  hop_length: 160
+  n_mels: 20
+  normalize: mn
 
-encoder: rawnet3
+encoder: ecapa_tdnn
 encoder_conf:
   model_scale: 4
   ndim: 16
@@ -31,10 +37,13 @@ preprocessor_conf:
 model_conf:
   extract_feats_in_collect_stats: false
 
-loss: aamsoftmax
+loss: aamsoftmax_sc_topk
 loss_conf:
   margin: 0.3
   scale: 15
+  K: 1
+  mp: 0.06
+  k_top: 1
 
 optim: adam
 num_att_plot: 0
