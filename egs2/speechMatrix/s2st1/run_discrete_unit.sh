@@ -25,12 +25,14 @@ inference_config=conf/decode_s2st.yaml
 vocoder_file=
 score_asr_model_tag=
 
-export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:1024
+# This is word because the text files contain integer arrays and we have a dictionary of 0-100 integers
+token_type="word"
+
+# --num_splits_s2st 8
 ./s2st_local.sh \
     --ngpu 2 \
-    --nj 32 \
+    --nj 64 \
     --inference_nj 64 \
-    --num_splits_s2st 8 \
     --use_discrete_unit true \
     --feats_type raw \
     --audio_format "wav" \
@@ -42,15 +44,15 @@ export PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:1024
     --s3prl_upstream_name hubert \
     --storage_save_mode false \
     --clustering_num_threads 60 \
-    --src_token_type "word" \
-    --tgt_token_type "word" \
+    --src_token_type ${token_type} \
+    --tgt_token_type ${token_type} \
     --s2st_config "${st_config}" \
     --inference_config "${inference_config}" \
     --vocoder_file "${vocoder_file}" \
     --score_asr_model_tag "${score_asr_model_tag}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
-    --test_sets "${test_sets}" "$@" 
+    --test_sets "${test_sets}" "$@"
     # --feature_layer ${feature_layer} \
     # --clustering_portion ${clustering_portion} \
-    # --feature_num_clusters ${clustering_num_clusters} 
+    # --feature_num_clusters ${clustering_num_clusters}
