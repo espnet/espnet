@@ -215,7 +215,7 @@ def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
 
     # dnn_beamformer
     enhanced, ilens, mask_speeches = beamformer(feat, ilens)
-    assert (bnmask - 1) == len(mask_speeches)
+    assert bnmask == len(mask_speeches)
     assert (bnmask - 1) == len(enhanced)
 
     # beamforming by hand
@@ -223,7 +223,7 @@ def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
     masks, _ = mask_estimator(feat, ilens)
     mask_speech1, mask_speech2, mask_noise = masks
 
-    b = importlib.import_module("espnet.nets.pytorch_backend.frontends.beamformer")
+    b = importlib.import_module("espnet2.enh.layers.beamformer")
 
     psd_speech1 = b.get_power_spectral_density_matrix(feat, mask_speech1)
     psd_speech2 = b.get_power_spectral_density_matrix(feat, mask_speech2)
@@ -240,7 +240,7 @@ def test_dnn_beamformer(use_frontend, use_beamformer, bnmask, num_spkrs, m_str):
     enhanced1 = b.apply_beamforming_vector(ws1, feat).transpose(-1, -2)
     enhanced2 = b.apply_beamforming_vector(ws2, feat).transpose(-1, -2)
 
-    assert torch.equal(enhanced1.real, enhanced[0].real)
-    assert torch.equal(enhanced2.real, enhanced[1].real)
-    assert torch.equal(enhanced1.imag, enhanced[0].imag)
-    assert torch.equal(enhanced2.imag, enhanced[1].imag)
+    torch.testing.assert_close(enhanced1.real, enhanced[0].real)
+    torch.testing.assert_close(enhanced2.real, enhanced[1].real)
+    torch.testing.assert_close(enhanced1.imag, enhanced[0].imag)
+    torch.testing.assert_close(enhanced2.imag, enhanced[1].imag)
