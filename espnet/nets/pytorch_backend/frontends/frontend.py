@@ -74,7 +74,7 @@ class Frontend(nn.Module):
                 bunits=bunits,
                 bprojs=bprojs,
                 blayers=blayers,
-                num_spk=1,
+                num_spk=max(bnmask - 1, 1),
                 use_noise_mask=(bnmask > 1),
                 dropout_rate=bdropout_rate,
                 badim=badim,
