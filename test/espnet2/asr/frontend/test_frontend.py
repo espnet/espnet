@@ -42,6 +42,11 @@ def test_frontend_backward_multi_channel(train, use_wpe, use_beamformer):
         win_length=128,
         frontend_conf={"use_wpe": use_wpe, "use_beamformer": use_beamformer},
     )
+    for name, p in frontend.named_parameters():
+        if ".bias" in name and p.dim() == 1:
+            p.data.fill_(1)
+        else:
+            p.data.zero_()
     if train:
         frontend.train()
     else:
