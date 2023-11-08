@@ -141,8 +141,153 @@ See also:
 
 We have created several recipes for [OWSM](https://arxiv.org/abs/2309.13876) training. Please check `egs2/mixed_v1`, `egs2/mixed_v2`, `egs2/mixed_v3` for more information.
 
+
 ### How to fine-tune pre-trained OWSM
 
+Pre-trained OWSM can be fine-tuned on a specific dataset. Here, we use AISHELL-1 as an example.
+
+#### 1. Prepare `s2t1` recipe
+
+We use this `s2t1` template to fine-tune OWSM. So we first create this directory under our custom dataset `egs2/aishell`.
+
+```bash
+egs2/TEMPLATE/s2t1/setup.sh egs2/aishell/s2t1
+```
+
+Then, we download a pre-trained model, e.g., `espnet/owsm_v2_ebranchformer`, using the following command:
+
+```bash
+# go to the created dir
+cd egs2/aishell/s2t1
+
+# source path.sh
+. ./path.sh
+
+# download model from hugging face using espnet_model_zoo_download
+# we use dummy names for required arguments and we do not run any actual stage (thus --stage 100)
+./s2t.sh --download_model espnet/owsm_v2_ebranchformer --stage 100 --train_set dummy --valid_set dummy2 --test_sets dummy3
+```
+
+The downloaded model will be saved in local cache and then uncompressed. An `exp` directory will be automatically created which contains symbolic links to the checkpoint and config files.
+
+To use a pre-trained model, we need the following important files:
+- config: A yaml file containing all training arguments and the token list. The name is `config.yaml`.
+- model checkpoint: The name is `xxx.pth`. In this example, it is `valid.total_count.ave_5best.till25epoch.pth`.
+- stats: This is used to normalize the input speech features if `feats_normalize` is `global_mvn`.
+- bpe model: This is the BPE model used by `sentencepiece`.
+
+The path to `stats` can be found in `config.yaml`, e.g.:
+```bash
+grep stats_file exp/espnet/owsm_v2_ebranchformer/config.yaml
+```
+
+The path to `bpemodel` can also be found in `config.yaml`, e.g.:
+```bash
+grep bpemodel exp/espnet/owsm_v2_ebranchformer/config.yaml
+```
+
+In the following sections, we will manually copy those two files to correct places.
+
+#### 2. Prepare data in OWSM format
+
+The data should be prepared in the OWSM format. Please refer to [1\. Data preparation](#1-data-preparation) for more information.
+
+Since AISHELL-1 has been included in OWSM v1, we can reuse those preparation scripts. For your own data, please write the scripts by yourself and make sure the special tokens such as the language codes are consistent with the pre-trained model. Note that we will NOT generate new vocabulary for fine-tuning. Instead, we will use the vocabulary from the pre-trained model.
+
+```bash
+cd local/
+ln -s ../../../mixed_v1/s2t1/local/utils.py ./
+ln -s ../../../mixed_v1/s2t1/local/prepare_aishell.* ./
+cd ..
+
+# modify data_dir and execute:
+./local/prepare_aishell.sh
+```
+
+The prepared data will be stored in a new directory `data`.
+
+Next, we execute various stages in `s2t.sh`. To make it easier, we create a `run.sh` shown below. It is mostly copied from the OWSM v2 recipe.
+
+```bash
+#!/usr/bin/env bash
+# Set bash to 'debug' mode, it will exit on :
+# -e 'error', -u 'undefined variable', -o ... 'error in pipeline', -x 'print commands',
+set -e
+set -u
+set -o pipefail
+
+train_set=AISHELL-1/train
+valid_set=AISHELL-1/dev
+test_sets="AISHELL-1/dev"
+
+nbpe=50000  # this should be consistent with the pre-trained model
+s2t_config=conf/train_s2t_ebf_conv2d_size1024_e12_d12.yaml
+inference_config=conf/decode_s2t.yaml
+
+# inference only args
+# --cleaner whisper_basic --hyp_cleaner whisper_basic
+./s2t.sh \
+    --stage 3 \
+    --stop_stage 4 \
+    --use_lm false \
+    --num_nodes 1 \
+    --ngpu 4 \
+    --nj 32 \
+    --gpu_inference true \
+    --inference_nj 4 \
+    --num_splits_s2t 1 \
+    --feats_type raw \
+    --audio_format flac.ark \
+    --token_type bpe \
+    --nbpe ${nbpe} \
+    --bpe_input_sentence_size 10000000 \
+    --s2t_config "${s2t_config}" \
+    --inference_config "${inference_config}" \
+    --train_set "${train_set}" \
+    --valid_set "${valid_set}" \
+    --test_sets "${test_sets}" \
+    --bpe_train_text "dump/raw/${train_set}/text" \
+    --bpe_nlsyms data/nlsyms.txt \
+    --lm_train_text "dump/raw/${train_set}/text" "$@"
+
+```
+
+We run Stage 3 and Stage 4 to format data:
+```bash
+./run.sh --stage 3 --stop_stage 4
+```
+
+We create the BPE token directory by ourselves. This is equivalent to Stage 5 but we do not generate a new token list.
+```bash
+mkdir -p data/token_list/bpe_unigram50000
+cp path_to_bpe_model data/token_list/bpe_unigram50000 # path_to_bpe_model is in config.yaml
+
+# we extract the token list
+python -c "import yaml; config = yaml.safe_load(open('exp/espnet/owsm_v2_ebranchformer/config.yaml', 'r')); open('data/token_list/bpe_unigram50000/tokens.txt', 'w').write('\n'.join(config['token_list'])
+)"
+```
+
+#### 3. Fine-tune the model
+
+We create a training config file for fine-tuning. It is modified from the original config in `config.yaml`.
+```yaml
+
+```
+
+We need to collect the shapes of speech and text, but skip the mean and variance collection because we use a pre-trained model. We run Stage 10 with a smaller batch size:
+```bash
+./run.sh --stage 10 --stop_stage 10 --feats_normalize utterance_mvn --s2t_args "--model_conf extract_feats_in_collect_stats=false --batch_size 5"
+```
+
+Then, we copy the existing mean and variance to the correct place:
+```bash
+cp path_to_train_stats exp/s2t_stats_raw_bpe50000/train/  # path_to_train_stats is in config.yaml
+```
+
+Now, we can start training:
+```bash
+./run.sh --stage 11 --stop_stage 11
+```
 
 ## Related work
 ```
