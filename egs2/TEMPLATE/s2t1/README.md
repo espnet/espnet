@@ -383,7 +383,7 @@ seed: 2023
 num_att_plot: 1
 
 # fine-tune
-init_param: 
+init_param:
 - exp/espnet/owsm_v2_ebranchformer/valid.total_count.ave_5best.till25epoch.pth
 ignore_init_mismatch: false
 
