@@ -87,14 +87,14 @@ scheduler_conf:
 
 # Batching
 batch_type: numel
-batch_bins: 80000000
+batch_bins: 60000000
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
 
 # Other Training Setting
 use_amp: true
-num_iters_per_epoch: 5000  # n-batch per epoch ~18000
-max_epoch: 70  # 20 * 18000 / 5000
+num_iters_per_epoch: 5000  # n-batch per epoch ~20000
+max_epoch: 70
 num_workers: 2
 log_interval: null
 seed: 0
