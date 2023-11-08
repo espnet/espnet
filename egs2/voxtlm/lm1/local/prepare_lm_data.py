@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Union
 from espnet2.utils.types import str2bool
 
+
 def read_text(text: Path):
     uttid2text = {}
     with text.open("r") as fp:
