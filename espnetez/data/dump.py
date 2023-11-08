@@ -49,7 +49,8 @@ def create_dump_file(
     Args:
         dump_dir (str): Output folder of the dump files.
         dataset (Union[Dict[str, Dict], List[Dict]]): Dictionary of dataset.
-        data_inputs (Dict[str, Dict]): data information for each input variables.
+        data_inputs (Dict[str, List[str, str]]): 
+            data information for each input variables.
 
     """
     if not os.path.exists(dump_dir):
@@ -63,7 +64,7 @@ def create_dump_file(
         raise ValueError("dataset must be a dict or a list.")
 
     for input_name in data_inputs.keys():
-        file_path = os.path.join(dump_dir, data_inputs[input_name]["file"])
+        file_path = os.path.join(dump_dir, data_inputs[input_name][0])
         text = []
         for key in keys:
             text.append(f"{key} {dataset[key][input_name]}")
