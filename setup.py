@@ -39,7 +39,6 @@ requirements = {
         "espnet_tts_frontend",
         # ENH
         "ci_sdr",
-        "pytorch_wpe",
         "fast-bss-eval==0.1.3",
         # SPK
         "asteroid_filterbanks==0.4.0",
