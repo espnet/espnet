@@ -192,6 +192,8 @@
 <li class="toctree-l2"><a class="reference internal" href="#s2st-inference-py-1">s2st_inference.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#s2st-train-py-1">s2st_train.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#s2t-train-py-1">s2t_train.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#spk-embed-extract-py-1">spk_embed_extract.py</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#spk-inference-py-1">spk_inference.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#spk-train-py-1">spk_train.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#split-scps-py-1">split_scps.py</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#st-inference-py-1">st_inference.py</a></li>
@@ -8678,6 +8680,600 @@ Optimizer related:
 </pre></div>
 </div>
 </section>
+<section id="spk-embed-extract-py-1">
+<span id="spk-embed-extract-py"></span><h2>spk_embed_extract.py<a class="headerlink" href="#spk-embed-extract-py-1" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: spk_embed_extract.py [-h] [--config CONFIG]
+                            [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                            --output_dir OUTPUT_DIR [--ngpu NGPU]
+                            [--seed SEED] [--dtype {float16,float32,float64}]
+                            [--num_workers NUM_WORKERS]
+                            --data_path_and_name_and_type
+                            DATA_PATH_AND_NAME_AND_TYPE
+                            [--batch_type {unsorted,sorted,folded,length,numel}]
+                            [--batch_bins BATCH_BINS]
+                            [--valid_batch_bins VALID_BATCH_BINS]
+                            [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
+                            [--max_cache_size MAX_CACHE_SIZE]
+                            [--max_cache_fd MAX_CACHE_FD]
+                            [--allow_multi_rates ALLOW_MULTI_RATES]
+                            [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                            [--shape_file SHAPE_FILE]
+                            [--input_size INPUT_SIZE]
+                            [--num_cohort_spk NUM_COHORT_SPK]
+                            [--num_utt_per_spk NUM_UTT_PER_SPK]
+                            [--utt_select_sec UTT_SELECT_SEC]
+                            [--average_spk AVERAGE_SPK]
+                            [--adaptive_cohort_size ADAPTIVE_COHORT_SIZE]
+                            [--qmf_dur_thresh QMF_DUR_THRESH]
+                            [--qmf_num_trial_per_condition QMF_NUM_TRIAL_PER_CONDITION]
+                            [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
+                            [--average_embd AVERAGE_EMBD]
+                            [--train_dtype {float16,float32,float64}]
+                            [--use_amp USE_AMP]
+                            [--no_forward_run NO_FORWARD_RUN]
+                            [--sort_in_batch {descending,ascending}]
+                            [--sort_batch {descending,ascending}]
+                            [--drop_last_iter DROP_LAST_ITER]
+                            [--spk_train_config SPK_TRAIN_CONFIG]
+                            [--spk_model_file SPK_MODEL_FILE]
+                            [--model_tag MODEL_TAG]
+                            [--dist_backend DIST_BACKEND]
+                            [--dist_init_method DIST_INIT_METHOD]
+                            [--dist_world_size DIST_WORLD_SIZE]
+                            [--dist_rank DIST_RANK] [--local_rank LOCAL_RANK]
+                            [--dist_master_addr DIST_MASTER_ADDR]
+                            [--dist_master_port DIST_MASTER_PORT]
+                            [--dist_launcher {slurm,mpi,None}]
+                            [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
+                            [--unused_parameters UNUSED_PARAMETERS]
+                            [--sharded_ddp SHARDED_DDP]
+                            [--use_matplotlib USE_MATPLOTLIB]
+                            [--use_tensorboard USE_TENSORBOARD]
+                            [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
+                            [--use_wandb USE_WANDB]
+                            [--wandb_project WANDB_PROJECT]
+                            [--wandb_id WANDB_ID]
+                            [--wandb_entity WANDB_ENTITY]
+                            [--wandb_name WANDB_NAME]
+                            [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
+                            [--detect_anomaly DETECT_ANOMALY]
+                            [--use_lora USE_LORA]
+                            [--save_lora_only SAVE_LORA_ONLY]
+                            [--lora_conf LORA_CONF]
+                            [--cudnn_enabled CUDNN_ENABLED]
+                            [--cudnn_benchmark CUDNN_BENCHMARK]
+                            [--cudnn_deterministic CUDNN_DETERMINISTIC]
+                            [--valid_batch_size VALID_BATCH_SIZE]
+                            [--target_duration TARGET_DURATION]
+                            [--num_eval NUM_EVAL] [--fold_length FOLD_LENGTH]
+                            [--use_preprocessor USE_PREPROCESSOR]
+
+speaker embedding extraction
+
+optional arguments:
+  --config CONFIG       Give config file in yaml format (default: None)
+  --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        The verbose level of logging (default: INFO)
+  --output_dir OUTPUT_DIR
+  --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
+  --seed SEED           Random seed (default: 0)
+  --dtype {float16,float32,float64}
+                        Data type (default: float32)
+  --num_workers NUM_WORKERS
+                        The number of workers used for DataLoader (default: 1)
+
+Input data related:
+  --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
+  --batch_type {unsorted,sorted,folded,length,numel}
+                        &quot;unsorted&quot;: UnsortedBatchSampler has nothing in
+                        particular feature and just creates mini-batches which
+                        has constant batch_size. This sampler doesn&#39;t require
+                        any length information for each feature. &#39;key_file&#39; is
+                        just a text file which describes each sample name.
+                        utterance_id_a utterance_id_b utterance_id_c The fist
+                        column is referred, so &#39;shape file&#39; can be used, too.
+                        utterance_id_a 100,80 utterance_id_b 400,80
+                        utterance_id_c 512,80 &quot;sorted&quot;: SortedBatchSampler
+                        sorts samples by the length of the first input in
+                        order to make each sample in a mini-batch has close
+                        length. This sampler requires a text file which
+                        describes the length for each sample utterance_id_a
+                        1000 utterance_id_b 1453 utterance_id_c 1241 The first
+                        element of feature dimensions is referred, so
+                        &#39;shape_file&#39; can be also used. utterance_id_a 1000,80
+                        utterance_id_b 1453,80 utterance_id_c 1241,80
+                        &quot;folded&quot;: FoldedBatchSampler supports variable
+                        batch_size. The batch_size is decided by batch_size =
+                        base_batch_size // (L // fold_length) L is referred to
+                        the largest length of samples in the mini-batch. This
+                        samples requires length information as same as
+                        SortedBatchSampler &quot;length&quot;: LengthBatchSampler
+                        supports variable batch_size. This sampler makes mini-
+                        batches which have same number of &#39;bins&#39; as possible
+                        counting by the total lengths of each feature in the
+                        mini-batch. This sampler requires a text file which
+                        describes the length for each sample. utterance_id_a
+                        1000 utterance_id_b 1453 utterance_id_c 1241 The first
+                        element of feature dimensions is referred, so
+                        &#39;shape_file&#39; can be also used. utterance_id_a 1000,80
+                        utterance_id_b 1453,80 utterance_id_c 1241,80 &quot;numel&quot;:
+                        NumElementsBatchSampler supports variable batch_size.
+                        Just like LengthBatchSampler, this sampler makes mini-
+                        batches which have same number of &#39;bins&#39; as possible
+                        counting by the total number of elements of each
+                        feature instead of the length. Thus this sampler
+                        requires the full information of the dimension of the
+                        features. utterance_id_a 1000,80 utterance_id_b
+                        1453,80 utterance_id_c 1241,80 (default: folded)
+  --batch_bins BATCH_BINS
+                        The number of batch bins. Used if batch_type=&#39;length&#39;
+                        or &#39;numel&#39; (default: 1000000)
+  --valid_batch_bins VALID_BATCH_BINS
+                        If not given, the value of --batch_bins is used
+                        (default: None)
+  --valid_batch_type {unsorted,sorted,folded,length,numel,None}
+                        If not given, the value of --batch_type is used
+                        (default: None)
+  --max_cache_size MAX_CACHE_SIZE
+                        The maximum cache size for data loader. e.g. 10MB,
+                        20GB. (default: 0.0)
+  --max_cache_fd MAX_CACHE_FD
+                        The maximum number of file descriptors to be kept as
+                        opened for ark files. This feature is only valid when
+                        data type is &#39;kaldi_ark&#39;. (default: 32)
+  --allow_multi_rates ALLOW_MULTI_RATES
+                        Whether to allow audios to have different sampling
+                        rates (default: False)
+  --valid_max_cache_size VALID_MAX_CACHE_SIZE
+                        The maximum cache size for validation data loader.
+                        e.g. 10MB, 20GB. If None, the 5 percent size of
+                        --max_cache_size (default: None)
+  --shape_file SHAPE_FILE
+  --input_size INPUT_SIZE
+                        The number of input dimension of the feature (default:
+                        None)
+  --num_cohort_spk NUM_COHORT_SPK
+                        The number of cohort speakers in score norm (default:
+                        5994)
+  --num_utt_per_spk NUM_UTT_PER_SPK
+                        The number of utterances per speaker in score norm
+                        (default: 10)
+  --utt_select_sec UTT_SELECT_SEC
+                        Minimum duration for including the utt in cohort set
+                        in score norm (default: 8)
+  --average_spk AVERAGE_SPK
+                        whether to average cohort embeds per speaker in score
+                        norm (default: False)
+  --adaptive_cohort_size ADAPTIVE_COHORT_SIZE
+                        top-k cohort size in score norm (default: 400)
+  --qmf_dur_thresh QMF_DUR_THRESH
+                        threshold of duration to be considered as long in qmf
+                        trainset (default: 6)
+  --qmf_num_trial_per_condition QMF_NUM_TRIAL_PER_CONDITION
+                        number of trials per condition in qmf trainset
+                        (default: 5000)
+  --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
+  --average_embd AVERAGE_EMBD
+  --train_dtype {float16,float32,float64}
+                        Data type for training. (default: float32)
+  --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature
+                        requires pytorch&gt;=1.6 (default: False)
+  --no_forward_run NO_FORWARD_RUN
+                        Just only iterating data loading without model
+                        forwarding and training (default: False)
+  --sort_in_batch {descending,ascending}
+                        Sort the samples in each mini-batches by the sample
+                        lengths. To enable this, &quot;shape_file&quot; must have the
+                        length information. (default: descending)
+  --sort_batch {descending,ascending}
+                        Sort mini-batches by the sample lengths (default:
+                        descending)
+  --drop_last_iter DROP_LAST_ITER
+                        Exclude the minibatch with leftovers. (default: False)
+
+The model configuration related:
+  --spk_train_config SPK_TRAIN_CONFIG
+                        SPK training configuration (default: None)
+  --spk_model_file SPK_MODEL_FILE
+                        SPK model parameter file (default: None)
+  --model_tag MODEL_TAG
+                        Pretrained model tag. If specify this option,
+                        *_train_config and *_file will be overwritten
+                        (default: None)
+
+distributed training related:
+  --dist_backend DIST_BACKEND
+                        distributed backend (default: nccl)
+  --dist_init_method DIST_INIT_METHOD
+                        if init_method=&quot;env://&quot;, env values of &quot;MASTER_PORT&quot;,
+                        &quot;MASTER_ADDR&quot;, &quot;WORLD_SIZE&quot;, and &quot;RANK&quot; are referred.
+                        (default: env://)
+  --dist_world_size DIST_WORLD_SIZE
+                        number of nodes for distributed training (default:
+                        None)
+  --dist_rank DIST_RANK
+                        node rank for distributed training (default: None)
+  --local_rank LOCAL_RANK
+                        local rank for distributed training. This option is
+                        used if --multiprocessing_distributed=false (default:
+                        None)
+  --dist_master_addr DIST_MASTER_ADDR
+                        The master address for distributed training. This
+                        value is used when dist_init_method == &#39;env://&#39;
+                        (default: None)
+  --dist_master_port DIST_MASTER_PORT
+                        The master port for distributed trainingThis value is
+                        used when dist_init_method == &#39;env://&#39; (default: None)
+  --dist_launcher {slurm,mpi,None}
+                        The launcher type for distributed training (default:
+                        None)
+  --multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED
+                        Use multi-processing distributed training to launch N
+                        processes per node, which has N GPUs. This is the
+                        fastest way to use PyTorch for either single node or
+                        multi node data parallel training (default: False)
+  --unused_parameters UNUSED_PARAMETERS
+                        Whether to use the find_unused_parameters in
+                        torch.nn.parallel.DistributedDataParallel (default:
+                        False)
+  --sharded_ddp SHARDED_DDP
+                        Enable sharded training provided by fairscale
+                        (default: False)
+
+trainer initialization related:
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
+  --use_tensorboard USE_TENSORBOARD
+                        Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default:
+                        False)
+  --use_wandb USE_WANDB
+                        Enable wandb logging (default: False)
+  --wandb_project WANDB_PROJECT
+                        Specify wandb project (default: None)
+  --wandb_id WANDB_ID   Specify wandb id (default: None)
+  --wandb_entity WANDB_ENTITY
+                        Specify wandb entity (default: None)
+  --wandb_name WANDB_NAME
+                        Specify wandb run name (default: None)
+  --wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL
+                        Set the model log period (default: -1)
+  --detect_anomaly DETECT_ANOMALY
+                        Set torch.autograd.set_detect_anomaly (default: False)
+  --use_lora USE_LORA   Enable LoRA based finetuning, see
+                        (https://arxiv.org/abs/2106.09685) for large pre-
+                        trained foundation models, like Whisper (default:
+                        False)
+  --save_lora_only SAVE_LORA_ONLY
+                        Only save LoRA parameters or save all model parameters
+                        (default: True)
+  --lora_conf LORA_CONF
+                        Configuration for LoRA based finetuning (default: {})
+
+cudnn mode related:
+  --cudnn_enabled CUDNN_ENABLED
+                        Enable CUDNN (default: True)
+  --cudnn_benchmark CUDNN_BENCHMARK
+                        Enable cudnn-benchmark mode (default: False)
+  --cudnn_deterministic CUDNN_DETERMINISTIC
+                        Enable cudnn-deterministic mode (default: True)
+
+The inference hyperparameter related:
+  --valid_batch_size VALID_BATCH_SIZE
+                        The batch size for inference (default: 1)
+  --target_duration TARGET_DURATION
+                        Duration (in seconds) of samples in a minibatch
+                        (default: 3.0)
+  --num_eval NUM_EVAL   Number of segments to make from one utterance in the
+                        inference phase (default: 10)
+  --fold_length FOLD_LENGTH
+  --use_preprocessor USE_PREPROCESSOR
+                        Apply preprocessing to data or not (default: True)
+/home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe &#39;nopython&#39; keyword argument was not supplied to the &#39;numba.jit&#39; decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+  def backtrace(trace: np.ndarray):
+</pre></div>
+</div>
+</section>
+<section id="spk-inference-py-1">
+<span id="spk-inference-py"></span><h2>spk_inference.py<a class="headerlink" href="#spk-inference-py-1" title="Permalink to this headline">¶</a></h2>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: spk_inference.py [-h] [--config CONFIG]
+                        [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
+                        --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
+                        [--dtype {float16,float32,float64}]
+                        [--num_workers NUM_WORKERS]
+                        --data_path_and_name_and_type
+                        DATA_PATH_AND_NAME_AND_TYPE
+                        [--batch_type {unsorted,sorted,folded,length,numel}]
+                        [--batch_bins BATCH_BINS]
+                        [--valid_batch_bins VALID_BATCH_BINS]
+                        [--valid_batch_type {unsorted,sorted,folded,length,numel,None}]
+                        [--max_cache_size MAX_CACHE_SIZE]
+                        [--max_cache_fd MAX_CACHE_FD]
+                        [--valid_max_cache_size VALID_MAX_CACHE_SIZE]
+                        [--shape_file SHAPE_FILE] [--input_size INPUT_SIZE]
+                        [--allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS]
+                        [--spk2utt SPK2UTT]
+                        [--train_dtype {float16,float32,float64}]
+                        [--use_amp USE_AMP] [--grad_clip GRAD_CLIP]
+                        [--accum_grad ACCUM_GRAD]
+                        [--no_forward_run NO_FORWARD_RUN]
+                        [--grad_clip_type GRAD_CLIP_TYPE]
+                        [--grad_noise GRAD_NOISE] [--resume RESUME]
+                        [--sort_in_batch {descending,ascending}]
+                        [--sort_batch {descending,ascending}]
+                        [--drop_last_iter DROP_LAST_ITER]
+                        [--spk_train_config SPK_TRAIN_CONFIG]
+                        [--spk_model_file SPK_MODEL_FILE]
+                        [--model_tag MODEL_TAG] [--dist_backend DIST_BACKEND]
+                        [--dist_init_method DIST_INIT_METHOD]
+                        [--dist_world_size DIST_WORLD_SIZE]
+                        [--dist_rank DIST_RANK] [--local_rank LOCAL_RANK]
+                        [--dist_master_addr DIST_MASTER_ADDR]
+                        [--dist_master_port DIST_MASTER_PORT]
+                        [--dist_launcher {slurm,mpi,None}]
+                        [--multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED]
+                        [--unused_parameters UNUSED_PARAMETERS]
+                        [--sharded_ddp SHARDED_DDP] [--max_epoch MAX_EPOCH]
+                        [--patience PATIENCE]
+                        [--val_scheduler_criterion VAL_SCHEDULER_CRITERION VAL_SCHEDULER_CRITERION]
+                        [--early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION]
+                        [--best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]]
+                        [--keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]]
+                        [--nbest_averaging_interval NBEST_AVERAGING_INTERVAL]
+                        [--use_matplotlib USE_MATPLOTLIB]
+                        [--use_tensorboard USE_TENSORBOARD]
+                        [--create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD]
+                        [--use_wandb USE_WANDB]
+                        [--wandb_project WANDB_PROJECT] [--wandb_id WANDB_ID]
+                        [--wandb_entity WANDB_ENTITY]
+                        [--wandb_name WANDB_NAME]
+                        [--wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL]
+                        [--detect_anomaly DETECT_ANOMALY]
+                        [--cudnn_enabled CUDNN_ENABLED]
+                        [--cudnn_benchmark CUDNN_BENCHMARK]
+                        [--cudnn_deterministic CUDNN_DETERMINISTIC]
+                        [--valid_batch_size VALID_BATCH_SIZE]
+                        [--target_duration TARGET_DURATION]
+                        [--num_eval NUM_EVAL] [--fold_length FOLD_LENGTH]
+                        [--use_preprocessor USE_PREPROCESSOR]
+
+SPK Decoding
+
+optional arguments:
+  --config CONFIG       Give config file in yaml format (default: None)
+  --log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}
+                        The verbose level of logging (default: INFO)
+  --output_dir OUTPUT_DIR
+  --ngpu NGPU           The number of gpus. 0 indicates CPU mode (default: 0)
+  --seed SEED           Random seed (default: 0)
+  --dtype {float16,float32,float64}
+                        Data type (default: float32)
+  --num_workers NUM_WORKERS
+                        The number of workers used for DataLoader (default: 1)
+
+Input data related:
+  --data_path_and_name_and_type DATA_PATH_AND_NAME_AND_TYPE
+  --batch_type {unsorted,sorted,folded,length,numel}
+                        &quot;unsorted&quot;: UnsortedBatchSampler has nothing in
+                        particular feature and just creates mini-batches which
+                        has constant batch_size. This sampler doesn&#39;t require
+                        any length information for each feature. &#39;key_file&#39; is
+                        just a text file which describes each sample name.
+                        utterance_id_a utterance_id_b utterance_id_c The fist
+                        column is referred, so &#39;shape file&#39; can be used, too.
+                        utterance_id_a 100,80 utterance_id_b 400,80
+                        utterance_id_c 512,80 &quot;sorted&quot;: SortedBatchSampler
+                        sorts samples by the length of the first input in
+                        order to make each sample in a mini-batch has close
+                        length. This sampler requires a text file which
+                        describes the length for each sample utterance_id_a
+                        1000 utterance_id_b 1453 utterance_id_c 1241 The first
+                        element of feature dimensions is referred, so
+                        &#39;shape_file&#39; can be also used. utterance_id_a 1000,80
+                        utterance_id_b 1453,80 utterance_id_c 1241,80
+                        &quot;folded&quot;: FoldedBatchSampler supports variable
+                        batch_size. The batch_size is decided by batch_size =
+                        base_batch_size // (L // fold_length) L is referred to
+                        the largest length of samples in the mini-batch. This
+                        samples requires length information as same as
+                        SortedBatchSampler &quot;length&quot;: LengthBatchSampler
+                        supports variable batch_size. This sampler makes mini-
+                        batches which have same number of &#39;bins&#39; as possible
+                        counting by the total lengths of each feature in the
+                        mini-batch. This sampler requires a text file which
+                        describes the length for each sample. utterance_id_a
+                        1000 utterance_id_b 1453 utterance_id_c 1241 The first
+                        element of feature dimensions is referred, so
+                        &#39;shape_file&#39; can be also used. utterance_id_a 1000,80
+                        utterance_id_b 1453,80 utterance_id_c 1241,80 &quot;numel&quot;:
+                        NumElementsBatchSampler supports variable batch_size.
+                        Just like LengthBatchSampler, this sampler makes mini-
+                        batches which have same number of &#39;bins&#39; as possible
+                        counting by the total number of elements of each
+                        feature instead of the length. Thus this sampler
+                        requires the full information of the dimension of the
+                        features. utterance_id_a 1000,80 utterance_id_b
+                        1453,80 utterance_id_c 1241,80 (default: folded)
+  --batch_bins BATCH_BINS
+                        The number of batch bins. Used if batch_type=&#39;length&#39;
+                        or &#39;numel&#39; (default: 1000000)
+  --valid_batch_bins VALID_BATCH_BINS
+                        If not given, the value of --batch_bins is used
+                        (default: None)
+  --valid_batch_type {unsorted,sorted,folded,length,numel,None}
+                        If not given, the value of --batch_type is used
+                        (default: None)
+  --max_cache_size MAX_CACHE_SIZE
+                        The maximum cache size for data loader. e.g. 10MB,
+                        20GB. (default: 0.0)
+  --max_cache_fd MAX_CACHE_FD
+                        The maximum number of file descriptors to be kept as
+                        opened for ark files. This feature is only valid when
+                        data type is &#39;kaldi_ark&#39;. (default: 32)
+  --valid_max_cache_size VALID_MAX_CACHE_SIZE
+                        The maximum cache size for validation data loader.
+                        e.g. 10MB, 20GB. If None, the 5 percent size of
+                        --max_cache_size (default: None)
+  --shape_file SHAPE_FILE
+  --input_size INPUT_SIZE
+                        The number of input dimension of the feature (default:
+                        None)
+  --allow_variable_data_keys ALLOW_VARIABLE_DATA_KEYS
+  --spk2utt SPK2UTT     Directory of spk2utt file to be used in label mapping
+                        (default: )
+  --train_dtype {float16,float32,float64}
+                        Data type for training. (default: float32)
+  --use_amp USE_AMP     Enable Automatic Mixed Precision. This feature
+                        requires pytorch&gt;=1.6 (default: False)
+  --grad_clip GRAD_CLIP
+                        Gradient norm threshold to clip (default: 5.0)
+  --accum_grad ACCUM_GRAD
+                        The number of gradient accumulation (default: 1)
+  --no_forward_run NO_FORWARD_RUN
+                        Just only iterating data loading without model
+                        forwarding and training (default: False)
+  --grad_clip_type GRAD_CLIP_TYPE
+                        The type of the used p-norm for gradient clip. Can be
+                        inf (default: 2.0)
+  --grad_noise GRAD_NOISE
+                        The flag to switch to use noise injection to gradients
+                        during training (default: False)
+  --resume RESUME       Enable resuming if checkpoint is existing (default:
+                        False)
+  --sort_in_batch {descending,ascending}
+                        Sort the samples in each mini-batches by the sample
+                        lengths. To enable this, &quot;shape_file&quot; must have the
+                        length information. (default: descending)
+  --sort_batch {descending,ascending}
+                        Sort mini-batches by the sample lengths (default:
+                        descending)
+  --drop_last_iter DROP_LAST_ITER
+                        Exclude the minibatch with leftovers. (default: False)
+
+The model configuration related:
+  --spk_train_config SPK_TRAIN_CONFIG
+                        SPK training configuration (default: None)
+  --spk_model_file SPK_MODEL_FILE
+                        SPK model parameter file (default: None)
+  --model_tag MODEL_TAG
+                        Pretrained model tag. If specify this option,
+                        *_train_config and *_file will be overwritten
+                        (default: None)
+
+distributed training related:
+  --dist_backend DIST_BACKEND
+                        distributed backend (default: nccl)
+  --dist_init_method DIST_INIT_METHOD
+                        if init_method=&quot;env://&quot;, env values of &quot;MASTER_PORT&quot;,
+                        &quot;MASTER_ADDR&quot;, &quot;WORLD_SIZE&quot;, and &quot;RANK&quot; are referred.
+                        (default: env://)
+  --dist_world_size DIST_WORLD_SIZE
+                        number of nodes for distributed training (default:
+                        None)
+  --dist_rank DIST_RANK
+                        node rank for distributed training (default: None)
+  --local_rank LOCAL_RANK
+                        local rank for distributed training. This option is
+                        used if --multiprocessing_distributed=false (default:
+                        None)
+  --dist_master_addr DIST_MASTER_ADDR
+                        The master address for distributed training. This
+                        value is used when dist_init_method == &#39;env://&#39;
+                        (default: None)
+  --dist_master_port DIST_MASTER_PORT
+                        The master port for distributed trainingThis value is
+                        used when dist_init_method == &#39;env://&#39; (default: None)
+  --dist_launcher {slurm,mpi,None}
+                        The launcher type for distributed training (default:
+                        None)
+  --multiprocessing_distributed MULTIPROCESSING_DISTRIBUTED
+                        Use multi-processing distributed training to launch N
+                        processes per node, which has N GPUs. This is the
+                        fastest way to use PyTorch for either single node or
+                        multi node data parallel training (default: False)
+  --unused_parameters UNUSED_PARAMETERS
+                        Whether to use the find_unused_parameters in
+                        torch.nn.parallel.DistributedDataParallel (default:
+                        False)
+  --sharded_ddp SHARDED_DDP
+                        Enable sharded training provided by fairscale
+                        (default: False)
+
+trainer initialization related:
+  --max_epoch MAX_EPOCH
+                        The maximum number epoch to train (default: 40)
+  --patience PATIENCE   Number of epochs to wait without improvement before
+                        stopping the training (default: None)
+  --val_scheduler_criterion VAL_SCHEDULER_CRITERION VAL_SCHEDULER_CRITERION
+                        The criterion used for the value given to the lr
+                        scheduler. Give a pair referring the phase, &quot;train&quot; or
+                        &quot;valid&quot;,and the criterion name. The mode specifying
+                        &quot;min&quot; or &quot;max&quot; can be changed by --scheduler_conf
+                        (default: (&#39;valid&#39;, &#39;loss&#39;))
+  --early_stopping_criterion EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION EARLY_STOPPING_CRITERION
+                        The criterion used for judging of early stopping. Give
+                        a pair referring the phase, &quot;train&quot; or &quot;valid&quot;,the
+                        criterion name and the mode, &quot;min&quot; or &quot;max&quot;, e.g.
+                        &quot;acc,max&quot;. (default: (&#39;valid&#39;, &#39;loss&#39;, &#39;min&#39;))
+  --best_model_criterion BEST_MODEL_CRITERION [BEST_MODEL_CRITERION ...]
+                        The criterion used for judging of the best model. Give
+                        a pair referring the phase, &quot;train&quot; or &quot;valid&quot;,the
+                        criterion name, and the mode, &quot;min&quot; or &quot;max&quot;, e.g.
+                        &quot;acc,max&quot;. (default: [(&#39;train&#39;, &#39;loss&#39;, &#39;min&#39;),
+                        (&#39;valid&#39;, &#39;loss&#39;, &#39;min&#39;), (&#39;train&#39;, &#39;acc&#39;, &#39;max&#39;),
+                        (&#39;valid&#39;, &#39;acc&#39;, &#39;max&#39;)])
+  --keep_nbest_models KEEP_NBEST_MODELS [KEEP_NBEST_MODELS ...]
+                        Remove previous snapshots excluding the n-best scored
+                        epochs (default: [10])
+  --nbest_averaging_interval NBEST_AVERAGING_INTERVAL
+                        The epoch interval to apply model averaging and save
+                        nbest models (default: 0)
+  --use_matplotlib USE_MATPLOTLIB
+                        Enable matplotlib logging (default: True)
+  --use_tensorboard USE_TENSORBOARD
+                        Enable tensorboard logging (default: True)
+  --create_graph_in_tensorboard CREATE_GRAPH_IN_TENSORBOARD
+                        Whether to create graph in tensorboard (default:
+                        False)
+  --use_wandb USE_WANDB
+                        Enable wandb logging (default: False)
+  --wandb_project WANDB_PROJECT
+                        Specify wandb project (default: None)
+  --wandb_id WANDB_ID   Specify wandb id (default: None)
+  --wandb_entity WANDB_ENTITY
+                        Specify wandb entity (default: None)
+  --wandb_name WANDB_NAME
+                        Specify wandb run name (default: None)
+  --wandb_model_log_interval WANDB_MODEL_LOG_INTERVAL
+                        Set the model log period (default: -1)
+  --detect_anomaly DETECT_ANOMALY
+                        Set torch.autograd.set_detect_anomaly (default: False)
+
+cudnn mode related:
+  --cudnn_enabled CUDNN_ENABLED
+                        Enable CUDNN (default: True)
+  --cudnn_benchmark CUDNN_BENCHMARK
+                        Enable cudnn-benchmark mode (default: False)
+  --cudnn_deterministic CUDNN_DETERMINISTIC
+                        Enable cudnn-deterministic mode (default: True)
+
+The inference hyperparameter related:
+  --valid_batch_size VALID_BATCH_SIZE
+                        The batch size for inference (default: 1)
+  --target_duration TARGET_DURATION
+                        Duration (in seconds) of samples in a minibatch
+                        (default: 3.0)
+  --num_eval NUM_EVAL   Number of segments to make from one utterance in the
+                        inference phase (default: 10)
+  --fold_length FOLD_LENGTH
+  --use_preprocessor USE_PREPROCESSOR
+                        Apply preprocessing to data or not (default: True)
+/home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe &#39;nopython&#39; keyword argument was not supplied to the &#39;numba.jit&#39; decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+  def backtrace(trace: np.ndarray):
+</pre></div>
+</div>
+</section>
 <section id="spk-train-py-1">
 <span id="spk-train-py"></span><h2>spk_train.py<a class="headerlink" href="#spk-train-py-1" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-none notranslate"><div class="highlight"><pre><span></span>usage: spk_train.py [-h] [--config CONFIG] [--print_config]
@@ -8762,19 +9358,22 @@ Optimizer related:
                     [--use_preprocessor USE_PREPROCESSOR]
                     [--input_size INPUT_SIZE]
                     [--target_duration TARGET_DURATION] [--spk2utt SPK2UTT]
-                    [--sample_rate SAMPLE_RATE] [--num_eval NUM_EVAL]
-                    [--rir_scp RIR_SCP] [--model_conf MODEL_CONF]
-                    [--frontend {default,sliding_window,raw,None}]
+                    [--spk_num SPK_NUM] [--sample_rate SAMPLE_RATE]
+                    [--num_eval NUM_EVAL] [--rir_scp RIR_SCP]
+                    [--model_conf MODEL_CONF]
+                    [--frontend {asteroid_frontend,default,fused,melspec_torch,sliding_window,s3prl,None}]
                     [--frontend_conf FRONTEND_CONF] [--specaug {specaug,None}]
                     [--specaug_conf SPECAUG_CONF]
                     [--normalize {global_mvn,utterance_mvn,None}]
-                    [--normalize_conf NORMALIZE_CONF] [--encoder {rawnet3}]
+                    [--normalize_conf NORMALIZE_CONF]
+                    [--encoder {rawnet3,ecapa_tdnn}]
                     [--encoder_conf ENCODER_CONF] [--pooling {chn_attn_stat}]
                     [--pooling_conf POOLING_CONF] [--projector {rawnet3}]
                     [--projector_conf PROJECTOR_CONF]
                     [--preprocessor {common,spk}]
                     [--preprocessor_conf PREPROCESSOR_CONF]
-                    [--loss {aamsoftmax}] [--loss_conf LOSS_CONF]
+                    [--loss {aamsoftmax,aamsoftmax_sc_topk}]
+                    [--loss_conf LOSS_CONF]
 
 base parser
 
@@ -9165,14 +9764,15 @@ Optimizer related:
   --target_duration TARGET_DURATION
                         Duration (in seconds) of samples in a minibatch (default: 3.0)
   --spk2utt SPK2UTT     Directory of spk2utt file to be used in label mapping (default: )
+  --spk_num SPK_NUM     specify the number of speakers during training (default: None)
   --sample_rate SAMPLE_RATE
                         Sampling rate (default: 16000)
   --num_eval NUM_EVAL   Number of segments to make from one utterance in the inference phase (default: 10)
   --rir_scp RIR_SCP     Directory of the rir data to be augmented (default: )
   --model_conf MODEL_CONF
                         The keyword arguments for model class. (default: {})
-  --frontend {default,sliding_window,raw,None}
-                        The frontend type (default: default)
+  --frontend {asteroid_frontend,default,fused,melspec_torch,sliding_window,s3prl,None}
+                        The frontend type (default: None)
   --frontend_conf FRONTEND_CONF
                         The keyword arguments for frontend (default: {})
   --specaug {specaug,None}
@@ -9183,7 +9783,8 @@ Optimizer related:
                         The normalize type (default: None)
   --normalize_conf NORMALIZE_CONF
                         The keyword arguments for normalize (default: {})
-  --encoder {rawnet3}   The encoder type (default: rawnet3)
+  --encoder {rawnet3,ecapa_tdnn}
+                        The encoder type (default: rawnet3)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
   --pooling {chn_attn_stat}
@@ -9198,7 +9799,8 @@ Optimizer related:
                         The preprocessor type (default: spk)
   --preprocessor_conf PREPROCESSOR_CONF
                         The keyword arguments for preprocessor (default: {})
-  --loss {aamsoftmax}   The loss type (default: aam)
+  --loss {aamsoftmax,aamsoftmax_sc_topk}
+                        The loss type (default: aam)
   --loss_conf LOSS_CONF
                         The keyword arguments for loss (default: {})
 /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe &#39;nopython&#39; keyword argument was not supplied to the &#39;numba.jit&#39; decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m

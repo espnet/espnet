@@ -302,8 +302,12 @@
         <span class="c1"># fill dictionary with speech samples</span>
         <span class="n">utt_id_list</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">speech_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">task_token</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">for</span> <span class="n">utt_id</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
             <span class="n">bs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">bs</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">utt_id</span><span class="p">))</span>
+            <span class="k">if</span> <span class="s2">&quot;task_tokens&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+                <span class="n">task_token</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;task_tokens&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">_utt_id</span><span class="p">,</span> <span class="n">_speech</span><span class="p">,</span> <span class="n">_speech2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
                 <span class="n">utt_id</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech2&quot;</span><span class="p">]</span>
@@ -330,7 +334,18 @@
             <span class="n">_speechs</span> <span class="o">=</span> <span class="n">_speechs</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
             <span class="n">_speechs</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">_speechs</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
 
-            <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span><span class="n">speech</span><span class="o">=</span><span class="n">_speechs</span><span class="p">,</span> <span class="n">spk_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">extract_embd</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">task_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">task_tokens</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">task_tokens</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span>
+                    <span class="n">task_token</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">_speechs</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
+                <span class="n">speech</span><span class="o">=</span><span class="n">_speechs</span><span class="p">,</span>
+                <span class="n">spk_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">extract_embd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">task_tokens</span><span class="o">=</span><span class="n">task_tokens</span><span class="p">,</span>
+            <span class="p">)</span>
             <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">spk_embds</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
             <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">spk_embds</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">org_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">org_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
@@ -437,7 +452,174 @@
                 <span class="n">nontrg_std</span><span class="o">=</span><span class="n">nontrg_std</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="p">)</span>
-        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span></div></div>
+
+        <span class="c1"># added to reduce GRAM usage. May have minor speed boost when</span>
+        <span class="c1"># this line is commented in case GRAM is not fully used.</span>
+        <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">empty_cache</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SpkTrainer.extract_embed"><a class="viewcode-back" href="../../../_gen/espnet2.train.html#espnet2.tasks.spk.SpkTrainer.extract_embed">[docs]</a>    <span class="nd">@classmethod</span>
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="nf">extract_embed</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span>
+        <span class="n">model</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span>
+        <span class="n">iterator</span><span class="p">:</span> <span class="n">Iterable</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
+        <span class="n">reporter</span><span class="p">:</span> <span class="n">SubReporter</span><span class="p">,</span>
+        <span class="n">options</span><span class="p">:</span> <span class="n">TrainerOptions</span><span class="p">,</span>
+        <span class="n">distributed_option</span><span class="p">:</span> <span class="n">DistributedOption</span><span class="p">,</span>
+        <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+        <span class="n">custom_bs</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+        <span class="n">average</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+        <span class="n">ngpu</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">ngpu</span>
+        <span class="n">no_forward_run</span> <span class="o">=</span> <span class="n">options</span><span class="o">.</span><span class="n">no_forward_run</span>
+        <span class="n">distributed</span> <span class="o">=</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span>
+
+        <span class="n">model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+
+        <span class="n">scores</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">spk_embd_dic</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># [For distributed] Because iteration counts are not always equals between</span>
+        <span class="c1"># processes, send stop-flag to the other processes if iterator is finished</span>
+        <span class="n">iterator_stop</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+
+        <span class="c1"># fill dictionary with speech samples</span>
+        <span class="n">utt_id_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">utt_id_whole_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">speech_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">task_token_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">task_token</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">distributed</span><span class="p">:</span>
+            <span class="n">rank</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_rank</span><span class="p">()</span>
+            <span class="n">world_size</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">distributed</span><span class="o">.</span><span class="n">get_world_size</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">rank</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="n">world_size</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">utt_id</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">iterator</span><span class="p">:</span>
+            <span class="k">if</span> <span class="s2">&quot;task_tokens&quot;</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">:</span>
+                <span class="n">task_token</span> <span class="o">=</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;task_tokens&quot;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">_utt_id</span><span class="p">,</span> <span class="n">_speech</span><span class="p">,</span> <span class="n">_speech2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+                <span class="n">utt_id</span><span class="p">,</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech&quot;</span><span class="p">],</span> <span class="n">batch</span><span class="p">[</span><span class="s2">&quot;speech2&quot;</span><span class="p">]</span>
+            <span class="p">):</span>
+                <span class="n">_utt_id_1</span><span class="p">,</span> <span class="n">_utt_id_2</span> <span class="o">=</span> <span class="n">_utt_id</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">_utt_id_1</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">utt_id_whole_list</span><span class="p">:</span>
+                    <span class="n">utt_id_whole_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_utt_id_1</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">idx</span> <span class="o">%</span> <span class="n">world_size</span> <span class="o">==</span> <span class="n">rank</span><span class="p">:</span>
+                        <span class="n">utt_id_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_utt_id_1</span><span class="p">)</span>
+                        <span class="n">speech_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_speech</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">utt_id_list</span><span class="p">)</span> <span class="o">==</span> <span class="n">custom_bs</span><span class="p">:</span>
+                        <span class="n">speech_list</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">speech_list</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="n">org_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">speech_list</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">speech_list</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+                        <span class="n">speech_list</span> <span class="o">=</span> <span class="n">speech_list</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="n">speech_list</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span>
+                            <span class="n">speech_list</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">task_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">task_tokens</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">task_tokens</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span>
+                                <span class="n">task_token</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">speech_list</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span>
+                                <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+                            <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
+                            <span class="n">speech</span><span class="o">=</span><span class="n">speech_list</span><span class="p">,</span>
+                            <span class="n">spk_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">extract_embd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">task_tokens</span><span class="o">=</span><span class="n">task_tokens</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="c1"># removed to be use magnitude in qmf</span>
+                        <span class="c1"># spk_embds = F.normalize(spk_embds, p=2, dim=1)</span>
+                        <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">spk_embds</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">org_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">org_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+                        <span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="n">_spk_embd</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">utt_id_list</span><span class="p">,</span> <span class="n">spk_embds</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="n">average</span><span class="p">:</span>
+                                <span class="n">spk_embd_dic</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                                    <span class="n">_spk_embd</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                                <span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">spk_embd_dic</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span> <span class="o">=</span> <span class="n">_spk_embd</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+                        <span class="n">utt_id_list</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">speech_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+                    <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">_utt_id_2</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">utt_id_whole_list</span><span class="p">:</span>
+                    <span class="n">utt_id_whole_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_utt_id_2</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">idx</span> <span class="o">%</span> <span class="n">world_size</span> <span class="o">==</span> <span class="n">rank</span><span class="p">:</span>
+                        <span class="n">utt_id_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_utt_id_2</span><span class="p">)</span>
+                        <span class="n">speech_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_speech2</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">utt_id_list</span><span class="p">)</span> <span class="o">==</span> <span class="n">custom_bs</span><span class="p">:</span>
+                        <span class="n">speech_list</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">speech_list</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                        <span class="n">org_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">speech_list</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">speech_list</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+                        <span class="n">speech_list</span> <span class="o">=</span> <span class="n">speech_list</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="n">speech_list</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span>
+                            <span class="n">speech_list</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+                        <span class="p">)</span>
+                        <span class="k">if</span> <span class="n">task_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">task_tokens</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">task_tokens</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span>
+                                <span class="n">task_token</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">speech_list</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span>
+                                <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+                            <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
+                            <span class="n">speech</span><span class="o">=</span><span class="n">speech_list</span><span class="p">,</span>
+                            <span class="n">spk_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">extract_embd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                            <span class="n">task_tokens</span><span class="o">=</span><span class="n">task_tokens</span><span class="p">,</span>
+                        <span class="p">)</span>
+                        <span class="c1"># removed to be use magnitude in qmf</span>
+                        <span class="c1"># spk_embds = F.normalize(spk_embds, p=2, dim=1)</span>
+                        <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">spk_embds</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">org_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">org_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+                        <span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="n">_spk_embd</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">utt_id_list</span><span class="p">,</span> <span class="n">spk_embds</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="n">average</span><span class="p">:</span>
+                                <span class="n">spk_embd_dic</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                                    <span class="n">_spk_embd</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                                <span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">spk_embd_dic</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span> <span class="o">=</span> <span class="n">_spk_embd</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+                        <span class="n">utt_id_list</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">speech_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+                    <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">utt_id_list</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">speech_list</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">speech_list</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">org_shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">speech_list</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">speech_list</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+            <span class="n">speech_list</span> <span class="o">=</span> <span class="n">speech_list</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">speech_list</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">speech_list</span><span class="p">,</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">task_token</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">task_tokens</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">task_tokens</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span>
+                    <span class="n">task_token</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">speech_list</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span>
+                    <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+                <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">model</span><span class="p">(</span>
+                <span class="n">speech</span><span class="o">=</span><span class="n">speech_list</span><span class="p">,</span>
+                <span class="n">spk_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                <span class="n">extract_embd</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                <span class="n">task_tokens</span><span class="o">=</span><span class="n">task_tokens</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">normalize</span><span class="p">(</span><span class="n">spk_embds</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+            <span class="n">spk_embds</span> <span class="o">=</span> <span class="n">spk_embds</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="n">org_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">org_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">uid</span><span class="p">,</span> <span class="n">_spk_embd</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">utt_id_list</span><span class="p">,</span> <span class="n">spk_embds</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">average</span><span class="p">:</span>
+                    <span class="n">spk_embd_dic</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span> <span class="o">=</span> <span class="n">_spk_embd</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">spk_embd_dic</span><span class="p">[</span><span class="n">uid</span><span class="p">]</span> <span class="o">=</span> <span class="n">_spk_embd</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">savez</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">+</span> <span class="sa">f</span><span class="s2">&quot;/embeddings</span><span class="si">{</span><span class="n">rank</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">spk_embd_dic</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

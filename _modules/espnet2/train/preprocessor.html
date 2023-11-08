@@ -2096,8 +2096,8 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
-        <span class="n">spk2utt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
         <span class="n">target_duration</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>  <span class="c1"># in seconds</span>
+        <span class="n">spk2utt</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">sample_rate</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span>
         <span class="n">num_eval</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
         <span class="n">rir_scp</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -2109,15 +2109,17 @@
         <span class="n">short_noise_thres</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train</span><span class="p">,</span> <span class="n">rir_scp</span><span class="o">=</span><span class="n">rir_scp</span><span class="p">,</span> <span class="n">rir_apply_prob</span><span class="o">=</span><span class="n">rir_apply_prob</span><span class="p">)</span>
-        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">spk2utt</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f_s2u</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">spk2utt</span> <span class="o">=</span> <span class="n">f_s2u</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">nspk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spk2utt</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">spk2label</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># a dictionary that maps string speaker label to int</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">sample_rate</span> <span class="o">=</span> <span class="n">sample_rate</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target_duration</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">target_duration</span> <span class="o">*</span> <span class="n">sample_rate</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_eval</span> <span class="o">=</span> <span class="n">num_eval</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_make_label_mapping</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">train</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">spk2utt</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f_s2u</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">spk2utt</span> <span class="o">=</span> <span class="n">f_s2u</span><span class="o">.</span><span class="n">readlines</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_make_label_mapping</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nspk</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">spk2utt</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">rir_scp</span> <span class="o">=</span> <span class="n">rir_scp</span>
 
@@ -2326,6 +2328,9 @@
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;spk_labels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="n">int_label</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">data</span><span class="p">[</span><span class="s2">&quot;spk_labels&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;spk_labels&quot;</span><span class="p">])])</span>
+
+        <span class="k">if</span> <span class="s2">&quot;task_tokens&quot;</span> <span class="ow">in</span> <span class="n">data</span><span class="p">:</span>
+            <span class="n">data</span><span class="p">[</span><span class="s2">&quot;task_tokens&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;task_tokens&quot;</span><span class="p">])])</span>
 
         <span class="k">return</span> <span class="n">data</span>
 

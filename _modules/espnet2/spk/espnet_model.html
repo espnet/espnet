@@ -214,7 +214,7 @@
 <span></span><span class="c1"># Copyright 2023 Jee-weon Jung</span>
 <span class="c1">#  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
@@ -277,8 +277,8 @@
 <div class="viewcode-block" id="ESPnetSpeakerModel.forward"><a class="viewcode-back" href="../../../_gen/espnet2.spk.html#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">speech</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
-        <span class="c1"># speech_lengths: torch.Tensor = None,</span>
         <span class="n">spk_labels</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+        <span class="n">task_tokens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">extract_embd</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]:</span>
@@ -292,11 +292,19 @@
 <span class="sd">            extract_embd: a flag which doesn&#39;t go through the classification</span>
 <span class="sd">                head when set True</span>
 <span class="sd">            spk_labels: (Batch, )</span>
+<span class="sd">            one-hot speaker labels used in the train phase</span>
+<span class="sd">            task_tokens: (Batch, )</span>
+<span class="sd">            task tokens used in case of token-based trainings</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">spk_labels</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">assert</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">spk_labels</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span>
                 <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
                 <span class="n">spk_labels</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">task_tokens</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">task_tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span>
+                <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                <span class="n">task_tokens</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
             <span class="p">)</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -307,7 +315,7 @@
         <span class="n">frame_level_feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encode_frame</span><span class="p">(</span><span class="n">feats</span><span class="p">)</span>
 
         <span class="c1"># 2. aggregation into utterance-level</span>
-        <span class="n">utt_level_feat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pooling</span><span class="p">(</span><span class="n">frame_level_feats</span><span class="p">)</span>
+        <span class="n">utt_level_feat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pooling</span><span class="p">(</span><span class="n">frame_level_feats</span><span class="p">,</span> <span class="n">task_tokens</span><span class="p">)</span>
 
         <span class="c1"># 3. (optionally) go through further projection(s)</span>
         <span class="n">spk_embd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">project_spk_embd</span><span class="p">(</span><span class="n">utt_level_feat</span><span class="p">)</span>
@@ -316,7 +324,7 @@
             <span class="k">return</span> <span class="n">spk_embd</span>
 
         <span class="c1"># 4. calculate loss</span>
-        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="n">spk_embd</span><span class="p">,</span> <span class="n">spk_labels</span><span class="p">)</span>
+        <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="n">spk_embd</span><span class="p">,</span> <span class="n">spk_labels</span><span class="o">.</span><span class="n">squeeze</span><span class="p">())</span>
 
         <span class="n">stats</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">())</span>
 

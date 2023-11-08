@@ -851,6 +851,17 @@ espnet2.asr.frontend.abs_frontend
     :show-inheritance:
 
 
+.. _espnet2.asr.frontend.asteroid_frontend:
+
+espnet2.asr.frontend.asteroid_frontend
+--------------------------------------
+
+.. automodule:: espnet2.asr.frontend.asteroid_frontend
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.frontend.s3prl:
 
 espnet2.asr.frontend.s3prl
@@ -879,6 +890,17 @@ espnet2.asr.frontend.whisper
 ----------------------------
 
 .. automodule:: espnet2.asr.frontend.whisper
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.asr.frontend.melspec_torch:
+
+espnet2.asr.frontend.melspec_torch
+----------------------------------
+
+.. automodule:: espnet2.asr.frontend.melspec_torch
     :members:
     :undoc-members:
     :show-inheritance:

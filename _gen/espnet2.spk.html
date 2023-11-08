@@ -135,16 +135,19 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-init-1">espnet2.spk.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-loss-abs-loss-1">espnet2.spk.loss.abs_loss</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-loss-aamsoftmax-1">espnet2.spk.loss.aamsoftmax</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-loss-aamsoftmax-subcenter-intertopk-1">espnet2.spk.loss.aamsoftmax_subcenter_intertopk</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-loss-init-1">espnet2.spk.loss.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-pooling-abs-pooling-1">espnet2.spk.pooling.abs_pooling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-pooling-chn-attn-stat-pooling-1">espnet2.spk.pooling.chn_attn_stat_pooling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-pooling-init-1">espnet2.spk.pooling.__init__</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-layers-rawnetbasicblock-1">espnet2.spk.layers.RawNetBasicBlock</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-layers-ecapa-block-1">espnet2.spk.layers.ecapa_block</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-layers-init-1">espnet2.spk.layers.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-layers-rawnet-block-1">espnet2.spk.layers.rawnet_block</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-projector-rawnet3-projector-1">espnet2.spk.projector.rawnet3_projector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-projector-init-1">espnet2.spk.projector.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-projector-abs-projector-1">espnet2.spk.projector.abs_projector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-rawnet3-encoder-1">espnet2.spk.encoder.rawnet3_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-ecapa-tdnn-encoder-1">espnet2.spk.encoder.ecapa_tdnn_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-init-1">espnet2.spk.encoder.__init__</a></li>
 </ul>
 </li>
@@ -261,7 +264,7 @@ a ‘decoder’, depending on the extension for joint usage of different tasks
 
 <dl class="method">
 <dt id="espnet2.spk.espnet_model.ESPnetSpeakerModel.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">spk_labels: torch.Tensor</em>, <em class="sig-param">extract_embd: bool = False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/spk/espnet_model.html#ESPnetSpeakerModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">speech: torch.Tensor</em>, <em class="sig-param">spk_labels: torch.Tensor</em>, <em class="sig-param">task_tokens: torch.Tensor = None</em>, <em class="sig-param">extract_embd: bool = False</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]<a class="reference internal" href="../_modules/espnet2/spk/espnet_model.html#ESPnetSpeakerModel.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.espnet_model.ESPnetSpeakerModel.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Feed-forward through encoder layers and aggregate into utterance-level
 feature.</p>
 <dl class="field-list simple">
@@ -272,6 +275,9 @@ feature.</p>
 <li><p><strong>extract_embd</strong> – a flag which doesn’t go through the classification
 head when set True</p></li>
 <li><p><strong>spk_labels</strong> – (Batch, )</p></li>
+<li><p><strong>speaker labels used in the train phase</strong> (<em>one-hot</em>) – </p></li>
+<li><p><strong>task_tokens</strong> – (Batch, )</p></li>
+<li><p><strong>tokens used in case of token-based trainings</strong> (<em>task</em>) – </p></li>
 </ul>
 </dd>
 </dl>
@@ -348,6 +354,59 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-spk-loss-aamsoftmax-subcenter-intertopk-1">
+<span id="espnet2-spk-loss-aamsoftmax-subcenter-intertopk"></span><h2>espnet2.spk.loss.aamsoftmax_subcenter_intertopk<a class="headerlink" href="#espnet2-spk-loss-aamsoftmax-subcenter-intertopk-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.loss.aamsoftmax_subcenter_intertopk"></span><dl class="class">
+<dt id="espnet2.spk.loss.aamsoftmax_subcenter_intertopk.ArcMarginProduct_intertopk_subcenter">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.loss.aamsoftmax_subcenter_intertopk.</code><code class="sig-name descname">ArcMarginProduct_intertopk_subcenter</code><span class="sig-paren">(</span><em class="sig-param">nout</em>, <em class="sig-param">nclasses</em>, <em class="sig-param">scale=32.0</em>, <em class="sig-param">margin=0.2</em>, <em class="sig-param">easy_margin=False</em>, <em class="sig-param">K=3</em>, <em class="sig-param">mp=0.06</em>, <em class="sig-param">k_top=5</em>, <em class="sig-param">do_lm=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/loss/aamsoftmax_subcenter_intertopk.html#ArcMarginProduct_intertopk_subcenter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.loss.aamsoftmax_subcenter_intertopk.ArcMarginProduct_intertopk_subcenter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.spk.loss.abs_loss.AbsLoss" title="espnet2.spk.loss.abs_loss.AbsLoss"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.spk.loss.abs_loss.AbsLoss</span></code></a></p>
+<p>Implement of large margin arc distance with intertopk and subcenter:
+Reference:</p>
+<blockquote>
+<div><p>MULTI-QUERY MULTI-HEAD ATTENTION POOLING AND INTER-TOPK PENALTY
+FOR SPEAKER VERIFICATION.
+<a class="reference external" href="https://arxiv.org/pdf/2110.05042.pdf">https://arxiv.org/pdf/2110.05042.pdf</a>
+Sub-center ArcFace: Boosting Face Recognition by
+Large-Scale Noisy Web Faces.
+<a class="reference external" href="https://ibug.doc.ic.ac.uk/media/uploads/documents/eccv_1445.pdf">https://ibug.doc.ic.ac.uk/media/uploads/documents/eccv_1445.pdf</a></p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_features</strong> – size of each input sample</p></li>
+<li><p><strong>out_features</strong> – size of each output sample</p></li>
+<li><p><strong>scale</strong> – norm of input feature</p></li>
+<li><p><strong>margin</strong> – margin</p></li>
+<li><p><strong>cos</strong> (<em>theta + margin</em>) – </p></li>
+<li><p><strong>K</strong> – number of sub-centers</p></li>
+<li><p><strong>k_top</strong> – number of hard samples</p></li>
+<li><p><strong>mp</strong> – margin penalty of hard samples</p></li>
+<li><p><strong>do_lm</strong> – whether do large margin finetune</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.spk.loss.aamsoftmax_subcenter_intertopk.ArcMarginProduct_intertopk_subcenter.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em>, <em class="sig-param">label</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/loss/aamsoftmax_subcenter_intertopk.html#ArcMarginProduct_intertopk_subcenter.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.loss.aamsoftmax_subcenter_intertopk.ArcMarginProduct_intertopk_subcenter.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.loss.aamsoftmax_subcenter_intertopk.ArcMarginProduct_intertopk_subcenter.update">
+<code class="sig-name descname">update</code><span class="sig-paren">(</span><em class="sig-param">margin=0.2</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/loss/aamsoftmax_subcenter_intertopk.html#ArcMarginProduct_intertopk_subcenter.update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.loss.aamsoftmax_subcenter_intertopk.ArcMarginProduct_intertopk_subcenter.update" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-spk-loss-init-1">
 <span id="espnet2-spk-loss-init"></span><h2>espnet2.spk.loss.__init__<a class="headerlink" href="#espnet2-spk-loss-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.loss.__init__"></span></section>
@@ -372,6 +431,11 @@ registered hooks while the latter silently ignores them.</p>
 </aside>
 </dd></dl>
 
+<dl class="method">
+<dt id="espnet2.spk.pooling.abs_pooling.AbsPooling.output_size">
+<em class="property">abstract </em><code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/spk/pooling/abs_pooling.html#AbsPooling.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.abs_pooling.AbsPooling.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 </section>
@@ -394,7 +458,7 @@ the input_size</p>
 </dl>
 <dl class="method">
 <dt id="espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/chn_attn_stat_pooling.html#ChnAttnStatPooling.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">task_tokens: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/chn_attn_stat_pooling.html#ChnAttnStatPooling.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the computation performed at every call.</p>
 <p>Should be overridden by all subclasses.</p>
 <div class="admonition note">
@@ -405,6 +469,11 @@ instead of this since the former takes care of running the
 registered hooks while the latter silently ignores them.</p>
 </aside>
 </dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/chn_attn_stat_pooling.html#ChnAttnStatPooling.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.chn_attn_stat_pooling.ChnAttnStatPooling.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -412,19 +481,15 @@ registered hooks while the latter silently ignores them.</p>
 <section id="espnet2-spk-pooling-init-1">
 <span id="espnet2-spk-pooling-init"></span><h2>espnet2.spk.pooling.__init__<a class="headerlink" href="#espnet2-spk-pooling-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.pooling.__init__"></span></section>
-<section id="espnet2-spk-layers-rawnetbasicblock-1">
-<span id="espnet2-spk-layers-rawnetbasicblock"></span><h2>espnet2.spk.layers.RawNetBasicBlock<a class="headerlink" href="#espnet2-spk-layers-rawnetbasicblock-1" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.spk.layers.RawNetBasicBlock"></span><dl class="class">
-<dt id="espnet2.spk.layers.RawNetBasicBlock.AFMS">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.layers.RawNetBasicBlock.</code><code class="sig-name descname">AFMS</code><span class="sig-paren">(</span><em class="sig-param">nb_dim: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/RawNetBasicBlock.html#AFMS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.RawNetBasicBlock.AFMS" title="Permalink to this definition">¶</a></dt>
+<section id="espnet2-spk-layers-ecapa-block-1">
+<span id="espnet2-spk-layers-ecapa-block"></span><h2>espnet2.spk.layers.ecapa_block<a class="headerlink" href="#espnet2-spk-layers-ecapa-block-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.layers.ecapa_block"></span><dl class="class">
+<dt id="espnet2.spk.layers.ecapa_block.EcapaBlock">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.layers.ecapa_block.</code><code class="sig-name descname">EcapaBlock</code><span class="sig-paren">(</span><em class="sig-param">inplanes</em>, <em class="sig-param">planes</em>, <em class="sig-param">kernel_size=None</em>, <em class="sig-param">dilation=None</em>, <em class="sig-param">scale=8</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/ecapa_block.html#EcapaBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.ecapa_block.EcapaBlock" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<p>Alpha-Feature map scaling, added to the output of each residual block[1,2].</p>
-<p>Reference:
-[1] RawNet2 : <a class="reference external" href="https://www.isca-speech.org/archive/Interspeech_2020/pdfs/1011.pdf">https://www.isca-speech.org/archive/Interspeech_2020/pdfs/1011.pdf</a>
-[2] AMFS    : <a class="reference external" href="https://www.koreascience.or.kr/article/JAKO202029757857763.page">https://www.koreascience.or.kr/article/JAKO202029757857763.page</a></p>
 <dl class="method">
-<dt id="espnet2.spk.layers.RawNetBasicBlock.AFMS.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/RawNetBasicBlock.html#AFMS.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.RawNetBasicBlock.AFMS.forward" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.spk.layers.ecapa_block.EcapaBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/ecapa_block.html#EcapaBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.ecapa_block.EcapaBlock.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the computation performed at every call.</p>
 <p>Should be overridden by all subclasses.</p>
 <div class="admonition note">
@@ -439,32 +504,12 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 <dl class="class">
-<dt id="espnet2.spk.layers.RawNetBasicBlock.Bottle2neck">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.layers.RawNetBasicBlock.</code><code class="sig-name descname">Bottle2neck</code><span class="sig-paren">(</span><em class="sig-param">inplanes</em>, <em class="sig-param">planes</em>, <em class="sig-param">kernel_size=None</em>, <em class="sig-param">dilation=None</em>, <em class="sig-param">scale=4</em>, <em class="sig-param">pool=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/RawNetBasicBlock.html#Bottle2neck"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.RawNetBasicBlock.Bottle2neck" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.spk.layers.ecapa_block.SEModule">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.layers.ecapa_block.</code><code class="sig-name descname">SEModule</code><span class="sig-paren">(</span><em class="sig-param">channels: int</em>, <em class="sig-param">bottleneck: int = 128</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/ecapa_block.html#SEModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.ecapa_block.SEModule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
 <dl class="method">
-<dt id="espnet2.spk.layers.RawNetBasicBlock.Bottle2neck.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/RawNetBasicBlock.html#Bottle2neck.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.RawNetBasicBlock.Bottle2neck.forward" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines the computation performed at every call.</p>
-<p>Should be overridden by all subclasses.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Although the recipe for forward pass needs to be defined within
-this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
-instead of this since the former takes care of running the
-registered hooks while the latter silently ignores them.</p>
-</aside>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="class">
-<dt id="espnet2.spk.layers.RawNetBasicBlock.PreEmphasis">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.layers.RawNetBasicBlock.</code><code class="sig-name descname">PreEmphasis</code><span class="sig-paren">(</span><em class="sig-param">coef: float = 0.97</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/RawNetBasicBlock.html#PreEmphasis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.RawNetBasicBlock.PreEmphasis" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
-<dl class="method">
-<dt id="espnet2.spk.layers.RawNetBasicBlock.PreEmphasis.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch._VariableFunctionsClass.tensor</em><span class="sig-paren">)</span> &#x2192; torch._VariableFunctionsClass.tensor<a class="reference internal" href="../_modules/espnet2/spk/layers/RawNetBasicBlock.html#PreEmphasis.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.RawNetBasicBlock.PreEmphasis.forward" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.spk.layers.ecapa_block.SEModule.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/ecapa_block.html#SEModule.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.ecapa_block.SEModule.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the computation performed at every call.</p>
 <p>Should be overridden by all subclasses.</p>
 <div class="admonition note">
@@ -482,6 +527,53 @@ registered hooks while the latter silently ignores them.</p>
 <section id="espnet2-spk-layers-init-1">
 <span id="espnet2-spk-layers-init"></span><h2>espnet2.spk.layers.__init__<a class="headerlink" href="#espnet2-spk-layers-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.layers.__init__"></span></section>
+<section id="espnet2-spk-layers-rawnet-block-1">
+<span id="espnet2-spk-layers-rawnet-block"></span><h2>espnet2.spk.layers.rawnet_block<a class="headerlink" href="#espnet2-spk-layers-rawnet-block-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.layers.rawnet_block"></span><dl class="class">
+<dt id="espnet2.spk.layers.rawnet_block.AFMS">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.layers.rawnet_block.</code><code class="sig-name descname">AFMS</code><span class="sig-paren">(</span><em class="sig-param">nb_dim: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/rawnet_block.html#AFMS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.rawnet_block.AFMS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<p>Alpha-Feature map scaling, added to the output of each residual block[1,2].</p>
+<p>Reference:
+[1] RawNet2 : <a class="reference external" href="https://www.isca-speech.org/archive/Interspeech_2020/pdfs/1011.pdf">https://www.isca-speech.org/archive/Interspeech_2020/pdfs/1011.pdf</a>
+[2] AMFS    : <a class="reference external" href="https://www.koreascience.or.kr/article/JAKO202029757857763.page">https://www.koreascience.or.kr/article/JAKO202029757857763.page</a></p>
+<dl class="method">
+<dt id="espnet2.spk.layers.rawnet_block.AFMS.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/rawnet_block.html#AFMS.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.rawnet_block.AFMS.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.spk.layers.rawnet_block.Bottle2neck">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.layers.rawnet_block.</code><code class="sig-name descname">Bottle2neck</code><span class="sig-paren">(</span><em class="sig-param">inplanes</em>, <em class="sig-param">planes</em>, <em class="sig-param">kernel_size=None</em>, <em class="sig-param">dilation=None</em>, <em class="sig-param">scale=4</em>, <em class="sig-param">pool=False</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/rawnet_block.html#Bottle2neck"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.rawnet_block.Bottle2neck" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.spk.layers.rawnet_block.Bottle2neck.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/layers/rawnet_block.html#Bottle2neck.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.layers.rawnet_block.Bottle2neck.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-spk-projector-rawnet3-projector-1">
 <span id="espnet2-spk-projector-rawnet3-projector"></span><h2>espnet2.spk.projector.rawnet3_projector<a class="headerlink" href="#espnet2-spk-projector-rawnet3-projector-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.projector.rawnet3_projector"></span><dl class="class">
@@ -547,31 +639,27 @@ registered hooks while the latter silently ignores them.</p>
 <span class="target" id="module-espnet2.spk.encoder.rawnet3_encoder"></span><p>RawNet3 Encoder</p>
 <dl class="class">
 <dt id="espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder">
-<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.rawnet3_encoder.</code><code class="sig-name descname">RawNet3Encoder</code><span class="sig-paren">(</span><em class="sig-param">block: str = 'Bottle2neck'</em>, <em class="sig-param">model_scale: int = 8</em>, <em class="sig-param">ndim: int = 1024</em>, <em class="sig-param">sinc_stride: int = 16</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/rawnet3_encoder.html#RawNet3Encoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.rawnet3_encoder.</code><code class="sig-name descname">RawNet3Encoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">block: str = 'Bottle2neck'</em>, <em class="sig-param">model_scale: int = 8</em>, <em class="sig-param">ndim: int = 1024</em>, <em class="sig-param">output_size: int = 1536</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/rawnet3_encoder.html#RawNet3Encoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
 <p>RawNet3 encoder. Extracts frame-level RawNet embeddings from raw waveform.
 paper: J. Jung et al., “Pushing the limits of raw waveform speaker</p>
 <blockquote>
 <div><p>recognition”, in Proc. INTERSPEECH, 2022.</p>
 </div></blockquote>
-<dl class="simple">
-<dt>Note that the model’s output dimensionality self._output_size equals to</dt><dd><p>1.5 * ndim.</p>
-</dd>
-</dl>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> – input feature dimension.</p></li>
 <li><p><strong>block</strong> – type of encoder block class to use.</p></li>
 <li><p><strong>model_scale</strong> – scale value of the Res2Net architecture.</p></li>
 <li><p><strong>ndim</strong> – dimensionality of the hidden representation.</p></li>
-<li><p><strong>sinc_stride</strong> – stride size of the first sinc-conv layer where it decides
-the compression rate (Hz).</p></li>
+<li><p><strong>output_size</strong> – ouptut embedding dimension.</p></li>
 </ul>
 </dd>
 </dl>
 <dl class="method">
 <dt id="espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.forward">
-<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">data: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/rawnet3_encoder.html#RawNet3Encoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.forward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/rawnet3_encoder.html#RawNet3Encoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the computation performed at every call.</p>
 <p>Should be overridden by all subclasses.</p>
 <div class="admonition note">
@@ -586,6 +674,53 @@ registered hooks while the latter silently ignores them.</p>
 <dl class="method">
 <dt id="espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.output_size">
 <code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/spk/encoder/rawnet3_encoder.html#RawNet3Encoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-spk-encoder-ecapa-tdnn-encoder-1">
+<span id="espnet2-spk-encoder-ecapa-tdnn-encoder"></span><h2>espnet2.spk.encoder.ecapa_tdnn_encoder<a class="headerlink" href="#espnet2-spk-encoder-ecapa-tdnn-encoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.encoder.ecapa_tdnn_encoder"></span><p>ECAPA-TDNN Encoder</p>
+<dl class="class">
+<dt id="espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ecapa_tdnn_encoder.</code><code class="sig-name descname">EcapaTdnnEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">block: str = 'EcapaBlock'</em>, <em class="sig-param">model_scale: int = 8</em>, <em class="sig-param">ndim: int = 1024</em>, <em class="sig-param">output_size: int = 1536</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ecapa_tdnn_encoder.html#EcapaTdnnEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>ECAPA-TDNN encoder. Extracts frame-level ECAPA-TDNN embeddings from
+mel-filterbank energy or MFCC features.
+Paper: B Desplanques at el., <a href="#system-message-1"><span class="problematic" id="problematic-1">``</span></a>ECAPA-TDNN: Emphasized Channel Attention,</p>
+<blockquote>
+<div><p>Propagation and Aggregation in TDNN Based Speaker Verification,’’
+in Proc. INTERSPEECH, 2020.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> – input feature dimension.</p></li>
+<li><p><strong>block</strong> – type of encoder block class to use.</p></li>
+<li><p><strong>model_scale</strong> – scale value of the Res2Net architecture.</p></li>
+<li><p><strong>ndim</strong> – dimensionality of the hidden representation.</p></li>
+<li><p><strong>output_size</strong> – output embedding dimension.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ecapa_tdnn_encoder.html#EcapaTdnnEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/spk/encoder/ecapa_tdnn_encoder.html#EcapaTdnnEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.output_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>

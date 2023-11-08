@@ -268,6 +268,17 @@ espnet2.bin.asr_inference_k2
     :show-inheritance:
 
 
+.. _espnet2.bin.spk_embed_extract:
+
+espnet2.bin.spk_embed_extract
+-----------------------------
+
+.. automodule:: espnet2.bin.spk_embed_extract
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.bin.aggregate_stats_dirs:
 
 espnet2.bin.aggregate_stats_dirs
@@ -406,6 +417,17 @@ espnet2.bin.asr_train
 ---------------------
 
 .. automodule:: espnet2.bin.asr_train
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.bin.spk_inference:
+
+espnet2.bin.spk_inference
+-------------------------
+
+.. automodule:: espnet2.bin.spk_inference
     :members:
     :undoc-members:
     :show-inheritance:

@@ -234,9 +234,11 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-branchformer-encoder-1">espnet2.asr.encoder.branchformer_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-encoder-whisper-encoder-1">espnet2.asr.encoder.whisper_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-frontend-abs-frontend-1">espnet2.asr.frontend.abs_frontend</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-frontend-asteroid-frontend-1">espnet2.asr.frontend.asteroid_frontend</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-frontend-s3prl-1">espnet2.asr.frontend.s3prl</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-frontend-windowing-1">espnet2.asr.frontend.windowing</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-frontend-whisper-1">espnet2.asr.frontend.whisper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-frontend-melspec-torch-1">espnet2.asr.frontend.melspec_torch</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-frontend-fused-1">espnet2.asr.frontend.fused</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-frontend-init-1">espnet2.asr.frontend.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-asr-frontend-default-1">espnet2.asr.frontend.default</a></li>
@@ -7115,6 +7117,64 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-asr-frontend-asteroid-frontend-1">
+<span id="espnet2-asr-frontend-asteroid-frontend"></span><h2>espnet2.asr.frontend.asteroid_frontend<a class="headerlink" href="#espnet2-asr-frontend-asteroid-frontend-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.frontend.asteroid_frontend"></span><p>Sliding Window for raw audio input data.</p>
+<dl class="class">
+<dt id="espnet2.asr.frontend.asteroid_frontend.AsteroidFrontend">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.asteroid_frontend.</code><code class="sig-name descname">AsteroidFrontend</code><span class="sig-paren">(</span><em class="sig-param">sinc_filters: int = 256</em>, <em class="sig-param">sinc_kernel_size: int = 251</em>, <em class="sig-param">sinc_stride: int = 16</em>, <em class="sig-param">preemph_coef: float = 0.97</em>, <em class="sig-param">log_term: float = 1e-06</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/asteroid_frontend.html#AsteroidFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.asteroid_frontend.AsteroidFrontend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="espnet2.asr.frontend.abs_frontend.AbsFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.frontend.abs_frontend.AbsFrontend</span></code></a></p>
+<p>Asteroid Filterbank Frontend.</p>
+<p>Provides a Sinc-convolutional-based audio feature extractor. The same
+function can be achieved by using <cite>sliding_winodw frontend +
+sinc preencoder</cite>.</p>
+<p>NOTE(jiatong): this function is used in sentence-level classification
+tasks (e.g., spk). Other usages are not fully investigated.</p>
+<p>NOTE(jeeweon): this function implements the parameterized analytic
+filterbank layer in M. Pariente, S. Cornell, A. Deleforge and E. Vincent,
+“Filterbank design for end-to-end speech separation,” in Proc. ICASSP, 2020</p>
+<p>Initialize.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sinc_filters</strong> – the filter numbers for sinc.</p></li>
+<li><p><strong>sinc_kernel_size</strong> – the kernel size for sinc.</p></li>
+<li><p><strong>sinc_stride</strong> – the sincstride size of the first sinc-conv layer
+where it decides the compression rate (Hz).</p></li>
+<li><p><strong>preemph_coef</strong> – the coeifficient for preempahsis.</p></li>
+<li><p><strong>log_term</strong> – the log term to prevent infinity.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.asr.frontend.asteroid_frontend.AsteroidFrontend.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_length: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/frontend/asteroid_frontend.html#AsteroidFrontend.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.asteroid_frontend.AsteroidFrontend.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply the Asteroid filterbank frontend to the input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input</strong> – Input (B, T).</p></li>
+<li><p><strong>input_length</strong> – Input length (B,).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Frame-wise output (B, T’, D).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.frontend.asteroid_frontend.AsteroidFrontend.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/frontend/asteroid_frontend.html#AsteroidFrontend.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.asteroid_frontend.AsteroidFrontend.output_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return output length of feature dimension D.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-frontend-s3prl-1">
 <span id="espnet2-asr-frontend-s3prl"></span><h2>espnet2.asr.frontend.s3prl<a class="headerlink" href="#espnet2-asr-frontend-s3prl-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.s3prl"></span><dl class="class">
@@ -7247,6 +7307,37 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-asr-frontend-melspec-torch-1">
+<span id="espnet2-asr-frontend-melspec-torch"></span><h2>espnet2.asr.frontend.melspec_torch<a class="headerlink" href="#espnet2-asr-frontend-melspec-torch-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.asr.frontend.melspec_torch"></span><p>Torchaudio MFCC</p>
+<dl class="class">
+<dt id="espnet2.asr.frontend.melspec_torch.MelSpectrogramTorch">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.melspec_torch.</code><code class="sig-name descname">MelSpectrogramTorch</code><span class="sig-paren">(</span><em class="sig-param">preemp: bool = True</em>, <em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">log: bool = False</em>, <em class="sig-param">win_length: int = 400</em>, <em class="sig-param">hop_length: int = 160</em>, <em class="sig-param">f_min: int = 20</em>, <em class="sig-param">f_max: int = 7600</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">window_fn: str = 'hamming'</em>, <em class="sig-param">mel_scale: str = 'htk'</em>, <em class="sig-param">normalize: str = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/melspec_torch.html#MelSpectrogramTorch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.melspec_torch.MelSpectrogramTorch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="espnet2.asr.frontend.abs_frontend.AbsFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.frontend.abs_frontend.AbsFrontend</span></code></a></p>
+<p>Mel-Spectrogram using Torchaudio Implementation.</p>
+<dl class="method">
+<dt id="espnet2.asr.frontend.melspec_torch.MelSpectrogramTorch.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_length: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/frontend/melspec_torch.html#MelSpectrogramTorch.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.melspec_torch.MelSpectrogramTorch.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.asr.frontend.melspec_torch.MelSpectrogramTorch.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/asr/frontend/melspec_torch.html#MelSpectrogramTorch.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.melspec_torch.MelSpectrogramTorch.output_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return output length of feature dimension D.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-asr-frontend-fused-1">
 <span id="espnet2-asr-frontend-fused"></span><h2>espnet2.asr.frontend.fused<a class="headerlink" href="#espnet2-asr-frontend-fused-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.asr.frontend.fused"></span><dl class="class">
@@ -7285,7 +7376,7 @@ registered hooks while the latter silently ignores them.</p>
 <em class="property">class </em><code class="sig-prename descclassname">espnet2.asr.frontend.default.</code><code class="sig-name descname">DefaultFrontend</code><span class="sig-paren">(</span><em class="sig-param">fs: Union[int</em>, <em class="sig-param">str] = 16000</em>, <em class="sig-param">n_fft: int = 512</em>, <em class="sig-param">win_length: int = None</em>, <em class="sig-param">hop_length: int = 128</em>, <em class="sig-param">window: Optional[str] = 'hann'</em>, <em class="sig-param">center: bool = True</em>, <em class="sig-param">normalized: bool = False</em>, <em class="sig-param">onesided: bool = True</em>, <em class="sig-param">n_mels: int = 80</em>, <em class="sig-param">fmin: int = None</em>, <em class="sig-param">fmax: int = None</em>, <em class="sig-param">htk: bool = False</em>, <em class="sig-param">frontend_conf: Optional[dict] = {'badim': 320</em>, <em class="sig-param">'bdropout_rate': 0.0</em>, <em class="sig-param">'blayers': 3</em>, <em class="sig-param">'bnmask': 2</em>, <em class="sig-param">'bprojs': 320</em>, <em class="sig-param">'btype': 'blstmp'</em>, <em class="sig-param">'bunits': 300</em>, <em class="sig-param">'delay': 3</em>, <em class="sig-param">'ref_channel': -1</em>, <em class="sig-param">'taps': 5</em>, <em class="sig-param">'use_beamformer': False</em>, <em class="sig-param">'use_dnn_mask_for_wpe': True</em>, <em class="sig-param">'use_wpe': False</em>, <em class="sig-param">'wdropout_rate': 0.0</em>, <em class="sig-param">'wlayers': 3</em>, <em class="sig-param">'wprojs': 320</em>, <em class="sig-param">'wtype': 'blstmp'</em>, <em class="sig-param">'wunits': 300}</em>, <em class="sig-param">apply_stft: bool = True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/asr/frontend/default.html#DefaultFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.default.DefaultFrontend" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#espnet2.asr.frontend.abs_frontend.AbsFrontend" title="espnet2.asr.frontend.abs_frontend.AbsFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.frontend.abs_frontend.AbsFrontend</span></code></a></p>
 <p>Conventional frontend structure for ASR.</p>
-<p>Stft -&gt; WPE -&gt; MVDR-Beamformer -&gt; Power-spec -&gt; Mel-Fbank -&gt; CMVN</p>
+<p>Stft -&gt; WPE -&gt; MVDR-Beamformer -&gt; Power-spec -&gt; Log-Mel-Fbank</p>
 <dl class="method">
 <dt id="espnet2.asr.frontend.default.DefaultFrontend.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input: torch.Tensor</em>, <em class="sig-param">input_lengths: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor]<a class="reference internal" href="../_modules/espnet2/asr/frontend/default.html#DefaultFrontend.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.asr.frontend.default.DefaultFrontend.forward" title="Permalink to this definition">¶</a></dt>

@@ -218,11 +218,10 @@
 
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">import</span> <span class="nn">torch.nn</span> <span class="k">as</span> <span class="nn">nn</span>
-<span class="kn">from</span> <span class="nn">asteroid_filterbanks</span> <span class="kn">import</span> <span class="n">Encoder</span><span class="p">,</span> <span class="n">ParamSincFB</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span>
 
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
-<span class="kn">from</span> <span class="nn">espnet2.spk.layers.RawNetBasicBlock</span> <span class="kn">import</span> <span class="n">Bottle2neck</span><span class="p">,</span> <span class="n">PreEmphasis</span>
+<span class="kn">from</span> <span class="nn">espnet2.spk.layers.rawnet_block</span> <span class="kn">import</span> <span class="n">Bottle2neck</span>
 
 
 <div class="viewcode-block" id="RawNet3Encoder"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder">[docs]</a><span class="k">class</span> <span class="nc">RawNet3Encoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
@@ -231,23 +230,21 @@
 <span class="sd">    paper: J. Jung et al., &quot;Pushing the limits of raw waveform speaker</span>
 <span class="sd">        recognition&quot;, in Proc. INTERSPEECH, 2022.</span>
 
-<span class="sd">    Note that the model&#39;s output dimensionality self._output_size equals to</span>
-<span class="sd">        1.5 * ndim.</span>
-
 <span class="sd">    Args:</span>
+<span class="sd">        input_size: input feature dimension.</span>
 <span class="sd">        block: type of encoder block class to use.</span>
 <span class="sd">        model_scale: scale value of the Res2Net architecture.</span>
 <span class="sd">        ndim: dimensionality of the hidden representation.</span>
-<span class="sd">        sinc_stride: stride size of the first sinc-conv layer where it decides</span>
-<span class="sd">            the compression rate (Hz).</span>
+<span class="sd">        output_size: ouptut embedding dimension.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
+        <span class="n">input_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
         <span class="n">block</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;Bottle2neck&quot;</span><span class="p">,</span>
         <span class="n">model_scale</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">8</span><span class="p">,</span>
         <span class="n">ndim</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">,</span>
-        <span class="n">sinc_stride</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
+        <span class="n">output_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1536</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
@@ -256,16 +253,13 @@
             <span class="n">block</span> <span class="o">=</span> <span class="n">Bottle2neck</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;unsupported block, got: </span><span class="si">{</span><span class="n">block</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">ndim</span> <span class="o">*</span> <span class="mf">1.5</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">waveform_process</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
-            <span class="n">PreEmphasis</span><span class="p">(),</span> <span class="n">nn</span><span class="o">.</span><span class="n">InstanceNorm1d</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">eps</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">affine</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">conv</span> <span class="o">=</span> <span class="n">Encoder</span><span class="p">(</span><span class="n">ParamSincFB</span><span class="p">(</span><span class="n">ndim</span> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">251</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">sinc_stride</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span> <span class="o">=</span> <span class="n">output_size</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">relu</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">ReLU</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span>
-            <span class="n">ndim</span> <span class="o">//</span> <span class="mi">4</span><span class="p">,</span>
+            <span class="n">input_size</span><span class="p">,</span>
             <span class="n">ndim</span><span class="p">,</span>
             <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
             <span class="n">dilation</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
@@ -281,23 +275,16 @@
             <span class="n">pool</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
         <span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span> <span class="o">=</span> <span class="n">block</span><span class="p">(</span><span class="n">ndim</span><span class="p">,</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">dilation</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">model_scale</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">layer4</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">ndim</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="mf">1.5</span> <span class="o">*</span> <span class="n">ndim</span><span class="p">),</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">layer4</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Conv1d</span><span class="p">(</span><span class="mi">3</span> <span class="o">*</span> <span class="n">ndim</span><span class="p">,</span> <span class="n">output_size</span><span class="p">,</span> <span class="n">kernel_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">mp3</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">MaxPool1d</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RawNet3Encoder.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span></div>
 
-<div class="viewcode-block" id="RawNet3Encoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="c1"># waveform transformation and normalization here</span>
-        <span class="k">with</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">waveform_process</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">conv</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mf">1e-6</span><span class="p">)</span>
-            <span class="n">x</span> <span class="o">=</span> <span class="n">x</span> <span class="o">-</span> <span class="n">torch</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdim</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
+<div class="viewcode-block" id="RawNet3Encoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.spk.html#espnet2.spk.encoder.rawnet3_encoder.RawNet3Encoder.forward">[docs]</a>    <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
         <span class="c1"># frame-level propagation</span>
-        <span class="n">x1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">x1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer1</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">permute</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
         <span class="n">x2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer2</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span>
         <span class="n">x3</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer3</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">mp3</span><span class="p">(</span><span class="n">x1</span><span class="p">)</span> <span class="o">+</span> <span class="n">x2</span><span class="p">)</span>
 
