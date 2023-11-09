@@ -1,9 +1,8 @@
 import glob
 import os
 from argparse import Namespace
-from typing import List, Union
 from pathlib import Path
-
+from typing import List, Union
 
 from espnetez.task import get_easy_task
 

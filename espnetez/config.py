@@ -1,5 +1,5 @@
-from espnetez.utils import load_yaml
 from espnetez.task import get_easy_task
+from espnetez.utils import load_yaml
 
 
 def from_yaml(task, path):
