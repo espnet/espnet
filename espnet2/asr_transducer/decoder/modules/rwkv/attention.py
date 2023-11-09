@@ -298,6 +298,8 @@ class SelfAttention(torch.nn.Module):
         """
         num_state, den_state, max_state = state
 
+        time_decay = -torch.exp(time_decay)
+
         max_for_output = torch.maximum(max_state, (time_first + key))
 
         e1 = torch.exp(max_state - max_for_output)
