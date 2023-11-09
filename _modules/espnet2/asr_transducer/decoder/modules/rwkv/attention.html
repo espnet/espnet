@@ -511,6 +511,8 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">num_state</span><span class="p">,</span> <span class="n">den_state</span><span class="p">,</span> <span class="n">max_state</span> <span class="o">=</span> <span class="n">state</span>
 
+        <span class="n">time_decay</span> <span class="o">=</span> <span class="o">-</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">time_decay</span><span class="p">)</span>
+
         <span class="n">max_for_output</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">max_state</span><span class="p">,</span> <span class="p">(</span><span class="n">time_first</span> <span class="o">+</span> <span class="n">key</span><span class="p">))</span>
 
         <span class="n">e1</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">max_state</span> <span class="o">-</span> <span class="n">max_for_output</span><span class="p">)</span>
