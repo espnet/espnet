@@ -1,5 +1,5 @@
-search_beam_size: 20
-output_beam_size: 20
+search_beam_size: 4
+output_beam_size: 4
 blank_bias: -0.0
 lattice_weight: 1.0
 am_weight: 1.0

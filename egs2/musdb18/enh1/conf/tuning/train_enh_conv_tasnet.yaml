@@ -1,0 +1,59 @@
+optim: adam
+init: xavier_uniform
+max_epoch: 100
+batch_type: folded
+batch_size: 4
+iterator_type: chunk
+chunk_length: 176400    # 4s in 44100 Hz
+num_workers: 4
+optim_conf:
+    lr: 1.0e-03
+    eps: 1.0e-08
+    weight_decay: 1.0e-05
+patience: 4
+val_scheduler_criterion:
+- valid
+- loss
+best_model_criterion:
+-   - valid
+    - loss
+    - min
+keep_nbest_models: 1
+scheduler: reducelronplateau
+scheduler_conf:
+    mode: min
+    factor: 0.5
+    patience: 1
+encoder: conv
+encoder_conf:
+    channel: 256
+    kernel_size: 20
+    stride: 10
+decoder: conv
+decoder_conf:
+    channel: 256
+    kernel_size: 20
+    stride: 10
+separator: tcn
+separator_conf:
+    num_spk: 4
+    layer: 8
+    stack: 4
+    bottleneck_dim: 256
+    hidden_dim: 512
+    kernel: 3
+    causal: False
+    norm_type: "gLN"
+    nonlinear: relu
+
+criterions:
+  # The first criterion
+  - name: mr_l1_tfd
+    conf:
+      window_sz: [512, 1024, 1536, 2048]
+      hop_sz: null
+      eps: 1.0e-8
+      time_domain_weight: 0.5
+    wrapper: fixed_order
+    wrapper_conf:
+      weight: 1.0

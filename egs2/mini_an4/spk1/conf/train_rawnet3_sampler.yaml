@@ -1,0 +1,43 @@
+# This is a debug config for CI
+frontend: raw
+
+encoder: rawnet3
+encoder_conf:
+  model_scale: 4
+  ndim: 16
+
+pooling: chn_attn_stat
+pooling_conf:
+  input_size: 24
+
+projector: rawnet3
+projector_conf:
+  input_size: 48
+  output_size: 8
+
+preprocessor: spk
+preprocessor_conf:
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
+  num_eval: 2
+  rir_apply_prob: 0.0
+  noise_apply_prob: 0.0
+
+model_conf:
+  extract_feats_in_collect_stats: false
+
+loss: aamsoftmax
+loss_conf:
+  nout: 8
+  nclasses: 10
+  margin: 0.3
+  scale: 15
+
+optim: adam
+num_att_plot: 0
+
+max_epoch: 1
+num_iters_per_epoch: 1
+iterator_type: category
+valid_iterator_type: sequence
+batch_size: 2

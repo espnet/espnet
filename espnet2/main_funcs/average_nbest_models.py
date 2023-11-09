@@ -93,6 +93,7 @@ def average_nbest_models(
                         # (If there are any cases that requires averaging
                         #  or the other reducing method, e.g. max/min, for integer type,
                         #  please report.)
+                        logging.info(f"Accumulating {k} instead of averaging")
                         pass
                     else:
                         avg[k] = avg[k] / n
