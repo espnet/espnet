@@ -1,4 +1,4 @@
-#!/bin/bash 
+#!/bin/bash
 
 # Copyright    2017  Vimal Manohar
 # Apache 2.0
@@ -74,8 +74,8 @@ for ((n=1; n<=nj; n++)); do
   cat $vaddir/vad_${name}.$n.scp || exit 1;
 done > $data/vad.scp
 
-nc=`cat $data/vad.scp | wc -l` 
-nu=`cat $data/feats.scp | wc -l` 
+nc=`cat $data/vad.scp | wc -l`
+nu=`cat $data/feats.scp | wc -l`
 if [ $nc -ne $nu ]; then
   echo "**Warning it seems not all of the speakers got VAD output ($nc != $nu);"
   echo "**validate_data_dir.sh will fail; you might want to use fix_data_dir.sh"
