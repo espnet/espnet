@@ -136,17 +136,6 @@ espnet2.s2st.tgt_feats_extract.log_spectrogram
     :show-inheritance:
 
 
-.. _espnet2.s2st.tgt_feats_extract.discrete_unit:
-
-espnet2.s2st.tgt_feats_extract.discrete_unit
---------------------------------------------
-
-.. automodule:: espnet2.s2st.tgt_feats_extract.discrete_unit
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.s2st.tgt_feats_extract.linear_spectrogram:
 
 espnet2.s2st.tgt_feats_extract.linear_spectrogram

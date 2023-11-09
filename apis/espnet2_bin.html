@@ -7564,7 +7564,7 @@ Text converter related:
                      [--optim_conf OPTIM_CONF]
                      [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                      [--scheduler_conf SCHEDULER_CONF]
-                     [--s2st_type {translatotron,translatotron2,discrete_unit}]
+                     [--s2st_type {translatotron,translatotron2,discrete_unit,unity}]
                      [--tgt_token_list TGT_TOKEN_LIST]
                      [--src_token_list SRC_TOKEN_LIST]
                      [--unit_token_list UNIT_TOKEN_LIST] [--odim ODIM]
@@ -7589,7 +7589,7 @@ Text converter related:
                      [--noise_apply_prob NOISE_APPLY_PROB]
                      [--noise_db_range NOISE_DB_RANGE]
                      [--short_noise_thres SHORT_NOISE_THRES]
-                     [--frontend {default,sliding_window,s3prl}]
+                     [--frontend {default,sliding_window,s3prl,None}]
                      [--frontend_conf FRONTEND_CONF]
                      [--tgt_feats_extract {fbank,spectrogram,linear_spectrogram,None}]
                      [--tgt_feats_extract_conf TGT_FEATS_EXTRACT_CONF]
@@ -7997,8 +7997,8 @@ Optimizer related:
 
   Task related
 
-  --s2st_type {translatotron,translatotron2,discrete_unit}
-                        Types of S2ST (default: translatotron)
+  --s2st_type {translatotron,translatotron2,discrete_unit,unity}
+                        Types of S2ST (default: discrete_unit)
   --tgt_token_list TGT_TOKEN_LIST
                         A text mapping int-id to token (for target language) (default: None)
   --src_token_list SRC_TOKEN_LIST
@@ -8041,7 +8041,7 @@ Optimizer related:
                         Specify g2p method if --token_type=phn (default: None)
   --src_g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}
                         Specify g2p method if --token_type=phn (default: None)
-  --losses LOSSES       The criterions binded with the loss wrappers. (default: [{&#39;name&#39;: &#39;syn_loss&#39;, &#39;conf&#39;: {}}])
+  --losses LOSSES       The criterions binded with the loss wrappers. (default: [{&#39;name&#39;: &#39;synthesis&#39;, &#39;conf&#39;: {}, &#39;type&#39;: &#39;attention&#39;}])
   --speech_volume_normalize SPEECH_VOLUME_NORMALIZE
                         Scale the maximum amplitude to the given value. (default: None)
   --rir_scp RIR_SCP     The file path of rir scp file. (default: None)
@@ -8055,8 +8055,8 @@ Optimizer related:
                         The range of noise decibel level. (default: 13_15)
   --short_noise_thres SHORT_NOISE_THRES
                         If len(noise) / len(speech) is smaller than this threshold during dynamic mixing, a warning will be displayed. (default: 0.5)
-  --frontend {default,sliding_window,s3prl}
-                        The frontend type (default: default)
+  --frontend {default,sliding_window,s3prl,None}
+                        The frontend type (default: None)
   --frontend_conf FRONTEND_CONF
                         The keyword arguments for frontend (default: {})
   --tgt_feats_extract {fbank,spectrogram,linear_spectrogram,None}
@@ -8080,7 +8080,7 @@ Optimizer related:
   --preencoder_conf PREENCODER_CONF
                         The keyword arguments for preencoder (default: {})
   --encoder {conformer,transformer,contextual_block_transformer,vgg_rnn,rnn,wav2vec2,hubert,hubert_pretrain,linear}
-                        The encoder type (default: rnn)
+                        The encoder type (default: transformer)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
   --postencoder {hugging_face_transformers,None}
@@ -8104,7 +8104,7 @@ Optimizer related:
   --unit_encoder_conf UNIT_ENCODER_CONF
                         The keyword arguments for unit_encoder (default: {})
   --synthesizer {translatotron,discrete_unit}
-                        The synthesizer type (default: translatotron)
+                        The synthesizer type (default: discrete_unit)
   --synthesizer_conf SYNTHESIZER_CONF
                         The keyword arguments for synthesizer (default: {})
   --loss {tacotron,guided_attention,attention,ctc}
