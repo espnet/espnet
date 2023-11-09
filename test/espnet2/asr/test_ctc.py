@@ -14,25 +14,25 @@ def ctc_args():
     return h, h_lens, y, y_lens
 
 
-@pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc"])
+@pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc", "brctc"])
 def test_ctc_forward_backward(ctc_type, ctc_args):
     ctc = CTC(encoder_output_size=10, odim=5, ctc_type=ctc_type)
     ctc(*ctc_args).sum().backward()
 
 
-@pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc"])
+@pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc", "brctc"])
 def test_ctc_softmax(ctc_type, ctc_args):
     ctc = CTC(encoder_output_size=10, odim=5, ctc_type=ctc_type)
     ctc.softmax(ctc_args[0])
 
 
-@pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc"])
+@pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc", "brctc"])
 def test_ctc_log_softmax(ctc_type, ctc_args):
     ctc = CTC(encoder_output_size=10, odim=5, ctc_type=ctc_type)
     ctc.log_softmax(ctc_args[0])
 
 
-@pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc"])
+@pytest.mark.parametrize("ctc_type", ["builtin", "gtnctc", "brctc"])
 def test_ctc_argmax(ctc_type, ctc_args):
     ctc = CTC(encoder_output_size=10, odim=5, ctc_type=ctc_type)
     ctc.argmax(ctc_args[0])
