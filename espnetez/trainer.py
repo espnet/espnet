@@ -25,8 +25,20 @@ class Trainer:
     ):
         self.task_class = get_easy_task(task)
         self.train_config = train_config
-        self.train_config.update(kwargs)
-        self.train_config = Namespace(**self.train_config)
+
+        if type(self.train_config) is dict:
+            self.train_config.update(kwargs)
+            self.train_config = Namespace(**self.train_config)
+        elif type(self.train_config) is Namespace:
+            for key, value in kwargs.items():
+                setattr(self.train_config, key, value)
+        else:
+            raise ValueError(
+                "train_config should be a dict or Namespace, but got {}.".format(
+                    type(self.train_config)
+                )
+            )
+
         if model is not None:
             self.task_class.model = model
 

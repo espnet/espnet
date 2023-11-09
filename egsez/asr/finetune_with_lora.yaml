@@ -1,0 +1,13 @@
+# LoRA finetune related
+use_lora: true
+
+seed: 2022
+num_workers: 4
+batch_type: numel
+batch_bins: 1600000
+accum_grad: 4
+max_epoch: 70
+patience: null
+init: null
+use_amp: false
+ngpu: 1
