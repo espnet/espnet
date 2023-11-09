@@ -52,23 +52,12 @@ min_wav_duration=0.1       # Minimum duration in second.
 max_wav_duration=20        # Maximum duration in second.
 use_sid=false              # Whether to use speaker id as the inputs (Need utt2spk in data directory).
 use_lid=false              # Whether to use language id as the inputs (Need utt2lang in data directory).
-feats_extract=fbank        # On-the-fly feature extractor.
-feats_normalize=global_mvn # On-the-fly feature normalizer.
 fs=16000                   # Sampling rate.
-n_fft=1024                 # The number of fft points.
-n_shift=256                # The number of shift points.
-win_length=null            # Window length.
-fmin=80                    # Minimum frequency of Mel basis.
-fmax=7600                  # Maximum frequency of Mel basis.
-n_mels=80                  # The number of mel basis.
-# Only used for the model using pitch & energy features (e.g. FastSpeech2)
-f0min=80  # Maximum f0 for pitch extraction.
-f0max=400 # Minimum f0 for pitch extraction.
 
 # Speech Discretization Related
-discrete_stage=1              # discretization stage
-discrete_stop_stage=100       # discretization stop stage
-discrete_nj=20       # Number of threads used for kmeans clustering
+discrete_stage=1                # discretization stage
+discrete_stop_stage=3           # discretization stop stage
+clustering_nj=20                # Number of threads used for kmeans clustering
 feature_dir="dump/feats"        # Feature directory for dumped feature
 km_tag=                         # KMeans tagging
 use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
@@ -166,26 +155,15 @@ Options:
     --xvector_model    # Pretrained model to generate the X-vectors (default="${xvector_model}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
-    --feats_extract    # On the fly feature extractor (default="${feats_extract}").
-    --feats_normalize  # Feature normalizer for on the fly feature extractor (default="${feats_normalize}")
     --fs               # Sampling rate (default="${fs}").
-    --fmax             # Maximum frequency of Mel basis (default="${fmax}").
-    --fmin             # Minimum frequency of Mel basis (default="${fmin}").
-    --n_mels           # The number of mel basis (default="${n_mels}").
-    --n_fft            # The number of fft points (default="${n_fft}").
-    --n_shift          # The number of shift points (default="${n_shift}").
-    --win_length       # Window length (default="${win_length}").
-    --f0min            # Maximum f0 for pitch extraction (default="${f0min}").
-    --f0max            # Minimum f0 for pitch extraction (default="${f0max}").
     --oov              # Out of vocabrary symbol (default="${oov}").
     --blank            # CTC blank symbol (default="${blank}").
     --sos_eos          # sos and eos symbole (default="${sos_eos}").
 
     # Discrete unit related
-    --use_discrete_unit        # Whether to use discrete unit (default="${use_discrete_unit}").
     --discrete_stage           # The start stage of clustering stage (default="${discrete_stage}").
     --discrete_stop_stage      # The stop stage of clustering stage (default="${discrete_stop_stage}").
-    --discrete_nj              # Number of threads of clustering process (default="${discrete_nj}").
+    --clustering_nj              # Number of threads of clustering process (default="${clustering_nj}").
     --feature_dir              # Feature directory for dumped feature (default="${feature_dir}")
     --km_tag                   # KMeans tagging (default="${km_tag}")
     --use_gpu_feat_extract     # Whether to use gpu for feature extraction (default="${use_gpu_feat_extract}")
@@ -278,7 +256,6 @@ if [ -z "${km_tag}" ]; then
     km_tag="${s3prl_upstream_name}_layer${feature_layer}_${feature_num_clusters}"
 fi
 km_dir="dump/${km_tag}"
-unit_tokendir="${token_listdir}"/discrete_unit.${km_tag}
 
 # Set tag for naming of model directory
 if [ -z "${tag}" ]; then
@@ -314,9 +291,6 @@ fi
 # The directory used for collect-stats mode
 if [ -z "${tts2_stats_dir}" ]; then
     tts2_stats_dir="${expdir}/tts2_stats_${feats_type}"
-    if [ "${feats_extract}" != fbank ]; then
-        tts2_stats_dir+="_${feats_extract}"
-    fi
     tts2_stats_dir+="_${src_token_type}"
     if [ "${cleaner}" != none ]; then
         tts2_stats_dir+="_${cleaner}"
@@ -372,7 +346,7 @@ if ! "${skip_data_prep}"; then
         done
     fi
 
-    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ; then
+    if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] ; then
         log "Stage 3: Prepare for additional token or embedding (e.g., spk, lang)."
 
         # Extract X-vector
@@ -567,8 +541,8 @@ if ! "${skip_data_prep}"; then
         # shellcheck disable=SC2002
         cat ${srctexts} | awk ' { if( NF != 1 ) print $0; } ' >"${data_feats}/srctexts"
 
-        ${python} -m espnet2.bin.src_tokenize_text \
-              --src_token_type "${src_token_type}" -f 2- \
+        ${python} -m espnet2.bin.tokenize_text \
+              --token_type "${src_token_type}" -f 2- \
               --input "${data_feats}/srctexts" --output "${src_token_list}" \
               --non_linguistic_symbols "${nlsyms_txt}" \
               --cleaner "${cleaner}" \
@@ -577,6 +551,48 @@ if ! "${skip_data_prep}"; then
               --add_symbol "${blank}:0" \
               --add_symbol "${oov}:1" \
               --add_symbol "${sos_eos}:-1"
+    fi
+
+    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+        log "Stage 6: Discrete TTS discrete unit extraction"
+
+        s3prl_conf="{upstream=${s3prl_upstream_name}}"
+        kmeans_feature_type=s3prl
+        kmeans_feature_conf="{type=${kmeans_feature_type},conf={s3prl_conf=${s3prl_conf},download_dir=ckpt,multilayer_feature=False,layer=${feature_layer}}}"
+
+        scripts/feats/perform_kmeans.sh \
+            --stage ${discrete_stage} \
+            --stop_stage ${discrete_stop_stage} \
+            --train_set "${train_set}" \
+            --dev_set "${valid_set}" \
+            --other_sets "${test_sets}" \
+            --datadir "${dumpdir}/raw" \
+            --featdir "${feature_dir}" \
+            --audio_format "${audio_format}" \
+            --feature_type ${kmeans_feature_type} \
+            --layer "${feature_layer}" \
+            --feature_conf "${kmeans_feature_conf}" \
+            --km_dir "${km_dir}" \
+            --portion "${clustering_portion}" \
+            --nclusters "${feature_num_clusters}" \
+            --storage_save_mode ${storage_save_mode} \
+            --use_gpu "${use_gpu_feat_extract}" \
+            --nj ${nj} \
+            --num_threads ${clustering_nj} \
+            --cpu_cmd "${train_cmd}" \
+            --cuda_cmd "${cuda_cmd}"
+
+            # Copy generated pseudo labels to original dump dir
+            for dset in ${train_set} ${valid_set} ${test_sets}; do
+                _out_dir=${feature_dir}/${kmeans_feature_type}/layer${feature_layer}/${dset}
+                cp ${_out_dir}/pseudo_labels_km${feature_num_clusters}.txt \
+                    "${data_feats}/${dset}/text.km.${km_tag}"
+            done
+
+            # NOTE(jiatong): use the pseudo label without unique to train the vocoder
+            log "Saving training pseudo_labels at ${data_feats}/${train_set}/text.km.${km_tag}"
+            log "Saving dev pseudo_labels at ${data_feats}/${valid_set}/text.km.${km_tag}"
+
     fi
 else
     log "Skip the stages for data preparation"
@@ -587,10 +603,10 @@ fi
 
 
 if ! "${skip_train}"; then
-    if [ ${stage} -le 5 ] && [ ${stop_stage} -ge 5 ]; then
+    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 5: Discrete TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 7: Discrete TTS collect stats: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -598,36 +614,6 @@ if ! "${skip_train}"; then
             #   % python3 -m espnet2.bin.tts2_train --print_config --optim adam
             _opts+="--config ${train_config} "
         fi
-
-        _scp=wav.scp
-        if [[ "${audio_format}" == *ark* ]]; then
-            _type=kaldi_ark
-        else
-            # "sound" supports "wav", "flac", etc.
-            _type=sound
-        fi
-        _opts+="--feats_extract ${feats_extract} "
-        _opts+="--feats_extract_conf n_fft=${n_fft} "
-        _opts+="--feats_extract_conf hop_length=${n_shift} "
-        _opts+="--feats_extract_conf win_length=${win_length} "
-        if [ "${feats_extract}" = fbank ]; then
-            _opts+="--feats_extract_conf fs=${fs} "
-            _opts+="--feats_extract_conf fmin=${fmin} "
-            _opts+="--feats_extract_conf fmax=${fmax} "
-            _opts+="--feats_extract_conf n_mels=${n_mels} "
-        fi
-
-        # Add extra configs for additional inputs
-        # NOTE(kan-bayashi): We always pass this options but not used in default
-        _opts+="--pitch_extract_conf fs=${fs} "
-        _opts+="--pitch_extract_conf n_fft=${n_fft} "
-        _opts+="--pitch_extract_conf hop_length=${n_shift} "
-        _opts+="--pitch_extract_conf f0max=${f0max} "
-        _opts+="--pitch_extract_conf f0min=${f0min} "
-        _opts+="--energy_extract_conf fs=${fs} "
-        _opts+="--energy_extract_conf n_fft=${n_fft} "
-        _opts+="--energy_extract_conf hop_length=${n_shift} "
-        _opts+="--energy_extract_conf win_length=${win_length} "
 
         if [ -n "${teacher_dumpdir}" ]; then
             _teacher_train_dir="${teacher_dumpdir}/${train_set}"
@@ -693,13 +679,10 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --normalize none \
-                --pitch_normalize none \
-                --energy_normalize none \
                 --train_data_path_and_name_and_type "${_train_dir}/text,text,text" \
-                --train_data_path_and_name_and_type "${_train_dir}/${_scp},speech,${_type}" \
+                --train_data_path_and_name_and_type "${_train_dir}/text.km.${km_tag},speech,text_int" \
                 --valid_data_path_and_name_and_type "${_valid_dir}/text,text,text" \
-                --valid_data_path_and_name_and_type "${_valid_dir}/${_scp},speech,${_type}" \
+                --valid_data_path_and_name_and_type "${_valid_dir}/text.km.${km_tag},speech,text_int" \
                 --train_shape_file "${_logdir}/train.JOB.scp" \
                 --valid_shape_file "${_logdir}/valid.JOB.scp" \
                 --output_dir "${_logdir}/stats.JOB" \
@@ -710,10 +693,7 @@ if ! "${skip_train}"; then
         for i in $(seq "${_nj}"); do
             _opts+="--input_dir ${_logdir}/stats.${i} "
         done
-        if [ "${feats_normalize}" != global_mvn ]; then
-            # Skip summerizaing stats if not using global MVN
-            _opts+="--skip_sum_stats"
-        fi
+        _opts+="--skip_sum_stats"
         ${python} -m espnet2.bin.aggregate_stats_dirs ${_opts} --output_dir "${tts2_stats_dir}"
 
         # Append the num-src_tokens at the last dimensions. This is used for batch-bins count
@@ -727,10 +707,10 @@ if ! "${skip_train}"; then
     fi
 
 
-    if [ ${stage} -le 6 ] && [ ${stop_stage} -ge 6 ]; then
+    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
         _train_dir="${data_feats}/${train_set}"
         _valid_dir="${data_feats}/${valid_set}"
-        log "Stage 6: Discrete TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
+        log "Stage 8: Discrete TTS Training: train_set=${_train_dir}, valid_set=${_valid_dir}"
 
         _opts=
         if [ -n "${train_config}" ]; then
@@ -743,24 +723,8 @@ if ! "${skip_train}"; then
             #####################################
             #     CASE 1: AR model training     #
             #####################################
-            _scp=wav.scp
-            if [[ "${audio_format}" == *ark* ]]; then
-                _type=kaldi_ark
-            else
-                # "sound" supports "wav", "flac", etc.
-                _type=sound
-            fi
+
             _fold_length="$((speech_fold_length * n_shift))"
-            _opts+="--feats_extract ${feats_extract} "
-            _opts+="--feats_extract_conf n_fft=${n_fft} "
-            _opts+="--feats_extract_conf hop_length=${n_shift} "
-            _opts+="--feats_extract_conf win_length=${win_length} "
-            if [ "${feats_extract}" = fbank ]; then
-                _opts+="--feats_extract_conf fs=${fs} "
-                _opts+="--feats_extract_conf fmin=${fmin} "
-                _opts+="--feats_extract_conf fmax=${fmax} "
-                _opts+="--feats_extract_conf n_mels=${n_mels} "
-            fi
 
             if [ "${num_splits}" -gt 1 ]; then
                 # If you met a memory error when parsing text files, this option may help you.
@@ -784,19 +748,19 @@ if ! "${skip_train}"; then
                 fi
 
                 _opts+="--train_data_path_and_name_and_type ${_split_dir}/text,text,text "
-                _opts+="--train_data_path_and_name_and_type ${_split_dir}/${_scp},speech,${_type} "
+                _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.km.${km_tag},speech,text_int "
                 _opts+="--train_shape_file ${_split_dir}/text_shape.${src_token_type} "
                 _opts+="--train_shape_file ${_split_dir}/speech_shape "
                 _opts+="--multiple_iterator true "
 
             else
                 _opts+="--train_data_path_and_name_and_type ${_train_dir}/text,text,text "
-                _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
+                _opts+="--train_data_path_and_name_and_type ${_train_dir}/text.km.${km_tag},speech,text_int "
                 _opts+="--train_shape_file ${tts2_stats_dir}/train/text_shape.${src_token_type} "
                 _opts+="--train_shape_file ${tts2_stats_dir}/train/speech_shape "
             fi
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text,text,text "
-            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text.km.${km_tag},speech,text_int "
             _opts+="--valid_shape_file ${tts2_stats_dir}/valid/text_shape.${src_token_type} "
             _opts+="--valid_shape_file ${tts2_stats_dir}/valid/speech_shape "
         else
@@ -813,77 +777,12 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations,durations,text_int "
             _opts+="--valid_shape_file ${tts2_stats_dir}/valid/text_shape.${src_token_type} "
 
-            if [ -e ${_teacher_train_dir}/probs ]; then
-                # Knowledge distillation case: use the outputs of the teacher model as the target
-                _scp=feats.scp
-                _type=npy
-                _odim="$(head -n 1 "${_teacher_train_dir}/speech_shape" | cut -f 2 -d ",")"
-                _opts+="--odim=${_odim} "
-                _opts+="--train_data_path_and_name_and_type ${_teacher_train_dir}/denorm/${_scp},speech,${_type} "
-                _opts+="--train_shape_file ${_teacher_train_dir}/speech_shape "
-                _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/denorm/${_scp},speech,${_type} "
-                _opts+="--valid_shape_file ${_teacher_valid_dir}/speech_shape "
-            else
-                # Teacher forcing case: use groundtruth as the target
-                _scp=wav.scp
-                if [[ "${audio_format}" == *ark* ]]; then
-                    _type=kaldi_ark
-                else
-                    # "sound" supports "wav", "flac", etc.
-                    _type=sound
-                fi
-                _fold_length="$((speech_fold_length * n_shift))"
-                _opts+="--feats_extract ${feats_extract} "
-                _opts+="--feats_extract_conf n_fft=${n_fft} "
-                _opts+="--feats_extract_conf hop_length=${n_shift} "
-                _opts+="--feats_extract_conf win_length=${win_length} "
-                if [ "${feats_extract}" = fbank ]; then
-                    _opts+="--feats_extract_conf fs=${fs} "
-                    _opts+="--feats_extract_conf fmin=${fmin} "
-                    _opts+="--feats_extract_conf fmax=${fmax} "
-                    _opts+="--feats_extract_conf n_mels=${n_mels} "
-                fi
-                _opts+="--train_data_path_and_name_and_type ${_train_dir}/${_scp},speech,${_type} "
-                _opts+="--train_shape_file ${tts2_stats_dir}/train/speech_shape "
-                _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/${_scp},speech,${_type} "
-                _opts+="--valid_shape_file ${tts2_stats_dir}/valid/speech_shape "
-            fi
-        fi
-
-        # If there are dumped files of additional inputs, we use it to reduce computational cost
-        # NOTE (kan-bayashi): Use dumped files of the target features as well?
-        if [ -e "${tts2_stats_dir}/train/collect_feats/pitch.scp" ]; then
-            _scp=pitch.scp
-            _type=npy
-            _train_collect_dir=${tts2_stats_dir}/train/collect_feats
-            _valid_collect_dir=${tts2_stats_dir}/valid/collect_feats
-            _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},pitch,${_type} "
-            _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},pitch,${_type} "
-        fi
-        if [ -e "${tts2_stats_dir}/train/collect_feats/energy.scp" ]; then
-            _scp=energy.scp
-            _type=npy
-            _train_collect_dir=${tts2_stats_dir}/train/collect_feats
-            _valid_collect_dir=${tts2_stats_dir}/valid/collect_feats
-            _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},energy,${_type} "
-            _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},energy,${_type} "
-        fi
-
-        # Check extra statistics
-        if [ -e "${tts2_stats_dir}/train/pitch_stats.npz" ]; then
-            _opts+="--pitch_extract_conf fs=${fs} "
-            _opts+="--pitch_extract_conf n_fft=${n_fft} "
-            _opts+="--pitch_extract_conf hop_length=${n_shift} "
-            _opts+="--pitch_extract_conf f0max=${f0max} "
-            _opts+="--pitch_extract_conf f0min=${f0min} "
-            _opts+="--pitch_normalize_conf stats_file=${tts2_stats_dir}/train/pitch_stats.npz "
-        fi
-        if [ -e "${tts2_stats_dir}/train/energy_stats.npz" ]; then
-            _opts+="--energy_extract_conf fs=${fs} "
-            _opts+="--energy_extract_conf n_fft=${n_fft} "
-            _opts+="--energy_extract_conf hop_length=${n_shift} "
-            _opts+="--energy_extract_conf win_length=${win_length} "
-            _opts+="--energy_normalize_conf stats_file=${tts2_stats_dir}/train/energy_stats.npz "
+            # Teacher forcing case: use groundtruth as the target
+            _fold_length="$((speech_fold_length * n_shift))"
+            _opts+="--train_data_path_and_name_and_type ${_train_dir}/text.km.${km_tag},speech,text_int "
+            _opts+="--train_shape_file ${tts2_stats_dir}/train/speech_shape "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/text.km.${km_tag},speech,text_int "
+            _opts+="--valid_shape_file ${tts2_stats_dir}/valid/speech_shape "
         fi
 
         # Add X-vector to the inputs if needed
@@ -904,10 +803,6 @@ if ! "${skip_train}"; then
         if "${use_lid}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_dir}/utt2lid,lids,text_int "
             _opts+="--valid_data_path_and_name_and_type ${_valid_dir}/utt2lid,lids,text_int "
-        fi
-
-        if [ "${feats_normalize}" = "global_mvn" ]; then
-            _opts+="--normalize_conf stats_file=${tts2_stats_dir}/train/feats_stats.npz "
         fi
 
         log "Generate '${tts2_exp}/run.sh'. You can resume the process from stage 6 using this script"
@@ -937,7 +832,6 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
-                --normalize "${feats_normalize}" \
                 --resume true \
                 --fold_length "${text_fold_length}" \
                 --fold_length "${_fold_length}" \
@@ -971,8 +865,8 @@ fi
 
 
 if ! "${skip_eval}"; then
-    if [ ${stage} -le 7 ] && [ ${stop_stage} -ge 7 ]; then
-        log "Stage 7: Decoding: training_dir=${tts2_exp}"
+    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
+        log "Stage 9: Decoding: training_dir=${tts2_exp}"
 
         if ${gpu_inference}; then
             _cmd="${cuda_cmd}"
@@ -985,14 +879,6 @@ if ! "${skip_eval}"; then
         _opts=
         if [ -n "${inference_config}" ]; then
             _opts+="--config ${inference_config} "
-        fi
-
-        _scp=wav.scp
-        if [[ "${audio_format}" == *ark* ]]; then
-            _type=kaldi_ark
-        else
-            # "sound" supports "wav", "flac", etc.
-            _type=sound
         fi
 
         log "Generate '${tts2_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
@@ -1055,7 +941,7 @@ if ! "${skip_eval}"; then
                 ${python} -m espnet2.bin.tts2_inference \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/text,text,text" \
-                    --data_path_and_name_and_type ${_speech_data}/${_scp},speech,${_type} \
+                    --data_path_and_name_and_type ${_speech_data}/text.km.${km_tag},speech,text_int \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --model_file "${tts2_exp}"/"${inference_model}" \
                     --train_config "${tts2_exp}"/config.yaml \
@@ -1125,20 +1011,11 @@ fi
 packed_model="${tts2_exp}/${tts2_exp##*/}_${inference_model%.*}.zip"
 if [ -z "${download_model}" ]; then
     # Skip pack preparation if using a downloaded model
-    if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
-        log "Stage 8: Pack model: ${packed_model}"
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Pack model: ${packed_model}"
         log "Warning: Upload model to Zenodo will be deprecated. We encourage to use Hugging Face"
 
         _opts=""
-        if [ -e "${tts2_stats_dir}/train/feats_stats.npz" ]; then
-            _opts+=" --option ${tts2_stats_dir}/train/feats_stats.npz"
-        fi
-        if [ -e "${tts2_stats_dir}/train/pitch_stats.npz" ]; then
-            _opts+=" --option ${tts2_stats_dir}/train/pitch_stats.npz"
-        fi
-        if [ -e "${tts2_stats_dir}/train/energy_stats.npz" ]; then
-            _opts+=" --option ${tts2_stats_dir}/train/energy_stats.npz"
-        fi
         if "${use_xvector}"; then
             for dset in "${train_set}" ${test_sets}; do
                 _opts+=" --option ${dumpdir}/xvector/${dset}/spk_xvector.scp"
@@ -1165,8 +1042,8 @@ if [ -z "${download_model}" ]; then
 fi
 
 if ! "${skip_upload}"; then
-    if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
-        log "Stage 9: Upload model to Zenodo: ${packed_model}"
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+        log "Stage 11: Upload model to Zenodo: ${packed_model}"
 
         # To upload your model, you need to do:
         #   1. Signup to Zenodo: https://zenodo.org/
@@ -1223,11 +1100,11 @@ else
 fi
 
 if ! "${skip_upload_hf}"; then
-    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+    if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ]; then
         [ -z "${hf_repo}" ] && \
             log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
             exit 1
-        log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
+        log "Stage 12: Upload model to HuggingFace: ${hf_repo}"
 
         gitlfs=$(git lfs --version 2> /dev/null || true)
         [ -z "${gitlfs}" ] && \
