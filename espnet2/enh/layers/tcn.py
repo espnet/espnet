@@ -455,6 +455,7 @@ class ChannelwiseLayerNorm(nn.Module):
         self.gamma.data.fill_(1)
         self.beta.data.zero_()
 
+    @torch.cuda.amp.autocast(enabled=False)
     def forward(self, y):
         """Forward.
 
@@ -495,6 +496,7 @@ class GlobalLayerNorm(nn.Module):
         self.gamma.data.fill_(1)
         self.beta.data.zero_()
 
+    @torch.cuda.amp.autocast(enabled=False)
     def forward(self, y):
         """Forward.
 

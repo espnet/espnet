@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch_complex
 from packaging.version import parse as V
@@ -24,6 +22,7 @@ class STFTDecoder(AbsDecoder):
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
+        default_fs: int = 16000,
     ):
         super().__init__()
         self.stft = Stft(
@@ -41,18 +40,25 @@ class STFTDecoder(AbsDecoder):
         self.hop_length = hop_length
         self.window = window
         self.center = center
+        self.default_fs = default_fs
 
-    def forward(self, input: ComplexTensor, ilens: torch.Tensor):
+    @torch.cuda.amp.autocast(enabled=False)
+    def forward(self, input: ComplexTensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
 
         Args:
             input (ComplexTensor): spectrum [Batch, T, (C,) F]
             ilens (torch.Tensor): input lengths [Batch]
+            fs (int): sampling rate in Hz
+                If not None, reconfigure iSTFT window and hop lengths for a new
+                sampling rate while keeping their duration fixed.
         """
         if not isinstance(input, ComplexTensor) and (
             is_torch_1_9_plus and not torch.is_complex(input)
         ):
             raise TypeError("Only support complex tensors for stft decoder")
+        if fs is not None:
+            self._reconfig_for_fs(fs)
 
         bs = input.size(0)
         if input.dim() == 4:
@@ -80,7 +86,24 @@ class STFTDecoder(AbsDecoder):
             # wav: (Batch * C, Nsamples) -> (Batch, Nsamples, C)
             wav = wav.reshape(bs, -1, wav.size(1)).transpose(1, 2)
 
+        self._reset_config()
         return wav, wav_lens
+
+    def _reset_config(self):
+        """Reset the configuration of iSTFT window and hop lengths."""
+        self._reconfig_for_fs(self.default_fs)
+
+    def _reconfig_for_fs(self, fs):
+        """Reconfigure iSTFT window and hop lengths for a new sampling rate
+        while keeping their duration fixed.
+
+        Args:
+            fs (int): new sampling rate
+        """  # noqa: H405
+        assert fs % self.default_fs == 0 or self.default_fs % fs == 0
+        self.stft.n_fft = self.n_fft * fs // self.default_fs
+        self.stft.win_length = self.win_length * fs // self.default_fs
+        self.stft.hop_length = self.hop_length * fs // self.default_fs
 
     def _get_window_func(self):
         window_func = getattr(torch, f"{self.window}_window")
@@ -91,6 +114,7 @@ class STFTDecoder(AbsDecoder):
 
     def forward_streaming(self, input_frame: torch.Tensor):
         """Forward.
+
         Args:
             input (ComplexTensor): spectrum [Batch, 1, F]
             output: wavs [Batch, 1, self.win_length]
@@ -121,7 +145,7 @@ class STFTDecoder(AbsDecoder):
             ilens: [B]
         Returns:
             merge_audio: [B, T]
-        """
+        """  # noqa: H405
 
         frame_size = self.win_length
         hop_size = self.hop_length

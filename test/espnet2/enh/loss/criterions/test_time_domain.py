@@ -52,11 +52,18 @@ def test_time_domain_l1_l2_forward(criterion_class, input_ch):
 @pytest.mark.parametrize("window_sz", [[512], [256, 512]])
 @pytest.mark.parametrize("time_domain_weight", [0.5])
 @pytest.mark.parametrize("dtype", [torch.float16, torch.float32])
-def test_multi_res_l1_spec_loss_forward_backward(window_sz, time_domain_weight, dtype):
+@pytest.mark.parametrize("normalize_variance", [True, False])
+@pytest.mark.parametrize("reduction", ["sum", "mean"])
+def test_multi_res_l1_spec_loss_forward_backward(
+    window_sz, time_domain_weight, dtype, normalize_variance, reduction
+):
     if dtype == torch.float16 and not is_torch_1_12_1_plus:
         pytest.skip("Skip tests for dtype=torch.float16 due to lack of torch.complex32")
     criterion = MultiResL1SpecLoss(
-        window_sz=window_sz, time_domain_weight=time_domain_weight
+        window_sz=window_sz,
+        time_domain_weight=time_domain_weight,
+        normalize_variance=normalize_variance,
+        reduction=reduction,
     )
 
     batch = 2
