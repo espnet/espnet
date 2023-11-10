@@ -35,7 +35,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
       --mls_lang "" \
       --voxpopuli_lang "" \
       --extra_langs "" \
-      --lid false 
+      --lid false
     cd ${pwd}
 fi
 
@@ -80,7 +80,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         [yo_openslr86]='yor' \
         [su_openslr36]='sun' \
     )
-    
+
     for lang in ${!langid_map[@]}; do
         for part in train dev test; do
             echo "processing ${part}_${lang}"
@@ -93,7 +93,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --src_field 0 \
                 --num_proc ${nproc} || exit 1;
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
-                data/openslr/${part}_${lang} 
+                data/openslr/${part}_${lang}
         done
     done
 fi

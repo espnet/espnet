@@ -67,7 +67,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         [402]='jav' \
         [403]='luo' \
         [404]='kat' )
-    
+
     # Train part
     for part in ${train_sets}; do
         utils/fix_data_dir.sh ../../babel/asr1/data/${part}/data/train_${part}
@@ -83,7 +83,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
             data/babel/train_${part}_whisper
     done
-    
+
     # Dev part
     for part in ${valid_sets}; do
         utils/fix_data_dir.sh ../../babel/asr1/data/${part}/data/dev_${part}
