@@ -499,29 +499,40 @@ if ! "${skip_data_prep}"; then
                 done
 
                 rm -f ${data_feats}${_suf}/${dset}/{segments,wav.scp.${src_lang},wav.scp,wav.scp.${tgt_lang},reco2file_and_channel,reco2dur}
-                _opts=
-                if [ -e data/"${dset}"/segments ]; then
+
+                _src_opts=
+		_tgt_opts=
+                if [ -e data/"${dset}"/segments.${src_lang} ]; then
                     # "segments" is used for splitting wav files which are written in "wav".scp
                     # into utterances. The file format of segments:
                     #   <segment_id> <record_id> <start_time> <end_time>
                     #   "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5"
                     # Where the time is written in seconds.
                     # Note(jiatong): we just consider the case for input speech only for now
-                    _opts+="--segments data/${dset}/segments "
+                    _src_opts+="--segments data/${dset}/segments.${src_lang} "
+                fi
+                if [ -e data/"${dset}"/segments.${tgt_lang} ]; then
+                    # "segments" is used for splitting wav files which are written in "wav".scp
+                    # into utterances. The file format of segments:
+                    #   <segment_id> <record_id> <start_time> <end_time>
+                    #   "e.g. call-861225-A-0050-0065 call-861225-A 5.0 6.5"
+                    # Where the time is written in seconds.
+                    # Note(jiatong): we just consider the case for input speech only for now
+                    _tgt_opts+="--segments data/${dset}/segments.${tgt_lang} "
                 fi
 
                 log "Format target wav.scp"
                 # shellcheck disable=SC2086
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --audio-format "${audio_format}" --fs "${fs}" --suffix ".${tgt_lang}" \
-                    --out_filename "wav.scp.${tgt_lang}" \
+                    --out_filename "wav.scp.${tgt_lang}" ${_tgt_opts} \
                     "data/${dset}/wav.scp.${tgt_lang}" "${data_feats}${_suf}/${dset}"
 
                 log "Format source wav.scp"
                 # shellcheck disable=SC2086
                 scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                     --audio-format "${audio_format}" --fs "${fs}" --suffix ".${src_lang}" \
-                    --out_filename "wav.scp.${src_lang}" ${_opts} \
+		    --out_filename "wav.scp.${src_lang}" ${_src_opts} \
                     "data/${dset}/wav.scp.${src_lang}" "${data_feats}${_suf}/${dset}"
                 ln -sf "wav.scp.${src_lang}" "${data_feats}${_suf}/${dset}/wav.scp"
 

@@ -1,6 +1,7 @@
 # OWSM v2
 
-- Model: [https://huggingface.co/pyf98/owsm_v2](https://huggingface.co/pyf98/owsm_v2)
+- Transformer Encoder + Transformer Decoder: [https://huggingface.co/pyf98/owsm_v2](https://huggingface.co/pyf98/owsm_v2)
+- [E-Branchformer](https://arxiv.org/abs/2210.00077) Encoder + Transformer Decoder: [https://huggingface.co/espnet/owsm_v2_ebranchformer](https://huggingface.co/espnet/owsm_v2_ebranchformer)
 
 ### Guidance for data preparation
 (1) Please work progressively from v1 to v3: this means you need to prepare data for v1, v2 and v3 in order to obtain the full v3 data. To start the data preparation, run `bash local/data.sh --VERSION v1 # or v2, v3`

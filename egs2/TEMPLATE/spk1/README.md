@@ -67,6 +67,11 @@ See also:
 - [Change the configuration for training](https://espnet.github.io/espnet/espnet2_training_option.html)
 - [Distributed training](https://espnet.github.io/espnet/espnet2_distributed.html)
 
+### 5. Inference
+Speaker model inference stage.
+Calculates equal error rates (EERs) and minimum detection cost function (minDCF).
+
+
 ## How to run
 
 ### VoxCeleb Training
