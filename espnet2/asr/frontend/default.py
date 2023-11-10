@@ -17,7 +17,7 @@ from espnet.nets.pytorch_backend.frontends.frontend import Frontend
 class DefaultFrontend(AbsFrontend):
     """Conventional frontend structure for ASR.
 
-    Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Mel-Fbank -> CMVN
+    Stft -> WPE -> MVDR-Beamformer -> Power-spec -> Log-Mel-Fbank
     """
 
     def __init__(

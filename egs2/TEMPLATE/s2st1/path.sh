@@ -1,9 +1,6 @@
 MAIN_ROOT=$PWD/../../..
-KALDI_ROOT=$MAIN_ROOT/tools/kaldi
 
-export PATH=$PWD/utils/:$KALDI_ROOT/tools/openfst/bin:$PATH
-[ ! -f $KALDI_ROOT/tools/config/common_path.sh ] && echo >&2 "The standard file $KALDI_ROOT/tools/config/common_path.sh is not present -> Exit!" && exit 1
-. $KALDI_ROOT/tools/config/common_path.sh
+export PATH=$PWD/utils/:$PATH
 export LC_ALL=C
 
 . "${MAIN_ROOT}"/tools/activate_python.sh && . "${MAIN_ROOT}"/tools/extra_path.sh
@@ -18,7 +15,7 @@ export PYTHONIOENCODING=UTF-8
 # https://docs.nvidia.com/deeplearning/sdk/nccl-developer-guide/docs/env.html#nccl-socket-ifname
 export NCCL_SOCKET_IFNAME="^lo,docker,virbr,vmnet,vboxnet"
 
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$KALDI_ROOT/tools/openfst-1.7.2/lib
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}
 
 # NOTE(kamo): Source at the last to overwrite the setting
 . local/path.sh
