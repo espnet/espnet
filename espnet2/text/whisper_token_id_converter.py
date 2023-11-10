@@ -1,4 +1,5 @@
 import copy
+import os
 from typing import Iterable, List, Union
 
 import numpy as np
@@ -6,6 +7,7 @@ from typeguard import check_argument_types
 
 from espnet2.text.whisper_tokenizer import LANGUAGES_CODE_MAPPING
 
+dirname = os.path.dirname(__file__)
 # <sos> and <eos> for Whisper multilingual ---
 # '<|startoftranscript|>': 50258
 # '<|endoftext|>':         50257
@@ -21,6 +23,7 @@ class OpenAIWhisperTokenIDConverter:
         model_type: str,
         language: str = "en",
         task: str = "transcribe",
+        added_tokens_txt: str = None,
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
     ):
@@ -48,6 +51,13 @@ class OpenAIWhisperTokenIDConverter:
             self.tokenizer = whisper.tokenizer.get_tokenizer(
                 multilingual=True, language=language, task=task
             )
+            if added_tokens_txt is not None:
+                _added_tokens = []
+                with open(added_tokens_txt) as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        _added_tokens.append(line.rstrip())
+                self.tokenizer.tokenizer.add_tokens(_added_tokens)
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 

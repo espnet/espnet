@@ -1,4 +1,5 @@
 import copy
+import os
 from typing import Iterable, List
 
 from typeguard import check_argument_types
@@ -31,6 +32,7 @@ LANGUAGES_CODE_MAPPING = {
     "zh-CN": "chinese",
     "zh-HK": "chinese",
 }
+dirname = os.path.dirname(__file__)
 
 
 class OpenAIWhisperTokenizer(AbsTokenizer):
@@ -41,6 +43,7 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
         task: str = "transcribe",
         sot: bool = False,
         speaker_change_symbol: str = "<sc>",
+        added_tokens_txt: str = None,
     ):
         assert check_argument_types()
 
@@ -69,6 +72,13 @@ class OpenAIWhisperTokenizer(AbsTokenizer):
             self.tokenizer = whisper.tokenizer.get_tokenizer(
                 multilingual=True, language=self.language, task=self.task
             )
+            if added_tokens_txt is not None:
+                _added_tokens = []
+                with open(added_tokens_txt) as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        _added_tokens.append(line.rstrip())
+                self.tokenizer.tokenizer.add_tokens(_added_tokens)
         else:
             raise ValueError("tokenizer unsupported:", model_type)
 

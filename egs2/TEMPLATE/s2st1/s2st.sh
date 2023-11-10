@@ -1662,6 +1662,8 @@ if ! "${skip_upload_hf}"; then
         espnet_task=S2ST
         # shellcheck disable=SC2034
         task_exp=${s2st_exp}
+        # shellcheck disable=SC2034
+        lang="${tgt_lang}"
         eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
 
         this_folder=${PWD}

@@ -84,6 +84,7 @@ def build_tokenizer(
             model_type=bpemodel,
             language=whisper_language or "en",
             task=whisper_task or "transcribe",
+            added_tokens_txt=non_linguistic_symbols,
             sot=sot_asr,
         )
 
