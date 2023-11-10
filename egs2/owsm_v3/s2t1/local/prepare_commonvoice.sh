@@ -9,7 +9,8 @@
 
 # general configuration
 stage=1       # start from 0 if you need to start from data preparation
-stop_stage=2
+stop_stage=3
+nproc=64
 SECONDS=0
 utt_extra_files="text.prev text.ctc"
 
@@ -66,21 +67,22 @@ set -o pipefail
 
 log "data preparation started"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     for lang in langs; do
     local/download_and_untar.sh ${COMMONVOICE} ${data_url} \
       cv-corpus-13.0-2023-03-09-${lang}.tar.gz || echo "Prepare $lang fails. Continue ..."
     done
 fi
 
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     python3 local/prepare_commonvoice.py \
       --data_dir ${COMMONVOICE}/cv-corpus-13.0-2023-03-09 \
       --prefix commonvoice \
-      --output_dir data/CommonVoice
+      --output_dir data/CommonVoice \
+      --nproc ${nproc}
 fi
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     for part in train dev test; do
         utils/combine_data.sh --extra-files "text.prev text.ctc" \
             data/CommonVoice/${part} data/CommonVoice/*/${part}

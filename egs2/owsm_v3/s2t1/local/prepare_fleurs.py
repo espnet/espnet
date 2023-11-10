@@ -129,10 +129,6 @@ def main():
             lang = iso_languages.get(part3=lang_id_short)
         lang_id_iso, lang_name = lang.part3, lang.name
         lang_id_dict[lang_name] = lang_id_iso
-        logging.info(
-            f"Process FLEURS subset {lang_name} ({lang_id})"
-            f"with ISO-693-3 id: {lang_id_iso}"
-        )
 
     # Add missing terms manually.
     lang_id_dict["Sorani-Kurdish"] = "ckb"
@@ -153,6 +149,7 @@ def main():
     lang_id_dict["Swahili"] = "swh"
     lang_id_dict["Fula"] = "ful"
     lang_id_dict["Cantonese Chinese"] = "yue"
+    lang_id_dict["Mandarin Chinese"] = "zho"
 
     talk_splits = {
         "valid": collect_data(

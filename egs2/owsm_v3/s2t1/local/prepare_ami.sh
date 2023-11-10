@@ -11,6 +11,7 @@ log() {
     local fname=${BASH_SOURCE[1]##*/}
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
+nproc=64
 stage=0
 stop_stage=10
 SECONDS=0
@@ -39,7 +40,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --prefix AMI \
             --src eng \
             --src_field 7 \
-            --num_proc 10 \
+            --num_proc ${nproc} \
             --lower_case
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
           data/ami/${part}_whisper

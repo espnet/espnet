@@ -19,8 +19,6 @@ from utils import (
     generate_long_utterances,
 )
 
-NUM_PROC = 128  # change this according to your machine
-
 
 def find_duration(utt):
     wav_path = utt[0].wav_path.split()[4]
@@ -32,8 +30,8 @@ def find_duration(utt):
     return utt
 
 
-def find_durations(datas):
-    pool = Pool(NUM_PROC)
+def find_durations(datas, nproc):
+    pool = Pool(nproc)
     datas = pool.map(find_duration, datas)
     pool.close()
     return datas
@@ -109,6 +107,12 @@ def parse_args():
         default=["all"],
         help="Data splits to prepare.",
     )
+    parser.add_argument(
+        "--nproc",
+        type=int,
+        default=64,
+        help="number of multi-processing to find the utterance duration",
+    )
 
     args = parser.parse_args()
     return args
@@ -140,7 +144,7 @@ if __name__ == "__main__":
             prefix=args.prefix,
         )
 
-        talks = find_durations(talks)
+        talks = find_durations(talks, args.nproc)
         talks = [x for x in talks if x[0].end_time > 0.0]
 
         for talk in talks:

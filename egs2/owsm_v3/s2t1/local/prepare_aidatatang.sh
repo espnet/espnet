@@ -10,6 +10,9 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 SECONDS=0
+nproc=64
+stage=1
+stop_stage=2
 
 log "$0 $*"
 
@@ -19,24 +22,28 @@ log "$0 $*"
 . ./path.sh
 . ./cmd.sh
 
-# use the original espnet scripts
-pwd=${PWD}
-cd ../../aidatatang_200zh/asr1/
-./local/data.sh
-cd ${pwd}
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    # use the original espnet scripts
+    pwd=${PWD}
+    cd ../../aidatatang_200zh/asr1/
+    ./local/data.sh
+    cd ${pwd}
+fi
 
-utt_extra_files="text.prev text.ctc"
-for part in train dev test; do
-    utils/fix_data_dir.sh ../../aidatatang_200zh/asr1/data/${part}
-    python3 local/kaldi_to_whisper.py \
-        --data_dir ../../aidatatang_200zh/asr1/data/${part} \
-        --output_dir data/aidatatang/${part}_whisper \
-        --prefix AIDATATANG_200ZH \
-        --src zho \
-        --src_field 0 \
-        --num_proc 10
-    utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
-      data/aidatatang/${part}_whisper
-done
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+    utt_extra_files="text.prev text.ctc"
+    for part in train dev test; do
+        utils/fix_data_dir.sh ../../aidatatang_200zh/asr1/data/${part}
+        python3 local/kaldi_to_whisper.py \
+            --data_dir ../../aidatatang_200zh/asr1/data/${part} \
+            --output_dir data/aidatatang/${part}_whisper \
+            --prefix AIDATATANG_200ZH \
+            --src zho \
+            --src_field 0 \
+            --num_proc ${nproc}
+        utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
+        data/aidatatang/${part}_whisper
+    done
+fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

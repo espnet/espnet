@@ -10,6 +10,7 @@
 # general configuration
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
+nproc=10
 SECONDS=0
 
 . utils/parse_options.sh || exit 1;
@@ -38,7 +39,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --prefix FISHER_CALLHOME_SPANISH \
             --src spa \
             --src_field 6 \
-            --num_proc 10
+            --num_proc ${nproc}
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
           data/fisher_callhome/${part}_whisper
     done

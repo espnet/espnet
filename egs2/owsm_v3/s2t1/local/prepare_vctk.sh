@@ -10,6 +10,7 @@ set -o pipefail
 
 stage=1
 stop_stage=2
+nproc=64
 
 . utils/parse_options.sh
 
@@ -31,7 +32,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --prefix VCTK \
             --src eng \
             --src_field 0 \
-            --num_proc 100
+            --num_proc ${nproc}
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
           data/vctk/${part}_whisper
     done

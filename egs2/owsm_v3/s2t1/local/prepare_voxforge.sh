@@ -11,7 +11,7 @@ log() {
 }
 SECONDS=0
 
-
+nproc=64
 stage=1
 stop_stage=2
 
@@ -57,12 +57,12 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
                 --prefix VOXFORGE \
                 --src ${langid_map[${old_lang}]} \
                 --src_field 0 \
-                --num_proc 10 \
+                --num_proc ${nproc} \
                 --lower_case || exit 1;
             utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
                 data/voxforge/${dataset}_whisper
         done
-        utils/combine_data.sh --skip_fix true --extra-files "${utt_extra_files}" \
+        utils/combine_data.sh --extra-files "${utt_extra_files}" \
             data/voxforge/${split} \
             data/voxforge/${split}_{it,de,en,es,fr,nl,pt,ru}_whisper || exit 1;
     done

@@ -5,8 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-stage=0
-stop_stage=2
 
 . ./path.sh || exit 1;
 . ./db.sh || exit 1;
@@ -29,20 +27,28 @@ log() {
 }
 SECONDS=0
 
+stage=1
+stop_stage=3
+nproc=64
+
+log "$0 $*"
+. utils/parse_options.sh
+
 prefix=ReazonSpeech
 output_dir=data/ReazonSpeech
 splits="all"
 
-if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python3 local/prepare_reazonspeech.py \
         --data_dir ${REAZONSPEECH} \
         --prefix ${prefix} \
         --output_dir ${output_dir} \
-        --splits ${splits} || exit 1;
+        --splits ${splits} \
+        --nproc ${nproc} || exit 1;
 fi
 
 utt_extra_files="text.prev text.ctc"
-if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" data/ReazonSpeech/${splits}
     utils/subset_data_dir_tr_cv.sh --cv-spk-percent 0.1 data/ReazonSpeech/${splits} \
         data/ReazonSpeech/train data/ReazonSpeech/test_valid
@@ -50,7 +56,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         data/ReazonSpeech/valid data/ReazonSpeech/test
 fi
 
-if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
+if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     for x in train valid test; do
         # NOTE(yifan): extra text files must be sorted and unique
         for f in ${utt_extra_files}; do

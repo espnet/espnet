@@ -21,8 +21,6 @@ from utils import (
 # To read large files
 csv.field_size_limit(50000 * 1024 * 1024)
 
-NUM_PROC = 40  # change this according to your machine
-
 
 def preprocess_text(text: str) -> str:
     if "<" in text or ">" in text:
@@ -72,8 +70,8 @@ def find_duration(utt):
     return utt
 
 
-def find_durations(datas):
-    pool = Pool(NUM_PROC)
+def find_durations(datas, nproc):
+    pool = Pool(nproc)
     datas = pool.map(find_duration, datas)
     pool.close()
     datas = [d for d in datas if d is not None]
@@ -81,7 +79,10 @@ def find_durations(datas):
 
 
 def collect_data(
-    data_dir: Union[Path, str], prefix: str, lang: str
+    data_dir: Union[Path, str],
+    prefix: str,
+    lang: str,
+    nproc: int,
 ) -> List[List[Utterance]]:
     validated_data = [
         x for x in csv.DictReader(open(str(data_dir / "validated.tsv")), delimiter="\t")
@@ -107,9 +108,12 @@ def collect_data(
     test_data = transform_into_talks(test_data, data_dir, prefix, lang)
 
     logging.info("Start finding durations")
-    train_data = find_durations(train_data)
-    dev_data = find_durations(dev_data)
-    test_data = find_durations(test_data)
+    train_data = find_durations(train_data, nproc)
+    dev_data = find_durations(
+        dev_data,
+        nproc,
+    )
+    test_data = find_durations(test_data, nproc)
 
     return train_data, dev_data, test_data
 
@@ -124,6 +128,12 @@ def parse_args():
         "--output_dir",
         type=Path,
         help="Path to save the output data.",
+    )
+    parser.add_argument(
+        "--nproc",
+        type=int,
+        default=64,
+        help="number of multi-processing to find the utterance duration",
     )
 
     args = parser.parse_args()
@@ -159,6 +169,7 @@ if __name__ == "__main__":
             data_dir=args.data_dir / lang,
             prefix=args.prefix,
             lang=lang_iso,
+            nproc=args.nproc,
         )
 
         logging.info(f"#Train: {len(train)} | #Dev: {len(dev)} | #Test: {len(test)}")

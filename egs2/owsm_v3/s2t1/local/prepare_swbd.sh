@@ -10,8 +10,7 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 SECONDS=0
-
-
+nproc=64
 stage=1
 stop_stage=2
 
@@ -48,7 +47,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --prefix SWBD \
             --src eng \
             --src_field 7 \
-            --num_proc 10 \
+            --num_proc ${nproc} \
             --nlsyms ${nlsyms}
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
           data/swbd/${part}_whisper

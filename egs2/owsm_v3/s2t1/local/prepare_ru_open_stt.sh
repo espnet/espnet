@@ -7,6 +7,7 @@ set -o pipefail
 
 stage=1
 stop_stage=2
+nproc=64
 
 . utils/parse_options.sh
 
@@ -28,7 +29,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --prefix ru_open_stt \
             --src rus \
             --src_field 2 \
-            --num_proc 100
+            --num_proc ${nproc}
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}"  \
           data/ru_open_stt/${part}_whisper
     done

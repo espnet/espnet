@@ -1,7 +1,3 @@
-# OWSM v2
-
-- Model: [https://huggingface.co/pyf98/owsm_v2](https://huggingface.co/pyf98/owsm_v2)
-
 ### Guidance for data preparation
 (1) Please work progressively from v1 to v3: this means you need to prepare data for v1, v2 and v3 in order to obtain the full v3 data. To start the data preparation, run `bash local/data.sh --VERSION v1 # or v2, v3`
 (2) Please revise `db.sh` for all datasets before running `local/data.sh`. Some datasets cannot be downloaded and untared automatically due to license issues. Users should take care of it by themselves.
