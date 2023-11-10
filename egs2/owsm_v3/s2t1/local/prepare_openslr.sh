@@ -14,6 +14,7 @@ SECONDS=0
 stage=1
 stop_stage=3
 nproc=64
+
 log "$0 $*"
 . utils/parse_options.sh
 

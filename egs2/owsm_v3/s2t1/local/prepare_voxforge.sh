@@ -11,7 +11,7 @@ log() {
 }
 SECONDS=0
 
-nproc=64
+nproc=10
 stage=1
 stop_stage=2
 

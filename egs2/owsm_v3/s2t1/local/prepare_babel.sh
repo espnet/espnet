@@ -118,7 +118,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-    # combine train and valid
+    # combine
     utils/combine_data.sh --skip_fix true --extra-files "${utt_extra_files}" \
         data/babel/train data/babel/train_*_whisper || exit 1;
     utils/combine_data.sh --skip_fix true --extra-files "${utt_extra_files}" \

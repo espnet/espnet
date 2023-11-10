@@ -8,8 +8,8 @@
 . ./db.sh || exit 1;
 
 # general configuration
-stage=0       # start from 0 if you need to start from data preparation
-stop_stage=100
+stage=1
+stop_stage=2
 nproc=10
 SECONDS=0
 

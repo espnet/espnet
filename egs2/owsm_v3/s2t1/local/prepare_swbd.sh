@@ -10,7 +10,7 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 SECONDS=0
-nproc=64
+nproc=10
 stage=1
 stop_stage=2
 

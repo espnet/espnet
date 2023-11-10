@@ -10,7 +10,7 @@ set -o pipefail
 
 stage=1
 stop_stage=2
-nproc=64
+nproc=10
 
 . utils/parse_options.sh
 
