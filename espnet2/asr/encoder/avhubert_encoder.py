@@ -52,11 +52,12 @@ def downsample_basic_block_v2(inplanes, outplanes, stride):
     )
 
 
-def time_masking(xs_pad):
+def time_masking(xs_pad, min_T=5, max_T=20):
+    """Masking Contiguous Frames with random length of [min_T, max_T]"""
     batch_size = xs_pad.size(0)
     mask = torch.ones_like(xs_pad)
     for b in range(batch_size):
-        width = min(random.randint(5, 20), xs_pad.size(1))
+        width = min(random.randint(min_T, max_T), xs_pad.size(1))
         start = random.randint(0, xs_pad.size(1) - width)
         mask[b, start : start + width] = 0.0
     return xs_pad * mask.to(xs_pad.device)
