@@ -116,39 +116,60 @@ def get_args(tc):
 
     return tuple(args), tuple(input_names), kwargs_trace, kwargs_non
 
+
 def test_trim_by_ctc_posterior():
     # eg1: ctc: 3 frames + 5 frame tolerance; mask: 10 frames -> 8 frames
     # eg2: ctc: 7 frames + 5 frame tolearnce; mask: 4  frames -> 4 frames
     h = torch.randn(2, 10, 7)
-    ctc_prob = torch.tensor([
+    ctc_prob = torch.tensor(
         [
-            [0.0, 1.0], [0.0, 1.0], [0.0, 1.0], [1.0, 0.0], [1.0, 0.0],
-            [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0]
-        ],
-        [
-            [0.0, 1.0], [0.0, 1.0], [0.0, 1.0], [0.0, 1.0], [0.0, 1.0],
-            [0.0, 1.0], [0.0, 1.0], [1.0, 0.0], [1.0, 0.0], [1.0, 0.0]
+            [
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+            ],
+            [
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [0.0, 1.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+                [1.0, 0.0],
+            ],
         ]
-    ])
-    masks = torch.Tensor([
-        [True, True, True, True, True,  True,  True,  True,  True,  True],
-        [True, True, True, True, False, False, False, False, False, False]
-    ]).unsqueeze(1).bool()
-    
+    )
+    masks = (
+        torch.Tensor(
+            [
+                [True, True, True, True, True, True, True, True, True, True],
+                [True, True, True, True, False, False, False, False, False, False],
+            ]
+        )
+        .unsqueeze(1)
+        .bool()
+    )
+
     # PositionalEncoding
     pos_emb = torch.randn(2, 10, 7)
-    h_hat, masks_hat, pos_emb_hat = trim_by_ctc_posterior(
-        h, ctc_prob, masks, pos_emb
-    )
+    h_hat, masks_hat, pos_emb_hat = trim_by_ctc_posterior(h, ctc_prob, masks, pos_emb)
     assert torch.all(torch.eq(h_hat, h[:, :8]))
     assert torch.all(torch.eq(masks_hat, masks[:, :, :8]))
     assert torch.all(torch.eq(pos_emb_hat, pos_emb_hat[:, :8]))
 
     # RelPositionalEncoding
     pos_emb = torch.randn(2, 19, 7)
-    h_hat, masks_hat, pos_emb_hat = trim_by_ctc_posterior(
-        h, ctc_prob, masks, pos_emb
-    )
+    h_hat, masks_hat, pos_emb_hat = trim_by_ctc_posterior(h, ctc_prob, masks, pos_emb)
     assert torch.all(torch.eq(h_hat, h[:, :8]))
     assert torch.all(torch.eq(masks_hat, masks[:, :, :8]))
     assert torch.all(torch.eq(pos_emb_hat, pos_emb[:, 2:17]))
