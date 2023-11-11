@@ -1,9 +1,6 @@
 import glob
 import os
 from argparse import Namespace
-from typing import List, Union
-from pathlib import Path
-
 
 from espnetez.task import get_easy_task
 
@@ -20,7 +17,7 @@ class Trainer:
         data_info,
         output_dir,
         stats_dir,
-        model=None,
+        build_model_fn=None,
         **kwargs
     ):
         self.task_class = get_easy_task(task)
@@ -39,9 +36,6 @@ class Trainer:
                 )
             )
 
-        if model is not None:
-            self.task_class.model = model
-
         train_dpnt = []
         valid_dpnt = []
         for k, v in data_info.items():
@@ -57,6 +51,9 @@ class Trainer:
         self.train_config.required = kwargs.get(
             "required", ["output_dir", "token_list"]
         )
+
+        if build_model_fn is not None:
+            self.task_class.build_model_fn = build_model_fn
 
     def train(self):
         # after collect_stats, define shape files
@@ -82,5 +79,7 @@ class Trainer:
 
         self.train_config.collect_stats = True
         self.train_config.output_dir = self.stats_dir
+        self.train_config.train_shape_file = []
+        self.train_config.valid_shape_file = []
 
         self.task_class.main(self.train_config)

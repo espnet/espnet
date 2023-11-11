@@ -1,19 +1,7 @@
 # ESPnet-Easy Task class
 # This class is a wrapper for Task classes to support custom datasets and models.
-import numpy as np
-import argparse
-import logging
-from pathlib import Path
 
-from torch.utils.data import DataLoader
-from typeguard import check_argument_types
-import torch
-
-from espnet2.iterators.abs_iter_factory import AbsIterFactory
-from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
-from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
-from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
-from espnet2.tasks.abs_task import AbsTask, IteratorOptions
+from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asvspoof import ASVSpoofTask
 from espnet2.tasks.diar import DiarizationTask
@@ -30,7 +18,7 @@ from espnet2.tasks.st import STTask
 from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.uasr import UASRTask
-from espnet2.samplers.build_batch_sampler import build_batch_sampler
+
 
 TASK_CLASSES = dict(
     asr=ASRTask,
@@ -56,12 +44,12 @@ def get_easy_task(task_name: str) -> AbsTask:
     task_class = TASK_CLASSES[task_name]
 
     class ESPnetEasyTask(task_class):
-        model = None
+        build_model_fn = None
 
         @classmethod
         def build_model(cls, args=None):
-            if cls.model is not None:
-                return cls.model
+            if cls.build_model_fn is not None:
+                return cls.build_model_fn(args=args)
             else:
                 return task_class.build_model(args=args)
 

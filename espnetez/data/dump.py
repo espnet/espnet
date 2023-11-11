@@ -49,7 +49,7 @@ def create_dump_file(
     Args:
         dump_dir (str): Output folder of the dump files.
         dataset (Union[Dict[str, Dict], List[Dict]]): Dictionary of dataset.
-        data_inputs (Dict[str, List[str, str]]): 
+        data_inputs (Dict[str, List[str, str]]):
             data information for each input variables.
 
     """

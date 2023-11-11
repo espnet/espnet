@@ -1064,7 +1064,6 @@ class AbsTask(ABC):
     @classmethod
     def main(cls, args: argparse.Namespace = None, cmd: Sequence[str] = None):
         assert check_argument_types()
-        print(get_commandline_args(), file=sys.stderr)
         if args is None:
             parser = cls.get_parser()
             args = parser.parse_args(cmd)
