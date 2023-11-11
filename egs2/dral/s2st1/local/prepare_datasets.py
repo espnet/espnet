@@ -35,7 +35,7 @@ _WAV_NAME_PATTERN_RECORDING: str = r"^[A-Z]{2}_\d{3}.wav$"
 
 def remove_suffix(s: str, suffix: str):
     if s.endswith(suffix):
-        return s[:len(s) - len(suffix)]
+        return s[: len(s) - len(suffix)]
     return s
 
 
@@ -173,7 +173,9 @@ def extract_fragments(
             "trans_id",
         ],
     )
-    audio_df["trans_lang_code"] = audio_df["trans_id"].apply(lambda x: x.split("_", 1)[0])
+    audio_df["trans_lang_code"] = audio_df["trans_id"].apply(
+        lambda x: x.split("_", 1)[0]
+    )
     df = pd.merge(
         audio_df,
         conversation_df,
@@ -225,7 +227,9 @@ def extract_recordings(
             "trans_id",
         ],
     )
-    audio_df["trans_lang_code"] = audio_df["trans_id"].apply(lambda x: x.split("_", 1)[0])
+    audio_df["trans_lang_code"] = audio_df["trans_id"].apply(
+        lambda x: x.split("_", 1)[0]
+    )
     df = pd.merge(
         audio_df,
         conversation_df,
@@ -246,6 +250,7 @@ def extract_recordings(
     _write_kaldi_files(input_dir, _RECORDINGS, dev_df, output_dir / "dev")
     _write_kaldi_files(input_dir, _RECORDINGS, devtest_df, output_dir / "test")
     return output_dir
+
 
 @app.command(name="download")
 def download(dataset_config: Path, output_dir: Path) -> Path:
@@ -272,11 +277,7 @@ def download(dataset_config: Path, output_dir: Path) -> Path:
         with ThreadPoolExecutor(max_workers=num_cores) as executor:
             futures: List[Future[Path]] = []
             for url in config.dataset_urls:
-                futures.append(
-                    executor.submit(
-                        download_thread_helper, url, cache_dir
-                    )
-                )
+                futures.append(executor.submit(download_thread_helper, url, cache_dir))
             results = wait(futures)
             # Wait for all threads to finish
             url2dest: Dict[str, Path] = {}
