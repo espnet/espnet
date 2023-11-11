@@ -19,7 +19,6 @@ from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.uasr import UASRTask
 
-
 TASK_CLASSES = dict(
     asr=ASRTask,
     asvspoof=ASVSpoofTask,
