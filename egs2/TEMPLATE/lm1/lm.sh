@@ -96,7 +96,7 @@ bpe_train_text=  # Text file path of bpe training set.
 lm_test_text_asr=    # Text file path of asr evaluation set.
 lm_test_text_tts=    # Text file path of tts evaluation set.
 lm_test_text_textlm=    # Text file path of textlm evaluation set.
-lm_test_text_unitlm=    # Text file path of unitlm evaluation set.
+lm_test_text_speechlm=    # Text file path of unitlm evaluation set.
 lm_inference_asr_config=    # Config for decoding asr.
 lm_inference_tts_config=    # Config for decoding tts.
 lang=noinfo      # The language type of corpus.
@@ -184,7 +184,7 @@ Options:
     --lm_test_text_asr    # Text file path of asr evaluation set.
     --lm_test_text_tts    # Text file path of tts evaluation set.
     --lm_test_text_textlm    # Text file path of textlm evaluation set.
-    --lm_test_text_unitlm    # Text file path of unitlm evaluation set.
+    --lm_test_text_speechlm    # Text file path of unitlm evaluation set.
     --lm_inference_asr_config    # Config for decoding asr.
     --lm_inference_tts_config    # Config for decoding tts.
     --nlsyms_txt    # Non-linguistic symbol list if existing (default="${nlsyms_txt}").
@@ -709,42 +709,22 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! [[ " ${skip_stages} " =~ [
         log "PPL: ${lm_test_text_textlm}: $(cat ${_output_dir}/ppl)"
     fi
 
-    if [ -f ${lm_test_text_unitlm} ]; then
-        log "Stage 8b: Calc perplexity for unitlm: ${lm_test_text_unitlm}"
+    if [ -f ${lm_test_text_speechlm} ]; then
+        log "Stage 8b: Calc perplexity for unitlm: ${lm_test_text_speechlm}"
         _opts=
-        _output_dir="${lm_exp}/perplexity_test_unitlm/$(basename ${lm_test_text_unitlm})"
+        _output_dir="${lm_exp}/perplexity_test_unitlm/$(basename ${lm_test_text_speechlm})"
         _ngpu=1
         log "Perplexity calculation started... log: '${_output_dir}/lm_calc_perplexity.log'"
         # shellcheck disable=SC2086
         ${cuda_cmd} --gpu "${_ngpu}" "${lm_exp}"/perplexity_test_unitlm/lm_calc_perplexity.log \
             ${python} -m espnet2.bin.lm_calc_perplexity \
                 --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${lm_test_text_unitlm},text,text" \
+                --data_path_and_name_and_type "${lm_test_text_speechlm},text,text" \
                 --train_config "${lm_exp}"/config.yaml \
                 --model_file "${lm_exp}/${inference_lm}" \
                 --output_dir "${_output_dir}" \
                 ${_opts}
-        log "PPL: ${lm_test_text_unitlm}: $(cat ${_output_dir}/ppl)"
-    fi
-
-    #tts
-    if [ -f ${lm_test_text_tts_lm} ]; then
-        log "Stage 8c: Calc perplexity for TTS: ${lm_test_text_tts_lm}"
-        _opts=
-        _output_dir="${lm_exp}/perplexity_test_tts/$(basename ${lm_test_text_tts_lm})"
-        _ngpu=1
-        log "Perplexity calculation started... log: '${_output_dir}/lm_calc_perplexity.log'"
-        # shellcheck disable=SC2086
-        ${cuda_cmd} --gpu "${_ngpu}" "${lm_exp}"/perplexity_test_tts/lm_calc_perplexity_prefix.log \
-            ${python} -m espnet2.bin.lm_calc_perplexity_prefix \
-                --ngpu "${_ngpu}" \
-                --data_path_and_name_and_type "${lm_test_text_tts_lm},text,text" \
-                --data_path_and_name_and_type "${lm_test_text_tts},prefix,text" \
-                --train_config "${lm_exp}"/config.yaml \
-                --model_file "${lm_exp}/${inference_lm}" \
-                --output_dir "${_output_dir}/$(basename ${lm_test_text_tts})" \
-                ${_opts}
-        log "PPL: ${lm_test_text_tts}: $(cat ${_output_dir}/ppl)"
+        log "PPL: ${lm_test_text_speechlm}: $(cat ${_output_dir}/ppl)"
     fi
 fi
 

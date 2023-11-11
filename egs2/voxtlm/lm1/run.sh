@@ -39,4 +39,4 @@ lm_inference_tts_config=conf/decode_lm_tts.yaml
     --lm_test_text_asr dump/raw/${test_sets}/text.asr \
     --lm_test_text_tts dump/raw/${test_sets}/text.tts \
     --lm_test_text_textlm dump/raw/${test_sets}/text.textlm \
-    --lm_test_text_unitlm dump/raw/${test_sets}/text.unitlm "$@"
+    --lm_test_text_speechlm dump/raw/${test_sets}/text.speechlm "$@"
