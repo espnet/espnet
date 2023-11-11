@@ -794,6 +794,64 @@
     <span class="p">}</span>
 
     <span class="k">return</span> <span class="n">activation_funcs</span><span class="p">[</span><span class="n">act</span><span class="p">]()</span></div>
+
+
+<div class="viewcode-block" id="trim_by_ctc_posterior"><a class="viewcode-back" href="../../../../_gen/espnet.nets.html#espnet.nets.pytorch_backend.nets_utils.trim_by_ctc_posterior">[docs]</a><span class="k">def</span> <span class="nf">trim_by_ctc_posterior</span><span class="p">(</span>
+    <span class="n">h</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">ctc_probs</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">masks</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span>
+    <span class="n">pos_emb</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Trim the encoder hidden output using CTC posterior.</span>
+<span class="sd">    The continuous frames in the tail that confidently represent</span>
+<span class="sd">    blank symbols are trimmed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="c1"># Empirical settings</span>
+    <span class="n">frame_tolerance</span> <span class="o">=</span> <span class="mi">5</span>
+    <span class="n">conf_tolerance</span> <span class="o">=</span> <span class="mf">0.95</span>
+    <span class="n">blank_id</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">assert</span> <span class="n">masks</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+    <span class="n">masks</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">hlens</span> <span class="o">=</span> <span class="n">masks</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">()[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">ctc_probs</span><span class="o">.</span><span class="n">size</span><span class="p">()[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">==</span> <span class="n">hlens</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="c1"># blank frames</span>
+    <span class="n">max_values</span><span class="p">,</span> <span class="n">max_indices</span> <span class="o">=</span> <span class="n">ctc_probs</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">blank_masks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+        <span class="n">max_values</span> <span class="o">&gt;</span> <span class="n">conf_tolerance</span><span class="p">,</span> <span class="n">max_indices</span> <span class="o">==</span> <span class="n">blank_id</span>
+    <span class="p">)</span>
+
+    <span class="c1"># plus ignored frames</span>
+    <span class="n">joint_masks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">blank_masks</span><span class="p">,</span> <span class="o">~</span><span class="n">masks</span><span class="p">)</span>
+
+    <span class="c1"># lengths after the trimming</span>
+    <span class="n">B</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">()</span>
+    <span class="n">frame_idx</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">joint_masks</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">T</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">B</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+    <span class="p">)</span>
+    <span class="n">after_lens</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">frame_idx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">frame_tolerance</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="n">hlens</span><span class="p">,</span>
+        <span class="n">frame_idx</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">dim</span><span class="o">=-</span><span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">frame_tolerance</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">hlens</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="n">h</span> <span class="o">=</span> <span class="n">h</span><span class="p">[:,</span> <span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">after_lens</span><span class="p">)]</span>
+    <span class="n">masks</span> <span class="o">=</span> <span class="o">~</span><span class="n">make_pad_mask</span><span class="p">(</span><span class="n">after_lens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">pos_emb</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">pos_emb</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">elif</span> <span class="p">(</span><span class="n">hlens</span><span class="o">.</span><span class="n">max</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="o">==</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>  <span class="c1"># RelPositionalEncoding</span>
+        <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">pos_emb</span><span class="p">[</span>
+            <span class="p">:,</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:</span> <span class="n">pos_emb</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span> <span class="o">+</span> <span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">pos_emb</span><span class="p">[:,</span> <span class="p">:</span> <span class="n">h</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)]</span>
+
+    <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">pos_emb</span></div>
 </pre></div>
 
            </div>

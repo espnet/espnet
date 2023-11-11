@@ -240,6 +240,9 @@
         <span class="n">reduce</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">ignore_nan_grad</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">zero_infinity</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">brctc_risk_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;exp&quot;</span><span class="p">,</span>
+        <span class="n">brctc_group_strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;end&quot;</span><span class="p">,</span>
+        <span class="n">brctc_risk_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
@@ -263,16 +266,32 @@
             <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.gtn_ctc</span> <span class="kn">import</span> <span class="n">GTNCTCLossFunction</span>
 
             <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">GTNCTCLossFunction</span><span class="o">.</span><span class="n">apply</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;brctc&quot;</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">import</span> <span class="nn">k2</span>
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s2">&quot;You should install K2 to use Bayes Risk CTC&quot;</span><span class="p">)</span>
+
+            <span class="kn">from</span> <span class="nn">espnet2.asr.bayes_risk_ctc</span> <span class="kn">import</span> <span class="n">BayesRiskCTC</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span> <span class="o">=</span> <span class="n">BayesRiskCTC</span><span class="p">(</span>
+                <span class="n">brctc_risk_strategy</span><span class="p">,</span> <span class="n">brctc_group_strategy</span><span class="p">,</span> <span class="n">brctc_risk_factor</span>
+            <span class="p">)</span>
+
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;ctc_type must be &quot;builtin&quot; or &quot;gtnctc&quot;: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">reduce</span> <span class="o">=</span> <span class="n">reduce</span>
 
 <div class="viewcode-block" id="CTC.loss_fn"><a class="viewcode-back" href="../../../_gen/espnet2.asr.html#espnet2.asr.ctc.CTC.loss_fn">[docs]</a>    <span class="k">def</span> <span class="nf">loss_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">th_pred</span><span class="p">,</span> <span class="n">th_target</span><span class="p">,</span> <span class="n">th_ilen</span><span class="p">,</span> <span class="n">th_olen</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;builtin&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;builtin&quot;</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;brctc&quot;</span><span class="p">:</span>
             <span class="n">th_pred</span> <span class="o">=</span> <span class="n">th_pred</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
             <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_loss</span><span class="p">(</span><span class="n">th_pred</span><span class="p">,</span> <span class="n">th_target</span><span class="p">,</span> <span class="n">th_ilen</span><span class="p">,</span> <span class="n">th_olen</span><span class="p">)</span>
-            <span class="n">size</span> <span class="o">=</span> <span class="n">th_pred</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;builtin&quot;</span><span class="p">:</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="n">th_pred</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="n">loss</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># some invalid examples will be excluded</span>
 
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">reduce</span><span class="p">:</span>
                 <span class="c1"># Batch-size average</span>
@@ -355,7 +374,13 @@
         <span class="c1"># hs_pad: (B, L, NProj) -&gt; ys_hat: (B, L, Nvocab)</span>
         <span class="n">ys_hat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_lo</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">hs_pad</span><span class="p">,</span> <span class="n">p</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">))</span>
 
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;brctc&quot;</span><span class="p">:</span>
+            <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_fn</span><span class="p">(</span><span class="n">ys_hat</span><span class="p">,</span> <span class="n">ys_pad</span><span class="p">,</span> <span class="n">hlens</span><span class="p">,</span> <span class="n">ys_lens</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span>
+                <span class="n">device</span><span class="o">=</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">hs_pad</span><span class="o">.</span><span class="n">dtype</span>
+            <span class="p">)</span>
+            <span class="k">return</span> <span class="n">loss</span>
+
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_type</span> <span class="o">==</span> <span class="s2">&quot;gtnctc&quot;</span><span class="p">:</span>
             <span class="c1"># gtn expects list form for ys</span>
             <span class="n">ys_true</span> <span class="o">=</span> <span class="p">[</span><span class="n">y</span><span class="p">[</span><span class="n">y</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys_pad</span><span class="p">]</span>  <span class="c1"># parse padded ys</span>
         <span class="k">else</span><span class="p">:</span>

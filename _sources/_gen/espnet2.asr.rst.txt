@@ -15,6 +15,17 @@ espnet2.asr.maskctc_model
     :show-inheritance:
 
 
+.. _espnet2.asr.bayes_risk_ctc:
+
+espnet2.asr.bayes_risk_ctc
+--------------------------
+
+.. automodule:: espnet2.asr.bayes_risk_ctc
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.asr.espnet_model:
 
 espnet2.asr.espnet_model

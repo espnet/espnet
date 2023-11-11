@@ -7020,6 +7020,14 @@ dtype=torch.bool in PyTorch 1.2+ (including 1.2)</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="espnet.nets.pytorch_backend.nets_utils.trim_by_ctc_posterior">
+<code class="sig-prename descclassname">espnet.nets.pytorch_backend.nets_utils.</code><code class="sig-name descname">trim_by_ctc_posterior</code><span class="sig-paren">(</span><em class="sig-param">h: torch.Tensor</em>, <em class="sig-param">ctc_probs: torch.Tensor</em>, <em class="sig-param">masks: torch.Tensor</em>, <em class="sig-param">pos_emb: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/nets_utils.html#trim_by_ctc_posterior"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.nets_utils.trim_by_ctc_posterior" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trim the encoder hidden output using CTC posterior.
+The continuous frames in the tail that confidently represent
+blank symbols are trimmed.</p>
+</dd></dl>
+
+<dl class="function">
 <dt id="espnet.nets.pytorch_backend.nets_utils.triu_onnx">
 <code class="sig-prename descclassname">espnet.nets.pytorch_backend.nets_utils.</code><code class="sig-name descname">triu_onnx</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet/nets/pytorch_backend/nets_utils.html#triu_onnx"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet.nets.pytorch_backend.nets_utils.triu_onnx" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>

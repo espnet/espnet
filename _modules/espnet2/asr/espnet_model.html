@@ -605,7 +605,9 @@
         <span class="c1"># 4. Forward encoder</span>
         <span class="c1"># feats: (Batch, Length, Dim)</span>
         <span class="c1"># -&gt; encoder_out: (Batch, Length2, Dim2)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">interctc_use_conditioning</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">interctc_use_conditioning</span> <span class="ow">or</span> <span class="nb">getattr</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="s2">&quot;ctc_trim&quot;</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">):</span>
             <span class="n">encoder_out</span><span class="p">,</span> <span class="n">encoder_out_lens</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="p">(</span>
                 <span class="n">feats</span><span class="p">,</span> <span class="n">feats_lengths</span><span class="p">,</span> <span class="n">ctc</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">ctc</span>
             <span class="p">)</span>

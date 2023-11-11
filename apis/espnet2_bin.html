@@ -963,7 +963,7 @@ Optimizer related:
                         The initialization method (default: None)
   --input_size INPUT_SIZE
                         The number of input dimension of the feature (default: None)
-  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True})
+  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True, &#39;brctc_risk_strategy&#39;: &#39;exp&#39;, &#39;brctc_group_strategy&#39;: &#39;end&#39;, &#39;brctc_risk_factor&#39;: 0.0})
   --joint_net_conf JOINT_NET_CONF
                         The keyword arguments for joint network class. (default: None)
 
@@ -3007,7 +3007,7 @@ Optimizer related:
                         The initialization method (default: None)
   --input_size INPUT_SIZE
                         The number of input dimension of the feature (default: None)
-  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True})
+  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True, &#39;brctc_risk_strategy&#39;: &#39;exp&#39;, &#39;brctc_group_strategy&#39;: &#39;end&#39;, &#39;brctc_risk_factor&#39;: 0.0})
   --enh_criterions ENH_CRITERIONS
                         The criterions binded with the loss wrappers. (default: [{&#39;name&#39;: &#39;si_snr&#39;, &#39;conf&#39;: {}, &#39;wrapper&#39;: &#39;fixed_order&#39;, &#39;wrapper_conf&#39;: {}}])
   --diar_num_spk DIAR_NUM_SPK
@@ -7307,7 +7307,7 @@ Optimizer related:
                         The initialization method (default: None)
   --input_size INPUT_SIZE
                         The number of input dimension of the feature (default: None)
-  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True})
+  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True, &#39;brctc_risk_strategy&#39;: &#39;exp&#39;, &#39;brctc_group_strategy&#39;: &#39;end&#39;, &#39;brctc_risk_factor&#39;: 0.0})
 
   Preprocess related
 
@@ -8015,9 +8015,9 @@ Optimizer related:
   --asr_ctc ASR_CTC     whether to conduct CTC on ASR objectives (default: False)
   --st_ctc ST_CTC       whether to conduct CTC on ST objectives (default: False)
   --asr_ctc_conf ASR_CTC_CONF
-                        The keyword arguments for ASR CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True})
+                        The keyword arguments for ASR CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True, &#39;brctc_risk_strategy&#39;: &#39;exp&#39;, &#39;brctc_group_strategy&#39;: &#39;end&#39;, &#39;brctc_risk_factor&#39;: 0.0})
   --st_ctc_conf ST_CTC_CONF
-                        The keyword arguments for ST CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True})
+                        The keyword arguments for ST CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True, &#39;brctc_risk_strategy&#39;: &#39;exp&#39;, &#39;brctc_group_strategy&#39;: &#39;end&#39;, &#39;brctc_risk_factor&#39;: 0.0})
   --model_conf MODEL_CONF
                         The keyword arguments for model class. (default: {&#39;ignore_id&#39;: -1, &#39;report_cer&#39;: True, &#39;report_wer&#39;: True, &#39;report_bleu&#39;: True, &#39;sym_space&#39;: &#39;&lt;space&gt;&#39;, &#39;sym_blank&#39;: &#39;&lt;blank&gt;&#39;, &#39;extract_feats_in_collect_stats&#39;: True})
 
@@ -8615,7 +8615,7 @@ Optimizer related:
                         The initialization method (default: None)
   --input_size INPUT_SIZE
                         The number of input dimension of the feature (default: None)
-  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True})
+  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True, &#39;brctc_risk_strategy&#39;: &#39;exp&#39;, &#39;brctc_group_strategy&#39;: &#39;end&#39;, &#39;brctc_risk_factor&#39;: 0.0})
 
   Preprocess related
 
@@ -10505,7 +10505,7 @@ Optimizer related:
                         The initialization method (default: None)
   --input_size INPUT_SIZE
                         The number of input dimension of the feature (default: None)
-  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True})
+  --ctc_conf CTC_CONF   The keyword arguments for CTC class. (default: {&#39;dropout_rate&#39;: 0.0, &#39;ctc_type&#39;: &#39;builtin&#39;, &#39;reduce&#39;: True, &#39;ignore_nan_grad&#39;: None, &#39;zero_infinity&#39;: True, &#39;brctc_risk_strategy&#39;: &#39;exp&#39;, &#39;brctc_group_strategy&#39;: &#39;end&#39;, &#39;brctc_risk_factor&#39;: 0.0})
   --st_joint_net_conf ST_JOINT_NET_CONF
                         The keyword arguments for joint network class. (default: None)
   --model_conf MODEL_CONF

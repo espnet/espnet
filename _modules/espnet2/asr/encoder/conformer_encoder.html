@@ -226,7 +226,11 @@
 <span class="kn">from</span> <span class="nn">espnet2.asr.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.convolution</span> <span class="kn">import</span> <span class="n">ConvolutionModule</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.conformer.encoder_layer</span> <span class="kn">import</span> <span class="n">EncoderLayer</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="n">get_activation</span><span class="p">,</span> <span class="n">make_pad_mask</span>
+<span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.nets_utils</span> <span class="kn">import</span> <span class="p">(</span>
+    <span class="n">get_activation</span><span class="p">,</span>
+    <span class="n">make_pad_mask</span><span class="p">,</span>
+    <span class="n">trim_by_ctc_posterior</span><span class="p">,</span>
+<span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.attention</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">LegacyRelPositionMultiHeadedAttention</span><span class="p">,</span>
     <span class="n">MultiHeadedAttention</span><span class="p">,</span>
@@ -319,6 +323,7 @@
         <span class="n">padding_idx</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">interctc_layer_idx</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[],</span>
         <span class="n">interctc_use_conditioning</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">ctc_trim</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">stochastic_depth_rate</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]]</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">layer_drop_rate</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="n">max_pos_emb_len</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5000</span><span class="p">,</span>
@@ -506,6 +511,7 @@
             <span class="k">assert</span> <span class="mi">0</span> <span class="o">&lt;</span> <span class="nb">min</span><span class="p">(</span><span class="n">interctc_layer_idx</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">max</span><span class="p">(</span><span class="n">interctc_layer_idx</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">num_blocks</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">interctc_use_conditioning</span> <span class="o">=</span> <span class="n">interctc_use_conditioning</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">conditioning_layer</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ctc_trim</span> <span class="o">=</span> <span class="n">ctc_trim</span>
 
 <div class="viewcode-block" id="ConformerEncoder.output_size"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.conformer_encoder.ConformerEncoder.output_size">[docs]</a>    <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span></div>
@@ -587,6 +593,18 @@
                             <span class="n">xs_pad</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">)</span>
                         <span class="k">else</span><span class="p">:</span>
                             <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">conditioning_layer</span><span class="p">(</span><span class="n">ctc_out</span><span class="p">)</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ctc_trim</span> <span class="ow">and</span> <span class="n">ctc</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="n">ctc_out</span> <span class="o">=</span> <span class="n">ctc</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">encoder_out</span><span class="p">)</span>
+
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                            <span class="n">x</span><span class="p">,</span> <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">xs_pad</span>
+                            <span class="n">x</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">trim_by_ctc_posterior</span><span class="p">(</span>
+                                <span class="n">x</span><span class="p">,</span> <span class="n">ctc_out</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">pos_emb</span>
+                            <span class="p">)</span>
+                            <span class="n">xs_pad</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">x</span><span class="p">,</span> <span class="n">masks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">trim_by_ctc_posterior</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">ctc_out</span><span class="p">,</span> <span class="n">masks</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
