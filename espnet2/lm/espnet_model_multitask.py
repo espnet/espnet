@@ -91,10 +91,6 @@ class ESPnetMultitaskLanguageModel(AbsESPnetModel):
         if max_length is None:
             nll.masked_fill_(make_pad_mask(x_lengths).to(nll.device).view(-1), 0.0)
         else:
-            # nll.masked_fill_(
-            # make_pad_mask(x_lengths, maxlen=max_length + 1).to(nll.device).view(-1),
-            #     0.0,
-            # )
             raise NotImplementedError
         # nll: (BxL,) -> (B, L)
         nll = nll.view(batch_size, -1)
@@ -195,7 +191,6 @@ class ESPnetMultitaskLanguageModel(AbsESPnetModel):
         )
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
-        # loss, stats, weight = force_gatherable((loss, stats, ntokens), loss.device)
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
 

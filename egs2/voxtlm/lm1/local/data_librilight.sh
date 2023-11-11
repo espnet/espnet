@@ -47,58 +47,58 @@ data_dir_librispeech_asr="data/librispeech/asr"
 mkdir -p ${data_dir}
 
 
-# if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-#     # if [ ! -d "${LIBRILIGHT}/.complete" ]; then
-#     #     echo "Stage 1b: Data Download librilight data to ${LIBRILIGHT}"
-#     #     for part in ${librilight_parts}; do
-#     #         local/librilight/librilight/download_and_untar_librilight.sh ${LIBRILIGHT} ${librilight_data_url} ${part}
-#     #     done
-#     # else
-#     #     log "stage 1b: ${LIBRILIGHT}/.complete is already existing. Skip data downloading"
-#     # fi
-# fi
+if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
+    if [ ! -d "${LIBRILIGHT}/.complete" ]; then
+        echo "Stage 1b: Data Download librilight data to ${LIBRILIGHT}"
+        for part in ${librilight_parts}; do
+            local/librilight/download_and_untar_librilight.sh ${LIBRILIGHT} ${librilight_data_url} ${part}
+        done
+    else
+        log "stage 1b: ${LIBRILIGHT}/.complete is already existing. Skip data downloading"
+    fi
+fi
 
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
-    # for part in ${librilight_parts}; do
-	# 	log "Segment ${LIBRILIGHT}/${part} to ${LIBRILIGHT}/${part}_segmented"
+    for part in ${librilight_parts}; do
+		log "Segment ${LIBRILIGHT}/${part} to ${LIBRILIGHT}/${part}_segmented"
 
-    #     if [ -z ${segment_dir} ]; then
-    #         output_dir=${LIBRILIGHT}/${part}_segmented
-    #     else
-    #         output_dir=${segment_dir}/${part}_segmented
-    #     fi
+        if [ -z ${segment_dir} ]; then
+            output_dir=${LIBRILIGHT}/${part}_segmented
+        else
+            output_dir=${segment_dir}/${part}_segmented
+        fi
 
-    #     _logdir=${output_dir}/logdir
-    #     mkdir -p ${_logdir}
+        _logdir=${output_dir}/logdir
+        mkdir -p ${_logdir}
 
-    #     ${train_cmd} --num_threads ${nj} "${_logdir}/segment_audio.log" \
-    #         python local/librilight/cut_by_vad.py \
-    #             --input_dir "${LIBRILIGHT}/${part}" \
-    #             --output_dir "${output_dir}" \
-    #             --target_len_sec 15 \
-    #             --n_workers ${nj} \
-    #             --out_extension ".flac"
+        ${train_cmd} --num_threads ${nj} "${_logdir}/segment_audio.log" \
+            python local/librilight/cut_by_vad.py \
+                --input_dir "${LIBRILIGHT}/${part}" \
+                --output_dir "${output_dir}" \
+                --target_len_sec 15 \
+                --n_workers ${nj} \
+                --out_extension ".flac"
 
-    #     local/librilight/data_prep_librilight.sh ${output_dir} ${data_dir}/librilight_${part}
-    # done
+        local/librilight/data_prep_librilight.sh ${output_dir} ${data_dir}/librilight_${part}
+    done
 
-    # log "combine all training and development sets"
-    # utils/combine_data.sh ${data_dir}/${train_set} ${data_dir}/librilight_small ${data_dir}/librilight_medium {data_dir}/librilight_large
+    log "combine all training and development sets"
+    utils/combine_data.sh ${data_dir}/${train_set} ${data_dir}/librilight_small ${data_dir}/librilight_medium {data_dir}/librilight_large
 
-    # copy dev
-    #mkdir -p ${data_dir}/${train_dev}
-    #cp -r ${data_dir_librispeech_asr}/audio ${data_dir}/${train_dev}
-    #utils/copy_data_dir.sh ${data_dir_librispeech_asr}/dev ${data_dir}/${train_dev}
-    #rm ${data_dir}/${train_dev}/text
+    # copy dev from Librispeech
+    mkdir -p ${data_dir}/${train_dev}
+    cp -r ${data_dir_librispeech_asr}/audio ${data_dir}/${train_dev}
+    utils/copy_data_dir.sh ${data_dir_librispeech_asr}/dev ${data_dir}/${train_dev}
+    rm ${data_dir}/${train_dev}/text
 
-    # copy eval
-    #mkdir -p ${data_dir}/"test"
-    #cp -r ${data_dir_librispeech_asr}/test/audio ${data_dir}/"test"
-    #utils/copy_data_dir.sh ${data_dir_librispeech_asr}/test ${data_dir}/"test"
-    #rm ${data_dir}/"test"/text
+    # copy eval from Librispeech
+    mkdir -p ${data_dir}/"test"
+    cp -r ${data_dir_librispeech_asr}/test/audio ${data_dir}/"test"
+    utils/copy_data_dir.sh ${data_dir_librispeech_asr}/test ${data_dir}/"test"
+    rm ${data_dir}/"test"/text
 
-   #Librispeech
+   # data prep for Librispeech
     for part in dev-clean dev-other test-clean test-other; do
         # use underscore-separated names in data directories.
         local/librilight/data_prep_librispeech.sh ${LIBRISPEECH}/LibriSpeech/${part} ${data_dir}/${part//-/_}
