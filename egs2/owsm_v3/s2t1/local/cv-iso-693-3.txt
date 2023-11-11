@@ -9,7 +9,7 @@ nn-NO nno
 rw kin
 sw swa
 ug uig
-zh-TW cmn
+zh-TW zho
 ar ara
 br bre
 dv div
@@ -30,8 +30,8 @@ nl nld
 ru rus
 sv-SE swe
 tw twi
-zh-HK cmn
-zh-CN cmn
+zh-HK zho
+zh-CN zho
 ne-NP nep
 bg bul
 da dan
