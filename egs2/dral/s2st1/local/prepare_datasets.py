@@ -106,6 +106,12 @@ def _write_kaldi_files(
     df[["id", "audio_path"]].to_csv(
         output_dir / f"wav.scp.{src_locale}", sep=" ", header=False, index=False
     )
+    df["trans_audio_path"] = df["trans_id"].apply(
+        lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
+    )
+    df[["trans_id", "trans_audio_path"]].to_csv(
+        output_dir / f"wav.scp.{tgt_locale}", sep=" ", header=False, index=False
+    )
     # utt2spk
     if data_file_stem in {_RECORDINGS, _FRAGMENTS_LONG}:
         df["spk"] = df.apply(
