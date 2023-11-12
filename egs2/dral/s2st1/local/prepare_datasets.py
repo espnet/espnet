@@ -122,7 +122,7 @@ def _write_kaldi_files(
         df["spk"] = df.apply(
             lambda x: "-".join(
                 sorted(
-                    [x["participant_id_left_unique"], x["participant_id_right_unique"]]
+                    [str(x["participant_id_left_unique"]), str(x["participant_id_right_unique"])]
                 )
             ),
             axis=1,
