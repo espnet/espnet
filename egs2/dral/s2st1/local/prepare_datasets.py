@@ -92,10 +92,10 @@ class DatasetConfig(BaseModel):
 
 
 def _write_kaldi_files(
-    raw_data_dir: Path, data_file_stem: str, df: pd.DataFrame, src_locale: str, tgt_locale: str, output_dir: Path
+    raw_data_dir: Path, data_file_stem: str, df: pd.DataFrame, src_lang: str, tgt_lang: str, output_dir: Path
 ):
-    src_locale = src_locale.lower()
-    tgt_locale = tgt_locale.lower()
+    src_lang = src_lang.lower()
+    tgt_lang = tgt_lang.lower()
     LOGGER.info(f"writing kaldi-style files: {data_file_stem} -> {output_dir}")
     assert data_file_stem in _AUDIO_FOLDERS, data_file_stem
     output_dir.mkdir(exist_ok=True, parents=True)
@@ -104,13 +104,13 @@ def _write_kaldi_files(
         lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
     )
     df[["id", "audio_path"]].to_csv(
-        output_dir / f"wav.scp.{src_locale}", sep=" ", header=False, index=False
+        output_dir / f"wav.scp.{src_lang}", sep=" ", header=False, index=False
     )
     df["trans_audio_path"] = df["trans_id"].apply(
         lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
     )
     df[["trans_id", "trans_audio_path"]].to_csv(
-        output_dir / f"wav.scp.{tgt_locale}", sep=" ", header=False, index=False
+        output_dir / f"wav.scp.{tgt_lang}", sep=" ", header=False, index=False
     )
     # utt2spk
     if data_file_stem in {_RECORDINGS, _FRAGMENTS_LONG}:
@@ -209,9 +209,9 @@ def extract_fragments(
     df = df[(df["lang_code"] == src_lang) & (df["trans_lang_code"] == tgt_lang)]
     LOGGER.info(f"{len(df)} segments for src_lang = {src_lang} & tgt_lang = {tgt_lang}")
     train_df, dev_df, devtest_df = _train_dev_split(df)
-    _write_kaldi_files(input_dir, _RECORDINGS, train_df, output_dir / "train")
-    _write_kaldi_files(input_dir, _RECORDINGS, dev_df, output_dir / "dev")
-    _write_kaldi_files(input_dir, _RECORDINGS, devtest_df, output_dir / "test")
+    _write_kaldi_files(input_dir, _RECORDINGS, train_df, src_lang, tgt_lang, output_dir / "train")
+    _write_kaldi_files(input_dir, _RECORDINGS, dev_df, src_lang, tgt_lang, output_dir / "dev")
+    _write_kaldi_files(input_dir, _RECORDINGS, devtest_df, src_lang, tgt_lang, output_dir / "test")
     return output_dir
 
 
@@ -267,9 +267,9 @@ def extract_recordings(
     df = df[(df["lang_code"] == src_lang) & (df["trans_lang_code"] == tgt_lang)]
     LOGGER.info(f"{len(df)} segments for src_lang = {src_lang} & tgt_lang = {tgt_lang}")
     train_df, dev_df, devtest_df = _train_dev_split(df)
-    _write_kaldi_files(input_dir, _RECORDINGS, train_df, output_dir / "train")
-    _write_kaldi_files(input_dir, _RECORDINGS, dev_df, output_dir / "dev")
-    _write_kaldi_files(input_dir, _RECORDINGS, devtest_df, output_dir / "test")
+    _write_kaldi_files(input_dir, _RECORDINGS, train_df, src_lang, tgt_lang, output_dir / "train")
+    _write_kaldi_files(input_dir, _RECORDINGS, dev_df, src_lang, tgt_lang, output_dir / "dev")
+    _write_kaldi_files(input_dir, _RECORDINGS, devtest_df, src_lang, tgt_lang, output_dir / "test")
     return output_dir
 
 

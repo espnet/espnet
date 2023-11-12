@@ -11,8 +11,8 @@
 stage=0       # start from 0 if you need to start from data preparation
 stop_stage=100
 
-src_lang=EN # ar ca cy de et es fa fr id it ja lv mn nl pt ru sl sv ta tr zh
-tgt_lang=ES
+src_lang=es # ar ca cy de et es fa fr id it ja lv mn nl pt ru sl sv ta tr zh
+tgt_lang=en
 RAW_DIR=raw
 time_type=long
 output_dir=data
