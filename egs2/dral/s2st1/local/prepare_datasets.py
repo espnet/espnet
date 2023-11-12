@@ -23,6 +23,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+_CACHE_DIR: str = "cache"
 _RECORDINGS: str = "recordings"
 _FRAGMENTS_LONG: str = "fragments-long"
 _FRAGMENTS_SHORT: str = "fragments-short"
@@ -295,7 +296,7 @@ def extract_recordings(
 
 
 @app.command(name="download")
-def download(dataset_config: Path, output_dir: Path) -> Path:
+def download(dataset_config: Path, output_dir: Path, no_cache: bool = False) -> Path:
     """
     download datasets and their fixes according to section 5 of
     https://www.cs.utep.edu/nigel/papers/dral-techreport2.pdf
@@ -303,6 +304,7 @@ def download(dataset_config: Path, output_dir: Path) -> Path:
     Args:
         dataset_config (Path): The path to the dataset configuration file.
         output_dir (Path): The path to store the merged dataset.
+        no_cache (bool): whether to keep a cache
 
     Returns:
         Path: The path where the merged dataset is stored.
@@ -310,8 +312,13 @@ def download(dataset_config: Path, output_dir: Path) -> Path:
     # read dataset config
     with dataset_config.open("r") as f_in:
         config: DatasetConfig = DatasetConfig.parse_obj(yaml.safe_load(f_in))
-    with tempfile.TemporaryDirectory() as cache_dir_str:
-        cache_dir: Path = Path(cache_dir_str)
+    with tempfile.TemporaryDirectory() as tmp_dir_str:
+        cache_dir: Path
+        if no_cache:
+            cache_dir = Path(tmp_dir_str)
+        else:
+            cache_dir = Path(_CACHE_DIR)
+            cache_dir.mkdir(exist_ok=True, parents=True)
         # "download each installment, starting with DRAL-2.0, and unpack each into its own folder"
         num_cores = multiprocessing.cpu_count()
         LOGGER.info(f"downloading raw datasets: max_wokers = {num_cores}")
