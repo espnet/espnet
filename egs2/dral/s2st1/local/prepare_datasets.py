@@ -204,11 +204,11 @@ def extract_fragments(
         left_on="id",
         right_on="conv_id",
         how="inner",
-        suffixes=("recordings", "fragments"),
+        suffixes=("_recordings", "_fragments"),
     )
     assert len(df) == len(
         fragment_df
-    ), f"some audio rows do not exist in conversation.csv: {len(df)} vs {len(audio_df)}"
+    ), f"some audio rows do not exist in conversation.csv: {len(df)} vs {len(fragment_df)}"
     src_lang = src_lang.upper()
     tgt_lang = tgt_lang.upper()
     df = df[(df["lang_code"] == src_lang) & (df["trans_lang_code"] == tgt_lang)]
@@ -268,7 +268,7 @@ def extract_recordings(
         left_on="id",
         right_on="conv_id",
         how="inner",
-        suffixes=("recordings", "fragments"),
+        suffixes=("_recordings", "_fragments"),
     )
     assert len(df) == len(
         fragment_df
