@@ -92,7 +92,12 @@ class DatasetConfig(BaseModel):
 
 
 def _write_kaldi_files(
-    raw_data_dir: Path, data_file_stem: str, df: pd.DataFrame, src_locale: str, tgt_locale: str, output_dir: Path
+    raw_data_dir: Path,
+    data_file_stem: str,
+    df: pd.DataFrame,
+    src_locale: str,
+    tgt_locale: str,
+    output_dir: Path,
 ):
     src_locale = src_locale.lower()
     tgt_locale = tgt_locale.lower()
