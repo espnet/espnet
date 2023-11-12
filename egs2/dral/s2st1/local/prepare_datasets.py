@@ -122,7 +122,7 @@ def _write_kaldi_files(
         df["spk"] = df.apply(
             lambda x: "-".join(
                 sorted(
-                    [x["participant_id_left_unique"], x["participant_id_right_unique"]]
+                    [str(x["participant_id_left_unique"]), str(x["participant_id_right_unique"])]
                 )
             ),
             axis=1,
@@ -130,7 +130,8 @@ def _write_kaldi_files(
     else:
         df["spk"] = df["participant_id_unique"]
     src_utt2spk = df[["id_recordings", "spk"]]
-    tgt_utt2spk = df[["trans_id", "spk"]].rename(src_utt2spk.columns)
+    tgt_utt2spk = df[["trans_id", "spk"]]
+    tgt_utt2spk.columns = src_utt2spk.columns
     utt2spk = pd.concat([src_utt2spk, tgt_utt2spk], axis=0, ignore_index=True)
     utt2spk.to_csv(output_dir / "utt2spk", sep=" ", header=False, index=False)
     # spk2utt
@@ -204,11 +205,11 @@ def extract_fragments(
         left_on="id",
         right_on="conv_id",
         how="inner",
-        suffixes=("recordings", "fragments"),
+        suffixes=("_recordings", "_fragments"),
     )
     assert len(df) == len(
         fragment_df
-    ), f"some audio rows do not exist in conversation.csv: {len(df)} vs {len(audio_df)}"
+    ), f"some audio rows do not exist in conversation.csv: {len(df)} vs {len(fragment_df)}"
     src_lang = src_lang.upper()
     tgt_lang = tgt_lang.upper()
     df = df[(df["lang_code"] == src_lang) & (df["trans_lang_code"] == tgt_lang)]
@@ -268,7 +269,7 @@ def extract_recordings(
         left_on="id",
         right_on="conv_id",
         how="inner",
-        suffixes=("recordings", "fragments"),
+        suffixes=("_recordings", "_fragments"),
     )
     assert len(df) == len(
         fragment_df
