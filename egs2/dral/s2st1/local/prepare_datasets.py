@@ -159,7 +159,12 @@ def extract_fragments(
         file_stem = _FRAGMENTS_SHORT
     conversation_df = pd.read_csv(
         input_dir / "conversation.csv",
-        usecols=["id", "participant_id_left_unique", "participant_id_right_unique", "trans_id"],
+        usecols=[
+            "id",
+            "participant_id_left_unique",
+            "participant_id_right_unique",
+            "trans_id",
+        ],
     )
     fragment_df = pd.read_csv(
         input_dir / f"{file_stem}.csv",
@@ -174,7 +179,9 @@ def extract_fragments(
             "time_end",
         ],
     )
-    conversation_df["trans_lang_code"] = conversation_df["trans_id"].apply(lambda x: x.split("_", 1)[0])
+    conversation_df["trans_lang_code"] = conversation_df["trans_id"].apply(
+        lambda x: x.split("_", 1)[0]
+    )
     df = pd.merge(
         conversation_df,
         fragment_df,
@@ -210,7 +217,12 @@ def extract_recordings(
     # we join the conversation table with fragment table to get segment start and end time
     conversation_df = pd.read_csv(
         input_dir / "conversation.csv",
-        usecols=["id", "participant_id_left_unique", "participant_id_right_unique", "trans_id"],
+        usecols=[
+            "id",
+            "participant_id_left_unique",
+            "participant_id_right_unique",
+            "trans_id",
+        ],
     )
     fragment_df = pd.read_csv(
         input_dir / f"{fragment_file_stem}.csv",
@@ -225,7 +237,9 @@ def extract_recordings(
             "time_end",
         ],
     )
-    conversation_df["trans_lang_code"] = conversation_df["trans_id"].apply(lambda x: x.split("_", 1)[0])
+    conversation_df["trans_lang_code"] = conversation_df["trans_id"].apply(
+        lambda x: x.split("_", 1)[0]
+    )
     df = pd.merge(
         conversation_df,
         fragment_df,
