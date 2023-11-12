@@ -333,7 +333,7 @@ def download(dataset_config: Path, output_dir: Path) -> Path:
             ordered_dests.append(
                 (
                     url,
-                    destination_path,
+                    url2dest[url],
                 )
             )
         LOGGER.info("completed!")
