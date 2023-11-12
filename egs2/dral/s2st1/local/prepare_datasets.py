@@ -92,7 +92,12 @@ class DatasetConfig(BaseModel):
 
 
 def _write_kaldi_files(
-    raw_data_dir: Path, data_file_stem: str, df: pd.DataFrame, src_lang: str, tgt_lang: str, output_dir: Path
+    raw_data_dir: Path,
+    data_file_stem: str,
+    df: pd.DataFrame,
+    src_lang: str,
+    tgt_lang: str,
+    output_dir: Path,
 ):
     src_lang = src_lang.lower()
     tgt_lang = tgt_lang.lower()
@@ -209,9 +214,15 @@ def extract_fragments(
     df = df[(df["lang_code"] == src_lang) & (df["trans_lang_code"] == tgt_lang)]
     LOGGER.info(f"{len(df)} segments for src_lang = {src_lang} & tgt_lang = {tgt_lang}")
     train_df, dev_df, devtest_df = _train_dev_split(df)
-    _write_kaldi_files(input_dir, _RECORDINGS, train_df, src_lang, tgt_lang, output_dir / "train")
-    _write_kaldi_files(input_dir, _RECORDINGS, dev_df, src_lang, tgt_lang, output_dir / "dev")
-    _write_kaldi_files(input_dir, _RECORDINGS, devtest_df, src_lang, tgt_lang, output_dir / "test")
+    _write_kaldi_files(
+        input_dir, _RECORDINGS, train_df, src_lang, tgt_lang, output_dir / "train"
+    )
+    _write_kaldi_files(
+        input_dir, _RECORDINGS, dev_df, src_lang, tgt_lang, output_dir / "dev"
+    )
+    _write_kaldi_files(
+        input_dir, _RECORDINGS, devtest_df, src_lang, tgt_lang, output_dir / "test"
+    )
     return output_dir
 
 
@@ -267,9 +278,15 @@ def extract_recordings(
     df = df[(df["lang_code"] == src_lang) & (df["trans_lang_code"] == tgt_lang)]
     LOGGER.info(f"{len(df)} segments for src_lang = {src_lang} & tgt_lang = {tgt_lang}")
     train_df, dev_df, devtest_df = _train_dev_split(df)
-    _write_kaldi_files(input_dir, _RECORDINGS, train_df, src_lang, tgt_lang, output_dir / "train")
-    _write_kaldi_files(input_dir, _RECORDINGS, dev_df, src_lang, tgt_lang, output_dir / "dev")
-    _write_kaldi_files(input_dir, _RECORDINGS, devtest_df, src_lang, tgt_lang, output_dir / "test")
+    _write_kaldi_files(
+        input_dir, _RECORDINGS, train_df, src_lang, tgt_lang, output_dir / "train"
+    )
+    _write_kaldi_files(
+        input_dir, _RECORDINGS, dev_df, src_lang, tgt_lang, output_dir / "dev"
+    )
+    _write_kaldi_files(
+        input_dir, _RECORDINGS, devtest_df, src_lang, tgt_lang, output_dir / "test"
+    )
     return output_dir
 
 
