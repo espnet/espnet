@@ -156,12 +156,12 @@ def extract_fragments(
     if audio_type == "fragments-long":
         file_stem = _FRAGMENTS_LONG
     else:
-        file_stem = _RECORDINGS
+        file_stem = _FRAGMENTS_SHORT
     conversation_df = pd.read_csv(
         input_dir / "conversation.csv",
-        usecols=["id", "participant_id_left", "participant_id_right"],
+        usecols=["id", "participant_id_left_unique", "participant_id_right_unique", "trans_id"],
     )
-    audio_df = pd.read_csv(
+    fragment_df = pd.read_csv(
         input_dir / f"{file_stem}.csv",
         sep=",",
         header=0,
@@ -170,13 +170,14 @@ def extract_fragments(
             "lang_code",
             "conv_id",
             "original_or_reenacted",
-            "trans_id",
+            "time_start",
+            "time_end",
         ],
     )
-    audio_df["trans_lang_code"] = audio_df["trans_id"].apply(lambda x: x.split("_", 1)[0])
+    conversation_df["trans_lang_code"] = conversation_df["trans_id"].apply(lambda x: x.split("_", 1)[0])
     df = pd.merge(
-        audio_df,
         conversation_df,
+        fragment_df,
         left_on="id",
         right_on="conv_id",
         how="inner",
@@ -208,11 +209,11 @@ def extract_recordings(
         fragment_file_stem = _FRAGMENTS_SHORT
     # we join the conversation table with fragment table to get segment start and end time
     conversation_df = pd.read_csv(
-        input_dir / f"{fragment_file_stem}.csv",
-        usecols=["id", "participant_id_left", "participant_id_right"],
+        input_dir / "conversation.csv",
+        usecols=["id", "participant_id_left_unique", "participant_id_right_unique", "trans_id"],
     )
-    audio_df = pd.read_csv(
-        input_dir / "fragments-long.csv",
+    fragment_df = pd.read_csv(
+        input_dir / f"{fragment_file_stem}.csv",
         sep=",",
         header=0,
         usecols=[
@@ -222,21 +223,20 @@ def extract_recordings(
             "original_or_reenacted",
             "time_start",
             "time_end",
-            "trans_id",
         ],
     )
-    audio_df["trans_lang_code"] = audio_df["trans_id"].apply(lambda x: x.split("_", 1)[0])
+    conversation_df["trans_lang_code"] = conversation_df["trans_id"].apply(lambda x: x.split("_", 1)[0])
     df = pd.merge(
-        audio_df,
         conversation_df,
+        fragment_df,
         left_on="id",
         right_on="conv_id",
         how="inner",
         suffixes=("recordings", "fragments"),
     )
     assert len(df) == len(
-        audio_df
-    ), f"some audio rows do not exist in conversation.csv: {len(df)} vs {len(audio_df)}"
+        fragment_df
+    ), f"some audio rows do not exist in conversation.csv: {len(df)} vs {len(fragment_df)}"
     src_lang = src_lang.upper()
     tgt_lang = tgt_lang.upper()
     df = df[(df["lang_code"] == src_lang) & (df["trans_lang_code"] == tgt_lang)]
