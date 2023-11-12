@@ -92,8 +92,10 @@ class DatasetConfig(BaseModel):
 
 
 def _write_kaldi_files(
-    raw_data_dir: Path, data_file_stem: str, df: pd.DataFrame, output_dir: Path
+    raw_data_dir: Path, data_file_stem: str, df: pd.DataFrame, src_locale: str, tgt_locale: str, output_dir: Path
 ):
+    src_locale = src_locale.lower()
+    tgt_locale = tgt_locale.lower()
     LOGGER.info(f"writing kaldi-style files: {data_file_stem} -> {output_dir}")
     assert data_file_stem in _AUDIO_FOLDERS, data_file_stem
     output_dir.mkdir(exist_ok=True, parents=True)
@@ -102,7 +104,7 @@ def _write_kaldi_files(
         lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
     )
     df[["id", "audio_path"]].to_csv(
-        output_dir / "wav.scp", sep=" ", header=False, index=False
+        output_dir / f"wav.scp.{src_locale}", sep=" ", header=False, index=False
     )
     # utt2spk
     if data_file_stem in {_RECORDINGS, _FRAGMENTS_LONG}:
@@ -116,10 +118,13 @@ def _write_kaldi_files(
         )
     else:
         df["spk"] = df["participant_id_unique"]
-    df[["id", "spk"]].to_csv(output_dir / "utt2spk", sep=" ", header=False, index=False)
+    src_utt2spk = df[["id", "spk"]]
+    tgt_utt2spk = df[["trans_id", "spk"]].rename(src_utt2spk.columns)
+    utt2spk = pd.concat([src_utt2spk, tgt_utt2spk], axis=0, ignore_index=True)
+    utt2spk.to_csv(output_dir / "utt2spk", sep=" ", header=False, index=False)
     # spk2utt
     # Group by 'spk' and collect 'id' values into sets
-    grouped_data = df.groupby("spk")["id"].apply(set).reset_index()
+    grouped_data = utt2spk.groupby("spk")["id"].apply(set).reset_index()
     with (output_dir / "spk2utt").open("w") as spk2utt_out:
         for _, row in grouped_data.iterrows():
             spk = row["spk"]
