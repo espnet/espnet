@@ -346,6 +346,7 @@ def download(dataset_config: Path, output_dir: Path, no_cache: bool = False) -> 
         LOGGER.info("completed!")
         output_dir.mkdir(exist_ok=True, parents=True)
         LOGGER.info(f"populating metadatafiles from the last relese")
+        LOGGER.info(f"ordered_dests = {ordered_dests}")
         # Discard all metadata (csv files) except those from the last release.
         for path in ordered_dests[-1][1].iterdir():
             if path.suffix == ".csv":
