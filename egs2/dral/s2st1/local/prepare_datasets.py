@@ -108,7 +108,12 @@ def _time_string_to_seconds(time_str):
     minutes = int(time_components[1])
 
     # Split seconds and microseconds
-    seconds_str, microseconds_str = time_components[2].split(".")
+    tokens = time_components[2].split(".")
+    if len(tokens) > 1:
+        seconds_str, microseconds_str = tokens
+    else:
+        seconds_str = tokens[0]
+        microseconds_str = '0'
     seconds = int(seconds_str)
     microseconds = int(microseconds_str)
 
