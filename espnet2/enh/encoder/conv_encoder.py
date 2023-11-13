@@ -27,12 +27,13 @@ class ConvEncoder(AbsEncoder):
     def output_dim(self) -> int:
         return self._output_dim
 
-    def forward(self, input: torch.Tensor, ilens: torch.Tensor):
+    def forward(self, input: torch.Tensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
 
         Args:
             input (torch.Tensor): mixed speech [Batch, sample]
             ilens (torch.Tensor): input lengths [Batch]
+            fs (int): sampling rate in Hz (Not used)
         Returns:
             feature (torch.Tensor): mixed feature after encoder [Batch, flens, channel]
         """
@@ -44,7 +45,9 @@ class ConvEncoder(AbsEncoder):
         feature = torch.nn.functional.relu(feature)
         feature = feature.transpose(1, 2)
 
-        flens = (ilens - self.kernel_size) // self.stride + 1
+        flens = (
+            torch.div(ilens - self.kernel_size, self.stride, rounding_mode="trunc") + 1
+        )
 
         return feature, flens
 

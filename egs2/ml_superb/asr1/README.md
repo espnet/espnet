@@ -72,7 +72,7 @@ General steps to run tasks in multilingual ASR task are as follows:
 - Step2: Adding the training configurations for the desired model at `conf/tuning` (check examples `conf/tuning/train_asr_s3prl_{10min, 1h}.yaml` and `conf/tuning/train_asr_fbank_{10min, 1h}.yaml`) **Note: only the frontend/learning rate can be changed for the benchmark.**
 - Step3: Training the 10min/1h model by calling
 ```
-./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h}
+./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h} --lid false --only_lid false
 ```
 
 
@@ -83,7 +83,7 @@ General steps to run tasks in LID trask are as follows:
 - Step2: Adding the training configurations for the desired model at `conf/tuning` (check examples `conf/tuning/train_asr_s3prl_{10min, 1h}.yaml` and `conf/tuning/train_asr_fbank_{10min, 1h}.yaml`) **Note: only the frontend/learning rate can be changed for the benchmark.**
 - Step3: Training the 10min/1h model by calling
 ```
-./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h} --only_lid true
+./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h} --lid false --only_lid true
 ```
 
 
@@ -94,7 +94,7 @@ General steps to run tasks in LID trask are as follows:
 - Step2: Adding the training configurations for the desired model at `conf/tuning` (check examples `conf/tuning/train_asr_s3prl_{10min, 1h}.yaml` and `conf/tuning/train_asr_fbank_{10min, 1h}.yaml`) **Note: only the frontend/learning rate can be changed for the benchmark.**
 - Step3: Training the 10min/1h model by calling
 ```
-./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h} --lid true
+./run_multi.sh --asr_config <your_training_config> --duration {10min, 1h} --lid true --only_lid false
 ```
 
 ## Credits

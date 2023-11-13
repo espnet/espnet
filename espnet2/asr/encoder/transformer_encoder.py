@@ -24,6 +24,7 @@ from espnet.nets.pytorch_backend.transformer.positionwise_feed_forward import (
 )
 from espnet.nets.pytorch_backend.transformer.repeat import repeat
 from espnet.nets.pytorch_backend.transformer.subsampling import (
+    Conv1dSubsampling2,
     Conv2dSubsampling,
     Conv2dSubsampling1,
     Conv2dSubsampling2,
@@ -78,6 +79,7 @@ class TransformerEncoder(AbsEncoder):
         padding_idx: int = -1,
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
+        layer_drop_rate: float = 0.0,
     ):
         assert check_argument_types()
         super().__init__()
@@ -89,6 +91,13 @@ class TransformerEncoder(AbsEncoder):
                 torch.nn.LayerNorm(output_size),
                 torch.nn.Dropout(dropout_rate),
                 torch.nn.ReLU(),
+                pos_enc_class(output_size, positional_dropout_rate),
+            )
+        elif input_layer == "conv1d2":
+            self.embed = Conv1dSubsampling2(
+                input_size,
+                output_size,
+                dropout_rate,
                 pos_enc_class(output_size, positional_dropout_rate),
             )
         elif input_layer == "conv2d":
@@ -151,6 +160,7 @@ class TransformerEncoder(AbsEncoder):
                 normalize_before,
                 concat_after,
             ),
+            layer_drop_rate,
         )
         if self.normalize_before:
             self.after_norm = LayerNorm(output_size)
@@ -170,6 +180,7 @@ class TransformerEncoder(AbsEncoder):
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
         ctc: CTC = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Embed positions in tensor.
 
@@ -177,6 +188,9 @@ class TransformerEncoder(AbsEncoder):
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
             prev_states: Not to be used now.
+            ctc (CTC): ctc module for intermediate CTC loss
+            return_all_hs (bool): whether to return all hidden states
+
         Returns:
             position embedded tensor and mask
         """
@@ -186,6 +200,7 @@ class TransformerEncoder(AbsEncoder):
             xs_pad = xs_pad
         elif (
             isinstance(self.embed, Conv2dSubsampling)
+            or isinstance(self.embed, Conv1dSubsampling2)
             or isinstance(self.embed, Conv2dSubsampling1)
             or isinstance(self.embed, Conv2dSubsampling2)
             or isinstance(self.embed, Conv2dSubsampling6)
@@ -205,7 +220,13 @@ class TransformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            xs_pad, masks = self.encoders(xs_pad, masks)
+            for layer_idx, encoder_layer in enumerate(self.encoders):
+                xs_pad, masks = encoder_layer(xs_pad, masks)
+                if return_all_hs:
+                    if isinstance(xs_pad, tuple):
+                        intermediate_outs.append(xs_pad[0])
+                    else:
+                        intermediate_outs.append(xs_pad)
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)

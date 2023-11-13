@@ -1,3 +1,4 @@
+import itertools
 import random
 from functools import partial
 from typing import Any, Sequence, Union
@@ -49,6 +50,7 @@ class SequenceIterFactory(AbsIterFactory):
         num_iters_per_epoch: int = None,
         seed: int = 0,
         shuffle: bool = False,
+        shuffle_within_batch: bool = False,
         num_workers: int = 0,
         collate_fn=None,
         pin_memory: bool = False,
@@ -63,6 +65,7 @@ class SequenceIterFactory(AbsIterFactory):
         self.dataset = dataset
         self.num_iters_per_epoch = num_iters_per_epoch
         self.shuffle = shuffle
+        self.shuffle_within_batch = shuffle_within_batch
         self.seed = seed
         self.num_workers = num_workers
         self.collate_fn = collate_fn
@@ -139,6 +142,18 @@ class SequenceIterFactory(AbsIterFactory):
             kwargs = dict(collate_fn=self.collate_fn)
         else:
             kwargs = {}
+
+        # reshuffle whole 'batches' so that elements within a batch can move
+        # between different batches
+        if self.shuffle_within_batch:
+            _bs = len(batches[0])
+            batches = list(itertools.chain(*batches))
+            np.random.RandomState(epoch + self.seed).shuffle(batches)
+            _batches = []
+            for ii in range(0, len(batches), _bs):
+                _batches.append(batches[ii : ii + _bs])
+            batches = _batches
+            del _batches
 
         return DataLoader(
             dataset=self.dataset,

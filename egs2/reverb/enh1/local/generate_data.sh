@@ -1,0 +1,1 @@
+../../../../egs/reverb/asr1/local/generate_data.sh

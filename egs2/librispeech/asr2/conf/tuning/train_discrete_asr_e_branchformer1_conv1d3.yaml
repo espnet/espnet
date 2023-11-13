@@ -1,0 +1,93 @@
+# Trained with A100 (40 GB) x 1 GPUs. It takes 24 minutes per epoch.
+# BPE-Dropout (https://github.com/google/sentencepiece#subword-regularization-and-bpe-dropout)
+src_tokenizer_encode_conf:
+    enable_sampling: true    # If set to true, bpe-dropout is used.
+    alpha: 0.4
+    nbest_size: -1
+
+frontend: embed     # embedding + positional encoding
+frontend_conf:
+    embed_dim: 512
+    positional_dropout_rate: 0.1
+
+specaug: specaug
+specaug_conf:
+    apply_time_warp: false
+    time_warp_window: 5
+    time_warp_mode: bicubic
+    apply_freq_mask: false
+    freq_mask_width_range:
+    - 0
+    - 10
+    num_freq_mask: 0
+    apply_time_mask: true
+    time_mask_width_ratio_range:
+    - 0.
+    - 0.05
+    num_time_mask: 10
+
+encoder: e_branchformer
+encoder_conf:
+    output_size: 256
+    attention_heads: 4
+    attention_layer_type: rel_selfattn
+    pos_enc_layer_type: rel_pos
+    rel_pos_type: latest
+    cgmlp_linear_units: 1024
+    cgmlp_conv_kernel: 31
+    use_linear_after_conv: false
+    gate_activation: identity
+    num_blocks: 12
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    attention_dropout_rate: 0.1
+    input_layer: conv1d3
+    layer_drop_rate: 0.0
+    linear_units: 1024
+    positionwise_layer_type: linear
+    use_ffn: true
+    macaron_ffn: true
+    merge_conv_kernel: 31
+
+decoder: transformer
+decoder_conf:
+    attention_heads: 4
+    linear_units: 2048
+    num_blocks: 6
+    dropout_rate: 0.1
+    positional_dropout_rate: 0.1
+    self_attention_dropout_rate: 0.1
+    src_attention_dropout_rate: 0.1
+    layer_drop_rate: 0.0
+
+model: discrete_asr
+model_conf:
+    ctc_weight: 0.3
+    lsm_weight: 0.1
+    length_normalized_loss: false
+    share_decoder_input_output_embed: false
+    share_encoder_decoder_input_embed: false
+
+use_amp: true
+num_att_plot: 1
+log_interval: 1000
+num_workers: 4
+batch_type: numel
+batch_bins: 420000000
+accum_grad: 1
+max_epoch: 35
+patience: none
+init: none
+best_model_criterion:
+-   - valid
+    - acc
+    - max
+keep_nbest_models: 10
+
+optim: adam
+optim_conf:
+    lr: 0.006
+    weight_decay: 0.000001
+scheduler: warmuplr
+scheduler_conf:
+    warmup_steps: 15000

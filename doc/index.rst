@@ -21,6 +21,12 @@ ESPnet is an end-to-end speech processing toolkit, mainly focuses on end-to-end 
 
 .. toctree::
    :maxdepth: 1
+   :caption: ESPnet1:
+
+   ./espnet1_tutorial.md
+
+.. toctree::
+   :maxdepth: 1
    :caption: ESPnet2:
 
    ./espnet2_tutorial.md

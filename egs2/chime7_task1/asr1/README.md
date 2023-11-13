@@ -129,12 +129,12 @@ and `asr_batch_size` because you may want to adjust these based on your hardware
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs
 ```
 **We also provide a pre-trained model**, you can run only inference on development set
-using:
+using (or evaluation set by using `--decode-only eval`):
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
---decode-only 1 --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM
+--decode-only dev --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM
 ```
 Note that `gss-max-batch-dur` affects a lot your inference time.
 Also note that getting this warning `Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[8]`
@@ -447,7 +447,7 @@ There are two possible approaches.
 either the "style" of the baseline GSS ones or the ones belonging to close-talk mics.
 
 To evaluate the new enhanced data, e.g. `kaldi/chime6/dev/my_enhanced`, you need to include it into `asr_tt_set` in `run.sh` or
-from command line: `run.sh --stage 3 --asr-tt-set "kaldi/chime6/dev/gss" --decode-only 1 --use-pretrained popcornell/chime7_task1_asr1_baseline --asr-dprep-stage 4`.
+from command line: `run.sh --stage 3 --asr-tt-set "kaldi/chime6/dev/gss" --decode-only dev --use-pretrained popcornell/chime7_task1_asr1_baseline --asr-dprep-stage 4`.
 
 
 ## Acknowledgements

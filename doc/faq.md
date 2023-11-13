@@ -2,7 +2,7 @@
 ## How to build espnet on a cloud machine such as GCP, AWS, etc.?
 
 Our documentation, [Installation](./installation.md), assumes that some basic tools are already installed in your machine, gcc, make, etc.,
-so you need to also install them if you don't have. They are undocumented, but the configuration of our CI may help you because it also build the environment from scratch:  https://github.com/espnet/espnet/blob/master/.circleci/config.yml
+so you need also to install them if you don't have them. They are undocumented, but the configuration of our CI may help you because it also builds the environment from scratch with [install.sh](https://github.com/espnet/espnet/blob/master/ci/install.sh)
 
 
 ## ModuleNotFoundError: No module named 'espnet', or etc.
