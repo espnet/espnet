@@ -1,6 +1,7 @@
 """download datasets and convert them into kaldi format"""
 import logging
 import multiprocessing
+import random
 import re
 import shutil
 import tarfile
@@ -32,6 +33,7 @@ LOGGER = logging.getLogger(__name__)
 _WAV_NAME_PATTERN_LONG: str = r"^[A-Z]{2}_\d{3}_#\d+\.wav$"
 _WAV_NAME_PATTERN_SHORT: str = r"^[A-Z]{2}_\d{3}_\d+\.wav$"
 _WAV_NAME_PATTERN_RECORDING: str = r"^[A-Z]{2}_\d{3}.wav$"
+_SEED: int = 73
 
 
 def remove_suffix(s: str, suffix: str):
@@ -137,7 +139,9 @@ def _write_kaldi_files(
     tgt_utt2spk = df[["trans_id", "spk"]]
     tgt_utt2spk.columns = src_utt2spk.columns
     utt2spk = pd.concat([src_utt2spk, tgt_utt2spk], axis=0, ignore_index=True)
-    utt2spk.drop_duplicates().to_csv(output_dir / "utt2spk", sep=" ", header=False, index=False)
+    utt2spk.drop_duplicates().to_csv(
+        output_dir / "utt2spk", sep=" ", header=False, index=False
+    )
     # spk2utt
     # Group by 'spk' and collect 'id' values into sets
     grouped_data = utt2spk.groupby("spk")["id_recordings"].apply(set).reset_index()
@@ -148,15 +152,20 @@ def _write_kaldi_files(
             spk2utt_out.write(f"{spk} {utt_str}\n")
     # segments
     if data_file_stem == _RECORDINGS:
-        df[["id_fragments", "id_recordings", "time_start", "time_end"]].drop_duplicates().to_csv(
+        df[
+            ["id_fragments", "id_recordings", "time_start", "time_end"]
+        ].drop_duplicates().to_csv(
             output_dir / "segments", sep=" ", header=False, index=False
         )
     LOGGER.info("completed!")
 
 
 def _train_dev_split(df: pd.DataFrame):
-    # split
+    # deterministic random
     conv_ids = sorted(df["conv_id"].unique())
+    random.seed(_SEED)
+    random.shuffle(conv_ids)
+    # split
     devtest_ratio = 0.1
     devtest_size = int(len(conv_ids) * devtest_ratio)
     devtest_ids = set(conv_ids[:devtest_size])
