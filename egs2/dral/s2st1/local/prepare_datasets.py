@@ -109,13 +109,13 @@ def _write_kaldi_files(
     df["audio_path"] = df["id_recordings"].apply(
         lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
     )
-    df[["id_recordings", "audio_path"]].to_csv(
+    df[["id_recordings", "audio_path"]].drop_duplicates().to_csv(
         output_dir / f"wav.scp.{src_lang}", sep=" ", header=False, index=False
     )
     df["trans_audio_path"] = df["trans_id"].apply(
         lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
     )
-    df[["trans_id", "trans_audio_path"]].to_csv(
+    df[["trans_id", "trans_audio_path"]].drop_duplicates().to_csv(
         output_dir / f"wav.scp.{tgt_lang}", sep=" ", header=False, index=False
     )
     # utt2spk
@@ -137,7 +137,7 @@ def _write_kaldi_files(
     tgt_utt2spk = df[["trans_id", "spk"]]
     tgt_utt2spk.columns = src_utt2spk.columns
     utt2spk = pd.concat([src_utt2spk, tgt_utt2spk], axis=0, ignore_index=True)
-    utt2spk.to_csv(output_dir / "utt2spk", sep=" ", header=False, index=False)
+    utt2spk.drop_duplicates().to_csv(output_dir / "utt2spk", sep=" ", header=False, index=False)
     # spk2utt
     # Group by 'spk' and collect 'id' values into sets
     grouped_data = utt2spk.groupby("spk")["id_recordings"].apply(set).reset_index()
@@ -148,7 +148,7 @@ def _write_kaldi_files(
             spk2utt_out.write(f"{spk} {utt_str}\n")
     # segments
     if data_file_stem == _RECORDINGS:
-        df[["id_fragments", "id_recordings", "time_start", "time_end"]].to_csv(
+        df[["id_fragments", "id_recordings", "time_start", "time_end"]].drop_duplicates().to_csv(
             output_dir / "segments", sep=" ", header=False, index=False
         )
     LOGGER.info("completed!")
