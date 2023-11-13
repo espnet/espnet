@@ -118,9 +118,16 @@ install_torch(){
     fi
 }
 check_python_version(){
-    if $(python_plus $1) || ! $(python_plus 3.6); then
-        log "[ERROR] pytorch=${torch_version} doesn't provide binary build for python>=$1,<3.6, but your python is ${python_version}"
-        exit 1
+    if $(pytorch_plus 2.1.0); then
+        if $(python_plus $1) || ! $(python_plus 3.7); then
+            log "[ERROR] pytorch=${torch_version} for python>=$1,<=3.7 is not available, but your python is ${python_version}"
+            exit 1
+        fi
+    else
+        if $(python_plus $1) || ! $(python_plus 3.6); then
+            log "[ERROR] pytorch=${torch_version} for python>=$1,<=3.6 is not available, but your python is ${python_version}"
+            exit 1
+        fi
     fi
 }
 check_cuda_version(){
@@ -130,7 +137,7 @@ check_cuda_version(){
     done
     if ! "${supported}"; then
         # See https://anaconda.org/pytorch/pytorch/files to confirm the provided versions
-        log "[WARNING] Pre-build package for Pytorch=${torch_version} with CUDA=${cuda_version} is not provided."
+        log "[WARNING] Pre-built package for Pytorch=${torch_version} with CUDA=${cuda_version} is not provided."
         return 1
     fi
 }
@@ -144,14 +151,23 @@ if ! python -c "import packaging.version" &> /dev/null; then
     python3 -m pip install packaging
 fi
 
-if $(pytorch_plus 2.0.2); then
-    log "[ERROR] pytorch=${torch_version} doesn't exist"
+if $(pytorch_plus 2.1.1); then
+    log "[ERROR] This script doesn't support pytorch=${torch_version}"
     exit 1
+
+elif $(pytorch_plus 2.1.0); then
+    check_python_version 3.12  # Error if python>=<number>
+    if ! check_cuda_version 12.1 11.8; then
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=12.1"
+        cuda_version=12.1
+        cuda_version_without_dot="${cuda_version/\./}"
+    fi
+    install_torch 2.1.0  # install_torch <torch-audio-ver>
 
 elif $(pytorch_plus 2.0.1); then
     check_python_version 3.12  # Error if python>=<number>
     if ! check_cuda_version 11.8 11.7; then
-        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=11.7"
+        log "[INFO] Fallback: cuda_version=${cuda_version} -> cuda_version=11.8"
         cuda_version=11.8
         cuda_version_without_dot="${cuda_version/\./}"
     fi
