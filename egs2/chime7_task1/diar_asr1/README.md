@@ -19,7 +19,7 @@ dependencies for this recipe.
 
 
 ## Main Track Baseline (Diarization + ASR)
-<img src="https://www.chimechallenge.org/current/task1/images/baseline.png" width="450" height="120" />
+<img src="https://www.chimechallenge.org/chime7/task1/images/baseline.png" width="450" height="120" />
 
 The baseline system for the main track is composed of three main modules (with an optional channel selection module):
 
