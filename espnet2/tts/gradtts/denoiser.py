@@ -1,15 +1,14 @@
 import math
 import torch
 from einops import rearrange
+from espnet2.tts.gradtts.base import BaseModule
 
-from espnet2.tts.abs_tts import AbsTTS
-
-class Mish(AbsTTS):
+class Mish(BaseModule):
     def forward(self, x):
         return x * torch.tanh(torch.nn.functional.softplus(x))
 
 
-class Upsample(AbsTTS):
+class Upsample(BaseModule):
     def __init__(self, dim):
         super(Upsample, self).__init__()
         self.conv = torch.nn.ConvTranspose2d(dim, dim, 4, 2, 1)
@@ -18,7 +17,7 @@ class Upsample(AbsTTS):
         return self.conv(x)
 
 
-class Downsample(AbsTTS):
+class Downsample(BaseModule):
     def __init__(self, dim):
         super(Downsample, self).__init__()
         self.conv = torch.nn.Conv2d(dim, dim, 3, 2, 1)
@@ -27,7 +26,7 @@ class Downsample(AbsTTS):
         return self.conv(x)
 
 
-class Rezero(AbsTTS):
+class Rezero(BaseModule):
     def __init__(self, fn):
         super(Rezero, self).__init__()
         self.fn = fn
@@ -37,7 +36,7 @@ class Rezero(AbsTTS):
         return self.fn(x) * self.g
 
 
-class Block(AbsTTS):
+class Block(BaseModule):
     def __init__(self, dim, dim_out, groups=8):
         super(Block, self).__init__()
         self.block = torch.nn.Sequential(torch.nn.Conv2d(dim, dim_out, 3,
@@ -49,7 +48,7 @@ class Block(AbsTTS):
         return output * mask
 
 
-class ResnetBlock(AbsTTS):
+class ResnetBlock(BaseModule):
     def __init__(self, dim, dim_out, time_emb_dim, groups=8):
         super(ResnetBlock, self).__init__()
         self.mlp = torch.nn.Sequential(Mish(), torch.nn.Linear(time_emb_dim,
@@ -70,7 +69,7 @@ class ResnetBlock(AbsTTS):
         return output
 
 
-class LinearAttention(AbsTTS):
+class LinearAttention(BaseModule):
     def __init__(self, dim, heads=4, dim_head=32):
         super(LinearAttention, self).__init__()
         self.heads = heads
@@ -91,7 +90,7 @@ class LinearAttention(AbsTTS):
         return self.to_out(out)
 
 
-class Residual(AbsTTS):
+class Residual(BaseModule):
     def __init__(self, fn):
         super(Residual, self).__init__()
         self.fn = fn
@@ -101,7 +100,7 @@ class Residual(AbsTTS):
         return output
 
 
-class SinusoidalPosEmb(AbsTTS):
+class SinusoidalPosEmb(BaseModule):
     def __init__(self, dim):
         super(SinusoidalPosEmb, self).__init__()
         self.dim = dim
@@ -116,7 +115,7 @@ class SinusoidalPosEmb(AbsTTS):
         return emb
 
 
-class UNetGradTTSModel(AbsTTS):
+class UNetGradTTSModel(BaseModule):
     def __init__(self, dim, dim_mults=(1, 2, 4), groups=8,
                  n_spks=None, spk_emb_dim=64, n_feats=80, pe_scale=1000):
         super(UNetGradTTSModel, self).__init__()
@@ -215,7 +214,7 @@ def get_noise(t, beta_init, beta_term, cumulative=False):
     return noise
 
 
-class Diffusion(AbsTTS):
+class Diffusion(BaseModule):
     def __init__(self, n_feats, dim,
                  n_spks=1, spk_emb_dim=64,
                  beta_min=0.05, beta_max=20, pe_scale=1000):
