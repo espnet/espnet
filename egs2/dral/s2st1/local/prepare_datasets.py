@@ -113,7 +113,7 @@ def _time_string_to_seconds(time_str):
         seconds_str, microseconds_str = tokens
     else:
         seconds_str = tokens[0]
-        microseconds_str = '0'
+        microseconds_str = "0"
     seconds = int(seconds_str)
     microseconds = int(microseconds_str)
 
