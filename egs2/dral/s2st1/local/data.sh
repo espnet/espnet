@@ -7,6 +7,11 @@
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
+log() {
+    local fname=${BASH_SOURCE[1]##*/}
+    echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
+}
+
 src_lang=$1 # ar ca cy de et es fa fr id it ja lv mn nl pt ru sl sv ta tr zh
 tgt_lang=$2
 RAW_DIR=raw
