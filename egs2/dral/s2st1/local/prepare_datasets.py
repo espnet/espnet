@@ -73,7 +73,7 @@ class DatasetHelper:
             subfolder = remove_suffix(archive_path.name, ".tgz")
         elif archive_path.suffix == ".tar":
             subfolder = remove_suffix(archive_path.name, ".tar")
-        elif archive_path.suffix == ".tar.gz":
+        elif archive_path.name.endswith(".tar.gz"):
             subfolder = remove_suffix(archive_path.name, ".tar.gz")
         else:
             subfolder = archive_path.name
