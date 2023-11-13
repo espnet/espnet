@@ -7,6 +7,7 @@ import shutil
 import tarfile
 import tempfile
 from concurrent.futures import Future, ThreadPoolExecutor, wait
+from datetime import timedelta
 from pathlib import Path
 from typing import Dict, List, Tuple
 
@@ -94,6 +95,38 @@ class DatasetConfig(BaseModel):
     dataset_urls: List[str]
 
 
+def _time_string_to_seconds(time_str):
+    # Split the input string into days and time components
+    days_str, time_components = time_str.split(" days ")
+
+    # Parse the time components into hours, minutes, and seconds
+    time_components = time_components.split(":")
+
+    # Extract days, hours, minutes, and seconds
+    days = int(days_str)
+    hours = int(time_components[0])
+    minutes = int(time_components[1])
+
+    # Split seconds and microseconds
+    seconds_str, microseconds_str = time_components[2].split(".")
+    seconds = int(seconds_str)
+    microseconds = int(microseconds_str)
+
+    # Create a timedelta object
+    duration = timedelta(
+        days=days,
+        hours=hours,
+        minutes=minutes,
+        seconds=seconds,
+        microseconds=microseconds,
+    )
+
+    # Convert the duration to total seconds
+    total_seconds = duration.total_seconds()
+
+    return total_seconds
+
+
 def _write_kaldi_files(
     raw_data_dir: Path,
     data_file_stem: str,
@@ -152,6 +185,8 @@ def _write_kaldi_files(
             spk2utt_out.write(f"{spk} {utt_str}\n")
     # segments
     if data_file_stem == _RECORDINGS:
+        df["time_start"] = df["time_start"].apply(lambda s: _time_string_to_seconds(s))
+        df["time_end"] = df["time_end"].apply(lambda s: _time_string_to_seconds(s))
         df[
             ["id_fragments", "id_recordings", "time_start", "time_end"]
         ].drop_duplicates().to_csv(
