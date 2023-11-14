@@ -76,6 +76,15 @@ class GradTTS(AbsTTS):
         self.decoder = Diffusion(
             odim, dec_dim, n_spks, spk_emb_dim, beta_min, beta_max, pe_scale
         )
+    def relocate_input(self, x: list):
+        """
+        Relocates provided tensors to the same device set for the module.
+        """
+        device = next(self.parameters()).device
+        for i in range(len(x)):
+            if isinstance(x[i], torch.Tensor) and x[i].device != device:
+                x[i] = x[i].to(device)
+        return x
 
     @torch.no_grad()
     def forward(
