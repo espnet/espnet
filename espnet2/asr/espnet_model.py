@@ -392,7 +392,9 @@ class ESPnetASRModel(AbsESPnetModel):
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        if self.encoder.interctc_use_conditioning:
+        if self.encoder.interctc_use_conditioning or getattr(
+            self.encoder, "ctc_trim", False
+        ):
             encoder_out, encoder_out_lens, _ = self.encoder(
                 feats, feats_lengths, ctc=self.ctc
             )
