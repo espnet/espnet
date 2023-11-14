@@ -76,6 +76,7 @@ class GradTTS(AbsTTS):
         self.decoder = Diffusion(
             odim, dec_dim, n_spks, spk_emb_dim, beta_min, beta_max, pe_scale
         )
+
     def relocate_input(self, x: list):
         """
         Relocates provided tensors to the same device set for the module.
