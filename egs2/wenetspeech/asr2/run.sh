@@ -5,11 +5,6 @@ set -e
 set -u
 set -o pipefail
 
-export CUDA_VISIBLE_DEVICES=4,5,6,7
-export PATH=$PATH:/tmp2/anthony/ffmpeg-6.0-amd64-static
-export CUDNN_PATH=/tmp2/anthony/anthony_espnet/espnet/tools/miniconda/envs/dgslm/lib/python3.8/site-packages/nvidia/cudnn
-export LD_LIBRARY_PATH=$CUDNN_PATH/lib
-export PYTHONPATH=/tmp2/anthony/anthony_espnet/espnet
 kmeans_feature="hubert_custom/21"  # use model_type/layer_index
 nclusters=2000
 
@@ -34,13 +29,11 @@ src_case="rm"
 tgt_case="ts"
 
 ./asr2.sh \
-    --stage 1 \
-    --stop_stage 12 \
     --skip_stages 8,9,10,11 \
     --kmeans_opts "--batch_bins 4800000 --portion 0.01 --storage_save_mode true" \
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
-    --ngpu 4 \
+    --ngpu 2 \
     --src_lang ${src_lang} \
     --tgt_lang ${tgt_lang} \
     --src_token_type "bpe" \
@@ -49,6 +42,7 @@ tgt_case="ts"
     --tgt_nbpe $tgt_nbpe \
     --src_case ${src_case} \
     --tgt_case ${tgt_case} \
+    --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --local_data_opts "--set ${set}" \
@@ -60,5 +54,3 @@ tgt_case="ts"
     --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
     --num_splits_asr 8 \
     --nj 32
-    # --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang} data/local/other_text/text" "$@"
-    # --speed_perturb_factors "0.9 1.0 1.1" \
