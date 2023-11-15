@@ -88,7 +88,9 @@ class Speech2Speech:
         self.always_fix_seed = always_fix_seed
         self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
-        if self.model.require_vocoder:
+        # NOTE(Jiyang): sometimes we don't need to output waveform
+        # if self.model.require_vocoder:
+        if vocoder_config is not None or vocoder_file is not None:
             vocoder = S2STTask.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
             )
@@ -98,6 +100,8 @@ class Speech2Speech:
         logging.info(f"S2ST:\n{self.model}")
         if self.vocoder is not None:
             logging.info(f"Vocoder:\n{self.vocoder}")
+        else:
+            logging.warning(f"No vocoder specified. Waveform will not be generated.")
 
         # setup decoding config
         self.decode_conf = {}  # use for specotrogram-based decoding
