@@ -99,6 +99,8 @@ class Speech2Speech:
         logging.info(f"S2ST:\n{self.model}")
         if self.vocoder is not None:
             logging.info(f"Vocoder:\n{self.vocoder}")
+        else:
+            logging.warning(f"No vocoder specified. Waveform will not be generated.")
 
         # setup decoding config
         self.decode_conf = {}  # use for specotrogram-based decoding
