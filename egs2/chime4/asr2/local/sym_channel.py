@@ -1,0 +1,1 @@
+../../../../egs2/chime4/asr1/local/sym_channel.py

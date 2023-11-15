@@ -13,7 +13,7 @@ if [[ ! ${unames} =~ Linux && ! ${unames} =~ Darwin ]]; then
     exit 0
 fi
 
-wget --tries=3 https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
+wget --no-check-certificate --tries=3 https://www-i6.informatik.rwth-aachen.de/web/Software/mwerSegmenter.tar.gz
 tar zxvf mwerSegmenter.tar.gz
 rm mwerSegmenter.tar.gz
 

@@ -9,6 +9,7 @@ import argparse
 import logging
 from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
+import humanfriendly
 import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
@@ -275,6 +276,27 @@ class HubertTask(AbsTask):
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
         assert check_argument_types()
+
+        # default sampling rate is 16000
+        fs = args.frontend_conf.get("fs", 16000)
+        if isinstance(fs, str):
+            fs = humanfriendly.parse_size(fs)
+        sample_rate = fs / 1000
+
+        if args.encoder_conf.get("extractor_conv_layer_config", None) is None:
+            # corresponding to default conv extractor
+            # refer to espnet2/asr/encoder/hubert_encoder.py
+            reception_field = 400
+            stride_field = 320
+        else:
+            stride_field, reception_field = 1, 1
+            for conv_config in args.encoder_conf["extractor_conv_layer_config"][::-1]:
+                _, kernel, stride = conv_config
+                stride_field *= stride
+                reception_field = stride * (reception_field - 1) + kernel
+
+        window_size = reception_field / sample_rate
+        window_shift = stride_field / sample_rate
         return HuBERTCollateFn(
             float_pad_value=0.0,
             int_pad_value=-1,
@@ -282,6 +304,9 @@ class HubertTask(AbsTask):
             pad=args.collate_fn_conf.get("pad", False),
             rand_crop=args.collate_fn_conf.get("rand_crop", True),
             crop_audio=not args.collect_stats,
+            window_size=window_size,
+            window_shift=window_shift,
+            sample_rate=sample_rate,
         )
 
     @classmethod
@@ -299,23 +324,14 @@ class HubertTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 # NOTE(kamo): Check attribute existence for backward compatibility
-                rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
-                noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                short_noise_thres=args.short_noise_thres
-                if hasattr(args, "short_noise_thres")
-                else 0.5,
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
-                else None,
+                rir_scp=getattr(args, "rir_scp", None),
+                rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
+                noise_scp=getattr(args, "noise_scp", None),
+                noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
+                noise_db_range=getattr(args, "noise_db_range", "13_15"),
+                short_noise_thres=getattr(args, "short_noise_thres", 0.5),
+                speech_volume_normalize=getattr(args, "rir_scp", None),
+                **getattr(args, "preprocessor_conf", {}),
             )
         else:
             retval = None
@@ -367,7 +383,7 @@ class HubertTask(AbsTask):
         else:
             # Give features from data-loader
             args.frontend = None
-            args.frontend_conf = {}
+            args.frontend_conf = {**args.frontend_conf}
             frontend = None
             input_size = args.input_size
 

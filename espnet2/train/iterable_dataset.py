@@ -39,12 +39,20 @@ def load_kaldi(input):
 
 DATA_TYPES = {
     "sound": lambda x: soundfile.read(x)[0],
+    "multi_columns_sound": lambda x: np.concatenate(
+        [soundfile.read(xx, always_2d=True)[0] for xx in x.split()], axis=1
+    ),
+    "variable_columns_sound": lambda x: np.stack(
+        [soundfile.read(xx)[0] for xx in x.split()], axis=0
+    ),
     "kaldi_ark": load_kaldi,
     "npy": np.load,
     "text_int": lambda x: np.loadtxt(
-        StringIO(x), ndmin=1, dtype=np.long, delimiter=" "
+        StringIO(x), ndmin=1, dtype=np.int64, delimiter=" "
     ),
-    "csv_int": lambda x: np.loadtxt(StringIO(x), ndmin=1, dtype=np.long, delimiter=","),
+    "csv_int": lambda x: np.loadtxt(
+        StringIO(x), ndmin=1, dtype=np.int64, delimiter=","
+    ),
     "text_float": lambda x: np.loadtxt(
         StringIO(x), ndmin=1, dtype=np.float32, delimiter=" "
     ),

@@ -1,0 +1,45 @@
+# This is a debug config for CI
+frontend: asteroid_frontend
+frontend_conf:
+  sinc_stride: 48
+
+encoder: rawnet3
+encoder_conf:
+  model_scale: 4
+  ndim: 16
+  output_size: 24
+
+pooling: chn_attn_stat
+
+projector: rawnet3
+projector_conf:
+  output_size: 4
+
+preprocessor: spk
+preprocessor_conf:
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
+  num_eval: 2
+  rir_apply_prob: 0.0
+  noise_apply_prob: 0.0
+
+model_conf:
+  extract_feats_in_collect_stats: false
+
+loss: aamsoftmax
+loss_conf:
+  margin: 0.3
+  scale: 15
+
+optim: adam
+num_att_plot: 0
+
+max_epoch: 1
+num_iters_per_epoch: 1
+iterator_type: category
+valid_iterator_type: sequence
+batch_size: 2
+best_model_criterion:
+- - valid
+  - eer
+  - min

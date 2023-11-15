@@ -21,13 +21,13 @@ requirements = {
         "soundfile>=0.10.2",
         "h5py>=2.10.0",
         "kaldiio>=2.18.0",
-        "torch>=1.3.0",
+        "torch>=1.11.0",
         "torch_complex",
         "nltk>=3.4.5",
         # fix CI error due to the use of deprecated aliases
         "numpy<1.24",
         # https://github.com/espnet/espnet/runs/6646737793?check_suite_focus=true#step:8:7651
-        "protobuf<=3.20.1",
+        "protobuf",
         "hydra-core",
         "opt-einsum",
         # ASR
@@ -39,7 +39,6 @@ requirements = {
         "espnet_tts_frontend",
         # ENH
         "ci_sdr",
-        "pytorch_wpe",
         "fast-bss-eval==0.1.3",
         # SPK
         "asteroid_filterbanks==0.4.0",
@@ -87,6 +86,7 @@ requirements = {
         "fairscale",
         "transformers",
         "gtn==0.0.0",
+        "evaluate",
     ],
     "setup": [
         "pytest-runner",

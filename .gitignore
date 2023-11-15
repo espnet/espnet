@@ -18,7 +18,9 @@ check_autopep8
 .coverage
 htmlcov
 coverage.xml*
-bats-core/
+test_utils/bats-core/
+test_utils/bats-support/
+test_utils/bats-assert/
 shellcheck*
 check_shellcheck*
 test_spm.vocab
@@ -88,4 +90,9 @@ tools/._*
 tools/ice-g2p*
 tools/fairseq*
 tools/featbin*
+tools/Miniconda*
 tools/miniconda
+tools/ffmpeg-*-static
+tools/ffmpeg-release
+tools/ffmpeg-release-*.tar.xz
+tools/Miniconda3-latest-*.sh

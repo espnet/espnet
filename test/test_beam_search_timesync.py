@@ -135,7 +135,7 @@ def prepare(E2E, args, mtlalpha=0.0):
         for dtype in ("float16", "float32", "float64")
     ],
 )
-def test_beam_search_equal(
+def test_beam_search_timesync(
     model_class, args, mtlalpha, ctc_weight, lm_weight, bonus, device, dtype
 ):
     if device == "cuda" and not torch.cuda.is_available():

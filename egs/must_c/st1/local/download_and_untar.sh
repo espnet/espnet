@@ -27,40 +27,16 @@ if [ ! -d "${data}" ]; then
     exit 1;
 fi
 
-langs="de_es_fr_it_nl_pt_ro_ru"
+langs="de_es_fr_it_nl_pt_ro_ru_zh"
 if [ ! "$(echo ${langs} | grep ${lang})" ]; then
     echo "$0: no such lang ${lang}"
     exit 1;
 fi
 
 if [ ${version} = "v1" ]; then
-    if [ ${lang} = "de" ]; then
-        url=https://drive.google.com/open?id=1Mf2il_VelDIJMSio0bq7I8M9fSs-X4Ie
-    elif [ ${lang} = "es" ]; then
-        url=https://drive.google.com/open?id=14d2ttsuEUFXsxx-KRWJMsFhQGrYOJcpH
-    elif [ ${lang} = "fr" ]; then
-        url=https://drive.google.com/open?id=1acIBqcPVX5QXXXV9u8_yDPtCgfsdEJDV
-    elif [ ${lang} = "it" ]; then
-        url=https://drive.google.com/open?id=1qbK88SAKxqjMUybkMeIjrJWnNAZyE8V0
-    elif [ ${lang} = "nl" ]; then
-        url=https://drive.google.com/open?id=11fNraDQs-LiODDxyV5ZW0Slf3XuDq5Cf
-    elif [ ${lang} = "pt" ]; then
-        url=https://drive.google.com/open?id=1C5qK1FckA702nsYcXwmGdzlMmHg1F_ot
-    elif [ ${lang} = "ro" ]; then
-        url=https://drive.google.com/open?id=1nbdYR5VqcTbLpOB-9cICKCgsLAs7fVzd
-    elif [ ${lang} = "ru" ]; then
-        url=https://drive.google.com/open?id=1Z3hSiP7fsR3kf8fjQYzIa07jmw4KXNnw
-    else
-        echo "${lang} is not supported now."
-        exit 1;
-    fi
+    instructions="Please download the archives from https://mt.fbk.eu/must-c-release-v1-0/ and place them inside ${data}."
 elif [ ${version} = "v2" ]; then
-    if [ ${lang} = "de" ]; then
-        url=https://drive.google.com/u/0/uc?id=1UBPNwFEVhIZCOEpu4hTqPji57XRg85UO
-    else
-        echo "${lang} is not supported now."
-        exit 1;
-    fi
+    instructions="Please download the archives from https://mt.fbk.eu/must-c-release-v2-0/ and place them inside ${data}. For en-ja and en-zh, you may just download the archive without H5 files."
 else
     echo "${version} is not supported now."
     exit 1;
@@ -83,12 +59,7 @@ if [ -f ${tar_path} ]; then
 fi
 
 if [ ! -f ${tar_path} ]; then
-    if ! which wget >/dev/null; then
-        echo "$0: wget is not installed."
-        exit 1;
-    fi
-    echo "$0: downloading data from ${url}.  This may take some time, please be patient."
-    download_from_google_drive.sh ${url} ${data} tar.gz || exit 1
+    echo ${instructions}
 fi
 
 if ! tar -zxvf ${tar_path} -d -C ${data}; then

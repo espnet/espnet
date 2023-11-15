@@ -69,6 +69,7 @@ def get_km_model(
     max_no_improvement,
     n_init,
     reassignment_ratio,
+    seed,
 ):
     return MiniBatchKMeans(
         n_clusters=n_clusters,
@@ -82,6 +83,7 @@ def get_km_model(
         init_size=None,
         n_init=n_init,
         reassignment_ratio=reassignment_ratio,
+        random_state=seed,
     )
 
 
@@ -148,6 +150,7 @@ def learn_kmeans(
         max_no_improvement,
         n_init,
         reassignment_ratio,
+        seed,
     )
     km_model.fit(feat)
     joblib.dump(km_model, km_path)

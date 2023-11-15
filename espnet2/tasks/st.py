@@ -1,6 +1,6 @@
 import argparse
 import logging
-from typing import Callable, Collection, Dict, List, Optional, Tuple
+from typing import Callable, Collection, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -8,27 +8,42 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.ctc import CTC
 from espnet2.asr.decoder.abs_decoder import AbsDecoder
+from espnet2.asr.decoder.hugging_face_transformers_decoder import (  # noqa: H301
+    HuggingFaceTransformersDecoder,
+)
 from espnet2.asr.decoder.rnn_decoder import RNNDecoder
+from espnet2.asr.decoder.transducer_decoder import TransducerDecoder
 from espnet2.asr.decoder.transformer_decoder import (
     DynamicConvolution2DTransformerDecoder,
     DynamicConvolutionTransformerDecoder,
     LightweightConvolution2DTransformerDecoder,
     LightweightConvolutionTransformerDecoder,
     TransformerDecoder,
+    TransformerMDDecoder,
 )
+from espnet2.asr.decoder.whisper_decoder import OpenAIWhisperDecoder
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+from espnet2.asr.encoder.branchformer_encoder import BranchformerEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
+from espnet2.asr.encoder.contextual_block_conformer_encoder import (
+    ContextualBlockConformerEncoder,
+)
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
     ContextualBlockTransformerEncoder,
 )
+from espnet2.asr.encoder.e_branchformer_encoder import EBranchformerEncoder
 from espnet2.asr.encoder.hubert_encoder import (
     FairseqHubertEncoder,
     FairseqHubertPretrainEncoder,
+)
+from espnet2.asr.encoder.hugging_face_transformers_encoder import (
+    HuggingFaceTransformersEncoder,
 )
 from espnet2.asr.encoder.rnn_encoder import RNNEncoder
 from espnet2.asr.encoder.transformer_encoder import TransformerEncoder
 from espnet2.asr.encoder.vgg_rnn_encoder import VGGRNNEncoder
 from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
+from espnet2.asr.encoder.whisper_encoder import OpenAIWhisperEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
 from espnet2.asr.frontend.s3prl import S3prlFrontend
@@ -37,11 +52,13 @@ from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.postencoder.hugging_face_transformers_postencoder import (
     HuggingFaceTransformersPostEncoder,
 )
+from espnet2.asr.postencoder.length_adaptor_postencoder import LengthAdaptorPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
@@ -51,7 +68,7 @@ from espnet2.text.phoneme_tokenizer import g2p_choices
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
 from espnet2.train.collate_fn import CommonCollateFn
-from espnet2.train.preprocessor import MutliTokenizerCommonPreprocessor
+from espnet2.train.preprocessor import AbsPreprocessor, MutliTokenizerCommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -100,11 +117,15 @@ encoder_choices = ClassChoices(
         conformer=ConformerEncoder,
         transformer=TransformerEncoder,
         contextual_block_transformer=ContextualBlockTransformerEncoder,
+        contextual_block_conformer=ContextualBlockConformerEncoder,
         vgg_rnn=VGGRNNEncoder,
         rnn=RNNEncoder,
         wav2vec2=FairSeqWav2Vec2Encoder,
         hubert=FairseqHubertEncoder,
         hubert_pretrain=FairseqHubertPretrainEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
+        whisper=OpenAIWhisperEncoder,
     ),
     type_check=AbsEncoder,
     default="rnn",
@@ -113,6 +134,7 @@ postencoder_choices = ClassChoices(
     name="postencoder",
     classes=dict(
         hugging_face_transformers=HuggingFaceTransformersPostEncoder,
+        length_adaptor=LengthAdaptorPostEncoder,
     ),
     type_check=AbsPostEncoder,
     default=None,
@@ -122,11 +144,15 @@ decoder_choices = ClassChoices(
     "decoder",
     classes=dict(
         transformer=TransformerDecoder,
+        transformer_md=TransformerMDDecoder,
         lightweight_conv=LightweightConvolutionTransformerDecoder,
         lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
         dynamic_conv=DynamicConvolutionTransformerDecoder,
         dynamic_conv2d=DynamicConvolution2DTransformerDecoder,
         rnn=RNNDecoder,
+        transducer=TransducerDecoder,
+        whisper=OpenAIWhisperDecoder,
+        hugging_face_transformers=HuggingFaceTransformersDecoder,
     ),
     type_check=AbsDecoder,
     default="rnn",
@@ -135,6 +161,7 @@ extra_asr_decoder_choices = ClassChoices(
     "extra_asr_decoder",
     classes=dict(
         transformer=TransformerDecoder,
+        transformer_md=TransformerMDDecoder,
         lightweight_conv=LightweightConvolutionTransformerDecoder,
         lightweight_conv2d=LightweightConvolution2DTransformerDecoder,
         dynamic_conv=DynamicConvolutionTransformerDecoder,
@@ -142,7 +169,8 @@ extra_asr_decoder_choices = ClassChoices(
         rnn=RNNDecoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
+    optional=True,
 )
 extra_mt_decoder_choices = ClassChoices(
     "extra_mt_decoder",
@@ -155,7 +183,65 @@ extra_mt_decoder_choices = ClassChoices(
         rnn=RNNDecoder,
     ),
     type_check=AbsDecoder,
-    default="rnn",
+    default=None,
+    optional=True,
+)
+extra_mt_encoder_choices = ClassChoices(
+    "extra_mt_encoder",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        contextual_block_conformer=ContextualBlockConformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
+        hugging_face_transformers=HuggingFaceTransformersEncoder,
+    ),
+    type_check=AbsEncoder,
+    default=None,
+    optional=True,
+)
+md_encoder_choices = ClassChoices(
+    "md_encoder",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        contextual_block_conformer=ContextualBlockConformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
+    ),
+    type_check=AbsEncoder,
+    default=None,
+    optional=True,
+)
+hier_encoder_choices = ClassChoices(
+    "hier_encoder",
+    classes=dict(
+        conformer=ConformerEncoder,
+        transformer=TransformerEncoder,
+        contextual_block_transformer=ContextualBlockTransformerEncoder,
+        contextual_block_conformer=ContextualBlockConformerEncoder,
+        vgg_rnn=VGGRNNEncoder,
+        rnn=RNNEncoder,
+        branchformer=BranchformerEncoder,
+        e_branchformer=EBranchformerEncoder,
+    ),
+    type_check=AbsEncoder,
+    default=None,
+    optional=True,
+)
+preprocessor_choices = ClassChoices(
+    "preprocessor",
+    classes=dict(
+        default=MutliTokenizerCommonPreprocessor,
+    ),
+    type_check=AbsPreprocessor,
+    default="default",
 )
 
 
@@ -183,6 +269,14 @@ class STTask(AbsTask):
         extra_asr_decoder_choices,
         # --extra_mt_decoder and --extra_mt_decoder_conf
         extra_mt_decoder_choices,
+        # --md_encoder and --md_encoder_conf
+        md_encoder_choices,
+        # --hier_encoder and --hier_encoder_conf
+        hier_encoder_choices,
+        # --extra_mt_encoder and --extra_mt_encoder_conf
+        extra_mt_encoder_choices,
+        # --preprocessor and --preprocessor_conf
+        preprocessor_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -238,6 +332,12 @@ class STTask(AbsTask):
             help="The keyword arguments for CTC class.",
         )
         group.add_argument(
+            "--st_joint_net_conf",
+            action=NestedDictAction,
+            default=None,
+            help="The keyword arguments for joint network class.",
+        )
+        group.add_argument(
             "--model_conf",
             action=NestedDictAction,
             default=get_default_kwargs(ESPnetSTModel),
@@ -255,14 +355,30 @@ class STTask(AbsTask):
             "--token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word", "phn"],
+            choices=[
+                "bpe",
+                "char",
+                "word",
+                "phn",
+                "hugging_face",
+                "whisper_en",
+                "whisper_multilingual",
+            ],
             help="The target text will be tokenized " "in the specified level token",
         )
         group.add_argument(
             "--src_token_type",
             type=str,
             default="bpe",
-            choices=["bpe", "char", "word", "phn", "none"],
+            choices=[
+                "bpe",
+                "char",
+                "word",
+                "phn",
+                "none",
+                "whisper_en",
+                "whisper_multilingual",
+            ],
             help="The source text will be tokenized " "in the specified level token",
         )
         group.add_argument(
@@ -285,12 +401,26 @@ class STTask(AbsTask):
         group.add_argument(
             "--cleaner",
             type=str_or_none,
-            choices=[None, "tacotron", "jaconv", "vietnamese"],
+            choices=[
+                None,
+                "tacotron",
+                "jaconv",
+                "vietnamese",
+                "whisper_en",
+                "whisper_basic",
+            ],
             default=None,
             help="Apply text cleaning",
         )
         group.add_argument(
             "--g2p",
+            type=str_or_none,
+            choices=g2p_choices,
+            default=None,
+            help="Specify g2p method if --token_type=phn",
+        )
+        group.add_argument(
+            "--src_g2p",
             type=str_or_none,
             choices=g2p_choices,
             default=None,
@@ -339,6 +469,12 @@ class STTask(AbsTask):
             help="If len(noise) / len(speech) is smaller than this threshold during "
             "dynamic mixing, a warning will be displayed.",
         )
+        group.add_argument(
+            "--ctc_sample_rate",
+            type=float,
+            default=0.0,
+            help="Sample greedy CTC output as AR decoder target.",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -363,7 +499,16 @@ class STTask(AbsTask):
         assert check_argument_types()
         if args.src_token_type == "none":
             args.src_token_type = None
+
         if args.use_preprocessor:
+            try:
+                _ = getattr(args, "preprocessor")
+            except AttributeError:
+                setattr(args, "preprocessor", "default")
+                setattr(args, "preprocessor_conf", dict())
+            except Exception as e:
+                raise e
+
             retval = MutliTokenizerCommonPreprocessor(
                 train=train,
                 token_type=[args.token_type, args.src_token_type],
@@ -371,27 +516,18 @@ class STTask(AbsTask):
                 bpemodel=[args.bpemodel, args.src_bpemodel],
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
-                g2p_type=args.g2p,
+                g2p_type=[args.g2p, args.src_g2p],
                 # NOTE(kamo): Check attribute existence for backward compatibility
-                rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
-                noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                short_noise_thres=args.short_noise_thres
-                if hasattr(args, "short_noise_thres")
-                else 0.5,
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "speech_volume_normalize")
-                else None,
+                rir_scp=getattr(args, "rir_scp", None),
+                rir_apply_prob=getattr(args, "rir_apply_prob", 1.0),
+                noise_scp=getattr(args, "noise_scp", None),
+                noise_apply_prob=getattr(args, "noise_apply_prob", 1.0),
+                noise_db_range=getattr(args, "noise_db_range", "13_15"),
+                short_noise_thres=getattr(args, "short_noise_thres", 0.5),
+                speech_volume_normalize=getattr(args, "speech_volume_normalize", None),
                 speech_name="speech",
                 text_name=["text", "src_text"],
+                **getattr(args, "preprocessor_conf", {}),
             )
         else:
             retval = None
@@ -421,7 +557,7 @@ class STTask(AbsTask):
         return retval
 
     @classmethod
-    def build_model(cls, args: argparse.Namespace) -> ESPnetSTModel:
+    def build_model(cls, args: argparse.Namespace) -> Union[ESPnetSTModel]:
         assert check_argument_types()
         if isinstance(args.token_list, str):
             with open(args.token_list, encoding="utf-8") as f:
@@ -492,9 +628,19 @@ class STTask(AbsTask):
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
 
+        asr_encoder_output_size = encoder.output_size()
+        if getattr(args, "hier_encoder", None) is not None:
+            hier_encoder_class = hier_encoder_choices.get_class(args.hier_encoder)
+            hier_encoder = hier_encoder_class(
+                input_size=asr_encoder_output_size, **args.hier_encoder_conf
+            )
+            encoder_output_size = hier_encoder.output_size()
+        else:
+            hier_encoder = None
+            encoder_output_size = asr_encoder_output_size
+
         # 5. Post-encoder block
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
-        encoder_output_size = encoder.output_size()
         if getattr(args, "postencoder", None) is not None:
             postencoder_class = postencoder_choices.get_class(args.postencoder)
             postencoder = postencoder_class(
@@ -507,21 +653,43 @@ class STTask(AbsTask):
         # 5. Decoder
         decoder_class = decoder_choices.get_class(args.decoder)
 
-        decoder = decoder_class(
-            vocab_size=vocab_size,
-            encoder_output_size=encoder_output_size,
-            **args.decoder_conf,
-        )
+        if args.decoder == "transducer":
+            decoder = decoder_class(
+                vocab_size,
+                embed_pad=0,
+                **args.decoder_conf,
+            )
+
+            st_joint_network = JointNetwork(
+                vocab_size,
+                encoder_output_size,
+                decoder.dunits,
+                **args.st_joint_net_conf,
+            )
+        else:
+            decoder = decoder_class(
+                vocab_size=vocab_size,
+                encoder_output_size=encoder_output_size,
+                **args.decoder_conf,
+            )
+
+            st_joint_network = None
 
         # 6. CTC
         if src_token_list is not None:
             ctc = CTC(
                 odim=src_vocab_size,
-                encoder_output_size=encoder_output_size,
+                encoder_output_size=asr_encoder_output_size,
                 **args.ctc_conf,
             )
         else:
             ctc = None
+
+        st_ctc = CTC(
+            odim=vocab_size,
+            encoder_output_size=encoder_output_size,
+            **args.ctc_conf,
+        )
 
         # 7. ASR extra decoder
         if (
@@ -533,7 +701,7 @@ class STTask(AbsTask):
             )
             extra_asr_decoder = extra_asr_decoder_class(
                 vocab_size=src_vocab_size,
-                encoder_output_size=encoder_output_size,
+                encoder_output_size=asr_encoder_output_size,
                 **args.extra_asr_decoder_conf,
             )
         else:
@@ -550,9 +718,29 @@ class STTask(AbsTask):
                 **args.extra_mt_decoder_conf,
             )
         else:
-            extra_asr_decoder = None
+            extra_mt_decoder = None
 
-        # 8. Build model
+        # 9. MD encoder
+        if getattr(args, "md_encoder", None) is not None:
+            md_encoder_class = md_encoder_choices.get_class(args.md_encoder)
+            md_encoder = md_encoder_class(
+                input_size=extra_asr_decoder._output_size_bf_softmax,
+                **args.md_encoder_conf,
+            )
+        else:
+            md_encoder = None
+
+        if getattr(args, "extra_mt_encoder", None) is not None:
+            extra_mt_encoder_class = extra_mt_encoder_choices.get_class(
+                args.extra_mt_encoder
+            )
+            extra_mt_encoder = extra_mt_encoder_class(
+                input_size=vocab_size,  # hacked for mbart
+                **args.extra_mt_encoder_conf,
+            )
+        else:
+            extra_mt_encoder = None
+
         model = ESPnetSTModel(
             vocab_size=vocab_size,
             src_vocab_size=src_vocab_size,
@@ -561,11 +749,16 @@ class STTask(AbsTask):
             normalize=normalize,
             preencoder=preencoder,
             encoder=encoder,
+            hier_encoder=hier_encoder,
+            md_encoder=md_encoder,
             postencoder=postencoder,
             decoder=decoder,
             ctc=ctc,
+            st_ctc=st_ctc,
+            st_joint_network=st_joint_network,
             extra_asr_decoder=extra_asr_decoder,
             extra_mt_decoder=extra_mt_decoder,
+            extra_mt_encoder=extra_mt_encoder,
             token_list=token_list,
             src_token_list=src_token_list,
             **args.model_conf,
