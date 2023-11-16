@@ -56,10 +56,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --subset $part
 
         cd data/"${part}_${src_lang}"
-        if [ $part = "dev" ]; then
-            ln -s text.en text
-        fi
-        ln -s wav.scp.es wav.scp
+        ln -sf text.en text
+        ln -sf wav.scp.es wav.scp
         cd ../..
 
         ./utils/utt2spk_to_spk2utt.pl data/${part}_${src_lang}/utt2spk > data/${part}_${src_lang}/spk2utt
