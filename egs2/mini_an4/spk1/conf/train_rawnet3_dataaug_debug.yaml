@@ -1,19 +1,19 @@
 # RawNet3 reproduce recipe configuration.
-frontend: raw
+frontend: asteroid_frontend
+frontend_conf:
+  sinc_stride: 48
 
 encoder: rawnet3
 encoder_conf:
   model_scale: 4
   ndim: 16
+  output_size: 24
 
 pooling: chn_attn_stat
-pooling_conf:
-  input_size: 24
 
 projector: rawnet3
 projector_conf:
-  input_size: 48
-  output_size: 8
+  output_size: 4
 
 preprocessor: spk
 preprocessor_conf:
@@ -33,8 +33,6 @@ model_conf:
 
 loss: aamsoftmax
 loss_conf:
-  nout: 8
-  nclasses: 10
   margin: 0.3
   scale: 15
 
@@ -43,3 +41,8 @@ num_att_plot: 0
 
 max_epoch: 1
 num_iters_per_epoch: 1
+batch_size: 2
+best_model_criterion:
+- - valid
+  - eer
+  - min

@@ -22,12 +22,13 @@ class ConvDecoder(AbsDecoder):
         self.kernel_size = kernel_size
         self.stride = stride
 
-    def forward(self, input: torch.Tensor, ilens: torch.Tensor):
+    def forward(self, input: torch.Tensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
 
         Args:
-        input (torch.Tensor): spectrum [Batch, T, F]
-        ilens (torch.Tensor): input lengths [Batch]
+            input (torch.Tensor): spectrum [Batch, T, F]
+            ilens (torch.Tensor): input lengths [Batch]
+            fs (int): sampling rate in Hz (Not used)
         """
         input = input.transpose(1, 2)
         batch_size = input.shape[0]

@@ -60,9 +60,9 @@ preprocessor_conf:
   load_all_speakers: true
   flexible_numspk: true
   categories:
-  - 1spk
-  - 2spk
-  - 3spk
+  - 1ch_1spk
+  - 1ch_2spk
+  - 1ch_3spk
 
 max_epoch: 1
 num_iters_per_epoch: 1
