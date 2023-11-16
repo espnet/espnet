@@ -21,6 +21,9 @@ def main():
     out_path = os.path.join(out_dir, "utt2units")
     logger.info(f"Writing to {out_path}")
 
+    min_token_id = args.token_id_offset
+    max_token_id = args.token_id_offset + args.n_units - 1
+
     with open(args.feats_scp, encoding='utf-8') as f, open(out_path, "w", encoding='utf-8') as of:
         for line in f:
             utt, path = line.rstrip('\n').split()
@@ -28,7 +31,7 @@ def main():
             data = np.load(path)
             assert len(data.shape) == 1
             # minus 2 since "0" has index of 2, see also the token list under data/
-            data = [str(e - 2) for e in data]
+            data = [str(e - args.token_id_offset) for e in data if min_token_id <= e <= max_token_id]
             data = data[:args.max_len]
             s = ' '.join(data)
 
@@ -42,6 +45,8 @@ def get_args():
     )
     parser.add_argument("--out_dir", type=str, required=True)
     parser.add_argument("--max_len", type=int, default=400)
+    parser.add_argument("--token_id_offset", type=int, default=2)
+    parser.add_argument("--n_units", type=int, default=1000)
     return parser.parse_args()
 
 
