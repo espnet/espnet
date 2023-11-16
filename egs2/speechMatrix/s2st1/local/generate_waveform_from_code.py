@@ -25,7 +25,7 @@ def read_utt2units(path: str):
 
     with open(path, encoding='utf-8') as f:
         for line in f:
-            utt, seq = line.rstrip('\n').split('\t')
+            utt, seq = line.rstrip('\n').split(maxsplit=1)
             data = [int(e) for e in seq.split()]
             ret[utt] = data
 
