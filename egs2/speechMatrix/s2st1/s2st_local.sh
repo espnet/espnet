@@ -1390,6 +1390,12 @@ if ! "${skip_eval}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
             fi
 
+            # Add target speech/text to the inputs if exists
+            # Used for teacher forcing
+            if [ -f ${_tgt_scp} ]; then
+                _ex_opts+="${_data}/${_tgt_scp},tgt_speech,${_tgt_type} "
+            fi
+
             # 1. Split the key file
             key_file=${_data}/${_src_scp}
             split_scps=""
@@ -1409,7 +1415,6 @@ if ! "${skip_eval}"; then
                     --batch_size ${batch_size} \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/${_src_scp},src_speech,${_src_type}" \
-                    --data_path_and_name_and_type "${_data}/${_tgt_scp},tgt_speech,${_tgt_type}" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --train_config "${s2st_exp}"/config.yaml \
                     --model_file "${s2st_exp}"/"${inference_s2st_model}" \
@@ -1439,9 +1444,9 @@ if ! "${skip_eval}"; then
                 mkdir -p "${_dir}"/wav
                 for i in $(seq "${_nj}"); do
                     # mv -u "${_logdir}/output.${i}"/wav/*.wav "${_dir}"/wav
-		    for file in "${_logdir}/output.${i}"/wav/*.wav; do
-		        mv -- "${file}" "${_dir}"/wav
-		    done
+                    for file in "${_logdir}/output.${i}"/wav/*.wav; do
+                        mv -- "${file}" "${_dir}"/wav
+                    done
                     rm -rf "${_logdir}/output.${i}"/wav
                 done
                 find "${_dir}/wav" -name "*.wav" | while read -r line; do

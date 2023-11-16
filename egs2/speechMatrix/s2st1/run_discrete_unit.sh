@@ -22,7 +22,6 @@ st_config=conf/train_s2st_discrete_unit.yaml
 use_src_lang=true
 use_tgt_lang=true
 inference_config=conf/decode_s2st.yaml
-vocoder_file=
 score_asr_model_tag=
 
 # This is word because the text files contain integer arrays and we have a dictionary of 0-100 integers
@@ -48,7 +47,6 @@ token_type="word"
     --tgt_token_type ${token_type} \
     --s2st_config "${st_config}" \
     --inference_config "${inference_config}" \
-    --vocoder_file "${vocoder_file}" \
     --score_asr_model_tag "${score_asr_model_tag}" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
