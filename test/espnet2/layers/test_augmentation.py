@@ -63,7 +63,7 @@ def test_equalization_filtering():
 @pytest.mark.parametrize("n_steps", [-4, 5])
 def test_pitch_shift(n_steps):
     audio = torch.randn(1000)
-    sr = 8000
+    sr = 2000
     ret = pitch_shift(audio, sr, n_steps=n_steps, bins_per_octave=12)
 
 

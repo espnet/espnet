@@ -377,6 +377,10 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             stability epsilon
         time_domain_weight: (float)
             weight for time domain loss.
+        normalize_variance (bool)
+            whether or not to normalize the variance when calculating the loss.
+        reduction (str)
+            select from "sum" and "mean"
     """
 
     def __init__(
@@ -385,11 +389,20 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         hop_sz=None,
         eps=1e-8,
         time_domain_weight=0.5,
+        normalize_variance=False,
+        reduction="sum",
         name=None,
         only_for_test=False,
+        is_noise_loss=False,
+        is_dereverb_loss=False,
     ):
         _name = "TD_L1_loss" if name is None else name
-        super(MultiResL1SpecLoss, self).__init__(_name, only_for_test=only_for_test)
+        super().__init__(
+            _name,
+            only_for_test=only_for_test,
+            is_noise_loss=is_noise_loss,
+            is_dereverb_loss=is_dereverb_loss,
+        )
 
         assert all([x % 2 == 0 for x in window_sz])
         self.window_sz = window_sz
@@ -400,6 +413,7 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             self.hop_sz = hop_sz
 
         self.time_domain_weight = time_domain_weight
+        self.normalize_variance = normalize_variance
         self.eps = eps
         self.stft_encoders = torch.nn.ModuleList([])
         for w, h in zip(self.window_sz, self.hop_sz):
@@ -414,6 +428,9 @@ class MultiResL1SpecLoss(TimeDomainLoss):
             )
             self.stft_encoders.append(stft_enc)
 
+        assert reduction in ("sum", "mean")
+        self.reduction = reduction
+
     @property
     def name(self) -> str:
         return "l1_timedomain+magspec_loss"
@@ -426,6 +443,7 @@ class MultiResL1SpecLoss(TimeDomainLoss):
 
         return stft.abs()
 
+    @torch.cuda.amp.autocast(enabled=False)
     def forward(
         self,
         target: torch.Tensor,
@@ -444,11 +462,21 @@ class MultiResL1SpecLoss(TimeDomainLoss):
         if target.dtype in half_precision or estimate.dtype in half_precision:
             target = target.float()
             estimate = estimate.float()
+        if self.normalize_variance:
+            target = target / torch.std(target, dim=1, keepdim=True)
+            estimate = estimate / torch.std(estimate, dim=1, keepdim=True)
         # shape bsz, samples
         scaling_factor = torch.sum(estimate * target, -1, keepdim=True) / (
             torch.sum(estimate**2, -1, keepdim=True) + self.eps
         )
-        time_domain_loss = torch.sum((estimate * scaling_factor - target).abs(), dim=-1)
+        if self.reduction == "sum":
+            time_domain_loss = torch.sum(
+                (estimate * scaling_factor - target).abs(), dim=-1
+            )
+        elif self.reduction == "mean":
+            time_domain_loss = torch.mean(
+                (estimate * scaling_factor - target).abs(), dim=-1
+            )
 
         if len(self.stft_encoders) == 0:
             return time_domain_loss
@@ -459,7 +487,10 @@ class MultiResL1SpecLoss(TimeDomainLoss):
                 estimate_mag = self.get_magnitude(
                     stft_enc(estimate * scaling_factor)[0]
                 )
-                c_loss = torch.sum((estimate_mag - target_mag).abs(), dim=(1, 2))
+                if self.reduction == "sum":
+                    c_loss = torch.sum((estimate_mag - target_mag).abs(), dim=(1, 2))
+                elif self.reduction == "mean":
+                    c_loss = torch.mean((estimate_mag - target_mag).abs(), dim=(1, 2))
                 spectral_loss += c_loss
 
             return time_domain_loss * self.time_domain_weight + (

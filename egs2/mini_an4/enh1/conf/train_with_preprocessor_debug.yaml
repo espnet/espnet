@@ -36,6 +36,8 @@ channel_reordering: true
 categories:
 - 1ch_16k
 - 2ch_16k
+- 1ch_16k_reverb
+- 2ch_16k_reverb
 
 criterions:
   # The first criterion

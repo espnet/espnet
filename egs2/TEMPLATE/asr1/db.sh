@@ -59,6 +59,7 @@ LABOROTV=
 TEDXJP=
 LIBRISPEECH=downloads
 LIBRILIGHT_LIMITED=
+LIBRILIGHT=downloads
 FSC=
 FREESOUND=
 MELD=downloads
@@ -204,6 +205,7 @@ KIRITAN=
 NAMINE=
 KATHBATH=downloads
 GRAMVAANI=downloads
+SPRING_INX=downloads
 VOXCELEB=
 # For only CMU TIR environment
 if [[ "$(hostname)" == tir* ]]; then
