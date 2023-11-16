@@ -489,11 +489,8 @@ class VITS(AbsGANSVS):
         if asr_feats.shape[1] > feats.shape[1]:
             asr_feats = asr_feats[:, : feats.shape[1], :]
         elif asr_feats.shape[1] < feats.shape[1]:
-            asr_feats = torch.nn.functional.pad(
-                asr_feats, (0, feats.shape[1] - asr_feats.shape[1])
-            )
-        # print("asr_feats", asr_feats.shape)
-        # print("feats", feats.shape)
+            padding = (0, 0, 0, feats.shape[1] - asr_feats.shape[1], 0, 0)
+            asr_feats = torch.nn.functional.pad(asr_feats, padding)
 
         concatenated_feats = torch.cat([feats, asr_feats], dim=2)
         # print("concatenated_feats", concatenated_feats.shape)
