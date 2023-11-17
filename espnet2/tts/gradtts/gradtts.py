@@ -190,8 +190,8 @@ class GradTTS(AbsTTS):
         **kwargs,
     ):
         batch_size = text.size(0)
-        # text = text[:, : text_lengths.max()]  # for data-parallel
-        # feats = feats[:, : feats_lengths.max()]  # for data-parallel
+        text = text[:, : text_lengths.max()]  # for data-parallel
+        feats = feats[:, : feats_lengths.max()]  # for data-parallel
         #x = self.emb(text) * math.sqrt(self.n_channels)
         #x = torch.transpose(x, 1, -1)
 
@@ -210,7 +210,7 @@ class GradTTS(AbsTTS):
             x_lengths = text_lengths,
             y = feats,
             y_lengths = feats_lengths,
-            out_size = fix_len_compatibility(2*22050//256),
+            out_size = fix_len_compatibility(22050//256),
             #x, x_lengths, y, y_lengths=self.relocate_input([x, x_lengths, y, y_lengths])
         )
         loss = dur_loss + prior_loss + diff_loss

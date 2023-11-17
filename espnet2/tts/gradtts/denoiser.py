@@ -239,6 +239,8 @@ class Diffusion(BaseModule):
         z = torch.randn(x0.shape, dtype=x0.dtype, device=x0.device,
                         requires_grad=False)
         xt = mean + z * torch.sqrt(variance)
+        print("z:",z.size())
+        print("xt",xt.size())
         return xt * mask, z * mask
 
     @torch.no_grad()

@@ -621,7 +621,15 @@ class Trainer:
                     else:
                         loss, stats, weight = retval
                         optim_idx = None
+                # print(type(stats))
+                # print(stats.shape)
+                # stats_numpy = stats.detach().cpu().numpy()
+                # # 将NumPy数组转换为字典
+                # stats_dict = {f'stat_{i}': value for i, value in enumerate(stats_numpy)}
 
+                # # 打印转换后的字典
+                # print(type(stats_dict))
+                # stats = {k: v for k, v in stats_dict.items() if v is not None}
                 stats = {k: v for k, v in stats.items() if v is not None}
                 if ngpu > 1 or distributed:
                     # Apply weighted averaging for loss and stats
