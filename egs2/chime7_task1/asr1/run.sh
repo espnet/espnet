@@ -21,7 +21,7 @@ chime5_root= # you can leave it empty if you have already generated CHiME-6 data
 chime6_root=/raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 # will be created automatically from chime5
 # but if you have it already it will be skipped, please put your own path
 dipco_root=${PWD}/datasets/dipco # this will be automatically downloaded
-mixer6_root=/raid/users/popcornell/mixer6/ # put yours here
+mixer6_root=/raid/users/popcornell/mixer6 # put yours here
 
 # DATAPREP CONFIG
 manifests_root=./data/lhotse # dir where to save lhotse manifests
@@ -67,7 +67,7 @@ nbpe=500
 asr_max_epochs=8
 # put popcornell/chime7_task1_asr1_baseline if you want to test with pretrained model
 use_pretrained=
-decode_only=""
+decode_train="dev" # chose from dev, train, test
 diar_score=0
 
 . ./path.sh
@@ -80,19 +80,19 @@ asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
 asr_max_lr=$(calc_float $ngpu/10000.0)
 asr_warmup=$(calc_int 40000.0/$ngpu)
 
-if [[ $decode_only != "dev" ]] && [[ $decode_only != "eval" ]] && [[ -n "$decode_only" ]];
+if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]] && [[ "$decode_train" != "train" ]];
 then
-  log "decode_only argument should be either dev, eval or empty"
+  log "decode_train argument should be either dev, eval or train"
   exit
 fi
 
 
-if [ $decode_only == "dev" ]; then
+if [ $decode_train == "dev" ]; then
   # apply gss only on dev
   gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
   asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 elif
-  [ $decode_only == "eval" ]; then
+  [ $decode_train == "eval" ]; then
   # apply gss only on eval
   gss_dsets="chime6_eval,dipco_eval,mixer6_eval"
   asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/"
@@ -120,15 +120,19 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
           continue # dipco has no train set
       fi
 
-      if [ -n "$decode_only" ] && [ $dset_part != "$decode_only" ]; then
+      if [ "$decode_train" != "train" ] && [ $dset_part != "$decode_train" ]; then
         continue
       fi
 
-      if [ ! -d $chime7_root/$dset/audio/$dset_part ]; then
-        log "Skipping $dset $dset_part because it does not exist on disk. This is
-        fine if you don't have evaluation set yet."
+      if [ "$decode_train" == "train" ] && [ $dset_part == "eval" ]; then
         continue
       fi
+
+      #if [ ! -d $chime7_root/$dset/audio/$dset_part ]; then
+      #  log "Skipping $dset $dset_part because it does not exist on disk. This is
+      #  fine if you don't have evaluation set yet."
+      #  continue
+      #fi
 
       if [ $use_chime6_falign == 1 ] && [ $dset == chime6 ] && [ $dset_part != train ]; then
            if ! [ -d ./CHiME7_DASR_falign ]; then
@@ -200,14 +204,14 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     pretrained_affix+="--download_model ${use_pretrained}"
   fi
 
-  if [ $diar_score ]; then
+  if [ -z $diar_score ] || [ $decode_train != "train" ]; then
     asr_dprep_stage=3
   fi
 
   # these are args to ASR data prep, done in local/data.sh
   data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
   data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
-  data_opts+=" --decode-only $decode_only"
+  data_opts+=" --decode-train ${decode_train}"
   # override ASR conf/tuning to scale automatically with num of GPUs
   asr_args="--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup}"
   asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"
@@ -242,7 +246,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --lm_train_text "data/${asr_train_set}/text" ${pretrained_affix}
 fi
 
-if [ ${decode_only} == "eval" ]; then
+if [ "${decode_train}" == "eval" ]; then
   log "Scoring not available for eval set till the end of the challenge."
   exit
 fi
