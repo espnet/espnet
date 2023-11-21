@@ -1,6 +1,4 @@
 import sys
-import espnet
-import torch
 from datetime import datetime
 
 import torch
@@ -13,7 +11,7 @@ if __name__ == "__main__":
     output_string += "## Environments\n"
     output_string += f"date: {datetime.now()}\n\n"
 
-    pyversion = sys.version.replace('\n', ' ')
+    pyversion = sys.version.replace("\n", " ")
     output_string += f"- python version: {pyversion}\n"
     output_string += f"- espnet version: {espnet.__version__}\n"
     output_string += f"- pytorch version: {torch.__version__}\n\n"
