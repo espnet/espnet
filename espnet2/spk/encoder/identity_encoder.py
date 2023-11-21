@@ -32,4 +32,4 @@ class IdentityEncoder(AbsEncoder):
         return self._output_size
 
     def forward(self, x: torch.Tensor):
-        return x.transpose(1,2)
+        return x.transpose(1, 2)
