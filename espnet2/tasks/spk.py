@@ -19,6 +19,7 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
+from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
@@ -83,9 +84,10 @@ normalize_choices = ClassChoices(
 encoder_choices = ClassChoices(
     name="encoder",
     classes=dict(
-        identity=IdentityEncoder,
-        rawnet3=RawNet3Encoder,
         ecapa_tdnn=EcapaTdnnEncoder,
+        identity=IdentityEncoder,
+        mfaconformer=MfaConformerEncoder,
+        rawnet3=RawNet3Encoder,
     ),
     type_check=AbsEncoder,
     default="rawnet3",
