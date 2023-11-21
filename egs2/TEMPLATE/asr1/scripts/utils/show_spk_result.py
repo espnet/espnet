@@ -1,5 +1,6 @@
 import sys
-import sys, espnet, torch
+import espnet
+import torch
 from datetime import datetime
 
 if __name__ == "__main__":
@@ -9,9 +10,9 @@ if __name__ == "__main__":
     output_string += f"date: {datetime.now()}\n\n"
 
     pyversion = sys.version.replace('\n', ' ')
-    output_string += f"- python version: \`{pyversion}\`\n"
-    output_string += f"- espnet version: \`espnet {espnet.__version__}\`\n"
-    output_string += f"- pytorch version: \`pytorch {torch.__version__}\`\n\n"
+    output_string += f"- python version: {pyversion}\n"
+    output_string += f"- espnet version: {espnet.__version__}\n"
+    output_string += f"- pytorch version: {torch.__version__}\n\n"
 
     with open(sys.argv[1], "r") as f:
         lines = f.readlines()
@@ -26,12 +27,12 @@ if __name__ == "__main__":
     eer = float(chunk[1][:-1])
     mindcf = float(chunk[3])
 
-    output_string += "| | Mean | Std |\n|---|---|---|\n" \
-        f"| Target | {trg_mean:.4f} | {trg_std:.4f} |\n" \
-        f"| Non-target | {nontrg_mean:.4f} | {nontrg_std:.4f} |\n\n"
+    output_string += "| | Mean | Std |\n|---|---|---|\n"
+    output_string += f"| Target | {trg_mean:.4f} | {trg_std:.4f} |\n"
+    output_string += f"| Non-target | {nontrg_mean:.4f} | {nontrg_std:.4f} |\n\n"
 
-    output_string += "| | EER(\%) | minDCF |\n|---|---|---|\n" \
-        f"|  | {eer:.3f} | {mindcf:.5f} |"
+    output_string += "| | EER(%) | minDCF |\n|---|---|---|\n"
+    output_string += f"|  | {eer:.3f} | {mindcf:.5f} |"
 
     with open(sys.argv[2], "w") as f:
         f.write(output_string)
