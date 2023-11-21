@@ -74,6 +74,14 @@ diar_score=0
 . ./cmd.sh
 . ./utils/parse_options.sh
 
+if [ "$decode_train" == "train" ] && [ -n "$use_pretrained" ]; then
+
+log "You cannot pass a pretrained model and also ask this script to do training from scratch with --decode-train train."
+log "You are asking to use $use_pretrained pretrained model."
+exit
+
+fi
+
 # ESPNet does not scale parameters with num of GPUs by default, doing it
 # here for you
 asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
@@ -203,6 +211,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
   fi
+
 
   if [ -z $diar_score ] || [ $decode_train != "train" ]; then
     asr_dprep_stage=3
