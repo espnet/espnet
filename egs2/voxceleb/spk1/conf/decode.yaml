@@ -1,6 +1,6 @@
 # embedding extraction
 num_workers: 4
-valid_batch_size: 40
+valid_batch_size: 20
 target_duration: 8.0  # seconds
 num_eval: 4
 
