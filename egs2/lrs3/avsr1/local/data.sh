@@ -14,7 +14,7 @@ log() {
 . ./path.sh
 
 cmd=run.pl
-nj=4 # number of GPUs to extract features
+nj=1 # number of GPUs to extract features
 stage=1
 stop_stage=4
 model_conf=$1
@@ -69,7 +69,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
         if python -c "import gdown" &> /dev/null; then
             echo "requirements installed"
         else
-            echo "please install required packages by run 'cd ../../../tools; installers/install_visual.sh;'"
+            echo "please install required packages by run 'cd ../../../tools; source activate_python.sh; installers/install_visual.sh;'"
             exit 1;
         fi
         echo "Download extracted landmark from https://drive.google.com/uc?id=1QRdOgeHvmKK8t4hsceFVf_BSpidQfUyW"
@@ -86,7 +86,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     if python -c "import skvideo, skimage, cv2, python_speech_features" &> /dev/null; then
         echo "requirements installed"
     else
-        echo "please install required packages by run 'cd ../../../tools; installers/install_visual.sh;'"
+        echo "please install required packages by run 'cd ../../../tools; source activate_python.sh; installers/install_visual.sh;'"
         exit 1;
     fi
 
@@ -120,7 +120,6 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         for n in $(seq $nj); do
             cat ${log_dir}/num_frames.${n}.txt
         done > data/${dataset}/num_frames.txt
-
     done
 
     for dataset in train val test; do
