@@ -24,6 +24,7 @@
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/espnet/espnet/master.svg)](https://results.pre-commit.ci/latest/github/espnet/espnet/master)
 [![Mergify Status](https://img.shields.io/endpoint.svg?url=https://api.mergify.com/v1/badges/espnet/espnet&style=flat)](https://mergify.com)
 [![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Discord](https://img.shields.io/discord/1174538500360650773?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/Ub4yx6Xs)
 
 [**Docs**](https://espnet.github.io/espnet/)
 | [**Example**](https://github.com/espnet/espnet/tree/master/egs)
