@@ -177,7 +177,7 @@ if __name__ == "__main__":
         for split, talks in zip(["train", "dev", "test"], [train, dev, test]):
             # (Jinchuan): some languages in CommonVoice share the same language-id
             # so we have to use lang_iso + lang to distinguish them
-            write_dir = args.output_dir / (lang_iso + '-' + lang) / split
+            write_dir = args.output_dir / (lang_iso + "-" + lang) / split
             write_dir.mkdir(parents=True, exist_ok=True)
 
             wavscp_fp = open(write_dir / "wav.scp", "w")  # wav-id wav-path
@@ -209,7 +209,7 @@ if __name__ == "__main__":
             textctc_fp.close()
             utt2spk_fp.close()
 
-        (args.output_dir / (lang_iso + '-' + lang) / ".complete").touch()
+        (args.output_dir / (lang_iso + "-" + lang) / ".complete").touch()
 
     special_tokens = [
         SYMBOL_NA,
