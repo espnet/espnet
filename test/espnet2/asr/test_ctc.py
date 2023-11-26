@@ -37,6 +37,7 @@ def test_ctc_argmax(ctc_type, ctc_args):
     ctc = CTC(encoder_output_size=10, odim=5, ctc_type=ctc_type)
     ctc.argmax(ctc_args[0])
 
+
 def test_bayes_risk_ctc(ctc_args):
     # Skip the test if K2 is not installed
     try:
