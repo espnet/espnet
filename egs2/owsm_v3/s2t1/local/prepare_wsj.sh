@@ -8,7 +8,7 @@ set -o pipefail
 . ./cmd.sh || exit 1;
 . ./db.sh || exit 1;
 
-stage=1
+stage=2
 stop_stage=2
 nproc=10
 
@@ -19,6 +19,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     pwd=${PWD}
     cd ../../wsj/asr1/
     ./local/data.sh
+    # Override the text file: keep the original text but exclude the special tokens
+    ./local/wsj_format_data.sh --whisper_text_norm true
     cd ${pwd}
 fi
 
@@ -38,7 +40,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             --src eng \
             --src_field 3 \
             --num_proc ${nproc} \
-            --lower_case \
             --nlsyms ${nlsyms}
         utils/fix_data_dir.sh --utt_extra_files "${utt_extra_files}" \
         data/wsj/${part}_whisper

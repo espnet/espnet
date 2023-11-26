@@ -30,7 +30,7 @@ nl nld
 ru rus
 sv-SE swe
 tw twi
-zh-HK zho
+zh-HK yue
 zh-CN zho
 ne-NP nep
 bg bul
