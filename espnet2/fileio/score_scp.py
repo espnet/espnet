@@ -10,11 +10,11 @@ from espnet2.fileio.read_text import read_2columns_text
 
 try:
     import music21 as m21  # for CI import
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     m21 = None
 try:
     import miditoolkit  # for CI import
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     miditoolkit = None
 
 
