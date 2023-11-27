@@ -32,6 +32,9 @@ python3 -m pip install https://github.com/kpu/kenlm/archive/master.zip
 python3 -m pip install tensorboardx
 # NOTE(kamo): Create matplotlib.cache to reduce runtime for test phase
 python3 -c "import matplotlib.pyplot"
+# NOTE(wangyou): onnxruntime and onnx2torch are used for testing dnsmos functions
+python3 -m pip install onnxruntime onnx
+python3 -m pip install --no-dependencies onnx2torch torchvision
 
 # NOTE(kan-bayashi): Fix the error in black installation.
 #   See: https://github.com/psf/black/issues/1707
