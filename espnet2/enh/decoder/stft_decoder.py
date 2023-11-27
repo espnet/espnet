@@ -23,6 +23,9 @@ class STFTDecoder(AbsDecoder):
         normalized: bool = False,
         onesided: bool = True,
         default_fs: int = 16000,
+        spec_transform_type: str = None,
+        spec_factor: float = 0.15,
+        spec_abs_exponent: float = 0.5
     ):
         super().__init__()
         self.stft = Stft(
@@ -42,6 +45,11 @@ class STFTDecoder(AbsDecoder):
         self.center = center
         self.default_fs = default_fs
 
+        # spec transform related
+        self.spec_transform_type = spec_transform_type
+        self.spec_factor = spec_factor
+        self.spec_abs_exponent = spec_abs_exponent
+
     @torch.cuda.amp.autocast(enabled=False)
     def forward(self, input: ComplexTensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
@@ -59,6 +67,8 @@ class STFTDecoder(AbsDecoder):
             raise TypeError("Only support complex tensors for stft decoder")
         if fs is not None:
             self._reconfig_for_fs(fs)
+
+        input = self.spec_back(input)
 
         bs = input.size(0)
         if input.dim() == 4:
@@ -112,6 +122,19 @@ class STFTDecoder(AbsDecoder):
         n_pad_right = self.n_fft - window.shape[0] - n_pad_left
         return window
 
+    def spec_back(self, spec):
+        if self.spec_transform_type == "exponent":
+            spec = spec / self.spec_factor
+            if self.spec_abs_exponent != 1:
+                e = self.spec_abs_exponent
+                spec = spec.abs()**(1/e) * torch.exp(1j * spec.angle())
+        elif self.spec_transform_type == "log":
+            spec = spec / self.spec_factor
+            spec = (torch.exp(spec.abs()) - 1) * torch.exp(1j * spec.angle())
+        elif self.spec_transform_type == "none":
+            spec = spec
+        return spec
+
     def forward_streaming(self, input_frame: torch.Tensor):
         """Forward.
 
@@ -119,7 +142,7 @@ class STFTDecoder(AbsDecoder):
             input (ComplexTensor): spectrum [Batch, 1, F]
             output: wavs [Batch, 1, self.win_length]
         """
-
+        input_frame = self.spec_back(input_frame)
         input_frame = input_frame.real + 1j * input_frame.imag
         output_wav = (
             torch.fft.irfft(input_frame)
@@ -187,10 +210,12 @@ if __name__ == "__main__":
     hop = 10
 
     encoder = STFTEncoder(
-        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True
+        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True,
+        spec_transform_type='exponent'
     )
     decoder = STFTDecoder(
-        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True
+        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True,
+        spec_transform_type='exponent'
     )
     frames, flens = encoder(input_audio, ilens)
     wav, ilens = decoder(frames, ilens)
@@ -213,3 +238,4 @@ if __name__ == "__main__":
     torch.testing.assert_close(wav, input_audio)
 
     torch.testing.assert_close(wav, merged)
+    print('all_check passed')
