@@ -10,12 +10,12 @@ fs=16000
 fmin=80
 fmax=7600
 n_fft=2048
-n_shift=160
+n_shift=320
 win_length=1200
 score_feats_extract=syllable_score_feats   # frame_score_feats | syllable_score_feats
 
 kmeans_feature="mfcc"
-#"wavlm_large/21"  # use model_type/layer_index
+# "wavlm_large/6" | "encodec/1" | "xls_r_300m/6" # use model_type/layer_index
 nclusters=1024
 
 src_lang=$(echo "${kmeans_feature}_km${nclusters}" | tr "/" "_")
@@ -23,7 +23,7 @@ tgt_lang=en
 
 train_set=tr_no_dev
 valid_set=dev
-test_sets="dev eval"
+test_sets="dev test"
 
 train_config=conf/tuning/train_naive_rnn_dp.yaml
 inference_config=conf/tuning/decode_rnn.yaml
@@ -38,9 +38,9 @@ src_case="ts"
 tgt_case="ts"
 
 # text related processing arguments
-g2p=pyopenjtalk
+g2p=none
 cleaner=none
-pitch_extract=None
+pitch_extract=dio
 
 ./svs2.sh \
     --lang zh \
@@ -70,13 +70,14 @@ pitch_extract=None
     --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
     --ngpu 1 \
-    --src_lang ${src_lang} \
-    --tgt_lang ${tgt_lang} \
-    --src_token_type "char" \
-    --src_nbpe $src_nbpe \
-    --tgt_token_type "char" \
-    --tgt_nbpe $tgt_nbpe \
-    --src_case ${src_case} \
-    --tgt_case ${tgt_case} \
-    --inference_config "${inference_config}" \
-    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang} data/local/other_text/text" "$@"
+    "$@"
+#    --src_lang ${src_lang} \
+#    --tgt_lang ${tgt_lang} \
+#    --src_token_type "char" \
+#    --src_nbpe $src_nbpe \
+#    --tgt_token_type "char" \
+#    --tgt_nbpe $tgt_nbpe \
+#    --src_case ${src_case} \
+#    --tgt_case ${tgt_case} \
+#    --inference_config "${inference_config}" \
+#    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang} data/local/other_text/text" "$@"

@@ -370,7 +370,9 @@ class XiaoiceSing(AbsSVS):
             raise ValueError(f"{decoder_type} is not supported.")
 
         # define final projection
-        self.linear_projection = torch.nn.Linear(adim, (odim + 2) * reduction_factor)
+        self.linear_projection = torch.nn.Linear(adim, odim * reduction_factor)
+        self.pitch_predictor = torch.nn.Linear(adim, 1 * reduction_factor)
+        self.vuv_predictor = torch.nn.Linear(adim, 1 * reduction_factor)
 
         # define postnet
         self.postnet = (
@@ -528,12 +530,16 @@ class XiaoiceSing(AbsSVS):
         h_masks = self._source_mask(olens_in)
 
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs, log_f0_outs, vuv_outs = (
-            self.linear_projection(zs)
-            .view((zs.size(0), -1, self.odim + 2))
-            .split_with_sizes([self.odim, 1, 1], dim=2)
-        )
         # (B. T_feats, odim), (B. T_feats, 1), (B. T_feats, 1)
+        before_outs = self.linear_projection(zs).view(
+            zs.size(0), -1, self.odim
+        )  # (B, T_feats, odim)
+        log_f0_outs = self.pitch_predictor(zs).view(
+            zs.size(0), -1, 1
+        )  # (B, T_feats, odim)
+        vuv_outs = self.vuv_predictor(zs).view(
+            zs.size(0), -1, 1
+        )  # (B, T_feats, odim)
 
         # postnet -> (B, Lmax//r * r, odim)
         if self.postnet is None:
@@ -699,12 +705,11 @@ class XiaoiceSing(AbsSVS):
         # forward decoder
         h_masks = None  # self._source_mask(feats_lengths)
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
-        before_outs, _, _ = (
-            self.linear_projection(zs)
-            .view((zs.size(0), -1, self.odim + 2))
-            .split_with_sizes([self.odim, 1, 1], dim=2)
-        )
+
         # (B, T_feats, odim), (B, T_feats, 1), (B, T_feats, 1)
+        before_outs = self.linear_projection(zs).view(
+            zs.size(0), -1, self.odim
+        )  # (B, T_feats, odim)
 
         # postnet -> (B, Lmax//r * r, odim)
         if self.postnet is None:

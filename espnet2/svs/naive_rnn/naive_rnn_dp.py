@@ -287,7 +287,10 @@ class NaiveRNNDP(AbsSVS):
 
         # define final projection
         self.feat_out = torch.nn.Linear(
-            dunits * dim_direction, (odim + 1) * reduction_factor
+            dunits * dim_direction, odim * reduction_factor
+        )
+        self.pitch_predictor = torch.nn.Linear(
+            dunits * dim_direction, 1 * reduction_factor
         )
 
         # define postnet
@@ -486,9 +489,10 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs, log_f0_outs = F.leaky_relu(
-            self.feat_out(zs).view(zs.size(0), -1, self.odim + 1)
-        ).split_with_sizes([self.odim, 1], dim=2)
+        before_outs = F.leaky_relu(
+            self.feat_out(zs).view(zs.size(0), -1, self.odim)
+        )
+        log_f0_outs = self.pitch_predictor(zs).view(zs.size(0), -1, 1)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -576,6 +580,7 @@ class NaiveRNNDP(AbsSVS):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        discrete_token: Optional[torch.Tensor] = None,
         joint_training: bool = False,
         use_teacher_forcing: torch.Tensor = False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -588,13 +593,14 @@ class NaiveRNNDP(AbsSVS):
                 value (LongTensor): Batch of padded label ids (Tmax).
             melody (Optional[Dict]): key is "lab" or "score";
                 value (LongTensor): Batch of padded melody (Tmax).
-            pitch (FloatTensor): Batch of padded f0 (Tmax).
+            pitch (FloatTensor): Batch of padded f0 (T_frame).
             duration (Optional[Dict]): key is "lab", "score_phn" or "score_syb";
                 value (LongTensor): Batch of padded duration (Tmax).
             slur (LongTensor): Batch of padded slur (B, Tmax).
             spembs (Optional[Tensor]): Batch of speaker embeddings (spk_embed_dim).
             sids (Optional[Tensor]): Batch of speaker IDs (1).
             lids (Optional[Tensor]): Batch of language IDs (1).
+            discrete_token (Optional[Tensor]): Batch of discrete tokens (T_frame).
 
         Returns:
             Dict[str, Tensor]: Output dict including the following items:
@@ -645,9 +651,10 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs, log_f0_outs = F.leaky_relu(
-            self.feat_out(zs).view(zs.size(0), -1, self.odim + 1)
-        ).split_with_sizes([self.odim, 1], dim=2)
+        before_outs = F.leaky_relu(
+            self.feat_out(zs).view(zs.size(0), -1, self.odim)
+        )
+        log_f0_outs = self.pitch_predictor(zs).view(zs.size(0), -1, 1)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs
@@ -657,12 +664,30 @@ class NaiveRNNDP(AbsSVS):
             ).transpose(1, 2)
         if self.use_discrete_token:
             after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
-        return dict(
-            feat_gen=after_outs[0],
-            prob=None,
-            att_w=None,
-            pitch=log_f0_outs[0],
-        )  # outs, probs, att_ws, pitch_outs
+
+        token = after_outs[0]
+        f0 = log_f0_outs[0]
+        if use_teacher_forcing:
+            token = discrete_token.unsqueeze(-1)
+            f0 = pitch
+            if len(f0) > len(token):
+                f0 = f0[: len(token)]
+            else:
+                f0 = F.pad(f0, (0, 0, 0, len(token) - len(f0)), value=0)
+
+        if self.use_discrete_token:
+            return dict(
+                feat_gen=token,
+                prob=None,
+                att_w=None,
+                pitch=f0.squeeze(-1),
+            )  # outs, probs, att_ws, pitch_outs
+        else:
+            return dict(
+                feat_gen=after_outs[0],
+                prob=None,
+                att_w=None,
+            )  # outs, probs, att_ws, pitch_outs
 
     def _integrate_with_spk_embed(
         self, hs: torch.Tensor, spembs: torch.Tensor

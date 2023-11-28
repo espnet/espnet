@@ -211,6 +211,7 @@ class SingingGenerate:
             else:
                 input_feat = output_dict["feat_gen_denorm"]
             if "pitch" in output_dict:
+                assert len(output_dict["pitch"].shape) == 1, "pitch shape must be (T,)."
                 wav = self.vocoder(input_feat, output_dict["pitch"])
             else:
                 wav = self.vocoder(input_feat)

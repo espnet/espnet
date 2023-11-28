@@ -59,7 +59,7 @@ class DiscreteLoss(torch.nn.Module):
         self.cross_entropy = torch.nn.CrossEntropyLoss(reduction=reduction)
         self.duration_criterion = DurationPredictorLoss(reduction=reduction)
         if self.predict_pitch:
-            self.pitch_criterion = torch.nn.MSELoss(reduction=reduction)
+            self.pitch_criterion = torch.nn.L1Loss(reduction=reduction)
 
     def forward(
         self,

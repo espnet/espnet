@@ -44,17 +44,25 @@ class ParallelWaveGANPretrainedVocoder(torch.nn.Module):
             self.normalize_before = True
 
     @torch.no_grad()
-    def forward(self, feats: torch.Tensor) -> torch.Tensor:
+    def forward(self, feats: torch.Tensor, f0: torch.Tensor = None) -> torch.Tensor:
         """Generate waveform with pretrained vocoder.
 
         Args:
             feats (Tensor): Feature tensor (T_feats, #mels).
+            f0 (Tensor): f0 information (T_feats).
 
         Returns:
             Tensor: Generated waveform tensor (T_wav).
 
         """
-        return self.vocoder.inference(
-            feats,
-            normalize_before=self.normalize_before,
-        ).view(-1)
+        if f0 is not None:
+            return self.vocoder.inference(
+                feats,
+                f0,
+                normalize_before=self.normalize_before,
+            ).view(-1)
+        else:
+            return self.vocoder.inference(
+                feats,
+                normalize_before=self.normalize_before,
+            ).view(-1)

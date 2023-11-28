@@ -123,13 +123,15 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
             slur (Optional[Tensor]): slur tensor (B, T_slur).
             slur_lengths (Optional[Tensor]): slur length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            pitch (Optional[Tensor]): Pitch tensor (B, T_frame). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
             energy_lengths (Optional[Tensor]): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
+            discrete_token (Optional[Tensor]): Discrete token tensor (B, T_frame).
+            discrete_token_lengths (Optional[Tensor]): Discrete token length tensor (B,).
             kwargs: "utt_id" is among the input.
 
         Returns:
@@ -411,13 +413,15 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
             slur (Optional[Tensor]): slur tensor (B, T_slur).
             slur_lengths (Optional[Tensor]): slur length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            pitch (Optional[Tensor]): Pitch tensor (B, T_frame). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
             energy_lengths (Optional[Tensor): Energy length tensor (B,).
             spembs (Optional[Tensor]): Speaker embedding tensor (B, D).
             sids (Optional[Tensor]): Speaker ID tensor (B, 1).
             lids (Optional[Tensor]): Language ID tensor (B, 1).
+            discrete_token (Optional[Tensor]): Discrete tokens tensor (B, T_frame)
+            discrete_token_lengths (Optional[Tensor]): Discrete tokens lengths tensor (B,)
 
         Returns:
             Dict[str, Tensor]: Dict of features.
@@ -515,6 +519,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        discrete_token: Optional[torch.Tensor] = None,
         **decode_config,
     ) -> Dict[str, torch.Tensor]:
         """Caclualte features and return them as a dict.
@@ -532,8 +537,9 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             spembs (Optional[Tensor]): Speaker embedding tensor (D,).
             sids (Optional[Tensor]): Speaker ID tensor (1,).
             lids (Optional[Tensor]): Language ID tensor (1,).
-            pitch (Optional[Tensor): Pitch tensor (T_wav).
+            pitch (Optional[Tensor): Pitch tensor (T_frame).
             energy (Optional[Tensor): Energy tensor.
+            discrete_token (Optional[Tensor]): Discrete tokens (T_frame)
 
         Returns:
             Dict[str, Tensor]: Dict of outputs.
@@ -691,6 +697,8 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             input_dict.update(sids=sids)
         if lids is not None:
             input_dict.update(lids=lids)
+        if discrete_token is not None:
+            input_dict.update(discrete_token=discrete_token)
 
         output_dict = self.svs.inference(**input_dict, **decode_config)
         """

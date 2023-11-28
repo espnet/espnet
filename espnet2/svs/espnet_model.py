@@ -119,7 +119,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
             slur (Optional[Tensor]): slur tensor (B, T_slur).
             slur_lengths (Optional[Tensor]): slur length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            pitch (Optional[Tensor]): Pitch tensor (B, T_frame). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
             energy_lengths (Optional[Tensor]): Energy length tensor (B,).
@@ -380,7 +380,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
             slur (Optional[Tensor]): slur tensor (B, T_slur).
             slur_lengths (Optional[Tensor]): slur length tensor (B,).
-            pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
+            pitch (Optional[Tensor]): Pitch tensor (B, T_frame). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
             energy_lengths (Optional[Tensor): Energy length tensor (B,).
@@ -464,6 +464,7 @@ class ESPnetSVSModel(AbsESPnetModel):
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
+        discrete_token: Optional[torch.Tensor] = None,
         **decode_config,
     ) -> Dict[str, torch.Tensor]:
         """Caclualte features and return them as a dict.
@@ -481,7 +482,7 @@ class ESPnetSVSModel(AbsESPnetModel):
             spembs (Optional[Tensor]): Speaker embedding tensor (D,).
             sids (Optional[Tensor]): Speaker ID tensor (1,).
             lids (Optional[Tensor]): Language ID tensor (1,).
-            pitch (Optional[Tensor): Pitch tensor (T_wav).
+            pitch (Optional[Tensor): Pitch tensor (T_frame).
             energy (Optional[Tensor): Energy tensor.
 
         Returns:
