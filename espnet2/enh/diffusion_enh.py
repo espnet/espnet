@@ -5,11 +5,10 @@ from typing import Dict, List, Optional, OrderedDict, Tuple
 import torch
 from typeguard import check_argument_types
 
-from espnet2.enh.espnet_model import ESPnetEnhancementModel
-from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
-
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
+from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 from espnet2.enh.encoder.abs_encoder import AbsEncoder
+from espnet2.enh.espnet_model import ESPnetEnhancementModel
 from espnet2.enh.extractor.abs_extractor import AbsExtractor
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainLoss
 from espnet2.enh.loss.criterions.time_domain import TimeDomainLoss
@@ -30,20 +29,28 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         decoder: AbsDecoder,
         # loss_wrappers: List[AbsLossWrapper],
         num_spk: int = 1,
-        **kwargs
+        **kwargs,
     ):
         assert check_argument_types()
 
-        super().__init__(encoder=encoder, separator=None, decoder=decoder, mask_module=None, loss_wrappers=None, **kwargs)
+        super().__init__(
+            encoder=encoder,
+            separator=None,
+            decoder=decoder,
+            mask_module=None,
+            loss_wrappers=None,
+            **kwargs,
+        )
 
         self.encoder = encoder
         self.difussion = diffusion
         self.decoder = decoder
-        
+
         # TODO: Extending the model to separation tasks.
-        assert num_spk == 1, "only enhancement models are supported now, num_spk must be 1"
+        assert (
+            num_spk == 1
+        ), "only enhancement models are supported now, num_spk must be 1"
         self.num_spk = num_spk
-        
 
     def forward(
         self,
@@ -100,13 +107,13 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         speech_ref = speech_ref[..., : speech_lengths.max()].unbind(dim=1)
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
-
         # loss computation
-        loss, stats, weight = self.forward_loss(speech_ref=speech_ref, speech_mix=speech_mix, speech_lengths=speech_lengths)
+        loss, stats, weight = self.forward_loss(
+            speech_ref=speech_ref, speech_mix=speech_mix, speech_lengths=speech_lengths
+        )
         return loss, stats, weight
 
     def enhance(self, feature_mix):
-        
         return self.difussion.enhance(feature_mix)
 
     def forward_loss(
@@ -115,7 +122,6 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         speech_mix,
         speech_lengths,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
-        
         feature_mix, flens = self.encoder(speech_mix, speech_lengths)
         feature_ref, flens = self.encoder(speech_ref[0], speech_lengths)
 
@@ -125,8 +131,6 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         batch_size = speech_ref[0].shape[0]
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)
         return loss, stats, weight
-
-
 
     def collect_feats(
         self, speech_mix: torch.Tensor, speech_mix_lengths: torch.Tensor, **kwargs

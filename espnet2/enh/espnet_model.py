@@ -105,7 +105,9 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         if self.loss_wrappers is not None:
             names = [w.criterion.name for w in self.loss_wrappers]
             if len(set(names)) != len(names):
-                raise ValueError("Duplicated loss names are not allowed: {}".format(names))
+                raise ValueError(
+                    "Duplicated loss names are not allowed: {}".format(names)
+                )
 
         # kept for compatibility
         self.mask_type = mask_type.upper() if mask_type else None
