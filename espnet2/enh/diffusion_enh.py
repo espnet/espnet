@@ -105,8 +105,9 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         loss, stats, weight = self.forward_loss(speech_ref=speech_ref, speech_mix=speech_mix, speech_lengths=speech_lengths)
         return loss, stats, weight
 
-    def forward_enhance(self):
-        raise NotImplementedError()
+    def enhance(self, feature_mix):
+        
+        return self.difussion.enhance(feature_mix)
 
     def forward_loss(
         self,

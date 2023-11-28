@@ -25,6 +25,7 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
+from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
@@ -279,7 +280,10 @@ class SeparateSpeech:
                 )
                 # b. Enhancement/Separation Forward
                 feats, f_lens = self.enh_model.encoder(speech_seg, lengths_seg)
-                feats, _, _ = self.enh_model.separator(feats, f_lens, additional)
+                if isinstance(self.enh_model,  ESPnetDiffusionModel):
+                    feats = [self.enh_model.enhance(feats)]
+                else:
+                    feats, _, _ = self.enh_model.separator(feats, f_lens, additional)
                 processed_wav = [
                     self.enh_model.decoder(f, lengths_seg)[0] for f in feats
                 ]
@@ -336,7 +340,10 @@ class SeparateSpeech:
         else:
             # b. Enhancement/Separation Forward
             feats, f_lens = self.enh_model.encoder(speech_mix, lengths)
-            feats, _, _ = self.enh_model.separator(feats, f_lens, additional)
+            if isinstance(self.enh_model,  ESPnetDiffusionModel):
+                feats = [self.enh_model.enhance(feats)]
+            else:
+                feats, _, _ = self.enh_model.separator(feats, f_lens, additional)
             waves = [self.enh_model.decoder(f, lengths)[0] for f in feats]
 
         ###################################
