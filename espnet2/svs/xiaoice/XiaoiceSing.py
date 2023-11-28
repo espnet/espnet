@@ -537,9 +537,7 @@ class XiaoiceSing(AbsSVS):
         log_f0_outs = self.pitch_predictor(zs).view(
             zs.size(0), -1, 1
         )  # (B, T_feats, odim)
-        vuv_outs = self.vuv_predictor(zs).view(
-            zs.size(0), -1, 1
-        )  # (B, T_feats, odim)
+        vuv_outs = self.vuv_predictor(zs).view(zs.size(0), -1, 1)  # (B, T_feats, odim)
 
         # postnet -> (B, Lmax//r * r, odim)
         if self.postnet is None:

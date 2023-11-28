@@ -286,9 +286,7 @@ class NaiveRNNDP(AbsSVS):
                 )
 
         # define final projection
-        self.feat_out = torch.nn.Linear(
-            dunits * dim_direction, odim * reduction_factor
-        )
+        self.feat_out = torch.nn.Linear(dunits * dim_direction, odim * reduction_factor)
         self.pitch_predictor = torch.nn.Linear(
             dunits * dim_direction, 1 * reduction_factor
         )
@@ -489,9 +487,7 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs = F.leaky_relu(
-            self.feat_out(zs).view(zs.size(0), -1, self.odim)
-        )
+        before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
         log_f0_outs = self.pitch_predictor(zs).view(zs.size(0), -1, 1)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
@@ -651,9 +647,7 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs = F.leaky_relu(
-            self.feat_out(zs).view(zs.size(0), -1, self.odim)
-        )
+        before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
         log_f0_outs = self.pitch_predictor(zs).view(zs.size(0), -1, 1)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
