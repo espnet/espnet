@@ -33,8 +33,8 @@ if __name__ == "__main__":
     output_string += f"| Target | {trg_mean:.4f} | {trg_std:.4f} |\n"
     output_string += f"| Non-target | {nontrg_mean:.4f} | {nontrg_std:.4f} |\n\n"
 
-    output_string += "| | EER(%) | minDCF |\n|---|---|---|\n"
-    output_string += f"|  | {eer:.3f} | {mindcf:.5f} |"
+    output_string += "| Model name | EER(%) | minDCF |\n|---|---|---|\n"
+    output_string += f"| {sys.argv[3]} | {eer:.3f} | {mindcf:.5f} |"
 
     with open(sys.argv[2], "w") as f:
         f.write(output_string)
