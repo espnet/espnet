@@ -79,7 +79,7 @@ def test_ChunkIterFactory_partial_chunking():
 
 
 class Dataset3:
-    def __init__(self):
+    def __init__(self, with_category=True):
         self.data = {
             "a": {"data": np.array([0, 1, 2, 3]), "utt2category": np.array([0])},
             "b": {"data": np.array([8, 9, 10, 11, 12]), "utt2category": np.array([1])},
@@ -88,15 +88,18 @@ class Dataset3:
             "e": {"data": np.array([10, 12, 20, 18, 3]), "utt2category": np.array([2])},
             "f": {"data": np.array([4, 5, 6, 7, 8, 9]), "utt2category": np.array([0])},
         }
+        if not with_category:
+            for v in self.data.values():
+                del v["utt2category"]
 
     def __getitem__(self, item):
         return item, self.data[item]
 
 
 def test_ChunkIterFactory_utt2category():
-    dataset = Dataset3()
+    dataset = Dataset3(with_category=True)
     collatefn = CommonCollateFn()
-    batches = [["a"], ["b"]]
+    batches = [["a"], ["b"], ["c"], ["d"], ["e"], ["f"]]
     iter_factory = ChunkIterFactory(
         dataset=dataset,
         batches=batches,

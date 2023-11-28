@@ -26,7 +26,7 @@ if python3 -c 'import torch as t;assert t.__version__[0] == "1"' &> /dev/null; t
 fi
 
 rm -rf warp-transducer
-git clone --single-branch --branch espnet_v1.1 https://github.com/b-flo/warp-transducer.git
+git clone --single-branch --branch update_torch2.1 https://github.com/b-flo/warp-transducer.git
 
 (
     set -euo pipefail
@@ -36,6 +36,8 @@ git clone --single-branch --branch espnet_v1.1 https://github.com/b-flo/warp-tra
     (
         set -euo pipefail
         cd build && cmake -DWITH_OMP="${with_openmp}" .. && make
+        # cd build && cmake -DWITH_OMP="${with_openmp}" -DCMAKE_CXX_FLAGS="-std=c++1z" .. && make
+
     )
 
     (
