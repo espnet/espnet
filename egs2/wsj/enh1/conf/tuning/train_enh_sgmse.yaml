@@ -43,7 +43,7 @@ diffusion_model: sgmse
 diffusion_model_conf:
     score_model: dcunet
     score_model_conf: 
-        dcunet_architecture: "DilDCUNet-v2"
+        dcunet_architecture: "DCUNet-10"
         loss_type: "mse"
     sde: ouve
     sde_conf: 
