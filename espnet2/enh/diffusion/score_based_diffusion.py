@@ -125,7 +125,7 @@ class ScoreModel(AbsDiffusion):
         perturbed_data = mean + sigmas * z
 
 
-        score = self.score_fn(perturbed_data, t, y)
+        score = - self.score_fn(perturbed_data, t, y)
         err = score * sigmas + z
         loss = self._loss(err)
 
