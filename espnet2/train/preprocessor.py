@@ -1883,8 +1883,8 @@ class SpkPreprocessor(CommonPreprocessor):
     def __init__(
         self,
         train: bool,
-        spk2utt: str,
         target_duration: float,  # in seconds
+        spk2utt: str = None,
         sample_rate: int = 16000,
         num_eval: int = 10,
         rir_scp: str = None,
@@ -1896,15 +1896,17 @@ class SpkPreprocessor(CommonPreprocessor):
         short_noise_thres: float = 0.5,
     ):
         super().__init__(train, rir_scp=rir_scp, rir_apply_prob=rir_apply_prob)
-        with open(spk2utt, "r") as f_s2u:
-            self.spk2utt = f_s2u.readlines()
 
-        self.nspk = len(self.spk2utt)
         self.spk2label = None  # a dictionary that maps string speaker label to int
         self.sample_rate = sample_rate
         self.target_duration = int(target_duration * sample_rate)
         self.num_eval = num_eval
-        self._make_label_mapping()
+
+        if train:
+            with open(spk2utt, "r") as f_s2u:
+                self.spk2utt = f_s2u.readlines()
+            self._make_label_mapping()
+            self.nspk = len(self.spk2utt)
 
         self.rir_scp = rir_scp
 
@@ -2113,6 +2115,9 @@ class SpkPreprocessor(CommonPreprocessor):
             data["spk_labels"] = np.asarray([int_label], dtype=np.int64)
         else:
             data["spk_labels"] = np.asarray([int(data["spk_labels"])])
+
+        if "task_tokens" in data:
+            data["task_tokens"] = np.asarray([int(data["task_tokens"])])
 
         return data
 
