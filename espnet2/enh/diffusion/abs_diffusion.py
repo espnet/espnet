@@ -17,3 +17,5 @@ class AbsDiffusion(torch.nn.Module, ABC):
     @abstractmethod
     def enhance(self, input: torch.Tensor):
         raise NotImplementedError
+
+

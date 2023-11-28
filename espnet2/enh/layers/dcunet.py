@@ -1,4 +1,4 @@
-# The implementation of FaSNet in
+# The implementation of DCUNet in
 # S. Welker, et al.  “Speech Enhancement with Score-Based 
 # Generative Models in the Complex STFT Domain”
 # The implementation is based on:

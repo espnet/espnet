@@ -59,14 +59,6 @@ class SDE(abc.ABC):
         """
         pass
 
-    @staticmethod
-    @abc.abstractmethod
-    def add_argparse_args(parent_parser):
-        """
-        Add the necessary arguments for instantiation of this SDE class to an argparse ArgumentParser.
-        """
-        pass
-
     def discretize(self, x, t, *args):
         """Discretize the SDE in the form: x_{i+1} = x_i + f_i(x_i) + G_i z_i.
 
@@ -139,17 +131,9 @@ class SDE(abc.ABC):
         pass
 
 
-@SDERegistry.register("ouve")
 class OUVESDE(SDE):
-    @staticmethod
-    def add_argparse_args(parser):
-        parser.add_argument("--sde-n", type=int, default=1000, help="The number of timesteps in the SDE discretization. 30 by default")
-        parser.add_argument("--theta", type=float, default=1.5, help="The constant stiffness of the Ornstein-Uhlenbeck process. 1.5 by default.")
-        parser.add_argument("--sigma-min", type=float, default=0.05, help="The minimum sigma to use. 0.05 by default.")
-        parser.add_argument("--sigma-max", type=float, default=0.5, help="The maximum sigma to use. 0.5 by default.")
-        return parser
 
-    def __init__(self, theta, sigma_min, sigma_max, N=1000, **ignored_kwargs):
+    def __init__(self, theta=1.5, sigma_min=0.05, sigma_max=0.5, N=1000, **ignored_kwargs):
         """Construct an Ornstein-Uhlenbeck Variance Exploding SDE.
 
         Note that the "steady-state mean" `y` is not provided at construction, but must rather be given as an argument
@@ -225,20 +209,7 @@ class OUVESDE(SDE):
         raise NotImplementedError("prior_logp for OU SDE not yet implemented!")
 
 
-@SDERegistry.register("ouvp")
 class OUVPSDE(SDE):
-    # !!! We do not utilize this SDE in our works due to observed instabilities around t=0.2. !!!
-    @staticmethod
-    def add_argparse_args(parser):
-        parser.add_argument("--sde-n", type=int, default=1000,
-            help="The number of timesteps in the SDE discretization. 1000 by default")
-        parser.add_argument("--beta-min", type=float, required=True,
-            help="The minimum beta to use.")
-        parser.add_argument("--beta-max", type=float, required=True,
-            help="The maximum beta to use.")
-        parser.add_argument("--stiffness", type=float, default=1,
-            help="The stiffness factor for the drift, to be multiplied by 0.5*beta(t). 1 by default.")
-        return parser
 
     def __init__(self, beta_min, beta_max, stiffness=1, N=1000, **ignored_kwargs):
         """

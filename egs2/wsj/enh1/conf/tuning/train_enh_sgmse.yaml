@@ -1,9 +1,11 @@
 optim: adam
 init: xavier_uniform
 max_epoch: 100
-batch_type: chunked
-batch_size:  16
-num_workers: 4
+batch_type: folded
+batch_size: 4 # batch_size 16 can be trained on 4 RTX 2080ti
+iterator_type: chunk
+chunk_length: 40832
+num_workers: 0
 optim_conf:
     lr: 1.0e-03
     eps: 1.0e-08
@@ -30,27 +32,22 @@ encoder: stft
 encoder_conf:
     n_fft: 512
     hop_length: 128
+    spec_transform_type: exponent
 decoder: stft
 decoder_conf:
     n_fft: 512
     hop_length: 128
-separator: rnn
-separator_conf:
-    rnn_type: blstm
-    num_spk: 1
-    nonlinear: relu
-    layer: 3
-    unit: 896
-    dropout: 0.5
+    spec_transform_type: exponent
 
-criterions:
-  # The first criterion
-  - name: mse
-    conf:
-      compute_on_mask: True
-      mask_type: PSM
-    # the wrapper for the current criterion
-    # for single-talker case, we simplely use fixed_order wrapper
-    wrapper: fixed_order
-    wrapper_conf:
-      weight: 1.0
+diffusion_model: sgmse
+diffusion_model_conf:
+    score_model: dcunet
+    score_model_conf: 
+        dcunet_architecture: "DilDCUNet-v2"
+        loss_type: "mse"
+    sde: ouve
+    sde_conf: 
+        sigma_min: 0.05
+        sigma_max: 0.5
+        N: 1000
+

@@ -10,6 +10,8 @@ from typeguard import check_argument_types, check_return_type
 from espnet2.diar.layers.abs_mask import AbsMask
 from espnet2.diar.layers.multi_mask import MultiMask
 from espnet2.diar.separator.tcn_separator_nomask import TCNSeparatorNomask
+from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
+from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 from espnet2.enh.decoder.abs_decoder import AbsDecoder
 from espnet2.enh.decoder.conv_decoder import ConvDecoder
 from espnet2.enh.decoder.null_decoder import NullDecoder
@@ -19,6 +21,7 @@ from espnet2.enh.encoder.conv_encoder import ConvEncoder
 from espnet2.enh.encoder.null_encoder import NullEncoder
 from espnet2.enh.encoder.stft_encoder import STFTEncoder
 from espnet2.enh.espnet_model import ESPnetEnhancementModel
+from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.loss.criterions.abs_loss import AbsEnhLoss
 from espnet2.enh.loss.criterions.tf_domain import (
     FrequencyDomainAbsCoherence,
@@ -172,6 +175,17 @@ preprocessor_choices = ClassChoices(
     default=None,
 )
 
+# Deffusion-based model related choices
+diffusion_choices = ClassChoices(
+    name="diffusion_model",
+    classes=dict(
+        sgmse=ScoreModel
+    ),
+    type_check=AbsDiffusion,
+    default=None
+)
+
+
 MAX_REFERENCE_NUM = 100
 
 
@@ -190,6 +204,8 @@ class EnhancementTask(AbsTask):
         mask_module_choices,
         # --preprocessor and --preprocessor_conf
         preprocessor_choices,
+        # --diffusion_model and --diffusion_model_conf
+        diffusion_choices,
     ]
 
     # If you need to modify train() or eval() procedures, change Trainer class here
@@ -492,6 +508,8 @@ class EnhancementTask(AbsTask):
             encoder.output_dim, **args.separator_conf
         )
         decoder = decoder_choices.get_class(args.decoder)(**args.decoder_conf)
+
+
         if args.separator.endswith("nomask"):
             mask_module = mask_module_choices.get_class(args.mask_module)(
                 input_dim=encoder.output_dim,
@@ -512,16 +530,28 @@ class EnhancementTask(AbsTask):
                     criterion=criterion, **ctr["wrapper_conf"]
                 )
                 loss_wrappers.append(loss_wrapper)
-
+        
         # 1. Build model
-        model = ESPnetEnhancementModel(
-            encoder=encoder,
-            separator=separator,
-            decoder=decoder,
-            loss_wrappers=loss_wrappers,
-            mask_module=mask_module,
-            **args.model_conf,
-        )
+        if getattr(args, 'diffusion_model', None) is not None:
+
+            diffusion_model = diffusion_choices.get_class(args.diffusion_model)(**args.diffusion_model_conf)
+            # build diffusion model
+            model = ESPnetDiffusionModel(
+                encoder=encoder,
+                diffusion=diffusion_model,
+                decoder=decoder,
+                **args.model_conf,
+            )
+        
+        else:
+            model = ESPnetEnhancementModel(
+                encoder=encoder,
+                separator=separator,
+                decoder=decoder,
+                loss_wrappers=loss_wrappers,
+                mask_module=mask_module,
+                **args.model_conf,
+            )
 
         # FIXME(kamo): Should be done in model?
         # 2. Initialize
