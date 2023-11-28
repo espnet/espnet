@@ -120,7 +120,7 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
           continue # dipco has no train set
       fi
 
-      if [ -n "$decode_only" ] && [ $dset_part == train ]; then
+      if [ -n "$decode_only" ] && [ $dset_part != "$decode_only" ]; then
         continue
       fi
 

@@ -63,6 +63,14 @@ def main():
                     {os.path.join(args.data_dir, line)}.mp4\n'
             )
 
+    with open(f"data/train/text", "w") as txtw:
+        for line in train_file_lists + pretrain_file_lists:
+            with open(os.path.join(args.data_dir, line) + ".txt", "r") as txt:
+                txtw.write(
+                    f'{"_".join(line.split(os.sep))}\
+                        \t{txt.readlines()[0][7:].strip()}\n'
+                )
+
     with open(f"data/val/text", "w") as txtw:
         for line in val_file_lists:
             with open(os.path.join(args.data_dir, line) + ".txt", "r") as txt:
