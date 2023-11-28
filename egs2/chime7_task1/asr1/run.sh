@@ -53,7 +53,7 @@ top_k=80
 asr_stage=0 # starts at 13 for inference only
 asr_dprep_stage=0
 bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by the dataprep
-asr_config=conf/tuning/train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k.yaml
+asr_config=conf/tuning/train_asr_transformer_fbank_lr1e-3_specaugm_accum1_warmup40k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
 asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
@@ -123,7 +123,6 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
   for dset in chime6 dipco mixer6; do
     for dset_part in "train" "dev" "eval"; do
 
-
       if [ $dset == dipco ] && [ $dset_part == train ]; then
           continue # dipco has no train set
       fi
@@ -135,12 +134,6 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
       if [ "$decode_train" == "train" ] && [ $dset_part == "eval" ]; then
         continue
       fi
-
-      #if [ ! -d $chime7_root/$dset/audio/$dset_part ]; then
-      #  log "Skipping $dset $dset_part because it does not exist on disk. This is
-      #  fine if you don't have evaluation set yet."
-      #  continue
-      #fi
 
       if [ $use_chime6_falign == 1 ] && [ $dset == chime6 ] && [ $dset_part != train ]; then
            if ! [ -d ./CHiME7_DASR_falign ]; then
@@ -267,7 +260,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   if [ -n "$use_pretrained" ]; then
     asr_exp="exp/${use_pretrained}"
   else
-    asr_tag="$(basename "${asr_config}" .yaml)_raw"
+    asr_tag="train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k_raw_en_bpe500_batch_size256_scheduler_confwarmup_steps20000_max_epoch8_optim_conflr0.000200000000_sp" #"$(basename "${asr_config}" .yaml)_raw"
     asr_exp="exp/asr_${asr_tag}"
   fi
   inference_tag="$(basename "${inference_config}" .yaml)"
