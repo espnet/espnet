@@ -1,9 +1,9 @@
 """
 Abstract SDE classes, Reverse SDE, and VE/VP SDEs.
 
-Taken and adapted from 
+Taken and adapted from
 https://github.com/yang-song/score_sde_pytorch
-and 
+and
 https://github.com/sp-uhh/sgmse
 """
 import abc
@@ -11,7 +11,6 @@ import warnings
 
 import numpy as np
 import torch
-
 
 
 class SDE(abc.ABC):
@@ -103,24 +102,41 @@ class SDE(abc.ABC):
             def sde(self, x, t, *args):
                 """Create the drift and diffusion functions for the reverse SDE/ODE."""
                 rsde_parts = self.rsde_parts(x, t, *args)
-                total_drift, diffusion = rsde_parts["total_drift"], rsde_parts["diffusion"]
+                total_drift, diffusion = (
+                    rsde_parts["total_drift"],
+                    rsde_parts["diffusion"],
+                )
                 return total_drift, diffusion
 
             def rsde_parts(self, x, t, *args):
                 sde_drift, sde_diffusion = sde_fn(x, t, *args)
                 score = score_model(x, t, *args)
-                score_drift = -sde_diffusion[:, None, None, None]**2 * score * (0.5 if self.probability_flow else 1.)
-                diffusion = torch.zeros_like(sde_diffusion) if self.probability_flow else sde_diffusion
+                score_drift = (
+                    -sde_diffusion[:, None, None, None] ** 2
+                    * score
+                    * (0.5 if self.probability_flow else 1.0)
+                )
+                diffusion = (
+                    torch.zeros_like(sde_diffusion)
+                    if self.probability_flow
+                    else sde_diffusion
+                )
                 total_drift = sde_drift + score_drift
                 return {
-                    'total_drift': total_drift, 'diffusion': diffusion, 'sde_drift': sde_drift,
-                    'sde_diffusion': sde_diffusion, 'score_drift': score_drift, 'score': score,
+                    "total_drift": total_drift,
+                    "diffusion": diffusion,
+                    "sde_drift": sde_drift,
+                    "sde_diffusion": sde_diffusion,
+                    "score_drift": score_drift,
+                    "score": score,
                 }
 
             def discretize(self, x, t, *args):
                 """Create discretized iteration rules for the reverse diffusion sampler."""
                 f, G = discretize_fn(x, t, *args)
-                rev_f = f - G[:, None, None, None] ** 2 * score_model(x, t, *args) * (0.5 if self.probability_flow else 1.)
+                rev_f = f - G[:, None, None, None] ** 2 * score_model(x, t, *args) * (
+                    0.5 if self.probability_flow else 1.0
+                )
                 rev_G = torch.zeros_like(G) if self.probability_flow else G
                 return rev_f, rev_G
 
@@ -132,8 +148,9 @@ class SDE(abc.ABC):
 
 
 class OUVESDE(SDE):
-
-    def __init__(self, theta=1.5, sigma_min=0.05, sigma_max=0.5, N=1000, **ignored_kwargs):
+    def __init__(
+        self, theta=1.5, sigma_min=0.05, sigma_max=0.5, N=1000, **ignored_kwargs
+    ):
         """Construct an Ornstein-Uhlenbeck Variance Exploding SDE.
 
         Note that the "steady-state mean" `y` is not provided at construction, but must rather be given as an argument
@@ -191,8 +208,7 @@ class OUVESDE(SDE):
                 * (torch.exp(2 * (theta + logsig) * t) - 1)
                 * logsig
             )
-            /
-            (theta + logsig)
+            / (theta + logsig)
         )
 
     def marginal_prob(self, x0, t, y):
@@ -200,7 +216,9 @@ class OUVESDE(SDE):
 
     def prior_sampling(self, shape, y):
         if shape != y.shape:
-            warnings.warn(f"Target shape {shape} does not match shape of y {y.shape}! Ignoring target shape.")
+            warnings.warn(
+                f"Target shape {shape} does not match shape of y {y.shape}! Ignoring target shape."
+            )
         std = self._std(torch.ones((y.shape[0],), device=y.device))
         x_T = y + torch.randn_like(y) * std[:, None, None, None]
         return x_T
@@ -210,7 +228,6 @@ class OUVESDE(SDE):
 
 
 class OUVPSDE(SDE):
-
     def __init__(self, beta_min, beta_max, stiffness=1, N=1000, **ignored_kwargs):
         """
         !!! We do not utilize this SDE in our works due to observed instabilities around t=0.2. !!!
@@ -255,19 +272,23 @@ class OUVPSDE(SDE):
 
     def _mean(self, x0, t, y):
         b0, b1, s = self.beta_min, self.beta_max, self.stiffness
-        x0y_fac = torch.exp(-0.25 * s * t * (t * (b1-b0) + 2 * b0))[:, None, None, None]
+        x0y_fac = torch.exp(-0.25 * s * t * (t * (b1 - b0) + 2 * b0))[
+            :, None, None, None
+        ]
         return y + x0y_fac * (x0 - y)
 
     def _std(self, t):
         b0, b1, s = self.beta_min, self.beta_max, self.stiffness
-        return (1 - torch.exp(-0.5 * s * t * (t * (b1-b0) + 2 * b0))) / s
+        return (1 - torch.exp(-0.5 * s * t * (t * (b1 - b0) + 2 * b0))) / s
 
     def marginal_prob(self, x0, t, y):
         return self._mean(x0, t, y), self._std(t)
 
     def prior_sampling(self, shape, y):
         if shape != y.shape:
-            warnings.warn(f"Target shape {shape} does not match shape of y {y.shape}! Ignoring target shape.")
+            warnings.warn(
+                f"Target shape {shape} does not match shape of y {y.shape}! Ignoring target shape."
+            )
         std = self._std(torch.ones((y.shape[0],), device=y.device))
         x_T = y + torch.randn_like(y) * std[:, None, None, None]
         return x_T
@@ -288,7 +309,8 @@ def batch_broadcast(a, x):
 
     if a.shape[0] != x.shape[0] and a.shape[0] != 1:
         raise ValueError(
-            f"Don't know how to batch-broadcast shape {a.shape} over {x.shape} as the batch dimension is not matching")
+            f"Don't know how to batch-broadcast shape {a.shape} over {x.shape} as the batch dimension is not matching"
+        )
 
-    out = a.view((x.shape[0], *(1 for _ in range(len(x.shape)-1))))
+    out = a.view((x.shape[0], *(1 for _ in range(len(x.shape) - 1))))
     return out

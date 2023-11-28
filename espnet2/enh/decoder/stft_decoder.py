@@ -25,7 +25,7 @@ class STFTDecoder(AbsDecoder):
         default_fs: int = 16000,
         spec_transform_type: str = None,
         spec_factor: float = 0.15,
-        spec_abs_exponent: float = 0.5
+        spec_abs_exponent: float = 0.5,
     ):
         super().__init__()
         self.stft = Stft(
@@ -127,7 +127,7 @@ class STFTDecoder(AbsDecoder):
             spec = spec / self.spec_factor
             if self.spec_abs_exponent != 1:
                 e = self.spec_abs_exponent
-                spec = spec.abs()**(1/e) * torch.exp(1j * spec.angle())
+                spec = spec.abs() ** (1 / e) * torch.exp(1j * spec.angle())
         elif self.spec_transform_type == "log":
             spec = spec / self.spec_factor
             spec = (torch.exp(spec.abs()) - 1) * torch.exp(1j * spec.angle())
@@ -210,12 +210,18 @@ if __name__ == "__main__":
     hop = 10
 
     encoder = STFTEncoder(
-        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True,
-        spec_transform_type='exponent'
+        n_fft=nfft,
+        win_length=win_length,
+        hop_length=hop,
+        onesided=True,
+        spec_transform_type="exponent",
     )
     decoder = STFTDecoder(
-        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True,
-        spec_transform_type='exponent'
+        n_fft=nfft,
+        win_length=win_length,
+        hop_length=hop,
+        onesided=True,
+        spec_transform_type="exponent",
     )
     frames, flens = encoder(input_audio, ilens)
     wav, ilens = decoder(frames, ilens)
@@ -238,4 +244,4 @@ if __name__ == "__main__":
     torch.testing.assert_close(wav, input_audio)
 
     torch.testing.assert_close(wav, merged)
-    print('all_check passed')
+    print("all_check passed")

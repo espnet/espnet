@@ -13,6 +13,7 @@ from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 
 is_torch_1_10_plus = V(torch.__version__) >= V("1.10.0")
 
+
 class Stft(torch.nn.Module, InversibleInterface):
     def __init__(
         self,

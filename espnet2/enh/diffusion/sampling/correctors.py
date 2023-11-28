@@ -1,6 +1,7 @@
 # Adapted from https://github.com/yang-song/score_sde_pytorch/
 # and https://github.com/sp-uhh/sgmse
 import abc
+
 import torch
 
 import espnet2.enh.diffusion.sdes as sdes
@@ -52,12 +53,16 @@ class LangevinCorrector(Corrector):
 
         return x, x_mean
 
+
 class AnnealedLangevinDynamics(Corrector):
     """The original annealed Langevin dynamics predictor in NCSN/NCSNv2."""
+
     def __init__(self, sde, score_fn, snr, n_steps):
         super().__init__(sde, score_fn, snr, n_steps)
         if not isinstance(sde, (sdes.OUVESDE,)):
-            raise NotImplementedError(f"SDE class {sde.__class__.__name__} not yet supported.")
+            raise NotImplementedError(
+                f"SDE class {sde.__class__.__name__} not yet supported."
+            )
         self.sde = sde
         self.score_fn = score_fn
         self.snr = snr
@@ -89,8 +94,7 @@ class NoneCorrector(Corrector):
     def update_fn(self, x, t, *args):
         return x, x
 
+
 corrector_dict = dict(
-    langevin=LangevinCorrector,
-    ald=AnnealedLangevinDynamics,
-    none=NoneCorrector
+    langevin=LangevinCorrector, ald=AnnealedLangevinDynamics, none=NoneCorrector
 )

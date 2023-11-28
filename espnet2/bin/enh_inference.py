@@ -13,6 +13,7 @@ import yaml
 from tqdm import trange
 from typeguard import check_argument_types
 
+from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 from espnet2.enh.loss.criterions.tf_domain import FrequencyDomainMSE
 from espnet2.enh.loss.criterions.time_domain import SISNRLoss
 from espnet2.enh.loss.wrappers.pit_solver import PITSolver
@@ -25,7 +26,6 @@ from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
-from espnet2.enh.diffusion_enh import ESPnetDiffusionModel
 
 EPS = torch.finfo(torch.get_default_dtype()).eps
 
@@ -280,7 +280,7 @@ class SeparateSpeech:
                 )
                 # b. Enhancement/Separation Forward
                 feats, f_lens = self.enh_model.encoder(speech_seg, lengths_seg)
-                if isinstance(self.enh_model,  ESPnetDiffusionModel):
+                if isinstance(self.enh_model, ESPnetDiffusionModel):
                     feats = [self.enh_model.enhance(feats)]
                 else:
                     feats, _, _ = self.enh_model.separator(feats, f_lens, additional)
@@ -340,7 +340,7 @@ class SeparateSpeech:
         else:
             # b. Enhancement/Separation Forward
             feats, f_lens = self.enh_model.encoder(speech_mix, lengths)
-            if isinstance(self.enh_model,  ESPnetDiffusionModel):
+            if isinstance(self.enh_model, ESPnetDiffusionModel):
                 feats = [self.enh_model.enhance(feats)]
             else:
                 feats, _, _ = self.enh_model.separator(feats, f_lens, additional)

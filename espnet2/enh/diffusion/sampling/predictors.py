@@ -1,9 +1,9 @@
 # Adapted from https://github.com/yang-song/score_sde_pytorch/
 # and https://github.com/sp-uhh/sgmse
 import abc
-import torch
-import numpy as np
 
+import numpy as np
+import torch
 
 
 class Predictor(abc.ABC):
@@ -32,7 +32,9 @@ class Predictor(abc.ABC):
         pass
 
     def debug_update_fn(self, x, t, *args):
-        raise NotImplementedError(f"Debug update function not implemented for predictor {self}.")
+        raise NotImplementedError(
+            f"Debug update function not implemented for predictor {self}."
+        )
 
 
 class EulerMaruyamaPredictor(Predictor):
@@ -40,7 +42,7 @@ class EulerMaruyamaPredictor(Predictor):
         super().__init__(sde, score_fn, probability_flow=probability_flow)
 
     def update_fn(self, x, t, *args):
-        dt = -1. / self.rsde.N
+        dt = -1.0 / self.rsde.N
         z = torch.randn_like(x)
         f, g = self.rsde.sde(x, t, *args)
         x_mean = x + f * dt
@@ -73,5 +75,5 @@ class NonePredictor(Predictor):
 predictor_dict = dict(
     euler_maruyama=EulerMaruyamaPredictor,
     reverse_diffusion=ReverseDiffusionPredictor,
-    none=NonePredictor
+    none=NonePredictor,
 )

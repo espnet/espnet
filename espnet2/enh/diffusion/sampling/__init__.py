@@ -1,17 +1,13 @@
 # Adapted from https://github.com/yang-song/score_sde_pytorch/
 # and https://github.com/sp-uhh/sgmse
 """Various sampling methods."""
-from scipy import integrate
 import torch
+from scipy import integrate
 
-from .predictors import Predictor, ReverseDiffusionPredictor, predictor_dict
 from .correctors import Corrector, corrector_dict
+from .predictors import Predictor, ReverseDiffusionPredictor, predictor_dict
 
-
-
-__all__ = [
-    'Predictor', 'Corrector', 'get_sampler'
-]
+__all__ = ["Predictor", "Corrector", "get_sampler"]
 
 
 def to_flattened_numpy(x):
@@ -25,9 +21,18 @@ def from_flattened_numpy(x, shape):
 
 
 def get_pc_sampler(
-    predictor_name, corrector_name, sde, score_fn, y,
-    denoise=True, eps=3e-2, snr=0.1, corrector_steps=1, probability_flow: bool = False,
-    intermediate=False, **kwargs
+    predictor_name,
+    corrector_name,
+    sde,
+    score_fn,
+    y,
+    denoise=True,
+    eps=3e-2,
+    snr=0.1,
+    corrector_steps=1,
+    probability_flow: bool = False,
+    intermediate=False,
+    **kwargs
 ):
     """Create a Predictor-Corrector (PC) sampler.
 
@@ -46,7 +51,7 @@ def get_pc_sampler(
         A sampling function that returns samples and the number of function evaluations during sampling.
     """
     predictor_cls = predictor_dict[predictor_name]
-    corrector_cls =  corrector_dict[corrector_name]
+    corrector_cls = corrector_dict[corrector_name]
     predictor = predictor_cls(sde, score_fn, probability_flow=probability_flow)
     corrector = corrector_cls(sde, score_fn, snr=snr, n_steps=corrector_steps)
 
@@ -63,14 +68,22 @@ def get_pc_sampler(
             x_result = xt_mean if denoise else xt
             ns = sde.N * (corrector.n_steps + 1)
             return x_result, ns
-    
+
     return pc_sampler
 
 
 def get_ode_sampler(
-    sde, score_fn, y, inverse_scaler=None,
-    denoise=True, rtol=1e-5, atol=1e-5,
-    method='RK45', eps=3e-2, device='cuda', **kwargs
+    sde,
+    score_fn,
+    y,
+    inverse_scaler=None,
+    denoise=True,
+    rtol=1e-5,
+    atol=1e-5,
+    method="RK45",
+    eps=3e-2,
+    device="cuda",
+    **kwargs
 ):
     """Probability flow ODE sampler with the black-box ODE solver.
 
@@ -123,11 +136,21 @@ def get_ode_sampler(
 
             # Black-box ODE solver for the probability flow ODE
             solution = integrate.solve_ivp(
-                ode_func, (sde.T, eps), to_flattened_numpy(x),
-                rtol=rtol, atol=atol, method=method, **kwargs
+                ode_func,
+                (sde.T, eps),
+                to_flattened_numpy(x),
+                rtol=rtol,
+                atol=atol,
+                method=method,
+                **kwargs
             )
             nfe = solution.nfev
-            x = torch.tensor(solution.y[:, -1]).reshape(y.shape).to(device).type(torch.complex64)
+            x = (
+                torch.tensor(solution.y[:, -1])
+                .reshape(y.shape)
+                .to(device)
+                .type(torch.complex64)
+            )
 
             # Denoising is equivalent to running one predictor step without adding noise
             if denoise:

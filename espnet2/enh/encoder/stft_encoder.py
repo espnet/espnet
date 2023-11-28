@@ -24,7 +24,7 @@ class STFTEncoder(AbsEncoder):
         default_fs: int = 16000,
         spec_transform_type: str = None,
         spec_factor: float = 0.15,
-        spec_abs_exponent: float = 0.5
+        spec_abs_exponent: float = 0.5,
     ):
         super().__init__()
         self.stft = Stft(
@@ -57,7 +57,7 @@ class STFTEncoder(AbsEncoder):
                 # only do this calculation if spec_exponent != 1, otherwise it's quite a bit of wasted computation
                 # and introduced numerical error
                 e = self.spec_abs_exponent
-                spec = spec.abs()**e * torch.exp(1j * spec.angle())
+                spec = spec.abs() ** e * torch.exp(1j * spec.angle())
             spec = spec * self.spec_factor
         elif self.spec_transform_type == "log":
             spec = torch.log(1 + spec.abs()) * torch.exp(1j * spec.angle())
@@ -65,7 +65,6 @@ class STFTEncoder(AbsEncoder):
         elif self.spec_transform_type == "none":
             spec = spec
         return spec
-
 
     @property
     def output_dim(self) -> int:
@@ -198,9 +197,9 @@ class STFTEncoder(AbsEncoder):
 
 
 if __name__ == "__main__":
-    enc = STFTEncoder(spec_transform_type = 'exponent')
+    enc = STFTEncoder(spec_transform_type="exponent")
 
     audio = torch.randn((1, 16000))
-    ilens = torch.tensor((16000, )).int()
+    ilens = torch.tensor((16000,)).int()
     out = enc(audio, ilens=ilens)
     print(out)

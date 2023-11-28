@@ -42,12 +42,11 @@ decoder_conf:
 diffusion_model: sgmse
 diffusion_model_conf:
     score_model: dcunet
-    score_model_conf: 
+    score_model_conf:
         dcunet_architecture: "DilDCUNet-v2"
         loss_type: "mse"
     sde: ouve
-    sde_conf: 
+    sde_conf:
         sigma_min: 0.05
         sigma_max: 0.5
         N: 1000
-
