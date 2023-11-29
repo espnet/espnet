@@ -112,12 +112,12 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         if self.normalize == "noisy":
             normfac = speech_mix.abs().max() * 1.1 + 1e-5
         elif self.normalize == "clean":
-            normfac = speech_ref.abs().max() * 1.1 + 1e-5
+            normfac = torch.tensor(speech_ref).abs().max() * 1.1 + 1e-5
         elif self.normalize == "no":
             normfac = 1.0
 
         speech_mix = speech_mix / normfac
-        speech_ref = speech_ref / normfac
+        speech_ref = [r / normfac for r in speech_ref]
 
         # loss computation
         loss, stats, weight = self.forward_loss(
