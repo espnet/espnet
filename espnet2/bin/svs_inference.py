@@ -133,6 +133,7 @@ class SingingGenerate:
         spembs: Union[torch.Tensor, np.ndarray] = None,
         sids: Union[torch.Tensor, np.ndarray] = None,
         lids: Union[torch.Tensor, np.ndarray] = None,
+        discrete_token: Optional[torch.Tensor] = None,
         decode_conf: Optional[Dict[str, Any]] = None,
     ):
         assert check_argument_types()
@@ -187,6 +188,8 @@ class SingingGenerate:
             batch.update(sids=sids)
         if lids is not None:
             batch.update(lids=lids)
+        if discrete_token is not None:
+            batch.update(discrete_token=discrete_token)
         batch = to_device(batch, self.device)
 
         cfg = self.decode_conf

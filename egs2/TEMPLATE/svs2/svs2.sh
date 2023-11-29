@@ -1029,8 +1029,8 @@ if ! "${skip_train}"; then
         utils/split_scp.pl "${key_file}" ${split_scps}
 
         # 2. Generate run.sh
-        log "Generate '${svs_stats_dir}/run.sh'. You can resume the process from stage 5 using this script"
-        mkdir -p "${svs_stats_dir}"; echo "${run_args} --stage 5 \"\$@\"; exit \$?" > "${svs_stats_dir}/run.sh"; chmod +x "${svs_stats_dir}/run.sh"
+        log "Generate '${svs_stats_dir}/run.sh'. You can resume the process from stage 6 using this script"
+        mkdir -p "${svs_stats_dir}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${svs_stats_dir}/run.sh"; chmod +x "${svs_stats_dir}/run.sh"
 
         # 3. Submit jobs
         log "SVS collect_stats started... log: '${_logdir}/stats.*.log'"
@@ -1310,8 +1310,8 @@ if ! "${skip_train}"; then
             _opts+="--normalize_conf stats_file=${svs_stats_dir}/train/feats_stats.npz "
         fi
 
-        log "Generate '${svs_exp}/run.sh'. You can resume the process from stage 6 using this script"
-        mkdir -p "${svs_exp}"; echo "${run_args} --stage 6 \"\$@\"; exit \$?" > "${svs_exp}/run.sh"; chmod +x "${svs_exp}/run.sh"
+        log "Generate '${svs_exp}/run.sh'. You can resume the process from stage 7 using this script"
+        mkdir -p "${svs_exp}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${svs_exp}/run.sh"; chmod +x "${svs_exp}/run.sh"
 
         # NOTE(kamo): --fold_length is used only if --batch_type=folded and it's ignored in the other case
 
@@ -1395,8 +1395,8 @@ if ! "${skip_eval}"; then
             _type=sound
         fi
 
-        log "Generate '${svs_exp}/${inference_tag}/run.sh'. You can resume the process from stage 7 using this script"
-        mkdir -p "${svs_exp}/${inference_tag}"; echo "${run_args} --stage 7 \"\$@\"; exit \$?" > "${svs_exp}/${inference_tag}/run.sh"; chmod +x "${svs_exp}/${inference_tag}/run.sh"
+        log "Generate '${svs_exp}/${inference_tag}/run.sh'. You can resume the process from stage 8 using this script"
+        mkdir -p "${svs_exp}/${inference_tag}"; echo "${run_args} --stage 8 \"\$@\"; exit \$?" > "${svs_exp}/${inference_tag}/run.sh"; chmod +x "${svs_exp}/${inference_tag}/run.sh"
 
 
         for dset in ${test_sets}; do
@@ -1459,6 +1459,7 @@ if ! "${skip_eval}"; then
                     --data_path_and_name_and_type "${_data}/label,label,duration" \
                     --data_path_and_name_and_type "${_data}/score.scp,score,score" \
                     --data_path_and_name_and_type "${_data}/${_scp},singing,${_type}" \
+                    --data_path_and_name_and_type "${_data}/token_${kmeans_feature_type}_${nclusters}_${layer},discrete_token,text_int" \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --model_file "${svs_exp}"/"${inference_model}" \
                     --train_config "${svs_exp}"/config.yaml \
