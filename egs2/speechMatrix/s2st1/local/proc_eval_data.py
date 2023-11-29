@@ -10,8 +10,20 @@ def prep(
     src_wav_fp, 
     src_text_fp=None,
     tgt_text_fp=None,
-    option=""
+    option="",
+    split="valid",
 ):
+    natural_texts = []
+    if split == "test":
+        # natural_text
+        if option == "europarl":
+            natural_text = f"{datadir}/europarl-st-1.1/mined_data/s2u_manifests/es-en/test_epst.en"
+        elif option == "fleurs" and split == "test":
+            natural_text = f"{datadir}/flores200_mined/s2u_manifests/es-en/test_fleurs.en"
+        with open(natural_text) as f:
+            natural_texts = f.readlines()
+        
+        
     with open(filename) as f:
         lines = f.readlines()
         for i in range(1, len(lines)):
@@ -27,7 +39,10 @@ def prep(
             utt2spk_fp.write(f"{_id} {src_lang}_{tgt_lang}\n")
     
             if tgt_text_fp:
+                if split == "test":
+                    tgt = natural_texts[i-1].strip('\n')
                 tgt_text_fp.write(f"{_id} {tgt}\n")
+
 
     if src_text_fp:
         #NOTE: test set does not have src_unit, so the path is for valid set
@@ -68,16 +83,17 @@ if __name__ == "__main__":
     utt2spk_fp = open(f"{args.dest}/utt2spk", "w")
 
     src_text_fp, tgt_text_fp = None, None
+    tgt_text = f"{args.dest}/text.{args.tgt_lang}"
+    src_text_fp = None
+    tgt_text_fp = open(tgt_text, "w")
     if args.subset != "test":
         src_text = f"{args.dest}/text.{args.src_lang}"
         src_text_fp = open(src_text, "w")
-        tgt_text = f"{args.dest}/text.{args.tgt_lang}"
-        tgt_text_fp = open(tgt_text, "w")
     
     # Fleurs Valid + Test
     split = "valid" if args.subset == "dev" else args.subset
     fleurs = f"{real_dd}/flores200_{split}/s2u_manifests/es-en/{split}_fleurs.tsv"
-    prep(fleurs, real_dd, src_lang, tgt_lang, utt2spk_fp, wavscp_fp, src_text_fp, tgt_text_fp, "fleurs")
+    prep(fleurs, real_dd, src_lang, tgt_lang, utt2spk_fp, wavscp_fp, src_text_fp, tgt_text_fp, "fleurs", split)
 
     # voxpopuli valid
     if args.subset == "dev":
@@ -87,11 +103,11 @@ if __name__ == "__main__":
     # EuroParl Test
     if args.subset == "test":
         europarl = f"{real_dd}/europarl-st-1.1/mined_data/s2u_manifests/es-en/test_epst.tsv"
-        prep(europarl, real_dd, src_lang, tgt_lang, utt2spk_fp, wavscp_fp)
+        prep(europarl, real_dd, src_lang, tgt_lang, utt2spk_fp, wavscp_fp, src_text_fp, tgt_text_fp, "europarl", "test")
 
     # close files
     wavscp_fp.close()
     utt2spk_fp.close()
+    tgt_text_fp.close()
     if args.subset != "test":
         src_text_fp.close()
-        tgt_text_fp.close()
