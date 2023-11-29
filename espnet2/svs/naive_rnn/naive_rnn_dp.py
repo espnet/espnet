@@ -288,9 +288,7 @@ class NaiveRNNDP(AbsSVS):
                 )
 
         # define final projection
-        self.feat_out = torch.nn.Linear(
-            dunits * dim_direction, odim * reduction_factor
-        )
+        self.feat_out = torch.nn.Linear(dunits * dim_direction, odim * reduction_factor)
         self.pitch_predictor = torch.nn.Linear(
             dunits * dim_direction, 1 * reduction_factor
         )
@@ -493,9 +491,7 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs = F.leaky_relu(
-            self.feat_out(zs).view(zs.size(0), -1, self.odim)
-        )
+        before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
         log_f0_outs = self.pitch_predictor(zs).view(zs.size(0), -1, 1)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
@@ -655,9 +651,7 @@ class NaiveRNNDP(AbsSVS):
 
         # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
         # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
-        before_outs = F.leaky_relu(
-            self.feat_out(zs).view(zs.size(0), -1, self.odim)
-        )
+        before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
         log_f0_outs = self.pitch_predictor(zs).view(zs.size(0), -1, 1)
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
@@ -666,7 +660,7 @@ class NaiveRNNDP(AbsSVS):
             after_outs = before_outs + self.postnet(
                 before_outs.transpose(1, 2)
             ).transpose(1, 2)
-            
+
         if self.use_discrete_token:
             after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
             token = after_outs[0]
@@ -678,7 +672,7 @@ class NaiveRNNDP(AbsSVS):
                     f0 = f0[: len(token)]
                 else:
                     f0 = F.pad(f0, (0, 0, 0, len(token) - len(f0)), value=0)
-                    
+
             return dict(
                 feat_gen=token,
                 prob=None,

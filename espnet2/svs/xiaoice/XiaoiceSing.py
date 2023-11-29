@@ -411,8 +411,8 @@ class XiaoiceSing(AbsSVS):
                 use_masking=use_masking,
                 use_weighted_masking=use_weighted_masking,
                 predict_pitch=self.predict_pitch,
-            )  
-        else:      
+            )
+        else:
             if self.loss_function == "FastSpeech1":
                 self.criterion = XiaoiceSingLoss(
                     use_masking=use_masking, use_weighted_masking=use_weighted_masking
@@ -641,7 +641,7 @@ class XiaoiceSing(AbsSVS):
         if self.loss_function == "XiaoiceSing2":
             vuv_loss = vuv_loss * self.lambda_vuv
             stats["vuv_loss"] = vuv_loss.item()
-            loss += + vuv_loss
+            loss += +vuv_loss
         stats["loss"] = loss.item()
 
         # report extra information
@@ -768,7 +768,7 @@ class XiaoiceSing(AbsSVS):
             ).transpose(1, 2)
 
         if self.use_discrete_token:
-            after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)      
+            after_outs = torch.argmax(after_outs, dim=2).unsqueeze(2)
             token = after_outs[0]
             f0 = log_f0_outs[0]
             if use_teacher_forcing:
