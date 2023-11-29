@@ -160,7 +160,7 @@ class ScoreModel(AbsDiffusion):
         sampler_type="pc",
         predictor="reverse_diffusion",
         corrector="ald",
-        N=30,
+        N=50,
         corrector_steps=1,
         snr=0.5,
         timeit=False,

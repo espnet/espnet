@@ -29,6 +29,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         decoder: AbsDecoder,
         # loss_wrappers: List[AbsLossWrapper],
         num_spk: int = 1,
+        normalize: str = "noisy"
         **kwargs,
     ):
         assert check_argument_types()
@@ -51,6 +52,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
             num_spk == 1
         ), "only enhancement models are supported now, num_spk must be 1"
         self.num_spk = num_spk
+        self.normalize = normalize
 
     def forward(
         self,
@@ -107,6 +109,16 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         speech_ref = speech_ref[..., : speech_lengths.max()].unbind(dim=1)
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
+        if self.normalize == "noisy":
+            normfac = speech_mix.abs().max() * 1.1 + 1e-5
+        elif self.normalize == "clean":
+            normfac = speech_ref.abs().max() * 1.1 + 1e-5
+        elif self.normalize == "no":
+            normfac = 1.0
+        
+        speech_mix = speech_mix / normfac
+        speech_ref = speech_ref / normfac
+
         # loss computation
         loss, stats, weight = self.forward_loss(
             speech_ref=speech_ref, speech_mix=speech_mix, speech_lengths=speech_lengths
@@ -114,6 +126,10 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         return loss, stats, weight
 
     def enhance(self, feature_mix):
+        if normalize is not "no":
+            normfac = speech_mix.abs().max() * 1.1 + 1e-5
+            speech_mix = speech_mix / normfac
+
         return self.difussion.enhance(feature_mix)
 
     def forward_loss(
