@@ -38,10 +38,10 @@ fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     if [ ! -e "${LIBRISPEECH}/LibriSpeech/LICENSE.TXT" ]; then
-	echo "stage 1: Data Download to ${LIBRISPEECH}"
-	for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
+        echo "stage 1: Data Download to ${LIBRISPEECH}"
+        for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
             local/download_and_untar.sh ${LIBRISPEECH} ${data_url} ${part}
-	done
+        done
     else
         log "stage 1: ${LIBRISPEECH}/LibriSpeech/LICENSE.TXT is already existing. Skip data downloading"
     fi
@@ -64,14 +64,14 @@ fi
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # use external data
     if [ ! -e data/local/other_text/librispeech-lm-norm.txt.gz ]; then
-	log "stage 4: prepare external text data from http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz"
+        log "stage 4: prepare external text data from http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz"
         wget http://www.openslr.org/resources/11/librispeech-lm-norm.txt.gz -P data/local/other_text/
     fi
     if [ ! -e data/local/other_text/text ]; then
-	# provide utterance id to each texts
-	# e.g., librispeech_lng_00003686 A BANK CHECK
-	zcat data/local/other_text/librispeech-lm-norm.txt.gz | \
-	    awk '{ printf("librispeech_lng_%08d %s\n",NR,$0) } ' > data/local/other_text/text
+        # provide utterance id to each texts
+        # e.g., librispeech_lng_00003686 A BANK CHECK
+        zcat data/local/other_text/librispeech-lm-norm.txt.gz | \
+            awk '{ printf("librispeech_lng_%08d %s\n",NR,$0) } ' > data/local/other_text/text
     fi
 fi
 

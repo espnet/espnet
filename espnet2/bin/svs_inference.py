@@ -17,14 +17,14 @@ from typeguard import check_argument_types
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.gan_svs.vits import VITS
+from espnet2.svs.singing_tacotron.singing_tacotron import singing_tacotron
 from espnet2.tasks.svs import SVSTask
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
-
-# from espnet2.tts.utils import DurationCalculator
 
 
 class SingingGenerate:
@@ -41,7 +41,15 @@ class SingingGenerate:
         self,
         train_config: Optional[Union[Path, str]],
         model_file: Optional[Union[Path, str]] = None,
+        threshold: float = 0.5,
+        minlenratio: float = 0.0,
+        maxlenratio: float = 10.0,
         use_teacher_forcing: bool = False,
+        use_att_constraint: bool = False,
+        use_dynamic_filter: bool = False,
+        backward_window: int = 2,
+        forward_window: int = 4,
+        speed_control_alpha: float = 1.0,
         noise_scale: float = 0.667,
         noise_scale_dur: float = 0.8,
         vocoder_config: Union[Path, str] = None,
@@ -52,6 +60,7 @@ class SingingGenerate:
         always_fix_seed: bool = False,
         prefer_normalized_feats: bool = False,
     ):
+        """Initialize SingingGenerate module."""
         assert check_argument_types()
 
         # setup model
@@ -66,7 +75,7 @@ class SingingGenerate:
         self.svs = model.svs
         self.normalize = model.normalize
         self.feats_extract = model.feats_extract
-        # self.duration_calculator = DurationCalculator() # TODO(Yuning)
+        self.duration_calculator = DurationCalculator()
         self.preprocess_fn = SVSTask.build_preprocess_fn(train_args, False)
         self.use_teacher_forcing = use_teacher_forcing
         self.seed = seed
@@ -95,12 +104,22 @@ class SingingGenerate:
                 noise_scale=noise_scale,
                 noise_scale_dur=noise_scale_dur,
             )
+        if isinstance(self.svs, singing_tacotron):
+            decode_conf.update(
+                threshold=threshold,
+                maxlenratio=maxlenratio,
+                minlenratio=minlenratio,
+                use_att_constraint=use_att_constraint,
+                use_dynamic_filter=use_dynamic_filter,
+                forward_window=forward_window,
+                backward_window=backward_window,
+            )
         self.decode_conf = decode_conf
 
     @torch.no_grad()
     def __call__(
         self,
-        text: Union[torch.Tensor, np.ndarray],
+        text: Union[Dict[str, Tuple], torch.Tensor, np.ndarray],
         singing: Union[torch.Tensor, np.ndarray] = None,
         label: Union[torch.Tensor, np.ndarray] = None,
         midi: Union[torch.Tensor, np.ndarray] = None,
@@ -108,6 +127,7 @@ class SingingGenerate:
         duration_ruled_phn: Union[torch.Tensor, np.ndarray] = None,
         duration_syb: Union[torch.Tensor, np.ndarray] = None,
         phn_cnt: Union[torch.Tensor, np.ndarray] = None,
+        slur: Union[torch.Tensor, np.ndarray] = None,
         pitch: Union[torch.Tensor, np.ndarray] = None,
         energy: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
@@ -125,9 +145,24 @@ class SingingGenerate:
         if self.use_spembs and spembs is None:
             raise RuntimeError("Missing required argument: 'spembs'")
 
-        batch = dict(
-            text=text,
-        )
+        # prepare batch
+        if isinstance(text, Dict):
+            data = self.preprocess_fn(
+                "<dummy>", dict(label=text["label"], score=text["score"])
+            )
+            label = data["label"]
+            midi = data["midi"]
+            duration_phn = data["duration_phn"]
+            duration_ruled_phn = data["duration_ruled_phn"]
+            duration_syb = data["duration_syb"]
+            phn_cnt = data["phn_cnt"]
+            slur = data["slur"]
+            batch = dict(text=data["label"])
+        else:
+            batch = dict(text=text)
+
+        if singing is not None:
+            batch.update(singing=singing)
         if label is not None:
             batch.update(label=label)
         if midi is not None:
@@ -142,6 +177,8 @@ class SingingGenerate:
             batch.update(pitch=pitch)
         if phn_cnt is not None:
             batch.update(phn_cnt=phn_cnt)
+        if slur is not None:
+            batch.update(slur=slur)
         if energy is not None:
             batch.update(energy=energy)
         if spembs is not None:
@@ -158,9 +195,9 @@ class SingingGenerate:
             cfg.update(decode_conf)
         output_dict = self.model.inference(**batch, **cfg)
 
-        if output_dict.get("att_ws") is not None:
-            output_dict.update(duration=None, focus_rate=None)
-            # duration, focus_rate = self.duration_calculator(att_ws)
+        if output_dict.get("att_w") is not None:
+            duration, focus_rate = self.duration_calculator(output_dict["att_w"])
+            output_dict.update(duration=duration, focus_rate=focus_rate)
         else:
             output_dict.update(duration=None, focus_rate=None)
 
@@ -208,6 +245,67 @@ class SingingGenerate:
         """Return spemb is needed or not in the inference."""
         return self.svs.spk_embed_dim is not None
 
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        vocoder_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build SingingGenerate instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+            vocoder_tag (Optional[str]): Vocoder tag of the pretrained vocoders.
+                Currently, the tags of parallel_wavegan are supported, which should
+                start with the prefix "parallel_wavegan/".
+
+        Returns:
+            SingingGenerate: SingingGenerate instance.
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            kwargs.update(**d.download_and_unpack(model_tag))
+
+        if vocoder_tag is not None:
+            if vocoder_tag.startswith("parallel_wavegan/"):
+                try:
+                    from parallel_wavegan.utils import download_pretrained_model
+
+                except ImportError:
+                    logging.error(
+                        "`parallel_wavegan` is not installed. "
+                        "Please install via `pip install -U parallel_wavegan`."
+                    )
+                    raise
+
+                from parallel_wavegan import __version__
+
+                # NOTE(kan-bayashi): Filelock download is supported from 0.5.2
+                assert V(__version__) > V("0.5.1"), (
+                    "Please install the latest parallel_wavegan "
+                    "via `pip install -U parallel_wavegan`."
+                )
+                vocoder_tag = vocoder_tag.replace("parallel_wavegan/", "")
+                vocoder_file = download_pretrained_model(vocoder_tag)
+                vocoder_config = Path(vocoder_file).parent / "config.yml"
+                kwargs.update(vocoder_config=vocoder_config, vocoder_file=vocoder_file)
+
+            else:
+                raise ValueError(f"{vocoder_tag} is unsupported format.")
+
+        return SingingGenerate(**kwargs)
+
 
 def inference(
     output_dir: str,
@@ -227,6 +325,7 @@ def inference(
     allow_variable_data_keys: bool,
     vocoder_config: Optional[str] = None,
     vocoder_checkpoint: Optional[str] = None,
+    vocoder_tag: Optional[str] = None,
 ):
     """Perform SVS model decoding."""
     assert check_argument_types()

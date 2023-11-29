@@ -129,6 +129,31 @@ class SkiMSeparator(AbsSeparator):
 
         return masked, ilens, others
 
+    def forward_streaming(self, input_frame: torch.Tensor, states=None):
+        if is_complex(input_frame):
+            feature = abs(input_frame)
+        else:
+            feature = input_frame
+
+        B, _, N = feature.shape
+
+        processed, states = self.skim.forward_stream(feature, states=states)
+
+        processed = processed.view(B, 1, N, self.num_outputs)
+        masks = self.nonlinear(processed).unbind(dim=3)
+        if self.predict_noise:
+            *masks, mask_noise = masks
+
+        masked = [input_frame * m for m in masks]
+
+        others = OrderedDict(
+            zip(["mask_spk{}".format(i + 1) for i in range(len(masks))], masks)
+        )
+        if self.predict_noise:
+            others["noise1"] = input_frame * mask_noise
+
+        return masked, states, others
+
     @property
     def num_spk(self):
         return self._num_spk

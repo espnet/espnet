@@ -55,10 +55,6 @@ if [[ "$num_spk" != "2" ]] && [[ "$num_spk" != "3" ]]; then
   exit 1
 fi
 
-if [ ! -e "${LIBRISPEECH}" ]; then
-    log "Fill the value of 'LIBRISPEECH' of db.sh"
-    exit 1
-fi
 
 librimix=data/LibriMix/libri_mix/Libri2Mix
 mkdir -p data/{train,dev,test}

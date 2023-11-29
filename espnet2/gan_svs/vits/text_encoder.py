@@ -2,14 +2,15 @@
 # Copyright 2022 Yifeng Yu
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-"""Text encoder module in VITS.
+"""Text encoder module in VISinger.
 
-This code is based on https://github.com/jaywalnut310/vits.
+This code is based on https://github.com/jaywalnut310/vits
+and https://github.com/zhangyongmao/VISinger2.
 
 """
 
 import math
-from typing import Tuple
+from typing import Optional, Tuple
 
 import torch
 
@@ -18,7 +19,7 @@ from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
 
 
 class TextEncoder(torch.nn.Module):
-    """Text encoder module in VITS.
+    """Text encoder module in VISinger.
 
     This is a module of text encoder described in `Conditional Variational Autoencoder
     with Adversarial Learning for End-to-End Text-to-Speech`_.
@@ -50,9 +51,7 @@ class TextEncoder(torch.nn.Module):
         dropout_rate: float = 0.1,
         positional_dropout_rate: float = 0.0,
         attention_dropout_rate: float = 0.0,
-        midi_dim: int = 129,
-        beat_dim: int = 600,
-        use_visinger: bool = True,
+        use_slur=True,
     ):
         """Initialize TextEncoder module.
 
@@ -74,6 +73,7 @@ class TextEncoder(torch.nn.Module):
             dropout_rate (float): Dropout rate.
             positional_dropout_rate (float): Dropout rate for positional encoding.
             attention_dropout_rate (float): Dropout rate for attention.
+            use_slur (bool): Whether to use slur embedding.
 
         """
         super().__init__()
@@ -81,8 +81,6 @@ class TextEncoder(torch.nn.Module):
         self.attention_dim = attention_dim
 
         # define modules
-        self.emb = torch.nn.Embedding(vocabs, attention_dim)
-        torch.nn.init.normal_(self.emb.weight, 0.0, attention_dim**-0.5)
         self.encoder = Encoder(
             idim=-1,
             input_layer=None,
@@ -103,38 +101,78 @@ class TextEncoder(torch.nn.Module):
             use_cnn_module=use_conformer_conv,
             cnn_module_kernel=conformer_kernel_size,
         )
-        self.proj = torch.nn.Conv1d(attention_dim, attention_dim * 2, 1)
-        self.pitch_embedding = torch.nn.Embedding(midi_dim, attention_dim)
-        self.beat_embedding = torch.nn.Embedding(beat_dim, attention_dim)
-        self.use_visinger = use_visinger
+        self.emb_phone_dim = 256
+        self.emb_phone = torch.nn.Embedding(vocabs, self.emb_phone_dim)
+        torch.nn.init.normal_(self.emb_phone.weight, 0.0, self.emb_phone_dim**-0.5)
+
+        self.emb_pitch_dim = 128
+        self.emb_pitch = torch.nn.Embedding(
+            129, self.emb_pitch_dim
+        )  # Should we count the number of midis instead of 129?
+        torch.nn.init.normal_(self.emb_pitch.weight, 0.0, self.emb_pitch_dim**-0.5)
+
+        if use_slur:
+            self.emb_slur = torch.nn.Embedding(2, 64)
+            torch.nn.init.normal_(self.emb_slur.weight, 0.0, 64**-0.5)
+
+        if use_slur:
+            self.emb_dur = torch.nn.Linear(1, 64)
+        else:
+            self.emb_dur = torch.nn.Linear(1, 128)
+
+        self.pre_net = torch.nn.Linear(512, attention_dim)
+        self.pre_dur_net = torch.nn.Linear(512, attention_dim)
+
+        self.proj = torch.nn.Conv1d(attention_dim, attention_dim, 1)
+        self.proj_pitch = torch.nn.Conv1d(self.emb_pitch_dim, attention_dim, 1)
 
     def forward(
         self,
-        x: torch.Tensor,
-        x_lengths: torch.Tensor,
-        note_pitch: torch.Tensor,
-        note_beat: torch.Tensor,
+        phone: torch.Tensor,
+        phone_lengths: torch.Tensor,
+        midi_id: torch.Tensor,
+        dur: torch.Tensor,
+        slur: Optional[torch.Tensor] = None,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Calculate forward propagation.
 
         Args:
-            x (Tensor): Input index tensor (B, T_text).
-            x_lengths (Tensor): Length tensor (B,).
+            phone (Tensor): Input index tensor (B, T_text).
+            phone_lengths (Tensor): Length tensor (B,).
+            midi_id (Tensor): Input midi tensor (B, T_text).
+            dur (Tensor): Input duration tensor (B, T_text).
 
         Returns:
             Tensor: Encoded hidden representation (B, attention_dim, T_text).
-            Tensor: Projected mean tensor (B, attention_dim, T_text).
-            Tensor: Projected scale tensor (B, attention_dim, T_text).
-            Tensor: Mask tensor for input tensor (B, 1, T_text).
+            Tensor: Mask tensor for padded part (B, 1, T_text).
+            Tensor: Encoded hidden representation for duration
+                (B, attention_dim, T_text).
+            Tensor: Encoded hidden representation for pitch
+                (B, attention_dim, T_text).
 
         """
-        x = self.emb(x) * math.sqrt(self.attention_dim)
-        note_pitch = self.pitch_embedding(note_pitch)
-        # note_ds = self.beat_embedding(ds)
-        note_beat = self.beat_embedding(note_beat)
-        x = x + note_pitch + note_beat
+        phone_end = self.emb_phone(phone) * math.sqrt(self.emb_phone_dim)
+        pitch_end = self.emb_pitch(midi_id) * math.sqrt(self.emb_pitch_dim)
+
+        if slur is not None:
+            slur_end = self.emb_slur(slur) * math.sqrt(64)
+
+        dur = dur.float()
+        dur_end = self.emb_dur(dur.unsqueeze(-1))
+
+        if slur is not None:
+            x = torch.cat([phone_end, pitch_end, slur_end, dur_end], dim=-1)
+        else:
+            x = torch.cat([phone_end, pitch_end, dur_end], dim=-1)
+
+        dur_input = self.pre_dur_net(x)
+        dur_input = torch.transpose(dur_input, 1, -1)
+
+        x = self.pre_net(x)
+        # x = torch.transpose(x, 1, -1)  # [b, h, t]
+
         x_mask = (
-            make_non_pad_mask(x_lengths)
+            make_non_pad_mask(phone_lengths)
             .to(
                 device=x.device,
                 dtype=x.dtype,
@@ -145,11 +183,10 @@ class TextEncoder(torch.nn.Module):
         # but mask shape shoud be (B, 1, T_text)
         x, _ = self.encoder(x, x_mask)
 
-        # convert the channel first (B, attention_dim, T_text)
+        # convert the channel first to (B, attention_dim, T_text)
         x = x.transpose(1, 2)
-        if not self.use_visinger:
-            stats = self.proj(x) * x_mask
-            m, logs = stats.split(stats.size(1) // 2, dim=1)
-            return x, m, logs, x_mask
-        else:
-            return x, None, None, x_mask
+        x = self.proj(x) * x_mask
+
+        pitch_info = self.proj_pitch(pitch_end.transpose(1, 2))
+
+        return x, x_mask, dur_input, pitch_info

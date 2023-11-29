@@ -7,7 +7,7 @@ svs: naive_rnn_dp                   # model architecture
 svs_conf:                        # keyword arguments for the selected model
     midi_dim: 129                # midi dimension (note number + silence)
     embed_dim: 512               # char or phn embedding dimension
-    tempo_dim: 500
+    duration_dim: 512            # duration embedding range
     eprenet_conv_layers: 0       # prenet (from bytesing) conv layers
     eprenet_conv_chans: 256      # prenet (from bytesing) conv channels numbers
     eprenet_conv_filts: 3        # prenet (from bytesing) conv filters size

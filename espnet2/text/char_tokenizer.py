@@ -13,6 +13,7 @@ class CharTokenizer(AbsTokenizer):
         non_linguistic_symbols: Union[Path, str, Iterable[str]] = None,
         space_symbol: str = "<space>",
         remove_non_linguistic_symbols: bool = False,
+        nonsplit_symbols: Iterable[str] = None,
     ):
         assert check_argument_types()
         self.space_symbol = space_symbol
@@ -29,21 +30,30 @@ class CharTokenizer(AbsTokenizer):
         else:
             self.non_linguistic_symbols = set(non_linguistic_symbols)
         self.remove_non_linguistic_symbols = remove_non_linguistic_symbols
+        self.nonsplit_symbols = (
+            set()
+            if nonsplit_symbols is None
+            else set([sym.split(":")[0] for sym in nonsplit_symbols])
+        )
 
     def __repr__(self):
         return (
             f"{self.__class__.__name__}("
             f'space_symbol="{self.space_symbol}"'
             f'non_linguistic_symbols="{self.non_linguistic_symbols}"'
+            f'nonsplit_symbols="{self.nonsplit_symbols}"'
             f")"
         )
 
     def text2tokens(self, line: str) -> List[str]:
         tokens = []
         while len(line) != 0:
-            for w in self.non_linguistic_symbols:
+            for w in self.non_linguistic_symbols.union(self.nonsplit_symbols):
                 if line.startswith(w):
-                    if not self.remove_non_linguistic_symbols:
+                    if (
+                        w in self.nonsplit_symbols
+                        or not self.remove_non_linguistic_symbols
+                    ):
                         tokens.append(line[: len(w)])
                     line = line[len(w) :]
                     break

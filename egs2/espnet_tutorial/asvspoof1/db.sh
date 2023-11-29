@@ -1,0 +1,1 @@
+../../TEMPLATE/asvspoof1/db.sh

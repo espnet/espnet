@@ -5,10 +5,11 @@ ARG DOCKER_VER
 FROM ubuntu:${FROM_TAG} AS main_builder
 LABEL maintainer "Nelson Yalta <nyalta21@gmail.com>"
 
-ENV DOCKER_BUILT_VER ${DOCKER_VER}
-ENV NUM_BUILD_CORES ${NUM_BUILD_CORES}
+ENV DOCKER_BUILT_VER=${DOCKER_VER}
+ENV NUM_BUILD_CORES=${NUM_BUILD_CORES}
+ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
+RUN apt-get update && \
     apt-get -y install --no-install-recommends \
         automake \
         autoconf \
@@ -22,15 +23,14 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
         ffmpeg \
         gawk \
         gfortran \
-        git \
+        gpg-agent \
         libboost-all-dev \
+        libffi-dev \
         libtool \
         libbz2-dev \
         liblzma-dev \
         libsndfile1-dev \
         patch \
-        python2.7 \
-        python3 \
         software-properties-common \
         sox \
         subversion \
@@ -43,6 +43,7 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive \
     rm -rf /var/lib/apt/lists/*
 
 # Latest version of git
+ENV TZ=Etc/UTC
 RUN add-apt-repository ppa:git-core/ppa -y && \
     apt update && \
     apt install -y --no-install-recommends git-all && \

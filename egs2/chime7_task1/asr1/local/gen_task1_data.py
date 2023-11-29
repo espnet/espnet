@@ -298,6 +298,7 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
                 sess2audio[session_name].append(x)
 
         # for each json file
+        to_uem = []
         for j_file in ann_json:
             with open(j_file, "r") as f:
                 annotation = json.load(f)
@@ -333,6 +334,22 @@ def prep_dipco(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0
                 "w",
             ) as f:
                 json.dump(scoring_annotation, f, indent=4)
+
+            uem_start = 0
+            uem_end = max([sf.SoundFile(x).frames for x in sess2audio[sess_name]])
+            c_uem = "{} 1 {} {}\n".format(
+                new_sess_name,
+                "{:.3f}".format(float(uem_start)),
+                "{:.3f}".format(float(uem_end / 16000)),
+            )
+            to_uem.append(c_uem)
+
+        if len(to_uem) > 0:
+            assert split in ["dev", "eval"]  # uem only for development set
+            Path(os.path.join(out_dir, "uem", split)).mkdir(parents=True)
+            to_uem = sorted(to_uem)
+            with open(os.path.join(out_dir, "uem", split, "all.uem"), "w") as f:
+                f.writelines(to_uem)
 
 
 def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=0):
@@ -409,10 +426,13 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                     ]
                 return
 
+        to_uem = []
         for j_file in ann_json:
             with open(j_file, "r") as f:
                 annotation = json.load(f)
             sess_name = Path(j_file).stem
+            # add session name
+            [x.update({"session_id": sess_name}) for x in annotation]
             if c_split == "eval":
                 annotation, annotation_scoring = normalize_mixer6(
                     annotation, scoring_txt_normalization, eval_opt
@@ -445,6 +465,36 @@ def prep_mixer6(root_dir, out_dir, scoring_txt_normalization="chime7", eval_opt=
                 "w",
             ) as f:
                 json.dump(annotation_scoring, f, indent=4)
+            # dump uem too for dev only
+            if c_split == "dev":
+                uem_start = sorted(
+                    annotation_scoring, key=lambda x: float(x["start_time"])
+                )[0]["start_time"]
+                uem_end = sorted(
+                    annotation_scoring, key=lambda x: float(x["end_time"])
+                )[-1]["end_time"]
+                c_uem = "{} 1 {} {}\n".format(
+                    sess_name,
+                    "{:.3f}".format(float(uem_start)),
+                    "{:.3f}".format(float(uem_end)),
+                )
+                to_uem.append(c_uem)
+            elif c_split == "eval":
+                uem_start = 0
+                uem_end = max([sf.SoundFile(x).frames for x in sess2audio[sess_name]])
+                c_uem = "{} 1 {} {}\n".format(
+                    sess_name,
+                    "{:.3f}".format(float(uem_start)),
+                    "{:.3f}".format(float(uem_end / 16000)),
+                )
+                to_uem.append(c_uem)
+
+        if len(to_uem) > 0:
+            assert c_split in ["dev", "eval"]  # uem only for development set
+            Path(os.path.join(out_dir, "uem", c_split)).mkdir(parents=True)
+            to_uem = sorted(to_uem)
+            with open(os.path.join(out_dir, "uem", c_split, "all.uem"), "w") as f:
+                f.writelines(to_uem)
 
 
 if __name__ == "__main__":
@@ -458,7 +508,7 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="chime6_root",
-        help="Path to CHiME-6 dataset main directory."
+        help="Path to CHiME-6 dataset main directory. "
         "It should contain audio and transcriptions as sub-folders.",
     )
     parser.add_argument(
@@ -466,7 +516,7 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="dipco_root",
-        help="Path to DiPCo dataset main directory. "
+        help="Path to DiPCo dataset main directory."
         "It should contain audio and transcriptions as sub-folders.",
     )
     parser.add_argument(
@@ -474,14 +524,14 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="mixer6_root",
-        help="Path to DiPCo dataset main directory." "It should contain ",
+        help="Path to Mixer6 dataset main directory.",
     )
     parser.add_argument(
         "-o,--output_root",
         type=str,
         metavar="STR",
         dest="output_root",
-        help="Path where the new CHiME-7 Task 1 dataset will be saved."
+        help="Path where the new CHiME-7 Task 1 dataset will be saved. "
         "Note that for audio files symbolic links are used.",
     )
     parser.add_argument(
@@ -489,10 +539,10 @@ if __name__ == "__main__":
         type=int,
         default=0,
         metavar="INT",
-        help="Choose between 0, do not create eval annotation."
-        "1 creates ONLY eval annotation for sub-track1 (skip the other splits)"
-        "(oracle diarization, no words field in JSONs)."
-        "Note that for using 1 Mixer6 evaluation set needs to be released."
+        help="Choose between 0, do not create eval annotation. "
+        "1 creates ONLY eval annotation for sub-track1 (skip the other splits) "
+        "(oracle diarization, no words field in JSONs). "
+        "Note that for using 1 Mixer6 evaluation set needs to be released. "
         "Option 2 is for Organizers only "
         "(full annotation on eval used for scoring).",
     )
@@ -503,7 +553,7 @@ if __name__ == "__main__":
         default="chime7",
         metavar="STR",
         help="Choose between chime6 and chime7, "
-        "this select the text normalization applied when creating"
+        "this select the text normalization applied when creating "
         "the scoring annotation.",
     )
     args = parser.parse_args()

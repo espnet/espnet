@@ -32,7 +32,7 @@ else:
 
 
 class ESPnetGANSVSModel(AbsGANESPnetModel):
-    """ESPnet model for GAN-based text-to-speech task."""
+    """ESPnet model for GAN-based singing voice synthesis task."""
 
     def __init__(
         self,
@@ -41,6 +41,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         score_feats_extract: Optional[AbsFeatsExtract],
         label_extract: Optional[AbsFeatsExtract],
         pitch_extract: Optional[AbsFeatsExtract],
+        ying_extract: Optional[AbsFeatsExtract],
         duration_extract: Optional[AbsFeatsExtract],
         energy_extract: Optional[AbsFeatsExtract],
         normalize: Optional[AbsNormalize and InversibleInterface],
@@ -58,6 +59,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         self.pitch_extract = pitch_extract
         self.duration_extract = duration_extract
         self.energy_extract = energy_extract
+        self.ying_extract = ying_extract
         self.normalize = normalize
         self.pitch_normalize = pitch_normalize
         self.energy_normalize = energy_normalize
@@ -88,10 +90,13 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         duration_ruled_phn_lengths: Optional[torch.Tensor] = None,
         duration_syb: Optional[torch.Tensor] = None,
         duration_syb_lengths: Optional[torch.Tensor] = None,
+        slur: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
+        ying: Optional[torch.Tensor] = None,
+        ying_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -116,6 +121,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             duration_ruled_phn_lengths (Optional[Tensor]): duration length tensor (B,).
             duration_syb (Optional[Tensor]): duration tensor (B, T_syllable).
             duration_syb_lengths (Optional[Tensor]): duration length tensor (B,).
+            slur (Optional[Tensor]): slur tensor (B, T_slur).
             pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor]): Energy tensor.
@@ -224,6 +230,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                     :, : duration_score_phn_lengths.max()
                 ]
                 duration_score_syb = duration_syb[:, : duration_score_syb_lengths.max()]
+                slur = slur[:, : label_score_lengths.max()]
 
             if self.pitch_extract is not None and pitch is None:
                 pitch, pitch_lengths = self.pitch_extract(
@@ -234,6 +241,13 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
 
             if self.energy_extract is not None and energy is None:
                 energy, energy_lengths = self.energy_extract(
+                    singing,
+                    singing_lengths,
+                    feats_lengths=feats_lengths,
+                )
+
+            if self.ying_extract is not None and ying is None:
+                ying, ying_lengths = self.ying_extract(
                     singing,
                     singing_lengths,
                     feats_lengths=feats_lengths,
@@ -271,35 +285,30 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
 
         # melody
         melody = dict()
-        melody_lengths = dict()
         if midi_lab is not None:
             midi_lab = midi_lab.to(dtype=torch.long)
             melody.update(lab=midi_lab)
-            melody_lengths.update(lab=midi_lab_lengths)
         if midi_score is not None:
             midi_score = midi_score.to(dtype=torch.long)
             melody.update(score=midi_score)
-            melody_lengths.update(score=midi_score_lengths)
-        batch.update(melody=melody, melody_lengths=melody_lengths)
+        batch.update(melody=melody)
 
         # duration
         # NOTE(Yuning): duration = duration_time / time_shift (same as Xiaoice paper)
         duration = dict()
-        duration_lengths = dict()
         if duration_lab is not None:
             duration_lab = duration_lab.to(dtype=torch.long)
             duration.update(lab=duration_lab)
-            duration_lengths.update(lab=duration_lab_lengths)
         if duration_score is not None:
             duration_phn_score = duration_score.to(dtype=torch.long)
             duration.update(score_phn=duration_phn_score)
-            duration_lengths.update(score_phn=duration_score_phn_lengths)
         if duration_score_syb is not None:
             duration_syb_score = duration_score_syb.to(dtype=torch.long)
             duration.update(score_syb=duration_syb_score)
-            duration_lengths.update(score_syb=duration_score_syb_lengths)
-        batch.update(duration=duration, duration_lengths=duration_lengths)
+        batch.update(duration=duration)
 
+        if slur is not None:
+            batch.update(slur=slur)
         if spembs is not None:
             batch.update(spembs=spembs)
         if sids is not None:
@@ -309,9 +318,11 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         if feats is not None:
             batch.update(feats=feats, feats_lengths=feats_lengths)
         if self.pitch_extract is not None and pitch is not None:
-            batch.update(pitch=pitch, pitch_lengths=pitch_lengths)
+            batch.update(pitch=pitch)
         if self.energy_extract is not None and energy is not None:
-            batch.update(energy=energy, energy_lengths=energy_lengths)
+            batch.update(energy=energy)
+        if self.ying_extract is not None and ying is not None:
+            batch.update(ying=ying)
         if self.svs.require_raw_singing:
             batch.update(singing=singing, singing_lengths=singing_lengths)
         return self.svs(**batch)
@@ -333,10 +344,13 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
         duration_ruled_phn_lengths: Optional[torch.Tensor] = None,
         duration_syb: Optional[torch.Tensor] = None,
         duration_syb_lengths: Optional[torch.Tensor] = None,
+        slur: Optional[torch.Tensor] = None,
         pitch: Optional[torch.Tensor] = None,
         pitch_lengths: Optional[torch.Tensor] = None,
         energy: Optional[torch.Tensor] = None,
         energy_lengths: Optional[torch.Tensor] = None,
+        ying: Optional[torch.Tensor] = None,
+        ying_lengths: Optional[torch.Tensor] = None,
         spembs: Optional[torch.Tensor] = None,
         sids: Optional[torch.Tensor] = None,
         lids: Optional[torch.Tensor] = None,
@@ -357,6 +371,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             duration_phn (Optional[Tensor]): duration tensor (T_label).
             duration_ruled_phn (Optional[Tensor]): duration tensor (T_phone).
             duration_syb (Optional[Tensor]): duration tensor (T_phone).
+            slur (Optional[Tensor]): slur tensor (B, T_slur).
             pitch (Optional[Tensor]): Pitch tensor (B, T_wav). - f0 sequence
             pitch_lengths (Optional[Tensor]): Pitch length tensor (B,).
             energy (Optional[Tensor): Energy tensor.
@@ -406,6 +421,12 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
                 singing_lengths,
                 feats_lengths=feats_lengths,
             )
+        if self.ying_extract is not None and ying is None:
+            ying, ying_lengths = self.ying_extract(
+                singing,
+                singing_lengths,
+                feats_lengths=feats_lengths,
+            )
 
         # store in dict
         feats_dict = {}
@@ -415,5 +436,7 @@ class ESPnetGANSVSModel(AbsGANESPnetModel):
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
         if energy is not None:
             feats_dict.update(energy=energy, energy_lengths=energy_lengths)
+        if ying is not None:
+            feats_dict.update(ying=ying, ying_lengths=ying_lengths)
 
         return feats_dict

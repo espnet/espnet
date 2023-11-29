@@ -17,7 +17,7 @@ teardown() {
     bpemode=unigram
     bpemodel=$tmpdir/test_spm
 
-    utils/spm_train --input=${testfile} --vocab_size=${nbpe} --model_type=${bpemode} \
+    spm_train --input=${testfile} --vocab_size=${nbpe} --model_type=${bpemode} \
           --model_prefix=${bpemodel} --input_sentence_size=100000000 \
           --character_coverage=1.0 --bos_id=-1 --eos_id=-1 \
           --unk_id=0 --user_defined_symbols=[laughter],[noise],[vocalized-noise]
@@ -26,9 +26,9 @@ teardown() {
 
     txt="test sentencepiece.[noise]"
 
-    enc=$(echo $txt | utils/spm_encode --model=${bpemodel}.model --output_format=piece)
+    enc=$(echo $txt | spm_encode --model=${bpemodel}.model --output_format=piece)
     [ "$enc" = "▁ te s t ▁ s en t en c e p ie c e . [noise]" ]
 
-    dec=$(echo $enc | utils/spm_decode --model=${bpemodel}.model --input_format=piece)
+    dec=$(echo $enc | spm_decode --model=${bpemodel}.model --input_format=piece)
     [ "$dec" = "$txt" ]
 }

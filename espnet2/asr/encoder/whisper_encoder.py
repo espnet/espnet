@@ -50,7 +50,9 @@ class OpenAIWhisperEncoder(AbsEncoder):
         self.dropout = torch.nn.Dropout(dropout_rate)
 
         assert whisper_model in whisper.available_models()
-        _model = whisper.load_model(whisper_model, download_root=download_dir)
+        _model = whisper.load_model(
+            whisper_model, download_root=download_dir, device="cpu"
+        )
         self.encoders = copy.deepcopy(_model.encoder)
         self.encoders.train()
 
@@ -175,7 +177,9 @@ class OpenAIWhisperEncoder(AbsEncoder):
         feats, feats_lens = self.log_mel_spectrogram(xs_pad, ilens)
 
         if self.specaug is not None and self.encoders.training:
+            feats = torch.transpose(feats, 1, 2)
             feats, feats_lens = self.specaug(feats, feats_lens)
+            feats = torch.transpose(feats, 1, 2)
 
         xs_pad, olens = self.whisper_encode(feats, feats_lens)
 

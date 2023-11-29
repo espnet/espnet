@@ -27,12 +27,17 @@ from espnet2.lm.transformer_lm import TransformerLM
         {"search_type": "nsc", "nstep": 2},
         {"search_type": "maes", "nstep": 2, "lm": None},
         {"search_type": "maes", "nstep": 2},
+        {
+            "search_type": "mbg",
+            "multi_blank_durations": [2, 1],
+            "multi_blank_indices": [0, 1],
+        },
     ],
 )
 def test_transducer_beam_search(rnn_type, search_params):
     token_list = ["<blank>", "a", "b", "c", "<sos>"]
     vocab_size = len(token_list)
-    beam_size = 1 if search_params["search_type"] == "greedy" else 2
+    beam_size = 1 if search_params["search_type"] in ["greedy", "mbg"] else 2
 
     encoder_output_size = 4
     decoder_output_size = 4

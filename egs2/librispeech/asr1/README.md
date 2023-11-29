@@ -1,3 +1,44 @@
+# Multi-Blank Transducer
+
+## Environments
+- date: `Fri Feb 10 11:49:46 CST 2023`
+- python version: `3.8.10 (default, Jun  4 2021, 15:09:15)  [GCC 7.5.0]`
+- espnet version: `espnet 202211`
+- pytorch version: `pytorch 1.7.1`
+- Git hash: `d6bf2a0a7f6c540b2986b9891c681dc710c9212c`
+  - Commit date: `Fri Feb 10 11:49:03 2023 +0800`
+- ASR config: [conf/tuning/transducer/train_conformer-rnn_transducer_multi_blank.yaml](conf/tuning/transducer/train_conformer-rnn_transducer_multi_blank.yaml)
+- Decode config: [conf/tuning/transducer/decode_multi_blank_transducer.yaml](conf/tuning/transducer/decode_multi_blank_transducer.yaml)
+- Pretrained model: [https://huggingface.co/espnet/librispeech_multiblank_transducer_8421](https://huggingface.co/espnet/librispeech_multiblank_transducer_8421)
+
+## asr_8v100_5kbpe_multi_blank_transducer_8421
+### WER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/dev_clean|2703|54402|97.7|2.0|0.2|0.3|2.5|30.6|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/dev_other|2864|50948|94.3|5.2|0.5|0.6|6.3|49.9|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/test_clean|2620|52576|97.5|2.2|0.2|0.3|2.8|32.1|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/test_other|2939|52343|94.1|5.2|0.6|0.7|6.6|52.5|
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/dev_clean|2703|288456|99.3|0.4|0.3|0.2|0.9|30.6|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/dev_other|2864|265951|97.8|1.3|0.9|0.7|2.9|49.9|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/test_clean|2620|281530|99.3|0.4|0.3|0.3|1.0|32.1|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/test_other|2939|272758|98.0|1.2|0.9|0.8|2.8|52.5|
+
+### TER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/dev_clean|2703|68010|97.2|2.0|0.8|0.4|3.3|30.6|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/dev_other|2864|63110|93.0|5.3|1.6|1.2|8.2|49.9|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/test_clean|2620|65818|96.9|2.2|0.9|0.4|3.5|32.1|
+|decode_multi_blank_transducer_asr_model_valid.loss.ave/test_other|2939|65101|92.9|5.1|2.0|1.0|8.2|52.5|
+
 # Conformer-RNN Transducer
 
 ## Environments

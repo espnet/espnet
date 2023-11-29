@@ -31,8 +31,8 @@ def glob_check(root_folder, has_eval=False, input_json=None):
         if not input_json[str(Path(f).relative_to(root_folder))] == digest:
             raise RuntimeError(
                 "MD5 Checksum for {} is not the same. "
-                "Data has not been generated correctly."
-                "You can retry to generate it or re-download it."
+                "Data has not been generated correctly. "
+                "You can retry to generate it or re-download it. "
                 "If this does not work, please reach us. ".format(
                     str(Path(f).relative_to(root_folder))
                 )
@@ -41,7 +41,7 @@ def glob_check(root_folder, has_eval=False, input_json=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        "Compute MD5 hash for each file recursively to check"
+        "Compute MD5 hash for each file recursively to check "
         "if the data generation and download was successful or not."
     )
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
         type=str,
         metavar="STR",
         dest="chime7_root",
-        help="Path to chime7dasr dataset main directory."
+        help="Path to chime7dasr dataset main directory. "
         "It should contain chime6, dipco and mixer6 as sub-folders.",
     )
     parser.add_argument(

@@ -17,7 +17,7 @@ lm_config=conf/train_lm.yaml
     --ngpu 8 \
     --nj 16 \
     --inference_nj 16 \
-    --max_wav_duration 14 \
+    --max_wav_duration 30 \
     --lang jp \
     --use_lm true \
     --token_type char \

@@ -1,1 +1,0 @@
-../../../asr1/scripts/utils/evaluate_asr.sh

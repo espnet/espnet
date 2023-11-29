@@ -31,6 +31,7 @@ skip_data_prep=false # Skip data preparation stages.
 skip_train=false     # Skip training stages.
 skip_eval=false      # Skip decoding and evaluation stages.
 skip_upload=true     # Skip packing and uploading stages.
+skip_upload_hf=true  # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 gpu_id=0             # GPU_id, only works when ngpu=1
 num_nodes=1          # The number of nodes.
@@ -64,9 +65,10 @@ n_shift=256       # The number of shift points.
 win_length=null   # Window length.
 score_feats_extract=frame_score_feats # The type of music score feats (frame_score_feats or syllable_score_feats)
 pitch_extract=None
+ying_extract=None
 # Only used for the model using pitch features (e.g. FastSpeech2)
 f0min=80          # Maximum f0 for pitch extraction.
-f0max=400         # Minimum f0 for pitch extraction.
+f0max=800         # Minimum f0 for pitch extraction.
 
 oov="<unk>"         # Out of vocabrary symbol.
 blank="<blank>"     # CTC blank symbol.
@@ -112,6 +114,9 @@ g2p=g2p_en       # g2p method (needed if token_type=phn).
 lang=noinfo      # The language type of corpus.
 text_fold_length=150   # fold_length for text data.
 singing_fold_length=800 # fold_length for singing data.
+
+# Upload model related
+hf_repo=
 
 help_message=$(cat << EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>" --srctexts "<srctexts>"
@@ -204,7 +209,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 
@@ -381,6 +386,8 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}/org/${train_set}/spk2sid" \
                     "${data_feats}${_suf}/${dset}/utt2spk" \
                     > "${data_feats}${_suf}/${dset}/utt2sid"
+
+		utt_extra_files="${utt_extra_files} utt2sid"
             done
         fi
     fi
@@ -408,6 +415,8 @@ if ! "${skip_data_prep}"; then
                     "${data_feats}/org/${train_set}/lang2lid" \
                     "${data_feats}${_suf}/${dset}/utt2lang" \
                     > "${data_feats}${_suf}/${dset}/utt2lid"
+
+		utt_extra_files="${utt_extra_files} utt2lid"
             done
         fi
     fi
@@ -523,6 +532,9 @@ if ! "${skip_train}"; then
         _opts+="--pitch_extract_conf hop_length=${n_shift} "
         _opts+="--pitch_extract_conf f0max=${f0max} "
         _opts+="--pitch_extract_conf f0min=${f0min} "
+        _opts+="--ying_extract ${ying_extract} "
+        _opts+="--ying_extract_conf fs=${fs} "
+        _opts+="--ying_extract_conf w_step=${n_shift} "
         _opts+="--energy_extract_conf fs=${fs} "
         _opts+="--energy_extract_conf n_fft=${n_fft} "
         _opts+="--energy_extract_conf hop_length=${n_shift} "
@@ -647,10 +659,10 @@ if ! "${skip_train}"; then
         fi
 
         if [ -z "${teacher_dumpdir}" ]; then
-            log "CASE 1: AR model training"
-            #####################################
-            #     CASE 1: AR model training     #
-            #####################################
+            log "CASE 1: AR model training or NAR model with music score duration"
+            ############################################################################
+            #     CASE 1: AR model training or NAR model with music score duration     #
+            ############################################################################
             _scp=wav.scp
             # "sound" supports "wav", "flac", etc.
             _type=sound
@@ -665,6 +677,7 @@ if ! "${skip_train}"; then
             _opts+="--feats_extract_conf hop_length=${n_shift} "
             _opts+="--feats_extract_conf win_length=${win_length} "
             _opts+="--pitch_extract ${pitch_extract} "
+            _opts+="--ying_extract ${ying_extract} "
             if [ "${feats_extract}" = fbank ]; then
                 _opts+="--feats_extract_conf fs=${fs} "
                 _opts+="--feats_extract_conf fmin=${fmin} "
@@ -677,6 +690,10 @@ if ! "${skip_train}"; then
                 _opts+="--pitch_extract_conf hop_length=${n_shift} "
                 _opts+="--pitch_extract_conf f0max=${f0max} "
                 _opts+="--pitch_extract_conf f0min=${f0min} "
+            fi
+            if [ "${ying_extract}" = ying ]; then
+                _opts+="--ying_extract_conf fs=${fs} "
+                _opts+="--ying_extract_conf w_step=${n_shift} "
             fi
 
             if [ "${num_splits}" -gt 1 ]; then
@@ -723,10 +740,10 @@ if ! "${skip_train}"; then
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/text_shape.${token_type} "
             _opts+="--valid_shape_file ${svs_stats_dir}/valid/singing_shape "
         else
-            log "CASE 2: Non-AR model training"
-            #####################################
-            #   CASE 2: Non-AR model training   #
-            #####################################
+	    log "CASE 2: Non-AR model training (with additional alignment)"
+            ##################################################################
+	    #   CASE 2: Non-AR model training  (with additional alignment)   #
+            ##################################################################
             _teacher_train_dir="${teacher_dumpdir}/${train_set}"
             _teacher_valid_dir="${teacher_dumpdir}/${valid_set}"
             _fold_length="${singing_fold_length}"
@@ -769,9 +786,7 @@ if ! "${skip_train}"; then
             fi
         fi
 
-        # TODO (jiatong): add specifics for svs
-        # If there are dumped files of additional inputs, we use it to reduce computational cost
-        # NOTE (kan-bayashi): Use dumped files of the target features as well?
+        # NOTE (jiatong): Use dumped files of the target features as well
         if [ -e "${svs_stats_dir}/train/collect_feats/pitch.scp" ]; then
             _scp=pitch.scp
             _type=npy
@@ -796,6 +811,14 @@ if ! "${skip_train}"; then
             _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},feats,${_type} "
             _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},feats,${_type} "
         fi
+        if [ -e "${svs_stats_dir}/train/collect_feats/ying.scp" ]; then
+            _scp=ying.scp
+            _type=npy
+            _train_collect_dir=${svs_stats_dir}/train/collect_feats
+            _valid_collect_dir=${svs_stats_dir}/valid/collect_feats
+            _opts+="--train_data_path_and_name_and_type ${_train_collect_dir}/${_scp},ying,${_type} "
+            _opts+="--valid_data_path_and_name_and_type ${_valid_collect_dir}/${_scp},ying,${_type} "
+        fi
 
         # Check extra statistics
         if [ -e "${svs_stats_dir}/train/pitch_stats.npz" ]; then
@@ -812,6 +835,10 @@ if ! "${skip_train}"; then
             _opts+="--energy_extract_conf hop_length=${n_shift} "
             _opts+="--energy_extract_conf win_length=${win_length} "
             _opts+="--energy_normalize_conf stats_file=${svs_stats_dir}/train/energy_stats.npz "
+        fi
+        if [ -e "${svs_stats_dir}/train/ying_stats.npz" ]; then
+            _opts+="--ying_extract_conf fs=${fs} "
+            _opts+="--ying_extract_conf w_step=${n_shift} "
         fi
 
 
@@ -867,6 +894,7 @@ if ! "${skip_train}"; then
                 --non_linguistic_symbols "${nlsyms_txt}" \
                 --cleaner "${cleaner}" \
                 --g2p "${g2p}" \
+                --fs "${fs}" \
                 --normalize "${feats_normalize}" \
                 --resume true \
                 --init_param ${pretrained_model} \
@@ -1125,6 +1153,114 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
     #   % ./run.sh --stage 9 --svs_exp $(basename ${packed_model} .zip) --inference_model pretrain.pth
 fi
 
-### TODO: other stages
+if ! "${skip_upload}"; then
+    if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ]; then
+        log "Stage 10: Upload model to Zenodo: ${packed_model}"
+
+        # To upload your model, you need to do:
+        #   1. Signup to Zenodo: https://zenodo.org/
+        #   2. Create access token: https://zenodo.org/account/settings/applications/tokens/new/
+        #   3. Set your environment: % export ACCESS_TOKEN="<your token>"
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="
+git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/svs1/ -> foo/svs1
+        _task="$(pwd | rev | cut -d/ -f1-2 | rev)"
+        # foo/svs1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # Generate description file
+        cat << EOF > "${svs_exp}"/description
+This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
+<p>&nbsp;</p>
+<ul>
+<li><strong>Python API</strong><pre><code class="language-python">See https://github.com/espnet/espnet_model_zoo</code></pre></li>
+<li><strong>Evaluate in the recipe</strong><pre>
+<code class="language-bash">git clone https://github.com/espnet/espnet
+cd espnet${_checkout}
+pip install -e .
+cd $(pwd | rev | cut -d/ -f1-3 | rev)
+# Download the model file here
+./run.sh --skip_data_prep false --skip_train true --download_model ${_model_name}</code>
+</pre></li>
+<li><strong>Config</strong><pre><code>$(cat "${svs_exp}"/config.yaml)</code></pre></li>
+</ul>
+EOF
+
+        # NOTE(kamo): The model file is uploaded here, but not published yet.
+        #   Please confirm your record at Zenodo and publish by yourself.
+
+        # shellcheck disable=SC2086
+        espnet_model_zoo_upload \
+            --file "${packed_model}" \
+            --title "ESPnet2 pretrained model, ${_model_name}, fs=${fs}, lang=${lang}" \
+            --description_file "${svs_exp}"/description \
+            --creator_name "${_creator_name}" \
+            --license "CC-BY-4.0" \
+            --use_sandbox false \
+            --publish false
+    fi
+else
+    log "Skip the uploading stage"
+fi
+
+if ! "${skip_upload_hf}"; then
+    if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ]; then
+        [ -z "${hf_repo}" ] && \
+            log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace" && \
+            exit 1
+        log "Stage 11: Upload model to HuggingFace: ${hf_repo}"
+
+        gitlfs=$(git lfs --version 2> /dev/null || true)
+        [ -z "${gitlfs}" ] && \
+            log "ERROR: You need to install git-lfs first" && \
+            exit 1
+
+        dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+        [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+        if command -v git &> /dev/null; then
+            _creator_name="$(git config user.name)"
+            _checkout="git checkout $(git show -s --format=%H)"
+        else
+            _creator_name="$(whoami)"
+            _checkout=""
+        fi
+        # /some/where/espnet/egs2/foo/svs1/ -> foo/svs1
+        _task="$(pwd | rev | cut -d/ -f2 | rev)"
+        # foo/svs1 -> foo
+        _corpus="${_task%/*}"
+        _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+        # copy files in ${dir_repo}
+        unzip -o ${packed_model} -d ${dir_repo}
+        # Generate description file
+        # shellcheck disable=SC2034
+        hf_task=singing-voice-synthesis
+        # shellcheck disable=SC2034
+        espnet_task=SVS
+        # shellcheck disable=SC2034
+        task_exp=${svs_exp}
+        eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+        this_folder=${PWD}
+        cd ${dir_repo}
+        if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "Update model"
+        fi
+        git push
+        cd ${this_folder}
+    fi
+else
+    log "Skip the uploading to HuggingFace stage"
+fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

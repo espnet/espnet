@@ -222,7 +222,7 @@ class SeparateSpeech:
 
         # a. To device
         speech_mix = to_device(speech_mix, device=self.device)
-        lengths = to_device(lengths, device=self.device)
+        enroll_ref = to_device(enroll_ref, device=self.device)
         if self.enh_model.share_encoder:
             feats_aux, flens_aux = zip(
                 *[
@@ -490,6 +490,23 @@ def inference(
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
     )
+    variable_names = [
+        name
+        for path, name, typ in loader.dataset.path_name_type_list
+        if name.startswith("enroll_ref")
+    ]
+    num_spk = len(variable_names)
+    if train_config is None:
+        train_config = Path(model_file).parent / "config.yaml"
+    if num_spk != separate_speech.num_spk:
+        raise RuntimeError(
+            f"Number of speakers in the model ({separate_speech.num_spk}) "
+            "and the number of speakers provided by --data_path_and_name_and_type "
+            f"({num_spk}) do not match.\nTwo solutions:\n"
+            f"  1. Set model_conf.num_spk in {train_config} manually to {num_spk}.\n"
+            "  2. Reduce the number of speakers in --data_path_and_name_and_type to "
+            f"{separate_speech.num_spk}."
+        )
 
     # 4. Start for-loop
     output_dir = Path(output_dir).expanduser().resolve()

@@ -32,6 +32,7 @@ cmd=utils/run.pl
 nj=30
 fs=none
 segments=
+suffix=
 
 ref_channels=
 utt2ref_channels=
@@ -39,6 +40,8 @@ utt2ref_channels=
 audio_format=wav
 write_utt2num_samples=true
 vad_based_trim=
+multi_columns_input=false
+multi_columns_output=false
 
 log "$0 $*"
 . utils/parse_options.sh
@@ -101,13 +104,16 @@ if [ -n "${segments}" ]; then
     done
     utils/split_scp.pl "${segments}" ${split_segments}
 
+    # shellcheck disable=SC2046
     ${cmd} "JOB=1:${nj}" "${logdir}/format_wav_scp.JOB.log" \
         pyscripts/audio/format_wav_scp.py \
             ${opts} \
             --fs ${fs} \
             --audio-format "${audio_format}" \
             "--segment=${logdir}/segments.JOB" \
-            "${scp}" "${outdir}/format.JOB"
+            --multi-columns-input "${multi_columns_input}" \
+            --multi-columns-output "${multi_columns_output}" \
+            "${scp}" "${outdir}/format${suffix}.JOB" || { cat $(grep -l -i error "${logdir}"/format_wav_scp.*.log) ; exit 1; }
 else
     log "[info]: without segments"
     nutt=$(<${scp} wc -l)
@@ -119,12 +125,15 @@ else
     done
 
     utils/split_scp.pl "${scp}" ${split_scps}
+    # shellcheck disable=SC2046
     ${cmd} "JOB=1:${nj}" "${logdir}/format_wav_scp.JOB.log" \
         pyscripts/audio/format_wav_scp.py \
         ${opts} \
         --fs "${fs}" \
         --audio-format "${audio_format}" \
-        "${logdir}/wav.JOB.scp" "${outdir}/format.JOB"
+        --multi-columns-input "${multi_columns_input}" \
+        --multi-columns-output "${multi_columns_output}" \
+        "${logdir}/wav.JOB.scp" "${outdir}/format${suffix}.JOB" || { cat $(grep -l -i error "${logdir}"/format_wav_scp.*.log) ; exit 1; }
 fi
 
 # Workaround for the NFS problem
@@ -132,13 +141,13 @@ ls ${outdir}/format.* > /dev/null
 
 # concatenate the .scp files together.
 for n in $(seq ${nj}); do
-    cat "${outdir}/format.${n}/wav.scp" || exit 1;
+    cat "${outdir}/format${suffix}.${n}/wav.scp" || exit 1;
 done > "${dir}/${out_filename}" || exit 1
 
 if "${write_utt2num_samples}"; then
     for n in $(seq ${nj}); do
-        cat "${outdir}/format.${n}/utt2num_samples" || exit 1;
-    done > "${dir}/utt2num_samples"  || exit 1
+        cat "${outdir}/format${suffix}.${n}/utt2num_samples" || exit 1;
+    done > "${dir}/utt2num_samples${suffix}"  || exit 1
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"

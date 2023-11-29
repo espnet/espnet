@@ -134,6 +134,7 @@ except ImportError:
     is_parallel_wavegan_available = False
 
 
+@pytest.mark.execution_timeout(10)
 @pytest.mark.skipif(
     not is_parallel_wavegan_available, reason="parallel_wavegan is not installed."
 )
@@ -147,13 +148,18 @@ def test_parallel_wavegan_compatibility():
     model_espnet2.load_state_dict(model_pwg.state_dict())
     model_pwg.eval()
     model_espnet2.eval()
+    # NOTE(kan-bayashi): Use float64 to avoid numerical error in CI
+    dtype = torch.float64
+    model_pwg.to(dtype=dtype)
+    model_espnet2.to(dtype=dtype)
 
     with torch.no_grad():
-        z = torch.randn(3 * 16, 1)
-        c = torch.randn(3, 10)
+        z = torch.randn(3 * 16, 1, dtype=dtype)
+        c = torch.randn(3, 10, dtype=dtype)
         out_pwg = model_pwg.inference(c, z)
         out_espnet2 = model_espnet2.inference(c, z)
-        np.testing.assert_array_equal(
+        np.testing.assert_allclose(
             out_pwg.cpu().numpy(),
             out_espnet2.cpu().numpy(),
+            rtol=1e-5,
         )

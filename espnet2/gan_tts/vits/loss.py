@@ -8,6 +8,7 @@ This code is based on https://github.com/jaywalnut310/vits.
 """
 
 import torch
+import torch.distributions as D
 
 
 class KLDivergenceLoss(torch.nn.Module):
@@ -44,4 +45,28 @@ class KLDivergenceLoss(torch.nn.Module):
         kl = torch.sum(kl * z_mask)
         loss = kl / torch.sum(z_mask)
 
+        return loss
+
+
+class KLDivergenceLossWithoutFlow(torch.nn.Module):
+    """KL divergence loss without flow."""
+
+    def forward(
+        self,
+        m_q: torch.Tensor,
+        logs_q: torch.Tensor,
+        m_p: torch.Tensor,
+        logs_p: torch.Tensor,
+    ) -> torch.Tensor:
+        """Calculate KL divergence loss without flow.
+
+        Args:
+            m_q (Tensor): Posterior encoder projected mean (B, H, T_feats).
+            logs_q (Tensor): Posterior encoder projected scale (B, H, T_feats).
+            m_p (Tensor): Expanded text encoder projected mean (B, H, T_feats).
+            logs_p (Tensor): Expanded text encoder projected scale (B, H, T_feats).
+        """
+        posterior_norm = D.Normal(m_q, torch.exp(logs_q))
+        prior_norm = D.Normal(m_p, torch.exp(logs_p))
+        loss = D.kl_divergence(posterior_norm, prior_norm).mean()
         return loss

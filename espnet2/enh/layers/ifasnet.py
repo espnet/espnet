@@ -120,7 +120,7 @@ class iFaSNet(FaSNet_base):
             -1, self.context * 2 + 1, self.feature_dim
         )
         embedding = (
-            self.summ_RNN(norm_context_BN).transpose(1, 2).contiguous()
+            self.summ_RNN(norm_context_BN)[0].transpose(1, 2).contiguous()
         )  # B*nmic*L, N, 2C+1
         embedding = norm_context_BN.transpose(1, 2).contiguous() + self.summ_LN(
             embedding
@@ -159,7 +159,7 @@ class iFaSNet(FaSNet_base):
             embedding.view(-1, self.enc_dim * 2, self.context * 2 + 1)
         )  # B*nspk*L, N, 2C+1
         all_filter = all_filter + self.gen_LN(
-            self.gen_RNN(all_filter.transpose(1, 2)).transpose(1, 2)
+            self.gen_RNN(all_filter.transpose(1, 2))[0].transpose(1, 2)
         )  # B*nspk*L, N, 2C+1
         all_filter = self.gen_output(all_filter)  # B*nspk*L, N, 2C+1
         all_filter = all_filter.view(

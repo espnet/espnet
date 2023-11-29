@@ -286,7 +286,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -540,7 +540,7 @@ if ! "${skip_data_prep}"; then
             done
 
             for factor in ${speed_perturb_factors}; do
-                if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+                if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                     scripts/utils/perturb_enh_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" \
                          "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}" "${_scp_list}"
                     _dirs+="data/${train_set}_sp${factor} "
@@ -1588,8 +1588,8 @@ if ! "${skip_eval}"; then
             fi
 
             # detokenize & remove punctuation except apostrophe
-            remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
-            remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
+            scripts/utils/remove_punctuation.pl < "${_scoredir}/ref.trn.detok" > "${_scoredir}/ref.trn.detok.lc.rm"
+            scripts/utils/remove_punctuation.pl < "${_scoredir}/hyp.trn.detok" > "${_scoredir}/hyp.trn.detok.lc.rm"
             echo "Case insensitive BLEU result (single-reference)" >> ${_scoredir}/result.lc.txt
             sacrebleu -lc "${_scoredir}/ref.trn.detok.lc.rm" \
                       -i "${_scoredir}/hyp.trn.detok.lc.rm" \
@@ -1618,7 +1618,7 @@ if ! "${skip_eval}"; then
 
                     perl -pe 's/\([^\)]+\)//g;' "${_scoredir}/ref.trn.org.${ref_idx}" > "${_scoredir}/ref.trn.${ref_idx}"
                     detokenizer.perl -l ${tgt_lang} -q < "${_scoredir}/ref.trn.${ref_idx}" > "${_scoredir}/ref.trn.detok.${ref_idx}"
-                    remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
+                    scripts/utils/remove_punctuation.pl < "${_scoredir}/ref.trn.detok.${ref_idx}" > "${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                     case_sensitive_refs="${case_sensitive_refs} ${_scoredir}/ref.trn.detok.${ref_idx}"
                     case_insensitive_refs="${case_insensitive_refs} ${_scoredir}/ref.trn.detok.lc.rm.${ref_idx}"
                 done

@@ -6,7 +6,8 @@ from espnet2.enh.loss.wrappers.multilayer_pit_solver import MultiLayerPITSolver
 
 
 @pytest.mark.parametrize("num_spk", [1, 2, 3])
-def test_MultiLayerPITSolver_forward_multi_layer(num_spk):
+@pytest.mark.parametrize("layer_weights", [[1, 1], [1, 2]])
+def test_MultiLayerPITSolver_forward_multi_layer(num_spk, layer_weights):
     batch = 2
     num_layers = 2
     # infs is a List of List (num_layer x num_speaker Tensors)
@@ -15,7 +16,9 @@ def test_MultiLayerPITSolver_forward_multi_layer(num_spk):
         for _ in range(num_layers)
     ]
     ref = [infs[-1][num_spk - spk - 1] for spk in range(num_spk)]  # reverse inf as ref
-    solver = MultiLayerPITSolver(FrequencyDomainL1(), independent_perm=True)
+    solver = MultiLayerPITSolver(
+        FrequencyDomainL1(), independent_perm=True, layer_weights=layer_weights
+    )
 
     loss, stats, others = solver(ref, infs)
     perm = others["perm"]
@@ -25,17 +28,22 @@ def test_MultiLayerPITSolver_forward_multi_layer(num_spk):
 
     # test for independent_perm is False
 
-    solver = MultiLayerPITSolver(FrequencyDomainL1(), independent_perm=False)
+    solver = MultiLayerPITSolver(
+        FrequencyDomainL1(), independent_perm=False, layer_weights=layer_weights
+    )
     loss, stats, others = solver(ref, infs, {"perm": perm})
 
 
 @pytest.mark.parametrize("num_spk", [1, 2, 3])
-def test_MultiLayerPITSolver_forward_single_layer(num_spk):
+@pytest.mark.parametrize("layer_weights", [[1], [2]])
+def test_MultiLayerPITSolver_forward_single_layer(num_spk, layer_weights):
     batch = 2
     # inf is a List of Tensors
     inf = [torch.rand(batch, 10, 100) for spk in range(num_spk)]
     ref = [inf[num_spk - spk - 1] for spk in range(num_spk)]  # reverse inf as ref
-    solver = MultiLayerPITSolver(FrequencyDomainL1(), independent_perm=True)
+    solver = MultiLayerPITSolver(
+        FrequencyDomainL1(), independent_perm=True, layer_weights=layer_weights
+    )
 
     loss, stats, others = solver(ref, inf)
     perm = others["perm"]
@@ -45,5 +53,7 @@ def test_MultiLayerPITSolver_forward_single_layer(num_spk):
 
     # test for independent_perm is False
 
-    solver = MultiLayerPITSolver(FrequencyDomainL1(), independent_perm=False)
+    solver = MultiLayerPITSolver(
+        FrequencyDomainL1(), independent_perm=False, layer_weights=layer_weights
+    )
     loss, stats, others = solver(ref, inf, {"perm": perm})

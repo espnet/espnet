@@ -237,7 +237,7 @@ EOF
 
 log "$0 $*"
 # Save command line args for logging (they will be lost after utils/parse_options.sh)
-run_args=$(pyscripts/utils/print_args.py $0 "$@")
+run_args=$(scripts/utils/print_args.sh $0 "$@")
 . utils/parse_options.sh
 
 if [ $# -ne 0 ]; then
@@ -453,7 +453,7 @@ if ! "${skip_data_prep}"; then
         if [ -n "${speed_perturb_factors}" ]; then
            log "Stage 2: Speed perturbation: data/${train_set} -> data/${train_set}_sp"
            for factor in ${speed_perturb_factors}; do
-               if [[ $(bc <<<"${factor} != 1.0") == 1 ]]; then
+               if python3 -c "assert ${factor} != 1.0" 2>/dev/null; then
                    scripts/utils/perturb_data_dir_speed.sh --utt_extra_files "${utt_extra_files}" \
                         "${factor}" "data/${train_set}" "data/${train_set}_sp${factor}"
                    _dirs+="data/${train_set}_sp${factor} "
@@ -958,7 +958,7 @@ if ! "${skip_train}"; then
     if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ]; then
         if "${use_ngram}"; then
             log "Stage 9: Ngram Training: train_set=${data_feats}/lm_train.txt"
-            cut -f 2 -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
+            cut -f 2- -d " " ${data_feats}/lm_train.txt | lmplz -S "20%" --discount_fallback -o ${ngram_num} - >${ngram_exp}/${ngram_num}gram.arpa
             build_binary -s ${ngram_exp}/${ngram_num}gram.arpa ${ngram_exp}/${ngram_num}gram.bin
         else
             log "Stage 9: Skip ngram stages: use_ngram=${use_ngram}"
