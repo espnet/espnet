@@ -58,6 +58,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     mkdir -p ${log_dir}
 
     # split
+    splits=""
     for n in $(seq "${nj}"); do
       splits+=" ${log_dir}/utt2units.${n}"
     done
