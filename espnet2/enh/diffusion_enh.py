@@ -29,8 +29,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         decoder: AbsDecoder,
         # loss_wrappers: List[AbsLossWrapper],
         num_spk: int = 1,
-        normalize: str = "noisy"
-        **kwargs,
+        normalize: str = "noisy" ** kwargs,
     ):
         assert check_argument_types()
 
@@ -115,7 +114,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
             normfac = speech_ref.abs().max() * 1.1 + 1e-5
         elif self.normalize == "no":
             normfac = 1.0
-        
+
         speech_mix = speech_mix / normfac
         speech_ref = speech_ref / normfac
 
