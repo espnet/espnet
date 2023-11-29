@@ -7172,12 +7172,12 @@ pack.py
 
 .. code-block:: none
 
-    usage: pack.py [-h] {asr,st,tts,enh,diar,svs,enh_s2t,ssl,s2st,s2t} ...
+    usage: pack.py [-h] {asr,st,tts,enh,diar,svs,enh_s2t,ssl,s2st,s2t,spk} ...
     
     Pack input files to archive format
     
     positional arguments:
-      {asr,st,tts,enh,diar,svs,enh_s2t,ssl,s2st,s2t}
+      {asr,st,tts,enh,diar,svs,enh_s2t,ssl,s2st,s2t,spk}
     
     optional arguments:
 .. _s2st_inference.py:
