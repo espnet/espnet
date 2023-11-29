@@ -29,7 +29,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         decoder: AbsDecoder,
         # loss_wrappers: List[AbsLossWrapper],
         num_spk: int = 1,
-        normalize: str = "noisy"
+        normalize: str = "noisy",
         **kwargs,
     ):
         assert check_argument_types()
