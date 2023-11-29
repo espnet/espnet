@@ -26,7 +26,8 @@ log() {
 SECONDS=0
 
 # Hint: You should link the train_v2 and dev_v2 to your dump/raw directory
-# before running this script
+# before running this script. You should also revise the language-IDs of v2
+# data using local/filter_lang_id.py
 train_sets="dump/raw/aidatatang/train_whisper \
             dump/raw/ami/ihm_train_whisper \
             dump/raw/CommonVoice/train \
@@ -40,7 +41,6 @@ train_sets="dump/raw/aidatatang/train_whisper \
             dump/raw/ru_open_stt/train_whisper \
             dump/raw/vctk/tr_no_dev_whisper \
             dump/raw/VoxPopuli/train \
-            dump/raw/wsj/train_si284_whisper \
             dump/raw/voxforge/tr \
             dump/raw/babel/train \
             dump/raw/openslr/train \
@@ -58,7 +58,6 @@ dev_sets="dump/raw/aidatatang/dev_whisper \
             dump/raw/ru_open_stt/dev_whisper \
             dump/raw/vctk/dev_whisper \
             dump/raw/VoxPopuli/dev \
-            dump/raw/wsj/test_dev93_whisper \
             dump/raw/voxforge/dt \
             dump/raw/babel/dev \
             dump/raw/openslr/dev \

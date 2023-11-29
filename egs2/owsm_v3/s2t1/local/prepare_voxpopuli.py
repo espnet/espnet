@@ -243,7 +243,7 @@ def collect_data_st(
                 start_time=float(r["start_time"]),
                 end_time=float(r["end_time"]),
                 lang=f"<{iso_src}>",
-                task=f"<st_{tgt}>",
+                task=f"<st_{iso_tgt}>",
                 text=tgt_text,
                 asr_text=src_text,
             )
@@ -307,6 +307,8 @@ if __name__ == "__main__":
                 prefix=args.prefix,
                 src=lang,
             )
+            # Note: The lang-id here is from original VoxPopuli
+            # We will transform it into ISO-639-3 later
             logging.info(f"ASR: Split={split} | Lang={lang} | NumTalk={len(talks)}")
             all_talks = all_talks + talks
 
@@ -322,6 +324,8 @@ if __name__ == "__main__":
                     src=src,
                     tgt=tgt,
                 )
+                # Note: The lang-id here is from original VoxPopuli
+                # We will transform it into ISO-639-3 later
                 logging.info(
                     f"ST: Split={split} | Lang={src}2{tgt} | NumTalk={len(talks)}"
                 )
