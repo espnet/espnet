@@ -2,12 +2,13 @@ optim: adam
 init: xavier_uniform
 max_epoch: 100
 batch_type: folded
-batch_size: 4 # batch_size 16 can be trained on 4 RTX 2080ti
+# batch_size: 128
+batch_size: 4
 iterator_type: chunk
-chunk_length: 40832
-num_workers: 0
+chunk_length: 32640
+num_workers: 4
 optim_conf:
-    lr: 1.0e-03
+    lr: 1.0e-04
     eps: 1.0e-08
     weight_decay: 1.0e-7
 patience: 10
@@ -30,23 +31,23 @@ scheduler_conf:
 
 encoder: stft
 encoder_conf:
-    n_fft: 512
+    n_fft: 510
     hop_length: 128
     spec_transform_type: exponent
 decoder: stft
 decoder_conf:
-    n_fft: 512
+    n_fft: 510
     hop_length: 128
     spec_transform_type: exponent
 
 diffusion_model: sgmse
 diffusion_model_conf:
-    score_model: dcunet
-    score_model_conf:
-        dcunet_architecture: "DilDCUNet-v2"
-        loss_type: "mse"
+    score_model: ncsnpp
+    score_model_conf: {}
+    loss_type: "mse"
     sde: ouve
-    sde_conf:
+    sde_conf: 
         sigma_min: 0.05
         sigma_max: 0.5
         N: 1000
+

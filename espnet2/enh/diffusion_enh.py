@@ -29,7 +29,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         decoder: AbsDecoder,
         # loss_wrappers: List[AbsLossWrapper],
         num_spk: int = 1,
-        normalize: str = "noisy",
+        normalize: bool = False,
         **kwargs,
     ):
         assert check_argument_types()
@@ -109,11 +109,9 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         speech_ref = speech_ref[..., : speech_lengths.max()].unbind(dim=1)
         speech_mix = speech_mix[:, : speech_lengths.max()]
 
-        if self.normalize == "noisy":
+        if self.normalize:
             normfac = speech_mix.abs().max() * 1.1 + 1e-5
-        elif self.normalize == "clean":
-            normfac = torch.tensor(speech_ref).abs().max() * 1.1 + 1e-5
-        elif self.normalize == "no":
+        else:
             normfac = 1.0
 
         speech_mix = speech_mix / normfac
@@ -126,7 +124,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         return loss, stats, weight
 
     def enhance(self, feature_mix):
-        if normalize is not "no":
+        if self.normalize:
             normfac = speech_mix.abs().max() * 1.1 + 1e-5
             speech_mix = speech_mix / normfac
 
