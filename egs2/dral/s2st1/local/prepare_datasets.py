@@ -87,9 +87,7 @@ def download_thread_helper(url: str, dest_dir: Path) -> Tuple[str, Path]:
     dataset_helper = DatasetHelper()
     with tempfile.TemporaryDirectory() as tmp_dir_str:
         tmp_dir: Path = Path(tmp_dir_str)
-        tar_gz_path: Path = dataset_helper.download(
-            url, tmp_dir / Path(url).name
-        )
+        tar_gz_path: Path = dataset_helper.download(url, tmp_dir / Path(url).name)
         return url, dataset_helper.uncompress(tar_gz_path, dest_dir)
 
 
@@ -184,9 +182,7 @@ def _write_kaldi_files(
     )
     # spk2utt
     # Group by 'spk' and collect 'id' values into sets
-    grouped_data = (
-        utt2spk.groupby("spk")["id_recordings"].apply(set).reset_index()
-    )
+    grouped_data = utt2spk.groupby("spk")["id_recordings"].apply(set).reset_index()
     with (output_dir / "spk2utt").open("w") as spk2utt_out:
         for _, row in grouped_data.iterrows():
             spk = row["spk"]
@@ -194,12 +190,8 @@ def _write_kaldi_files(
             spk2utt_out.write(f"{spk} {utt_str}\n")
     # segments
     if data_file_stem == _RECORDINGS:
-        df["time_start"] = df["time_start"].apply(
-            lambda s: _time_string_to_seconds(s)
-        )
-        df["time_end"] = df["time_end"].apply(
-            lambda s: _time_string_to_seconds(s)
-        )
+        df["time_start"] = df["time_start"].apply(lambda s: _time_string_to_seconds(s))
+        df["time_end"] = df["time_end"].apply(lambda s: _time_string_to_seconds(s))
         df[
             ["id_fragments", "id_recordings", "time_start", "time_end"]
         ].drop_duplicates().to_csv(
@@ -278,9 +270,7 @@ def extract_fragments(
     src_lang = src_lang.upper()
     tgt_lang = tgt_lang.upper()
     df = df[(df["lang_code"] == src_lang) & (df["trans_lang_code"] == tgt_lang)]
-    LOGGER.info(
-        f"{len(df)} segments for src_lang = {src_lang} & tgt_lang = {tgt_lang}"
-    )
+    LOGGER.info(f"{len(df)} segments for src_lang = {src_lang} & tgt_lang = {tgt_lang}")
     train_df, dev_df, devtest_df = _train_dev_split(df)
     _write_kaldi_files(
         input_dir,
@@ -358,9 +348,7 @@ def extract_recordings(
     src_lang = src_lang.upper()
     tgt_lang = tgt_lang.upper()
     df = df[(df["lang_code"] == src_lang) & (df["trans_lang_code"] == tgt_lang)]
-    LOGGER.info(
-        f"{len(df)} segments for src_lang = {src_lang} & tgt_lang = {tgt_lang}"
-    )
+    LOGGER.info(f"{len(df)} segments for src_lang = {src_lang} & tgt_lang = {tgt_lang}")
     train_df, dev_df, devtest_df = _train_dev_split(df)
     _write_kaldi_files(
         input_dir,
@@ -385,9 +373,7 @@ def extract_recordings(
 
 
 @app.command(name="download")
-def download(
-    dataset_config: Path, output_dir: Path, no_cache: bool = False
-) -> Path:
+def download(dataset_config: Path, output_dir: Path, no_cache: bool = False) -> Path:
     """
     download datasets and their fixes according to section 5 of
     https://www.cs.utep.edu/nigel/papers/dral-techreport2.pdf
@@ -417,9 +403,7 @@ def download(
         with ThreadPoolExecutor(max_workers=num_cores) as executor:
             futures: List[Future[Path]] = []
             for url in config.dataset_urls:
-                futures.append(
-                    executor.submit(download_thread_helper, url, cache_dir)
-                )
+                futures.append(executor.submit(download_thread_helper, url, cache_dir))
             results = wait(futures)
             # Wait for all threads to finish
             url2dest: Dict[str, Path] = {}
