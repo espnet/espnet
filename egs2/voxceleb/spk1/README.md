@@ -7,7 +7,7 @@ Overall results
 | [conf/train_ECAPA_mel.yaml](conf/train_ECAPA_mel.yaml) | 0.978 | 0.0686 | | |
 | [conf/train_mfa_conformer.yaml](conf/train_mfa_conformer.yaml) | 0.951 | 0.0583 | | |
 | [conf/train_ECAPA_wavlm_frozen.yaml](conf/train_ECAPA_wavlm_frozen.yaml) | 0.606 | 0.0446 | ECAPA-TDNN w/ Frozen WavLM | |
-| [conf/train_ECAPA_wavlm_joint.yaml](conf/train_ECAPA_wavlm_joint.yaml) | 0.425 | 0.041 | ECAPA-TDNN w/ Frozen WavLM | |
+| [conf/train_ECAPA_wavlm_joint.yaml](conf/train_ECAPA_wavlm_joint.yaml) | 0.425 | 0.041 | ECAPA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_wavlm_joint |
 
 ## Environments - conf/train_rawnet3.yaml
 date: 2023-11-21 14:02:42.314875
