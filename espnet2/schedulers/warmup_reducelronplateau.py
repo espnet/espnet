@@ -2,8 +2,7 @@
 from typing import Union
 
 import torch
-# from torch import inf
-from math import inf
+from torch import inf
 from typeguard import check_argument_types
 
 from espnet2.schedulers.abs_scheduler import (
