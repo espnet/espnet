@@ -1281,7 +1281,7 @@ if ! "${skip_train}"; then
                 --valid_shape_file "${s2st_stats_dir}/valid/src_speech_shape" \
                 --valid_shape_file "${s2st_stats_dir}/valid/tgt_speech_shape" \
                 --resume true \
-                --init_param ${pretrained} \
+                ${pretrained:+--init_param $pretrained} \
                 --ignore_init_mismatch ${ignore_init_mismatch} \
                 --fold_length "${s2st_speech_fold_length}" \
                 --fold_length "${s2st_text_fold_length}" \
