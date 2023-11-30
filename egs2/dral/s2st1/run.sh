@@ -9,9 +9,9 @@ set -o pipefail
 src_lang=es # ar ca cy de et es fa fr id it ja lv mn nl pt ru sl sv ta tr zh
 tgt_lang=en
 
-train_set=train_${src_lang}
-train_dev=dev_${src_lang}
-test_sets="test_${src_lang} dev_${src_lang}"
+train_set=train
+train_dev=dev
+test_sets="test dev"
 
 st_config=conf/train_s2st.yaml
 use_src_lang=true
