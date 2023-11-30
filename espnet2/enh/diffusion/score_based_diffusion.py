@@ -154,6 +154,7 @@ class ScoreModel(AbsDiffusion):
         loss = self._loss(err)
 
         return loss
+    
 
     def enhance(
         self,
@@ -168,7 +169,6 @@ class ScoreModel(AbsDiffusion):
         **kwargs
     ):
         Y = noisy_specturm.permute(0, 2, 1).unsqueeze(1)
-
         if sampler_type == "pc":
             sampler = self.get_pc_sampler(
                 predictor,
