@@ -1508,7 +1508,7 @@ if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~
 
             # Tokenize text to ${_tok_type} level
             paste \
-                <(<"${_data}/text.${tgt_case}.${tgt_lang}" \
+                <(perl -p -e 's/^(\S+) (\*\s*)+/$1 /' "${_data}/text.${tgt_case}.${tgt_lang}" | \
                     ${python} -m espnet2.bin.tokenize_text  \
                         -f 2- --input - --output - \
                         --token_type ${_tok_type} \
@@ -1520,7 +1520,7 @@ if [ ${stage} -le 15 ] && [ ${stop_stage} -ge 15 ] && ! [[ " ${skip_stages} " =~
 
             # NOTE(kamo): Don't use cleaner for hyp
             paste \
-                <(<"${_dir}/text"  \
+                <(perl -p -e 's/^(\S+) (\*\s*)+/$1 /' "${_dir}/text" | \
                     ${python} -m espnet2.bin.tokenize_text  \
                         -f 2- --input - --output - \
                         --token_type ${_tok_type} \

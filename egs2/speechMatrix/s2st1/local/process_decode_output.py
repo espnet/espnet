@@ -4,6 +4,7 @@ Convert a .npy file containing decoded discrete units into text that contains a 
 import argparse
 import logging
 import os
+
 import numpy as np
 
 logging.basicConfig()
@@ -24,24 +25,33 @@ def main():
     min_token_id = args.token_id_offset
     max_token_id = args.token_id_offset + args.n_units - 1
 
-    with open(args.feats_scp, encoding='utf-8') as f, open(out_path, "w", encoding='utf-8') as of:
+    with open(args.feats_scp, encoding="utf-8") as f, open(
+        out_path, "w", encoding="utf-8"
+    ) as of:
         for line in f:
-            utt, path = line.rstrip('\n').split()
+            utt, path = line.rstrip("\n").split()
 
             data = np.load(path)
             assert len(data.shape) == 1
             # minus 2 since "0" has index of 2, see also the token list under data/
-            data = [str(e - args.token_id_offset) for e in data if min_token_id <= e <= max_token_id]
-            data = data[:args.max_len]
-            s = ' '.join(data)
+            data = [
+                str(e - args.token_id_offset)
+                for e in data
+                if min_token_id <= e <= max_token_id
+            ]
+            data = data[: args.max_len]
+            s = " ".join(data)
 
-            of.write(f'{utt}\t{s}\n')
+            of.write(f"{utt}\t{s}\n")
 
 
 def get_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--feats_scp", type=str, required=True, help=".scp file for discrete unit features"
+        "--feats_scp",
+        type=str,
+        required=True,
+        help=".scp file for discrete unit features",
     )
     parser.add_argument("--out_dir", type=str, required=True)
     parser.add_argument("--max_len", type=int, default=400)

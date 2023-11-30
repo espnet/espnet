@@ -73,8 +73,8 @@ if [ $stage -le 4 ] && [ $stop_stage -ge 4 ]; then
   # not that if you reduce max_segment_length some segments will be discarded.
   # also note that reducing context-duration could affect results.
   $cmd JOB=1:$nj  ${exp_dir}/${dset_name}/${dset_part}/log/enhance.JOB.log \
-    gss enhance cuts \
-      ${exp_dir}/${dset_name}/${dset_part}/cuts.jsonl.gz  ${exp_dir}/${dset_name}/${dset_part}/split$nj/cuts_per_segment.JOB.jsonl.gz \
+    gss utils gpu_check $nj $cmd \& gss enhance cuts \
+      ${exp_dir}/${dset_name}/${dset_part}/cuts.jsonl.gz ${exp_dir}/${dset_name}/${dset_part}/split$nj/cuts_per_segment.JOB.jsonl.gz \
        ${exp_dir}/${dset_name}/${dset_part}/enhanced \
       --bss-iterations $gss_iterations \
       --context-duration 15.0 \
