@@ -615,7 +615,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     ${python} pyscripts/utils/calculate_eer_mindcf.py ${score_dir} ${infer_exp}/${test_sets}_metrics
 
     # Show results in Markdown syntax
-    ${python} scripts/utils/show_spk_result.py "${infer_exp}/${test_sets}_metrics" "${spk_exp}"/RESULTS.md
+    ${python} scripts/utils/show_spk_result.py "${infer_exp}/${test_sets}_metrics" "${spk_exp}"/RESULTS.md $(echo ${spk_config} | cut -d'.' -f1)
     cat "${spk_exp}"/RESULTS.md
 fi
 
