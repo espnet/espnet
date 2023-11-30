@@ -154,7 +154,6 @@ class ScoreModel(AbsDiffusion):
         loss = self._loss(err)
 
         return loss
-    
 
     def enhance(
         self,
