@@ -1,7 +1,5 @@
 # =====================
-# Network Architecture
-# Following Section 5 of https://arxiv.org/pdf/2211.04508.pdf
-# Model size is slightly different
+# Initialize using CVSS's pretrained model
 # =====================
 
 s2st_type: discrete_unit
@@ -123,3 +121,12 @@ specaug_conf:
     - 0.
     - 0.05
     num_time_mask: 10
+
+init_param: [
+  "/ocean/projects/cis210027p/ychou1/ESPNET/espnet/egs2/cvss/s2st1/exp/s2st_train_s2st_discrete_unit_raw_fbank_es_en/valid.loss.ave.pth:frontend:frontend",
+  "/ocean/projects/cis210027p/ychou1/ESPNET/espnet/egs2/cvss/s2st1/exp/s2st_train_s2st_discrete_unit_raw_fbank_es_en/valid.loss.ave.pth:src_normalize:src_normalize",
+  "/ocean/projects/cis210027p/ychou1/ESPNET/espnet/egs2/cvss/s2st1/exp/s2st_train_s2st_discrete_unit_raw_fbank_es_en/valid.loss.ave.pth:tgt_normalize:tgt_normalize",
+  "/ocean/projects/cis210027p/ychou1/ESPNET/espnet/egs2/cvss/s2st1/exp/s2st_train_s2st_discrete_unit_raw_fbank_es_en/valid.loss.ave.pth:encoder:encoder",
+  "/ocean/projects/cis210027p/ychou1/ESPNET/espnet/egs2/cvss/s2st1/exp/s2st_train_s2st_discrete_unit_raw_fbank_es_en/valid.loss.ave.pth:asr_decoder:asr_decoder:asr_decoder.output_layer,asr_decoder.embed",
+  "/ocean/projects/cis210027p/ychou1/ESPNET/espnet/egs2/cvss/s2st1/exp/s2st_train_s2st_discrete_unit_raw_fbank_es_en/valid.loss.ave.pth:synthesizer:synthesizer:synthesizer.decoder.output_layer,synthesizer.decoder.embed",
+]
