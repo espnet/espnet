@@ -13,19 +13,18 @@ import logging
 from typing import Dict
 
 import torch
-from torch import nn
-
 from fairseq.data.audio.speech_to_text_dataset import S2TDataConfig
 from fairseq.models import BaseFairseqModel, register_model
 from fairseq.models.text_to_speech.codehifigan import CodeGenerator as CodeHiFiGANModel
 from fairseq.models.text_to_speech.hifigan import Generator as HiFiGANModel
+from torch import nn
 
 logger = logging.getLogger(__name__)
 
 
 class HiFiGANVocoder(nn.Module):
     def __init__(
-            self, checkpoint_path: str, model_cfg: Dict[str, str], fp16: bool = False
+        self, checkpoint_path: str, model_cfg: Dict[str, str], fp16: bool = False
     ) -> None:
         super().__init__()
         self.model = HiFiGANModel(model_cfg)
@@ -55,7 +54,11 @@ class HiFiGANVocoder(nn.Module):
 @register_model("CodeHiFiGANVocoder")
 class CodeHiFiGANVocoder(BaseFairseqModel):
     def __init__(
-            self, checkpoint_path: str, model_cfg: Dict[str, str], fp16: bool = False, cpu: bool = False
+        self,
+        checkpoint_path: str,
+        model_cfg: Dict[str, str],
+        fp16: bool = False,
+        cpu: bool = False,
     ) -> None:
         super().__init__()
         self.model = CodeHiFiGANModel(model_cfg)

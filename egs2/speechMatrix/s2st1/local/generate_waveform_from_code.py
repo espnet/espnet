@@ -9,10 +9,11 @@ import argparse
 import json
 import logging
 import os
+
 import soundfile as sf
 import torch
-from fairseq import utils
 from code_hifigan_vocoder import CodeHiFiGANVocoder
+from fairseq import utils
 
 logging.basicConfig()
 logging.root.setLevel(logging.INFO)
@@ -23,9 +24,9 @@ logger = logging.getLogger(__name__)
 def read_utt2units(path: str):
     ret = {}
 
-    with open(path, encoding='utf-8') as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
-            utt, seq = line.rstrip('\n').split(maxsplit=1)
+            utt, seq = line.rstrip("\n").split(maxsplit=1)
             data = [int(e) for e in seq.split()]
             ret[utt] = data
 
@@ -53,12 +54,12 @@ def main(args):
             "num_speakers", 200
         )  # following the default in codehifigan to set to 200
         assert (
-                args.speaker_id < num_speakers
+            args.speaker_id < num_speakers
         ), f"invalid --speaker-id ({args.speaker_id}) with total #speakers = {num_speakers}"
 
     data = read_utt2units(args.utt2units)
 
-    with open(os.path.join(out_dir, "wav.scp"), "w", encoding='utf-8') as scp:
+    with open(os.path.join(out_dir, "wav.scp"), "w", encoding="utf-8") as scp:
         for utt, units in data.items():
             x = dict(
                 code=torch.LongTensor(units).view(1, -1),
@@ -79,7 +80,7 @@ def main(args):
 
             wav_path = os.path.join(out_dir, f"{utt}.wav")
             sf.write(wav_path, wav.detach().cpu().numpy(), samplerate=16000)
-            scp.write(f'{utt} {wav_path}\n')
+            scp.write(f"{utt} {wav_path}\n")
 
 
 def cli_main():
