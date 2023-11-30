@@ -22,6 +22,7 @@ from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
 from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
+from espnet2.spk.encoder.ska_tdnn_encoder import SkaTdnnEncoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
@@ -32,6 +33,7 @@ from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
+from espnet2.spk.projector.ska_tdnn_projector import SkaTdnnProjector
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -88,6 +90,7 @@ encoder_choices = ClassChoices(
         identity=IdentityEncoder,
         mfaconformer=MfaConformerEncoder,
         rawnet3=RawNet3Encoder,
+        ska_tdnn=SkaTdnnEncoder,
     ),
     type_check=AbsEncoder,
     default="rawnet3",
@@ -108,6 +111,7 @@ projector_choices = ClassChoices(
         # TODO (Jee-weon): implement additional Projectors
         # one_layer=OneLayerProjector,
         rawnet3=RawNet3Projector,
+        ska_tdnn=SkaTdnnProjector,
     ),
     type_check=AbsProjector,
     default="rawnet3",
