@@ -108,7 +108,15 @@ class Bottle2neck(nn.Module):
 
 
 class ResBlock(nn.Module):
-    def __init__(self, inplanes, planes, stride=1, downsample=None, reduction=8):
+    def __init__(
+        self,
+        inplanes: int,
+        planes: int,
+        stride: int = 1,
+        reduction: int = 8,
+        skfwse_freq: int = 40,
+        skcwse_channel: int = 128,
+    ):
         super(ResBlock, self).__init__()
         self.conv1 = nn.Conv2d(
             inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False
@@ -116,7 +124,8 @@ class ResBlock(nn.Module):
         self.bn1 = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU(inplace=True)
         self.skfwse = fwSKAttention(
-            freq=40,
+            freq=skfwse_freq,
+            channel=skcwse_channel,
             kernels=[5, 7],
             receptive=[5, 7],
             dilations=[1, 1],
@@ -124,7 +133,8 @@ class ResBlock(nn.Module):
             groups=1,
         )
         self.skcwse = cwSKAttention(
-            channel=128,
+            freq=skfwse_freq,
+            channel=skcwse_channel,
             kernels=[5, 7],
             receptive=[5, 7],
             dilations=[1, 1],
@@ -366,17 +376,25 @@ class SkaTdnnEncoder(AbsEncoder):
         else:
             raise ValueError(f"unsupported block, got: {ska_block}")
 
+        # downsample input size if it's too large
+        # for SSL frontends (otherwise SKA module consumes too much memory)
+        if input_size > 128:
+            self.input_downsample = nn.Conv1d(input_size, 128, kernel_size=1, stride=1)
+            input_size = 128
+        else:
+            self.input_downsample = None
+
         self.frt_conv1 = nn.Conv2d(
             1, ska_dim, kernel_size=(3, 3), stride=(2, 1), padding=1
         )
         self.frt_bn1 = nn.BatchNorm2d(ska_dim)
-        self.frt_block1 = ska_block(ska_dim, ska_dim, stride=(1, 1))
-        self.frt_block2 = ska_block(ska_dim, ska_dim, stride=(1, 1))
+        self.frt_block1 = ska_block(ska_dim, ska_dim, stride=(1, 1), skfwse_freq=input_size // 2, skcwse_channel=ska_dim)
+        self.frt_block2 = ska_block(ska_dim, ska_dim, stride=(1, 1), skfwse_freq=input_size // 2, skcwse_channel=ska_dim)
         self.frt_conv2 = nn.Conv2d(
             ska_dim, ska_dim, kernel_size=(3, 3), stride=(2, 2), padding=1
         )
         self.frt_bn2 = nn.BatchNorm2d(ska_dim)
-        self.conv1 = nn.Conv1d(ska_dim * 20, ndim, kernel_size=5, stride=1, padding=2)
+        self.conv1 = nn.Conv1d(ska_dim * input_size // 4, ndim, kernel_size=5, stride=1, padding=2)
         self.relu = nn.ReLU()
         self.bn1 = nn.BatchNorm1d(ndim)
         self.layer1 = block(ndim, ndim, kernel_size=3, dilation=2, scale=model_scale)
@@ -389,7 +407,10 @@ class SkaTdnnEncoder(AbsEncoder):
         return self._output_size
 
     def forward(self, x):
-        x = x.permute(0, 2, 1).unsqueeze(1)  # (B, S, D) -> (B, 1, D, S)
+        x = x.permute(0,2,1) # (B, S, D) -> (B, D, S)
+        if self.input_downsample is not None:
+            x = self.input_downsample(x)
+        x = x.unsqueeze(1)  # (B, D, S) -> (B, 1, D, S)
 
         # the fcwSKA block
         x = self.frt_conv1(x)
