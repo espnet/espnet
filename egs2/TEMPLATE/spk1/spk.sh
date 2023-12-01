@@ -284,7 +284,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
 
             # copy extra files that are not covered by copy_data_dir.sh
             # category2utt will be used bydata sampler
-            cp data/"${train_set}/spk2utt" "${data_feats}/${train_set}/category2utt"
+            cp data/"${dset}/spk2utt" "${data_feats}/${dset}/category2utt"
             cp data/${dset}/trial_label "${data_feats}/${dset}"
 
             # shellcheck disable=SC2086
