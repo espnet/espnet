@@ -388,13 +388,27 @@ class SkaTdnnEncoder(AbsEncoder):
             1, ska_dim, kernel_size=(3, 3), stride=(2, 1), padding=1
         )
         self.frt_bn1 = nn.BatchNorm2d(ska_dim)
-        self.frt_block1 = ska_block(ska_dim, ska_dim, stride=(1, 1), skfwse_freq=input_size // 2, skcwse_channel=ska_dim)
-        self.frt_block2 = ska_block(ska_dim, ska_dim, stride=(1, 1), skfwse_freq=input_size // 2, skcwse_channel=ska_dim)
+        self.frt_block1 = ska_block(
+            ska_dim,
+            ska_dim,
+            stride=(1, 1),
+            skfwse_freq=input_size // 2,
+            skcwse_channel=ska_dim,
+        )
+        self.frt_block2 = ska_block(
+            ska_dim,
+            ska_dim,
+            stride=(1, 1),
+            skfwse_freq=input_size // 2,
+            skcwse_channel=ska_dim,
+        )
         self.frt_conv2 = nn.Conv2d(
             ska_dim, ska_dim, kernel_size=(3, 3), stride=(2, 2), padding=1
         )
         self.frt_bn2 = nn.BatchNorm2d(ska_dim)
-        self.conv1 = nn.Conv1d(ska_dim * input_size // 4, ndim, kernel_size=5, stride=1, padding=2)
+        self.conv1 = nn.Conv1d(
+            ska_dim * input_size // 4, ndim, kernel_size=5, stride=1, padding=2
+        )
         self.relu = nn.ReLU()
         self.bn1 = nn.BatchNorm1d(ndim)
         self.layer1 = block(ndim, ndim, kernel_size=3, dilation=2, scale=model_scale)
@@ -407,7 +421,7 @@ class SkaTdnnEncoder(AbsEncoder):
         return self._output_size
 
     def forward(self, x):
-        x = x.permute(0,2,1) # (B, S, D) -> (B, D, S)
+        x = x.permute(0, 2, 1)  # (B, S, D) -> (B, D, S)
         if self.input_downsample is not None:
             x = self.input_downsample(x)
         x = x.unsqueeze(1)  # (B, D, S) -> (B, 1, D, S)
