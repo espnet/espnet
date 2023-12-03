@@ -53,6 +53,23 @@ class SSLPackedContents(PackedContents):
     yaml_files = ["train_config"]
 
 
+class S2STPackedContents(PackedContents):
+    # These names must be consistent with the argument of inference functions
+    files = ["s2st_model_file"]
+    yaml_files = ["s2st_train_config"]
+
+
+class S2TPackedContents(PackedContents):
+    # These names must be consistent with the argument of inference functions
+    files = ["s2t_model_file", "lm_file"]
+    yaml_files = ["s2t_train_config", "lm_train_config"]
+
+
+class SpkPackedContents(PackedContents):
+    files = ["model_file"]
+    yaml_files = ["train_config"]
+
+
 def add_arguments(parser: argparse.ArgumentParser, contents: Type[PackedContents]):
     parser.add_argument("--outpath", type=str, required=True)
     for key in contents.yaml_files:
@@ -66,7 +83,7 @@ def get_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Pack input files to archive format")
     subparsers = parser.add_subparsers()
 
-    # Create subparser for ASR
+    # Create subparser for different tasks
     for name, contents in [
         ("asr", ASRPackedContents),
         ("st", STPackedContents),
@@ -76,6 +93,9 @@ def get_parser() -> argparse.ArgumentParser:
         ("svs", SVSPackedContents),
         ("enh_s2t", EnhS2TPackedContents),
         ("ssl", SSLPackedContents),
+        ("s2st", S2STPackedContents),
+        ("s2t", S2TPackedContents),
+        ("spk", SpkPackedContents),
     ]:
         parser_asr = subparsers.add_parser(
             name,

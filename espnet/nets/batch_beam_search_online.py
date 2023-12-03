@@ -99,13 +99,18 @@ class BatchBeamSearchOnline(BatchBeamSearch):
         self.prev_incremental = None
 
     def score_full(
-        self, hyp: BatchHypothesis, x: torch.Tensor, pre_x: torch.Tensor = None
+        self,
+        hyp: BatchHypothesis,
+        x: torch.Tensor,
+        pre_x: torch.Tensor = None,
     ) -> Tuple[Dict[str, torch.Tensor], Dict[str, Any]]:
         """Score new hypothesis by `self.full_scorers`.
 
         Args:
             hyp (Hypothesis): Hypothesis with prefix tokens to score
             x (torch.Tensor): Corresponding input feature
+            pre_x (torch.Tensor): Encoded speech feature for
+                sequential attention (T, D)
 
         Returns:
             Tuple[Dict[str, torch.Tensor], Dict[str, Any]]: Tuple of
@@ -130,9 +135,20 @@ class BatchBeamSearchOnline(BatchBeamSearch):
                 self.running_hyps.states["decoder"] = [
                     None for _ in self.running_hyps.states["decoder"]
                 ]
-                scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x)
             else:
-                scores[k], states[k] = d.batch_score(hyp.yseq, hyp.states[k], x)
+                temp_yseq = hyp.yseq
+
+            if "decoder" in k and self.return_hs:
+                (scores[k], hs), states[k] = d.batch_score(
+                    temp_yseq, hyp.states[k], x, return_hs=self.return_hs
+                )
+            elif "decoder" in k and pre_x is not None:
+                scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x, pre_x)
+            else:
+                scores[k], states[k] = d.batch_score(temp_yseq, hyp.states[k], x)
+
+        if self.return_hs:
+            return hs, scores, states
         return scores, states
 
     def forward(

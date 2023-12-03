@@ -71,7 +71,7 @@ bibliography: paper.bib
 
 # Summary
 This paper presents the software design and user interface of ESPnet-SE++, a new speech separation and enhancement (SSE) module of the ESPnet toolkit.
-ESPnet-SE++ significantly expands the functionality of ESPnet-SE [@Li:2021] with several new models, loss functions, and training recipes [@Lu:2022]. Crucially, it features a new, redesigned interface, which allows for a flexible combination of SSE front-ends with many downstream tasks, including automatic speech recognition (ASR), speaker diarization (SD), speech translation (ST), and spoken language understanding (SLU).
+ESPnet-SE++ significantly expands the functionality of ESPnet-SE [@Li:2021] with several new models[@Hershey:2016; @Chen:2017; @Hu:2020; @Tan:2021; @Li:2022; @Dang:2022; @Takahashi:2019; @Luo:2019; @Lu:2022a], loss functions [@Luo:2018; @Le:2019; @Boeddeker:2021; @Scheibler:2022], and training recipes as shown in [@Lu:2022b]. Crucially, it features a new, redesigned interface, which allows for a flexible combination of SSE front-ends with many downstream tasks, including automatic speech recognition (ASR), speaker diarization (SD), speech translation (ST), and spoken language understanding (SLU).
 
 # Statement of need
 
@@ -127,7 +127,7 @@ object with the data-iterator for testing and validation. During its initializat
 
 #### bin/enh_scoring.py
 		def scoring(..., ref_scp, inf_scp, ...)
-The SSE scoring functions calculates several popular objective scores such as SI-SDR [@le:2019], STOI [@Taal:2011], SDR and PESQ [@Rix:2001], based on the reference signal and processed speech pairs.
+The SSE scoring functions calculates several popular objective scores such as SI-SDR [@Le:2019], STOI [@Taal:2011], SDR and PESQ [@Rix:2001], based on the reference signal and processed speech pairs.
 
 ### SSE Control Class `tasks/enh.py`
 
@@ -200,7 +200,7 @@ which processes speech and only returns losses for [Trainer](https://github.com/
 # ESPnet-SE++ User Interface
 
 ## Building a New Recipe from Scratch
-Since ESPnet2 provides common scripts such as `enh.sh` and `enh_asr.sh` for each task, users only need to create `local/data.sh`  for the data preparation of a new corpus.  The generated data follows the Kaldi-style structure:
+Since ESPnet2 provides common scripts such as `enh.sh` and `enh_asr.sh` for each task, users only need to create `local/data.sh`  for the data preparation of a new corpus.  The generated data follows the Kaldi-style structure [@Povey:2011]:
 
 
 ![](graphics/data_structure.png)

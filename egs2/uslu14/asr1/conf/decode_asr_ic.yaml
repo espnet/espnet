@@ -1,0 +1,8 @@
+beam_size: 1
+ctc_weight: 0.0
+lm_weight: 0.
+maxlenratio: 0.
+minlenratio: 0.
+penalty: 0.
+lang_prompt_token: "<|en|> <|ic|> <|fsc|>"
+prompt_token_file: local/add_tokens-Copy1.txt

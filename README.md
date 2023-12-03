@@ -2,18 +2,21 @@
 
 # ESPnet: end-to-end speech processing toolkit
 
-|system/pytorch ver.|1.11.0|1.12.1|1.13.1|2.0.1|
+|system/pytorch ver.|1.12.1|1.13.1|2.0.1|2.1.0|
 | :---- | :---: | :---: | :---: | :---: |
-|ubuntu/python3.10/pip||||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
-|ubuntu/python3.9/pip||||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
-|ubuntu/python3.8/pip||||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
-|ubuntu/python3.7/pip|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)||
-|debian11/python3.10/conda|||[![ci on debian11](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml?query=branch%3Amaster)||
-|centos7/python3.10/conda|||[![ci on centos7](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml?query=branch%3Amaster)||
+|ubuntu/python3.10/pip|||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
+|ubuntu/python3.9/pip|||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
+|ubuntu/python3.8/pip|||[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|
+|ubuntu/python3.7/pip|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|[![ci on ubuntu](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_ubuntu.yml?query=branch%3Amaster)|||
+|debian11/python3.10/conda||[![ci on debian11](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_debian11.yml?query=branch%3Amaster)|||
+|centos7/python3.10/conda||[![ci on centos7](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_centos7.yml?query=branch%3Amaster)|||
 |windows/python3.10/pip||||[![ci on windows](https://github.com/espnet/espnet/actions/workflows/ci_on_windows.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_windows.yml?query=branch%3Amaster)|
 |macos/python3.10/pip||||[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|
 |macos/python3.10/conda||||[![ci on macos](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml/badge.svg)](https://github.com/espnet/espnet/actions/workflows/ci_on_macos.yml?query=branch%3Amaster)|
 
+<div align="center">
+
+______________________________________________________________________
 [![PyPI version](https://badge.fury.io/py/espnet.svg)](https://badge.fury.io/py/espnet)
 [![Python Versions](https://img.shields.io/pypi/pyversions/espnet.svg)](https://pypi.org/project/espnet/)
 [![Downloads](https://pepy.tech/badge/espnet)](https://pepy.tech/project/espnet)
@@ -23,13 +26,19 @@
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/espnet/espnet/master.svg)](https://results.pre-commit.ci/latest/github/espnet/espnet/master)
 [![Mergify Status](https://img.shields.io/endpoint.svg?url=https://api.mergify.com/v1/badges/espnet/espnet&style=flat)](https://mergify.com)
-[![Gitter](https://badges.gitter.im/espnet-en/community.svg)](https://gitter.im/espnet-en/community?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+[![Discord](https://img.shields.io/discord/1174538500360650773?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/hrCs85gFWM)
+
+______________________________________________________________________
 
 [**Docs**](https://espnet.github.io/espnet/)
 | [**Example**](https://github.com/espnet/espnet/tree/master/egs)
 | [**Example (ESPnet2)**](https://github.com/espnet/espnet/tree/master/egs2)
 | [**Docker**](https://github.com/espnet/espnet/tree/master/docker)
 | [**Notebook**](https://github.com/espnet/notebook)
+
+</div>
+
+______________________________________________________________________
 
 ESPnet is an end-to-end speech processing toolkit covering end-to-end speech recognition, text-to-speech, speech translation, speech enhancement, speaker diarization, spoken language understanding, and so on.
 ESPnet uses [pytorch](http://pytorch.org/) as a deep learning engine and also follows [Kaldi](http://kaldi-asr.org/) style data processing, feature extraction/format, and recipes to provide a complete setup for various speech processing experiments.
@@ -231,6 +240,14 @@ Demonstration
   - wav2vec-U (with different self-supervised models)
   - wav2vec-U 2.0 (in progress)
 - Support PrefixBeamSearch and K2-based WFST decoding
+
+### S2T: Speech-to-text with Whisper-style multilingual multitask models
+- Reproduces Whisper-style training from scratch using public data: [OWSM](https://arxiv.org/abs/2309.13876)
+- Supports multiple tasks in a single model
+  - Multilingual speech recognition
+  - Any-to-any speech translation
+  - Language identification
+  - Utterance-level timestamp prediction (segmentation)
 
 ### DNN Framework
 - Flexible network architecture thanks to Chainer and PyTorch
@@ -873,5 +890,11 @@ Also, we can use this tool to provide token-level segmentation information if we
   author={Gao, Dongji and Shi, Jiatong and Chuang, Shun-Po and Garcia, Leibny Paola and Lee, Hung-yi and Watanabe, Shinji and Khudanpur, Sanjeev},
   journal={arXiv preprint arXiv:2211.17196},
   year={2022}
+}
+@article{peng2023reproducing,
+  title={Reproducing Whisper-Style Training Using an Open-Source Toolkit and Publicly Available Data},
+  author={Peng, Yifan and Tian, Jinchuan and Yan, Brian and Berrebbi, Dan and Chang, Xuankai and Li, Xinjian and Shi, Jiatong and Arora, Siddhant and Chen, William and Sharma, Roshan and others},
+  journal={arXiv preprint arXiv:2309.13876},
+  year={2023}
 }
 ```
