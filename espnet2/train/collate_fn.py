@@ -98,8 +98,6 @@ class HuBERTCollateFn(CommonCollateFn):
                     else:
                         noise_path = sps[1]
                     self.noise_paths.append(noise_path)
-                    #with soundfile.SoundFile(noise_path) as f:
-                        #self.noises.append(f.read(dtype=np.float32, always_2d=False).squeeze())
             sps = noise_db_range.split("_")
             if len(sps) == 1:
                 self.noise_db_low = self.noise_db_high = float(sps[0])
@@ -128,7 +126,6 @@ class HuBERTCollateFn(CommonCollateFn):
         power = (speech[detect_non_silence(speech)] ** 2).mean()
         if self.dynamic_mixing_prob >= np.random.random() or len(data) == 1:
             noise = self._read_noise_audio_().squeeze()
-            #noise = np.random.choice(self.noises)
             noise_db = np.random.uniform(self.noise_db_low, self.noise_db_high)
         else:
             noise = random.choice(data)
