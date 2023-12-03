@@ -1,4 +1,5 @@
-from espnet2.bin.tokenize_text import get_parser, tokenize as run_tokenizer
+from espnet2.bin.tokenize_text import get_parser
+from espnet2.bin.tokenize_text import tokenize as run_tokenizer
 
 
 def tokenize(
