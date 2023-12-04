@@ -45,8 +45,7 @@ class ScoreModel(AbsDiffusion):
                 from espnet2.enh.layers.ncsnpp import NCSNpp
                 score_model_class = NCSNpp
             except:
-                print("NCSNpp needs nvcc to compile operaters. Make sure you have cudatoolkit installed")
-                raise
+                raise EnvironmentError("NCSNpp needs nvcc to compile operaters. Make sure you have cudatoolkit installed")
         else:
             score_model_class = score_choices.get_class(kwargs["score_model"])
         self.dnn = score_model_class(**kwargs["score_model_conf"])
