@@ -30,25 +30,24 @@ if [ ! -e "${WSJ0}" ]; then
     exit 1
 fi
 
-if [ ! -e "${CHIME3}" ]; then
-    log "Fill the value of 'CHIME3' of db.sh"
-    exit 1
-fi
+
 
 mkdir -p ./data/
 
 local/convert2wav.sh ${WSJ0} ./data/wsj0_ful_wav || exit 1;
 
-python local/create_wsj0_chime3.py ./data/wsj0_ful_wav/wsj0 ${CHIME3}/data/ ./data/wsj_chime3
+pip3 install -q pyroomacoustics==0.6.0
 
-WSJ_CHIME3="./data/wsj_chime3"
+python local/create_wsj0_reverb.py --wsj0_dir ./data/wsj0_ful_wav/wsj0 --target_dir ./data/wsj_reverb
+
+WSJ_REVERB=./data/wsj_reverb/audio
 
 for f in test valid train;
 do
 
 mkdir -p data/${f}
-find ${WSJ_CHIME3}/${f}/noisy/*.wav | sort > data/${f}/wav.id.scp
-find ${WSJ_CHIME3}/${f}/clean/*.wav | sort > data/${f}/spk1.id.scp
+find ${WSJ_REVERB}/${f}/reverb/*.wav | sort > data/${f}/wav.id.scp
+find ${WSJ_REVERB}/${f}/anechoic/*.wav | sort > data/${f}/spk1.id.scp
 
 paste <(cat data/${f}/wav.id.scp | xargs -L 1  basename -s .wav ) <(cat data/${f}/wav.id.scp) > data/${f}/wav.scp
 paste <(cat data/${f}/spk1.id.scp | xargs -L 1  basename -s .wav ) <(cat data/${f}/spk1.id.scp) > data/${f}/spk1.scp

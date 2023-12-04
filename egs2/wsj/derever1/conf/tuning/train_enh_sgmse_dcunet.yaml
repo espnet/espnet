@@ -2,11 +2,10 @@ optim: adam
 init: xavier_uniform
 max_epoch: 100
 batch_type: folded
-# batch_size: 128
 batch_size: 8
 iterator_type: chunk
-chunk_length: 32640
-num_workers: 4
+chunk_length: 40832
+num_workers: 0
 optim_conf:
     lr: 1.0e-04
     eps: 1.0e-08
@@ -16,6 +15,9 @@ val_scheduler_criterion:
 - valid
 - loss
 best_model_criterion:
+-   - valid
+    - si_snr
+    - max
 -   - valid
     - loss
     - min
@@ -28,19 +30,20 @@ scheduler_conf:
 
 encoder: stft
 encoder_conf:
-    n_fft: 510
+    n_fft: 512
     hop_length: 128
     spec_transform_type: exponent
 decoder: stft
 decoder_conf:
-    n_fft: 510
+    n_fft: 512
     hop_length: 128
     spec_transform_type: exponent
 
 diffusion_model: sgmse
 diffusion_model_conf:
-    score_model: ncsnpp
-    score_model_conf: {}
+    score_model: dcunet
+    score_model_conf:
+        dcunet_architecture: "DilDCUNet-v2"
     loss_type: "mse"
     sde: ouve
     sde_conf:

@@ -9,8 +9,8 @@ chunk_length: 32640
 num_workers: 4
 optim_conf:
     lr: 1.0e-04
-    eps: 1.0e-08
-    weight_decay: 1.0e-7
+    # eps: 1.0e-08
+    # weight_decay: 1.0e-7
 patience: 10
 val_scheduler_criterion:
 - valid
@@ -19,12 +19,11 @@ best_model_criterion:
 -   - valid
     - loss
     - min
-keep_nbest_models: 1
-scheduler: reducelronplateau
+keep_nbest_models: 10
+scheduler: steplr
 scheduler_conf:
-    mode: min
-    factor: 0.7
-    patience: 1
+    step_size: 2
+    gamma: 0.97
 
 encoder: stft
 encoder_conf:
