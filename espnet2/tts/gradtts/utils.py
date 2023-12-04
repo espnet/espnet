@@ -40,3 +40,10 @@ def generate_path(duration, mask):
 def duration_loss(logw, logw_, lengths):
     loss = torch.sum((logw - logw_)**2) / torch.sum(lengths)
     return loss
+
+def intersperse(lst, item):
+    # Adds blank symbol
+    result = [item] * (len(lst) * 2 + 1)
+    result[1::2] = lst
+    return result
+

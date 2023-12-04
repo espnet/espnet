@@ -309,6 +309,11 @@ class TextEncoder(BaseModule):
                                         kernel_size, p_dropout)
 
     def forward(self, x, x_lengths, spk=None):
+        num_embeddings = self.emb.num_embeddings
+        if x.max() >= num_embeddings:
+            print("Error: Input tensor contains index out of range")
+        if x.min() < 0:
+            print("Error: Input tensor contains negative index")
         x = self.emb(x) * math.sqrt(self.n_channels)
         x = torch.transpose(x, 1, -1)
         x_mask = torch.unsqueeze(sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
