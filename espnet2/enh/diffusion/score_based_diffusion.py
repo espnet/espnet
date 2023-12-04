@@ -46,8 +46,10 @@ class ScoreModel(AbsDiffusion):
 
                 score_model_class = NCSNpp
             except:
-                raise EnvironmentError("NCSNpp needs nvcc to compile operaters. \
-                                       Make sure you have cuda toolkit installed")
+                raise EnvironmentError(
+                    "NCSNpp needs nvcc to compile operaters. \
+                                       Make sure you have cuda toolkit installed"
+                )
         else:
             score_model_class = score_choices.get_class(kwargs["score_model"])
         self.dnn = score_model_class(**kwargs["score_model_conf"])
