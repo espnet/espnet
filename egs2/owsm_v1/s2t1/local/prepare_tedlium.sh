@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 . ./path.sh || exit 1;
+. ./db.sh || exit 1;
 
 # Copied from utils/fix_data_dir.sh
 function check_sorted {
@@ -25,13 +26,13 @@ log() {
 }
 SECONDS=0
 
-wenetspeech_dir=/scratch/bbjs/peng6/corpora_shared/WenetSpeech/untar
-prefix=WenetSpeech
-output_dir=data/WenetSpeech
-splits="DEV L"
+data_dir=${TEDLIUM3}
+prefix=TEDLIUM3
+output_dir=data/TEDLIUM3
+splits="dev train"
 
-python local/prepare_wenetspeech.py \
-    --data_dir ${wenetspeech_dir} \
+python local/prepare_tedlium.py \
+    --data_dir ${data_dir} \
     --prefix ${prefix} \
     --output_dir ${output_dir} \
     --splits ${splits} || exit 1;

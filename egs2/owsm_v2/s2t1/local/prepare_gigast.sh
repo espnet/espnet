@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 . ./path.sh || exit 1;
+. ./db.sh || exit 1;
 
 # Copied from utils/fix_data_dir.sh
 function check_sorted {
@@ -25,8 +26,8 @@ log() {
 }
 SECONDS=0
 
-gigaspeech_dir=/scratch/bbjs/peng6/corpora/GigaSpeech
-gigast_dir=/scratch/bbjs/peng6/corpora/GigaST
+gigaspeech_dir=${GIGASPEECH}
+gigast_dir=${GIGAST}
 prefix=GigaST
 output_dir=data/GigaST
 languages="de zh"

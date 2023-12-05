@@ -6,6 +6,7 @@ set -u
 set -o pipefail
 
 . ./path.sh || exit 1;
+. ./db.sh || exit 1;
 
 # Copied from utils/fix_data_dir.sh
 function check_sorted {
@@ -25,13 +26,13 @@ log() {
 }
 SECONDS=0
 
-data_dir=/scratch/bbjs/peng6/corpora/AISHELL-1
-prefix=AISHELL-1
-output_dir=data/AISHELL-1
-splits="dev train"
+wenetspeech_dir=${WENETSPEECH}
+prefix=WenetSpeech
+output_dir=data/WenetSpeech
+splits="DEV L"
 
-python local/prepare_aishell.py \
-    --data_dir ${data_dir} \
+python local/prepare_wenetspeech.py \
+    --data_dir ${wenetspeech_dir} \
     --prefix ${prefix} \
     --output_dir ${output_dir} \
     --splits ${splits} || exit 1;
