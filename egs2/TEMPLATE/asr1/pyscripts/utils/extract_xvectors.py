@@ -89,8 +89,8 @@ class XVExtractor:
             speech2embedding_kwargs = dict(
                 batch_size=1,
                 dtype="float32",
-                spk_train_config=None,
-                spk_model_file=args.pretrained_model,
+                train_config=None,
+                model_file=args.pretrained_model,
             )
 
             if args.pretrained_model.endswith("pth"):

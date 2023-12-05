@@ -30,8 +30,8 @@ class Speech2Embedding:
 
     def __init__(
         self,
-        spk_train_config: Uhion[Path, str] = None,
-        spk_model_file: Union[Path, str] = None,
+        train_config: Uhion[Path, str] = None,
+        model_file: Union[Path, str] = None,
         device: str = "cpu",
         dtype: str = "float32",
         batch_size: int = 1,
@@ -39,7 +39,7 @@ class Speech2Embedding:
         assert check_argument_types()
 
         spk_model, spk_train_args = SpeakerTask.build_model_from_file(
-            spk_train_config, spk_model_file, device
+            train_config, model_file, device
         )
         self.spk_model = spk_model
         self.spk_train_args = spk_train_args
@@ -118,8 +118,8 @@ def inference(
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
     key_file: Optional[str],
-    spk_train_config: Optional[str],
-    spk_model_file: Optional[str],
+    train_config: Optional[str],
+    model_file: Optional[str],
     model_tag: Optional[str],
 ):
     assert check_argument_types()
@@ -145,8 +145,8 @@ def inference(
     speech2embedding_kwargs = dict(
         batch_size=batch_size,
         dtype=dtype,
-        spk_train_config=spk_train_config,
-        spk_model_file=spk_model_file,
+        train_config=train_config,
+        model_file=model_file,
     )
 
     speech2embedding = Speech2Embedding.from_pretrained(
@@ -238,12 +238,12 @@ def get_parser():
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
-        "--spk_train_config",
+        "--train_config",
         type=str,
         help="Speaker model training configuration",
     )
     group.add_argument(
-        "--spk_model_file",
+        "--model_file",
         type=str,
         help="Speaker model parameter file",
     )
