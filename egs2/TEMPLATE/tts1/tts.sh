@@ -326,7 +326,6 @@ if ! "${skip_data_prep}"; then
 
         log "Stage 2: Format wav.scp: data/ -> ${data_feats}/"
         for dset in "${train_set}" "${valid_set}" ${test_sets}; do
-            continue
             if [ "${dset}" = "${train_set}" ] || [ "${dset}" = "${valid_set}" ]; then
                 _suf="/org"
             else

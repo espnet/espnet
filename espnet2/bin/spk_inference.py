@@ -13,6 +13,7 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.spk import SpeakerTask
+from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet.utils.cli_utils import get_commandline_args
 
@@ -41,13 +42,14 @@ class Speech2Embedding:
         spk_model, spk_train_args = SpeakerTask.build_model_from_file(
             train_config, model_file, device
         )
-        self.spk_model = spk_model
+        self.spk_model = spk_model.eval()
         self.spk_train_args = spk_train_args
+        self.device = device
         self.dtype = dtype
         self.batch_size = batch_size
 
     @torch.no_grad()
-    def __call__(self, seech: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
+    def __call__(self, speech: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """Inference
 
         Args:
@@ -67,7 +69,7 @@ class Speech2Embedding:
         # data: (Nsamples,) -> (1, Nsamples)
         speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
         logging.info("speech length: " + str(speech.size(1)))
-        batch = {"speech": speech}
+        batch = {"speech": speech, "extract_embd": True}
 
         # a. To device
         batch = to_device(batch, device=self.device)
