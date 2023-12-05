@@ -147,7 +147,10 @@ class XVExtractor:
             embeds = self.model.encode_batch(wav).detach().cpu().numpy()[0]
         elif self.toolkit == "rawnet":
             wav = librosa.resample(wav, orig_sr=in_sr, target_sr=16000)
-            embeds = self.rawnet_extract_embd(wav)
+            embeds = self._rawnet_extract_embd(wav)
+        elif self.toolkit == "espnet":
+            wav = librosa.resample(wav, orig_sr=in_sr, target_sr=16000)
+            embeds = self._espnet_extract_embd(wav)
         return embeds
 
 
@@ -173,7 +176,7 @@ def main(argv):
     else:
         device = "cpu"
 
-    if args.toolkit in ("speechbrain", "rawnet"):
+    if args.toolkit in ("speechbrain", "rawnet", "espnet"):
         # Prepare spk2utt for mean x-vector
         spk2utt = dict()
         with open(os.path.join(args.in_folder, "spk2utt"), "r") as reader:
@@ -207,10 +210,6 @@ def main(argv):
         writer_utt.close()
         writer_spk.close()
 
-    elif args.toolkit == "espnet":
-        raise NotImplementedError(
-            "Follow details at: https://github.com/espnet/espnet/issues/3040"
-        )
     else:
         raise ValueError(
             "Unkown type of toolkit. Only supported: speechbrain, rawnet, espnet, kaldi"
