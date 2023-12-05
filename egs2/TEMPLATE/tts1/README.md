@@ -244,10 +244,10 @@ If you want to combine with neural vocoders, you can combine with [kan-bayashi/P
 $ . ./path.sh && pip install -U parallel_wavegan
 
 # Use parallel_wavegan provided pretrained ljspeech style melgan as a vocoder
-$ ./run.sh --stage 7 --inference_args "--vocoder_tag parallel_wavegan/ljspeech_style_melgan.v1" --inference_tag decode_with_ljspeech_style_melgan.v1
+$ ./run.sh --stage 8 --inference_args "--vocoder_tag parallel_wavegan/ljspeech_style_melgan.v1" --inference_tag decode_with_ljspeech_style_melgan.v1
 
 # Use the vocoder trained by `parallel_wavegan` repo manually
-$ ./run.sh --stage 7 --vocoder_file /path/to/checkpoint-xxxxxxsteps.pkl --inference_tag decode_with_my_vocoder
+$ ./run.sh --stage 8 --vocoder_file /path/to/checkpoint-xxxxxxsteps.pkl --inference_tag decode_with_my_vocoder
 ```
 
 If you want to generate waveform from dumped features, please check [decoding with ESPnet-TTS model's feature](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features).
@@ -257,7 +257,7 @@ For the first time, we recommend performing each stage step-by-step via `--stage
 $ ./run.sh --stage 1 --stop-stage 1
 $ ./run.sh --stage 2 --stop-stage 2
 ...
-$ ./run.sh --stage 7 --stop-stage 7
+$ ./run.sh --stage 8 --stop-stage 8
 ```
 This might helps you to understand each stage's processing and directory structure.
 
@@ -269,7 +269,7 @@ Please make sure you already finished the training of the teacher model (Tacotro
 First, decode all of data including training, validation, and evaluation set.
 ```sh
 # specify teacher model directory via --tts_exp option
-$ ./run.sh --stage 7 \
+$ ./run.sh --stage 8 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
     --test_sets "tr_no_dev dev eval1"
 ```
@@ -277,7 +277,7 @@ This will generate `durations` for training, validation, and evaluation sets in 
 
 Then, you can train FastSpeech by specifying the directory including `durations` via `--teacher_dumpdir` option.
 ```sh
-$ ./run.sh --stage 6 \
+$ ./run.sh --stage 7 \
     --train_config conf/tuning/train_fastspeech.yaml \
     --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_train.loss.ave
 ```
@@ -285,7 +285,7 @@ $ ./run.sh --stage 6 \
 In the above example, we use generated mel-spectrogram as the target, which is known as knowledge distillation training.
 If you want to use groundtruth mel-spectrogram as the target, we need to use teacher forcing in decoding.
 ```sh
-$ ./run.sh --stage 7 \
+$ ./run.sh --stage 8 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
     --inference_args "--use_teacher_forcing true" \
     --test_sets "tr_no_dev dev eval1"
@@ -294,7 +294,7 @@ You can get the groundtruth aligned durations in `exp/tts_train_raw_phn_tacotron
 
 Then, you can train FastSpeech without knowledge distillation.
 ```sh
-$ ./run.sh --stage 6 \
+$ ./run.sh --stage 7 \
     --train_config conf/tuning/train_fastspeech.yaml \
     --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave
 ```
@@ -303,7 +303,7 @@ $ ./run.sh --stage 6 \
 
 The procedure is almost the same as FastSpeech but we **MUST** use teacher forcing in decoding.
 ```sh
-$ ./run.sh --stage 7 \
+$ ./run.sh --stage 8 \
     --tts_exp exp/tts_train_raw_phn_tacotron_g2p_en_no_space \
     --inference_args "--use_teacher_forcing true" \
     --test_sets "tr_no_dev dev eval1"
@@ -312,7 +312,7 @@ $ ./run.sh --stage 7 \
 To train FastSpeech2, we use additional feature (F0 and energy).
 Therefore, we need to start from `stage 5` to calculate additional statistics.
 ```sh
-$ ./run.sh --stage 5 \
+$ ./run.sh --stage 6 \
     --train_config conf/tuning/train_fastspeech2.yaml \
     --teacher_dumpdir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave \
     --tts_stats_dir exp/tts_train_raw_phn_tacotron_g2p_en_no_space/decode_use_teacher_forcingtrue_train.loss.ave/stats \
@@ -325,7 +325,7 @@ The use of `--write_collected_feats` is optional but it helps to accelerate the 
 
 First, you need to run from the stage 2 and 3 with `--use_xvector true` to extract X-vector.
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_xvector true
+$ ./run.sh --stage 3 --stop-stage 4 --use_xvector true
 ```
 You can find the extracted X-vector in `dump/xvector/*/xvector.{ark,scp}`.
 Then, you can run the training with the config which has `spk_embed_dim: 512` in `tts_conf`.
@@ -355,7 +355,7 @@ The original xvector.scp files are renamed to xvector.scp.bak in case you wish t
 
 Once you've performed extraction and optionally the speaker-averaged replacement step, please run the training from stage 6.
 ```sh
-$ ./run.sh --stage 6 --use_xvector true --train_config /path/to/your_xvector_config.yaml
+$ ./run.sh --stage 7 --use_xvector true --train_config /path/to/your_xvector_config.yaml
 ```
 
 You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
@@ -364,7 +364,7 @@ You can find the example config in [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts
 
 First, you need to run from the stage 2 and 3 with `--use_sid true` to extract speaker ID.
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_sid true
+$ ./run.sh --stage 3 --stop-stage 4 --use_sid true
 ```
 You can find the speaker ID file in `dump/raw/*/utt2sid`.
 Note that you need to correctly create `utt2spk` in data prep stage to generate `utt2sid`.
@@ -376,14 +376,14 @@ tts_conf:
 ```
 Please run the training from stage 6.
 ```sh
-$ ./run.sh --stage 6 --use_sid true --train_config /path/to/your_multi_spk_config.yaml
+$ ./run.sh --stage 7 --use_sid true --train_config /path/to/your_multi_spk_config.yaml
 ```
 
 ### Multi-language model with language ID embedding training
 
 First, you need to run from the stage 2 and 3 with `--use_lid true` to extract speaker ID.
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_lid true
+$ ./run.sh --stage 3 --stop-stage 4 --use_lid true
 ```
 You can find the speaker ID file in `dump/raw/*/utt2lid`.
 **Note that you need to additionally create `utt2lang` file in data prep stage to generate `utt2lid`.**
@@ -395,13 +395,13 @@ tts_conf:
 ```
 Please run the training from stage 6.
 ```sh
-$ ./run.sh --stage 6 --use_lid true --train_config /path/to/your_multi_lang_config.yaml
+$ ./run.sh --stage 7 --use_lid true --train_config /path/to/your_multi_lang_config.yaml
 ```
 
 Of course you can further combine with x-vector or speaker ID embedding.
 If you want to use both sid and lid, the process should be like this:
 ```sh
-$ ./run.sh --stage 2 --stop-stage 3 --use_lid true --use_sid true
+$ ./run.sh --stage 3 --stop-stage 4 --use_lid true --use_sid true
 ```
 Make your config.
 ```yaml
@@ -412,7 +412,7 @@ tts_conf:
 ```
 Please run the training from stage 6.
 ```sh
-$ ./run.sh --stage 6 --use_lid true --use_sid true --train_config /path/to/your_multi_spk_multi_lang_config.yaml
+$ ./run.sh --stage 7 --use_lid true --use_sid true --train_config /path/to/your_multi_spk_multi_lang_config.yaml
 ```
 
 ### VITS training
@@ -550,7 +550,7 @@ $ ...
 
 # Case 1: Train conformer fastspeech2 + hifigan G + hifigan D from scratch
 $ ./run.sh \
-    --stage 6 \
+    --stage 7 \
     --tts_task gan_tts \
     --train_config ./conf/tuning/train_joint_conformer_fastspeech2_hifigan.yaml
 
@@ -595,7 +595,7 @@ $ vim conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml
 
 # (d) Run training
 $ ./run.sh \
-    --stage 6 \
+    --stage 7 \
     --tts_task gan_tts \
     --train_config ./conf/tuning/finetune_joint_conformer_fastspeech2_hifigan.yaml
 ```
@@ -980,7 +980,7 @@ The trained vocoder can be used as follows:
 
 - With TTS recipe
   ```sh
-  $ ./run.sh --stage 7 --vocoder_file /path/to/your_trained_vocoder_checkpoint.pkl --inference_tag decode_with_my_vocoder
+  $ ./run.sh --stage 8 --vocoder_file /path/to/your_trained_vocoder_checkpoint.pkl --inference_tag decode_with_my_vocoder
   ```
 
 - [With command line](https://github.com/kan-bayashi/ParallelWaveGAN#decoding-with-espnet-tts-models-features)
@@ -1046,3 +1046,4 @@ This is because we use prenet in the decoder, which always applies dropout.
 See more info in [Tacotron2 paper](https://arxiv.org/abs/1712.05884).
 
 If you want to fix the results, you can use [`--always_fix_seed` option](https://github.com/espnet/espnet/blob/f03101557753517ebac8c432f0793d97d68fa5f0/espnet2/bin/tts_inference.py#L601-L606).
+
