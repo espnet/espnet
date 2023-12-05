@@ -81,8 +81,37 @@ class XVExtractor:
                 )["model"]
             )
             self.model.to(device).eval()
+        elif self.toolkit == "espnet":
+            from espnet2.bin.spk_inference import Speech2Embedding
 
-    def rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
+            # NOTE(jiatong): set default config file as None
+            # assume config is the same path as the model file
+            speech2embedding_kwargs = dict(
+                batch_size=1,
+                dtype="float32",
+                spk_train_config=None,
+                spk_model_file=args.pretrained_model,
+            )
+
+            if args.pretrained_model.endwith("pth"):
+                logging.info(
+                    "the provided model path is end with pth,"
+                    "assume it not a huggingface model"
+                )
+                model_tag = None
+            else:
+                logging.info(
+                    "the provided model path is not end with pth,"
+                    "assume use huggingface model"
+                )
+                model_tag = args.pretrained_model
+
+            self.speech2embedding = Speech2Embedding.from_pretrained(
+                model_tag=model,
+                **speech2embedding_kwargs,
+            )
+
+    def _rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
         if len(audio.shape) > 1:
             raise ValueError(
                 "RawNet3 supports mono input only."
@@ -101,6 +130,16 @@ class XVExtractor:
         with torch.no_grad():
             output = self.model(audios)
         return output.mean(0).detach().cpu().numpy()
+
+    def _espnet_extract_embd(self, audio):
+        if len(audio.shape) > 1:
+            raise ValueError(
+                "Not support multi-channel input for ESPnet pre-trained model"
+                f"Input data has a shape of {audio.shape}."
+            )
+        audio = torch.from_numpy(audio.astype(np.float32)).to(self.device)
+        output = self.self.speech2embedding(audio)
+        return output.cpu().numpy()
 
     def __call__(self, wav, in_sr):
         if self.toolkit == "speechbrain":

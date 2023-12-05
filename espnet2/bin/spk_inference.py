@@ -25,7 +25,7 @@ class Speech2Embedding:
         >>> speech2embed = Speech2Embedding("spk_config.yml", "spk.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2embed(audio)
-        
+
     """
 
     def __init__(
@@ -38,21 +38,21 @@ class Speech2Embedding:
     ):
         assert check_argument_types()
 
-        spk_model, spk_train_args = SpeakerTask.build_model_from_file(spk_train_config, spk_model_file, device)
+        spk_model, spk_train_args = SpeakerTask.build_model_from_file(
+            spk_train_config, spk_model_file, device
+        )
         self.spk_model = spk_model
         self.spk_train_args = spk_train_args
         self.dtype = dtype
         self.batch_size = batch_size
-    
+
     @torch.no_grad()
-    def __call__(
-        self, seech: Union[torch.Tensor, np.ndarray]
-    ) -> torch.Tensor:
+    def __call__(self, seech: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """Inference
 
         Args:
             speech: Input speech data
-        
+
         Returns:
             spk_embedding
 
@@ -76,7 +76,7 @@ class Speech2Embedding:
         output = self.spk_model(**batch)
 
         return output
-        
+
     @staticmethod
     def from_pretrained(
         model_tag: Optional[str] = None,
@@ -106,7 +106,7 @@ class Speech2Embedding:
             kwargs.update(**d.download_and_unpack(model_tag))
 
         return Speech2Embedding(**kwargs)
-        
+
 
 def inference(
     output_dir: str,
@@ -151,7 +151,7 @@ def inference(
 
     speech2embedding = Speech2Embedding.from_pretrained(
         model_tag=model_tag,
-        **speech2text_kwargs,
+        **speech2embedding_kwargs,
     )
 
     # 3. Build data-iterator
@@ -161,16 +161,15 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=SpeakerTask.build_preprocess_fn(speech2embedding.spk_train_args, False),
+        preprocess_fn=SpeakerTask.build_preprocess_fn(
+            speech2embedding.spk_train_args, False
+        ),
         collate_fn=SpeakerTask.build_colate_fn(speech2embedding.spk_train_args, False),
         inference=True,
     )
 
     # 4. Start for-loop
-    with NpyScpWriter(
-        output_dir / "embed",
-        output_dir / "embed.scp"
-    ) as writer:
+    with NpyScpWriter(output_dir / "embed", output_dir / "embed.scp") as writer:
         for keys, batch in loader:
             assert isinstance(batch, dict), type(batch)
             assert all(isinstance(s, str) for s in keys), keys
