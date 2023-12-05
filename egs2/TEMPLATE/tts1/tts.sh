@@ -338,7 +338,7 @@ if ! "${skip_data_prep}"; then
             if [ -e data/"${dset}"/segments ]; then
                 _opts+="--segments data/${dset}/segments "
             fi
-       
+
             # shellcheck disable=SC2086
             scripts/audio/format_wav_scp.sh --nj "${nj}" --cmd "${train_cmd}" \
                 --audio-format "${audio_format}" --fs "${fs}" ${_opts} \
@@ -1261,4 +1261,3 @@ else
 fi
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
-
