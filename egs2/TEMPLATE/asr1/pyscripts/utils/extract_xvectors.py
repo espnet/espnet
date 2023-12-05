@@ -93,7 +93,7 @@ class XVExtractor:
                 spk_model_file=args.pretrained_model,
             )
 
-            if args.pretrained_model.endwith("pth"):
+            if args.pretrained_model.endswith("pth"):
                 logging.info(
                     "the provided model path is end with pth,"
                     "assume it not a huggingface model"
