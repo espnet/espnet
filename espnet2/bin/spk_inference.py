@@ -2,106 +2,197 @@
 import argparse
 import logging
 import sys
+from distutils.version import LooseVersion
+from itertools import groupby
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-import humanfriendly
 import numpy as np
 import torch
 from typeguard import check_argument_types, check_return_type
 
-from espnet2.samplers.build_batch_sampler import BATCH_TYPES
+from espnet2.fileio.npy_scp import NpyScpWriter
 from espnet2.tasks.spk import SpeakerTask
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.train.distributed_utils import (
-    DistributedOption,
-    free_port,
-    get_master_port,
-    get_node_rank,
-    get_num_nodes,
-    resolve_distributed_mode,
-)
-from espnet2.train.reporter import Reporter, SubReporter
-from espnet2.utils import config_argparse
-from espnet2.utils.build_dataclass import build_dataclass
-from espnet2.utils.types import (
-    humanfriendly_parse_size_or_none,
-    int_or_none,
-    str2bool,
-    str2triple_str,
-    str_or_none,
-)
 from espnet.utils.cli_utils import get_commandline_args
 
 
-def inference(args):
+class Speech2Embedding:
+    """Speech2Embedding class
+
+    Examples:
+        >>> import soundfile
+        >>> speech2embed = Speech2Embedding("spk_config.yml", "spk.pth")
+        >>> audio, rate = soundfile.read("speech.wav")
+        >>> speech2embed(audio)
+        
+    """
+
+    def __init__(
+        self,
+        spk_train_config: Uhion[Path, str] = None,
+        spk_model_file: Union[Path, str] = None,
+        device: str = "cpu",
+        dtype: str = "float32",
+        batch_size: int = 1,
+    ):
+        assert check_argument_types()
+
+        spk_model, spk_train_args = SpeakerTask.build_model_from_file(spk_train_config, spk_model_file, device)
+        self.spk_model = spk_model
+        self.spk_train_args = spk_train_args
+        self.dtype = dtype
+        self.batch_size = batch_size
+    
+    @torch.no_grad()
+    def __call__(
+        self, seech: Union[torch.Tensor, np.ndarray]
+    ) -> torch.Tensor:
+        """Inference
+
+        Args:
+            speech: Input speech data
+        
+        Returns:
+            spk_embedding
+
+        """
+
+        assert check_argument_types()
+
+        # Input as audio signal
+        if isinstance(speech, np.ndarray):
+            speech = torch.tensor(speech)
+
+        # data: (Nsamples,) -> (1, Nsamples)
+        speech = speech.unsqueeze(0).to(getattr(torch, self.dtype))
+        logging.info("speech length: " + str(speech.size(1)))
+        batch = {"speech": speech}
+
+        # a. To device
+        batch = to_device(batch, device=self.device)
+
+        # b. Forward the model embedding extraction
+        output = self.spk_model(**batch)
+
+        return output
+        
+    @staticmethod
+    def from_pretrained(
+        model_tag: Optional[str] = None,
+        **kwargs: Optional[Any],
+    ):
+        """Build Speech2Embedding instance from the pretrained model.
+
+        Args:
+            model_tag (Optional[str]): Model tag of the pretrained models.
+                Currently, the tags of espnet_model_zoo are supported.
+
+        Returns:
+            Speech2Text: Speech2Embedding instance.
+
+        """
+        if model_tag is not None:
+            try:
+                from espnet_model_zoo.downloader import ModelDownloader
+
+            except ImportError:
+                logging.error(
+                    "`espnet_model_zoo` is not installed. "
+                    "Please install via `pip install -U espnet_model_zoo`."
+                )
+                raise
+            d = ModelDownloader()
+            kwargs.update(**d.download_and_unpack(model_tag))
+
+        return Speech2Embedding(**kwargs)
+        
+
+def inference(
+    output_dir: str,
+    batch_size: int,
+    dtype: str,
+    ngpu: int,
+    seed: int,
+    num_workers: int,
+    log_level: Union[int, str],
+    data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
+    key_file: Optional[str],
+    spk_train_config: Optional[str],
+    spk_model_file: Optional[str],
+    model_tag: Optional[str],
+):
     assert check_argument_types()
+    if batch_size > 1:
+        raise NotImplementedError("batch decoding is not implemented")
+    if ngpu > 1:
+        raise NotImplementedError("only single GPU decoding is supported")
 
     logging.basicConfig(
-        level=args.log_level,
+        level=log_level,
         format="%(asctime)s (%(module)s:%(lineno)d) %(levelname)s: %(message)s",
     )
 
-    if args.ngpu >= 1:
+    if ngpu >= 1:
         device = "cuda"
     else:
         device = "cpu"
 
     # 1. Set random-seed
-    set_all_random_seed(args.seed)
+    set_all_random_seed(seed)
 
-    # 2. define train args
-    spk_model, spk_train_args = SpeakerTask.build_model_from_file(
-        args.spk_train_config, args.spk_model_file, device
+    # 2. Build speech2embedding
+    speech2embedding_kwargs = dict(
+        batch_size=batch_size,
+        dtype=dtype,
+        spk_train_config=spk_train_config,
+        spk_model_file=spk_model_file,
     )
 
-    # 3. Overwrite args with inference args
-    args = vars(args)
-    args["valid_data_path_and_name_and_type"] = args["data_path_and_name_and_type"]
-    args["valid_shape_file"] = args["shape_file"]
-    args["preprocessor_conf"] = {
-        "target_duration": args["target_duration"],
-        "num_eval": args["num_eval"],
-        "noise_apply_prob": 0.0,
-        "rir_apply_prob": 0.0,
-    }
-
-    merged_args = vars(spk_train_args)
-    merged_args.update(args)
-    args = argparse.Namespace(**merged_args)
-
-    # 4. Build data-iterator
-    resolve_distributed_mode(args)
-    distributed_option = build_dataclass(DistributedOption, args)
-    distributed_option.init_options()
-
-    iterator = SpeakerTask.build_iter_factory(
-        args=args,
-        distributed_option=distributed_option,
-        mode="valid",
+    speech2embedding = Speech2Embedding.from_pretrained(
+        model_tag=model_tag,
+        **speech2text_kwargs,
     )
-    loader = iterator.build_iter(0)
 
-    trainer_options = SpeakerTask.trainer.build_options(args)
-    reporter = Reporter()
+    # 3. Build data-iterator
+    loader = SpeakerTask.build_streaming_iterator(
+        data_path_and_name_and_type,
+        dtype=dtype,
+        batch_size=batch_size,
+        key_file=key_file,
+        num_workers=num_workers,
+        preprocess_fn=SpeakerTask.build_preprocess_fn(speech2embedding.spk_train_args, False),
+        collate_fn=SpeakerTask.build_colate_fn(speech2embedding.spk_train_args, False),
+        inference=True,
+    )
 
-    # 5. Run inference for EER and minDCF calculation
-    with reporter.observe("valid") as sub_reporter:
-        SpeakerTask.trainer.validate_one_epoch(
-            model=spk_model,
-            iterator=loader,
-            reporter=sub_reporter,
-            options=trainer_options,
-            distributed_option=distributed_option,
-        )
-    if not distributed_option.distributed or distributed_option.dist_rank == 0:
-        logging.info(reporter.log_message())
+    # 4. Start for-loop
+    with NpyScpWriter(
+        output_dir / "embed",
+        output_dir / "embed.scp"
+    ) as writer:
+        for keys, batch in loader:
+            assert isinstance(batch, dict), type(batch)
+            assert all(isinstance(s, str) for s in keys), keys
+            _bs = len(next(iter(batch.values())))
+            assert len(keys) == _bs, f"{len(keys)} != {_bs}"
+            batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
+            result = speech2embedding(**batch)
+
+            # Only supporting batch_size==1
+            key = keys[0]
+
+            writer[key] = result.cpu().numpy()
 
 
 def get_parser():
     parser = config_argparse.ArgumentParser(
-        description="SPK Decoding",
+        description="Speaker Embedding Extraction",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
+    # Note(kamo): Use '_' instead of '-' as separator.
+    # '-' is confusing if written in yaml.
     parser.add_argument(
         "--log_level",
         type=lambda x: x.upper(),
@@ -109,6 +200,7 @@ def get_parser():
         choices=("CRITICAL", "ERROR", "WARNING", "INFO", "DEBUG", "NOTSET"),
         help="The verbose level of logging",
     )
+
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument(
         "--ngpu",
@@ -137,404 +229,30 @@ def get_parser():
         required=True,
         action="append",
     )
-    _batch_type_help = ""
-    for key, value in BATCH_TYPES.items():
-        _batch_type_help += f'"{key}":\n{value}\n'
+    group.add_argument("--key_file", type=str_or_none)
     group.add_argument(
-        "--batch_type",
-        type=str,
-        default="folded",
-        choices=list(BATCH_TYPES),
-        help=_batch_type_help,
-    )
-    group.add_argument(
-        "--batch_bins",
-        type=int,
-        default=1000000,
-        help="The number of batch bins. Used if batch_type='length' or 'numel'",
-    )
-    group.add_argument(
-        "--valid_batch_bins",
-        type=int_or_none,
-        default=None,
-        help="If not given, the value of --batch_bins is used",
-    )
-    group.add_argument(
-        "--valid_batch_type",
-        type=str_or_none,
-        default=None,
-        choices=list(BATCH_TYPES) + [None],
-        help="If not given, the value of --batch_type is used",
-    )
-    group.add_argument(
-        "--max_cache_size",
-        type=humanfriendly.parse_size,
-        default=0.0,
-        help="The maximum cache size for data loader. e.g. 10MB, 20GB.",
-    )
-    group.add_argument(
-        "--max_cache_fd",
-        type=int,
-        default=32,
-        help="The maximum number of file descriptors to be kept "
-        "as opened for ark files. "
-        "This feature is only valid when data type is 'kaldi_ark'.",
-    )
-    group.add_argument(
-        "--valid_max_cache_size",
-        type=humanfriendly_parse_size_or_none,
-        default=None,
-        help="The maximum cache size for validation data loader. e.g. 10MB, 20GB. "
-        "If None, the 5 percent size of --max_cache_size",
-    )
-    group.add_argument("--shape_file", type=str, action="append", default=[])
-    group.add_argument(
-        "--input_size",
-        type=int_or_none,
-        default=None,
-        help="The number of input dimension of the feature",
-    )
-    group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
-    group.add_argument(
-        "--spk2utt",
-        type=str,
-        default="",
-        help="Directory of spk2utt file to be used in label mapping",
-    )
-    group.add_argument(
-        "--train_dtype",
-        default="float32",
-        choices=["float16", "float32", "float64"],
-        help="Data type for training.",
-    )
-    group.add_argument(
-        "--use_amp",
-        type=str2bool,
-        default=False,
-        help="Enable Automatic Mixed Precision. This feature requires pytorch>=1.6",
-    )
-    group.add_argument(
-        "--grad_clip",
-        type=float,
-        default=5.0,
-        help="Gradient norm threshold to clip",
-    )
-    group.add_argument(
-        "--accum_grad",
+        "--batch_size",
         type=int,
         default=1,
-        help="The number of gradient accumulation",
-    )
-    group.add_argument(
-        "--no_forward_run",
-        type=str2bool,
-        default=False,
-        help="Just only iterating data loading without "
-        "model forwarding and training",
-    )
-    group.add_argument(
-        "--grad_clip_type",
-        type=float,
-        default=2.0,
-        help="The type of the used p-norm for gradient clip. Can be inf",
-    )
-    group.add_argument(
-        "--grad_noise",
-        type=str2bool,
-        default=False,
-        help="The flag to switch to use noise injection to "
-        "gradients during training",
-    )
-    group.add_argument(
-        "--resume",
-        type=str2bool,
-        default=False,
-        help="Enable resuming if checkpoint is existing",
-    )
-    group.add_argument(
-        "--sort_in_batch",
-        type=str,
-        default="descending",
-        choices=["descending", "ascending"],
-        help="Sort the samples in each mini-batches by the sample "
-        'lengths. To enable this, "shape_file" must have the length information.',
-    )
-    group.add_argument(
-        "--sort_batch",
-        type=str,
-        default="descending",
-        choices=["descending", "ascending"],
-        help="Sort mini-batches by the sample lengths",
-    )
-    group.add_argument(
-        "--drop_last_iter",
-        type=str2bool,
-        default=False,
-        help="Exclude the minibatch with leftovers.",
+        help="The batch size for inference",
     )
 
     group = parser.add_argument_group("The model configuration related")
     group.add_argument(
         "--spk_train_config",
         type=str,
-        help="SPK training configuration",
+        help="Speaker model training configuration",
     )
     group.add_argument(
         "--spk_model_file",
         type=str,
-        help="SPK model parameter file",
+        help="Speaker model parameter file",
     )
     group.add_argument(
         "--model_tag",
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
-    )
-
-    group = parser.add_argument_group("distributed training related")
-    group.add_argument(
-        "--dist_backend",
-        default="nccl",
-        type=str,
-        help="distributed backend",
-    )
-    group.add_argument(
-        "--dist_init_method",
-        type=str,
-        default="env://",
-        help='if init_method="env://", env values of "MASTER_PORT", "MASTER_ADDR", '
-        '"WORLD_SIZE", and "RANK" are referred.',
-    )
-    group.add_argument(
-        "--dist_world_size",
-        default=None,
-        type=int_or_none,
-        help="number of nodes for distributed training",
-    )
-    group.add_argument(
-        "--dist_rank",
-        type=int_or_none,
-        default=None,
-        help="node rank for distributed training",
-    )
-    group.add_argument(
-        # Not starting with "dist_" for compatibility to launch.py
-        "--local_rank",
-        type=int_or_none,
-        default=None,
-        help="local rank for distributed training. This option is used if "
-        "--multiprocessing_distributed=false",
-    )
-    group.add_argument(
-        "--dist_master_addr",
-        default=None,
-        type=str_or_none,
-        help="The master address for distributed training. "
-        "This value is used when dist_init_method == 'env://'",
-    )
-    group.add_argument(
-        "--dist_master_port",
-        default=None,
-        type=int_or_none,
-        help="The master port for distributed training"
-        "This value is used when dist_init_method == 'env://'",
-    )
-    group.add_argument(
-        "--dist_launcher",
-        default=None,
-        type=str_or_none,
-        choices=["slurm", "mpi", None],
-        help="The launcher type for distributed training",
-    )
-    group.add_argument(
-        "--multiprocessing_distributed",
-        default=False,
-        type=str2bool,
-        help="Use multi-processing distributed training to launch "
-        "N processes per node, which has N GPUs. This is the "
-        "fastest way to use PyTorch for either single node or "
-        "multi node data parallel training",
-    )
-    group.add_argument(
-        "--unused_parameters",
-        type=str2bool,
-        default=False,
-        help="Whether to use the find_unused_parameters in "
-        "torch.nn.parallel.DistributedDataParallel ",
-    )
-    group.add_argument(
-        "--sharded_ddp",
-        default=False,
-        type=str2bool,
-        help="Enable sharded training provided by fairscale",
-    )
-
-    group = parser.add_argument_group("trainer initialization related")
-    group.add_argument(
-        "--max_epoch",
-        type=int,
-        default=40,
-        help="The maximum number epoch to train",
-    )
-    group.add_argument(
-        "--patience",
-        type=int_or_none,
-        default=None,
-        help="Number of epochs to wait without improvement "
-        "before stopping the training",
-    )
-    group.add_argument(
-        "--val_scheduler_criterion",
-        type=str,
-        nargs=2,
-        default=("valid", "loss"),
-        help="The criterion used for the value given to the lr scheduler. "
-        'Give a pair referring the phase, "train" or "valid",'
-        'and the criterion name. The mode specifying "min" or "max" can '
-        "be changed by --scheduler_conf",
-    )
-    group.add_argument(
-        "--early_stopping_criterion",
-        type=str,
-        nargs=3,
-        default=("valid", "loss", "min"),
-        help="The criterion used for judging of early stopping. "
-        'Give a pair referring the phase, "train" or "valid",'
-        'the criterion name and the mode, "min" or "max", e.g. "acc,max".',
-    )
-    group.add_argument(
-        "--best_model_criterion",
-        type=str2triple_str,
-        nargs="+",
-        default=[
-            ("train", "loss", "min"),
-            ("valid", "loss", "min"),
-            ("train", "acc", "max"),
-            ("valid", "acc", "max"),
-        ],
-        help="The criterion used for judging of the best model. "
-        'Give a pair referring the phase, "train" or "valid",'
-        'the criterion name, and the mode, "min" or "max", e.g. "acc,max".',
-    )
-    group.add_argument(
-        "--keep_nbest_models",
-        type=int,
-        nargs="+",
-        default=[10],
-        help="Remove previous snapshots excluding the n-best scored epochs",
-    )
-    group.add_argument(
-        "--nbest_averaging_interval",
-        type=int,
-        default=0,
-        help="The epoch interval to apply model averaging and save nbest models",
-    )
-    group.add_argument(
-        "--use_matplotlib",
-        type=str2bool,
-        default=True,
-        help="Enable matplotlib logging",
-    )
-    group.add_argument(
-        "--use_tensorboard",
-        type=str2bool,
-        default=True,
-        help="Enable tensorboard logging",
-    )
-    group.add_argument(
-        "--create_graph_in_tensorboard",
-        type=str2bool,
-        default=False,
-        help="Whether to create graph in tensorboard",
-    )
-    group.add_argument(
-        "--use_wandb",
-        type=str2bool,
-        default=False,
-        help="Enable wandb logging",
-    )
-    group.add_argument(
-        "--wandb_project",
-        type=str,
-        default=None,
-        help="Specify wandb project",
-    )
-    group.add_argument(
-        "--wandb_id",
-        type=str,
-        default=None,
-        help="Specify wandb id",
-    )
-    group.add_argument(
-        "--wandb_entity",
-        type=str,
-        default=None,
-        help="Specify wandb entity",
-    )
-    group.add_argument(
-        "--wandb_name",
-        type=str,
-        default=None,
-        help="Specify wandb run name",
-    )
-    group.add_argument(
-        "--wandb_model_log_interval",
-        type=int,
-        default=-1,
-        help="Set the model log period",
-    )
-    group.add_argument(
-        "--detect_anomaly",
-        type=str2bool,
-        default=False,
-        help="Set torch.autograd.set_detect_anomaly",
-    )
-
-    group = parser.add_argument_group("cudnn mode related")
-    group.add_argument(
-        "--cudnn_enabled",
-        type=str2bool,
-        default=torch.backends.cudnn.enabled,
-        help="Enable CUDNN",
-    )
-    group.add_argument(
-        "--cudnn_benchmark",
-        type=str2bool,
-        default=torch.backends.cudnn.benchmark,
-        help="Enable cudnn-benchmark mode",
-    )
-    group.add_argument(
-        "--cudnn_deterministic",
-        type=str2bool,
-        default=True,
-        help="Enable cudnn-deterministic mode",
-    )
-
-    group = parser.add_argument_group("The inference hyperparameter related")
-    group.add_argument(
-        "--valid_batch_size",
-        type=int,
-        default=1,
-        help="The batch size for inference",
-    )
-    group.add_argument(
-        "--target_duration",
-        type=float,
-        default=3.0,
-        help="Duration (in seconds) of samples in a minibatch",
-    )
-    group.add_argument(
-        "--num_eval",
-        type=int,
-        default=10,
-        help="Number of segments to make from one utterance in the inference phase",
-    )
-    group.add_argument("--fold_length", type=int, action="append", default=[])
-    group.add_argument(
-        "--use_preprocessor",
-        type=str2bool,
-        default=True,
-        help="Apply preprocessing to data or not",
     )
 
     return parser
@@ -544,7 +262,9 @@ def main(cmd=None):
     print(get_commandline_args(), file=sys.stderr)
     parser = get_parser()
     args = parser.parse_args(cmd)
-    inference(args)
+    kwargs = vars(args)
+    kwargs.pop("config", None)
+    inference(**kwargs)
 
 
 if __name__ == "__main__":
