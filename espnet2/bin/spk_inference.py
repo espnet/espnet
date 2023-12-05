@@ -31,7 +31,7 @@ class Speech2Embedding:
 
     def __init__(
         self,
-        train_config: Uhion[Path, str] = None,
+        train_config: Union[Path, str] = None,
         model_file: Union[Path, str] = None,
         device: str = "cpu",
         dtype: str = "float32",
