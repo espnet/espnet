@@ -36,6 +36,7 @@ ying_extract=None
 
 ./svs.sh \
     --lang zh \
+    --svs_task gan_svs \
     --local_data_opts "--stage 0" \
     --feats_type raw \
     --use_sid ${use_sid} \
@@ -57,4 +58,6 @@ ying_extract=None
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
+    --write_collected_feats true \
+    --inference_model train.total_count.best.pth \
     ${opts} "$@"

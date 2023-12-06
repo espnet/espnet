@@ -109,7 +109,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [
         mkdir -p "${datadir}/${_dsets}"
 
         nutt=$(<"${datadir}/${train_set}"/wav.scp wc -l)
-        portion_nutt=$(echo ${nutt} ${portion} | awk '{print(int($1 * $2)+1)}')
+        portion_nutt=$(echo ${nutt} ${portion} | awk '{print(int($1 * $2))}')
+	portion_nutt=$(( portion_nutt > 0 ? portion_nutt : 1 ))
 
         utils/subset_data_dir.sh \
             "${datadir}/${train_set}" ${portion_nutt} "${datadir}/${_dsets}"

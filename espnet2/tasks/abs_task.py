@@ -175,6 +175,7 @@ class IteratorOptions:
     batch_type: str
     max_cache_size: float
     max_cache_fd: int
+    allow_multi_rates: bool
     distributed: bool
     num_batches: Optional[int]
     num_iters_per_epoch: Optional[int]
@@ -820,6 +821,14 @@ class AbsTask(ABC):
             "  - have one of the prefixes in `chunk_excluded_key_prefixes` and "
             "end with numbers",
         )
+        group.add_argument(
+            "--chunk_default_fs",
+            type=int_or_none,
+            default=None,
+            help="Default sampling rate used for the chunk length. Will be used to "
+            "adaptively adjust the chunk length for data of different sampling rates. "
+            "(If None, the chunk length will be fixed.)",
+        )
 
         group = parser.add_argument_group("Dataset related")
         _data_path_and_name_and_type_help = (
@@ -867,6 +876,12 @@ class AbsTask(ABC):
             help="The maximum number of file descriptors to be kept "
             "as opened for ark files. "
             "This feature is only valid when data type is 'kaldi_ark'.",
+        )
+        group.add_argument(
+            "--allow_multi_rates",
+            type=str2bool,
+            default=False,
+            help="Whether to allow audios to have different sampling rates",
         )
         group.add_argument(
             "--valid_max_cache_size",
@@ -1443,6 +1458,7 @@ class AbsTask(ABC):
             batch_type = args.batch_type
             max_cache_size = args.max_cache_size
             max_cache_fd = args.max_cache_fd
+            allow_multi_rates = args.allow_multi_rates
             distributed = distributed_option.distributed
             num_batches = None
             num_iters_per_epoch = args.num_iters_per_epoch
@@ -1472,6 +1488,7 @@ class AbsTask(ABC):
             else:
                 max_cache_size = args.valid_max_cache_size
             max_cache_fd = args.max_cache_fd
+            allow_multi_rates = args.allow_multi_rates
             distributed = distributed_option.distributed
             num_batches = None
             num_iters_per_epoch = None
@@ -1487,6 +1504,7 @@ class AbsTask(ABC):
             batch_bins = 0
             num_batches = args.num_att_plot
             max_cache_fd = args.max_cache_fd
+            allow_multi_rates = args.allow_multi_rates
             # num_att_plot should be a few sample ~ 3, so cache all data.
             max_cache_size = np.inf if args.max_cache_size != 0.0 else 0.0
             # always False because plot_attention performs on RANK0
@@ -1507,6 +1525,7 @@ class AbsTask(ABC):
             num_batches=num_batches,
             max_cache_size=max_cache_size,
             max_cache_fd=max_cache_fd,
+            allow_multi_rates=allow_multi_rates,
             distributed=distributed,
             num_iters_per_epoch=num_iters_per_epoch,
             train=train,
@@ -1596,6 +1615,7 @@ class AbsTask(ABC):
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
@@ -1677,6 +1697,7 @@ class AbsTask(ABC):
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
@@ -1763,6 +1784,7 @@ class AbsTask(ABC):
             preprocess=iter_options.preprocess_fn,
             max_cache_size=iter_options.max_cache_size,
             max_cache_fd=iter_options.max_cache_fd,
+            allow_multi_rates=iter_options.allow_multi_rates,
         )
         cls.check_task_requirements(
             dataset, args.allow_variable_data_keys, train=iter_options.train
@@ -1819,6 +1841,7 @@ class AbsTask(ABC):
             chunk_shift_ratio=args.chunk_shift_ratio,
             num_cache_chunks=num_cache_chunks,
             excluded_key_prefixes=args.chunk_excluded_key_prefixes,
+            default_fs=args.chunk_default_fs,
         )
 
     # NOTE(kamo): Not abstract class

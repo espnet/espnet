@@ -25,7 +25,9 @@ from espnet2.enh.separator.rnn_separator import RNNSeparator
 from espnet2.enh.separator.svoice_separator import SVoiceSeparator
 from espnet2.enh.separator.tcn_separator import TCNSeparator
 from espnet2.enh.separator.tfgridnet_separator import TFGridNet
+from espnet2.enh.separator.tfgridnetv2_separator import TFGridNetV2
 from espnet2.enh.separator.transformer_separator import TransformerSeparator
+from espnet2.enh.separator.uses_separator import USESSeparator
 
 is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 is_torch_1_12_1_plus = V(torch.__version__) >= V("1.12.1")
@@ -432,6 +434,109 @@ def test_tfgridnet(n_mics, training, loss_wrappers):
         "speech_mix": inputs,
         "speech_mix_lengths": ilens,
         **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+    }
+    loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("n_mics", [1, 2])
+@pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
+def test_tfgridnetv2(n_mics, training, loss_wrappers):
+    if not is_torch_1_9_plus:
+        return
+    if n_mics == 1:
+        inputs = torch.randn(1, 300)
+    else:
+        inputs = torch.randn(1, 300, n_mics)
+    ilens = torch.LongTensor([300])
+    speech_refs = [torch.randn(1, 300).float(), torch.randn(1, 300).float()]
+    from espnet2.enh.decoder.null_decoder import NullDecoder
+    from espnet2.enh.encoder.null_encoder import NullEncoder
+
+    encoder = NullEncoder()
+    decoder = NullDecoder()
+    separator = TFGridNetV2(
+        None,
+        n_srcs=2,
+        n_imics=n_mics,
+        n_layers=1,
+        lstm_hidden_units=64,
+        emb_dim=16,
+        attn_approx_qk_dim=256,
+    )
+
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=separator,
+        decoder=decoder,
+        mask_module=None,
+        loss_wrappers=loss_wrappers,
+    )
+
+    if training:
+        enh_model.train()
+    else:
+        enh_model.eval()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(2)},
+    }
+    loss, stats, weight = enh_model(**kwargs)
+
+
+@pytest.mark.parametrize("training", [True, False])
+@pytest.mark.parametrize("n_mics", [1, 2])
+@pytest.mark.parametrize("num_spk", [2])
+@pytest.mark.parametrize("use_builtin_complex", [True, False])
+@pytest.mark.parametrize("loss_wrappers", [[pit_wrapper]])
+def test_uses_forward(training, n_mics, num_spk, use_builtin_complex, loss_wrappers):
+    if n_mics == 1:
+        inputs = torch.randn(1, 300)
+    else:
+        inputs = torch.randn(1, 300, n_mics)
+    ilens = torch.LongTensor([300])
+    speech_refs = [torch.randn(1, 300).float(), torch.randn(1, 300).float()]
+
+    encoder = STFTEncoder(
+        n_fft=8, hop_length=2, use_builtin_complex=use_builtin_complex
+    )
+    decoder = STFTDecoder(n_fft=8, hop_length=2)
+
+    separator = USESSeparator(
+        input_dim=None,
+        num_spk=num_spk,
+        enc_channels=12,
+        bottleneck_size=8,
+        num_blocks=3,
+        num_spatial_blocks=2,
+        ref_channel=0,
+        segment_size=64,
+        memory_size=2,
+        # Transformer-related arguments
+        hidden_size=4,
+        att_heads=2,
+        ch_mode="tac",
+        ch_att_dim=8,
+    )
+    enh_model = ESPnetEnhancementModel(
+        encoder=encoder,
+        separator=separator,
+        decoder=decoder,
+        mask_module=None,
+        loss_wrappers=loss_wrappers,
+    )
+
+    if training:
+        enh_model.train()
+    else:
+        enh_model.eval()
+
+    kwargs = {
+        "speech_mix": inputs,
+        "speech_mix_lengths": ilens,
+        **{"speech_ref{}".format(i + 1): speech_refs[i] for i in range(num_spk)},
     }
     loss, stats, weight = enh_model(**kwargs)
 

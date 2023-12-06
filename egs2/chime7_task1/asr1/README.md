@@ -8,7 +8,7 @@
 
 ---
 
-#### If you want to participate please fill this [Google form](https://forms.gle/vbk4gpF77hP5LgKM8) (one contact person per-team only, we will use it to handle submission see [official website, submission page](https://www.chimechallenge.org/current/task1/submission))
+#### If you want to participate please fill this [Google form](https://forms.gle/vbk4gpF77hP5LgKM8) (one contact person per-team only, we will use it to handle submission see [official website, submission page](https://www.chimechallenge.org/challenges/chime7/task1/submission))
 ### Sections
 1. <a href="#description">Short Description </a>
 2. <a href="#data_creation">Data Download and Creation</a>
@@ -19,20 +19,20 @@
 
 ## <a id="description">1. Short Description  </a>
 
-<img src="https://www.chimechallenge.org/current/task1/images/task_overview.png" width="450" height="230" />
+<img src="https://www.chimechallenge.org/challenges/chime7/task1/images/task_overview.png" width="450" height="230" />
 
 This CHiME-7 Challenge Task inherits directly from the previous [CHiME-6 Challenge](https://chimechallenge.github.io/chime6/).
 Its focus is on distant automatic speech transcription and segmentation with multiple recording devices.
 
 The goal of each participant is to devise an automated system that can tackle this problem, and is able to generalize across different array topologies and different application scenarios: meetings, dinner parties and interviews.
 
-Participants can possibly exploit commonly used open-source datasets (e.g. Librispeech) and pre-trained models. In detail, this includes popular self-supervised representation (SSLR) models (see [Rules Section](https://www.chimechallenge.org/current/task1/rules) for a complete list).
+Participants can possibly exploit commonly used open-source datasets (e.g. Librispeech) and pre-trained models. In detail, this includes popular self-supervised representation (SSLR) models (see [Rules Section](https://www.chimechallenge.org/challenges/chime7/task1/rules) for a complete list).
 
 ---
 
-**See the [official website](https://www.chimechallenge.org/current/task1/index) to learn more !**
+**See the [official website](https://www.chimechallenge.org/challenges/chime7/task1/index) to learn more !**
 <br>
-**All participants will be invited to present their submission to our [Interspeech 2023 Satellite Workshop](https://www.chimechallenge.org/current/workshop/index).**
+**All participants will be invited to present their submission to our [Interspeech 2023 Satellite Workshop](https://www.chimechallenge.org/challenges/chime7/workshop/index).**
 
 ### <a id="reach_us">Any Question/Problem ? Reach us !</a>
 
@@ -88,9 +88,9 @@ Or reach us, see <a href="#reach_us">Section 2.</a>
 
 
 ## <a id="data_creation">2. Data Download and Creation </a>
-See Data page in [CHiME-7 DASR webpage](https://www.chimechallenge.org/current/task1/data)
+See Data page in [CHiME-7 DASR webpage](https://www.chimechallenge.org/challenges/chime7/task1/data)
 for instructions on how data is structured.
-See the [Rules page](https://www.chimechallenge.org/current/task1/rules) too for info about allowed external datasets and pre-trained models.
+See the [Rules page](https://www.chimechallenge.org/challenges/chime7/task1/rules) too for info about allowed external datasets and pre-trained models.
 
 CHiME-7 DASR makes use of three datasets (but participants can use optionally also allowed external datasets),
 these are:
@@ -101,12 +101,12 @@ these are:
 
 Unfortunately, only DiPCo can be downloaded automatically, the others must be
 downloaded manually and then processed via our scripts here. <br>
-See [Data page](https://www.chimechallenge.org/current/task1/data) for
+See [Data page](https://www.chimechallenge.org/challenges/chime7/task1/data) for
 the instructions on how to obtain the re-annotated Mixer 6 Speech and CHiME-6 data.
 
 ### <a id="data_description">2.1 Generating the Data</a>
 To generate the data you need to have downloaded and unpacked manually Mixer 6 Speech
-and the CHiME-5 dataset as obtained from instructions here [Data page](https://www.chimechallenge.org/current/task1/data).
+and the CHiME-5 dataset as obtained from instructions here [Data page](https://www.chimechallenge.org/challenges/chime7/task1/data).
 
 
 **Stage 0** of `run.sh` here handles CHiME-7 DASR dataset creation and calls `local/gen_task1_data.sh`. <br>
@@ -126,15 +126,15 @@ But please you want to take a look at arguments such as `gss_max_batch_dur`
 and `asr_batch_size` because you may want to adjust these based on your hardware.
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
---mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs
+--mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs --decode-train train
 ```
 **We also provide a pre-trained model**, you can run only inference on development set
-using (or evaluation set by using `--decode-only eval`):
+using (or evaluation set by using `--decode-train eval`):
 ```bash
 ./run.sh --chime6-root YOUR_PATH_TO_CHiME6 --dipco-root PATH_WHERE_DOWNLOAD_DIPCO \
 --mixer6-root YOUR_PATH_TO_MIXER6 --stage 0 --ngpu YOUR_NUMBER_OF_GPUs \
 --use-pretrained popcornell/chime7_task1_asr1_baseline \
---decode-only dev --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM
+--decode-train dev --gss-max-batch-dur 30-360-DEPENDING_ON_GPU_MEM
 ```
 Note that `gss-max-batch-dur` affects a lot your inference time.
 Also note that getting this warning `Discarded recording P56_dipco_S34_431-120171_120933-mdm from AudioSource(type='file', channels=[8]`
@@ -207,7 +207,7 @@ The generated dataset folder after running the script should look like this:
 
 **NOTE** <br>
 Eval data (which is actually blind only for Mixer6) can be generated by using as an argument
-`--gen-eval 1` (note you will need the Mixer6 eval set which will be released [later](https://www.chimechallenge.org/current/dates)).
+`--gen-eval 1` (note you will need the Mixer6 eval set which will be released [later](https://www.chimechallenge.org/challenges/chime7/dates)).
 <br>
 
 ---
@@ -223,11 +223,11 @@ When evaluation data is released, please re-check again to be sure:
 python ./local/check_data_gen.py -c PATH_TO_CHIME7TASK_DATA -e 1
 ```
 
-Additional data description is available in [CHiME-7 DASR website Data page](https://www.chimechallenge.org/current/task1/data).
+Additional data description is available in [CHiME-7 DASR website Data page](https://www.chimechallenge.org/challenges/chime7/task1/data).
 
 ## <a id="baseline">3. Baseline System</a>
 
-<img src="https://www.chimechallenge.org/current/task1/images/baseline.png" width="450" height="120" />
+<img src="https://www.chimechallenge.org/challenges/chime7/task1/images/baseline.png" width="450" height="120" />
 
 The baseline system in this recipe is similar to `egs2/chime6` one, which
 itself is inherited directly from CHiME-6 Challenge Kaldi recipe for Track 1 [s5_track1](https://github.com/kaldi-asr/kaldi/tree/master/egs/chime6/s5_track1). <br>
@@ -295,7 +295,7 @@ ASR model. This is the configuration that gave the best results overall on the d
 Such baseline system would rank third on dev set based on the rules of the past CHiME-6 Challenge
 on Track 1 (unconstrained LM).
 Results on the evaluation set will be released after the end of the CHiME-7 DASR Challenge. <br>
-Note that as explained in  [CHiME-7 DASR website Data page](https://www.chimechallenge.org/current/task1/data)
+Note that as explained in  [CHiME-7 DASR website Data page](https://www.chimechallenge.org/challenges/chime7/task1/data)
 the evaluation set for CHiME-6 is different from the one in previous edition and is supposed to be
 more challenging.
 
@@ -303,9 +303,9 @@ more challenging.
 ## <a id="eval_script"> 4. Evaluation Script </a>
 The evaluation protocol is depicted here below:
 
-<img src="https://www.chimechallenge.org/current/task1/images/main_eval.png" width="450" height="230" />
+<img src="https://www.chimechallenge.org/challenges/chime7/task1/images/main_eval.png" width="450" height="230" />
 
-evaluation is performed as described in the [Task Main Page](https://www.chimechallenge.org/current/task1/index) and needs joint diarization and transcription.
+evaluation is performed as described in the [Task Main Page](https://www.chimechallenge.org/challenges/chime7/task1/index) and needs joint diarization and transcription.
 Systems are evaluated by diarization-attributed word error rate (DA-WER). It is a form of speaker-attributed WER (SA-WER),
 where the hypothesis for the WER are re-ordered based on the best reordering defined by diarization error rate (DER), concatenated together
 and finally WER is accumulated across all the speakers.
@@ -447,7 +447,7 @@ There are two possible approaches.
 either the "style" of the baseline GSS ones or the ones belonging to close-talk mics.
 
 To evaluate the new enhanced data, e.g. `kaldi/chime6/dev/my_enhanced`, you need to include it into `asr_tt_set` in `run.sh` or
-from command line: `run.sh --stage 3 --asr-tt-set "kaldi/chime6/dev/gss" --decode-only dev --use-pretrained popcornell/chime7_task1_asr1_baseline --asr-dprep-stage 4`.
+from command line: `run.sh --stage 3 --asr-tt-set "kaldi/chime6/dev/gss" --decode-train dev --use-pretrained popcornell/chime7_task1_asr1_baseline --asr-dprep-stage 4`.
 
 
 ## Acknowledgements

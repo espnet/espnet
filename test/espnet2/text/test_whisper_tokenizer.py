@@ -79,3 +79,17 @@ def test_tokenization_consistency(whisper_tokenizer: OpenAIWhisperTokenizer):
     s = "Hi, today's weather is nice. Hmm..."
 
     assert s == whisper_tokenizer.tokens2text(whisper_tokenizer.text2tokens(s))
+
+
+@pytest.mark.skipif(
+    not is_python_3_8_plus, reason="whisper not supported on python<3.8"
+)
+def test_tokenization_add_tokens(tmp_path):
+    tknlist_path = tmp_path / "tmp_token_list/add_token_list.txt"
+    tknlist_path.parent.mkdir()
+    tknlist_path.touch()
+    with open(tknlist_path, "w") as f:
+        f.write("command:yes\n")
+    tokenizer = OpenAIWhisperTokenizer(
+        "whisper_multilingual", added_tokens_txt=str(tknlist_path)
+    )
