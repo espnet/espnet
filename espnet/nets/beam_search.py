@@ -452,10 +452,11 @@ class BeamSearch(torch.nn.Module):
         if self.normalize_length:
             # Note (Jinchuan): -1 since hyp starts with <sos> and
             # initially has score of 0.0
-            sort_fn = lambda x: x.score / (len(x.yseq) - 1)
+            nbest_hyps = sorted(
+                ended_hyps, key=lambda x: x.score / (len(x.yseq) - 1), reverse=True
+            )
         else:
-            sort_fn = lambda x: x.score
-        nbest_hyps = sorted(ended_hyps, key=sort_fn, reverse=True)
+            nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
 
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
