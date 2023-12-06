@@ -108,7 +108,9 @@ if __name__ == "__main__":
 
     print("Backing up utt_embed file...")
     print(os.path.dirname(utt_embed_path))
-    shutil.copy(utt_embed_path, f"{os.path.dirname(utt_embed_path)}/${spk_embed_tag}.scp.bak")
+    shutil.copy(
+        utt_embed_path, f"{os.path.dirname(utt_embed_path)}/${spk_embed_tag}.scp.bak"
+    )
 
     utt2spk_embed = []
     with open(args.utt_embed_path) as f:
