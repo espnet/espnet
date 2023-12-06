@@ -53,6 +53,7 @@ class SpkEmbedExtractor:
     def __init__(self, args, device):
         self.toolkit = args.toolkit
         self.device = device
+        self.tgt_sr = 16000 # NOTE(jiatong): following 16khz convetion
 
         if self.toolkit == "speechbrain":
             from speechbrain.dataio.preprocess import AudioNormalizer
@@ -155,10 +156,12 @@ class SpkEmbedExtractor:
             wav = self.audio_norm(torch.from_numpy(wav), in_sr).to(self.device)
             embeds = self.model.encode_batch(wav).detach().cpu().numpy()[0]
         elif self.toolkit == "rawnet":
-            wav = librosa.resample(wav, orig_sr=in_sr, target_sr=16000)
+            if in_sr != self.tgt_sr:
+                wav = librosa.resample(wav, orig_sr=in_sr, target_sr=self.tgt_sr)
             embeds = self._rawnet_extract_embd(wav)
         elif self.toolkit == "espnet":
-            wav = librosa.resample(wav, orig_sr=in_sr, target_sr=16000)
+            if in_sr != self.tgt_sr:
+                wav = librosa.resample(wav, orig_sr=in_sr, target_sr=self.tgt_sr)
             embeds = self._espnet_extract_embd(wav)
         return embeds
 
