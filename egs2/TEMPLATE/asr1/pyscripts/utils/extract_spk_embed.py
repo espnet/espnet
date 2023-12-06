@@ -27,8 +27,14 @@ def get_parser():
     parser.add_argument(
         "--toolkit",
         type=str,
-        help="Toolkit for Extracting X-vectors.",
+        help="Toolkit for Extracting speaker speaker embeddingss.",
         choices=["espnet", "speechbrain", "rawnet"],
+    )
+    parser.add_argument(
+        "--spk_embed_tag",
+        type=str,
+        help="the target data name (e.g., xvector for xvector.scp)",
+        default="spk_embed",
     )
     parser.add_argument("--verbose", type=int, default=1, help="Verbosity level.")
     parser.add_argument("--device", type=str, default="cuda:0", help="Inference device")
@@ -38,12 +44,12 @@ def get_parser():
     parser.add_argument(
         "out_folder",
         type=Path,
-        help="Output folder to save the xvectors.",
+        help="Output folder to save the speaker embeddings.",
     )
     return parser
 
 
-class XVExtractor:
+class SpkEmbedExtractor:
     def __init__(self, args, device):
         self.toolkit = args.toolkit
         self.device = device
@@ -190,25 +196,29 @@ def main(argv):
         wav_scp = SoundScpReader(os.path.join(args.in_folder, "wav.scp"), np.float32)
         os.makedirs(args.out_folder, exist_ok=True)
         writer_utt = kaldiio.WriteHelper(
-            "ark,scp:{0}/xvector.ark,{0}/xvector.scp".format(args.out_folder)
+            "ark,scp:{0}/{1}.ark,{0}/{1}.scp".format(
+                args.out_folder, args.spk_embed_tag
+            )
         )
         writer_spk = kaldiio.WriteHelper(
-            "ark,scp:{0}/spk_xvector.ark,{0}/spk_xvector.scp".format(args.out_folder)
+            "ark,scp:{0}/spk_{1}.ark,{0}/spk_{1}.scp".format(
+                args.out_folder, args.spk_embed_tag
+            )
         )
 
-        xv_extractor = XVExtractor(args, device)
+        spk_embed_extractor = SpkEmbedExtractor(args, device)
 
         for speaker in tqdm(spk2utt):
-            xvectors = list()
+            spk_embeddings = list()
             for utt in spk2utt[speaker]:
                 in_sr, wav = wav_scp[utt]
-                # X-vector Embedding
-                embeds = xv_extractor(wav, in_sr)
+                # Speaker Embedding
+                embeds = spk_embed_extractor(wav, in_sr)
                 writer_utt[utt] = np.squeeze(embeds)
-                xvectors.append(embeds)
+                spk_embeddings.append(embeds)
 
             # Speaker Normalization
-            embeds = np.mean(np.stack(xvectors, 0), 0)
+            embeds = np.mean(np.stack(spk_embeddings, 0), 0)
             writer_spk[speaker] = embeds
         writer_utt.close()
         writer_spk.close()

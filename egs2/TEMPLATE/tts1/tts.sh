@@ -65,12 +65,12 @@ n_mels=80                  # The number of mel basis.
 f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
 
-# X-Vector related
-use_xvector=false   # Whether to use x-vector.
-xvector_tag=        # The tag of xvector folder.
-xvector_gpu_inference=false # Whether to use gpu to inference xvector.
-xvector_tool=kaldi  # Toolkit for extracting x-vector (speechbrain, rawnet, espnet, kaldi).
-xvector_model=speechbrain/spkrec-ecapa-voxceleb  # For only espnet, speechbrain, or rawnet.
+# Speaker embedding related
+use_spk_embed=false      # Whether to use speaker embedding.
+spk_embed_tag=espnet_spk # The additional tag of speaker embedding folder, use "xvector" for compatibility.
+spk_embed_gpu_inference=false # Whether to use gpu to inference speaker embedding.
+spk_embed_tool=espnet    # Toolkit for extracting x-vector (speechbrain, rawnet, espnet, kaldi).
+spk_embed_model=espnet/voxcelebs12_rawnet3  # For only espnet, speechbrain, or rawnet.
 
 # Vocabulary related
 oov="<unk>"         # Out of vocabrary symbol.
@@ -147,11 +147,11 @@ Options:
     --audio_format     # Audio format: wav, flac, wav.ark, flac.ark  (only in feats_type=raw, default="${audio_format}").
     --min_wav_duration # Minimum duration in second (default="${min_wav_duration}").
     --max_wav_duration # Maximum duration in second (default="${max_wav_duration}").
-    --use_xvector      # Whether to use X-vector (default="${use_xvector}").
-    --xvector_tag      # The tag of xvector folder (default="${xvector_tag}").
-    --xvector_gpu_inference # Whether to use gpu to inference xvector (default="${xvector_gpu_inference}").
-    --xvector_tool     # Toolkit for generating the X-vectors (default="${xvector_tool}").
-    --xvector_model    # Pretrained model to generate the X-vectors (default="${xvector_model}").
+    --use_spk_embed    # Whether to use speaker_embedding (default="${use_spk_embed}").
+    --spk_embed_tag    # The tag of speaker embedding folder, use "xvector" for compatibility (default="${spk_embed_tag}").
+    --spk_embed_gpu_inference # Whether to use gpu to inference speaker embedding (default="${spk_embed_gpu_inference}").
+    --spk_embed_tool   # Toolkit for generating the speaker embedding (default="${spk_embed_tool}").
+    --spk_embed_model  # Pretrained model to generate the speaker embedding (default="${spk_embed_model}").
     --use_sid          # Whether to use speaker id as the inputs (default="${use_sid}").
     --use_lid          # Whether to use language id as the inputs (default="${use_lid}").
     --feats_extract    # On the fly feature extractor (default="${feats_extract}").
@@ -347,10 +347,10 @@ if ! "${skip_data_prep}"; then
     fi
 
     if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
-        # Extract X-vector
-        if "${use_xvector}"; then
-            if [ "${xvector_tool}" = "kaldi" ]; then
-                log "Stage 3.1: Extract X-vector: data/ -> ${dumpdir}/xvector${xvector_tag} (Require Kaldi)"
+        # Extract speaker embedding
+        if "${use_spk_embed}"; then
+            if [ "${spk_embed_tool}" = "kaldi" ]; then
+                log "Stage 3.1: Extract X-vector with Kaldi: data/ -> ${dumpdir}/${spk_embed_tag} (Require Kaldi)"
                 # Download X-vector pretrained model
                 xvector_exp=${expdir}/xvector_nnet_1a
                 if [ ! -e "${xvector_exp}" ]; then
@@ -392,7 +392,7 @@ if ! "${skip_data_prep}"; then
                     sid/nnet3/xvector/extract_xvectors.sh --nj "${_nj}" --cmd "${train_cmd}" \
                         "${xvector_exp}" \
                         "${dumpdir}/mfcc/${dset}" \
-                        "${dumpdir}/xvector${xvector_tag}/${dset}"
+                        "${dumpdir}/${spk_embed_tag}/${dset}"
 
                     # 5. Filter scp
                     # NOTE(kan-bayashi): Since sometimes mfcc or x-vector extraction is failed,
@@ -400,15 +400,15 @@ if ! "${skip_data_prep}"; then
                     #   To avoid this mismatch, perform filtering of the original feature scp here.
                     cp "${data_feats}${_suf}/${dset}"/wav.{scp,scp.bak}
                     <"${data_feats}${_suf}/${dset}/wav.scp.bak" \
-                        utils/filter_scp.pl "${dumpdir}/xvector${xvector_tag}/${dset}/xvector.scp" \
+                        utils/filter_scp.pl "${dumpdir}/${spk_embed_tag}/${dset}/${spk_embed_tag}.scp" \
                         >"${data_feats}${_suf}/${dset}/wav.scp"
                     utils/fix_data_dir.sh "${data_feats}${_suf}/${dset}"
                 done
             else
                 # Assume that others toolkits are python-based
-                log "Stage 3.1: Extract X-vector: data/ -> ${dumpdir}/xvector${xvector_tag} using python toolkits"
+                log "Stage 3.1: Extract speaker embedding: data/ -> ${dumpdir}/${spk_embed_tag} using python toolkits"
 
-                if ${xvector_gpu_inference}; then
+                if ${spk_embed_gpu_inference}; then
                     _cmd="${cuda_cmd}"
                     _ngpu=1
                 else
@@ -422,20 +422,21 @@ if ! "${skip_data_prep}"; then
                     else
                         _suf=""
                     fi
-                    if [ "${xvector_tool}" = "rawnet" ]; then
-                        xvector_model="RawNet"
+                    if [ "${spk_embed_tool}" = "rawnet" ]; then
+                        spk_embed_model="RawNet"
                     fi
 
-                    ${_cmd} --gpu "${_ngpu}" ${dumpdir}/xvector/${dset}/xvector_extract.log \
-                    pyscripts/utils/extract_xvectors.py \
-                        --pretrained_model ${xvector_model} \
-                        --toolkit ${xvector_tool} \
+                    ${_cmd} --gpu "${_ngpu}" ${dumpdir}/${spk_embed_tag}/${dset}/spk_embed_extract.log \
+                    pyscripts/utils/extract_spk_embed.py \
+                        --pretrained_model ${spk_embed_model} \
+                        --toolkit ${spk_embed_tool} \
+			--spk_embed_tag ${spk_embed_tag} \
                         ${data_feats}${_suf}/${dset} \
-                        ${dumpdir}/xvector${xvector_tag}/${dset}
+                        ${dumpdir}/${spk_embed_tag}/${dset}
                 done
             fi
         else
-            log "Skip Stage 3.1, no xvector extraction set"
+            log "Skip Stage 3.1, no speaker embedding extraction set"
         fi
 
         # Prepare spk id input
@@ -531,12 +532,12 @@ if ! "${skip_data_prep}"; then
             # shellcheck disable=SC2086
             utils/fix_data_dir.sh --utt_extra_files "${_utt_extra_files}" "${data_feats}/${dset}"
 
-            # Filter x-vector
-            if "${use_xvector}"; then
-                cp "${dumpdir}/xvector${xvector_tag}/${dset}"/xvector.{scp,scp.bak}
-                <"${dumpdir}/xvector${xvector_tag}/${dset}/xvector.scp.bak" \
+            # Filter spk_embedding
+            if "${use_spk_embed}"; then
+                cp "${dumpdir}/${spk_embed_tag}/${dset}"/${spk_embed_tag}.{scp,scp.bak}
+                <"${dumpdir}/${spk_embed_tag}/${dset}/${spk_embed_tag}.scp.bak" \
                     utils/filter_scp.pl "${data_feats}/${dset}/wav.scp"  \
-                    >"${dumpdir}/xvector${xvector_tag}/${dset}/xvector.scp"
+                    >"${dumpdir}/${spk_embed_tag}/${dset}/${spk_embed_tag}.scp"
             fi
         done
     fi
@@ -621,11 +622,11 @@ if ! "${skip_train}"; then
             _opts+="--valid_data_path_and_name_and_type ${_teacher_valid_dir}/durations,durations,text_int "
         fi
 
-        if "${use_xvector}"; then
-            _xvector_train_dir="${dumpdir}/xvector${xvector_tag}/${train_set}"
-            _xvector_valid_dir="${dumpdir}/xvector${xvector_tag}/${valid_set}"
-            _opts+="--train_data_path_and_name_and_type ${_xvector_train_dir}/xvector.scp,spembs,kaldi_ark "
-            _opts+="--valid_data_path_and_name_and_type ${_xvector_valid_dir}/xvector.scp,spembs,kaldi_ark "
+        if "${use_spk_embed}"; then
+            _spk_embed_train_dir="${dumpdir}/${spk_embed_tag}/${train_set}"
+            _spk_embed_valid_dir="${dumpdir}/${spk_embed_tag}/${valid_set}"
+            _opts+="--train_data_path_and_name_and_type ${_spk_embed_train_dir}/${spk_embed_tag}.scp,spembs,kaldi_ark "
+            _opts+="--valid_data_path_and_name_and_type ${_spk_embed_valid_dir}/${spk_embed_tag}.scp,spembs,kaldi_ark "
         fi
 
         if "${use_sid}"; then
@@ -871,12 +872,12 @@ if ! "${skip_train}"; then
             _opts+="--energy_normalize_conf stats_file=${tts_stats_dir}/train/energy_stats.npz "
         fi
 
-        # Add X-vector to the inputs if needed
-        if "${use_xvector}"; then
-            _xvector_train_dir="${dumpdir}/xvector${xvector_tag}/${train_set}"
-            _xvector_valid_dir="${dumpdir}/xvector${xvector_tag}/${valid_set}"
-            _opts+="--train_data_path_and_name_and_type ${_xvector_train_dir}/xvector.scp,spembs,kaldi_ark "
-            _opts+="--valid_data_path_and_name_and_type ${_xvector_valid_dir}/xvector.scp,spembs,kaldi_ark "
+        # Add speaker embedding to the inputs if needed
+        if "${use_spk_embed}"; then
+            _spk_embed_train_dir="${dumpdir}/${spk_embed_tag}/${train_set}"
+            _spk_embed_valid_dir="${dumpdir}/${spk_embed_tag}/${valid_set}"
+            _opts+="--train_data_path_and_name_and_type ${_spk_embed_train_dir}/${spk_embed_tag}.scp,spembs,kaldi_ark "
+            _opts+="--valid_data_path_and_name_and_type ${_spk_embed_valid_dir}/${spk_embed_tag}.scp,spembs,kaldi_ark "
         fi
 
         # Add spekaer ID to the inputs if needed
@@ -1004,10 +1005,10 @@ if ! "${skip_eval}"; then
                 fi
             fi
 
-            # Add X-vector to the inputs if needed
-            if "${use_xvector}"; then
-                _xvector_dir="${dumpdir}/xvector${xvector_tag}/${dset}"
-                _ex_opts+="--data_path_and_name_and_type ${_xvector_dir}/xvector.scp,spembs,kaldi_ark "
+            # Add speaker embedding to the inputs if needed
+            if "${use_spk_embed}"; then
+                _spk_embed_dir="${dumpdir}/${spk_embed_tag}/${dset}"
+                _ex_opts+="--data_path_and_name_and_type ${_spk_embed_dir}/${spk_embed_tag}.scp,spembs,kaldi_ark "
             fi
 
             # Add spekaer ID to the inputs if needed
@@ -1124,10 +1125,10 @@ if [ -z "${download_model}" ]; then
         if [ -e "${tts_stats_dir}/train/energy_stats.npz" ]; then
             _opts+=" --option ${tts_stats_dir}/train/energy_stats.npz"
         fi
-        if "${use_xvector}"; then
+        if "${use_spk_embed}"; then
             for dset in "${train_set}" ${test_sets}; do
-                _opts+=" --option ${dumpdir}/xvector${xvector_tag}/${dset}/spk_xvector.scp"
-                _opts+=" --option ${dumpdir}/xvector${xvector_tag}/${dset}/spk_xvector.ark"
+                _opts+=" --option ${dumpdir}/${spk_embed_tag}/${dset}/${spk_embed_tag}.scp"
+                _opts+=" --option ${dumpdir}/${spk_embed_tag}/${dset}/${spk_embed_tag}.ark"
             done
         fi
         if "${use_sid}"; then
