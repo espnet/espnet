@@ -455,7 +455,7 @@ class BeamSearch(torch.nn.Module):
             sort_fn = lambda x: x.score / (len(x.yseq) - 1)
         else:
             sort_fn = lambda x: x.score
-        nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+        nbest_hyps = sorted(ended_hyps, key=sort_fn, reverse=True)
 
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
