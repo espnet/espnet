@@ -377,13 +377,7 @@ class BeamSearch(torch.nn.Module):
                 )
 
             # sort and prune 2 x beam -> beam
-            if self.normalize_length:
-                # Note (Jinchuan): -1 since hyp starts with <sos> and 
-                # initially has score of 0.0
-                pruning_fn = lambda x: x.score / (len(x.yseq) - 1)
-            else:
-                pruning_fn = lambda x: x.score
-            best_hyps = sorted(best_hyps, key=pruning_fn, reverse=True)[
+            best_hyps = sorted(best_hyps, key=lambda x: x.score, reverse=True)[
                 : min(len(best_hyps), self.beam_size)
             ]
         return best_hyps
@@ -453,6 +447,12 @@ class BeamSearch(torch.nn.Module):
             else:
                 logger.debug(f"remained hypotheses: {len(running_hyps)}")
 
+        if self.normalize_length:
+            # Note (Jinchuan): -1 since hyp starts with <sos> and 
+            # initially has score of 0.0
+            sort_fn = lambda x: x.score / (len(yseq) - 1)
+        else:
+            sort_fn = lambda x: x.score
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
 
         # check the number of hypotheses reaching to eos
