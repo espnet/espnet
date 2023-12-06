@@ -538,7 +538,7 @@ def get_parser():
     )
     group.add_argument(
         "--normalize_length",
-        type=str_to_bool,
+        type=str2bool,
         default=False,
         help="If true, pruning is based on length-normalized scores"
     )

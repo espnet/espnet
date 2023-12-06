@@ -66,8 +66,8 @@ class BeamSearch(torch.nn.Module):
             pre_beam_ratio (float): beam size in the pre-beam search
                 will be `int(pre_beam_ratio * beam_size)`
             return_hs (bool): Whether to return hidden intermediates
-            normalize_length (bool): If true, pruning based on length-normalized
-                scores rather than the accumulated scores
+            normalize_length (bool): If true, select the best ended hypotheses 
+                based on length-normalized scores rather than the accumulated scores
 
         """
         super().__init__()
@@ -450,7 +450,7 @@ class BeamSearch(torch.nn.Module):
         if self.normalize_length:
             # Note (Jinchuan): -1 since hyp starts with <sos> and 
             # initially has score of 0.0
-            sort_fn = lambda x: x.score / (len(yseq) - 1)
+            sort_fn = lambda x: x.score / (len(x.yseq) - 1)
         else:
             sort_fn = lambda x: x.score
         nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
