@@ -322,12 +322,20 @@ class BatchBeamSearch(BeamSearch):
         # update hyps
         best_hyps = []
         prev_hyps = self.unbatchfy(running_hyps)
+        if self.normalize_length:
+            # Note (Jinchuan): all hypotheses have the same length: take the first;
+            # len(yseq) is from the last step -> +1
+            # hyps start with <sos> and initiall has 0.0 score -> -1
+            # so still divide by len(yseq)
+            rank_scores = weighted_scores / len(running_hyps[0].yseq)
+        else: 
+            rank_scores = weighted_scores
         for (
             full_prev_hyp_id,
             full_new_token_id,
             part_prev_hyp_id,
             part_new_token_id,
-        ) in zip(*self.batch_beam(weighted_scores, part_ids)):
+        ) in zip(*self.batch_beam(rank_scores, part_ids)):
             prev_hyp = prev_hyps[full_prev_hyp_id]
             if self.return_hs:
                 new_hs = prev_hyp.hs + [hs[full_prev_hyp_id].squeeze(0)]

@@ -47,6 +47,7 @@ class BeamSearch(torch.nn.Module):
         pre_beam_score_key: str = None,
         return_hs: bool = False,
         hyp_primer: List[int] = None,
+        normalize_length: bool = False,
     ):
         """Initialize beam search.
 
@@ -65,6 +66,8 @@ class BeamSearch(torch.nn.Module):
             pre_beam_ratio (float): beam size in the pre-beam search
                 will be `int(pre_beam_ratio * beam_size)`
             return_hs (bool): Whether to return hidden intermediates
+            normalize_length (bool): If true, pruning based on length-normalized
+                scores rather than the accumulated scores
 
         """
         super().__init__()
@@ -115,6 +118,7 @@ class BeamSearch(torch.nn.Module):
             and len(self.part_scorers) > 0
         )
         self.return_hs = return_hs
+        self.normalize_length = normalize_length
 
     def set_hyp_primer(self, hyp_primer: List[int] = None) -> None:
         """Set the primer sequence for decoding.
@@ -373,7 +377,13 @@ class BeamSearch(torch.nn.Module):
                 )
 
             # sort and prune 2 x beam -> beam
-            best_hyps = sorted(best_hyps, key=lambda x: x.score, reverse=True)[
+            if self.normalize_length:
+                # Note (Jinchuan): -1 since hyp starts with <sos> and 
+                # initially has score of 0.0
+                pruning_fn = lambda x: x.score / (len(x.yseq) - 1)
+            else:
+                pruning_fn = lambda x: x.score
+            best_hyps = sorted(best_hyps, key=pruning_fn, reverse=True)[
                 : min(len(best_hyps), self.beam_size)
             ]
         return best_hyps
