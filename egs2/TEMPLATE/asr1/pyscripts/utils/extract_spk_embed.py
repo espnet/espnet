@@ -82,11 +82,11 @@ class XVExtractor:
             )
             self.model.to(device).eval()
         elif self.toolkit == "espnet":
-            from espnet2.bin.spk_inference import Speech2Embedding
+            from espnet2.bin.spk_inference import Speech2SpkEmbedding
 
             # NOTE(jiatong): set default config file as None
             # assume config is the same path as the model file
-            speech2embedding_kwargs = dict(
+            speech2spkembedding_kwargs = dict(
                 batch_size=1,
                 dtype="float32",
                 train_config=None,
@@ -106,9 +106,9 @@ class XVExtractor:
                 )
                 model_tag = args.pretrained_model
 
-            self.speech2embedding = Speech2Embedding.from_pretrained(
+            self.speech2spkembedding = Speech2SpkEmbedding.from_pretrained(
                 model_tag=model,
-                **speech2embedding_kwargs,
+                **speech2spkembedding_kwargs,
             )
 
     def _rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
@@ -132,11 +132,14 @@ class XVExtractor:
         return output.mean(0).detach().cpu().numpy()
 
     def _espnet_extract_embd(self, audio):
-        if len(audio.shape) > 1:
-            raise ValueError(
+        if len(audio.shape) == 2:
+            logging.info(
                 "Not support multi-channel input for ESPnet pre-trained model"
-                f"Input data has a shape of {audio.shape}."
+                f"Input data has shape {audio.shape}, default set avg across  channel"
             )
+            audio = np.mean(audio, axis=0)
+        elif len(audio.shape) > 1:
+            raise ValueError(f"Input data has shape {audio.shape} thatis not support")
         audio = torch.from_numpy(audio.astype(np.float32)).to(self.device)
         output = self.self.speech2embedding(audio)
         return output.cpu().numpy()
