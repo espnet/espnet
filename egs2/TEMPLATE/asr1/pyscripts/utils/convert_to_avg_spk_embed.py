@@ -56,11 +56,11 @@ def get_parser():
 
 
 def check_args(args):
+    utt_embed_path = args.utt_embed_path
     spk_embed_path = args.spk_embed_path
-    spk_spk_embed_path = args.spk_spk_embed_path
     utt2spk = args.utt2spk
 
-    if not os.path.exists(spk_embed_path):
+    if not os.path.exists(utt_embed_path):
         sys.stderr.write(
             f"Error: provided --utt-embed-path ({utt_embed_path}) does not exist. "
         )
@@ -68,7 +68,7 @@ def check_args(args):
         sys.stderr.flush()
         exit(1)
 
-    if not os.path.exists(spk_spk_embed_path):
+    if not os.path.exists(spk_embed_path):
         sys.stderr.write(
             f"Error: provided --spk-embed-path ({spk_embed_path}) does not exist. "
         )
