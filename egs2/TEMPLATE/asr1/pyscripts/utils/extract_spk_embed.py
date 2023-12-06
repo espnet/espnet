@@ -53,7 +53,7 @@ class SpkEmbedExtractor:
     def __init__(self, args, device):
         self.toolkit = args.toolkit
         self.device = device
-        self.tgt_sr = 16000 # NOTE(jiatong): following 16khz convetion
+        self.tgt_sr = 16000  # NOTE(jiatong): following 16khz convetion
 
         if self.toolkit == "speechbrain":
             from speechbrain.dataio.preprocess import AudioNormalizer
