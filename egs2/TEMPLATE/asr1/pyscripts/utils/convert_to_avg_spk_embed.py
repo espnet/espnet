@@ -11,9 +11,9 @@ def get_parser():
         description="""
     Replaces spk_embeds in a specified spk_embed directory with the average spk_embed
     for a given speaker.
-    The spk_embeds generally reside in 
+    The spk_embeds generally reside in
         dump/${spk_embed_tag}/<data_subset>/${spk_embed_tag}.scp, whereas
-    speaker-averaged spk_embeds reside in 
+    speaker-averaged spk_embeds reside in
         dump/${spk_embed_tag}/<data_subset>/spk_${spk_embed_tag}.scp.
 
     The old spk_embed.scp file will be renamed to spk_embed.scp.bak and
