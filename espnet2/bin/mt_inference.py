@@ -540,7 +540,7 @@ def get_parser():
         "--normalize_length",
         type=str2bool,
         default=False,
-        help="If true, pruning is based on length-normalized scores"
+        help="If true, pruning is based on length-normalized scores",
     )
 
     return parser
