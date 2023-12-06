@@ -77,48 +77,48 @@ fi
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     log "Stage 3: Download Musan and RIR_NOISES for augmentation."
 
-    if [ ! -f ${data_dir_prefix}/rirs_noises.zip ]; then
-        wget -P ${data_dir_prefix} -c http://www.openslr.org/resources/28/rirs_noises.zip
+    if [ ! -f ${VOXBLINK}/rirs_noises.zip ]; then
+        wget -P ${VOXBLINK} -c http://www.openslr.org/resources/28/rirs_noises.zip
     else
         log "RIRS_NOISES exists. Skip download."
     fi
 
-    if [ ! -f ${data_dir_prefix}/musan.tar.gz ]; then
-        wget -P ${data_dir_prefix} -c http://www.openslr.org/resources/17/musan.tar.gz
+    if [ ! -f ${VOXBLINK}/musan.tar.gz ]; then
+        wget -P ${VOXBLINK} -c http://www.openslr.org/resources/17/musan.tar.gz
     else
         log "Musan exists. Skip download."
     fi
 
-    if [ -d ${data_dir_prefix}/RIRS_NOISES ]; then
+    if [ -d ${VOXBLINK}/RIRS_NOISES ]; then
         log "Skip extracting RIRS_NOISES"
     else
         log "Extracting RIR augmentation data."
-        unzip -q ${data_dir_prefix}/rirs_noises.zip -d ${data_dir_prefix}
+        unzip -q ${VOXBLINK}/rirs_noises.zip -d ${VOXBLINK}
     fi
 
-    if [ -d ${data_dir_prefix}/musan ]; then
+    if [ -d ${VOXBLINK}/musan ]; then
         log "Skip extracting Musan"
     else
         log "Extracting Musan noise augmentation data."
-        tar -zxvf ${data_dir_prefix}/musan.tar.gz -C ${data_dir_prefix}
+        tar -zxvf ${VOXBLINK}/musan.tar.gz -C ${VOXBLINK}
     fi
 
     # make scp files
     for x in music noise speech; do
-        find ${data_dir_prefix}/musan/${x} -iname "*.wav" > ${data_dir_prefix}/musan_${x}.scp
+        find ${VOXBLINK}/musan/${x} -iname "*.wav" > ${VOXBLINK}/musan_${x}.scp
     done
 
     # Use small and medium rooms, leaving out largerooms.
     # Similar setup to Kaldi and VoxCeleb_trainer.
-    find ${data_dir_prefix}/RIRS_NOISES/simulated_rirs/mediumroom -iname "*.wav" > ${data_dir_prefix}/rirs.scp
-    find ${data_dir_prefix}/RIRS_NOISES/simulated_rirs/smallroom -iname "*.wav" >> ${data_dir_prefix}/rirs.scp
+    find ${VOXBLINK}/RIRS_NOISES/simulated_rirs/mediumroom -iname "*.wav" > ${VOXBLINK}/rirs.scp
+    find ${VOXBLINK}/RIRS_NOISES/simulated_rirs/smallroom -iname "*.wav" >> ${VOXBLINK}/rirs.scp
     log "Stage 3, DONE."
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "Stage 4: Change into kaldi-style feature."
     log "This recipe uses VoxCeleb1 test set following official VoxBlink paper."
-    log "Run stage 0 of egs2/voxceleb/spk1/spk.sh first"
+    log "Run stage 1 of egs2/voxceleb/spk1/spk.sh first"
 
     mkdir -p ${trg_dir}/voxblink
     python local/data_prep.py --src "${VOXBLINK}/audio" --dst "${trg_dir}/voxblink"
