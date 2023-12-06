@@ -350,6 +350,9 @@ if ! "${skip_data_prep}"; then
         # Extract speaker embedding
         if "${use_spk_embed}"; then
             if [ "${spk_embed_tool}" = "kaldi" ]; then
+		log "${spk_embed_tag} will be set to 'xvector' for Kaldi extraction"
+		spk_embed_tag=xvector
+
                 log "Stage 3.1: Extract X-vector with Kaldi: data/ -> ${dumpdir}/${spk_embed_tag} (Require Kaldi)"
                 # Download X-vector pretrained model
                 xvector_exp=${expdir}/xvector_nnet_1a

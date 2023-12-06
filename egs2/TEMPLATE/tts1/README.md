@@ -18,7 +18,7 @@ This is a template of TTS recipe for ESPnet2.
   * [How to run](#how-to-run)
     * [FastSpeech training](#fastspeech-training)
     * [FastSpeech2 training](#fastspeech2-training)
-    * [Multi speaker model with X-vector training](#multi-speaker-model-with-x-vector-training)
+    * [Multi speaker model with speaker embedding training](#multi-speaker-model-with-speaker-embedding-training)
     * [Multi speaker model with speaker ID embedding training](#multi-speaker-model-with-speaker-id-embedding-training)
     * [Multi language model with language ID embedding training](#multi-language-model-with-language-id-embedding-training)
     * [VITS training](#vits-training)
@@ -103,11 +103,12 @@ Then, you can continue the training on the main script:
 Wav dumping stage.
 This stage reformats `wav.scp` in data directories.
 
-Additionally, We support X-vector extraction in this stage as you can use in ESPnet1.
-If you specify `--use_xvector true` (Default: `use_xvector=false`), we extract X-vectors.
-You can select the type of toolkit to use (kaldi, speechbrain, or espnet) when you specify `--xvector_tool <option>`
-(Default: `xvector_tool=kaldi`).
+Additionally, We support speaker embedding extraction in this stage as you can use in ESPnet1.
+If you specify `--use_spk_embed true` (Default: `use_spk_embed=false`), we extract speaker embeddings.
+You can select the type of toolkit to use (kaldi, speechbrain, or espnet) when you specify `--spk_embed_tool <option>`
+(Default: `spk_embed_tool=espnet`).
 If you specify kaldi, then we additionally extract mfcc features and vad decision.
+In that case, `spk_embed_tag`  will be set to `xvector` automatically.
 This processing requires the compiled kaldi, please be careful.
 
 Also, speaker ID embedding and language ID embedding preparation will be performed in this stage if you specify `--use_sid true` and `--use_lid true` options.
@@ -321,13 +322,13 @@ $ ./run.sh --stage 6 \
 where `--tts_stats_dir` is the option to specify the directory to dump Statistics, and `--write_collected_feats` is the option to dump features in statistics calculation.
 The use of `--write_collected_feats` is optional but it helps to accelerate the training.
 
-### Multi-speaker model with X-vector training
+### Multi-speaker model with speaker embedding training
 
-First, you need to run from the stage 2 and 3 with `--use_xvector true` to extract X-vector.
+First, you need to run from the stage 2 and 3 with `--use_spk_embed true` to extract speaker embedding.
 ```sh
-$ ./run.sh --stage 3 --stop-stage 4 --use_xvector true
+$ ./run.sh --stage 3 --stop-stage 4 --use_spk_embed true
 ```
-You can find the extracted X-vector in `dump/xvector/*/xvector.{ark,scp}`.
+You can find the extracted speaker embedding in `dump/${spk_embed_tag}/*/${spk_embed_tag}.{ark,scp}`.
 Then, you can run the training with the config which has `spk_embed_dim: 512` in `tts_conf`.
 ```yaml
 # e.g.
@@ -336,20 +337,20 @@ tts_conf:
     spk_embed_integration_type: add  # how to integrate speaker embedding
 ```
 
-#### (Optional) Train on speaker-averaged X-vectors
+#### (Optional) Train on speaker-averaged speaker embeddings
 
-Models trained using speaker-averaged X-vectors may generalise better to inference tasks where the utterance-specific xvector is unknown, compared to models trained using embeddings derived from individual training utterances.
-After you perform the above extraction step, if you want to train and evaluate using speaker-averaged X-vectors you can use the following command to replace utterance-level X-vectors with speaker-averaged values. Make sure to set your `train_set` `dev_set` and `test_set` variables beforehand:
+Models trained using speaker-averaged speaker embeddings may generalise better to inference tasks where the utterance-specific speaker embedding is unknown, compared to models trained using embeddings derived from individual training utterances.
+After you perform the above extraction step, if you want to train and evaluate using speaker-averaged speaker embeddings, you can use the following command to replace utterance-level speaker embeddings with speaker-averaged values. Make sure to set your `train_set` `dev_set` and `test_set` variables beforehand:
 ```
 for dset in "${train_set}" "${dev_set}" "${test_set}"
 do
-    ./pyscripts/utils/convert_to_avg_xvectors.py \
-        --xvector-path dump/xvector/${dset}/xvector.scp \
+    ./pyscripts/utils/convert_to_avg_spk_embed.py \
+        --utt-embed-path dump/${spk_embed_tag}/${dset}/${spk_embed_tag}.scp \
         --utt2spk data/${dset}/utt2spk \
-        --spk-xvector-path dump/xvector/${dset}/spk_xvector.scp
+        --spk-embed-path dump/${spk_embed_tag}/${dset}/spk_${spk_embed_tag}.scp
 done
 ```
-The original xvector.scp files are renamed to xvector.scp.bak in case you wish to revert the changes.
+The original `${spk_embed_tag}.scp` files are renamed to xvector.scp.bak in case you wish to revert the changes.
 
 ---
 
@@ -495,10 +496,10 @@ $ ./run.sh \
     --inference_config ./conf/tuning/decode_vits.yaml \
     --inference_model latest.pth
 
-# Multi speaker with X-vector 22.05 khz case (need compiled kaldi to run)
+# Multi speaker with speaker embedding 22.05 khz case (need compiled kaldi to run if use Kaldi toolkit)
 $ ./run.sh \
     --stage 2 \
-    --use_xvector true \
+    --use_spk_embed true \
     --ngpu 4 \
     --fs 22050 \
     --n_fft 1024 \
@@ -826,7 +827,7 @@ You can find example configs of the above models in:
 - [`egs2/vctk/tts1/conf/tuning`](../../vctk/tts1/conf/tuning).
 - [`egs2/libritts/tts1/conf/tuning`](../../vctk/libritts/conf/tuning).
 
-And now we support other toolkit's xvector.
+And now we support other toolkit's speaker embeddings:
 Please check the following options.
 
 https://github.com/espnet/espnet/blob/df053b8c13c26fe289fc882751801fd781e9d43e/egs2/TEMPLATE/tts1/tts.sh#L69-L71
@@ -1046,3 +1047,4 @@ This is because we use prenet in the decoder, which always applies dropout.
 See more info in [Tacotron2 paper](https://arxiv.org/abs/1712.05884).
 
 If you want to fix the results, you can use [`--always_fix_seed` option](https://github.com/espnet/espnet/blob/f03101557753517ebac8c432f0793d97d68fa5f0/espnet2/bin/tts_inference.py#L601-L606).
+
