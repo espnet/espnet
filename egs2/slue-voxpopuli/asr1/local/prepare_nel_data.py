@@ -2,12 +2,12 @@
 Extract entity phrase and duration tuples for evaluation
 """
 
-from datasets import load_dataset
-
 import json
-from fire import Fire
 import os
 import sys
+
+from datasets import load_dataset
+from fire import Fire
 from tqdm import tqdm
 
 
@@ -83,9 +83,7 @@ def update_alignment_dct(all_word_alignments, entity_alignments, utt_id, gt_labe
                             end_time,
                         )
                     entity_alignments[utt_id].append(
-                        [entity_phrase,
-                        entity_start_time,
-                        entity_end_time]
+                        [entity_phrase, entity_start_time, entity_end_time]
                     )
                     curr_idx += len_phrase
                     data_idx += 1
@@ -131,9 +129,9 @@ def modify_word_alignments(dataset_obj, data_dir, data_split, extract_gt):
             end_sec = wrd_durs["end_sec"][wrd_idx]
             all_word_alignments[utt_id].append([word, start_sec, end_sec])
         update_alignment_dct(all_word_alignments, entity_alignments, utt_id, gt_labels)
-        
+
     if data_split == "validation":
-        data_split = "devel" # to match ESPNET format
+        data_split = "devel"  # to match ESPNET format
     save_json(
         os.path.join(data_dir, f"{data_split}_all_word_alignments.json"),
         all_word_alignments,
@@ -151,9 +149,7 @@ def main(data_dir="data/nel_gt", is_blind=True):
     os.makedirs(data_dir, exist_ok=True)
     for data_split in split_lst:
         extract_gt = data_split == "validation" or not is_blind
-        modify_word_alignments(
-            dataset[data_split], data_dir, data_split, extract_gt
-        )
+        modify_word_alignments(dataset[data_split], data_dir, data_split, extract_gt)
 
 
 if __name__ == "__main__":

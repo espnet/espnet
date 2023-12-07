@@ -2,7 +2,7 @@ dir_name=$1
 split="devel"
 
 if ! test -f "data/nel_gt/${split}_all_word_alignments.json"; then
-    python local/prepare_nel_data.py 
+    python local/prepare_nel_data.py
 fi
 python local/reformat_ctc_outputs.py --dir_name $dir_name --split $split
 

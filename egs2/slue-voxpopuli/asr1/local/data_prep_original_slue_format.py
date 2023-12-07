@@ -44,7 +44,9 @@ for x in dir_dict:
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
-        transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep="\t", keep_default_na=False)
+        transcript_df = pd.read_csv(
+            os.path.join(root, dir_dict[x]), sep="\t", keep_default_na=False
+        )
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
             uttid = row[3] + "_" + row[0]

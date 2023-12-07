@@ -11,11 +11,12 @@ Submission format: json file
 
 """
 
-from fire import Fire
-from glob import glob
 import json
 import os
+from glob import glob
+
 import numpy as np
+from fire import Fire
 
 
 def load_json(fname):
@@ -236,7 +237,9 @@ def evaluate_submission(offset=-1, split="devel", dir_name="token", ms=False):
     gt_alignment_dct = load_json(
         os.path.join("data", "nel_gt", f"{split}_all_word_alignments.json")
     )
-    gt_dct = load_json(os.path.join("data", "nel_gt", f"{split}_entity_alignments.json"))
+    gt_dct = load_json(
+        os.path.join("data", "nel_gt", f"{split}_entity_alignments.json")
+    )
     pred_dct = filter_pred_dct(
         load_json(os.path.join(pred_dir, f"{split}_pred_stamps.json")), ms, offset
     )
@@ -275,9 +278,7 @@ def evaluate_submission(offset=-1, split="devel", dir_name="token", ms=False):
 def choose_best(dir_name):
     pred_dir = os.path.dirname(dir_name)
     best_params_dct = {}
-    res_fnames = glob(
-        os.path.join(pred_dir, "nel_results", f"devel_offset*.json")
-    )
+    res_fnames = glob(os.path.join(pred_dir, "nel_results", f"devel_offset*.json"))
     best_score = 0
     for fname in res_fnames:
         score = load_json(fname)["frame"]["f1"]
@@ -285,9 +286,7 @@ def choose_best(dir_name):
             best_score = score
             best_offset = fname.split("_")[-1][6:-5]
     best_params_dct["offset"] = best_offset
-    with open(
-        os.path.join(pred_dir, "nel_results", "best_offset.lst"), "a"
-    ) as f:
+    with open(os.path.join(pred_dir, "nel_results", "best_offset.lst"), "a") as f:
         f.write(
             ",".join([dir_name, best_offset, str(np.round(100 * best_score, 1))]) + "\n"
         )

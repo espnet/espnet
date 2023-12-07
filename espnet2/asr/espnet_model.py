@@ -201,10 +201,10 @@ class ESPnetASRModel(AbsESPnetModel):
             self.lang_token_id = torch.tensor([[lang_token_id]])
         else:
             self.lang_token_id = None
-        
+
         self.superb_setup = superb_setup
         if self.superb_setup:
-            self.encoder=None
+            self.encoder = None
 
     def forward(
         self,

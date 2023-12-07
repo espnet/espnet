@@ -50,4 +50,3 @@ sh local/score.sh exp/<exp_name> decode_beam1_asr_model_valid.acc.ave/org/devel/
 sh ./run_slueperb.sh --stage 12 --inference_config conf/slueperb/decode_greedy_ctc.yaml --test_sets "devel"
 sh local/score_nel.sh exp/<exp_name>/decode_greedy_ctc_asr_model_valid.acc.ave/org/devel/token
 ```
-
