@@ -34,3 +34,14 @@
 |dataset|Snt|Macro F1(%)|Micro F1 (%)|Macro Label F1(%)|Micro Label F1 (%)| WER|
 |---|---|---|---|---|---|---|
 |decode_asr_hf_asr_model_valid.acc.ave/devel|1742|60.35|74.57|82.93|88.06|11.3|
+
+## Replicating SLUE-PERB NER and NEL scores
+
+- Link to the paper: to-be-added
+- Config files in [conf/slueperb](conf/slueperb)
+- NER scoring
+`sh local/score.sh exp/<exp_name> decode_beam1_asr_model_valid.acc.ave/org/devel/ decode_beam1_asr_model_valid.acc.ave/test/`
+- NEL scoring
+`sh ./run_slueperb.sh --stage 12 --inference_config conf/slueperb/decode_greedy_ctc.yaml --test_sets "devel"`
+`sh local/score_nel.sh exp/<exp_name>/decode_greedy_ctc_asr_model_valid.acc.ave/org/devel/token`
+
