@@ -38,6 +38,7 @@
 ## Replicating SLUE-PERB NER and NEL scores
 
 - Link to the paper: to-be-added
+- Additional libraries required: [Fire](https://pypi.org/project/fire/), [Datasets](https://huggingface.co/docs/datasets/index)
 - Config files in [conf/slueperb](conf/slueperb)
 - NER scoring
 `sh local/score.sh exp/<exp_name> decode_beam1_asr_model_valid.acc.ave/org/devel/ decode_beam1_asr_model_valid.acc.ave/test/`
