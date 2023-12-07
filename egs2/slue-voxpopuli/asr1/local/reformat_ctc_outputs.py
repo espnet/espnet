@@ -15,7 +15,7 @@ import json
 import numpy as np
 import os
 
-MY_DIR = "/share/data/lang/users/ankitap"
+# MY_DIR = "/share/data/lang/users/ankitap"
 def read_lst(fname):
     with open(fname, "r") as f:
         lst_from_file = [line.strip() for line in f.readlines()]
@@ -29,15 +29,22 @@ def save_json(fname, dict_name):
     with open(fname, "w") as f:
         f.write(json.dumps(dict_name, indent=4))
 
+def load_json(fname):
+    data = json.loads(open(fname).read())
+    return data
+
 class ReadCTCEmissions():
-    def __init__(self, dir_name, split="dev"):
+    def __init__(self, dir_name, split="devel"):
         self.token_fn = dir_name
         self.split = split
-        self.og_data = os.path.join(
-            MY_DIR,
-            "nel_code_package/slue-toolkit/data/slue-voxpopuli_nel",
-            f"slue-voxpopuli_nel_{split}.tsv"
-            )
+        self.nel_utt_lst = list(load_json(
+            os.path.join("data", "nel_gt", f"{split}_all_word_alignments.json")
+        ).keys())
+        # self.og_data = os.path.join(
+        #     MY_DIR,
+        #     "nel_code_package/slue-toolkit/data/slue-voxpopuli_nel",
+        #     f"slue-voxpopuli_nel_{split}.tsv"
+        #     )
 
     def deduplicate(self, output_tokens, frame_len):
         """
@@ -84,15 +91,15 @@ class ReadCTCEmissions():
         Convert frame_level outputs to a sequence of words and timestamps
         """
         frame_level_op = read_lst(self.token_fn)
-        lines = read_lst(self.og_data)[1:]
-        nel_utt_lst = [line.split("\t")[0] for line in lines]
+        # lines = read_lst(self.og_data)[1:]
+        # nel_utt_lst = [line.split("\t")[0] for line in lines]
         res_dct = {}
         num_inconsistent = 0
         tot_cnt = 0
         for item in frame_level_op:
             utt_id = "_".join(item.split(" ")[0].split("_")[1:])
             subtokens = item.split(" ")[1:]
-            if utt_id in nel_utt_lst: # process NEL corpus utterances only
+            if utt_id in self.nel_utt_lst: # process NEL corpus utterances only
                 tot_cnt += 1
                 subtoken_lst, dur_lst = self.deduplicate(subtokens, frame_len)
                 if 'FILL' in subtoken_lst and 'SEP' in subtoken_lst: # at least one entity
@@ -101,13 +108,13 @@ class ReadCTCEmissions():
                     if cnt_fill != cnt_sep:
                         num_inconsistent += 1
                     res_dct[utt_id] = self.extract_entity_timestamps(subtoken_lst, dur_lst)
-        # print(f"Tot samples: {len(nel_utt_lst)}")
+        # print(f"Tot samples: {len(self.nel_utt_lst)}")
         # print(f"Tot pred samples: {tot_cnt}")
         # print(f"Tot inconsistent samples: {num_inconsistent}")
         save_dir = os.path.dirname(self.token_fn)
         save_json(os.path.join(save_dir, f"{self.split}_pred_stamps.json"), res_dct)
 
-def main(dir_name="token", split="dev", frame_len=4e-2):
+def main(dir_name="token", split="devel", frame_len=4e-2):
     obj = ReadCTCEmissions(dir_name, split)
     obj.get_char_outputs(frame_len)
 

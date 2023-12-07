@@ -227,12 +227,16 @@ def clip_dur(dur, offset):
     return dur
 
 
-def evaluate_submission(offset=-1, split="dev", dir_name="token", ms=False):
+def evaluate_submission(offset=-1, split="devel", dir_name="token", ms=False):
     pred_dir = os.path.dirname(dir_name)
+    # gt_alignment_dct = load_json(
+    #     os.path.join("data", "devel_nel", f"{split}_gt_alignment.json")
+    # )
+    # gt_dct = load_json(os.path.join("data", "devel_nel", f"{split}_gt_tuple.json"))
     gt_alignment_dct = load_json(
-        os.path.join("data", "devel_nel", f"{split}_gt_alignment.json")
+        os.path.join("data", "nel_gt", f"{split}_all_word_alignments.json")
     )
-    gt_dct = load_json(os.path.join("data", "devel_nel", f"{split}_gt_tuple.json"))
+    gt_dct = load_json(os.path.join("data", "nel_gt", f"{split}_entity_alignments.json"))
     pred_dct = filter_pred_dct(
         load_json(os.path.join(pred_dir, f"{split}_pred_stamps.json")), ms, offset
     )
@@ -272,7 +276,7 @@ def choose_best(dir_name):
     pred_dir = os.path.dirname(dir_name)
     best_params_dct = {}
     res_fnames = glob(
-        os.path.join(pred_dir, "nel_results", f"dev_offset*.json")
+        os.path.join(pred_dir, "nel_results", f"devel_offset*.json")
     )
     best_score = 0
     for fname in res_fnames:
