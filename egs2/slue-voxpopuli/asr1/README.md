@@ -42,11 +42,12 @@
 - Config files in [conf/slueperb](conf/slueperb)
 - Recipe script: [run_slueperb.sh](local/run_slueperb.sh)
 - NER scoring
-
-`sh local/score.sh exp/<exp_name> decode_beam1_asr_model_valid.acc.ave/org/devel/ decode_beam1_asr_model_valid.acc.ave/test/`
+```
+sh local/score.sh exp/<exp_name> decode_beam1_asr_model_valid.acc.ave/org/devel/ decode_beam1_asr_model_valid.acc.ave/test/
+```
 - NEL scoring
-
-`sh ./run_slueperb.sh --stage 12 --inference_config conf/slueperb/decode_greedy_ctc.yaml --test_sets "devel"`
-
-`sh local/score_nel.sh exp/<exp_name>/decode_greedy_ctc_asr_model_valid.acc.ave/org/devel/token`
+```
+sh ./run_slueperb.sh --stage 12 --inference_config conf/slueperb/decode_greedy_ctc.yaml --test_sets "devel"
+sh local/score_nel.sh exp/<exp_name>/decode_greedy_ctc_asr_model_valid.acc.ave/org/devel/token
+```
 
