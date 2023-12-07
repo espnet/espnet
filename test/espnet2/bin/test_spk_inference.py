@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import torch
 
-from espnet2.bin.spk_inference import Speech2SpkEmbedding, get_parser, main
+from espnet2.bin.spk_inference import Speech2Embedding, get_parser, main
 from espnet2.tasks.spk import SpeakerTask
 
 
@@ -37,8 +37,8 @@ def spk_config_file(tmp_path: Path):
 
 
 @pytest.mark.execution_timeout(5)
-def test_Speech2SpkEmbedding(spk_config_file):
-    speech2embedding = Speech2SpkEmbedding(train_config=spk_config_file)
+def test_Speech2Embedding(spk_config_file):
+    speech2embedding = Speech2Embedding(train_config=spk_config_file)
     speech = np.random.randn(1000)
     result = speech2embedding(speech)
     assert isinstance(result, torch.Tensor)

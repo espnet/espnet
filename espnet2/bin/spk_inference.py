@@ -20,12 +20,12 @@ from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.utils.cli_utils import get_commandline_args
 
 
-class Speech2SpkEmbedding:
-    """Speech2SpkEmbedding class
+class Speech2Embedding:
+    """Speech2Embedding class
 
     Examples:
         >>> import soundfile
-        >>> speech2spkembed = Speech2SpkEmbedding("spk_config.yml", "spk.pth")
+        >>> speech2spkembed = Speech2Embedding("spk_config.yml", "spk.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2spkembed(audio)
 
@@ -86,14 +86,14 @@ class Speech2SpkEmbedding:
         model_tag: Optional[str] = None,
         **kwargs: Optional[Any],
     ):
-        """Build Speech2SpkEmbedding instance from the pretrained model.
+        """Build Speech2Embedding instance from the pretrained model.
 
         Args:
             model_tag (Optional[str]): Model tag of the pretrained models.
                 Currently, the tags of espnet_model_zoo are supported.
 
         Returns:
-            Speech2Text: Speech2SpkEmbedding instance.
+            Speech2Text: Speech2Embedding instance.
 
         """
         if model_tag is not None:
@@ -109,7 +109,7 @@ class Speech2SpkEmbedding:
             d = ModelDownloader()
             kwargs.update(**d.download_and_unpack(model_tag))
 
-        return Speech2SpkEmbedding(**kwargs)
+        return Speech2Embedding(**kwargs)
 
 
 def inference(
@@ -153,7 +153,7 @@ def inference(
         model_file=model_file,
     )
 
-    speech2embedding = Speech2SpkEmbedding.from_pretrained(
+    speech2embedding = Speech2Embedding.from_pretrained(
         model_tag=model_tag,
         **speech2embedding_kwargs,
     )

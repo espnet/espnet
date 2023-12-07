@@ -89,7 +89,7 @@ class SpkEmbedExtractor:
             )
             self.model.to(device).eval()
         elif self.toolkit == "espnet":
-            from espnet2.bin.spk_inference import Speech2SpkEmbedding
+            from espnet2.bin.spk_inference import Speech2Embedding
 
             # NOTE(jiatong): set default config file as None
             # assume config is the same path as the model file
@@ -113,7 +113,7 @@ class SpkEmbedExtractor:
                 )
                 model_tag = args.pretrained_model
 
-            self.speech2spkembedding = Speech2SpkEmbedding.from_pretrained(
+            self.speech2spkembedding = Speech2Embedding.from_pretrained(
                 model_tag=model,
                 **speech2spkembedding_kwargs,
             )
