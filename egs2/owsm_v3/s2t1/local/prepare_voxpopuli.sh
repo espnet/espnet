@@ -6,6 +6,8 @@ set -u
 set -o pipefail
 
 . ./path.sh || exit 1;
+. ./db.sh || exit 1;
+
 
 # Copied from utils/fix_data_dir.sh
 function check_sorted {
@@ -25,13 +27,13 @@ log() {
 }
 SECONDS=0
 
-data_dir=/scratch/bbjs/peng6/corpora/MuST-C_v1.2
-prefix=$(basename ${data_dir})
-output_dir=data/${prefix}
-splits="dev train"
+voxpopuli_dir=${VOXPOPULI}
+prefix=VoxPopuli
+output_dir=data/VoxPopuli
+splits="train dev test"
 
-python local/prepare_must-c.py \
-    --data_dir ${data_dir} \
+python local/prepare_voxpopuli.py \
+    --data_dir ${voxpopuli_dir} \
     --prefix ${prefix} \
     --output_dir ${output_dir} \
     --splits ${splits} || exit 1;
