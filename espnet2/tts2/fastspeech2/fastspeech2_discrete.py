@@ -128,7 +128,7 @@ class FastSpeech2Discrete(AbsTTS2):
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
-        ignore_id: int = -1,
+        ignore_id: int = -1, # maybe adjust this in collate_fn. default -1 means padding int
     ):
         """Initialize FastSpeech2 module.
 
@@ -633,8 +633,6 @@ class FastSpeech2Discrete(AbsTTS2):
         hs, _ = self.encoder(xs, x_masks)  # (B, T_text, adim)
 
         # integrate with GST
-        # (Jinchuan): why get the style embs from the target ys?
-        # use itself as the style; replace this to modify the style later
         if self.use_gst:
             style_embs = self.gst(ys)
             hs = hs + style_embs.unsqueeze(1)
@@ -680,8 +678,9 @@ class FastSpeech2Discrete(AbsTTS2):
             hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
         
         # Length mismatch between duration and discrete target
-        minlen = min(ys.size(1), hs.size(1))
-        hs, ys = hs[:, :minlen], ys[:, :minlen]
+        if ys is not None:
+            minlen = min(ys.size(1), hs.size(1))
+            hs, ys = hs[:, :minlen], ys[:, :minlen]
 
         # forward decoder
         if olens is not None and not is_inference:

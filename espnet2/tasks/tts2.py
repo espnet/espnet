@@ -225,7 +225,7 @@ class TTS2Task(AbsTask):
         assert check_argument_types()
         return CommonCollateFn(
             float_pad_value=0.0,
-            int_pad_value=0,
+            int_pad_value=-1,
             not_sequence=["spembs", "sids", "lids"],
         )
 
@@ -414,6 +414,7 @@ class TTS2Task(AbsTask):
         model: Optional[ESPnetTTS2Model] = None,
         device: str = "cpu",
     ):
+        raise NotImplementedError("wait for implementation")
         # Build vocoder
         if vocoder_file is None:
             # If vocoder file is not provided, use griffin-lim as a vocoder

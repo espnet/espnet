@@ -102,6 +102,7 @@ num_splits=1       # Number of splitting for tts2 corpus.
 teacher_dumpdir="" # Directory of teacher outputs (needed if tts2=fastspeech).
 write_collected_feats=false # Whether to dump features in stats collection.
 tts2_task=tts2                # Discrete TTS task (tts2 or gan_tts2).
+write_collected_feats=true    # will be much faster if do so
 
 # Decoding related
 inference_config="" # Config for decoding.
@@ -633,6 +634,8 @@ if ! "${skip_train}"; then
             _opts+="--config ${train_config} "
         fi
 
+        _opts+="--write_collected_feats ${write_collected_feats} "
+
         _scp=wav.scp
         if [[ "${audio_format}" == *ark* ]]; then
             _type=kaldi_ark
@@ -1068,7 +1071,6 @@ if ! "${skip_eval}"; then
                 ${python} -m espnet2.bin.tts2_inference \
                     --ngpu "${_ngpu}" \
                     --data_path_and_name_and_type "${_data}/text,text,text" \
-                    --data_path_and_name_and_type ${_speech_data}/text.km.${km_tag},speech,text_int \
                     --key_file "${_logdir}"/keys.JOB.scp \
                     --model_file "${tts2_exp}"/"${inference_model}" \
                     --train_config "${tts2_exp}"/config.yaml \

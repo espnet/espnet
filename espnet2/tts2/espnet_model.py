@@ -115,6 +115,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
                     durations=durations,
                     durations_lengths=durations_lengths,
                 )
+                print("compute pitch onthefly", flush=True)
             if self.energy_extract is not None and energy is None:
                 energy, energy_lengths = self.energy_extract(
                     speech,
@@ -123,6 +124,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
                     durations=durations,
                     durations_lengths=durations_lengths,
                 )
+                print("compute energy onthefly", flush=True)
 
             # Normalize
             if self.normalize is not None:
@@ -201,10 +203,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
 
         """
         # feature extraction
-        # have to get this
-        discrete_feats, discrete_feats_lengths = self.discrete_feats_extract(
-            discrete_speech, discrete_speech_lengths
-        )
         if self.feats_extract is not None:
             feats, feats_lengths = self.feats_extract(speech, speech_lengths)
         else:
@@ -231,8 +229,6 @@ class ESPnetTTS2Model(AbsESPnetModel):
         feats_dict = dict(
             feats=feats, 
             feats_lengths=feats_lengths,
-            discrete_feats=discrete_feats, 
-            discrete_feats_lengths=discrete_feats_lengths,
         )
         if pitch is not None:
             feats_dict.update(pitch=pitch, pitch_lengths=pitch_lengths)
@@ -320,11 +316,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
 
         output_dict = self.tts.inference(**input_dict, **decode_config)
 
-        if self.normalize is not None and output_dict.get("feat_gen") is not None:
-            # NOTE: normalize.inverse is in-place operation
-            feat_gen_denorm = self.normalize.inverse(
-                output_dict["feat_gen"].clone()[None]
-            )[0][0]
-            output_dict.update(feat_gen_denorm=feat_gen_denorm)
+        # Predict the discrete tokens. Currently only apply argmax for selction
+        output_dict["feat_gen"] = output_dict["feat_gen"].argmax(1)
 
         return output_dict
