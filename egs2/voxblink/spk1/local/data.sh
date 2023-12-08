@@ -23,7 +23,7 @@ log() {
 
 if [ -z ${VOXBLINK} ]; then
     log "Root dir for dataset not defined, setting to ${MAIN_ROOT}/egs2/voxblink/spk1/downloads"
-    VOXBLINK=${MAIN_ROOT}/egs2/voxceleb
+    VOXBLINK=${MAIN_ROOT}/egs2/voxblink
 else
     log "Root dir is: ${VOXBLINK}"
 fi
@@ -70,6 +70,8 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     # crop audios
     python3 cropper.py --save_dir ${VOXBLINK} --timestamp_dir ${VOXBLINK}/downloader_repo/resource/timestamp --num_workers ${n_proc} --mode full --video_dir ${VOXBLINK}/videos
+
+    cd ${MAIN_ROOT}/egs2/voxblink/spk1
 
     log "Stage 2, DONE."
 fi
@@ -120,15 +122,16 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     log "This recipe uses VoxCeleb1 test set following official VoxBlink paper."
     log "Run stage 1 of egs2/voxceleb/spk1/spk.sh first"
 
-    mkdir -p ${trg_dir}/voxblink
-    python local/data_prep.py --src "${VOXBLINK}/audio" --dst "${trg_dir}/voxblink"
+    mkdir -p ${trg_dir}/voxblink_full
+    python local/data_prep.py --src "${VOXBLINK}/audio" --dst "${trg_dir}/voxblink_full"
 
     for f in wav.scp utt2spk spk2utt; do
-        sort ${trg_dir}/voxblink/${f} -o ${trg_dir}/voxblink/${f}
+        sort ${trg_dir}/voxblink_full/${f} -o ${trg_dir}/voxblink_full/${f}
     done
 
     # make a symlink of VoxCeleb1 test set
     ln -s ${MAIN_ROOT}/egs2/voxceleb/spk1/data/voxceleb1_test ${trg_dir}/voxceleb1_test
     log "Stage 4, DONE."
 
+    # TODO(Jee-weon): add VoxBlink-full to VoxBlink-clean transformation in case it's needed.
 fi
