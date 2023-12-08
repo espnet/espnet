@@ -66,7 +66,7 @@ f0min=80  # Maximum f0 for pitch extraction.
 f0max=400 # Minimum f0 for pitch extraction.
 
 # Speech Discretization Related
-discrete_stage=3                # discretization stage
+discrete_stage=1                # discretization stage
 discrete_stop_stage=3           # discretization stop stage
 clustering_nj=20                # Number of threads used for kmeans clustering
 feature_dir="dump/feats"        # Feature directory for dumped feature
