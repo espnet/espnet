@@ -132,6 +132,4 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # make a symlink of VoxCeleb1 test set
     ln -s ${MAIN_ROOT}/egs2/voxceleb/spk1/data/voxceleb1_test ${trg_dir}/voxceleb1_test
     log "Stage 4, DONE."
-
-    # TODO(Jee-weon): add VoxBlink-full to VoxBlink-clean transformation in case it's needed.
 fi
