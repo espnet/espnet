@@ -84,7 +84,7 @@ optim_conf:
 # Scheduler
 scheduler: CosineAnnealingWarmupRestarts
 scheduler_conf:
-  first_cycle_steps: 71280 # equal to 10 epochs
+  first_cycle_steps: 84560 # equal to 10 epochs
   cycle_mult: 1.0
   max_lr: 0.001
   min_lr: 0.000005
