@@ -4,12 +4,12 @@ espnet2.lm package
 
 
 
-.. _espnet2.lm.espnet_model:
+.. _espnet2.lm.seq_rnn_lm:
 
-espnet2.lm.espnet_model
------------------------
+espnet2.lm.seq_rnn_lm
+---------------------
 
-.. automodule:: espnet2.lm.espnet_model
+.. automodule:: espnet2.lm.seq_rnn_lm
     :members:
     :undoc-members:
     :show-inheritance:
@@ -26,12 +26,12 @@ espnet2.lm.__init__
     :show-inheritance:
 
 
-.. _espnet2.lm.seq_rnn_lm:
+.. _espnet2.lm.espnet_model:
 
-espnet2.lm.seq_rnn_lm
----------------------
+espnet2.lm.espnet_model
+-----------------------
 
-.. automodule:: espnet2.lm.seq_rnn_lm
+.. automodule:: espnet2.lm.espnet_model
     :members:
     :undoc-members:
     :show-inheritance:
