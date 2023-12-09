@@ -4,28 +4,28 @@
 # Copyright 2023 Roshan Sharma (Carnegie Mellon University)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from xml.dom import minidom
+import argparse
 import os
 import urllib.request
 import zipfile
-import argparse 
+from xml.dom import minidom
 
 
 class AMIDataExtractor:
-    def __init__(self, ami_dir, in_file_ext='xml', out_file_ext='txt'):
+    def __init__(self, ami_dir, in_file_ext="xml", out_file_ext="txt"):
         self.args = args
         self.in_file_ext = in_file_ext
         self.out_file_ext = out_file_ext
 
-        self.ami_dir = os.path.join(ami_dir,'ami_public_manual_1.6.2')
+        self.ami_dir = os.path.join(ami_dir, "ami_public_manual_1.6.2")
         self.download_corpus()
 
     def download_corpus(self):
-        """ Check if AMI Corpus exists and only download it if it doesn't
+        """Check if AMI Corpus exists and only download it if it doesn't
 
         :return: directory where AMI Corpus is located
         """
-        download_link = 'http://groups.inf.ed.ac.uk/ami/AMICorpusAnnotations/ami_public_manual_1.6.2.zip'
+        download_link = "http://groups.inf.ed.ac.uk/ami/AMICorpusAnnotations/ami_public_manual_1.6.2.zip"
 
         if not os.path.exists(self.ami_dir):
             # 1. Ensure data directory exists
@@ -33,10 +33,10 @@ class AMIDataExtractor:
                 os.mkdir(self.args.ami_xml_dir)
             # 2. Download AMI Corpus
             print("Downloading AMI Corpus to: {}".format(self.ami_dir))
-            zipped_ami_filename = self.ami_dir + '.zip'
+            zipped_ami_filename = self.ami_dir + ".zip"
             urllib.request.urlretrieve(download_link, zipped_ami_filename)
             # 3. Unzip zip file
-            zip_ref = zipfile.ZipFile(zipped_ami_filename, 'r')
+            zip_ref = zipfile.ZipFile(zipped_ami_filename, "r")
             zip_ref.extractall(self.ami_dir)
             zip_ref.close()
             # 4. Delete zip file
@@ -46,10 +46,9 @@ class AMIDataExtractor:
 
     def get_corpus_directory(self):
         return self.ami_dir
-    
 
     def get_transcript(self, conv_id):
-        """ Extracts transcript for a given conversation ID
+        """Extracts transcript for a given conversation ID
 
         :param conv_id: conversation ID
         :return: transcript
@@ -58,71 +57,89 @@ class AMIDataExtractor:
         word_speakers = []
         word_start_times = []
         word_end_times = []
-        speaker_ids = [ x.split(".")[-3] for x in os.listdir(f"{self.ami_dir}/words/") if x.startswith(conv_id)]
-        
+        speaker_ids = [
+            x.split(".")[-3]
+            for x in os.listdir(f"{self.ami_dir}/words/")
+            if x.startswith(conv_id)
+        ]
+
         for speaker in speaker_ids:
-            words_file = os.path.join(self.ami_dir,'words', f"{conv_id}.{speaker}.words.xml")
+            words_file = os.path.join(
+                self.ami_dir, "words", f"{conv_id}.{speaker}.words.xml"
+            )
             xmldoc = minidom.parse(words_file)
-            itemlist = xmldoc.getElementsByTagName('w')
+            itemlist = xmldoc.getElementsByTagName("w")
             for s in itemlist:
                 transcript.append(s.firstChild.data)
                 word_speakers.append(speaker)
                 word_start_times.append(s.getAttribute("starttime"))
                 word_end_times.append(s.getAttribute("endtime"))
-        
-        sorted_data = sorted(zip(word_start_times,word_end_times,word_speakers,transcript),key=lambda x: x[0])
+
+        sorted_data = sorted(
+            zip(word_start_times, word_end_times, word_speakers, transcript),
+            key=lambda x: x[0],
+        )
         trans = [x[-1] for x in sorted_data]
         return " ".join(trans)
-    
+
     def get_abssum(self, conv_id):
-        """ Extracts summary for a given conversation ID
+        """Extracts summary for a given conversation ID
 
         :param conv_id: conversation ID
         :return: summary
         """
-        
-        summ_file = os.path.join(self.ami_dir,'abstractive', f"{conv_id}.abssumm.xml")
-        summary = ''
+
+        summ_file = os.path.join(self.ami_dir, "abstractive", f"{conv_id}.abssumm.xml")
+        summary = ""
         try:
             xmldoc = minidom.parse(summ_file)
-            abslist = xmldoc.getElementsByTagName('abstract')
-            items_sentences = abslist[0].getElementsByTagName('sentence')
+            abslist = xmldoc.getElementsByTagName("abstract")
+            items_sentences = abslist[0].getElementsByTagName("sentence")
             for item in items_sentences:
-                summary += item.firstChild.data + ' '
+                summary += item.firstChild.data + " "
         except:
             print(f"Could not find summary for {conv_id}")
-        
-        actions = ''
+
+        actions = ""
         try:
-            actlist = xmldoc.getElementsByTagName('actions')
-            items_sentences = actlist[0].getElementsByTagName('sentence')
+            actlist = xmldoc.getElementsByTagName("actions")
+            items_sentences = actlist[0].getElementsByTagName("sentence")
             for item in items_sentences:
-                actions += item.firstChild.data + ' '
+                actions += item.firstChild.data + " "
         except:
             print(f"Could not find actions for {conv_id}")
-        
-        decisions = ''
+
+        decisions = ""
         try:
-            declist = xmldoc.getElementsByTagName('decisions')
-            items_sentences = declist[0].getElementsByTagName('sentence')
+            declist = xmldoc.getElementsByTagName("decisions")
+            items_sentences = declist[0].getElementsByTagName("sentence")
             for item in items_sentences:
-                decisions += item.firstChild.data + ' '
+                decisions += item.firstChild.data + " "
         except:
             print(f"Could not find decisions for {conv_id}")
-        
-        problems = ''
+
+        problems = ""
         try:
-            problist = xmldoc.getElementsByTagName('problems')
-            items_sentences = problist[0].getElementsByTagName('sentence')
+            problist = xmldoc.getElementsByTagName("problems")
+            items_sentences = problist[0].getElementsByTagName("sentence")
             for item in items_sentences:
-                problems += item.firstChild.data + ' '
+                problems += item.firstChild.data + " "
         except:
             print(f"Could not find problems for {conv_id}")
-            
-        return " ".join([summary,decisions,actions,problems]),summary, decisions, actions,problems
 
-    def process_all(self,gen_transcript=True,gen_abssumm=True,gen_extsumm=True):
-        conv_ids = [x.replace(".abssumm.xml","") for x in os.listdir(f"{self.ami_dir}/abstractive/")]
+        return (
+            " ".join([summary, decisions, actions, problems]),
+            summary,
+            decisions,
+            actions,
+            problems,
+        )
+
+    def process_all(self, gen_transcript=True, gen_abssumm=True, gen_extsumm=True):
+        conv_ids = [
+            x.replace(".abssumm.xml", "")
+            for x in os.listdir(f"{self.ami_dir}/abstractive/")
+        ]
         abs_summaries = []
         abs_abstracts = []
         abs_decisions = []
@@ -131,36 +148,38 @@ class AMIDataExtractor:
         ext_summaries = []
         transcripts = []
 
-
         for conv_id in conv_ids:
             if gen_transcript:
                 transcripts.append(f"{conv_id} {self.get_transcript(conv_id)}")
             if gen_abssumm:
-                summary,abstract,decision,action,problems = self.get_abssum(conv_id)
+                summary, abstract, decision, action, problems = self.get_abssum(conv_id)
                 abs_summaries.append(f"{conv_id} {summary}")
                 abs_abstracts.append(f"{conv_id} {abstract}")
                 abs_decisions.append(f"{conv_id} {decision}")
                 abs_actions.append(f"{conv_id} {action}")
                 abs_problems.append(f"{conv_id} {problems}")
-            
+
             # if gen_extsumm:
             #     ext_summaries.append(get_extsumm(data_root,conv_id))
 
-        out_dir = os.path.join("data","processed_text")
+        out_dir = os.path.join("data", "processed_text")
         if not os.path.exists(out_dir):
             os.mkdir(out_dir)
-        with open(os.path.join(out_dir,"transcript"),"w") as f0, open(os.path.join(out_dir,"abstract"),"w") as f1, open(os.path.join(out_dir,"decision"),"w") as f2, open(os.path.join(out_dir,"action"),"w") as f3, open(os.path.join(out_dir,"problem"),"w") as f4, open(os.path.join(out_dir,"abs_summary"),"w") as f5:
+        with open(os.path.join(out_dir, "transcript"), "w") as f0, open(
+            os.path.join(out_dir, "abstract"), "w"
+        ) as f1, open(os.path.join(out_dir, "decision"), "w") as f2, open(
+            os.path.join(out_dir, "action"), "w"
+        ) as f3, open(
+            os.path.join(out_dir, "problem"), "w"
+        ) as f4, open(
+            os.path.join(out_dir, "abs_summary"), "w"
+        ) as f5:
             f0.write("\n".join(transcripts))
             f1.write("\n".join(abs_abstracts))
             f2.write("\n".join(abs_decisions))
             f3.write("\n".join(abs_actions))
             f4.write("\n".join(abs_problems))
             f5.write("\n".join(abs_summaries))
-
-
-
-
-   
 
     # """ Begin 3/4: EXTRACTIVE SUMMARY     """
     # def extract_extractive_summary(self):
@@ -241,8 +260,6 @@ class AMIDataExtractor:
     #     words = self.obtain_dialogue_act_node(segment_nodes)
     #     return words
 
-    
-
     # def obtain_ids(self, items_ext):
     #     href = items_ext.getAttribute('href')
     #     filename = href.split('#')[0]
@@ -262,7 +279,7 @@ class AMIDataExtractor:
     #         if nite_id in id_arr:
     #             nodes.append(item)
     #     return nodes
-    
+
     # """ End: EXTRACTIVE SUMMARY     """
 
     # """ Begin 4/4: FORMAT SUMMARY INTO .STORY     """
@@ -278,7 +295,6 @@ class AMIDataExtractor:
     #             return s
     #     return None
 
-    
     # def save_file(self, text, dir, filename):
     #     if not os.path.exists(dir):
     #         os.mkdir(dir)
@@ -287,18 +303,24 @@ class AMIDataExtractor:
     #     file.close()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Extracts transcript and summary from AMI Corpus.')
-    parser.add_argument('--ami_dir', type=str, default='/ocean/projects/iri120008p/roshansh/corpora/ami/',
-                        help='AMI Corpus download directory')
-       
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Extracts transcript and summary from AMI Corpus."
+    )
+    parser.add_argument(
+        "--ami_dir",
+        type=str,
+        default="/ocean/projects/iri120008p/roshansh/corpora/ami/",
+        help="AMI Corpus download directory",
+    )
+
     args = parser.parse_args()
 
     # 1. Downloads original AMI Corpus and saves in `data/ami_public_manual_1.6.2`
     processor = AMIDataExtractor(args.ami_dir)
 
     # 2. Extract transcript for each subject (words/*.xml -> meeting transcripts)
-    processor.process_all(gen_transcript=True,gen_abssumm=True, gen_extsumm=True)
+    processor.process_all(gen_transcript=True, gen_abssumm=True, gen_extsumm=True)
 
     # # 3. Extract summary
     # if args.summary_type == "abstract":

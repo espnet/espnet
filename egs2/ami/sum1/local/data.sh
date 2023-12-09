@@ -78,7 +78,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/ami_${base_mic}_data_prep.sh ${PROCESSED_AMI_DIR} ${mic}
 
 
-    
+
 
     # data augmentation
 
@@ -89,7 +89,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         rm -r data/${mic}/${dset}_orig
     done
 
-    
+
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
@@ -97,23 +97,23 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     ## Summarization text prep - meeting transcript, abstract, decisions, problems, actions, abstractive summary
     python local/ami_meeting_text_prep.py --ami_dir ${AMI}
     ## Get utterance level audio and combine them into a single file
-     
+
     ## Prepare audio data by concatenating utterances and Kaldi directories
     echo "" > cmd
     for dset in ihm_train ihm_dev ihm_eval; do
         mkdir -p ${AMI}/audio_utts ${AMI}/audio_meetings
         awk -F ' ' 'FNR==NR{a[$1]=$9;next}{$2=a[$2]}1' data/${dset}/wav.scp data/${dset}/segments | awk -F ' ' -v x=${AMI}/audio_utts '{print "sox "$2,x"/"$1".wav"," trim "$3,$4-$3}' > cmd
-        cat cmd | xargs -L 1 -P 20 -I CMD bash -c CMD  
-        
+        cat cmd | xargs -L 1 -P 20 -I CMD bash -c CMD
+
         echo "" > cmd
 
         python local/combine_audio.py data/${dset} ${AMI}/meeting_audio
-        cat cmd | xargs -L 1 -P 20 -I CMD bash -c CMD 
-        
+        cat cmd | xargs -L 1 -P 20 -I CMD bash -c CMD
+
         cp data/processed_text/* data/${dset}_summ/
-        for f in $(ls data/${dset}/); do 
+        for f in $(ls data/${dset}/); do
             LC_ALL=C sort data/${dset}/$f > tmp && mv tmp data/${dset}/$f
-        done 
+        done
         rm -f tmp cmd
         utils/utt2spk_to_spk2utt.pl data/${dset}_summ/utt2spk > data/${dset}_summ/spk2utt
         # cut -d ' ' -f 2- data/${dset}/text | tr '[:lower:]' '[:upper:]' | tr '[:punct:]' ' ' | tr -s ' ' | paste -d ' ' tmp  - > data/${dset}/text

@@ -1,6 +1,7 @@
-import whisper
 import sys
 import time
+
+import whisper
 
 inp_file = sys.argv[1]
 out_file = sys.argv[2]
