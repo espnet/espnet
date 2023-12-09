@@ -37,7 +37,6 @@ if [ -z "${LIBRISPEECH}" ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    if [ ! -e "${LIBRISPEECH}/LibriSpeech/LICENSE.TXT" ]; then
 	echo "stage 1: Data Download to ${LIBRISPEECH}"
 	for part in dev-clean test-clean dev-other test-other train-clean-100 train-clean-360 train-other-500; do
             local/download_and_untar.sh ${LIBRISPEECH} ${data_url} ${part}
