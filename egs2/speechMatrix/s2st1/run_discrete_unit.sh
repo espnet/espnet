@@ -16,7 +16,7 @@ version=c # c or t (please refer to cvss paper for details)
 
 train_set=train_${src_lang}
 train_dev=dev_${src_lang}
-test_sets="test_${src_lang} dev_${src_lang}"
+test_sets="test_${src_lang}"
 
 st_config=conf/train_s2st_discrete_unit.yaml
 use_src_lang=true

@@ -14,7 +14,7 @@ vocoder_dir=exp/fairseq_hifigan_vocoder
 vocoder_ckpt=${vocoder_dir}/vocoder.ckpt
 vocoder_config=${vocoder_dir}/config.json
 
-test_sets="dev_es test_es"
+test_sets="test_es"  # not including dev_es since we don't have the text labels for ASR-BLEU
 decode_dir=exp/s2st_train_s2st_discrete_unit_raw_fbank_es_en/decode_s2st_s2st_model_train.loss.best
 
 . path.sh

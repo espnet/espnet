@@ -33,6 +33,7 @@ def main():
 
             data = np.load(path)
             assert len(data.shape) == 1
+            # TODO(Jiyang): load token list and remap
             # minus 2 since "0" has index of 2, see also the token list under data/
             data = [
                 str(e - args.token_id_offset)
