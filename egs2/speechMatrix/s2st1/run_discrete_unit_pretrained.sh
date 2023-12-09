@@ -16,13 +16,13 @@ version=c # c or t (please refer to cvss paper for details)
 
 train_set=train_${src_lang}
 train_dev=dev_${src_lang}
-test_sets="test_${src_lang} dev_${src_lang}"
+test_sets="test_${src_lang}"
 
 st_config=conf/train_discrete_unit_pretrained.yaml
 use_src_lang=true
 use_tgt_lang=true
-inference_config=conf/decode_s2st.yaml
-score_asr_model_tag=
+inference_config=conf/decode1.yaml
+score_asr_model_tag=byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp
 
 # This is word because the text files contain integer arrays and we have a dictionary of 0-100 integers
 token_type="word"

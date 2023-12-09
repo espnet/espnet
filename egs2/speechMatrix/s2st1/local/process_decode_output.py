@@ -33,12 +33,19 @@ def main():
 
             data = np.load(path)
             assert len(data.shape) == 1
+            # TODO(Jiyang): load token list and remap
             # minus 2 since "0" has index of 2, see also the token list under data/
             data = [
                 str(e - args.token_id_offset)
                 for e in data
                 if min_token_id <= e <= max_token_id
             ]
+
+            if len(data) > args.max_len:
+                logging.warning(
+                    f"Truncating `{utt}` from {len(data)} to {args.max_len} units"
+                )
+
             data = data[: args.max_len]
             s = " ".join(data)
 
@@ -54,7 +61,7 @@ def get_args():
         help=".scp file for discrete unit features",
     )
     parser.add_argument("--out_dir", type=str, required=True)
-    parser.add_argument("--max_len", type=int, default=400)
+    parser.add_argument("--max_len", type=int, default=800)
     parser.add_argument("--token_id_offset", type=int, default=2)
     parser.add_argument("--n_units", type=int, default=1000)
     return parser.parse_args()
