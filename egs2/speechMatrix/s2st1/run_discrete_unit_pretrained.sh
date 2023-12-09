@@ -22,7 +22,7 @@ st_config=conf/train_discrete_unit_pretrained.yaml
 use_src_lang=true
 use_tgt_lang=true
 inference_config=conf/decode_s2st.yaml
-score_asr_model_tag=
+score_asr_model_tag=byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp
 
 # This is word because the text files contain integer arrays and we have a dictionary of 0-100 integers
 token_type="word"
