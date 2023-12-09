@@ -21,7 +21,7 @@ test_sets="test_${src_lang}"
 st_config=conf/train_s2st_discrete_unit.yaml
 use_src_lang=true
 use_tgt_lang=true
-inference_config=conf/decode_s2st.yaml
+inference_config=conf/decode1.yaml
 score_asr_model_tag=byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp
 
 # This is word because the text files contain integer arrays and we have a dictionary of 0-100 integers
