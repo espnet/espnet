@@ -194,14 +194,14 @@ def _write_kaldi_files(
             utt_str = " ".join(sorted(list(row["id_recordings"])))
             spk2utt_out.write(f"{spk} {utt_str}\n")
     # segments
-    if data_file_stem == _RECORDINGS:
-        df["time_start"] = df["time_start"].apply(lambda s: _time_string_to_seconds(s))
-        df["time_end"] = df["time_end"].apply(lambda s: _time_string_to_seconds(s))
-        df[
-            ["id_fragments", "id_recordings", "time_start", "time_end"]
-        ].drop_duplicates().to_csv(
-            output_dir / "segments", sep=" ", header=False, index=False
-        )
+    # if data_file_stem == _RECORDINGS:
+    #     df["time_start"] = df["time_start"].apply(lambda s: _time_string_to_seconds(s))
+    #     df["time_end"] = df["time_end"].apply(lambda s: _time_string_to_seconds(s))
+    #     df[
+    #         ["id_fragments", "id_recordings", "time_start", "time_end"]
+    #     ].drop_duplicates().to_csv(
+    #         output_dir / "segments", sep=" ", header=False, index=False
+    #     )
     LOGGER.info("completed!")
 
 
