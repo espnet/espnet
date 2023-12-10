@@ -3,6 +3,7 @@
 
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.asr import ASRTask
+from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.asvspoof import ASVSpoofTask
 from espnet2.tasks.diar import DiarizationTask
 from espnet2.tasks.enh import EnhancementTask
@@ -13,7 +14,10 @@ from espnet2.tasks.gan_tts import GANTTSTask
 from espnet2.tasks.hubert import HubertTask
 from espnet2.tasks.lm import LMTask
 from espnet2.tasks.mt import MTTask
+from espnet2.tasks.s2st import S2STTask
+from espnet2.tasks.s2t import S2TTask
 from espnet2.tasks.slu import SLUTask
+from espnet2.tasks.spk import SpeakerTask
 from espnet2.tasks.st import STTask
 from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
@@ -21,6 +25,7 @@ from espnet2.tasks.uasr import UASRTask
 
 TASK_CLASSES = dict(
     asr=ASRTask,
+    asr_transducer=ASRTransducerTask,
     asvspoof=ASVSpoofTask,
     diar=DiarizationTask,
     enh_s2t=EnhS2TTask,
@@ -31,7 +36,10 @@ TASK_CLASSES = dict(
     hubert=HubertTask,
     lm=LMTask,
     mt=MTTask,
+    s2st=S2STTask,
+    s2t=S2TTask,
     slu=SLUTask,
+    spk=SpeakerTask,
     st=STTask,
     svs=SVSTask,
     tts=TTSTask,
