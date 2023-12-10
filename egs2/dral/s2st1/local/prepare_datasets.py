@@ -182,7 +182,12 @@ def _write_kaldi_files(
     )
     # spk2utt
     # Group by 'spk' and collect 'id' values into sets
-    grouped_data = utt2spk.groupby("spk")["id_recordings"].apply(set).reset_index().sort_values(["spk"])
+    grouped_data = (
+        utt2spk.groupby("spk")["id_recordings"]
+        .apply(set)
+        .reset_index()
+        .sort_values(["spk"])
+    )
     with (output_dir / "spk2utt").open("w") as spk2utt_out:
         for _, row in grouped_data.iterrows():
             spk = row["spk"]
