@@ -22,7 +22,7 @@ score_asr_model_tag=byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins3
 token_type="word"
 
 ./s2st_local.sh \
-    --ngpu 2 \
+    --ngpu 4 \
     --nj 64 \
     --inference_nj 64 \
     --use_discrete_unit true \

@@ -78,7 +78,7 @@ scheduler_conf:
 
 # Batching
 batch_type: numel
-batch_bins: 16000000
+batch_bins: 12000000
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
 
