@@ -1,5 +1,22 @@
 # ESPnet-Easy Task class
 # This class is a wrapper for Task classes to support custom datasets and models.
+import argparse
+from typeguard import check_argument_types
+from pathlib import Path
+import logging
+from espnet2.samplers.build_batch_sampler import build_batch_sampler
+from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
+from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+import torch
+from torch.utils.data import DataLoader
+import numpy as np
+
+from espnet2.tasks.abs_task import IteratorOptions
+from espnet2.iterators.abs_iter_factory import AbsIterFactory
+from espnet2.iterators.category_iter_factory import CategoryIterFactory
+from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
+from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
+from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
 
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.tasks.asr import ASRTask
@@ -47,8 +64,11 @@ TASK_CLASSES = dict(
 )
 
 
-def get_easy_task(task_name: str) -> AbsTask:
+def get_easy_task(task_name: str, use_custom_dataset: bool = False) -> AbsTask:
     task_class = TASK_CLASSES[task_name]
+
+    if use_custom_dataset:
+        return get_easy_task_with_dataset(task_name)
 
     class ESPnetEasyTask(task_class):
         build_model_fn = None
@@ -61,3 +81,165 @@ def get_easy_task(task_name: str) -> AbsTask:
                 return task_class.build_model(args=args)
 
     return ESPnetEasyTask
+
+
+def get_easy_task_with_dataset(task_name: str) -> AbsTask:
+    task_class = TASK_CLASSES[task_name]
+
+    class ESPnetEasyDataTask(task_class):
+        build_model_fn = None
+        train_dataset = None
+        valid_dataset = None
+
+        @classmethod
+        def build_model(cls, args=None):
+            if cls.build_model_fn is not None:
+                return cls.build_model_fn(args=args)
+            else:
+                return task_class.build_model(args=args)
+
+        @classmethod
+        def build_sequence_iter_factory(
+            cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
+        ) -> AbsIterFactory:
+            assert check_argument_types()
+
+            if mode == "train":
+                dataset = cls.train_dataset
+            elif mode == "valid" or mode == "plot_att":
+                dataset = cls.valid_dataset
+            else:
+                raise ValueError(f"Invalid mode: {mode}")
+
+            cls.check_task_requirements(
+                dataset, args.allow_variable_data_keys, train=iter_options.train
+            )
+
+            # If you want to use utt2category_file, please use dump file.
+            utt2category_file = None
+
+            batch_sampler = build_batch_sampler(
+                type=iter_options.batch_type,
+                shape_files=iter_options.shape_files,
+                fold_lengths=args.fold_length,
+                batch_size=iter_options.batch_size,
+                batch_bins=iter_options.batch_bins,
+                sort_in_batch=args.sort_in_batch,
+                sort_batch=args.sort_batch,
+                drop_last=args.drop_last_iter,
+                min_batch_size=torch.distributed.get_world_size()
+                if iter_options.distributed
+                else 1,
+                utt2category_file=utt2category_file,
+            )
+
+            batches = list(batch_sampler)
+            if iter_options.num_batches is not None:
+                batches = batches[: iter_options.num_batches]
+
+            bs_list = [len(batch) for batch in batches]
+
+            logging.info(f"[{mode}] dataset:\n{dataset}")
+            logging.info(f"[{mode}] Batch sampler: {batch_sampler}")
+            logging.info(
+                f"[{mode}] mini-batch sizes summary: N-batch={len(bs_list)}, "
+                f"mean={np.mean(bs_list):.1f}, min={np.min(bs_list)}, max={np.max(bs_list)}"
+            )
+
+            if iter_options.distributed:
+                world_size = torch.distributed.get_world_size()
+                rank = torch.distributed.get_rank()
+                for batch in batches:
+                    if len(batch) < world_size:
+                        raise RuntimeError(
+                            f"The batch-size must be equal or more than world_size: "
+                            f"{len(batch)} < {world_size}"
+                        )
+                batches = [batch[rank::world_size] for batch in batches]
+
+            return SequenceIterFactory(
+                dataset=dataset,
+                batches=batches,
+                seed=args.seed,
+                num_iters_per_epoch=iter_options.num_iters_per_epoch,
+                shuffle=iter_options.train,
+                shuffle_within_batch=args.shuffle_within_batch,
+                num_workers=args.num_workers,
+                collate_fn=iter_options.collate_fn,
+                pin_memory=args.ngpu > 0,
+            )
+
+        @classmethod
+        def build_category_iter_factory(
+            cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
+        ) -> AbsIterFactory:
+            raise ValueError(
+                "category2utt mandatory for category iterator, but not found." +\
+                "Please use dump file."
+            )
+
+        @classmethod
+        def build_chunk_iter_factory(
+            cls,
+            args: argparse.Namespace,
+            iter_options: IteratorOptions,
+            mode: str,
+        ) -> AbsIterFactory:
+            raise NotImplementedError()
+
+        @classmethod
+        def build_task_iter_factory(
+            cls,
+            args: argparse.Namespace,
+            iter_options: IteratorOptions,
+            mode: str,
+        ) -> AbsIterFactory:
+            raise NotImplementedError
+
+        @classmethod
+        def build_streaming_iterator(
+            cls,
+            data_path_and_name_and_type,
+            preprocess_fn,
+            collate_fn,
+            key_file: str = None,
+            batch_size: int = 1,
+            dtype: str = np.float32,
+            num_workers: int = 1,
+            allow_variable_data_keys: bool = False,
+            ngpu: int = 0,
+            inference: bool = False,
+            mode: str = None,
+        ) -> DataLoader:
+            """Build DataLoader using iterable dataset"""
+            assert check_argument_types()
+            # For backward compatibility for pytorch DataLoader
+            if collate_fn is not None:
+                kwargs = dict(collate_fn=collate_fn)
+            else:
+                kwargs = {}
+
+            if mode == "train":
+                dataset = cls.train_dataset
+            elif mode == "valid":
+                dataset = cls.valid_dataset
+            else:
+                raise ValueError(f"Invalid mode: {mode}")
+
+            if hasattr(dataset, "apply_utt2category") and dataset.apply_utt2category:
+                kwargs.update(batch_size=1)
+            else:
+                kwargs.update(batch_size=batch_size)
+
+            cls.check_task_requirements(
+                dataset, allow_variable_data_keys, train=False, inference=inference
+            )
+
+            return DataLoader(
+                dataset=dataset,
+                pin_memory=ngpu > 0,
+                num_workers=num_workers,
+                **kwargs,
+            )
+
+    return ESPnetEasyDataTask

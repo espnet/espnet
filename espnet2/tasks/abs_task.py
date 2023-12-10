@@ -1320,6 +1320,7 @@ class AbsTask(ABC):
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
+                    mode="train",
                 ),
                 valid_iter=cls.build_streaming_iterator(
                     data_path_and_name_and_type=args.valid_data_path_and_name_and_type,
@@ -1331,6 +1332,7 @@ class AbsTask(ABC):
                     ngpu=args.ngpu,
                     preprocess_fn=cls.build_preprocess_fn(args, train=False),
                     collate_fn=cls.build_collate_fn(args, train=False),
+                    mode="valid",
                 ),
                 output_dir=output_dir,
                 ngpu=args.ngpu,
@@ -1977,6 +1979,7 @@ class AbsTask(ABC):
         allow_variable_data_keys: bool = False,
         ngpu: int = 0,
         inference: bool = False,
+        mode: str = None,
     ) -> DataLoader:
         """Build DataLoader using iterable dataset"""
         assert check_argument_types()

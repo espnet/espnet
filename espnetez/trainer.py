@@ -12,17 +12,17 @@ class Trainer:
         self,
         task,
         train_config,
-        train_dump_dir,
-        valid_dump_dir,
-        data_info,
         output_dir,
         stats_dir,
+        data_info=None,
+        train_dump_dir=None,
+        valid_dump_dir=None,
         build_model_fn=None,
+        train_dataset=None,
+        valid_dataset=None,
         **kwargs
     ):
-        self.task_class = get_easy_task(task)
         self.train_config = train_config
-
         if type(self.train_config) is dict:
             self.train_config.update(kwargs)
             self.train_config = Namespace(**self.train_config)
@@ -36,14 +36,23 @@ class Trainer:
                 )
             )
 
-        train_dpnt = []
-        valid_dpnt = []
-        for k, v in data_info.items():
-            train_dpnt.append((os.path.join(train_dump_dir, v[0]), k, v[1]))
-            valid_dpnt.append((os.path.join(valid_dump_dir, v[0]), k, v[1]))
+        if train_dataset is not None and valid_dataset is not None:
+            self.task_class = get_easy_task(task, use_custom_dataset=True)
+            self.task_class.train_dataset = train_dataset
+            self.task_class.valid_dataset = valid_dataset
+        else:
+            assert data_info is not None, "data_info should be provided."
+            assert train_dump_dir is not None, "train_dump_dir should be provided."
+            assert valid_dump_dir is not None, "valid_dump_dir should be provided."
+            self.task_class = get_easy_task(task)
+            train_dpnt = []
+            valid_dpnt = []
+            for k, v in data_info.items():
+                train_dpnt.append((os.path.join(train_dump_dir, v[0]), k, v[1]))
+                valid_dpnt.append((os.path.join(valid_dump_dir, v[0]), k, v[1]))
 
-        self.train_config.train_data_path_and_name_and_type = train_dpnt
-        self.train_config.valid_data_path_and_name_and_type = valid_dpnt
+            self.train_config.train_data_path_and_name_and_type = train_dpnt
+            self.train_config.valid_data_path_and_name_and_type = valid_dpnt
 
         self.stats_dir = stats_dir
         self.output_dir = output_dir
