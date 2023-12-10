@@ -100,6 +100,7 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Forward FairSeqWav2Vec2 Encoder.
 
@@ -107,6 +108,9 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
             prev_states: Not to be used now.
+            return_all_hs: Whether to return all hidden states.
+                           Unused. Always return None as hidden_states.
+
         Returns:
             position embedded tensor and mask
         """
@@ -141,6 +145,8 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)
 
+        if return_all_hs:
+            xs_pad = (xs_pad, None)
         return xs_pad, olens, None
 
     def reload_pretrained_parameters(self):

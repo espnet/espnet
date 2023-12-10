@@ -7,27 +7,20 @@ set -o pipefail
 
 # language related
 src_lang=es # ar ca cy de et es fa fr id it ja lv mn nl pt ru sl sv ta tr zh
-version=c # c or t (please refer to cvss paper for details)
-
-# kmeans related
-# clustering_portion=1
-# clustering_num_clusters=500
-# feature_layer=6
 
 train_set=train_${src_lang}
 train_dev=dev_${src_lang}
 test_sets="test_${src_lang}"
 
-st_config=conf/train_discrete_unit_pretrained.yaml
+st_config=conf/train_s2ut_w2v_mbart.yaml
 use_src_lang=true
 use_tgt_lang=true
-inference_config=conf/decode1.yaml
+inference_config=conf/decode_s2st.yaml
 score_asr_model_tag=byan/librispeech_asr_train_asr_conformer_raw_bpe_batch_bins30000000_accum_grad3_optim_conflr0.001_sp
 
 # This is word because the text files contain integer arrays and we have a dictionary of 0-100 integers
 token_type="word"
 
-# --num_splits_s2st 8
 ./s2st_local.sh \
     --ngpu 2 \
     --nj 64 \

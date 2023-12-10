@@ -18,6 +18,7 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,
     TransformerDecoder,
 )
+from espnet2.s2st.synthesizer.fairseq_unit_bart import FairseqUnitBart
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
@@ -213,6 +214,7 @@ synthesizer_choices = ClassChoices(
     classes=dict(
         translatotron=Translatotron,
         discrete_unit=TransformerDiscreteSynthesizer,
+        unit_bart=FairseqUnitBart,
     ),
     type_check=AbsSynthesizer,
     default="discrete_unit",
@@ -832,6 +834,12 @@ class S2STTask(STTask):
         # 10. Initialize
         if args.init is not None:
             initialize(model, args.init)
+
+        # Load pre-trained models
+        if getattr(model.encoder, "reload_pretrained_parameters", None):
+            model.encoder.reload_pretrained_parameters()
+        if getattr(model.synthesizer, "reload_pretrained_parameters", None):
+            model.synthesizer.reload_pretrained_parameters()
 
         assert check_return_type(model)
         return model

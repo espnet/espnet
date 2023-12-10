@@ -128,10 +128,11 @@ class ESPnetS2STModel(AbsESPnetModel):
 
         self.extract_feats_in_collect_stats = extract_feats_in_collect_stats
 
-        if self.s2st_type == "discrete_unit":
+        if self.s2st_type == "discrete_unit" and ("asr_ctc" in self.losses or "tgt_attn" in self.losses):
             assert isinstance(self.encoder, ConformerEncoder) or isinstance(
                 self.encoder, TransformerEncoder
-            ), "only support conformer or transformer-based encoder now"
+            ), ("Only support conformer or transformer-based encoders"
+                "that returns intermediate layer outputs")
 
         # synthesizer
         assert (
@@ -459,11 +460,9 @@ class ESPnetS2STModel(AbsESPnetModel):
             # discrete unit-based synthesis
             # Reference: https://arxiv.org/pdf/2107.05604.pdf
 
-            encoder_layer_for_asr = len(inter_encoder_out) // 2
-            encoder_layer_for_st = len(inter_encoder_out) * 2 // 3
-
             # asr_ctc
             if self.asr_ctc is not None and "asr_ctc" in self.losses:
+                encoder_layer_for_asr = len(inter_encoder_out) // 2
                 asr_ctc_loss, cer_asr_ctc = self._calc_ctc_loss(
                     inter_encoder_out[encoder_layer_for_asr],
                     encoder_out_lens,
@@ -496,6 +495,7 @@ class ESPnetS2STModel(AbsESPnetModel):
 
             # st decoder
             if self.st_decoder is not None and "tgt_attn" in self.losses:
+                encoder_layer_for_st = len(inter_encoder_out) * 2 // 3
                 (
                     tgt_attn_loss,
                     acc_tgt_attn,
