@@ -1,26 +1,25 @@
 # =====================
 # Network Architecture
-# Following Section 5 of https://arxiv.org/pdf/2211.04508.pdf
+# https://arxiv.org/pdf/2204.02967.pdf
 # =====================
 
 s2st_type: discrete_unit
 
-# Frontend
-frontend: default
-frontend_conf:
-  n_fft: 512
-  win_length: 400
-  hop_length: 160
+# wav2vec2 takes in raw waveform
+frontend: None
+specaug: None
 
 # Tgt feats extract
 tgt_feats_extract: None
 
 # Encoder
+input_size: 1  # doesn't matter, we just need to force raw features
 encoder: wav2vec2
 encoder_conf:
   w2v_url: https://huggingface.co/tjysdsg/speechmatrix_w2v_mbart/resolve/main/wav2vec2_transformer_base.es.pth?download=true
   w2v_dir_path: exp/wav2vec2
   output_size: 1024
+unused_parameters: true
 
 # ASR CTC
 asr_ctc: false
@@ -67,7 +66,7 @@ losses:
 
 # Optimization
 optim: adamw
-accum_grad: 4
+accum_grad: 12
 grad_clip: 1.0
 grad_noise: false
 optim_conf:
@@ -79,7 +78,7 @@ scheduler_conf:
 
 # Batching
 batch_type: numel
-batch_bins: 90000000
+batch_bins: 16000000
 sort_in_batch: descending   # how to sort data in making batch
 sort_batch: descending      # how to sort created batches
 
@@ -99,20 +98,3 @@ best_model_criterion:
     - loss
     - min
 keep_nbest_models: 10
-
-# SpecAugment
-specaug: specaug
-specaug_conf:
-  apply_time_warp: true
-  time_warp_window: 5
-  time_warp_mode: bicubic
-  apply_freq_mask: true
-  freq_mask_width_range:
-    - 0
-    - 27
-  num_freq_mask: 2
-  apply_time_mask: true
-  time_mask_width_ratio_range:
-    - 0.
-    - 0.05
-  num_time_mask: 10

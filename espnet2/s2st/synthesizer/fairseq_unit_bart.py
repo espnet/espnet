@@ -93,6 +93,8 @@ class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
             spembs: Optional[torch.Tensor] = None,
             sids: Optional[torch.Tensor] = None,
             lids: Optional[torch.Tensor] = None,
+            return_hs: bool = False,
+            return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward mBART decoder.
 
@@ -121,7 +123,7 @@ class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
             ]
 
         encoder_out = {
-            "encoder_out": [enc_out],  # T x B x C
+            "encoder_out": [enc_out.transpose(0, 1)],  # T x B x C
             "encoder_padding_mask": encoder_padding_mask,  # B x T
             "encoder_embedding": [],  # B x T x C
             "encoder_states": [],  # List[T x B x C]
@@ -137,6 +139,13 @@ class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
         )
         x = self.output_layer(x)
 
+        intermediate_outs = extra['inner_states']
+        if return_hs:
+            # TODO(Jiyang): this is the hidden state before LayerNorm,
+            #   technically not what we want?
+            return (x, intermediate_outs[-1]), ys_lens
+        elif return_all_hs:
+            return (x, intermediate_outs), ys_lens
         return x, ys_lens
 
     def score(self, ys, state, x):

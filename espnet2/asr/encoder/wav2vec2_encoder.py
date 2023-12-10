@@ -114,7 +114,10 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
         Returns:
             position embedded tensor and mask
         """
-        masks = make_pad_mask(ilens).to(xs_pad.device)
+        from fairseq.data.data_utils import lengths_to_padding_mask
+
+        # fairseq's version doesn't cause OOM
+        masks = lengths_to_padding_mask(ilens)
 
         ft = self.freeze_finetune_updates <= self.num_updates
         if self.num_updates <= self.freeze_finetune_updates:
@@ -123,13 +126,14 @@ class FairSeqWav2Vec2Encoder(AbsEncoder):
             self.num_updates += 1
             logging.info("Start fine-tuning wav2vec parameters!")
 
-        with torch.no_grad() if not ft else contextlib.nullcontext():
-            enc_outputs = self.encoders(
-                xs_pad,
-                masks,
-                mask=self.training,
-                features_only=True,
-            )
+        with torch.cuda.amp.autocast(enabled=False):
+            with torch.no_grad() if not ft else contextlib.nullcontext():
+                enc_outputs = self.encoders(
+                    xs_pad,
+                    masks,
+                    mask=self.training,
+                    features_only=True,
+                )
 
         xs_pad = enc_outputs["x"]  # (B,T,C),
         bs = xs_pad.shape[0]

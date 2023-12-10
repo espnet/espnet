@@ -3,6 +3,7 @@ from contextlib import contextmanager
 from typing import Dict, List, Optional, Tuple, Union
 
 import torch
+from espnet2.asr.encoder.wav2vec2_encoder import FairSeqWav2Vec2Encoder
 from packaging.version import parse as V
 from typeguard import check_argument_types
 
@@ -796,7 +797,7 @@ class ESPnetS2STModel(AbsESPnetModel):
                 feats, feats_lengths = self.specaug(feats, feats_lengths)
 
             # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
-            if self.src_normalize is not None:
+            if self.src_normalize is not None and not isinstance(self.encoder, FairSeqWav2Vec2Encoder):
                 feats, feats_lengths = self.src_normalize(feats, feats_lengths)
 
         # Pre-encoder, e.g. used for raw input data
