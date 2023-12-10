@@ -177,7 +177,7 @@ def _write_kaldi_files(
     tgt_utt2spk = df[["trans_id", "spk"]]
     tgt_utt2spk.columns = src_utt2spk.columns
     utt2spk = pd.concat([src_utt2spk, tgt_utt2spk], axis=0, ignore_index=True)
-    utt2spk.drop_duplicates().sort_values(["trans_id"]).to_csv(
+    utt2spk.drop_duplicates().sort_values(["id_recordings"]).to_csv(
         output_dir / "utt2spk", sep=" ", header=False, index=False
     )
     # spk2utt
