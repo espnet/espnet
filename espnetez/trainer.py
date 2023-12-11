@@ -30,7 +30,7 @@ def check_argument(
         train_dataloader is not None or valid_dataloader is not None
     ):
         raise ValueError('If you try to use dataset, dataloader should be None.')
-    
+
     if (train_dataloader is not None) ^ (valid_dataloader is not None):
         raise ValueError('If you try to use custom dataset, both the train_dataset and valid_dataset should be provided.')
 
