@@ -39,6 +39,7 @@ from espnet2.tasks.st import STTask
 from espnet2.tasks.svs import SVSTask
 from espnet2.tasks.tts import TTSTask
 from espnet2.tasks.uasr import UASRTask
+from espnet2.train.distributed_utils import DistributedOption
 
 TASK_CLASSES = dict(
     asr=ASRTask,
@@ -90,6 +91,8 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
         build_model_fn = None
         train_dataset = None
         valid_dataset = None
+        train_dataloader = None
+        valid_dataloader = None
 
         @classmethod
         def build_model(cls, args=None):
@@ -97,6 +100,26 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 return cls.build_model_fn(args=args)
             else:
                 return task_class.build_model(args=args)
+
+        @classmethod
+        def build_iter_factory(
+            cls,
+            args: argparse.Namespace,
+            distributed_option: DistributedOption,
+            mode: str,
+            kwargs: dict = None,
+        ) -> AbsIterFactory:
+            if mode == "train" and cls.train_dataloader is not None:
+                return cls.train_dataloader
+            elif mode == "valid" and cls.valid_dataloader is not None:
+                return cls.valid_dataloader
+            else:
+                return task_class.build_iter_factory(
+                   args=args,
+                   distributed_option=distributed_option,
+                   mode=mode,
+                   kwargs=kwargs
+                )
 
         @classmethod
         def build_sequence_iter_factory(
