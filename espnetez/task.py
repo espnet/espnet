@@ -1,24 +1,23 @@
 # ESPnet-Easy Task class
 # This class is a wrapper for Task classes to support custom datasets and models.
 import argparse
-from typeguard import check_argument_types
-from pathlib import Path
 import logging
-from espnet2.samplers.build_batch_sampler import build_batch_sampler
-from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
-from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+from pathlib import Path
+
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
-import numpy as np
+from typeguard import check_argument_types
 
-from espnet2.tasks.abs_task import IteratorOptions
 from espnet2.iterators.abs_iter_factory import AbsIterFactory
 from espnet2.iterators.category_iter_factory import CategoryIterFactory
 from espnet2.iterators.chunk_iter_factory import ChunkIterFactory
 from espnet2.iterators.multiple_iter_factory import MultipleIterFactory
 from espnet2.iterators.sequence_iter_factory import SequenceIterFactory
-
-from espnet2.tasks.abs_task import AbsTask
+from espnet2.samplers.build_batch_sampler import build_batch_sampler
+from espnet2.samplers.category_balanced_sampler import CategoryBalancedSampler
+from espnet2.samplers.unsorted_batch_sampler import UnsortedBatchSampler
+from espnet2.tasks.abs_task import AbsTask, IteratorOptions
 from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.asr_transducer import ASRTransducerTask
 from espnet2.tasks.asvspoof import ASVSpoofTask
@@ -197,8 +196,8 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
             cls, args: argparse.Namespace, iter_options: IteratorOptions, mode: str
         ) -> AbsIterFactory:
             raise ValueError(
-                "category2utt mandatory for category iterator, but not found." +\
-                "Please use dump file."
+                "category2utt mandatory for category iterator, but not found."
+                + "Please use dump file."
             )
 
         @classmethod

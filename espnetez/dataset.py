@@ -1,5 +1,7 @@
-from typing import Tuple, Dict, Union
+from typing import Dict, Tuple, Union
+
 import numpy as np
+
 from espnet2.train.dataset import AbsDataset
 
 
