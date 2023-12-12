@@ -1,9 +1,9 @@
 batch_size: 1 # Note that we only support batch_size=1 now
 seed: 0
-maxlenratio: 1
+maxlenratio: 1.5
 minlenratio: 0.0
 
 use_teacher_forcing: false
 
 beam_size: 1
-penalty: 0.0
+penalty: 0.2
