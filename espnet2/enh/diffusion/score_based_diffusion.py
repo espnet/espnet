@@ -15,10 +15,11 @@ from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 from espnet2.enh.diffusion.sdes import OUVESDE, OUVPSDE, SDE
 from espnet2.enh.layers.dcunet import DCUNet
 from espnet2.train.class_choices import ClassChoices
+from espnet2.enh.layers.ncsnpp import NCSNpp
 
 score_choices = ClassChoices(
     name="score_model",
-    classes=dict(dcunet=DCUNet),
+    classes=dict(dcunet=DCUNet, ncsnpp=NCSNpp),
     type_check=torch.nn.Module,
     default=None,
 )
@@ -40,19 +41,8 @@ class ScoreModel(AbsDiffusion):
 
         score_model = kwargs["score_model"]
 
-        if score_model == "ncsnpp":
-            try:
-                from espnet2.enh.layers.ncsnpp import NCSNpp
 
-                score_model_class = NCSNpp
-            except Exception as e:
-                print(
-                    "NCSNpp needs nvcc to compile operaters. "
-                    "Make sure you have cuda toolkit installed."
-                )
-                raise e
-        else:
-            score_model_class = score_choices.get_class(kwargs["score_model"])
+        score_model_class = score_choices.get_class(kwargs["score_model"])
         self.dnn = score_model_class(**kwargs["score_model_conf"])
         self.sde = sde_choices.get_class(kwargs["sde"])(**kwargs["sde_conf"])
         self.loss_type = getattr(kwargs, "loss_type", "mse")

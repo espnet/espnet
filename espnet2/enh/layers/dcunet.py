@@ -180,12 +180,14 @@ def unet_decoder_args(encoders, *, skip_connections):
     """Get list of decoder arguments for upsampling (right) side of a symmetric u-net,
     given the arguments used to construct the encoder.
     Args:
-        encoders (tuple of length `N` of tuples of (in_chan, out_chan, kernel_size, stride, padding)):
+        encoders (tuple of length `N` of tuples of
+            (in_chan, out_chan, kernel_size, stride, padding)):
             List of arguments used to construct the encoders
         skip_connections (bool): Whether to include skip connections in the
             calculation of decoder input channels.
     Return:
-        tuple of length `N` of tuples of (in_chan, out_chan, kernel_size, stride, padding):
+        tuple of length `N` of tuples of
+            (in_chan, out_chan, kernel_size, stride, padding):
             Arguments to be used to construct decoders
     """
     decoder_args = []
@@ -237,15 +239,15 @@ def make_unet_encoder_decoder_args(encoder_args, decoder_args):
     else:
         decoder_args = tuple(
             (
-                in_chan,
-                out_chan,
-                tuple(kernel_size),
+                in_ch,
+                out_ch,
+                tuple(ks),
                 tuple(stride),
-                tuple([n // 2 for n in kernel_size]) if padding == "auto" else padding,
+                tuple([n // 2 for n in ks]) if pad == "auto" else pad,
                 tuple(dilation),
-                output_padding,
+                out_pad,
             )
-            for in_chan, out_chan, kernel_size, stride, padding, dilation, output_padding in decoder_args
+            for in_ch, out_ch, ks, stride, pad, dilation, out_pad in decoder_args
         )
 
     return encoder_args, decoder_args
@@ -402,7 +404,7 @@ class DCUNet(nn.Module):
                 ]
         self.embed = nn.Sequential(*embed_ops)
 
-        ### Instantiate DCUNet layers ###
+        # Instantiate DCUNet layers #
         output_layer = ComplexConvTranspose2d(*decoders[-1])
         encoders = [
             DCUNetComplexEncoderBlock(*args, **encoder_decoder_kwargs)
@@ -430,10 +432,10 @@ class DCUNet(nn.Module):
 
     def forward(self, spec, t) -> Tensor:
         """
-        Input shape is expected to be $(batch, nfreqs, time)$, with $nfreqs - 1$ divisible
-        by $f_0 * f_1 * ... * f_N$ where $f_k$ are the frequency strides of the encoders,
-        and $time - 1$ is divisible by $t_0 * t_1 * ... * t_N$ where $t_N$ are the time
-        strides of the encoders.
+        Input shape is expected to be $(batch, nfreqs, time)$, with $nfreqs - 1$
+        divisible by $f_0 * f_1 * ... * f_N$ where $f_k$ are the frequency strides
+        of the encoders, and $time - 1$ is divisible by $t_0 * t_1 * ... * t_N$
+        where $t_N$ are the time strides of the encoders.
         Args:
             spec (Tensor): complex spectrogram tensor. 1D, 2D or 3D tensor, time last.
         Returns:

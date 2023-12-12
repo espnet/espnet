@@ -8,7 +8,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .op import upfirdn2d
+from espnet2.enh.layers.ncsnpp_utils.upfirdn2d import upfirdn2d
+
 
 
 # Function ported from StyleGAN2

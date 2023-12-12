@@ -168,7 +168,6 @@ if __name__ == "__main__":
                 constant_values=0,
             )
 
-
             min_len_sample = min(reverberant.shape[0], dry.shape[0])
             dry = dry[:min_len_sample]
             reverberant = reverberant[:min_len_sample]
@@ -177,7 +176,7 @@ if __name__ == "__main__":
             drr = 10 * np.log10(
                 np.mean(dry**2) / (np.mean(reverberant**2) + 1e-8) + 1e-8
             )
-            output_filename = f"{speech_basename}"
+            output_filename = f"{speech_basename}" + \
                 f"_{i_sample//NB_SAMPLES_PER_ROOM}_{t60_real:.2f}_{drr:.1f}.wav"
 
             sf.write(
