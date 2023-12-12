@@ -1,6 +1,6 @@
 optim: adam
 init: xavier_uniform
-max_epoch: 100
+max_epoch: 45
 batch_type: folded
 # batch_size: 128
 batch_size: 8
@@ -19,7 +19,7 @@ best_model_criterion:
 -   - valid
     - loss
     - min
-keep_nbest_models: 1
+keep_nbest_models: 10
 scheduler: reducelronplateau
 scheduler_conf:
     mode: min
