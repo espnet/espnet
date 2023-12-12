@@ -30,8 +30,8 @@ if __name__ == "__main__":
         "--wsj0_dir",
         type=str,
         required=True,
-        help='Path to the WSJ0 directory which should contain subdirectories'
-             ' "si_dt_05", "si_tr_s" and "si_et_05".',
+        help="Path to the WSJ0 directory which should contain subdirectories"
+        ' "si_dt_05", "si_tr_s" and "si_et_05".',
     )
     parser.add_argument(
         "--target_dir",
@@ -176,8 +176,10 @@ if __name__ == "__main__":
             drr = 10 * np.log10(
                 np.mean(dry**2) / (np.mean(reverberant**2) + 1e-8) + 1e-8
             )
-            output_filename = f"{speech_basename}" + \
-                f"_{i_sample//NB_SAMPLES_PER_ROOM}_{t60_real:.2f}_{drr:.1f}.wav"
+            output_filename = (
+                f"{speech_basename}"
+                + f"_{i_sample//NB_SAMPLES_PER_ROOM}_{t60_real:.2f}_{drr:.1f}.wav"
+            )
 
             sf.write(
                 os.path.join(dry_output_dir, output_filename),

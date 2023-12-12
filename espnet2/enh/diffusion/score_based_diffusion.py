@@ -14,8 +14,8 @@ import espnet2.enh.diffusion.sampling as sampling
 from espnet2.enh.diffusion.abs_diffusion import AbsDiffusion
 from espnet2.enh.diffusion.sdes import OUVESDE, OUVPSDE, SDE
 from espnet2.enh.layers.dcunet import DCUNet
-from espnet2.train.class_choices import ClassChoices
 from espnet2.enh.layers.ncsnpp import NCSNpp
+from espnet2.train.class_choices import ClassChoices
 
 score_choices = ClassChoices(
     name="score_model",
