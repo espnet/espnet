@@ -40,8 +40,6 @@ class ScoreModel(AbsDiffusion):
         super().__init__()
 
         score_model = kwargs["score_model"]
-
-
         score_model_class = score_choices.get_class(kwargs["score_model"])
         self.dnn = score_model_class(**kwargs["score_model_conf"])
         self.sde = sde_choices.get_class(kwargs["sde"])(**kwargs["sde_conf"])

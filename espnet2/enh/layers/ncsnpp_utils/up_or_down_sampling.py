@@ -11,7 +11,6 @@ import torch.nn.functional as F
 from espnet2.enh.layers.ncsnpp_utils.upfirdn2d import upfirdn2d
 
 
-
 # Function ported from StyleGAN2
 def get_weight(module, shape, weight_var="weight", kernel_init=None):
     """Get/create weight tensor for a convolution or fully-connected layer."""
