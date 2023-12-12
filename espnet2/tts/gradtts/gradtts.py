@@ -306,13 +306,22 @@ class GradTTS(AbsTTS):
             use_teacher_forcing: bool = False,
     ) -> Dict[str, torch.Tensor]:
         cmu = cmudict.CMUDict('/home/lsh/content/espnet/espnet2/tts/gradtts/cmu_dictionary')
-        #print(text)
+        # print('text:')
+        # print(text)
         text = text.tolist()
-        x = torch.LongTensor(intersperse(text, 77)).cpu()[None]
+        text = text[:64]
+        print("text:")
+        print(text)
+        x = torch.LongTensor(text).cpu()[None]
+        print("x:")
+        print(x)
+        print(x.shape)
         #x = F.pad(text, [0, 1], "constant", self.eos)
         #x_lengths = torch.tensor([x.shape[0]], dtype=torch.long, device=x.device)
         x_lengths = torch.LongTensor([x.shape[-1]]).cpu()
         #x, x_lengths = self.relocate_input([x, x_lengths])
+
+        x, x_lengths = self.relocate_input([x, x_lengths])
 
         if self.n_spks > 1:
             # Get speaker embedding
@@ -344,10 +353,18 @@ class GradTTS(AbsTTS):
         # Generate sample by performing reverse dynamics
         decoder_outputs = self.decoder(z, y_mask, mu_y, n_timesteps, stoc, spk)
         decoder_outputs = decoder_outputs[:, :, :y_max_length]
-        decoder_outputs = decoder_outputs.transpose(1, 2)
-
+        #decoder_outputs = decoder_outputs.transpose(1, 2)
+        #decoder_outputs = decoder_outputs[0]
+        print("encoder_outputs:")
+        print(encoder_outputs.shape)
+        print("decoder_outputs:")
+        print(decoder_outputs.shape)
+        w = w[0]
+        print("duration:",w.shape)
+        
         return dict(
             encoder_outputs=encoder_outputs,
-            feat_gen=decoder_outputs,
+            feat_gen=decoder_outputs[0],
             attn=attn[:, :, :y_max_length],
+            duration=w,
         )
