@@ -104,7 +104,9 @@ class ScoreModel(AbsDiffusion):
 
         kwargs = {"eps": self.t_eps, **kwargs}
         if minibatch is None:
-            return sampling.get_ode_sampler(sde, self.score_fn, y=y, **kwargs)
+            return sampling.get_ode_sampler(
+                sde, self.score_fn, y=y, device=y.device, **kwargs
+            )
         else:
             M = y.shape[0]
 
@@ -113,7 +115,7 @@ class ScoreModel(AbsDiffusion):
                 for i in range(int(math.ceil(M / minibatch))):
                     y_mini = y[i * minibatch : (i + 1) * minibatch]
                     sampler = sampling.get_ode_sampler(
-                        sde, self.score_fn, y=y_mini, **kwargs
+                        sde, self.score_fn, y=y_mini, device=y_mini.device, **kwargs
                     )
                     sample, n = sampler()
                     samples.append(sample)

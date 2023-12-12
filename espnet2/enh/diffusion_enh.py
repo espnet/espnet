@@ -125,8 +125,8 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
 
     def enhance(self, feature_mix):
         if self.normalize:
-            normfac = speech_mix.abs().max() * 1.1 + 1e-5
-            speech_mix = speech_mix / normfac
+            normfac = feature_mix.abs().max() * 1.1 + 1e-5
+            feature_mix = feature_mix / normfac
 
         return self.difussion.enhance(feature_mix)
 
