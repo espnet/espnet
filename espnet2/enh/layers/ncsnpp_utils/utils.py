@@ -109,8 +109,8 @@ def get_model_fn(model, train=False):
 
         Args:
           x: A mini-batch of input data.
-          labels: A mini-batch of conditioning variables for time steps. Should be interpreted differently
-            for different models.
+          labels: A mini-batch of conditioning variables for time steps.
+            Should be interpreted differently for different models.
 
         Returns:
           A tuple of (model output, new mutable states)
@@ -126,13 +126,15 @@ def get_model_fn(model, train=False):
 
 
 def get_score_fn(sde, model, train=False, continuous=False):
-    """Wraps `score_fn` so that the model output corresponds to a real time-dependent score function.
+    """Wraps `score_fn` so that the model output corresponds to a real time-dependent
+        score function.
 
     Args:
       sde: An `sde_lib.SDE` object that represents the forward SDE.
       model: A score model.
       train: `True` for training and `False` for evaluation.
-      continuous: If `True`, the score-based model is expected to directly take continuous time steps.
+      continuous: If `True`, the score-based model is expected to directly
+        take continuous time steps.
 
     Returns:
       A score function.

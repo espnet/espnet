@@ -30,7 +30,8 @@ if __name__ == "__main__":
         "--wsj0_dir",
         type=str,
         required=True,
-        help='Path to the WSJ0 directory which should contain subdirectories "si_dt_05", "si_tr_s" and "si_et_05".',
+        help='Path to the WSJ0 directory which should contain subdirectories'
+             ' "si_dt_05", "si_tr_s" and "si_et_05".',
     )
     parser.add_argument(
         "--target_dir",
@@ -117,7 +118,7 @@ if __name__ == "__main__":
                     constant_values=center_mic_position[-1],
                 )
 
-                ### Reverberant Room
+                # Reverberant Room
                 e_absorption, max_order = pra.inverse_sabine(
                     t60, room_dim
                 )  # Compute absorption coeff
@@ -158,12 +159,15 @@ if __name__ == "__main__":
             t60_real_dry = np.mean(dry_room.measure_rt60()).squeeze()
             rir_dry = dry_room.rir
             dry = np.stack(dry_room.mic_array.signals).swapaxes(0, 1)
+            # Add 1 second of silence after dry (because very dry) so
+            # that the reverb is not cut, and all samples have same length
             dry = np.pad(
                 dry,
                 ((0, int(0.5 * sample_rate)), (0, 0)),
                 mode="constant",
                 constant_values=0,
-            )  # Add 1 second of silence after dry (because very dry) so that the reverb is not cut, and all samples have same length
+            )
+
 
             min_len_sample = min(reverberant.shape[0], dry.shape[0])
             dry = dry[:min_len_sample]
@@ -173,7 +177,8 @@ if __name__ == "__main__":
             drr = 10 * np.log10(
                 np.mean(dry**2) / (np.mean(reverberant**2) + 1e-8) + 1e-8
             )
-            output_filename = f"{speech_basename}_{i_sample//NB_SAMPLES_PER_ROOM}_{t60_real:.2f}_{drr:.1f}.wav"
+            output_filename = f"{speech_basename}"
+                f"_{i_sample//NB_SAMPLES_PER_ROOM}_{t60_real:.2f}_{drr:.1f}.wav"
 
             sf.write(
                 os.path.join(dry_output_dir, output_filename),

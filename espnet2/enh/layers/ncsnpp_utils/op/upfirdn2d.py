@@ -75,7 +75,6 @@ class UpFirDn2dBackward(Function):
             ctx.pad_y0,
             ctx.pad_y1,
         )
-        # gradgrad_out = gradgrad_out.view(ctx.in_size[0], ctx.out_size[0], ctx.out_size[1], ctx.in_size[3])
         gradgrad_out = gradgrad_out.view(
             ctx.in_size[0], ctx.in_size[1], ctx.out_size[0], ctx.out_size[1]
         )

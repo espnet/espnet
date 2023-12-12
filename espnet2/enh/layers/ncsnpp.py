@@ -232,9 +232,9 @@ class NCSNpp(nn.Module):
         pyramid_ch = 0
         # Upsampling block
         for i_level in reversed(range(num_resolutions)):
-            for i_block in range(
-                num_res_blocks + 1
-            ):  # +1 blocks in upsampling because of skip connection from combiner (after downsampling)
+            for i_block in range(num_res_blocks + 1):  
+            # +1 blocks in upsampling because of skip connection from
+            # combiner (after downsampling)
                 out_ch = nf * ch_mult[i_level]
                 modules.append(ResnetBlock(in_ch=in_ch + hs_c.pop(), out_ch=out_ch))
                 in_ch = out_ch

@@ -22,9 +22,12 @@ class GaussianFourierProjection(nn.Module):
         super().__init__()
         self.complex_valued = complex_valued
         if not complex_valued:
-            # If the output is real-valued, we concatenate sin+cos of the features to avoid ambiguities.
-            # Therefore, in this case the effective embed_dim is cut in half. For the complex-valued case,
-            # we use complex numbers which each represent sin+cos directly, so the ambiguity is avoided directly,
+            # If the output is real-valued, we concatenate sin+cos
+            #  of the features to avoid ambiguities.
+            # Therefore, in this case the effective embed_dim is
+            # cut in half. For the complex-valued case,
+            # we use complex numbers which each represent sin+cos
+            # directly, so the ambiguity is avoided directly,
             # and this halving is not necessary.
             embed_dim = embed_dim // 2
         # Randomly sample weights during initialization. These weights are fixed
@@ -46,9 +49,10 @@ class DiffusionStepEmbedding(nn.Module):
         super().__init__()
         self.complex_valued = complex_valued
         if not complex_valued:
-            # If the output is real-valued, we concatenate sin+cos of the features to avoid ambiguities.
-            # Therefore, in this case the effective embed_dim is cut in half. For the complex-valued case,
-            # we use complex numbers which each represent sin+cos directly, so the ambiguity is avoided directly,
+            # If the output is real-valued, we concatenate sin+cos of the features to
+            # avoid ambiguities. Therefore, in this case the effective embed_dim is cut
+            # in half. For the complex-valued case, we use complex numbers which each
+            # represent sin+cos directly, so the ambiguity is avoided directly,
             # and this halving is not necessary.
             embed_dim = embed_dim // 2
         self.embed_dim = embed_dim
@@ -65,7 +69,8 @@ class DiffusionStepEmbedding(nn.Module):
 
 
 class ComplexLinear(nn.Module):
-    """A potentially complex-valued linear layer. Reduces to a regular linear layer if `complex_valued=False`."""
+    """A potentially complex-valued linear layer. Reduces to a regular linear
+        layer if `complex_valued=False`."""
 
     def __init__(self, input_dim, output_dim, complex_valued):
         super().__init__()
@@ -102,7 +107,8 @@ def torch_complex_from_reim(re, im):
 
 
 class ArgsComplexMultiplicationWrapper(nn.Module):
-    """Adapted from `asteroid`'s `complex_nn.py`, allowing args/kwargs to be passed through forward().
+    """Adapted from `asteroid`'s `complex_nn.py`, allowing
+        args/kwargs to be passed through forward().
 
     Make a complex-valued module `F` from a real-valued module `f` by applying
     complex multiplication rules:
@@ -112,9 +118,10 @@ class ArgsComplexMultiplicationWrapper(nn.Module):
     where `f1`, `f2` are instances of `f` that do *not* share weights.
 
     Args:
-        module_cls (callable): A class or function that returns a Torch module/functional.
-            Constructor of `f` in the formula above.  Called 2x with `*args`, `**kwargs`,
-            to construct the real and imaginary component modules.
+        module_cls (callable): A class or function that returns a Torch
+            module/functional. Constructor of `f` in the formula above.
+            Called 2x with `*args`, `**kwargs`, to construct the real and imaginary
+            component modules.
     """
 
     def __init__(self, module_cls, *args, **kwargs):
@@ -292,7 +299,8 @@ DCUNET_ARCHITECTURES = {
         # Decoders: automatic inverse
         "auto",
     ),
-    "DilDCUNet-v2": make_unet_encoder_decoder_args(  # architecture used in SGMSE / Interspeech paper
+    "DilDCUNet-v2": make_unet_encoder_decoder_args(
+        # architecture used in SGMSE / Interspeech paper
         # Encoders:
         # (in_chan, out_chan, kernel_size, stride, padding, dilation)
         (
@@ -333,7 +341,9 @@ class DCUNet(nn.Module):
         )
         self.norm_type = dcunet_norm_type
         self.activation = dcunet_activation
-        self.input_channels = 2  # for x_t and y -- note that this is 2 rather than 4, because we directly treat complex channels in this DNN
+        self.input_channels = 2
+        # for x_t and y -- note that this is 2 rather than 4,
+        # because we directly treat complex channels in this DNN
         self.time_embedding = (
             dcunet_time_embedding if dcunet_time_embedding != "none" else None
         )
@@ -351,7 +361,8 @@ class DCUNet(nn.Module):
             [enc_stride for _, _, _, enc_stride, _, _ in encoders], axis=0
         )
 
-        # Prepare kwargs for encoder and decoder (to potentially be modified before layer instantiation)
+        # Prepare kwargs for encoder and decoder
+        # (to potentially be modified before layer instantiation)
         encoder_decoder_kwargs = dict(
             norm_type=self.norm_type,
             activation=self.activation,
@@ -407,7 +418,8 @@ class DCUNet(nn.Module):
             raise NotImplementedError(
                 "sorry, mask bounding not implemented at the moment"
             )
-            # TODO we can't use nn.Sequential since the ComplexConvTranspose2d needs a second `output_size` argument
+            # TODO we can't use nn.Sequential since the ComplexConvTranspose2d needs a
+            # second `output_size` argument
         # operations = (output_layer, complex_nn.BoundComplexMask(self.mask_bound))
         # output_layer = nn.Sequential(*[x for x in operations if x is not None])
 
@@ -462,15 +474,17 @@ def _fix_dcu_input_dims(fix_length_mode, x, encoders_stride_product):
     time_prod = int(encoders_stride_product[1])
     if (x.shape[2] - 1) % freq_prod:
         raise TypeError(
-            f"Input shape must be [batch, ch, freq + 1, time + 1] with freq divisible by "
+            f"Input shape must be [batch, ch, freq + 1, time + 1] "
+            f"with freq divisible by "
             f"{freq_prod}, got {x.shape} instead"
         )
     time_remainder = (x.shape[3] - 1) % time_prod
     if time_remainder:
         if fix_length_mode is None:
             raise TypeError(
-                f"Input shape must be [batch, ch, freq + 1, time + 1] with time divisible by "
-                f"{time_prod}, got {x.shape} instead. Set the 'fix_length_mode' argument "
+                f"Input shape must be [batch, ch, freq + 1, time + 1] with time "
+                f"divisible by {time_prod}, got {x.shape} instead."
+                f" Set the 'fix_length_mode' argument "
                 f"in 'DCUNet' to 'pad' or 'trim' to fix shapes automatically."
             )
         elif fix_length_mode == "pad":
@@ -623,7 +637,8 @@ class DCUNetComplexDecoderBlock(nn.Module):
         return self.activation(self.norm(y))
 
 
-# From https://github.com/chanil1218/DCUnet.pytorch/blob/2dcdd30804be47a866fde6435cbb7e2f81585213/models/layers/complexnn.py
+# From https://github.com/chanil1218/DCUnet.pytorch/blob/
+# 2dcdd30804be47a866fde6435cbb7e2f81585213/models/layers/complexnn.py
 class ComplexBatchNorm(torch.nn.Module):
     def __init__(
         self,

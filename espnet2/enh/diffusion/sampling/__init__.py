@@ -41,14 +41,19 @@ def get_pc_sampler(
         corrector_name: The name of a registered `sampling.Corrector`.
         sde: An `sdes.SDE` object representing the forward SDE.
         score_fn: A function (typically learned model) that predicts the score.
-        y: A `torch.Tensor`, representing the (non-white-)noisy starting point(s) to condition the prior on.
+        y: A `torch.Tensor`, representing the (non-white-)noisy starting point(s)
+             to condition the prior on.
         denoise: If `True`, add one-step denoising to the final samples.
-        eps: A `float` number. The reverse-time SDE and ODE are integrated to `epsilon` to avoid numerical issues.
-        snr: The SNR to use for the corrector. 0.1 by default, and ignored for `NoneCorrector`.
-        N: The number of reverse sampling steps. If `None`, uses the SDE's `N` property by default.
+        eps: A `float` number. The reverse-time SDE and ODE are integrated to
+            `epsilon` to avoid numerical issues.
+        snr: The SNR to use for the corrector. 0.1 by default, and ignored for
+            `NoneCorrector`.
+        N: The number of reverse sampling steps. If `None`, uses the SDE's `N`
+            property by default.
 
     Returns:
-        A sampling function that returns samples and the number of function evaluations during sampling.
+        A sampling function that returns samples and the number of function
+         evaluations during sampling.
     """
     predictor_cls = predictor_dict[predictor_name]
     corrector_cls = corrector_dict[corrector_name]
@@ -90,18 +95,21 @@ def get_ode_sampler(
     Args:
         sde: An `sdes.SDE` object representing the forward SDE.
         score_fn: A function (typically learned model) that predicts the score.
-        y: A `torch.Tensor`, representing the (non-white-)noisy starting point(s) to condition the prior on.
+        y: A `torch.Tensor`, representing the (non-white-)noisy starting point(s)
+            to condition the prior on.
         inverse_scaler: The inverse data normalizer.
         denoise: If `True`, add one-step denoising to final samples.
         rtol: A `float` number. The relative tolerance level of the ODE solver.
         atol: A `float` number. The absolute tolerance level of the ODE solver.
         method: A `str`. The algorithm used for the black-box ODE solver.
             See the documentation of `scipy.integrate.solve_ivp`.
-        eps: A `float` number. The reverse-time SDE/ODE will be integrated to `eps` for numerical stability.
+        eps: A `float` number. The reverse-time SDE/ODE will be integrated to
+            `eps` for numerical stability.
         device: PyTorch device.
 
     Returns:
-        A sampling function that returns samples and the number of function evaluations during sampling.
+        A sampling function that returns samples and the number of function
+        evaluations during sampling.
     """
     predictor = ReverseDiffusionPredictor(sde, score_fn, probability_flow=False)
     rsde = sde.reverse(score_fn, probability_flow=True)
@@ -125,7 +133,8 @@ def get_ode_sampler(
             samples, number of function evaluations.
         """
         with torch.no_grad():
-            # If not represent, sample the latent code from the prior distibution of the SDE.
+            # If not represent, sample the latent code from the
+            # prior distibution of the SDE.
             x = sde.prior_sampling(y.shape, y).to(device)
 
             def ode_func(t, x):

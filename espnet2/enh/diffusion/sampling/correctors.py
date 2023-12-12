@@ -28,7 +28,8 @@ class Corrector(abc.ABC):
 
         Returns:
             x: A PyTorch tensor of the next state.
-            x_mean: A PyTorch tensor. The next state without random noise. Useful for denoising.
+            x_mean: A PyTorch tensor. The next state without random noise.
+                    Useful for denoising.
         """
         pass
 

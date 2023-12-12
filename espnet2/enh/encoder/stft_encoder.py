@@ -54,7 +54,8 @@ class STFTEncoder(AbsEncoder):
     def spec_transform_func(self, spec):
         if self.spec_transform_type == "exponent":
             if self.spec_abs_exponent != 1:
-                # only do this calculation if spec_exponent != 1, otherwise it's quite a bit of wasted computation
+                # only do this calculation if spec_exponent != 1,
+                # otherwise it's quite a bit of wasted computation
                 # and introduced numerical error
                 e = self.spec_abs_exponent
                 spec = spec.abs() ** e * torch.exp(1j * spec.angle())

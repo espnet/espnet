@@ -37,12 +37,14 @@ class SDE(abc.ABC):
 
     @abc.abstractmethod
     def marginal_prob(self, x, t, *args):
-        """Parameters to determine the marginal distribution of the SDE, $p_t(x|args)$."""
+        """Parameters to determine the marginal distribution of
+        the SDE, $p_t(x|args)$."""
         pass
 
     @abc.abstractmethod
     def prior_sampling(self, shape, *args):
-        """Generate one sample from the prior distribution, $p_T(x|args)$ with shape `shape`."""
+        """Generate one sample from the prior distribution,
+            $p_T(x|args)$ with shape `shape`."""
         pass
 
     @abc.abstractmethod
@@ -82,7 +84,8 @@ class SDE(abc.ABC):
 
         Args:
             score_model: A function that takes x, t and y and returns the score.
-            probability_flow: If `True`, create the reverse-time ODE used for probability flow sampling.
+            probability_flow: If `True`, create the reverse-time ODE
+                used for probability flow sampling.
         """
         N = oself.N
         T = oself.T
@@ -132,7 +135,8 @@ class SDE(abc.ABC):
                 }
 
             def discretize(self, x, t, *args):
-                """Create discretized iteration rules for the reverse diffusion sampler."""
+                """Create discretized iteration rules for the reverse
+                diffusion sampler."""
                 f, G = discretize_fn(x, t, *args)
                 rev_f = f - G[:, None, None, None] ** 2 * score_model(x, t, *args) * (
                     0.5 if self.probability_flow else 1.0
@@ -153,8 +157,9 @@ class OUVESDE(SDE):
     ):
         """Construct an Ornstein-Uhlenbeck Variance Exploding SDE.
 
-        Note that the "steady-state mean" `y` is not provided at construction, but must rather be given as an argument
-        to the methods which require it (e.g., `sde` or `marginal_prob`).
+        Note that the "steady-state mean" `y` is not provided at construction,
+        but must rather be given as an argument to the methods
+        which require it (e.g., `sde` or `marginal_prob`).
 
         dx = -theta (y-x) dt + sigma(t) dw
 
@@ -184,10 +189,11 @@ class OUVESDE(SDE):
 
     def sde(self, x, t, y):
         drift = self.theta * (y - x)
-        # the sqrt(2*logsig) factor is required here so that logsig does not in the end affect the perturbation kernel
-        # standard deviation. this can be understood from solving the integral of [exp(2s) * g(s)^2] from s=0 to t
-        # with g(t) = sigma(t) as defined here, and seeing that `logsig` remains in the integral solution
-        # unless this sqrt(2*logsig) factor is included.
+        # the sqrt(2*logsig) factor is required here so that logsig does not in the end
+        # affect the perturbation kernel standard deviation. this can be understood
+        # from solving the integral of [exp(2s) * g(s)^2] from s=0 to t with
+        # g(t) = sigma(t) as defined here, and seeing that `logsig` remains in the
+        # integral solution unless this sqrt(2*logsig) factor is included.
         sigma = self.sigma_min * (self.sigma_max / self.sigma_min) ** t
         diffusion = sigma * np.sqrt(2 * self.logsig)
         return drift, diffusion
@@ -198,7 +204,8 @@ class OUVESDE(SDE):
         return exp_interp * x0 + (1 - exp_interp) * y
 
     def _std(self, t):
-        # This is a full solution to the ODE for P(t) in our derivations, after choosing g(s) as in self.sde()
+        # This is a full solution to the ODE for P(t) in our derivations,
+        # after choosing g(s) as in self.sde()
         sigma_min, theta, logsig = self.sigma_min, self.theta, self.logsig
         # could maybe replace the two torch.exp(... * t) terms here by cached values **t
         return torch.sqrt(
@@ -217,7 +224,8 @@ class OUVESDE(SDE):
     def prior_sampling(self, shape, y):
         if shape != y.shape:
             warnings.warn(
-                f"Target shape {shape} does not match shape of y {y.shape}! Ignoring target shape."
+                f"Target shape {shape} does not match shape of y {y.shape}!"
+                "Ignoring target shape."
             )
         std = self._std(torch.ones((y.shape[0],), device=y.device))
         x_T = y + torch.randn_like(y) * std[:, None, None, None]
@@ -230,7 +238,7 @@ class OUVESDE(SDE):
 class OUVPSDE(SDE):
     def __init__(self, beta_min, beta_max, stiffness=1, N=1000, **ignored_kwargs):
         """
-        !!! We do not utilize this SDE in our works due to observed instabilities around t=0.2. !!!
+        !!! SGMSE authors observed instabilities around t=0.2. !!!
 
         Construct an Ornstein-Uhlenbeck Variance Preserving SDE:
 
@@ -240,8 +248,9 @@ class OUVPSDE(SDE):
 
         beta(t) = beta_min + t(beta_max - beta_min)
 
-        Note that the "steady-state mean" `y` is not provided at construction, but must rather be given as an argument
-        to the methods which require it (e.g., `sde` or `marginal_prob`).
+        Note that the "steady-state mean" `y` is not provided at construction,
+        but must rather be given as an argument to the methods which
+        require it (e.g., `sde` or `marginal_prob`).
 
         Args:
             beta_min: smallest sigma.
@@ -287,7 +296,8 @@ class OUVPSDE(SDE):
     def prior_sampling(self, shape, y):
         if shape != y.shape:
             warnings.warn(
-                f"Target shape {shape} does not match shape of y {y.shape}! Ignoring target shape."
+                f"Target shape {shape} does not match shape of y {y.shape}!"
+                "Ignoring target shape."
             )
         std = self._std(torch.ones((y.shape[0],), device=y.device))
         x_T = y + torch.randn_like(y) * std[:, None, None, None]
@@ -298,18 +308,21 @@ class OUVPSDE(SDE):
 
 
 def batch_broadcast(a, x):
-    """Broadcasts a over all dimensions of x, except the batch dimension, which must match."""
+    """Broadcasts a over all dimensions of x, except the batch dimension,
+    which must match."""
 
     if len(a.shape) != 1:
         a = a.squeeze()
         if len(a.shape) != 1:
             raise ValueError(
-                f"Don't know how to batch-broadcast tensor `a` with more than one effective dimension (shape {a.shape})"
+                f"Don't know how to batch-broadcast tensor `a` "
+                f"with more than one effective dimension (shape {a.shape})"
             )
 
     if a.shape[0] != x.shape[0] and a.shape[0] != 1:
         raise ValueError(
-            f"Don't know how to batch-broadcast shape {a.shape} over {x.shape} as the batch dimension is not matching"
+            f"Don't know how to batch-broadcast shape {a.shape} over {x.shape} "
+            "as the batch dimension is not matching"
         )
 
     out = a.view((x.shape[0], *(1 for _ in range(len(x.shape) - 1))))

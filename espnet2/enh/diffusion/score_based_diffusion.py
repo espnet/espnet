@@ -44,9 +44,10 @@ class ScoreModel(AbsDiffusion):
             try:
                 from espnet2.enh.layers.ncsnpp import NCSNpp
                 score_model_class = NCSNpp
-            except:
-                raise EnvironmentError("NCSNpp needs nvcc to compile operaters. " 
-                                       "Make sure you have cuda toolkit installed.")
+            except Exception as e:
+                print("NCSNpp needs nvcc to compile operaters. "
+                      "Make sure you have cuda toolkit installed.")
+                raise e
         else:
             score_model_class = score_choices.get_class(kwargs["score_model"])
         self.dnn = score_model_class(**kwargs["score_model_conf"])
@@ -59,8 +60,9 @@ class ScoreModel(AbsDiffusion):
             losses = torch.square(err.abs())
         elif self.loss_type == "mae":
             losses = err.abs()
-        # taken from reduce_op function: sum over channels and position and mean over batch dim
-        # presumably only important for absolute loss number, not for gradients
+        # taken from reduce_op function: sum over channels and position
+        # and mean over batch dim presumably only important for absolute
+        # loss number, not for gradients
         loss = torch.mean(0.5 * torch.sum(losses.reshape(losses.shape[0], -1), dim=-1))
         return loss
 
