@@ -31,19 +31,23 @@ def generate_path(duration, mask):
     cum_duration_flat = cum_duration.view(b * t_x)
     path = sequence_mask(cum_duration_flat, t_y).to(mask.dtype)
     path = path.view(b, t_x, t_y)
-    path = path - torch.nn.functional.pad(path, convert_pad_shape([[0, 0],
-                                          [1, 0], [0, 0]]))[:, :-1]
+    path = (
+        path
+        - torch.nn.functional.pad(path, convert_pad_shape([[0, 0], [1, 0], [0, 0]]))[
+            :, :-1
+        ]
+    )
     path = path * mask
     return path
 
 
 def duration_loss(logw, logw_, lengths):
-    loss = torch.sum((logw - logw_)**2) / torch.sum(lengths)
+    loss = torch.sum((logw - logw_) ** 2) / torch.sum(lengths)
     return loss
+
 
 def intersperse(lst, item):
     # Adds blank symbol
     result = [item] * (len(lst) * 2 + 1)
     result[1::2] = lst
     return result
-
