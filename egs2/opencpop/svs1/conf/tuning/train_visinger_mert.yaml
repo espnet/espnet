@@ -150,7 +150,8 @@ pitch_normalize: None      # normalizer for the pitch feature
 frontend: s3prl
 frontend_conf:
    frontend_conf:
-      upstream: hubert_large_ll60k
+        upstream: hf_mert_custom
+        path_or_url: m-a-p/MERT-v1-330M
    download_dir: ./hub
    multilayer_feature: True
 

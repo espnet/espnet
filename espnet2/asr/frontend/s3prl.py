@@ -75,6 +75,7 @@ class S3prlFrontend(AbsFrontend):
         self.resampler = torchaudio.transforms.Resample(
             orig_freq=24000, new_freq=fs
         )  # TODO: 24000 is hard-coded
+        self.fs = fs
 
     def _tile_representations(self, feature):
         """Tile up the representations by `tile_factor`.
@@ -100,7 +101,8 @@ class S3prlFrontend(AbsFrontend):
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        input = self.resampler(input)
+        if self.fs != 24000:  # TODO: (Yifeng) Hard-coded
+            input = self.resampler(input)
         input_lengths = input_lengths / 1.5
         input_lengths = input_lengths.ceil().long()
 

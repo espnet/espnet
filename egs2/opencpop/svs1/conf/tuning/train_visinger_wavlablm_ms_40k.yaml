@@ -150,7 +150,7 @@ pitch_normalize: None      # normalizer for the pitch feature
 frontend: s3prl
 frontend_conf:
    frontend_conf:
-      upstream: hubert_large_ll60k
+      upstream: wavlablm_ms_40k
    download_dir: ./hub
    multilayer_feature: True
 
