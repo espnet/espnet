@@ -43,10 +43,13 @@ class ScoreModel(AbsDiffusion):
         if score_model == "ncsnpp":
             try:
                 from espnet2.enh.layers.ncsnpp import NCSNpp
+
                 score_model_class = NCSNpp
             except Exception as e:
-                print("NCSNpp needs nvcc to compile operaters. "
-                      "Make sure you have cuda toolkit installed.")
+                print(
+                    "NCSNpp needs nvcc to compile operaters. "
+                    "Make sure you have cuda toolkit installed."
+                )
                 raise e
         else:
             score_model_class = score_choices.get_class(kwargs["score_model"])

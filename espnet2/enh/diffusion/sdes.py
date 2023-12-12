@@ -44,7 +44,7 @@ class SDE(abc.ABC):
     @abc.abstractmethod
     def prior_sampling(self, shape, *args):
         """Generate one sample from the prior distribution,
-            $p_T(x|args)$ with shape `shape`."""
+        $p_T(x|args)$ with shape `shape`."""
         pass
 
     @abc.abstractmethod

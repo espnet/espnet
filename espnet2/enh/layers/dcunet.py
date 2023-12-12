@@ -70,7 +70,7 @@ class DiffusionStepEmbedding(nn.Module):
 
 class ComplexLinear(nn.Module):
     """A potentially complex-valued linear layer. Reduces to a regular linear
-        layer if `complex_valued=False`."""
+    layer if `complex_valued=False`."""
 
     def __init__(self, input_dim, output_dim, complex_valued):
         super().__init__()
