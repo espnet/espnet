@@ -24,7 +24,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-from .ncsnpp_utils import layers, layerspp, normalization
+from espnet2.enh.layers.ncsnpp_utils import layers, layerspp, normalization
 
 ResnetBlockDDPM = layerspp.ResnetBlockDDPMpp
 ResnetBlockBigGAN = layerspp.ResnetBlockBigGANpp

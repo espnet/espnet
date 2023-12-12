@@ -25,7 +25,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from .normalization import ConditionalInstanceNorm2dPlus
+from espnet2.enh.layers.ncsnpp_utils.normalization import ConditionalInstanceNorm2dPlus
 
 
 def get_act(config):

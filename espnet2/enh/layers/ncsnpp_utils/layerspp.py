@@ -21,7 +21,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from . import layers, up_or_down_sampling
+from espnet2.enh.layers.ncsnpp_utils import layers, up_or_down_sampling
 
 conv1x1 = layers.ddpm_conv1x1
 conv3x3 = layers.ddpm_conv3x3
