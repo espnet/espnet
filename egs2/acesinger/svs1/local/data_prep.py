@@ -1,4 +1,5 @@
 import argparse
+import logging
 import os
 import re
 import shutil
@@ -6,7 +7,13 @@ import shutil
 import librosa
 import miditoolkit
 import numpy as np
-from pydub import AudioSegment
+
+try:
+    from pydub import AudioSegment
+except ModuleNotFoundError:
+    raise ModuleNotFoundError(
+        "pydub needed for audio segmentation" "use pip to install pydub"
+    )
 from tqdm import tqdm
 
 from espnet2.fileio.score_scp import SingingScoreWriter
@@ -309,6 +316,13 @@ def process_utterance(
     # 1 - 30
     for i in range(1, 31):
         i_str = str(i)  # Convert outer loop index to string
+        wav_file = "{}.wav".format(
+            os.path.join(audio_dir, dataset, "segments", i_str + "#" + uid)
+        )
+        if not os.path.exists(wav_file):
+            logging.info("cannot find wav file at {}".format(wav_file))
+            continue
+
         text.write("acesinger_{}#{} {}\n".format(i_str, uid, " ".join(phns)))
         utt2spk.write("acesinger_{}#{} {}\n".format(i_str, uid, i_str))
 
@@ -409,7 +423,8 @@ if __name__ == "__main__":
 
     tempos = load_midi(args)
     dataset = args.dataset
-    os.mkdir(os.path.join(args.src_data, dataset, "segments"))
-    segment_dataset(args, dataset)
+    if not os.path.exists(os.path.join(args.src_data, dataset, "segments")):
+        makedir(os.path.join(args.src_data, dataset, "segments"))
+        segment_dataset(args, dataset)
     for name in ["train", "test"]:
         process_subset(args, name, tempos, dataset)
