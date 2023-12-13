@@ -232,7 +232,7 @@ class BeamSearchTimeSyncStreaming(torch.nn.Module):
 
         scores = self.joint_score(new_hyps, ctc_score_dp_next, recompute_cache)
 
-        hyps = sorted(new_hyps, key=lambda ll: scores[ll], reverse=True)[
+        hyps = sorted(new_hyps, key=lambda hyp_l: scores[hyp_l], reverse=True)[
             : self.beam_size
         ]
         logging.debug("max len before prune" + str(max([len(x) for x in new_hyps])))
