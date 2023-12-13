@@ -18,7 +18,6 @@ from espnet2.asr.decoder.transformer_decoder import (
     LightweightConvolutionTransformerDecoder,
     TransformerDecoder,
 )
-from espnet2.s2st.synthesizer.fairseq_unit_bart import FairseqUnitBart
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.encoder.contextual_block_transformer_encoder import (
@@ -59,6 +58,7 @@ from espnet2.s2st.losses.guided_attention_loss import S2STGuidedAttentionLoss
 from espnet2.s2st.losses.tacotron_loss import S2STTacotron2Loss
 from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet2.s2st.synthesizer.discrete_synthesizer import TransformerDiscreteSynthesizer
+from espnet2.s2st.synthesizer.fairseq_unit_bart import FairseqUnitBart
 from espnet2.s2st.synthesizer.translatotron import Translatotron
 from espnet2.s2st.tgt_feats_extract.abs_tgt_feats_extract import AbsTgtFeatsExtract
 from espnet2.s2st.tgt_feats_extract.linear_spectrogram import LinearSpectrogram

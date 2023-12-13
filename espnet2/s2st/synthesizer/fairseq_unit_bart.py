@@ -2,17 +2,17 @@ import contextlib
 import copy
 import logging
 import os
-from typing import Optional, Tuple, Any, List, Dict
+from typing import Any, Dict, List, Optional, Tuple
 
 import torch
-from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
-
-from espnet.nets.scorer_interface import BatchScorerInterface
-from torch import nn
 from filelock import FileLock
+from torch import nn
 from typeguard import check_argument_types
+
+from espnet2.s2st.synthesizer.abs_synthesizer import AbsSynthesizer
 from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet.nets.pytorch_backend.transformer.layer_norm import LayerNorm
+from espnet.nets.scorer_interface import BatchScorerInterface
 
 
 class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
@@ -26,13 +26,13 @@ class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
     """
 
     def __init__(
-            self,
-            idim: int,
-            odim: int,
-            bart_url: str,
-            dict_url: str,
-            bart_dir_path: str = "./",
-            padding_idx: int = -1,
+        self,
+        idim: int,
+        odim: int,
+        bart_url: str,
+        dict_url: str,
+        bart_dir_path: str = "./",
+        padding_idx: int = -1,
     ):
         assert check_argument_types()
         super().__init__()
@@ -42,17 +42,15 @@ class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
 
         try:
             import fairseq
-            from fairseq.models.bart import BARTModel
             from fairseq.checkpoint_utils import load_model_ensemble_and_task
+            from fairseq.models.bart import BARTModel
         except Exception as e:
             print("Error: FairSeq is not properly installed.")
-            print(
-                "Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done"
-            )
+            print("Please install FairSeq: cd ${MAIN_ROOT}/tools && make fairseq.done")
             raise e
 
-        self.bart_model_path = download_bart(bart_url, bart_dir_path, 'unit_mbart.pth')
-        self.dict_path = download_bart(dict_url, bart_dir_path, 'dict.txt')
+        self.bart_model_path = download_bart(bart_url, bart_dir_path, "unit_mbart.pth")
+        self.dict_path = download_bart(dict_url, bart_dir_path, "dict.txt")
 
         models, _, _ = load_model_ensemble_and_task(
             [self.bart_model_path],
@@ -85,16 +83,16 @@ class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
         logging.info("Pretrained unit mBART model parameters reloaded!")
 
     def forward(
-            self,
-            enc_out: torch.Tensor,
-            enc_out_lens: Optional[torch.Tensor],
-            ys: torch.Tensor,
-            ys_lens: Optional[torch.Tensor],
-            spembs: Optional[torch.Tensor] = None,
-            sids: Optional[torch.Tensor] = None,
-            lids: Optional[torch.Tensor] = None,
-            return_hs: bool = False,
-            return_all_hs: bool = False,
+        self,
+        enc_out: torch.Tensor,
+        enc_out_lens: Optional[torch.Tensor],
+        ys: torch.Tensor,
+        ys_lens: Optional[torch.Tensor],
+        spembs: Optional[torch.Tensor] = None,
+        sids: Optional[torch.Tensor] = None,
+        lids: Optional[torch.Tensor] = None,
+        return_hs: bool = False,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward mBART decoder.
 
@@ -134,12 +132,13 @@ class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
         # FairSeq TransformerDecoder uses padding idx to construct the self attention mask
         # We don't have to pass it explicitly
         x, extra = self.decoder(
-            prev_output_tokens=ys, encoder_out=encoder_out,
+            prev_output_tokens=ys,
+            encoder_out=encoder_out,
             features_only=True,  # we don't use pre-trained output layer
         )
         x = self.output_layer(x)
 
-        intermediate_outs = extra['inner_states']
+        intermediate_outs = extra["inner_states"]
         if return_hs:
             # TODO(Jiyang): this is the hidden state before LayerNorm,
             #   technically not what we want?
@@ -158,10 +157,10 @@ class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
         return logp.squeeze(0), None
 
     def batch_score(
-            self,
-            ys: torch.Tensor,
-            states: List[Any],
-            xs: torch.Tensor,
+        self,
+        ys: torch.Tensor,
+        states: List[Any],
+        xs: torch.Tensor,
     ) -> Tuple[torch.Tensor, List[Any]]:
         logp, _ = self.forward(
             ys,
@@ -171,7 +170,9 @@ class FairseqUnitBart(AbsSynthesizer, BatchScorerInterface):
         )
         return logp, []
 
-    def inference(self, input_states: torch.Tensor, **kwargs) -> Dict[str, torch.Tensor]:
+    def inference(
+        self, input_states: torch.Tensor, **kwargs
+    ) -> Dict[str, torch.Tensor]:
         """
         Not used for this type of synthesizer
         """
