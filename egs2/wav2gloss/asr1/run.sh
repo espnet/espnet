@@ -5,14 +5,14 @@ set -e
 set -u
 set -o pipefail
 
-lang="full"
-task="all"
+lang="subset"
+task="translation"
 
 train_set="w2g_${task}_${lang}_train"
 valid_set="w2g_${task}_${lang}_dev"
 lm_train_text=data/w2g_${task}_${lang}_train/lm.txt
 
-asr_config="conf/tuning/train_xls_r_conformer_c6_t6.yaml"
+asr_config="conf/tuning/train_xls_r_conformer.yaml"
 asr_tag="${task}_${lang}_xls_r_conformer"
 
 lm_config="conf/tuning/train_lm_4layers.yaml"
@@ -21,6 +21,9 @@ lm_tag="${task}_${lang}_4layer"
 # number of test sets = number of tasks x number of langs
 if [ "$lang" == "full" ]; then
     lang="adyg1241,ainu1240,apah1238,arap1274,arta1239,balk1252,beja1238,bora1263,dolg1241,even1259,goro1270,jeju1234,kaby1243,kach1280,kaka1265,kama1378,kara1499,koii1238,komn1238,mand1415,nngg1234,nort2641,pnar1238,port1286,ruul1235,sanz1248,savo1255,selk1253,slav1254,sout2856,sumb1241,sumi1235,taba1259,taul1251,tehr1242,teop1238,texi1237,tond1251,trin1278,vera1241"
+fi
+if [ "$lang" == "subset" ]; then
+    lang="balk1252,slav1254,pnar1238,port1286,ruul1235,sumi1235,dolg1241,even1259,kama1378,selk1253,arta1239,ainu1240"
 fi
 if [ "$task" == "all" ]; then
     task="transcription,underlying,gloss,translation"
@@ -34,7 +37,6 @@ done
 
 
 ./asr.sh \
-    --local_data_opts "--langs ${lang} --tasks ${task}" \
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
