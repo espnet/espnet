@@ -262,7 +262,7 @@
 <span class="sd">            state: pruned state</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>  <span class="c1"># for CTCPrefixScore</span>
                 <span class="n">sc</span><span class="p">,</span> <span class="n">st</span> <span class="o">=</span> <span class="n">state</span>
                 <span class="k">return</span> <span class="n">sc</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">st</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
