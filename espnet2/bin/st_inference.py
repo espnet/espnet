@@ -80,6 +80,7 @@ class Speech2Text:
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        normalize_length: bool = False,
         asr_beam_size: int = 20,
         asr_lm_weight: float = 1.0,
         asr_ngram_weight: float = 0.9,
@@ -248,6 +249,7 @@ class Speech2Text:
                 vocab_size=len(token_list),
                 token_list=token_list,
                 pre_beam_score_key="full",
+                normalize_length=normalize_length,
             )
 
             # beam_search = None
@@ -660,6 +662,7 @@ def inference(
     ngram_weight: float,
     penalty: float,
     nbest: int,
+    normalize_length: bool,
     asr_ctc_weight: float,
     asr_lm_weight: float,
     asr_ngram_weight: float,
@@ -741,6 +744,7 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        normalize_length=normalize_length,
         asr_beam_size=asr_beam_size,
         asr_ctc_weight=asr_ctc_weight,
         asr_lm_weight=asr_lm_weight,
@@ -1051,6 +1055,12 @@ def get_parser():
     )
     group.add_argument("--hugging_face_decoder", type=str2bool, default=False)
     group.add_argument("--hugging_face_decoder_max_length", type=int, default=256)
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
+    )
 
     return parser
 
