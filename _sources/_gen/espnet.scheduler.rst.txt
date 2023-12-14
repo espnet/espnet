@@ -4,17 +4,6 @@ espnet.scheduler package
 Initialize sub package.
 
 
-.. _espnet.scheduler.scheduler:
-
-espnet.scheduler.scheduler
---------------------------
-
-.. automodule:: espnet.scheduler.scheduler
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.scheduler.chainer:
 
 espnet.scheduler.chainer
@@ -32,6 +21,17 @@ espnet.scheduler.__init__
 -------------------------
 
 .. automodule:: espnet.scheduler.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.scheduler.scheduler:
+
+espnet.scheduler.scheduler
+--------------------------
+
+.. automodule:: espnet.scheduler.scheduler
     :members:
     :undoc-members:
     :show-inheritance:
