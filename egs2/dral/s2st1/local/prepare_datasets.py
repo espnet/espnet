@@ -149,6 +149,9 @@ def _write_kaldi_files(
     df["audio_path"] = df["id_recordings"].apply(
         lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
     )
+    # add speaker id in id_recordings, trans_id
+    df["id_recordings"] = df.apply(lambda x: f"{x.spk}-{x.id_recordings}", axis=1)
+    df["trans_id"] = df.apply(lambda x: f"{x.spk}-{x.trans_id}", axis=1)
     df[["id_recordings", "audio_path"]].drop_duplicates().to_csv(
         output_dir / f"wav.scp.{src_lang}", sep=" ", header=False, index=False
     )
@@ -159,20 +162,6 @@ def _write_kaldi_files(
         output_dir / f"wav.scp.{tgt_lang}", sep=" ", header=False, index=False
     )
     # utt2spk
-    if data_file_stem in {_RECORDINGS, _FRAGMENTS_LONG}:
-        df["spk"] = df.apply(
-            lambda x: "-".join(
-                sorted(
-                    [
-                        str(x["participant_id_left_unique"]),
-                        str(x["participant_id_right_unique"]),
-                    ]
-                )
-            ),
-            axis=1,
-        )
-    else:
-        df["spk"] = df["participant_id_unique"]
     src_utt2spk = df[["id_recordings", "spk"]]
     tgt_utt2spk = df[["trans_id", "spk"]]
     tgt_utt2spk.columns = src_utt2spk.columns
@@ -323,6 +312,18 @@ def extract_recordings(
             "trans_id",
         ],
     )
+    conversation_df["spk"] = conversation_df.apply(
+        lambda x: "-".join(
+            sorted(
+                [
+                    str(x["participant_id_left_unique"]),
+                    str(x["participant_id_right_unique"]),
+                ]
+            )
+        ),
+        axis=1,
+    )
+    conversation_df = conversation_df.drop(["participant_id_left_unique", "participant_id_right_unique"], axis=1)
     fragment_df = pd.read_csv(
         input_dir / f"{fragment_file_stem}.csv",
         sep=",",
