@@ -57,12 +57,14 @@ def test_score_based_diffusion_forward_backward_ncsnpp():
     loss.abs().mean().backward()
 
 
+@pytest.mark.parametrize("sampler_type", ['pc', 'ode'])
 @pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")
-def test_score_based_diffusion_sampling():
+def test_score_based_diffusion_sampling(sampler_type):
     parameters = {
-        "score_model": "dcunet",
+        "score_model": "ncsnpp",
         "score_model_conf": {
-            "dcunet_architecture": "DCUNet-10",
+            "nf": 4,
+            "ch_mult": (1, 1, 1),
         },
         "sde": "ouve",
         "sde_conf": {},
@@ -70,13 +72,10 @@ def test_score_based_diffusion_sampling():
     model = ScoreModel(**parameters)
     model.eval()
 
-    real = torch.rand(2, 128, 257)
-    imag = torch.rand(2, 128, 257)
+    real = torch.rand(2, 64, 256)
+    imag = torch.rand(2, 64, 256)
     noise = real + 1j * imag
 
-    output = model.enhance(noise, N=2, sampler_type="pc")
+    output = model.enhance(noise, N=2, sampler_type=sampler_type)
 
-    assert output.shape == noise.shape
-
-    output = model.enhance(noise, N=2, sampler_type="ode")
     assert output.shape == noise.shape
