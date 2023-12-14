@@ -323,7 +323,9 @@ def extract_recordings(
         ),
         axis=1,
     )
-    conversation_df = conversation_df.drop(["participant_id_left_unique", "participant_id_right_unique"], axis=1)
+    conversation_df = conversation_df.drop(
+        ["participant_id_left_unique", "participant_id_right_unique"], axis=1
+    )
     fragment_df = pd.read_csv(
         input_dir / f"{fragment_file_stem}.csv",
         sep=",",
