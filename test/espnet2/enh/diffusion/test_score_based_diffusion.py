@@ -33,7 +33,7 @@ def test_score_based_diffusion_forward_backward_dcunet():
 
 
 @pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")
-def test_score_based_diffusion_forward_backward_ncsnpp(resblock_type):
+def test_score_based_diffusion_forward_backward_ncsnpp():
     parameters = {
         "score_model": "ncsnpp",
         "score_model_conf": {
