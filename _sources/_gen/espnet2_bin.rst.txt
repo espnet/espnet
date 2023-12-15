@@ -164,6 +164,7 @@ asr_inference_streaming.py
                                       [--decoder_text_length_limit DECODER_TEXT_LENGTH_LIMIT]
                                       [--token_type {char,bpe,None}]
                                       [--bpemodel BPEMODEL]
+                                      [--normalize_length NORMALIZE_LENGTH]
     
     ASR Decoding
     
@@ -229,6 +230,9 @@ asr_inference_streaming.py
                             from the training args (default: None)
       --bpemodel BPEMODEL   The model path of sentencepiece. If not given, refers
                             from the training args (default: None)
+      --normalize_length NORMALIZE_LENGTH
+                            If true, best hypothesis is selected by length-
+                            normalized scores (default: False)
 .. _asr_train.py:
 
 asr_train.py
@@ -6548,6 +6552,7 @@ mt_inference.py
                            [--minlenratio MINLENRATIO] [--ctc_weight CTC_WEIGHT]
                            [--lm_weight LM_WEIGHT] [--ngram_weight NGRAM_WEIGHT]
                            [--token_type {char,bpe,None}] [--bpemodel BPEMODEL]
+                           [--normalize_length NORMALIZE_LENGTH]
     
     MT Decoding
     
@@ -6617,6 +6622,9 @@ mt_inference.py
                             the training args (default: None)
       --bpemodel BPEMODEL   The model path of sentencepiece. If not given, refers
                             from the training args (default: None)
+      --normalize_length NORMALIZE_LENGTH
+                            If true, pruning is based on length-normalized scores
+                            (default: False)
 .. _mt_train.py:
 
 mt_train.py
@@ -7217,6 +7225,7 @@ s2st_inference.py
                              [--vocoder_tag VOCODER_TAG]
                              [--st_subtask_token_type {char,bpe,None}]
                              [--st_subtask_bpemodel ST_SUBTASK_BPEMODEL]
+                             [--normalize_length NORMALIZE_LENGTH]
     
     S2ST inference
     
@@ -7301,6 +7310,9 @@ s2st_inference.py
       --st_subtask_bpemodel ST_SUBTASK_BPEMODEL
                             The model path of sentencepiece. If not given, refers
                             from the training args (default: None)
+      --normalize_length NORMALIZE_LENGTH
+                            If true, best hypothesis is selected by length-
+                            normalized scores (default: False)
 .. _s2st_train.py:
 
 s2st_train.py
@@ -9667,8 +9679,6 @@ st_inference.py
 
 .. code-block:: none
 
-    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
-      def backtrace(trace: np.ndarray):
     usage: st_inference.py [-h] [--config CONFIG]
                            [--log_level {CRITICAL,ERROR,WARNING,INFO,DEBUG,NOTSET}]
                            --output_dir OUTPUT_DIR [--ngpu NGPU] [--seed SEED]
@@ -9708,6 +9718,7 @@ st_inference.py
                            [--ctc_greedy CTC_GREEDY]
                            [--hugging_face_decoder HUGGING_FACE_DECODER]
                            [--hugging_face_decoder_max_length HUGGING_FACE_DECODER_MAX_LENGTH]
+                           [--normalize_length NORMALIZE_LENGTH]
     
     ST Decoding
     
@@ -9823,6 +9834,11 @@ st_inference.py
       --ctc_greedy CTC_GREEDY
       --hugging_face_decoder HUGGING_FACE_DECODER
       --hugging_face_decoder_max_length HUGGING_FACE_DECODER_MAX_LENGTH
+      --normalize_length NORMALIZE_LENGTH
+                            If true, best hypothesis is selected by length-
+                            normalized scores (default: False)
+    /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
+      def backtrace(trace: np.ndarray):
 .. _st_train.py:
 
 st_train.py
