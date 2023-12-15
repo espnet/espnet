@@ -125,7 +125,12 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
             maxlen = x.shape[0]
         else:
             maxlen = max(1, int(maxlenratio * x.size(0)))
-        minlen = int(minlenratio * x.size(0))
+
+        if minlenratio < 0:
+            minlen = -1 * int(minlenratio)
+        else:
+            minlen = int(minlenratio * x.size(0))
+
         logging.info("decoder input length: " + str(x.shape[0]))
         logging.info("max output length: " + str(maxlen))
         logging.info("min output length: " + str(minlen))
@@ -155,7 +160,7 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
                 if process_idx == maxlen - 1:
                     # end decoding
                     running_hyps = self.post_process(
-                        process_idx, maxlen, maxlenratio, best, ended_hyps
+                        process_idx, maxlen, minlen, maxlenratio, best, ended_hyps
                     )
                 n_batch = best.yseq.shape[0]
                 local_ended_hyps = []
@@ -205,7 +210,7 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
                 prev_repeat = False
                 prev_hyps = running_hyps
                 running_hyps = self.post_process(
-                    process_idx, maxlen, maxlenratio, best, ended_hyps
+                    process_idx, maxlen, minlen, maxlenratio, best, ended_hyps
                 )
 
                 if cur_end_frame >= x.shape[0]:
@@ -221,7 +226,15 @@ class BatchBeamSearchOnlineSim(BatchBeamSearch):
                 # increment number
                 process_idx += 1
 
-        nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+        if self.normalize_length:
+            # Note (Jinchuan): -1 since hyp starts with <sos> and
+            # initially has score of 0.0
+            nbest_hyps = sorted(
+                ended_hyps, key=lambda x: x.score / (len(x.yseq) - 1), reverse=True
+            )
+        else:
+            nbest_hyps = sorted(ended_hyps, key=lambda x: x.score, reverse=True)
+
         # check the number of hypotheses reaching to eos
         if len(nbest_hyps) == 0:
             logging.warning(
