@@ -113,9 +113,9 @@ class SpkEmbedExtractor:
                 )
                 model_tag = args.pretrained_model
 
-            self.speech2spkembedding = Speech2Embedding.from_pretrained(
+            self.speech2embedding = Speech2Embedding.from_pretrained(
                 model_tag=model_tag,
-                **speech2spkembedding_kwargs,
+                **speech2embedding_kwargs,
             )
 
     def _rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
