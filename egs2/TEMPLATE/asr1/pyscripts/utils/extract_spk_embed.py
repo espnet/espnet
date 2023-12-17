@@ -148,7 +148,7 @@ class SpkEmbedExtractor:
         elif len(audio.shape) > 1:
             raise ValueError(f"Input data has shape {audio.shape} thatis not support")
         audio = torch.from_numpy(audio.astype(np.float32)).to(self.device)
-        output = self.self.speech2embedding(audio)
+        output = self.speech2embedding(audio)
         return output.cpu().numpy()
 
     def __call__(self, wav, in_sr):
