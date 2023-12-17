@@ -114,7 +114,7 @@ class SpkEmbedExtractor:
                 model_tag = args.pretrained_model
 
             self.speech2spkembedding = Speech2Embedding.from_pretrained(
-                model_tag=model,
+                model_tag=model_tag,
                 **speech2spkembedding_kwargs,
             )
 
