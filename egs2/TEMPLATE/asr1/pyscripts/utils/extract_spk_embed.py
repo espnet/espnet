@@ -93,7 +93,7 @@ class SpkEmbedExtractor:
 
             # NOTE(jiatong): set default config file as None
             # assume config is the same path as the model file
-            speech2spkembedding_kwargs = dict(
+            speech2embedding_kwargs = dict(
                 batch_size=1,
                 dtype="float32",
                 train_config=None,
