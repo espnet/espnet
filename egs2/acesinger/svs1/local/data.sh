@@ -39,7 +39,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # The ACESINGER data should be downloaded
 
     log "automatically download from google drive"
-    ./download_wget.sh "1qHLW3U7a0z8FpWuaEUmY-LViBIwRmeM0"  ${ACESINGER}
+    ./local/download_wget.sh "1qHLW3U7a0z8FpWuaEUmY-LViBIwRmeM0"  ${ACESINGER}/ACESinger.zip
 
     unzip ${ACESINGER}/ACESinger.zip -d ${ACESINGER}
 fi
