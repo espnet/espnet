@@ -427,6 +427,10 @@ if __name__ == "__main__":
         makedir(os.path.join(args.src_data, dataset, "segments"))
         segment_dataset(args, dataset)
     else:
-        logging.info("Found existing data at {}, skip re-generate".format(os.path.join(args.src_data, dataset, "segments")))
+        logging.info(
+            "Found existing data at {}, skip re-generate".format(
+                os.path.join(args.src_data, dataset, "segments")
+            )
+        )
     for name in ["train", "test"]:
         process_subset(args, name, tempos, dataset)
