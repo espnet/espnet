@@ -207,7 +207,7 @@ def segment_dataset(args, dataset):
             if not os.path.isdir(song_path):
                 continue
             for file in os.listdir(song_path):
-                if file.endswith(".wav"):
+                if file.endswith(".wav") and not file.startswith("._"):
                     audio_file_name = file
                     break
                 else:
@@ -426,5 +426,7 @@ if __name__ == "__main__":
     if not os.path.exists(os.path.join(args.src_data, dataset, "segments")):
         makedir(os.path.join(args.src_data, dataset, "segments"))
         segment_dataset(args, dataset)
+    else:
+        logging.info("Found existing data at {}, skip re-generate".format(os.path.join(args.src_data, dataset, "segments")))
     for name in ["train", "test"]:
         process_subset(args, name, tempos, dataset)
