@@ -37,7 +37,7 @@ from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
 # from espnet2.tts.prodiff import ProDiff
 # from espnet2.tts.tacotron2 import Tacotron2
 # from espnet2.tts.transformer import Transformer
-# from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
+from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
@@ -414,7 +414,6 @@ class TTS2Task(AbsTask):
         model: Optional[ESPnetTTS2Model] = None,
         device: str = "cpu",
     ):
-        raise NotImplementedError("wait for implementation")
         # Build vocoder
         if vocoder_file is None:
             # If vocoder file is not provided, use griffin-lim as a vocoder

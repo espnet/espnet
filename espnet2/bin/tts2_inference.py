@@ -17,14 +17,14 @@ from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.fileio.npy_scp import NpyScpWriter
-from espnet2.gan_tts.vits import VITS
+# from espnet2.gan_tts.vits import VITS
 from espnet2.tasks.tts2 import TTS2Task
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
-from espnet2.tts.fastspeech import FastSpeech
+# from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
-from espnet2.tts.tacotron2 import Tacotron2
-from espnet2.tts.transformer import Transformer
+# from espnet2.tts.tacotron2 import Tacotron2
+# from espnet2.tts.transformer import Transformer
 from espnet2.tts.utils import DurationCalculator
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
@@ -123,25 +123,8 @@ class Text2Speech:
         # setup decoding config
         decode_conf = {}
         decode_conf.update(use_teacher_forcing=use_teacher_forcing)
-        if isinstance(self.tts, (Tacotron2, Transformer)):
-            decode_conf.update(
-                threshold=threshold,
-                maxlenratio=maxlenratio,
-                minlenratio=minlenratio,
-            )
-        if isinstance(self.tts, Tacotron2):
-            decode_conf.update(
-                use_att_constraint=use_att_constraint,
-                forward_window=forward_window,
-                backward_window=backward_window,
-            )
-        if isinstance(self.tts, (FastSpeech, FastSpeech2Discrete, VITS)):
+        if isinstance(self.tts, FastSpeech2Discrete):
             decode_conf.update(alpha=speed_control_alpha)
-        if isinstance(self.tts, VITS):
-            decode_conf.update(
-                noise_scale=noise_scale,
-                noise_scale_dur=noise_scale_dur,
-            )
         self.decode_conf = decode_conf
 
     @torch.no_grad()
@@ -202,13 +185,7 @@ class Text2Speech:
 
         # apply vocoder (mel-to-wav)
         if self.vocoder is not None:
-            if (
-                self.prefer_normalized_feats
-                or output_dict.get("feat_gen_denorm") is None
-            ):
-                input_feat = output_dict["feat_gen"]
-            else:
-                input_feat = output_dict["feat_gen_denorm"]
+            input_feat = output_dict["feat_gen"].unsqueeze(1)
             wav = self.vocoder(input_feat)
             output_dict.update(wav=wav)
 
@@ -446,7 +423,6 @@ def inference(
             if output_dict.get("feat_gen") is not None:
                 # standard text2mel model case
                 feat_gen = output_dict["feat_gen"]
-                print("feat_gen: ", feat_gen)
                 logging.info(
                     "inference speed = {:.1f} frames / sec.".format(
                         int(feat_gen.size(0)) / (time.perf_counter() - start_time)
