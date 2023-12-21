@@ -17,12 +17,15 @@ from packaging.version import parse as V
 from typeguard import check_argument_types
 
 from espnet2.fileio.npy_scp import NpyScpWriter
+
 # from espnet2.gan_tts.vits import VITS
 from espnet2.tasks.tts2 import TTS2Task
 from espnet2.torch_utils.device_funcs import to_device
 from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
+
 # from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
+
 # from espnet2.tts.tacotron2 import Tacotron2
 # from espnet2.tts.transformer import Transformer
 from espnet2.tts.utils import DurationCalculator

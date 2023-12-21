@@ -23,8 +23,12 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.espnet_model import ESPnetTTS2Model
+
 # from espnet2.tts.fastspeech import FastSpeech
 from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
+from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
+from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
+
 # TTS continuous feature extraction operators
 from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts.feats_extract.dio import Dio
@@ -32,8 +36,7 @@ from espnet2.tts.feats_extract.energy import Energy
 from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
-from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
-from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
+
 # from espnet2.tts.prodiff import ProDiff
 # from espnet2.tts.tacotron2 import Tacotron2
 # from espnet2.tts.transformer import Transformer
@@ -42,7 +45,6 @@ from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
-
 
 discrete_feats_extractor_choices = ClassChoices(
     "discrete_feats_extract",
@@ -324,8 +326,12 @@ class TTS2Task(AbsTask):
         logging.info(f"Target Vocabulary size: {tgt_vocab_size}")
 
         # 0. discrete feature extraction
-        discrete_feats_extract_class = discrete_feats_extractor_choices.get_class(args.discrete_feats_extract)
-        discrete_feats_extract = discrete_feats_extract_class(**args.discrete_feats_extract_conf)
+        discrete_feats_extract_class = discrete_feats_extractor_choices.get_class(
+            args.discrete_feats_extract
+        )
+        discrete_feats_extract = discrete_feats_extract_class(
+            **args.discrete_feats_extract_conf
+        )
 
         # 1. feats_extract
         if args.odim is None:
