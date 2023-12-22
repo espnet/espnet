@@ -39,7 +39,25 @@ from espnet2.tts.feats_extract.ying import Ying
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.nested_dict_action import NestedDictAction
 from espnet2.utils.types import int_or_none, str2bool, str_or_none
+from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.fused import FusedFrontends
+from espnet2.asr.frontend.s3prl import S3prlFrontend
+from espnet2.asr.frontend.whisper import WhisperFrontend
+from espnet2.asr.frontend.windowing import SlidingWindow
 
+frontend_choices = ClassChoices(
+    name="frontend",
+    classes=dict(
+        default=DefaultFrontend,
+        sliding_window=SlidingWindow,
+        s3prl=S3prlFrontend,
+        fused=FusedFrontends,
+        whisper=WhisperFrontend,
+    ),
+    type_check=AbsFrontend,
+    default="default",
+)
 feats_extractor_choices = ClassChoices(
     "feats_extract",
     classes=dict(
@@ -130,6 +148,8 @@ class GANSVSTask(AbsTask):
 
     # Add variable objects configurations
     class_choices_list = [
+        # --frontend and --frontend_conf
+        frontend_choices,
         # --score_extractor and --score_extractor_conf
         score_feats_extractor_choices,
         # --feats_extractor and --feats_extractor_conf
@@ -163,6 +183,13 @@ class GANSVSTask(AbsTask):
         # to provide --print_config mode. Instead of it, do as
         required = parser.get_default("required")
         required += ["token_list"]
+
+        group.add_argument(
+            "--input_size",
+            type=int_or_none,
+            default=None,
+            help="The number of input dimension of the feature",
+        )
 
         group.add_argument(
             "--token_list",
@@ -335,6 +362,19 @@ class GANSVSTask(AbsTask):
             feats_extract = None
             odim = args.odim
 
+        # 1. frontend
+        if args.input_size is None:
+            # Extract features in the model
+            frontend_class = frontend_choices.get_class(args.frontend)
+            frontend = frontend_class(**args.frontend_conf)
+            input_size = frontend.output_size()
+        else:
+            # Give features from data-loader
+            args.frontend = None
+            args.frontend_conf = {}
+            frontend = None
+            input_size = args.input_size
+
         # 2. Normalization layer
         if args.normalize is not None:
             normalize_class = normalize_choices.get_class(args.normalize)
@@ -401,6 +441,7 @@ class GANSVSTask(AbsTask):
 
         # 5. Build model
         model = ESPnetGANSVSModel(
+            frontend=frontend,
             text_extract=score_feats_extract,
             feats_extract=feats_extract,
             score_feats_extract=score_feats_extract,
