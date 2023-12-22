@@ -144,13 +144,13 @@ class TemporalConvNet(nn.Module):
         # [M, C*self.out_channel, K] -> [M, C, self.out_channel, K]
         score = score.view(M, self.C, self.out_channel, K)
         if self.mask_nonlinear == "softmax":
-            est_mask = F.softmax(score, dim=1)
+            est_mask = torch.softmax(score, dim=1)
         elif self.mask_nonlinear == "relu":
-            est_mask = F.relu(score)
+            est_mask = torch.relu(score)
         elif self.mask_nonlinear == "sigmoid":
-            est_mask = F.sigmoid(score)
+            est_mask = torch.sigmoid(score)
         elif self.mask_nonlinear == "tanh":
-            est_mask = F.tanh(score)
+            est_mask = torch.tanh(score)
         elif self.mask_nonlinear == "linear":
             est_mask = score
         else:
@@ -455,6 +455,7 @@ class ChannelwiseLayerNorm(nn.Module):
         self.gamma.data.fill_(1)
         self.beta.data.zero_()
 
+    @torch.cuda.amp.autocast(enabled=False)
     def forward(self, y):
         """Forward.
 
@@ -495,6 +496,7 @@ class GlobalLayerNorm(nn.Module):
         self.gamma.data.fill_(1)
         self.beta.data.zero_()
 
+    @torch.cuda.amp.autocast(enabled=False)
     def forward(self, y):
         """Forward.
 

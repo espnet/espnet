@@ -41,6 +41,7 @@ storage_save_mode=false     # Save storage on SSL feature extraction
 feature_conf=       # feature configuration in json string format
 feature_type=mfcc   # mfcc / fairseq_hubert / espnet_hubert
 layer=              # The layer index of SSL models to extract features from.
+batch_bins=         # batch size when extracting features and labels.
 
 # Legacy Fairseq HuBERT model and ESPnet-trained HuBERT model related for feature extraction.
 # Example of legacy Fairseq HuBERT model
@@ -96,15 +97,25 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [
         _cmd="${cpu_cmd}"
     fi
 
+    if [[ "${audio_format}" == *ark* ]]; then
+        _in_filetype="kaldi_ark"
+    else
+        # "sound" supports "wav", "flac", etc.
+        _in_filetype="sound"
+    fi
+
     if ${storage_save_mode}; then
         _dsets="${train_set}_subset${portion}"
         mkdir -p "${datadir}/${_dsets}"
 
         nutt=$(<"${datadir}/${train_set}"/wav.scp wc -l)
-        portion_nutt=$(echo ${nutt} ${portion} | awk '{print(int($1 * $2)+1)}')
+        portion_nutt=$(echo ${nutt} ${portion} | awk '{print(int($1 * $2))}')
+	portion_nutt=$(( portion_nutt > 0 ? portion_nutt : 1 ))
 
         utils/subset_data_dir.sh \
             "${datadir}/${train_set}" ${portion_nutt} "${datadir}/${_dsets}"
+        utils/filter_scp.pl ${datadir}/${_dsets}/utt2spk \
+            <${datadir}/${train_set}/utt2num_samples >${datadir}/${_dsets}/utt2num_samples
         log "Subsampling ${portion_nutt} utterances for feature dumping."
     else
         _dsets="${train_set} ${other_sets} ${dev_set}"
@@ -114,13 +125,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [
         _dump_dir="${featdir}/${feature_type}/${suffix}${dset}"
 
         utils/copy_data_dir.sh --validate_opts --non-print "${datadir}/${dset}" "${_dump_dir}"
-
-        if [[ "${audio_format}" == *ark* ]]; then
-            _in_filetype=kaldi_ark
-        else
-            # "sound" supports "wav", "flac", etc.
-            _in_filetype=sound
-        fi
 
         # 1. Split the key file
         output_dir="${_dump_dir}/data"
@@ -139,14 +143,21 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ] && ! [[ " ${skip_stages} " =~ [
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
+        for n in $(seq ${_nj}); do
+            awk '(FILENAME==ARGV[1]){utt2num[$1]=$2} (FILENAME==ARGV[2]){print($1, utt2num[$1])}' \
+                ${datadir}/${dset}/utt2num_samples ${_logdir}/wav.${n}.scp > ${_logdir}/utt2num_samples.${n}
+        done
+
         # shellcheck disable=SC2046,SC2086
         ${_cmd} JOB=1:${_nj} ${_logdir}/dump_features.JOB.log \
             ${python} pyscripts/feats/dump_ssl_feature.py \
                 --feature_conf "'${feature_conf}'" \
                 --use_gpu ${use_gpu} \
-                --in_filetype "sound" \
+                --in_filetype "${_in_filetype}" \
                 --out_filetype "mat" \
                 --write_num_frames "ark,t:${output_dir}/utt2num_frames.JOB" \
+                --utt2num_samples "${_logdir}/utt2num_samples.JOB" \
+                ${batch_bins:+--batch_bins ${batch_bins}} \
                 "scp:${_logdir}/wav.JOB.scp" \
                 "ark,scp:${output_dir}/feats.JOB.ark,${output_dir}/feats.JOB.scp" || exit 1;
 
@@ -220,13 +231,16 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             utils/copy_data_dir.sh --validate_opts --non-print "${datadir}/${dset}" "${_dump_dir}"
             key="wav.scp"
             if [[ "${audio_format}" == *ark* ]]; then
-                _opts+="--in_filetype mat "
+                _opts+="--in_filetype kaldi_ark "
             else
                 # "sound" supports "wav", "flac", etc.
                 _opts+="--in_filetype sound "
             fi
             _opts+="--online_feature_extract ${storage_save_mode} "
-            _opts+="--feature_conf \"${feature_conf}\""
+            _opts+="--feature_conf \"${feature_conf}\" "
+            if [ -n "${batch_bins}" ]; then
+                _opts+="--batch_bins ${batch_bins} "
+            fi
         else
             key="feats.scp"
             _opts+="--in_filetype mat "
@@ -244,19 +258,26 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
+        for n in $(seq ${_nj}); do
+            awk '(FILENAME==ARGV[1]){utt2num[$1]=$2} (FILENAME==ARGV[2]){print($1, utt2num[$1])}' \
+                ${datadir}/${dset}/utt2num_samples ${_dump_dir}/logdir/inference_kmeans.${n}.scp \
+                > ${_dump_dir}/logdir/utt2num_samples.${n}
+        done
+
         ${_cmd} JOB=1:${_nj} "${_dump_dir}"/logdir/inference_pseudo_labels_km${nclusters}.JOB.log \
             ${python} pyscripts/feats/dump_km_label.py \
                 ${_opts} \
                 --km_path "${km_dir}/km_${nclusters}.mdl" \
                 --out_filetype "mat" \
                 --use_gpu ${use_gpu} \
+                --utt2num_samples "${_dump_dir}/logdir/utt2num_samples.JOB" \
                 "scp:${_dump_dir}/logdir/inference_kmeans.JOB.scp" \
                 "ark,t:${_dump_dir}/logdir/pseudo_labels_km${nclusters}.JOB.txt" || exit 1;
 
         # concatenate scp files
         for n in $(seq ${_nj}); do
             cat "${_dump_dir}"/logdir/pseudo_labels_km${nclusters}.${n}.txt || exit 1;
-        done | sed 's/ \[ \| \]//g' > "${_dump_dir}"/logdir/../pseudo_labels_km${nclusters}.txt || exit 1;
+        done | sed 's/ \[ \| \]//g' | sort -u > "${_dump_dir}"/pseudo_labels_km${nclusters}.txt || exit 1;
     done
 fi
 

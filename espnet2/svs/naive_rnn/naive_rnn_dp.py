@@ -71,9 +71,50 @@ class NaiveRNNDP(AbsSVS):
         use_masking: bool = False,
         use_weighted_masking: bool = False,
     ):
-        """Initialize NaiveRNN module.
+        """Initialize NaiveRNNDP module.
 
-        Args: TODO(Yuning)
+        Args:
+            idim (int): Dimension of the label inputs.
+            odim (int): Dimension of the outputs.
+            midi_dim (int): Dimension of the midi inputs.
+            embed_dim (int): Dimension of the token embedding.
+            eprenet_conv_layers (int): Number of prenet conv layers.
+            eprenet_conv_filts (int): Number of prenet conv filter size.
+            eprenet_conv_chans (int): Number of prenet conv filter channels.
+            elayers (int): Number of encoder layers.
+            eunits (int): Number of encoder hidden units.
+            ebidirectional (bool): If bidirectional in encoder.
+            midi_embed_integration_type (str): how to integrate midi information,
+                ("add" or "cat").
+            dlayers (int): Number of decoder lstm layers.
+            dunits (int): Number of decoder lstm units.
+            dbidirectional (bool): if bidirectional in decoder.
+            postnet_layers (int): Number of postnet layers.
+            postnet_filts (int): Number of postnet filter size.
+            postnet_chans (int): Number of postnet filter channels.
+            use_batch_norm (bool): Whether to use batch normalization.
+            reduction_factor (int): Reduction factor.
+            duration_predictor_layers (int): Number of duration predictor layers.
+            duration_predictor_chans (int): Number of duration predictor channels.
+            duration_predictor_kernel_size (int): Kernel size of duration predictor.
+            duration_predictor_dropout_rate (float): Dropout rate in duration predictor.
+            # extra embedding related
+            spks (Optional[int]): Number of speakers. If set to > 1, assume that the
+                sids will be provided as the input and use sid embedding layer.
+            langs (Optional[int]): Number of languages. If set to > 1, assume that the
+                lids will be provided as the input and use sid embedding layer.
+            spk_embed_dim (Optional[int]): Speaker embedding dimension. If set to > 0,
+                assume that spembs will be provided as the input.
+            spk_embed_integration_type (str): How to integrate speaker embedding.
+            eprenet_dropout_rate (float): Prenet dropout rate.
+            edropout_rate (float): Encoder dropout rate.
+            ddropout_rate (float): Decoder dropout rate.
+            postnet_dropout_rate (float): Postnet dropout_rate.
+            init_type (str): How to initialize transformer parameters.
+            use_masking (bool): Whether to mask padded part in loss calculation.
+            use_weighted_masking (bool): Whether to apply weighted masking in
+                loss calculation.
+
         """
         assert check_argument_types()
         super().__init__()
@@ -338,6 +379,7 @@ class NaiveRNNDP(AbsSVS):
             midi = melody
             label_lengths = label_lengths
             midi_lengths = melody_lengths
+            duration_ = duration
             ds = duration
         else:
             label = label["score"]
@@ -365,7 +407,10 @@ class NaiveRNNDP(AbsSVS):
             midi_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
         )
         duration_emb = torch.nn.utils.rnn.pack_padded_sequence(
-            duration_emb, midi_lengths.to("cpu"), batch_first=True, enforce_sorted=False
+            duration_emb,
+            duration_lengths.to("cpu"),
+            batch_first=True,
+            enforce_sorted=False,
         )
 
         hs_label, (_, _) = self.encoder(label_emb)
@@ -401,16 +446,26 @@ class NaiveRNNDP(AbsSVS):
         d_outs = self.duration_predictor(hs, d_masks)  # (B, T_text)
         hs = self.length_regulator(hs, ds)  # (B, seq_len, eunits)
 
+        olens = feats_lengths
+        if self.reduction_factor > 1:
+            olens_in = olens.new(
+                [
+                    torch.div(olen, self.reduction_factor, rounding_mode="trunc")
+                    for olen in olens
+                ]
+            )
+        else:
+            olens_in = olens
+
         hs_emb = torch.nn.utils.rnn.pack_padded_sequence(
-            hs, feats_lengths.to("cpu"), batch_first=True, enforce_sorted=False
+            hs, olens_in.to("cpu"), batch_first=True, enforce_sorted=False
         )
 
         zs, (_, _) = self.decoder(hs_emb)
         zs, _ = torch.nn.utils.rnn.pad_packed_sequence(zs, batch_first=True)
 
-        zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
-
-        # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
+        # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
+        # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
 
         # postnet -> (B, T_feats//r * r, odim)
@@ -537,14 +592,9 @@ class NaiveRNNDP(AbsSVS):
         hs = self.length_regulator(hs, d_outs_int)  # (B, T_feats, adim)
         zs, (_, _) = self.decoder(hs)
 
-        if self.reduction_factor > zs.size(0):
-            zs = zs[:, :1]  # if too short, use the first frame
-        else:
-            zs = zs[:, self.reduction_factor - 1 :: self.reduction_factor]
-
-        # (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
+        # feat_out: (B, T_feats//r, dunits * dim_direction) -> (B, T_feats//r, odim * r)
+        # view: (B, T_feats//r, odim * r) -> (B, T_feats//r * r, odim)
         before_outs = F.leaky_relu(self.feat_out(zs).view(zs.size(0), -1, self.odim))
-
         # postnet -> (B, T_feats//r * r, odim)
         if self.postnet is None:
             after_outs = before_outs

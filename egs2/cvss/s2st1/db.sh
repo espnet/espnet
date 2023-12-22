@@ -1,0 +1,1 @@
+../../TEMPLATE/s2st1/db.sh

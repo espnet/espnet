@@ -67,6 +67,7 @@ class Speech2TextStreaming:
         lm_weight: float = 1.0,
         penalty: float = 0.0,
         nbest: int = 1,
+        normalize_length: bool = False,
         disable_repetition_detection=False,
         decoder_text_length_limit=0,
         encoded_feat_length_limit=0,
@@ -127,6 +128,7 @@ class Speech2TextStreaming:
             vocab_size=len(token_list),
             token_list=token_list,
             pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+            normalize_length=normalize_length,
             disable_repetition_detection=disable_repetition_detection,
             decoder_text_length_limit=decoder_text_length_limit,
             encoded_feat_length_limit=encoded_feat_length_limit,
@@ -370,6 +372,7 @@ def inference(
     lm_weight: float,
     penalty: float,
     nbest: int,
+    normalize_length: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
@@ -426,6 +429,7 @@ def inference(
         lm_weight=lm_weight,
         penalty=penalty,
         nbest=nbest,
+        normalize_length=normalize_length,
         disable_repetition_detection=disable_repetition_detection,
         decoder_text_length_limit=decoder_text_length_limit,
         encoded_feat_length_limit=encoded_feat_length_limit,
@@ -615,6 +619,12 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
 
     return parser

@@ -1,3 +1,24 @@
+# Conformer + BRCTC: Hybrid CTC Attention
+## Environments
+- date: `Tue Oct 31 21:47:32 CDT 2023`
+- python version: `3.9.18 (main, Sep 11 2023, 13:41:44)  [GCC 11.2.0]`
+- espnet version: `espnet 202308`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `26b231f76cb7a610e76aa77cd2de14b370a11729`
+  - Commit date: `Sat Oct 28 22:10:01 2023 -0500`
+
+## Results
+- Model link: [https://huggingface.co/espnet/jinchuat_aishell_brctc](https://huggingface.co/espnet/jinchuat_aishell_brctc)
+- ASR config: [./conf/tuning/train_asr_conformer_e12_brctc_intermediate_stage1.yaml](./conf/tuning/train_asr_conformer_e12_brctc_intermediate_stage1.yaml)
+- ASR config: [./conf/tuning/train_asr_conformer_e12_brctc_intermediate_stage2.yaml](./conf/tuning/train_asr_conformer_e12_brctc_intermediate_stage2.yaml)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_branchformer_asr_model_valid.acc.ave/dev|14326|205341|95.7|4.2|0.1|0.1|4.4|33.6|
+|decode_asr_branchformer_asr_model_valid.acc.ave/test|7176|104765|95.4|4.4|0.2|0.1|4.7|34.7|
+
 # Streaming Conformer + specaug + speed perturbation: feats=raw, n_fft=512, hop_length=128
 ## Environments
 - date: `Mon Aug 23 16:31:48 CST 2021`
@@ -40,6 +61,78 @@
 |---|---|---|---|---|---|---|---|---|
 |decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/dev|14326|205341|93.6|6.2|0.1|0.5|6.8|46.8|
 |decode_asr_streaming_lm_lm_train_lm_transformer_zh_char_valid.loss.ave_asr_model_valid.acc.ave/test|7176|104765|93.0|6.7|0.2|0.8|7.8|50.7|
+
+
+# Whisper Large LoRA finetune
+
+## Environments
+- date: `Sun Aug  6 20:21:54 CST 2023`
+- python version: `3.9.12 (main, Apr  5 2022, 06:56:58)  [GCC 7.5.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 1.10.1`
+
+## Results
+
+- ASR config: [conf/tuning/train_asr_whisper_large_lora_finetune.yaml](conf/tuning/train_asr_whisper_large_lora_finetune.yaml)
+- Decode config: [conf/tuning/decode_asr_whisper_noctc_beam10.yaml](conf/tuning/decode_asr_whisper_noctc_beam10.yaml)
+- Pretrained Model:
+  - #Trainable Params: 7.86 M
+  - Link: TBD
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/dev|14326|205341|97.6|2.3|0.1|0.1|2.5|22.4|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/test|7176|104765|97.3|2.6|0.1|0.1|2.7|23.9|
+
+
+# Whisper Medium LoRA finetune
+
+## Environments
+- date: `Thu Aug  3 21:21:52 CST 2023`
+- python version: `3.9.12 (main, Apr  5 2022, 06:56:58)  [GCC 7.5.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 1.10.1`
+
+## Results
+
+- ASR config: [conf/tuning/train_asr_whisper_medium_lora_finetune.yaml](conf/tuning/train_asr_whisper_medium_lora_finetune.yaml)
+- Decode config: [conf/tuning/decode_asr_whisper_noctc_beam10.yaml](conf/tuning/decode_asr_whisper_noctc_beam10.yaml)
+- Pretrained Model:
+  - #Trainable Params: 4.72 M
+  - Link: TBD
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/dev|14326|205341|96.9|3.0|0.1|0.1|3.2|27.0|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/test|7176|104765|96.6|3.3|0.1|0.1|3.5|28.8|
+
+
+# Whisper Medium Full Finetune
+
+## Environments
+- date: `Thu Jul 13 12:40:44 CST 2023`
+- python version: `3.9.12 (main, Apr  5 2022, 06:56:58)  [GCC 7.5.0]`
+- espnet version: `espnet 202304`
+- pytorch version: `pytorch 1.10.1`
+
+## Results
+
+- ASR config: [conf/tuning/train_asr_whisper_medium_finetune.yaml](conf/tuning/train_asr_whisper_medium_finetune.yaml)
+- Decode config: [conf/tuning/decode_asr_whisper_noctc_beam10.yaml](conf/tuning/decode_asr_whisper_noctc_beam10.yaml)
+- Pretrained Model:
+  - #Params: 762.32 M
+  - Link: [https://huggingface.co/espnet/pengcheng_aishell_asr_train_asr_whisper_medium_finetune_raw_zh_whisper_multilingual_sp](https://huggingface.co/espnet/pengcheng_aishell_asr_train_asr_whisper_medium_finetune_raw_zh_whisper_multilingual_sp) (Note that the model size is very large, ~3GB.)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/dev|14326|205341|97.3|2.6|0.1|0.1|2.8|24.0|
+|decode_asr_whisper_noctc_beam10_asr_model_valid.acc.ave/test|7176|104765|97.1|2.8|0.1|0.1|3.0|25.5|
 
 
 # E-Branchformer

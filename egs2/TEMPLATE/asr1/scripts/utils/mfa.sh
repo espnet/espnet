@@ -90,10 +90,6 @@ if [ $# -ne 0 ]; then
     exit 2
 fi
 
-if [[ "$(basename "$(pwd)")" != tts* ]]; then
-    log "Error: You must cd to a tts directory"
-    exit 1
-fi
 
 if [ -z "${split_sets}" ]; then
     log "Error: You need to add the split sets with --split_sets <train> <dev> <tests>"

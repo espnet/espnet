@@ -55,7 +55,7 @@ class XiaoiceSing2Loss(torch.nn.Module):
         vs: torch.Tensor,
         ilens: torch.Tensor,
         olens: torch.Tensor,
-        loss_type: str = "L2",
+        loss_type: str = "L1",
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         """Calculate forward propagation.
 
@@ -71,6 +71,7 @@ class XiaoiceSing2Loss(torch.nn.Module):
             vs (Tensor): Batch of target VUV (B, T_text, 1).
             ilens (LongTensor): Batch of the lengths of each input (B,).
             olens (LongTensor): Batch of the lengths of each target (B,).
+            loss_type (str): Mel loss type ("L1" (MAE), "L2" (MSE) or "L1+L2")
 
         Returns:
             Tensor: Mel loss value.
@@ -99,10 +100,20 @@ class XiaoiceSing2Loss(torch.nn.Module):
             mel_loss = self.l1_criterion(before_outs, ys)
             if after_outs is not None:
                 mel_loss += self.l1_criterion(after_outs, ys)
-        else:
+        elif loss_type == "L2":
             mel_loss = self.mse_criterion(before_outs, ys)
             if after_outs is not None:
                 mel_loss += self.mse_criterion(after_outs, ys)
+        elif loss_type == "L1+L2":
+            mel_loss = self.l1_criterion(before_outs, ys) + self.mse_criterion(
+                before_outs, ys
+            )
+            if after_outs is not None:
+                mel_loss += self.l1_criterion(after_outs, ys) + self.mse_criterion(
+                    after_outs, ys
+                )
+        else:
+            raise NotImplementedError("Mel loss support only L1, L2 or L1+L2.")
         duration_loss = self.duration_criterion(d_outs, ds)
         pitch_loss = self.mse_criterion(p_outs, ps)
         vuv_loss = self.bce_criterion(v_outs, vs.float())
@@ -123,7 +134,7 @@ class XiaoiceSing2Loss(torch.nn.Module):
             duration_loss = (
                 duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
             )
-            pitch_loss = pitch_loss.mul(pitch_weights).masked_select(out_masks).sum()
-            vuv_loss = vuv_loss.mul(pitch_weights).masked_select(pitch_masks).sum()
+            pitch_loss = pitch_loss.mul(out_weights).masked_select(out_masks).sum()
+            vuv_loss = vuv_loss.mul(out_weights).masked_select(out_masks).sum()
 
         return mel_loss, duration_loss, pitch_loss, vuv_loss
