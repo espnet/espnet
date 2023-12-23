@@ -101,4 +101,4 @@ tools/boost_1_81_0
 tools/boost_1_81_0_build
 
 # custom
-asr_inference/model_files/*
+asr_inference/model_files
