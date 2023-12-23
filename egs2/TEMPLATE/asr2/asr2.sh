@@ -1227,7 +1227,7 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
     #       but it's used only for deciding the sample ids.
-    echo "stage 11  ${_opts}" 
+    echo "stage 11  ${_opts}"
     echo "========"
     echo "stage 11  ${asr_args}"
     # shellcheck disable=SC2046,SC2086
@@ -1318,14 +1318,14 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             log "${_split_dir}/.done exists. Spliting is skipped"
         fi
 
-        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text " 
-        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text " 
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
         _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
         _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
         _opts+="--multiple_iterator true "
     else
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},src_text,text " \
-               "--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},huber_text,text " 
+               "--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},huber_text,text "
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${tgt_case}.${tgt_lang},text,text " \
                "--train_data_path_and_name_and_type ${_asr_train_dir}/text.${tgt_case}.${tgt_lang},huber_text,text "
 
