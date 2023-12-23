@@ -1,15 +1,16 @@
 import argparse
+import glob
 import logging
 import os
 import re
 import shutil
-import glob
+from typing import List, TextIO, Tuple
+
 import librosa
 import miditoolkit
 import numpy as np
-from pypinyin import lazy_pinyin, pinyin, Style
-import re
-from typing import TextIO, List, Tuple
+from pypinyin import Style, lazy_pinyin, pinyin
+
 try:
     from pydub import AudioSegment
 except ModuleNotFoundError:
@@ -22,7 +23,7 @@ except ModuleNotFoundError:
     raise ModuleNotFoundError(
         "pretty_midi needed for midi data loading" "use pip to install pretty_midi"
     )
-    
+
 from tqdm import tqdm
 
 from espnet2.fileio.score_scp import SingingScoreWriter
@@ -48,6 +49,7 @@ def load_midi_note_scp(midi_note_scp):
             midi_mapping[key[1]] = int(key[0])
     return midi_mapping
 
+
 def load_midi(root_path):
     """
     Loads MIDI files from subdirectories in the given root path and extracts tempo information.
@@ -63,12 +65,12 @@ def load_midi(root_path):
 
         full_subdir_path = os.path.join(root_path, subdir)
         if os.path.isdir(full_subdir_path):
-            midi_files = glob.glob(os.path.join(full_subdir_path, '*.mid'))
+            midi_files = glob.glob(os.path.join(full_subdir_path, "*.mid"))
             if not midi_files:
                 print(f"No MIDI files found in {full_subdir_path}")
                 continue
 
-            midi_file = midi_files[0]  
+            midi_file = midi_files[0]
             try:
                 midi_obj = miditoolkit.midi.parser.MidiFile(midi_file)
                 tempos = midi_obj.tempo_changes
@@ -83,9 +85,10 @@ def load_midi(root_path):
                 print(f"Error processing {midi_file}: {e}")
 
     return midis
-    
-def get_partitions(input_midi: str, threshold=2.) -> List[Tuple[float, float]]:
-    """"
+
+
+def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
+    """ "
     Get partition points [(start, end)] that detach at rests longer than the specified threshold.
     Note: silence truncated when longer than 0.4s.
 
@@ -113,13 +116,14 @@ def get_partitions(input_midi: str, threshold=2.) -> List[Tuple[float, float]]:
     partitions = []  # [(start, end)]
     instrument = midi_data.instruments[0]  # i.e., just a track
     notes = instrument.notes
-    seg_start = max(notes[0].start - 0.2, 0.)
+    seg_start = max(notes[0].start - 0.2, 0.0)
     prev_note_end = notes[0].end
 
     for note in notes[1:]:
         if note.start - prev_note_end >= thresh_in_second:
             partitions.append(
-                (seg_start, min((prev_note_end + note.start) / 2, prev_note_end + 0.2)))
+                (seg_start, min((prev_note_end + note.start) / 2, prev_note_end + 0.2))
+            )
             seg_start = max(note.start - 0.2, (prev_note_end + note.start) / 2)
         prev_note_end = note.end
 
@@ -133,7 +137,7 @@ def save_wav_segments_from_partitions(path, input_wav, partitions, songid, singe
     """
     Partition wav files based on 'partitions' and save the segmented files in 'outdir'.
     """
-    
+
     audio = AudioSegment.from_wav(input_wav)
     segids = []
     wav_scp = []
@@ -153,7 +157,15 @@ def save_wav_segments_from_partitions(path, input_wav, partitions, songid, singe
     return segids, wav_scp
 
 
-def get_info_from_partitions(input_midi: str, partitions: List[Tuple[float, float]]) -> Tuple[List[List[str]], List[List[str]], List[List[float]], List[List[float]], List[List[int]]]:
+def get_info_from_partitions(
+    input_midi: str, partitions: List[Tuple[float, float]]
+) -> Tuple[
+    List[List[str]],
+    List[List[str]],
+    List[List[float]],
+    List[List[float]],
+    List[List[int]],
+]:
     midi_data = pretty_midi.PrettyMIDI(input_midi)
     current_partition = 0
     text = [[]]
@@ -165,13 +177,76 @@ def get_info_from_partitions(input_midi: str, partitions: List[Tuple[float, floa
 
     # Function to split Pinyin into shengmu and yunmu
     def split_pinyin(pinyin):
-        shengmu = ['b', 'p', 'm', 'f', 'd', 't', 'n', 'l', 'g', 'k', 'h', 'j', 'q', 'x', 'zh', 'ch', 'sh', 'r', 'z', 'c', 's', 'y', 'w']
-        yunmu = ['a', 'o', 'e', 'i', 'u', 'v', 'ai', 'ei', 'ui', 'ao', 'ou', 'iu', 'ie', 've', 'er', 
-                'an', 'en', 'in', 'un', 'ue', 'ang', 'eng', 'ing', 'ong', 'uo', 'ia', 'ua', 'uai', 'iao', 
-                'ian', 'iang', 'uan', 'uang', 'iong', 'van', 'iao', 'ian', 'iang', 'uei', 've']
+        shengmu = [
+            "b",
+            "p",
+            "m",
+            "f",
+            "d",
+            "t",
+            "n",
+            "l",
+            "g",
+            "k",
+            "h",
+            "j",
+            "q",
+            "x",
+            "zh",
+            "ch",
+            "sh",
+            "r",
+            "z",
+            "c",
+            "s",
+            "y",
+            "w",
+        ]
+        yunmu = [
+            "a",
+            "o",
+            "e",
+            "i",
+            "u",
+            "v",
+            "ai",
+            "ei",
+            "ui",
+            "ao",
+            "ou",
+            "iu",
+            "ie",
+            "ve",
+            "er",
+            "an",
+            "en",
+            "in",
+            "un",
+            "ue",
+            "ang",
+            "eng",
+            "ing",
+            "ong",
+            "uo",
+            "ia",
+            "ua",
+            "uai",
+            "iao",
+            "ian",
+            "iang",
+            "uan",
+            "uang",
+            "iong",
+            "van",
+            "iao",
+            "ian",
+            "iang",
+            "uei",
+            "ve",
+        ]
         pinyin = pinyin.lower()
 
-        if not re.match(r'^[a-züv]+[1-5]?$', pinyin):
+        if not re.match(r"^[a-züv]+[1-5]?$", pinyin):
             return "Invalid Pinyin input."
 
         for i in range(1, len(pinyin)):
@@ -181,6 +256,7 @@ def get_info_from_partitions(input_midi: str, partitions: List[Tuple[float, floa
             return [pinyin]
         # raise ValueError("Invalid Pinyin input {}.".format(pinyin))
         return [pinyin]
+
     notes = midi_data.instruments[0].notes
     note_index = 0
     word_index = 0
@@ -199,17 +275,17 @@ def get_info_from_partitions(input_midi: str, partitions: List[Tuple[float, floa
             assert lyric.time > partitions[current_partition][0]
             assert lyric.time < partitions[current_partition][1]
 
-        if lyric.text == '?' or lyric.text == '-':
-                phonemes[-1].append(phonemes[-1][-1])
-                is_slur[-1].append(1)
-                pitches[-1].append(pitches[-1][-1])
-                note_durations[-1].append(note_durations[-1][-1])
-                phn_durations[-1].append(phn_durations[-1][-1])
-                
+        if lyric.text == "?" or lyric.text == "-":
+            phonemes[-1].append(phonemes[-1][-1])
+            is_slur[-1].append(1)
+            pitches[-1].append(pitches[-1][-1])
+            note_durations[-1].append(note_durations[-1][-1])
+            phn_durations[-1].append(phn_durations[-1][-1])
+
         else:
-            if '#' in lyric.text:
-                word, id = lyric.text.split('#')
-                if id == '1':
+            if "#" in lyric.text:
+                word, id = lyric.text.split("#")
+                if id == "1":
                     text[-1].append(word)
                     phn_list = split_pinyin(word)
                     phonemes[-1].extend(phn_list)
@@ -230,38 +306,58 @@ def get_info_from_partitions(input_midi: str, partitions: List[Tuple[float, floa
                     current_word_duration.append(note_duration)
                     note_index += 1
             else:
-                while (note_index < len(notes) and notes[note_index].start < midi_data.lyrics[word_index + 1].time):
+                while (
+                    note_index < len(notes)
+                    and notes[note_index].start < midi_data.lyrics[word_index + 1].time
+                ):
                     note = midi_data.instruments[0].notes[note_index]
                     current_word_pitch.append(note.pitch)
                     note_duration = note.end - note.start
                     current_word_duration.append(note_duration)
                     note_index += 1
-            
+
             # if the len(phn_list) = len(current_word_pitch), then we can just assign the pitches to the phonemes
-            if (len(phn_list) == len(current_word_pitch)):
+            if len(phn_list) == len(current_word_pitch):
                 pitches[-1].extend(current_word_pitch)
                 note_durations[-1].extend(current_word_duration)
                 phn_durations[-1].extend(current_word_duration)
             # if the len(phn_list) < len(current_word_pitch), then we need to assign the rest of the pitches to the last phoneme
-            elif (len(phn_list) < len(current_word_pitch)):
+            elif len(phn_list) < len(current_word_pitch):
                 pitches[-1].extend(current_word_pitch)
                 note_durations[-1].extend(current_word_duration)
                 phn_durations[-1].extend(current_word_duration)
-                phonemes[-1].extend([phonemes[-1][-1]] * (len(current_word_pitch) - len(phn_list)))
+                phonemes[-1].extend(
+                    [phonemes[-1][-1]] * (len(current_word_pitch) - len(phn_list))
+                )
                 is_slur[-1].extend([1] * (len(current_word_pitch) - len(phn_list)))
             # if the len(phn_list) > len(current_word_pitch), then we need to assign the rest of the phonemes to the last pitch
             else:
                 pitches[-1].extend(current_word_pitch)
                 note_durations[-1].extend(current_word_duration)
                 phn_durations[-1].extend(current_word_duration)
-                pitches[-1].extend([current_word_pitch[-1]] * (len(phn_list) - len(current_word_pitch)))
-                note_durations[-1].extend([current_word_duration[-1]] * (len(phn_list) - len(current_word_pitch)))
-                phn_durations[-1][-1] = current_word_duration[-1]/(len(phn_list) - len(current_word_pitch) + 1)
-                phn_durations[-1].extend([phn_durations[-1][-1]] * (len(phn_list) - len(current_word_pitch)))
+                pitches[-1].extend(
+                    [current_word_pitch[-1]] * (len(phn_list) - len(current_word_pitch))
+                )
+                note_durations[-1].extend(
+                    [current_word_duration[-1]]
+                    * (len(phn_list) - len(current_word_pitch))
+                )
+                phn_durations[-1][-1] = current_word_duration[-1] / (
+                    len(phn_list) - len(current_word_pitch) + 1
+                )
+                phn_durations[-1].extend(
+                    [phn_durations[-1][-1]] * (len(phn_list) - len(current_word_pitch))
+                )
         word_index += 1
-    
+
     for i in range(len(phonemes)):
-        if not (len(phonemes[i]) == len(pitches[i]) == len(note_durations[i]) == len(is_slur[i]) == len(phn_durations[i])):
+        if not (
+            len(phonemes[i])
+            == len(pitches[i])
+            == len(note_durations[i])
+            == len(is_slur[i])
+            == len(phn_durations[i])
+        ):
             # If the lengths are not equal, print the lengths for debugging
             print(f"Length mismatch in partition {i}:")
             print(f"  Phonemes: {len(phonemes[i])}")
@@ -271,7 +367,6 @@ def get_info_from_partitions(input_midi: str, partitions: List[Tuple[float, floa
             print(f"  Is Slur: {len(is_slur[i])}")
 
     return text, phonemes, pitches, note_durations, phn_durations, is_slur
-
 
 
 def create_score(uid, phns, midis, syb_dur, keep):
@@ -379,7 +474,6 @@ def process_utterance(
     writer["{}".format(uid)] = score
 
 
-
 def process_subset(args, set_name, tempos):
     makedir(os.path.join(args.tgt_dir, set_name))
     wavscp = open(
@@ -417,13 +511,14 @@ def process_subset(args, set_name, tempos):
                 tgt_sr=args.sr,
             )
 
+
 def segment_dataset(args):
     root_path = os.path.join(args.src_data, "segments")
     output_path = os.path.join(root_path, "wav")
     if not os.path.exists(output_path):
         os.makedirs(output_path)
     transcript_filepath = os.path.join(root_path, "transcriptions.txt")
-    
+
     transcript_file = open(transcript_filepath, "w")
     for subdir in os.listdir(args.src_data):
         if subdir == "segments":
@@ -432,30 +527,41 @@ def segment_dataset(args):
         full_subdir_path = os.path.join(args.src_data, subdir)
 
         if os.path.isdir(full_subdir_path) and "-unseg" not in subdir:
-            if int(subdir)> 422:
+            if int(subdir) > 422:
                 break
             print(f"Processing: {full_subdir_path}")
-            wav_files = glob.glob(os.path.join(full_subdir_path, '*.wav'))
-            midi_file = glob.glob(os.path.join(full_subdir_path, '*.mid'))[0]
+            wav_files = glob.glob(os.path.join(full_subdir_path, "*.wav"))
+            midi_file = glob.glob(os.path.join(full_subdir_path, "*.mid"))[0]
             partitions = get_partitions(midi_file)
             songid = subdir
 
             for wav_file in wav_files:
-                match = re.search(r'([0-9-]+)-([a-zA-Z-]+)\.wav', wav_file)
+                match = re.search(r"([0-9-]+)-([a-zA-Z-]+)\.wav", wav_file)
                 assert songid == match.group(1)
                 singer = match.group(2)
                 segids, wav_scp = save_wav_segments_from_partitions(
                     output_path, wav_file, partitions, songid, singer
                 )
-                lyrics, phonemes, pitches, note_durations, phn_durations, is_slur = get_info_from_partitions(midi_file, partitions)
+                (
+                    lyrics,
+                    phonemes,
+                    pitches,
+                    note_durations,
+                    phn_durations,
+                    is_slur,
+                ) = get_info_from_partitions(midi_file, partitions)
                 for i, segid in enumerate(segids):
                     filename = wav_scp[i][1].split("/")[-1].split(".")[0]
-                    lyrics_str = ' '.join(lyrics[i])
-                    phonemes_str = ' '.join(phonemes[i])
-                    pitches_str = ' '.join(f"{pitch}" for pitch in pitches[i])
-                    note_durations_str = ' '.join(f"{duration:.6f}" for duration in note_durations[i])
-                    phn_durations_str = ' '.join(f"{duration:.6f}" for duration in phn_durations[i])
-                    is_slur_str = ' '.join(f"{slur}" for slur in is_slur[i])
+                    lyrics_str = " ".join(lyrics[i])
+                    phonemes_str = " ".join(phonemes[i])
+                    pitches_str = " ".join(f"{pitch}" for pitch in pitches[i])
+                    note_durations_str = " ".join(
+                        f"{duration:.6f}" for duration in note_durations[i]
+                    )
+                    phn_durations_str = " ".join(
+                        f"{duration:.6f}" for duration in phn_durations[i]
+                    )
+                    is_slur_str = " ".join(f"{slur}" for slur in is_slur[i])
                     transcript_line = f"{filename}|{lyrics_str}|{phonemes_str}|{pitches_str}|{note_durations_str}|{phn_durations_str}|{is_slur_str}"
                     transcript_file.write(transcript_line + "\n")
     transcript_file.close()
@@ -511,4 +617,3 @@ if __name__ == "__main__":
         #     lines.sort()
         #     with open(os.path.join(args.tgt_dir, name, file), "w") as f:
         #         f.writelines(lines)
-                

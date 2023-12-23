@@ -4,14 +4,15 @@ Save processed files in output_dir
 """
 
 import os
-from pydub import AudioSegment
-import pretty_midi
 import re
-from typing import TextIO, List, Tuple
+from typing import List, TextIO, Tuple
+
+import pretty_midi
+from pydub import AudioSegment
 
 
-def get_partitions(input_midi: str, threshold=2.) -> List[Tuple[float, float]]:
-    """"
+def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
+    """ "
     Get partition points [(start, end)] that detach at rests longer than the specified threshold.
     Note: silence truncated when longer than 0.4s.
 
@@ -39,13 +40,14 @@ def get_partitions(input_midi: str, threshold=2.) -> List[Tuple[float, float]]:
     partitions = []  # [(start, end)]
     instrument = midi_data.instruments[0]  # i.e., just a track
     notes = instrument.notes
-    seg_start = max(notes[0].start - 0.2, 0.)
+    seg_start = max(notes[0].start - 0.2, 0.0)
     prev_note_end = notes[0].end
 
     for note in notes[1:]:
         if note.start - prev_note_end >= thresh_in_second:
             partitions.append(
-                (seg_start, min((prev_note_end + note.start) / 2, prev_note_end + 0.2)))
+                (seg_start, min((prev_note_end + note.start) / 2, prev_note_end + 0.2))
+            )
             seg_start = max(note.start - 0.2, (prev_note_end + note.start) / 2)
         prev_note_end = note.end
 
@@ -86,8 +88,10 @@ def save_wav_segments_from_partitions(input_wav, partitions, outdir, songid, sin
     return segids, wav_scp
 
 
-def get_text_from_partitions(input_midi: str, partitions: List[Tuple[float, float]]) -> List[List[str]]:
-    """"
+def get_text_from_partitions(
+    input_midi: str, partitions: List[Tuple[float, float]]
+) -> List[List[str]]:
+    """ "
     Parameters
     --------
     input_midi
@@ -103,12 +107,12 @@ def get_text_from_partitions(input_midi: str, partitions: List[Tuple[float, floa
             current_partition += 1
             assert lyric.time > partitions[current_partition][0]
             assert lyric.time < partitions[current_partition][1]
-        if lyric.text != '-':
-            if '#' in lyric.text:
+        if lyric.text != "-":
+            if "#" in lyric.text:
                 # Note: treat "word#1", "word#2",... as one single word. I.e, treat one word sung with distinct notes as 1 word
-                assert len(lyric.text.split('#')) == 2
-                word, id = lyric.text.split('#')
-                if id == '1':
+                assert len(lyric.text.split("#")) == 2
+                word, id = lyric.text.split("#")
+                if id == "1":
                     text[-1].append(word)
             else:
                 text[-1].append(lyric.text)
@@ -116,31 +120,29 @@ def get_text_from_partitions(input_midi: str, partitions: List[Tuple[float, floa
 
 
 def append_spk2utt(fhand: TextIO, singer, segids):
-    fhand.write(' '.join([singer] + segids) + '\n')
+    fhand.write(" ".join([singer] + segids) + "\n")
 
 
 def append_utt2spk(fhand: TextIO, singer, segids):
-    fhand.writelines([' '.join((segid, singer)) + '\n' for segid in segids])
+    fhand.writelines([" ".join((segid, singer)) + "\n" for segid in segids])
 
 
 def append_wav_scp(fhand: TextIO, wav_scp):
-    fhand.writelines([' '.join(segid2path) + '\n' for segid2path in wav_scp])
+    fhand.writelines([" ".join(segid2path) + "\n" for segid2path in wav_scp])
 
 
 def append_text(fhand: TextIO, segids, text):
-    fhand.writelines(' '.join([segid] + t) +
-                     '\n' for segid, t in zip(segids, text))
+    fhand.writelines(" ".join([segid] + t) + "\n" for segid, t in zip(segids, text))
 
 
 if __name__ == "__main__":
     import glob
     import shutil
-    # import sys
 
+    # import sys
     # if len(sys.argv) != 3:
     #     print("Usage: python3 data_prep.py dataset_dir output_dir")
     #     sys.exit(1)
-
     # dataset_dir = sys.argv[1]
     # output_dir = sys.argv[2]
     dataset_dir = "/NASdata/AudioData/KiSing-v2"
@@ -168,19 +170,20 @@ if __name__ == "__main__":
 
         if os.path.isdir(full_subdir_path) and "-unseg" not in subdir:
             print(f"Processing: {full_subdir_path}")
-            wav_files = glob.glob(os.path.join(full_subdir_path, '*.wav'))
-            midi_file = glob.glob(os.path.join(full_subdir_path, '*.mid'))[0]
+            wav_files = glob.glob(os.path.join(full_subdir_path, "*.wav"))
+            midi_file = glob.glob(os.path.join(full_subdir_path, "*.mid"))[0]
             partitions = get_partitions(midi_file)
             songid = subdir
 
             for wav_file in wav_files:
-                match = re.search(r'([0-9-]+)-([a-zA-Z-]+)\.wav', wav_file)
+                match = re.search(r"([0-9-]+)-([a-zA-Z-]+)\.wav", wav_file)
                 assert songid == match.group(1)
                 singer = match.group(2)
                 wav_singer_dir = os.path.join(wav_dir, singer)
                 os.makedirs(wav_singer_dir, exist_ok=True)
                 segids, wav_scp = save_wav_segments_from_partitions(
-                    wav_file, partitions, wav_singer_dir, songid, singer)
+                    wav_file, partitions, wav_singer_dir, songid, singer
+                )
                 text = get_text_from_partitions(midi_file, partitions)
                 append_spk2utt(spk2utt_file, singer, segids)
                 append_utt2spk(utt2spk_file, singer, segids)
