@@ -283,6 +283,7 @@ fi
 
 
 km_tag=$(basename ${km_dir})
+echo "kmtag is {km_tag}"
 
 if [ -n "${alignment_phoneme_dir}" ]; then
     if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [[:space:]]4[[:space:]] ]]; then

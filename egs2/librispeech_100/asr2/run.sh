@@ -26,10 +26,9 @@ tgt_nbpe=5000   # if token_joint is True, then only tgt_nbpe is used
 # rm: deduplicated sequence which removes duplicated tokens
 src_case="rm"
 tgt_case="ts"
-
+#--kmeans_feature "${kmeans_feature}" \
 ./asr2.sh \
     --kmeans_opts "--batch_bins 4800000 --nj 4" \
-    --kmeans_feature "${kmeans_feature}" \
     --nclusters "${nclusters}" \
     --ngpu 1 \
     --src_lang ${src_lang} \

@@ -4,11 +4,10 @@
 set -e
 set -u
 set -o pipefail
-
+# --kmeans_feature "mfcc" \
 ./asr2.sh \
     --nj 2 \
     --inference_nj 2 \
-    --kmeans_feature "mfcc" \
     --nclusters "10" \
     --use_lm false \
     --src_lang "mfcc_km10" \

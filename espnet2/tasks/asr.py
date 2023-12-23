@@ -97,7 +97,7 @@ frontend_choices = ClassChoices(
         whisper=WhisperFrontend,
     ),
     type_check=AbsFrontend,
-    default="default",
+    default="s3prl",
 )
 specaug_choices = ClassChoices(
     name="specaug",

@@ -57,7 +57,9 @@ fs=16k               # Sampling rate.
 
 # Kmeans related
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh
-kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
+#kmeans_feature="wavlm_large/21" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21)
+kmeans_feature="hubert_large_ll60k/12"
+portion=0.05
 portion=0.1
 nclusters=2000              # The number of clusters for discrete tokenss
 storage_save_mode=true      # Save storage on SSL feature extraction
@@ -992,7 +994,7 @@ fi
 
 # ========================== Data preparation is done here. ==========================
 
-
+echo "LM collection stats is train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! [[ " ${skip_stages} " =~ [[:space:]]8[[:space:]] ]]; then
     log "Stage 8: LM collect stats: train_set=${data_feats}/lm_train.txt, dev_set=${lm_dev_text}"
 
@@ -1018,6 +1020,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! [[ " ${skip_stages} " =~ [
     utils/split_scp.pl "${key_file}" ${split_scps}
 
     key_file="${lm_dev_text}"
+    echo "key_file is ${key_file}"
     split_scps=""
     for n in $(seq ${_nj}); do
         split_scps+=" ${_logdir}/dev.${n}.scp"
@@ -1034,6 +1037,7 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ] && ! [[ " ${skip_stages} " =~ [
     # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
     #       but it's used only for deciding the sample ids.
     # shellcheck disable=SC2046,SC2086
+
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         ${python} -m espnet2.bin.lm_train \
             --collect_stats true \
@@ -1118,7 +1122,6 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " =~ [
     else
         jobname="${lm_exp}/train.log"
     fi
-
     # shellcheck disable=SC2086
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
@@ -1176,9 +1179,14 @@ fi
 if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~ [[:space:]]12[[:space:]] ]]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_valid_dir="${data_feats}/${valid_set}"
+    echo "_asr_train_dir ${_asr_train_dir}"
+    echo "======="
+    echo "_asr_valid_dir ${_asr_valid_dir}"
+
     log "Stage 12: ASR collect stats: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
 
     _opts=
+    echo "asr config ${asr_config}"
     if [ -n "${asr_config}" ]; then
         # To generate the config file: e.g.
         #   % python3 -m espnet2.bin.mt_train --print_config --optim adam
@@ -1219,7 +1227,9 @@ if [ ${stage} -le 12 ] && [ ${stop_stage} -ge 12 ] && ! [[ " ${skip_stages} " =~
 
     # NOTE: --*_shape_file doesn't require length information if --batch_type=unsorted,
     #       but it's used only for deciding the sample ids.
-
+    echo "stage 11  ${_opts}" 
+    echo "========"
+    echo "stage 11  ${asr_args}"
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
         ${python} -m espnet2.bin.mt_train \
@@ -1273,6 +1283,10 @@ fi
 if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~ [[:space:]]13[[:space:]] ]]; then
     _asr_train_dir="${data_feats}/${train_set}"
     _asr_valid_dir="${data_feats}/${valid_set}"
+    echo "asr_train_dir ${_asr_train_dir}"
+    echo "======"
+    echo "asr_valid_dir ${_asr_valid_dir}"
+
     log "Stage 13: ASR Training: train_set=${_asr_train_dir}, valid_set=${_asr_valid_dir}"
 
     _opts=
@@ -1304,14 +1318,20 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
             log "${_split_dir}/.done exists. Spliting is skipped"
         fi
 
-        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text "
-        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text "
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${src_case}.${src_lang},src_text,text " 
+        _opts+="--train_data_path_and_name_and_type ${_split_dir}/text.${tgt_case}.${tgt_lang},text,text " 
         _opts+="--train_shape_file ${_split_dir}/src_text_shape.${src_token_type} "
         _opts+="--train_shape_file ${_split_dir}/text_shape.${tgt_token_type} "
         _opts+="--multiple_iterator true "
     else
-        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},src_text,text "
-        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},src_text,text " \
+               "--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},huber_text,text " 
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${tgt_case}.${tgt_lang},text,text " \
+               "--train_data_path_and_name_and_type ${_asr_train_dir}/text.${tgt_case}.${tgt_lang},huber_text,text "
+
+        # _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${src_case}.${src_lang},src_text,text "
+
+        # _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text.${tgt_case}.${tgt_lang},text,text "
         _opts+="--train_shape_file ${asr_stats_dir}/train/src_text_shape.${src_token_type} "
         _opts+="--train_shape_file ${asr_stats_dir}/train/text_shape.${tgt_token_type} "
     fi
@@ -1327,9 +1347,11 @@ if [ ${stage} -le 13 ] && [ ${stop_stage} -ge 13 ] && ! [[ " ${skip_stages} " =~
     else
         jobname="${asr_exp}/train.log"
     fi
-
     # TODO(jiatong): fix bpe
     # shellcheck disable=SC2086
+    echo "stage 13 opts  is ${_opts}"
+    echo "======"
+    echo "stage 13 asr_args ${asr_args}"
     ${python} -m espnet2.bin.launch \
         --cmd "${cuda_cmd} --name ${jobname}" \
         --log "${asr_exp}"/train.log \
