@@ -500,15 +500,7 @@ if __name__ == "__main__":
 
     if not os.path.exists(os.path.join(args.src_data, "segments")):
         makedir(os.path.join(args.src_data, "segments"))
-    # segment_dataset(args)
+    segment_dataset(args)
     tempos = load_midi(args.src_data)
     for name in ["train", "test"]:
         process_subset(args, name, tempos)
-        # sort the utt2spk, wav.scp, text, label, score.scp to pass cat $data/utt2spk | sort | cmp - $data/utt2spk
-        # for file in ["utt2spk", "wav.scp", "text", "label", "score.scp"]:
-        #     with open(os.path.join(args.tgt_dir, name, file), "r") as f:
-        #         lines = f.readlines()
-        #     lines.sort()
-        #     with open(os.path.join(args.tgt_dir, name, file), "w") as f:
-        #         f.writelines(lines)
-                
