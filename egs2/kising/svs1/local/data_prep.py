@@ -527,8 +527,6 @@ def segment_dataset(args):
         full_subdir_path = os.path.join(args.src_data, subdir)
 
         if os.path.isdir(full_subdir_path) and "-unseg" not in subdir:
-            if int(subdir) > 422:
-                break
             print(f"Processing: {full_subdir_path}")
             wav_files = glob.glob(os.path.join(full_subdir_path, "*.wav"))
             midi_file = glob.glob(os.path.join(full_subdir_path, "*.mid"))[0]
@@ -574,7 +572,7 @@ def segment_dataset(args):
         test_transcript = []
         for line in transcript:
             song_id = line.split("|")[0].split("_")[0].split("-")[0]
-            if int(song_id) > 421:
+            if int(song_id) > 440:
                 test_transcript.append(line)
             else:
                 train_transcript.append(line)
