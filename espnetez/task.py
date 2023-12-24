@@ -114,10 +114,10 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 return cls.valid_dataloader
             else:
                 return task_class.build_iter_factory(
-                   args=args,
-                   distributed_option=distributed_option,
-                   mode=mode,
-                   kwargs=kwargs
+                    args=args,
+                    distributed_option=distributed_option,
+                    mode=mode,
+                    kwargs=kwargs,
                 )
 
         @classmethod
