@@ -25,12 +25,22 @@ except ModuleNotFoundError:
 
 from tqdm import tqdm
 
-with open(os.path.join('local','lexicon-en_tone.phones'), 'r', encoding='latin1') as fid:
+with open(
+    os.path.join("local", "lexicon-en_tone.phones"), "r", encoding="latin1"
+) as fid:
     en_lines = fid.readlines()
-en_dict = dict([(split[0].upper(), split[1:]) for split in [line.strip().split() for line in en_lines]])
+en_dict = dict(
+    [
+        (split[0].upper(), split[1:])
+        for split in [line.strip().split() for line in en_lines]
+    ]
+)
+
 
 def check_en(word):
     return not word[-1].isdigit() and word.upper() in en_dict
+
+
 from espnet2.fileio.score_scp import SingingScoreWriter
 
 """Split audio into segments according to structured annotation.""" ""
@@ -179,6 +189,7 @@ def get_info_from_partitions(
     note_durations = [[]]
     phn_durations = [[]]
     is_slur = [[]]
+
     # Function to split Pinyin into shengmu and yunmu
     def split_pinyin(pinyin):
         PINYIN_DICT = {
@@ -254,7 +265,7 @@ def get_info_from_partitions(
             "diao": ("d", "iao"),
             "die": ("d", "ie"),
             "ding": ("d", "ing"),
-            "din": ("d", "in"),         # non 普通话
+            "din": ("d", "in"),  # non 普通话
             "diu": ("d", "iou"),
             "dong": ("d", "ong"),
             "dou": ("d", "ou"),
@@ -327,7 +338,7 @@ def get_info_from_partitions(
             "jiong": ("j", "iong"),
             "jiu": ("j", "iou"),
             "ju": ("j", "v"),
-            "jv": ("j", "v"),          # alternative spelling of ju
+            "jv": ("j", "v"),  # alternative spelling of ju
             "juan": ("j", "van"),
             "jue": ("j", "ve"),
             "jun": ("j", "vn"),
@@ -966,7 +977,7 @@ def segment_dataset(args):
             partitions = get_partitions(midi_file)
             songid = subdir
             # skip between 436 and 440
-            if int(songid.split("-")[0])<=440 and int(songid.split("-")[0])>=436:
+            if int(songid.split("-")[0]) <= 440 and int(songid.split("-")[0]) >= 436:
                 continue
             for wav_file in wav_files:
                 match = re.search(r"([0-9-]+)-([a-zA-Z-]+)\.wav", wav_file)
