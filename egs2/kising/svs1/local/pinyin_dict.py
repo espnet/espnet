@@ -71,7 +71,7 @@ PINYIN_DICT = {
     "diao": ("d", "iao"),
     "die": ("d", "ie"),
     "ding": ("d", "ing"),
-    "din": ("d", "in"),         # non 普通话
+    "din": ("d", "in"),  # non 普通话
     "diu": ("d", "iou"),
     "dong": ("d", "ong"),
     "dou": ("d", "ou"),
@@ -144,7 +144,7 @@ PINYIN_DICT = {
     "jiong": ("j", "iong"),
     "jiu": ("j", "iou"),
     "ju": ("j", "v"),
-    "jv": ("j", "v"),          # alternative spelling of ju
+    "jv": ("j", "v"),  # alternative spelling of ju
     "juan": ("j", "van"),
     "jue": ("j", "ve"),
     "jun": ("j", "vn"),

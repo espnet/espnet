@@ -5,10 +5,11 @@ import os
 import re
 import shutil
 from typing import List, TextIO, Tuple
-from local.pinyin_dict import PINYIN_DICT
+
 import librosa
 import miditoolkit
 import numpy as np
+from local.pinyin_dict import PINYIN_DICT
 
 try:
     from pydub import AudioSegment
@@ -171,6 +172,7 @@ def save_wav_segments_from_partitions(path, input_wav, partitions, songid, singe
 
     return segids, wav_scp
 
+
 # Function to split Pinyin into shengmu and yunmu
 def split_pinyin(pinyin):
     # load pinyin dict from local/pinyin.dict
@@ -189,7 +191,8 @@ def split_pinyin(pinyin):
     if a2 == "^":
         return [a1]
     return [a1, a2]
-    
+
+
 def get_info_from_partitions(
     input_midi: str, partitions: List[Tuple[float, float]]
 ) -> Tuple[
