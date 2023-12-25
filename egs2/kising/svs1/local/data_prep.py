@@ -4,9 +4,10 @@ import logging
 import os
 import re
 import shutil
-from typing import List, TextIO, Tuple
 import subprocess
 import wave
+from typing import List, TextIO, Tuple
+
 import miditoolkit
 import numpy as np
 from local.pinyin_dict import PINYIN_DICT
@@ -132,18 +133,21 @@ def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
 
     return partitions
 
+
 def is_16bit_wav(file_path):
-    """ Check if the WAV file is 16-bit. """
-    try :
-        with wave.open(file_path, 'rb') as wav_file:
+    """Check if the WAV file is 16-bit."""
+    try:
+        with wave.open(file_path, "rb") as wav_file:
             sample_width = wav_file.getsampwidth()
             return sample_width == 2
     except Exception as e:
         return False
 
+
 def convert_to_16bit(input_wav, output_wav):
     command = "sox {} -b 16 {}".format(input_wav, output_wav)
     subprocess.run(command, check=True)
+
 
 def save_wav_segments_from_partitions(path, input_wav, partitions, songid, singer):
     """
@@ -561,7 +565,10 @@ if __name__ == "__main__":
         "--score_dump", type=str, default="score_dump", help="score dump directory"
     )
     parser.add_argument(
-        "--dataset", type=str, default="all", help="dataset to process (original|acesinger|all)"
+        "--dataset",
+        type=str,
+        default="all",
+        help="dataset to process (original|acesinger|all)",
     )
     args = parser.parse_args()
 
@@ -608,14 +615,18 @@ if __name__ == "__main__":
                             number = file.split("-")[0].split("_")[0]
                             if int(number) >= 436 and int(number) <= 440:
                                 continue
-                        real_subdir = os.path.realpath(os.path.join(args.src_data, subdir))
+                        real_subdir = os.path.realpath(
+                            os.path.join(args.src_data, subdir)
+                        )
                         # os.symlink(
                         #     os.path.join(real_subdir, file),
                         #     os.path.join(args.src_data, "tmp", number, number + "-original.wav"),
                         # )
                         cmd = "sox {} -c 1 --bits 16 {}".format(
                             os.path.join(real_subdir, file),
-                            os.path.join(args.src_data, "tmp", number, number + "-original.wav"),
+                            os.path.join(
+                                args.src_data, "tmp", number, number + "-original.wav"
+                            ),
                         )
                         os.system(cmd)
                         # symlink the midi file in subdir/number to tmp/number, if not exist
