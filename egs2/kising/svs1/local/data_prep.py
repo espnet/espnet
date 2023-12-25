@@ -25,12 +25,22 @@ except ModuleNotFoundError:
 
 from tqdm import tqdm
 
-with open(os.path.join('local','lexicon-en_tone.phones'), 'r', encoding='latin1') as fid:
+with open(
+    os.path.join("local", "lexicon-en_tone.phones"), "r", encoding="latin1"
+) as fid:
     en_lines = fid.readlines()
-en_dict = dict([(split[0].upper(), split[1:]) for split in [line.strip().split() for line in en_lines]])
+en_dict = dict(
+    [
+        (split[0].upper(), split[1:])
+        for split in [line.strip().split() for line in en_lines]
+    ]
+)
+
 
 def check_en(word):
     return not word[-1].isdigit() and word.upper() in en_dict
+
+
 from espnet2.fileio.score_scp import SingingScoreWriter
 
 """Split audio into segments according to structured annotation.""" ""
@@ -479,7 +489,7 @@ def segment_dataset(args):
             partitions = get_partitions(midi_file)
             songid = subdir
             # skip between 436 and 440
-            if int(songid.split("-")[0])<=440 and int(songid.split("-")[0])>=436:
+            if int(songid.split("-")[0]) <= 440 and int(songid.split("-")[0]) >= 436:
                 continue
             for wav_file in wav_files:
                 match = re.search(r"([0-9-]+)-([a-zA-Z-]+)\.wav", wav_file)
