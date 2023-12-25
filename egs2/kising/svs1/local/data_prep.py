@@ -5,8 +5,8 @@ import os
 import re
 import shutil
 from typing import List, TextIO, Tuple
-
-import librosa
+import subprocess
+import wave
 import miditoolkit
 import numpy as np
 from local.pinyin_dict import PINYIN_DICT
@@ -25,22 +25,6 @@ except ModuleNotFoundError:
     )
 
 from tqdm import tqdm
-
-with open(
-    os.path.join("local", "lexicon-en_tone.phones"), "r", encoding="latin1"
-) as fid:
-    en_lines = fid.readlines()
-en_dict = dict(
-    [
-        (split[0].upper(), split[1:])
-        for split in [line.strip().split() for line in en_lines]
-    ]
-)
-
-
-def check_en(word):
-    return not word[-1].isdigit() and word.upper() in en_dict
-
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 
@@ -148,12 +132,25 @@ def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
 
     return partitions
 
+def is_16bit_wav(file_path):
+    """ Check if the WAV file is 16-bit. """
+    try :
+        with wave.open(file_path, 'rb') as wav_file:
+            sample_width = wav_file.getsampwidth()
+            return sample_width == 2
+    except Exception as e:
+        return False
+
+def convert_to_16bit(input_wav, output_wav):
+    command = "sox {} -b 16 {}".format(input_wav, output_wav)
+    subprocess.run(command, check=True)
 
 def save_wav_segments_from_partitions(path, input_wav, partitions, songid, singer):
     """
-    Partition wav files based on 'partitions' and save the segmented files in 'outdir'.
+    Partition WAV files based on 'partitions' and save the segmented files.
     """
 
+    # Load the (possibly converted) audio file for segmentation
     audio = AudioSegment.from_wav(input_wav)
     segids = []
     wav_scp = []
@@ -161,11 +158,11 @@ def save_wav_segments_from_partitions(path, input_wav, partitions, songid, singe
     for i, (start_time, end_time) in enumerate(partitions, 1):
         start_time_ms = int(start_time * 1000)
         end_time_ms = int(end_time * 1000)
-
         # Note: end_time_ms can be larger than the actual audio length. But does not matter here
         segment = audio[start_time_ms:end_time_ms]
         segid = f"{songid}_{i:03}_{singer}"
         outfile = os.path.join(path, f"{segid}.wav")
+        segment = segment.set_sample_width(2)
         segment.export(outfile, format="wav")
         segids.append(segid)
         wav_scp.append((segid, outfile))
@@ -185,7 +182,6 @@ def split_pinyin(pinyin):
     else:
         a = pinyin
         a1, a2 = PINYIN_DICT[a]
-        # import pdb; pdb.set_trace()
     if a1 == "^":
         return [a2]
     if a2 == "^":
@@ -473,7 +469,7 @@ def process_subset(args, set_name, tempos):
 
 
 def segment_dataset(args):
-    root_path = os.path.join(args.src_data, "segments")
+    root_path = os.path.join(args.src_data.replace("/tmp", ""), "segments")
     output_path = os.path.join(root_path, "wav")
     if not os.path.exists(output_path):
         os.makedirs(output_path)
@@ -481,19 +477,22 @@ def segment_dataset(args):
 
     transcript_file = open(transcript_filepath, "w")
     for subdir in os.listdir(args.src_data):
+        # check if subdir has files
+        if not os.listdir(os.path.join(args.src_data, subdir)):
+            continue
         if subdir == "segments":
             continue
         full_subdir_path = os.path.join(args.src_data, subdir)
 
         if os.path.isdir(full_subdir_path) and "-unseg" not in subdir:
             print(f"Processing: {full_subdir_path}")
-            wav_files = glob.glob(os.path.join(full_subdir_path, "*.wav"))
-            midi_file = glob.glob(os.path.join(full_subdir_path, "*.mid"))[0]
-            partitions = get_partitions(midi_file)
             songid = subdir
             # skip between 436 and 440
             if int(songid.split("-")[0]) <= 440 and int(songid.split("-")[0]) >= 436:
                 continue
+            wav_files = glob.glob(os.path.join(full_subdir_path, "*.wav"))
+            midi_file = glob.glob(os.path.join(full_subdir_path, "*.mid"))[0]
+            partitions = get_partitions(midi_file)
             for wav_file in wav_files:
                 match = re.search(r"([0-9-]+)-([a-zA-Z-]+)\.wav", wav_file)
                 assert songid == match.group(1)
@@ -561,11 +560,85 @@ if __name__ == "__main__":
     parser.add_argument(
         "--score_dump", type=str, default="score_dump", help="score dump directory"
     )
+    parser.add_argument(
+        "--dataset", type=str, default="all", help="dataset to process (original|acesinger|all)"
+    )
     args = parser.parse_args()
 
     if not os.path.exists(os.path.join(args.src_data, "segments")):
         makedir(os.path.join(args.src_data, "segments"))
+    dataset = args.dataset
+    # remove args.src_data/tmp dir if exists
+    if os.path.exists(os.path.join(args.src_data, "tmp")):
+        shutil.rmtree(os.path.join(args.src_data, "tmp"))
+    # create args.src_data/tmp dir
+    os.makedirs(os.path.join(args.src_data, "tmp"))
+    # create all numbers subdirs in args.src_data/tmp
+    for subdir in glob.glob(os.path.join(args.src_data, "*")):
+        # if subdir contains 4
+        if "4" in subdir:
+            os.makedirs(os.path.join(args.src_data, "tmp", subdir.split("/")[-1]))
+    if dataset == "all" or dataset == "acesinger":
+        # symlink all the folders in the src_data starting with number to tmp
+        for subdir in os.listdir(args.src_data):
+            if subdir[0].isdigit():
+                # get the absolute path of subdir even if it is symlinked
+                real_subdir = os.path.realpath(os.path.join(args.src_data, subdir))
+                for file in os.listdir(real_subdir):
+                    if file.endswith(".wav"):
+                        os.symlink(
+                            os.path.join(real_subdir, file),
+                            os.path.join(args.src_data, "tmp", subdir, file),
+                        )
+                    if file.endswith(".mid"):
+                        os.symlink(
+                            os.path.join(real_subdir, file),
+                            os.path.join(args.src_data, "tmp", subdir, file),
+                        )
+    if dataset == "all" or dataset == "original":
+        # symlink all the folders in the src_data starting with original to tmp, rename them to follow the format of kising
+        for subdir in os.listdir(args.src_data):
+            if subdir.startswith("original"):
+                for file in os.listdir(os.path.join(args.src_data, subdir)):
+                    if file.endswith(".wav"):
+                        # extract number
+                        if file.endswith("2.wav"):
+                            number = "441-2"
+                        else:
+                            number = file.split("-")[0].split("_")[0]
+                            if int(number) >= 436 and int(number) <= 440:
+                                continue
+                        real_subdir = os.path.realpath(os.path.join(args.src_data, subdir))
+                        # os.symlink(
+                        #     os.path.join(real_subdir, file),
+                        #     os.path.join(args.src_data, "tmp", number, number + "-original.wav"),
+                        # )
+                        cmd = "sox {} -c 1 --bits 16 {}".format(
+                            os.path.join(real_subdir, file),
+                            os.path.join(args.src_data, "tmp", number, number + "-original.wav"),
+                        )
+                        os.system(cmd)
+                        # symlink the midi file in subdir/number to tmp/number, if not exist
+                        # find the midi file name
+                        for file in os.listdir(os.path.join(args.src_data, number)):
+                            if file.endswith(".mid"):
+                                midi_file = file
+                                break
+                        if not os.path.exists(
+                            os.path.join(args.src_data, "tmp", number, midi_file)
+                        ):
+                            real_midi_file = os.path.realpath(
+                                os.path.join(args.src_data, number, midi_file)
+                            )
+                            os.symlink(
+                                real_midi_file,
+                                os.path.join(args.src_data, "tmp", number, midi_file),
+                            )
+    args.src_data = os.path.join(args.src_data, "tmp")
     segment_dataset(args)
+    # remove args.src_data/tmp dir
+    shutil.rmtree(os.path.join(args.src_data))
+    args.src_data = args.src_data.replace("/tmp", "")
     tempos = load_midi(args.src_data)
     for name in ["train", "test"]:
         process_subset(args, name, tempos)

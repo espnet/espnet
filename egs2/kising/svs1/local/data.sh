@@ -18,6 +18,7 @@ stage=1
 stop_stage=100
 fs=44100
 g2p=None
+dataset='all'
 
 log "$0 $*"
 
@@ -51,7 +52,8 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     python local/data_prep.py ${KISING}/KISING --midi_note_scp local/midi-note.scp \
         --wav_dumpdir wav_dump \
         --sr ${fs} \
-        --g2p ${g2p}
+        --g2p ${g2p}\
+        --dataset ${dataset}
     for src_data in train test; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
         directories=("train" "test")
