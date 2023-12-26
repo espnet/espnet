@@ -177,7 +177,6 @@ generator_first: true # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
-dataset: original
 num_iters_per_epoch: 1000 # number of iterations per epoch
 max_epoch: 500            # number of epochs
 accum_grad: 1             # gradient accumulation
