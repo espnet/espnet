@@ -34,15 +34,18 @@ mkdir -p ${KISING}
 train_set="tr_no_dev"
 train_dev="dev"
 
-# if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
-    # log "stage 0: Data Download"
-    # The KISING data should be downloaded
+if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
+    log "stage 0: Data Download"
+    The KISING data should be downloaded
 
-    # log "automatically download from google drive"
-    # ./download_wget.sh "1qHLW3U7a0z8FpWuaEUmY-LViBIwRmeM0"  ${KISING}
+    log "automatically download from google drive"
+    ./download_wget.sh "1h4Tq8EiDeqUKQbFLWs2c5Ya1O4pBr2rr"  ${KISING}
+    ./download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz"  ${KISING}
 
-    # unzip ${KISING}/KISING.zip -d ${KISING}
-# fi
+    unzip ${KISING}/kising-v2.zip -d ${KISING}
+    unzip ${KISING}/kising-v2-original.zip -d ${KISING}
+    mv ${KISING}/clean ${KISING}/original
+fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     log "stage 1: Data preparaion "

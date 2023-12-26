@@ -17,8 +17,8 @@ svs_conf:
     vocoder_generator_type: visinger2 # hifigan, avocodo, uhifigan, visinger2
     generator_params:
         hidden_channels: 192
-        spks: 34
-        global_channels: 256
+        spks: 1
+        global_channels: -1
         segment_size: 20
         text_encoder_attention_heads: 2
         text_encoder_ffn_expand: 4
@@ -177,6 +177,7 @@ generator_first: true # whether to start updating generator first
 ##########################################################
 #                OTHER TRAINING SETTING                  #
 ##########################################################
+dataset: original
 num_iters_per_epoch: 1000 # number of iterations per epoch
 max_epoch: 500            # number of epochs
 accum_grad: 1             # gradient accumulation

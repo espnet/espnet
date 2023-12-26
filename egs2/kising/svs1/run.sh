@@ -20,6 +20,7 @@ opts="--audio_format wav "
 train_set=tr_no_dev
 valid_set=dev
 test_sets="dev test"
+dataset='all'
 
 # training and inference configuration
 train_config=conf/train.yaml
@@ -34,7 +35,7 @@ ying_extract=None
 
 ./svs.sh \
     --lang zh \
-    --local_data_opts "--stage 0" \
+    --local_data_opts "--stage 0 --dataset ${dataset}" \
     --feats_type raw \
     --pitch_extract "${pitch_extract}" \
     --ying_extract "${ying_extract}" \
