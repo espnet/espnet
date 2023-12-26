@@ -30,6 +30,6 @@ class StatsPooling(AbsPooling):
         mu = torch.mean(x, dim=-1)
         st = torch.std(x, dim=-1)
 
-        x = torch.cat((mu, sg), dim=1)
+        x = torch.cat((mu, st), dim=1)
 
         return x

@@ -39,10 +39,10 @@ class XvectorEncoder(AbsEncoder):
         super().__init__()
         self._output_size = output_size
         in_channels = [input_size] + [ndim] * 4
-        out_channels = [ndim] * 4 + output_size
+        out_channels = [ndim] * 4 + [output_size]
 
         self.layers = nn.ModuleList()
-        for idx in range(3):
+        for idx in range(5):
             self.layers.append(
                 nn.Conv1d(
                     in_channels[idx],
@@ -51,9 +51,9 @@ class XvectorEncoder(AbsEncoder):
                     dilation=dilations[idx],
                     padding=paddings[idx],
                 )
-                self.layers.append(nn.ReLU())
-                self.layers.append(nn.BatchNorm1d(ndim))
             )
+            self.layers.append(nn.ReLU())
+            self.layers.append(nn.BatchNorm1d(out_channels[idx]))
 
     def output_size(self) -> int:
         return self._output_size

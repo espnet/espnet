@@ -9,7 +9,7 @@ class XvectorProjector(AbsProjector):
         self._output_size = output_size
 
         self.fc1 = torch.nn.Linear(input_size, output_size)
-        self.fc1 = torch.nn.Linear(output_size, output_size)
+        self.fc2 = torch.nn.Linear(output_size, output_size)
         self.act = torch.nn.ReLU()
 
     def output_size(self):
