@@ -87,9 +87,9 @@ def load_midi(root_path):
 
 def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
     """
-    Get partition points [(start, end)] that detach at rests longer than the 
+    Get partition points [(start, end)] that detach at rests longer than the
     specified threshold.
-    
+
     Note: silence truncated when longer than 0.4s.
     """
     midi_data = pretty_midi.PrettyMIDI(input_midi)
@@ -115,7 +115,7 @@ def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
             seg_start = max(note.start - 0.2, (prev_note_end + note.start) / 2)
         prev_note_end = note.end
 
-    # Note: the end of the last partition can be larger than the 
+    # Note: the end of the last partition can be larger than the
     # corresponding audio length. But does not matter
     partitions.append((seg_start, notes[-1].end + 0.2))
 
@@ -264,13 +264,13 @@ def get_info_from_partitions(
                     current_word_duration.append(note_duration)
                     note_index += 1
 
-            # if the len(phn_list) = len(current_word_pitch), 
+            # if the len(phn_list) = len(current_word_pitch),
             # then we can just assign the pitches to the phonemes
             if len(phn_list) == len(current_word_pitch):
                 pitches[-1].extend(current_word_pitch)
                 note_durations[-1].extend(current_word_duration)
                 phn_durations[-1].extend(current_word_duration)
-            # if the len(phn_list) < len(current_word_pitch), 
+            # if the len(phn_list) < len(current_word_pitch),
             # then we need to assign the rest of the pitches to the last phoneme
             elif len(phn_list) < len(current_word_pitch):
                 pitches[-1].extend(current_word_pitch)
@@ -280,7 +280,7 @@ def get_info_from_partitions(
                     [phonemes[-1][-1]] * (len(current_word_pitch) - len(phn_list))
                 )
                 is_slur[-1].extend([1] * (len(current_word_pitch) - len(phn_list)))
-            # if the len(phn_list) > len(current_word_pitch), 
+            # if the len(phn_list) > len(current_word_pitch),
             # then we need to assign the rest of the phonemes to the last pitch
             else:
                 pitches[-1].extend(current_word_pitch)
@@ -516,8 +516,10 @@ def segment_dataset(args):
                         f"{duration:.6f}" for duration in phn_durations[i]
                     )
                     is_slur_str = " ".join(f"{slur}" for slur in is_slur[i])
-                    transcript_line = f"{filename}|{lyrics_str}|{phonemes_str}|"\
-                    f"{pitches_str}|{note_durations_str}|{phn_durations_str}|{is_slur_str}"
+                    transcript_line = (
+                        f"{filename}|{lyrics_str}|{phonemes_str}|"
+                        f"{pitches_str}|{note_durations_str}|{phn_durations_str}|{is_slur_str}"
+                    )
                     transcript_file.write(transcript_line + "\n")
     transcript_file.close()
     train_transcript_filepath = os.path.join(root_path, "train.txt")
