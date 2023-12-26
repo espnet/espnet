@@ -23,6 +23,7 @@ from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
 from espnet2.spk.encoder.identity_encoder import IdentityEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
 from espnet2.spk.encoder.ska_tdnn_encoder import SkaTdnnEncoder
+from espnet2.spk.encoder.xvector_encoder import XvectorEncoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
 from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
@@ -30,10 +31,12 @@ from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
 )
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
+from espnet2.spk.pooling.stat_pooling import StatsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
 from espnet2.spk.projector.ska_tdnn_projector import SkaTdnnProjector
+from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -91,6 +94,7 @@ encoder_choices = ClassChoices(
         mfaconformer=MfaConformerEncoder,
         rawnet3=RawNet3Encoder,
         ska_tdnn=SkaTdnnEncoder,
+        xvector=XvectorEncoder,
     ),
     type_check=AbsEncoder,
     default="rawnet3",
@@ -100,6 +104,7 @@ pooling_choices = ClassChoices(
     name="pooling",
     classes=dict(
         chn_attn_stat=ChnAttnStatPooling,
+        stats=StatsPooling,
     ),
     type_check=AbsPooling,
     default="chn_attn_stat",
@@ -108,10 +113,9 @@ pooling_choices = ClassChoices(
 projector_choices = ClassChoices(
     name="projector",
     classes=dict(
-        # TODO (Jee-weon): implement additional Projectors
-        # one_layer=OneLayerProjector,
         rawnet3=RawNet3Projector,
         ska_tdnn=SkaTdnnProjector,
+        xvector=XvectorProjector,
     ),
     type_check=AbsProjector,
     default="rawnet3",
