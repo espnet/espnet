@@ -156,16 +156,20 @@ def _write_kaldi_files(
     df["trans_id"] = df.apply(lambda x: f"{x.spk}-{x.trans_id}", axis=1)
 
     src_wav_scp_file: str = f"wav.scp.{src_lang}"
-    df[["id_recordings", "audio_path"]].drop_duplicates().to_csv(
-        output_dir / src_wav_scp_file, sep=" ", header=False, index=False
-    )
+    (df[["id_recordings", "audio_path"]].drop_duplicates()
+     .sort_values(["id_recordings"])
+     .to_csv(
+       output_dir / src_wav_scp_file, sep=" ", header=False, index=False
+    ))
     os.symlink(f"wav.scp.{src_lang}", str(output_dir / _WAV_SCP_FILE))
     df["trans_audio_path"] = df["trans_id"].apply(
         lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
     )
-    df[["trans_id", "trans_audio_path"]].drop_duplicates().to_csv(
+    (df[["trans_id", "trans_audio_path"]].drop_duplicates()
+     .sort_values(["trans_id"])
+     .to_csv(
         output_dir / f"wav.scp.{tgt_lang}", sep=" ", header=False, index=False
-    )
+    ))
     # utt2spk
     src_utt2spk = df[["id_recordings", "spk"]]
     tgt_utt2spk = df[["trans_id", "spk"]]
