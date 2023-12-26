@@ -292,10 +292,16 @@ class Text2Text:
 
         # c. Passed the encoder result and the beam search
         if self.hugging_face_model:
-            enc = self.hugging_face_linear_in(enc).unsqueeze(0)
+            enc = self.hugging_face_linear_in(enc)
+
+            if self.maxlenratio > 0:
+                self.hugging_face_decoder_conf["max_new_tokens"] = int(
+                    enc.shape[1] * self.maxlenratio
+                )
+
             if self.mt_model.decoder.causal_lm:
                 forward_args, _ = self.mt_model.decoder.add_prefix_postfix(
-                    enc[0],
+                    enc,
                     torch.tensor([enc.shape[1]]).to(enc.device),
                     torch.ones([1, 1], dtype=int, device=enc.device),
                     torch.ones([1], dtype=int, device=enc.device),
