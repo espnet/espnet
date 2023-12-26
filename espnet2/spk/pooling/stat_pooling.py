@@ -24,9 +24,7 @@ class StatsPooling(AbsPooling):
 
     def forward(self, x, task_tokens: torch.Tensor = None):
         if task_tokens is not None:
-            raise ValueError(
-                "StatisticsPooling is not adequate for task_tokens"
-            )
+            raise ValueError("StatisticsPooling is not adequate for task_tokens")
         mu = torch.mean(x, dim=-1)
         st = torch.std(x, dim=-1)
 

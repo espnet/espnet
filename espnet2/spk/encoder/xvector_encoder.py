@@ -5,13 +5,14 @@
 # adapted for ESPnet-SPK by Jee-weon Jung
 import math
 from collections import OrderedDict
+from typing import List
 
 import torch
 import torch.nn as nn
 from typeguard import check_argument_types
-from typing import List
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
+
 
 class XvectorEncoder(AbsEncoder):
     """
