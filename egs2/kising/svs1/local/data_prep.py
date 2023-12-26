@@ -53,7 +53,8 @@ def load_midi_note_scp(midi_note_scp):
 
 def load_midi(root_path):
     """
-    Loads MIDI files from subdirectories in the given root path and extracts tempo information.
+    Loads MIDI files from subdirectories in the given root path and extracts tempo
+    information.
     """
     midis = {}
 
@@ -89,7 +90,6 @@ def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
     """
     Get partition points [(start, end)] that detach at rests longer than the
     specified threshold.
-
     Note: silence truncated when longer than 0.4s.
     """
     midi_data = pretty_midi.PrettyMIDI(input_midi)
@@ -518,7 +518,8 @@ def segment_dataset(args):
                     is_slur_str = " ".join(f"{slur}" for slur in is_slur[i])
                     transcript_line = (
                         f"{filename}|{lyrics_str}|{phonemes_str}|"
-                        f"{pitches_str}|{note_durations_str}|{phn_durations_str}|{is_slur_str}"
+                        f"{pitches_str}|{note_durations_str}|{phn_durations_str}|"
+                        f"{is_slur_str}"
                     )
                     transcript_file.write(transcript_line + "\n")
     transcript_file.close()
