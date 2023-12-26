@@ -1,6 +1,7 @@
 """download datasets and convert them into kaldi format"""
 import logging
 import multiprocessing
+import os
 import random
 import re
 import shutil
@@ -35,6 +36,7 @@ _WAV_NAME_PATTERN_LONG: str = r"^[A-Z]{2}_\d{3}_#\d+\.wav$"
 _WAV_NAME_PATTERN_SHORT: str = r"^[A-Z]{2}_\d{3}_\d+\.wav$"
 _WAV_NAME_PATTERN_RECORDING: str = r"^[A-Z]{2}_\d{3}.wav$"
 _SEED: int = 73
+_WAV_SCP_FILE: str = "wav.scp"
 
 
 def remove_suffix(s: str, suffix: str):
@@ -152,9 +154,11 @@ def _write_kaldi_files(
     # add speaker id in id_recordings, trans_id
     df["id_recordings"] = df.apply(lambda x: f"{x.spk}-{x.id_recordings}", axis=1)
     df["trans_id"] = df.apply(lambda x: f"{x.spk}-{x.trans_id}", axis=1)
+    src_wav_scp_file: Path = output_dir / f"wav.scp.{src_lang}"
     df[["id_recordings", "audio_path"]].drop_duplicates().to_csv(
-        output_dir / f"wav.scp.{src_lang}", sep=" ", header=False, index=False
+        src_wav_scp_file, sep=" ", header=False, index=False
     )
+    os.symlink(str(src_wav_scp_file), str(output_dir / _WAV_SCP_FILE))
     df["trans_audio_path"] = df["trans_id"].apply(
         lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
     )
