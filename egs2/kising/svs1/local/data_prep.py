@@ -89,7 +89,7 @@ def load_midi(root_path):
 
 
 def get_partitions(input_midi: str, threshold=2.0) -> List[Tuple[float, float]]:
-    """ "
+    """
     Get partition points [(start, end)] that detach at rests longer than the specified threshold.
     Note: silence truncated when longer than 0.4s.
 
@@ -629,7 +629,7 @@ if __name__ == "__main__":
                             ),
                         )
                         os.system(cmd)
-                        # symlink the midi file in subdir/number to tmp/number, if not exist
+                        # symlink the midi file in subdir/number to tmp/number
                         # find the midi file name
                         for file in os.listdir(os.path.join(args.src_data, number)):
                             if file.endswith(".mid"):

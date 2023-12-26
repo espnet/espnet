@@ -59,17 +59,6 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --dataset ${dataset}
     for src_data in train test; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
-        directories=("train" "test")
-        # Define files to sort
-        files=("utt2spk" "wav.scp" "text" "label" "score.scp")
-        for file in "${files[@]}"; do
-            # Sort the file and create a temporary file
-            sort "data/$src_data/$file" > "data/$src_data/$file.tmp"
-            # print currently processed file
-            echo "data/$src_data/$file"
-            # Move the temporary file to replace the original
-            mv "data/$src_data/$file.tmp" "data/$src_data/$file"
-        done
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
     done
 fi
