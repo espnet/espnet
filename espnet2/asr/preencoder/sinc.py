@@ -214,7 +214,7 @@ class LightweightSincConvs(AbsPreEncoder):
         self.filters.init_filters()
         for block in self.blocks:
             for layer in block:
-                if type(layer) == torch.nn.BatchNorm1d and layer.affine:
+                if type(layer) is torch.nn.BatchNorm1d and layer.affine:
                     layer.weight.data[:] = 1.0
                     layer.bias.data[:] = 0.0
 
