@@ -252,7 +252,7 @@ def main():
         *SYMBOLS_TIME,
     ]
     if args.tgt is not None:
-        special_tokens.insert(3, f"<args.tgt>")
+        special_tokens.insert(3, f"<{args.tgt}>")
     with open(args.output_dir / "nlsyms.txt", "w") as fp:
         for tok in special_tokens:
             fp.write(f"{tok}\n")
