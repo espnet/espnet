@@ -203,9 +203,7 @@ def _write_kaldi_files(
     #         output_dir / "segments", sep=" ", header=False, index=False
     #     )
     # main table
-    df.to_csv(
-        output_dir / "main.tsv", sep="\t", header=False, index=False
-    )
+    df.to_csv(output_dir / "main.tsv", sep="\t", header=False, index=False)
     LOGGER.info("completed!")
 
 
