@@ -25,7 +25,6 @@ class BaseModule(torch.nn.Module):
                 num_params += np.prod(param.detach().cpu().numpy().shape)
         return num_params
 
-
     def relocate_input(self, x: list):
         """
         Relocates provided tensors to the same device set for the module.

@@ -1,9 +1,9 @@
 ;;; # CMUdict  --  Major Version: 0.07
-;;; 
+;;;
 ;;; # $HeadURL$
 ;;; # $Date::                                                   $:
 ;;; # $Id::                                                     $:
-;;; # $Rev::                                                    $: 
+;;; # $Rev::                                                    $:
 ;;; # $Author::                                                 $:
 ;;;
 ;;; #
@@ -46,14 +46,14 @@
 ;;; #
 ;;;
 ;;;  NOTES  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; 
-;;;  [20080401] (air)  New dict file format introduced 
+;;;
+;;;  [20080401] (air)  New dict file format introduced
 ;;;   - comments (like this section) are allowed
 ;;;   - file name is major version; vers/rev information is now in the header
 ;;;
-;;; 
+;;;
 ;;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; 
+;;;
 !EXCLAMATION-POINT  EH2 K S K L AH0 M EY1 SH AH0 N P OY2 N T
 "CLOSE-QUOTE  K L OW1 Z K W OW1 T
 "DOUBLE-QUOTE  D AH1 B AH0 L K W OW1 T
@@ -1028,7 +1028,7 @@ ACUTE  AH0 K Y UW1 T
 ACUTELY  AH0 K Y UW1 T L IY0
 ACUTENESS  AH0 K Y UW1 T N AH0 S
 ACYCLOVIR  AH0 S IH1 K L OW0 V IH2 R
-AD  AE1 
+AD  AE1
 AD-LIB  AE1 D L IH1 B
 AD-NAUSEAM  AE1 D N AO1 Z IY0 AA0 M
 AD-NAUSEUM  AE1 D N AO1 Z IY0 AH0 M
@@ -3107,7 +3107,7 @@ ALMYS  AE1 L M IY0 Z
 ALODIE  AH0 L AA1 D IY0
 ALOE  AE1 L OW2
 ALOFT  AH0 L AO1 F T
-ALOHA  AH0 L OW1 HH AA0 
+ALOHA  AH0 L OW1 HH AA0
 ALOI  AA1 L OY0
 ALOIA  AA0 L OW1 Y AH0
 ALOIS  AA0 L OY1 S
@@ -50449,7 +50449,7 @@ GSCHWIND  G AH0 SH W IH1 N D
 GSELL  G AH0 S EH1 L
 GTECH  JH IY1 T EH2 K
 GTECH'S  JH IY1 T EH2 K S
-GT  JH IY0 T IY1 
+GT  JH IY0 T IY1
 GTX  JH IY0 T IY0 EH1 K S
 GU  G UW1
 GUACAMOLE  G W AA2 K AH0 M OW1 L IY0
@@ -108501,7 +108501,7 @@ SEYLLER  S EY1 L ER0
 SEYMORE  S IY1 M AO0 R
 SEYMOUR  S IY1 M AO0 R
 SEYMOUR'S  S IY1 M AO0 R Z
-SF  EH1 S EH1 F 
+SF  EH1 S EH1 F
 SFERNICE  S F ER1 N IH0 S
 SFERNICE(1)  S AH0 F ER1 N IH0 S
 SFERRA  S F EH1 R AH0

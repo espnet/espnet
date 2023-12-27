@@ -107,7 +107,7 @@ class GradTTS(AbsTTS):
                                     n_enc_layers, enc_kernel, enc_dropout, window_size)
         print("idim:",idim)
         self.decoder = Diffusion(odim, dec_dim, n_spks, spk_emb_dim, beta_min, beta_max, pe_scale)
-    
+
 
     def relocate_input(self, x: list):
         """
@@ -190,28 +190,28 @@ class GradTTS(AbsTTS):
         length_scale=1.0,
         out_size=None,
     ):
-    
+
         print("x_before:",x)
         x = x.tolist()
-        
+
         for i in range(len(x)):
             x[i] = intersperse(x[i],78)
-          
-        
+
+
         x = torch.LongTensor(x)
         print("x:",x,"x dimensions:",x.size())
         #x_lengths = torch.LongTensor([x.shape[-1]])
-        
+
         x, x_lengths, y, y_lengths = self.relocate_input([x, x_lengths, y, y_lengths])
         print("x_lengths:",x_lengths)
         y = y.transpose(1, 2)
-        
+
         if(y.shape[2] < out_size):
             pad_num = out_size - y.shape[2]
             y = torch.nn.functional.pad(y, (0, pad_num), value=0)
             print("padded_y:",y.shape)
-            
-        
+
+
         #if(out_size > y.shape[2]):
             #out_size = y.shape[2]
         #if(out_size % 2 != 0):
@@ -220,7 +220,7 @@ class GradTTS(AbsTTS):
             #y_mask = y_mask[:,:,:out_size]
             #y_lengths = y_lengths - 1
             #y_max_length = y.shape[-1]
-        
+
         print("-------------------------------------------------------------------------------------")
         print('y:', y.shape)
 
@@ -229,21 +229,21 @@ class GradTTS(AbsTTS):
             spk = self.spk_emb(n_spk)
         else:
             spk = None
-        
+
         start_time = time.time()
         # Get encoder_outputs `mu_x` and log-scaled token durations `logw`
         mu_x, logw, x_mask = self.encoder(x, x_lengths, spk)
         #print("-------------------------------------------------------------------------------------")
         print("mu_x:",mu_x.shape)
         y_max_length = y.shape[-1]
-        
+
         #if(out_size % 2 != 0):
             #out_size = out_size -1
             #y = y[:,:,:out_size]
             #y_mask = y_mask[:,:,:out_size]
             #y_lengths = y_lengths - 1
             #y_max_length = y.shape[-1]
-        
+
         encoder_process_time = time.time() - start_time
         print(f"encoder process time: {encoder_process_time} seconds")
 
@@ -252,15 +252,15 @@ class GradTTS(AbsTTS):
             pad_num = out_size - y_mask.shape[2]
             y_mask = torch.nn.functional.pad(y_mask, (0, pad_num), value=0)
             print("padded_y_mask:",y_mask.shape)
-        
+
         #if(out_size % 2 != 0):
             #out_size = out_size -1
             #y = y[:,:,:out_size]
             #y_mask = y_mask[:,:,:out_size]
             #y_lengths = y_lengths - 1
             #y_max_length = y.shape[-1]
-        
-        
+
+
         attn_mask = x_mask.unsqueeze(-1) * y_mask.unsqueeze(2)
 
         start_time = time.time()
@@ -279,7 +279,7 @@ class GradTTS(AbsTTS):
             attn = monotonic_align.maximum_path(log_prior, attn_mask.squeeze(1))
             #attn_dur = attn.detach()
             attn = attn.detach()
-        
+
         # 计算通过MAS的持续时间损失
         logw_ = torch.log(1e-8 + torch.sum(attn.unsqueeze(1), -1)) * x_mask
         dur_loss = duration_loss(logw, logw_, x_lengths)
@@ -316,7 +316,7 @@ class GradTTS(AbsTTS):
             y = y_cut
             y_mask = y_cut_mask
             print("y_end:",y.shape)
-            
+
         if(y_mask.shape[2] < out_size):
             pad_num = out_size - y_mask.shape[2]
             y_mask = torch.nn.functional.pad(y_mask, (0, pad_num), value=0)
@@ -327,8 +327,8 @@ class GradTTS(AbsTTS):
         #print("-------------------------------------------------------------------------------------")
         #print("mu_y_before:",mu_y.shape)
         mu_y = mu_y.transpose(1, 2)
-        
-        
+
+
         align_and_get_muy_time = time.time() - start_time
         print(f"Align and get mu_y process: {align_and_get_muy_time} seconds")
         #输出debug
@@ -339,7 +339,7 @@ class GradTTS(AbsTTS):
         print("y:",y.shape)
         print("out_size:",out_size)
         print("y_lengths:",y_lengths)
-        print("y_max_length:",y_max_length) 
+        print("y_max_length:",y_max_length)
 
         return x_lengths, x_mask, y, y_mask, mu_y, dur_loss
 
@@ -376,7 +376,7 @@ class GradTTS(AbsTTS):
         # Compute loss between aligned encoder outputs and mel-spectrogram
         prior_loss = torch.sum(0.5 * ((y - mu_y) ** 2 + math.log(2 * math.pi)) * y_mask)
         prior_loss = prior_loss / (torch.sum(y_mask) * self.n_feats)
-        
+
         return prior_loss, diff_loss
 
     @torch.no_grad()
@@ -451,7 +451,7 @@ class GradTTS(AbsTTS):
         print(decoder_outputs.shape)
         w = w[0]
         print("duration:",w.shape)
-        
+
         return dict(
             encoder_outputs=encoder_outputs,
             feat_gen=decoder_outputs[0],
