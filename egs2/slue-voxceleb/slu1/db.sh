@@ -1,1 +1,1 @@
-../../TEMPLATE/asr1/db.sh
+../../TEMPLATE/slu1/db.sh

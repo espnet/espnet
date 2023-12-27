@@ -12,7 +12,7 @@
 
 
 ## Without pre-training
-- SLU config: [conf/train_asr_no_pretrain.yaml](conf/train_asr_no_pretrain.yaml)
+- SLU config: [conf/tuning/train_asr_no_pretrain.yaml](conf/tuning/train_asr_no_pretrain.yaml)
 - token_type: word
 - script: run.sh
 
@@ -21,7 +21,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|62.4|63.6|
 
 ## With TERA SSL Pretrain
-- SLU config: [conf/train_asr_tera.yaml](conf/train_asr_tera.yaml)
+- SLU config: [conf/tuning/train_asr_tera.yaml](conf/tuning/train_asr_tera.yaml)
 - token_type: word
 - script: run.sh
 
@@ -30,7 +30,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|62.5|62.4|
 
 ## With VQ-APC SSL Pretrain
-- SLU config: [conf/train_asr_vq_apc.yaml](conf/train_asr_vq_apc.yaml)
+- SLU config: [conf/tuning/train_asr_vq_apc.yaml](conf/tuning/train_asr_vq_apc.yaml)
 - token_type: word
 - script: run.sh
 
@@ -39,7 +39,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|61.3|62.1|
 
 ## With Wav2Vec2 SSL Pretrain
-- SLU config: [conf/train_asr_wav2vec2.yaml](conf/train_asr_wav2vec2.yaml)
+- SLU config: [conf/tuning/train_asr_wav2vec2.yaml](conf/tuning/train_asr_wav2vec2.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -47,7 +47,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|64.5|64.4|
 
 ## With Hubert SSL Pretrain
-- SLU config: [conf/train_asr_hubert.yaml](conf/train_asr_hubert.yaml)
+- SLU config: [conf/tuning/train_asr_hubert.yaml](conf/tuning/train_asr_hubert.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -55,7 +55,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|64.5|65.2|
 
 ## With WavLM SSL Pretrain
-- SLU config: [conf/train_asr_wavlm.yaml](conf/train_asr_wavlm.yaml)
+- SLU config: [conf/tuning/train_asr_wavlm.yaml](conf/tuning/train_asr_wavlm.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -63,7 +63,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|66.9|66.9|
 
 ## With Gigaspeech ASR Pretrain
-- SLU config: [conf/train_asr_gigaspeech.yaml](conf/train_asr_gigaspeech.yaml)
+- SLU config: [conf/tuning/train_asr_gigaspeech.yaml](conf/tuning/train_asr_gigaspeech.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -71,7 +71,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|66.3|66.6|
 
 ## With SGPISpeech ASR Pretrain
-- SLU config: [conf/train_asr_sgpispeech.yaml](conf/train_asr_sgpispeech.yaml)
+- SLU config: [conf/tuning/train_asr_sgpispeech.yaml](conf/tuning/train_asr_sgpispeech.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -79,7 +79,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|63.3|64.1|
 
 ## With IEMOCAP SLU Pretrain
-- SLU config: [conf/train_asr_iemocap.yaml](conf/train_asr_iemocap.yaml)
+- SLU config: [conf/tuning/train_asr_iemocap.yaml](conf/tuning/train_asr_iemocap.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -87,7 +87,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|62.4|62.9|
 
 ## With SWBD Sentiment SLU Pretrain
-- SLU config: [conf/train_asr_swbd_sentiment.yaml](conf/train_asr_swbd_sentiment.yaml)
+- SLU config: [conf/tuning/train_asr_swbd_sentiment.yaml](conf/tuning/train_asr_swbd_sentiment.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -95,7 +95,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|64.7|64.8|
 
 ## With WavLM and IEMOCAP SLU Pretrain
-- SLU config: [conf/train_asr_iemocap_wavlm.yaml](conf/train_asr_iemocap_wavlm.yaml)
+- SLU config: [conf/tuning/train_asr_iemocap_wavlm.yaml](conf/tuning/train_asr_iemocap_wavlm.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -103,7 +103,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|64.3|65.2|
 
 ## With WavLM and SWBD Sentiment SLU Pretrain
-- SLU config: [conf/train_asr_swbd_sentiment_wavlm.yaml](conf/train_asr_swbd_sentiment_wavlm.yaml)
+- SLU config: [conf/tuning/train_asr_swbd_sentiment_wavlm.yaml](conf/tuning/train_asr_swbd_sentiment_wavlm.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -111,7 +111,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|64.9|65.7|
 
 ## With BERT LM Pretrain
-- SLU config: [conf/train_asr_bert.yaml](conf/train_asr_bert.yaml)
+- SLU config: [conf/tuning/train_asr_bert.yaml](conf/tuning/train_asr_bert.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -119,7 +119,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|64.7|65.1|
 
 ## With DeBERTa LM Pretrain
-- SLU config: [conf/train_asr_deberta.yaml](conf/train_asr_deberta.yaml)
+- SLU config: [conf/tuning/train_asr_deberta.yaml](conf/tuning/train_asr_deberta.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -127,7 +127,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|66.2|66.9|
 
 ## With WavLM SSL and BERT LM Pretrain
-- SLU config: [conf/train_asr_bert_wavlm.yaml](conf/train_asr_bert_wavlm.yaml)
+- SLU config: [conf/tuning/train_asr_bert_wavlm.yaml](conf/tuning/train_asr_bert_wavlm.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -135,7 +135,7 @@
 |inference_asr_model_valid.acc.ave_10best/devel|954|66.8|65.7|
 
 ## With WavLM SSL and DeBERTa LM Pretrain
-- SLU config: [conf/train_asr_deberta_wavlm.yaml](conf/train_asr_deberta_wavlm.yaml)
+- SLU config: [conf/tuning/train_asr_deberta_wavlm.yaml](conf/tuning/train_asr_deberta_wavlm.yaml)
 - token_type: word
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
