@@ -99,6 +99,7 @@ class Speech2Text:
         ngram_weight: float = 0.9,
         penalty: float = 0.0,
         nbest: int = 1,
+        normalize_length: bool = False,
         streaming: bool = False,
         enh_s2t_task: bool = False,
         quantize_asr_model: bool = False,
@@ -330,6 +331,7 @@ class Speech2Text:
                     vocab_size=len(token_list),
                     token_list=token_list,
                     pre_beam_score_key=None if ctc_weight == 1.0 else "full",
+                    normalize_length=normalize_length,
                 )
 
                 # TODO(karita): make all scorers batchfied
@@ -696,6 +698,7 @@ def inference(
     ngram_weight: float,
     penalty: float,
     nbest: int,
+    normalize_length: bool,
     num_workers: int,
     log_level: Union[int, str],
     data_path_and_name_and_type: Sequence[Tuple[str, str, str]],
@@ -767,6 +770,7 @@ def inference(
         ngram_weight=ngram_weight,
         penalty=penalty,
         nbest=nbest,
+        normalize_length=normalize_length,
         streaming=streaming,
         enh_s2t_task=enh_s2t_task,
         multi_asr=multi_asr,
@@ -1093,6 +1097,12 @@ def get_parser():
         type=str,
         default=None,
         help="Prompt token file",
+    )
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
     return parser
 
