@@ -202,6 +202,10 @@ def _write_kaldi_files(
         ].drop_duplicates().sort_values(["id_fragments", "id_recordings"]).to_csv(
             output_dir / "segments", sep=" ", header=False, index=False
         )
+    # main table
+    df.to_csv(
+        output_dir / "main.tsv", sep="\t", header=False, index=False
+    )
     LOGGER.info("completed!")
 
 
