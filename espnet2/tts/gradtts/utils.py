@@ -1,9 +1,11 @@
 import torch
 
 
+# 生成序列掩码，对可变长度序列进行处理，掩码用于指示哪些位置是真实序列，哪些位置是填充
 def sequence_mask(length, max_length=None):
     if max_length is None:
         max_length = length.max()
+    # 生成一个从 0 到 max_length-1 的序列，数据类型与输入长度相同
     x = torch.arange(int(max_length), dtype=length.dtype, device=length.device)
     return x.unsqueeze(0) < length.unsqueeze(1)
 
