@@ -162,7 +162,10 @@ def _write_kaldi_files(
         .sort_values(["id_recordings"])
         .to_csv(output_dir / src_wav_scp_file, sep=" ", header=False, index=False)
     )
-    os.symlink(f"wav.scp.{src_lang}", str(output_dir / _WAV_SCP_FILE))
+    symlink_path_str: str = str(output_dir / _WAV_SCP_FILE)
+    if os.path.exists(symlink_path_str):
+        os.unlink(symlink_path_str)
+    os.symlink(f"wav.scp.{src_lang}", symlink_path_str)
     df["trans_audio_path"] = df["trans_id"].apply(
         lambda x: str(raw_data_dir / data_file_stem / f"{x}.wav")
     )
