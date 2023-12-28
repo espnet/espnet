@@ -11,10 +11,11 @@ import sys
 
 import pandas as pd
 
-if len(sys.argv) != 2:
-    print("Usage: python data_prep.py [root]")
+if len(sys.argv) != 3:
+    print("Usage: python data_prep.py [root] [transcript_folder]")
     sys.exit(1)
 root = sys.argv[1]
+transcript_folder = sys.argv[2]
 
 dir_dict = {
     "train": "slue-voxceleb_fine-tune.tsv",
@@ -35,6 +36,19 @@ for x in dir_dict:
         wav_scp_f.truncate()
         utt2spk_f.truncate()
         transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep="\t")
+        asr_transcript_file = open(os.path.join(transcript_folder,x,"text"))
+        asr_transcript_dict={}
+        for line in asr_transcript_file:
+            if len(line.split()) == 2:
+                text = "<blank>"
+            else:
+                text = line.split()[2].replace("▁", "")
+                for sub_word in line.split()[3:]:
+                    if "▁" in sub_word:
+                        text = text + " " + sub_word.replace("▁", "")
+                    else:
+                        text = text + sub_word
+            asr_transcript_dict[line.split()[0]] = text
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
             if x == "test":
@@ -65,3 +79,4 @@ for x in dir_dict:
             text_f.write(utt_id + " " + words + "\n")
             wav_scp_f.write(utt_id + " " + root + "/" + path + "\n")
             utt2spk_f.write(utt_id + " " + speaker + "\n")
+            transcript_f.write(utt_id + " " + asr_transcript_dict[utt_id]+ "\n")

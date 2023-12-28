@@ -15,6 +15,8 @@ SECONDS=0
 stage=1
 stop_stage=100000
 log "$0 $*"
+use_transcript=false
+transcript_folder=
 . utils/parse_options.sh
 
 . ./db.sh
@@ -42,7 +44,11 @@ fi
 if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     log "stage 2: Data Preparation"
     mkdir -p data/{train,devel,test}
-    python3 local/data_prep_slue.py ${VOXCELEB}
+    if ${use_transcript}; then
+        python3 local/data_prep_slue_transcript.py ${VOXCELEB} ${transcript_folder}
+    else
+        python3 local/data_prep_slue.py ${VOXCELEB}
+    fi
     for x in test devel train; do
         for f in text wav.scp utt2spk; do
             sort data/${x}/${f} -o data/${x}/${f}
