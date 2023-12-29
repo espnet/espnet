@@ -36,7 +36,7 @@ train_dev="dev"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
-    The KISING data should be downloaded
+    log "The KISING data should be downloaded"
 
     log "automatically download from google drive"
     ./download_wget.sh "1h4Tq8EiDeqUKQbFLWs2c5Ya1O4pBr2rr"  ${KISING}
