@@ -39,8 +39,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "The KISING data should be downloaded"
 
     log "automatically download from google drive"
-    ./download_wget.sh "1h4Tq8EiDeqUKQbFLWs2c5Ya1O4pBr2rr"  ${KISING}
-    ./download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz"  ${KISING}
+    ./download_wget.sh "1h4Tq8EiDeqUKQbFLWs2c5Ya1O4pBr2rr"  ${KISING}/kising-v2.zip
+    ./download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz"  ${KISING}/kising-v2-original.zip
 
     unzip ${KISING}/kising-v2.zip -d ${KISING}
     unzip ${KISING}/kising-v2-original.zip -d ${KISING}
