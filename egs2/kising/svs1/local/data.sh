@@ -42,8 +42,8 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     ./download_wget.sh "1h4Tq8EiDeqUKQbFLWs2c5Ya1O4pBr2rr"  ${KISING}/kising-v2.zip
     ./download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz"  ${KISING}/kising-v2-original.zip
 
-    unzip ${KISING}/kising-v2.zip -d ${KISING}
-    unzip ${KISING}/kising-v2-original.zip -d ${KISING}
+    unzip ${KISING}/kising-v2.zip -d ${KISING}/KISING
+    unzip ${KISING}/kising-v2-original.zip -d ${KISING}/KISING
     mv ${KISING}/clean ${KISING}/original
 fi
 
