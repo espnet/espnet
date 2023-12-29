@@ -64,7 +64,7 @@ for x in dir_dict:
                 "SEP",
             ]:
                 line = line.replace(word, "")
-            line = re.sub("\s+", " ", line)
+            line = re.sub(r"\s+", " ", line)
             asr_transcript_dict[line.split()[0]] = " ".join(line.strip().split()[1:])
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:

@@ -83,7 +83,7 @@ def process_line(line, label_F1=False):
                 if len(phrase_lst) > 0:
                     if "FILL" in phrase_lst:
                         phrase_lst.remove("FILL")
-                    if label_F1 == True:
+                    if label_F1 is True:
                         label_lst.append((entity_tag, "phrase"))
                     else:
                         label_lst.append((entity_tag, " ".join(phrase_lst)))
