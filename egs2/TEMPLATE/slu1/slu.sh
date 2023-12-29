@@ -744,6 +744,7 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
         fi
+
         # Create word-list for word-LM training
         if ${use_word_lm} && [ "${token_type}" != word ]; then
             log "Generate word level token_list from ${data_feats}/lm_train.txt"
@@ -759,6 +760,7 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
         fi
+
     fi
 else
     log "Skip the stages for data preparation"
