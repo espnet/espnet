@@ -115,7 +115,7 @@
 - SLU config: [conf/tuning/train_asr_bert.yaml](conf/tuning/train_asr_bert.yaml)
 - token_type: word
 - pretrained_model: exp/slu_train_asr_no_pretrain_raw_en_word_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave" 
+- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave"
 - use_transcript: true
 
 
@@ -127,7 +127,7 @@
 - SLU config: [conf/tuning/train_asr_deberta.yaml](conf/tuning/train_asr_deberta.yaml)
 - token_type: word
 - pretrained_model: exp/slu_train_asr_no_pretrain_raw_en_word_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave" 
+- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave"
 - use_transcript: true
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -138,7 +138,7 @@
 - SLU config: [conf/tuning/train_asr_bert_wavlm.yaml](conf/tuning/train_asr_bert_wavlm.yaml)
 - token_type: word
 - pretrained_model: exp/slu_train_asr_wavlm_raw_en_word_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave" 
+- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave"
 - use_transcript: true
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|
@@ -149,7 +149,7 @@
 - SLU config: [conf/tuning/train_asr_deberta_wavlm.yaml](conf/tuning/train_asr_deberta_wavlm.yaml)
 - token_type: word
 - pretrained_model: exp/slu_train_asr_wavlm_raw_en_word_sp/valid.acc.ave_10best.pth:encoder:encoder
-- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave" 
+- local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_word_sp/decode_asr_slu_model_valid.acc.ave"
 - use_transcript: true
 
 |dataset|Snt|Intent Classification Macro Recall (%)|Intent Classification Macro F1 (%)|

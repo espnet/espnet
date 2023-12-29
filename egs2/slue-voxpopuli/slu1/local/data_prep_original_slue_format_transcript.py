@@ -44,25 +44,34 @@ for x in dir_dict:
     ) as transcript_f, open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
         os.path.join("data", x, "utt2spk"), "w"
     ) as utt2spk_f:
-
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
         transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep="\t")
-        asr_transcript_file=open(os.path.join(transcript_folder,x,"text"),"r")
-        asr_transcript_arr=[line for line in asr_transcript_file]
-        asr_transcript_dict={}
+        asr_transcript_file = open(os.path.join(transcript_folder, x, "text"), "r")
+        asr_transcript_arr = [line for line in asr_transcript_file]
+        asr_transcript_dict = {}
         for line in asr_transcript_arr:
-            for word in ["PLACE","QUANT","ORG","WHEN","NORP","PERSON","LAW","FILL","SEP"]:
-                line=line.replace(word,"")
-            line=re.sub('\s+',' ',line)
-            asr_transcript_dict[line.split()[0]]=" ".join(line.strip().split()[1:])
+            for word in [
+                "PLACE",
+                "QUANT",
+                "ORG",
+                "WHEN",
+                "NORP",
+                "PERSON",
+                "LAW",
+                "FILL",
+                "SEP",
+            ]:
+                line = line.replace(word, "")
+            line = re.sub("\s+", " ", line)
+            asr_transcript_dict[line.split()[0]] = " ".join(line.strip().split()[1:])
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
             if str(row[3]) == "nan":
-                row[3]="None"
+                row[3] = "None"
             else:
-                row[3]=str(int(row[3]))
+                row[3] = str(int(row[3]))
             uttid = row[3] + "_" + row[0]
             speaker = row[3]
             if x == "train":

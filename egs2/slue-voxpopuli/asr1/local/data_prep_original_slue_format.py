@@ -48,9 +48,9 @@ for x in dir_dict:
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
             if str(row[3]) == "nan":
-                row[3]="None"
+                row[3] = "None"
             else:
-                row[3]=str(int(row[3]))
+                row[3] = str(int(row[3]))
             uttid = row[3] + "_" + row[0]
             speaker = row[3]
             if x == "train":

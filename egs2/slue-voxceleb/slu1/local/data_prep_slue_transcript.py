@@ -31,13 +31,12 @@ for x in dir_dict:
     ) as transcript_f, open(
         os.path.join("data", x, "utt2spk"), "w"
     ) as utt2spk_f:
-
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
         transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep="\t")
-        asr_transcript_file = open(os.path.join(transcript_folder,x,"text"))
-        asr_transcript_dict={}
+        asr_transcript_file = open(os.path.join(transcript_folder, x, "text"))
+        asr_transcript_dict = {}
         for line in asr_transcript_file:
             if len(line.split()) == 2:
                 text = "<blank>"
@@ -74,4 +73,4 @@ for x in dir_dict:
             text_f.write(utt_id + " " + words + "\n")
             wav_scp_f.write(utt_id + " " + root + "/" + path + "\n")
             utt2spk_f.write(utt_id + " " + speaker + "\n")
-            transcript_f.write(utt_id + " " + asr_transcript_dict[utt_id]+ "\n")
+            transcript_f.write(utt_id + " " + asr_transcript_dict[utt_id] + "\n")
