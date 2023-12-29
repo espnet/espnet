@@ -8,7 +8,7 @@
 - pytorch version: `pytorch 1.8.1+cu102`
 - Git hash: `6bf3c2a4f138d35331634d2e879bbc5c32a5266e`
   - Commit date: `Mon Dec 22 15:41:32 EST 2021`
-- Results only on Positive and Neutral class
+- Intent Classification results reported only on Positive and Neutral class
 
 
 ## Without pre-training
