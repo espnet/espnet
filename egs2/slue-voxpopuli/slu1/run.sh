@@ -7,9 +7,9 @@ set -o pipefail
 
 train_set="train"
 valid_set="devel"
-test_sets="train_sp"
+test_sets="test devel"
 
-slu_config=conf/tuning_wavlm/train_asr_conformer_lr5e-4_warmup5k_conv2d.yaml
+slu_config=conf/tuning/train_asr_no_pretrain.yaml
 inference_config=conf/decode_asr.yaml
 
 ./slu.sh \
@@ -17,8 +17,6 @@ inference_config=conf/decode_asr.yaml
     --ngpu 1 \
     --use_lm false \
     --token_type bpe \
-    --stage 12 \
-    --stop_stage 13 \
     --gpu_inference true \
     --nbpe 1000 \
     --bpe_nlsyms FILL,SEP,PLACE,QUANT,ORG,WHEN,NORP,PERSON,LAW \
@@ -32,5 +30,6 @@ inference_config=conf/decode_asr.yaml
     --train_set "${train_set}" \
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
-    --lm_train_text "data/${train_set}/text" \
+    --lm_train_text dump/raw/train_sp/text \
+    --lm_train_transcript dump/raw/train_sp/transcript \
     --bpe_train_text "data/${train_set}/text" "$@"

@@ -49,7 +49,6 @@ for x in dir_dict:
                     else:
                         text = text + sub_word
             asr_transcript_dict[line.split()[0]] = text
-        # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
             if x == "test":
                 speaker = row[1]
@@ -59,14 +58,11 @@ for x in dir_dict:
             else:
                 if row[4] == "<mixed>":
                     continue
-                # print(x)
-                # print(row)
                 words = (
                     row[4].replace(" ", "_")
                     + " "
                     + row[1].encode("ascii", "ignore").decode()
                 )
-                # print(words)
                 speaker = row[2]
             if x == "train":
                 path = "fine-tune_raw/" + row[0] + ".flac"
@@ -75,7 +71,6 @@ for x in dir_dict:
             else:
                 path = "test_raw/" + row[0] + ".flac"
             utt_id = row[0]
-            # print(utt_id + " " + words + "\n")
             text_f.write(utt_id + " " + words + "\n")
             wav_scp_f.write(utt_id + " " + root + "/" + path + "\n")
             utt2spk_f.write(utt_id + " " + speaker + "\n")

@@ -50,7 +50,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
         python3 local/data_prep_slue.py ${VOXCELEB}
     fi
     for x in test devel train; do
-        for f in text wav.scp utt2spk; do
+        for f in text wav.scp utt2spk transcript; do
             sort data/${x}/${f} -o data/${x}/${f}
         done
         utils/utt2spk_to_spk2utt.pl data/${x}/utt2spk > "data/${x}/spk2utt"

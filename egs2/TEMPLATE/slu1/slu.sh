@@ -727,24 +727,23 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${blank}:0" \
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
-            if "${use_transcript}"; then
-                ${python} -m espnet2.bin.tokenize_text  \
-                    --token_type "${token_type}" \
-                    --input "${data_feats}/lm_train_transcript.txt" --output "${transcript_token_list}" ${_opts} \
-                    --field 2- \
-                    --cleaner "${cleaner}" \
-                    --g2p "${g2p}" \
-                    --write_vocabulary true \
-                    --add_symbol "${blank}:0" \
-                    --add_symbol "${oov}:1" \
-                    --add_symbol "${sos_eos}:-1"
-            fi
-
         else
             log "Error: not supported --token_type '${token_type}'"
             exit 2
         fi
-
+        _opts="--non_linguistic_symbols ${nlsyms_txt}"
+        if "${use_transcript}"; then
+            ${python} -m espnet2.bin.tokenize_text  \
+                --token_type "word" \
+                --input "${data_feats}/lm_train_transcript.txt" --output "${transcript_token_list}" ${_opts} \
+                --field 2- \
+                --cleaner "${cleaner}" \
+                --g2p "${g2p}" \
+                --write_vocabulary true \
+                --add_symbol "${blank}:0" \
+                --add_symbol "${oov}:1" \
+                --add_symbol "${sos_eos}:-1"
+        fi
         # Create word-list for word-LM training
         if ${use_word_lm} && [ "${token_type}" != word ]; then
             log "Generate word level token_list from ${data_feats}/lm_train.txt"
@@ -760,7 +759,6 @@ if ! "${skip_data_prep}"; then
                 --add_symbol "${oov}:1" \
                 --add_symbol "${sos_eos}:-1"
         fi
-
     fi
 else
     log "Skip the stages for data preparation"
