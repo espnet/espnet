@@ -376,14 +376,6 @@ class SkaTdnnEncoder(AbsEncoder):
         else:
             raise ValueError(f"unsupported block, got: {ska_block}")
 
-        # downsample input size if it's too large
-        # for SSL frontends (otherwise SKA module consumes too much memory)
-        if input_size > 128:
-            self.input_downsample = nn.Conv1d(input_size, 128, kernel_size=1, stride=1)
-            input_size = 128
-        else:
-            self.input_downsample = None
-
         self.frt_conv1 = nn.Conv2d(
             1, ska_dim, kernel_size=(3, 3), stride=(2, 1), padding=1
         )
@@ -422,8 +414,6 @@ class SkaTdnnEncoder(AbsEncoder):
 
     def forward(self, x):
         x = x.permute(0, 2, 1)  # (B, S, D) -> (B, D, S)
-        if self.input_downsample is not None:
-            x = self.input_downsample(x)
         x = x.unsqueeze(1)  # (B, D, S) -> (B, 1, D, S)
 
         # the fcwSKA block
