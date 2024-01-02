@@ -2,7 +2,9 @@
 
 This is the recipe of ACESinger-augmented Opencpop recipe
 
-More details coming soon!
+[Download link](https://drive.google.com/file/d/1qHLW3U7a0z8FpWuaEUmY-LViBIwRmeM0/view?usp=drive_link)
+
+More details coming soon
 
 See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/svs1/README.md#how-to-run)
