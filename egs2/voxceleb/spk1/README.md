@@ -3,7 +3,7 @@
 Overall results
 | Model (conf name) | EER(%) | minDCF | Note | Huggingface |
 |---|---|---|---|---|
-| [conf/train_xvector.yaml](conf/train_xvector.yaml) | 1.81 | 0.1251 | | https://huggingface.co/espnet/voxcelebs12_xvector |
+| [conf/train_xvector.yaml](conf/train_xvector.yaml) | 1.81 | 0.1251 | | https://huggingface.co/espnet/voxcelebs12_xvector_mel |
 | [conf/train_rawnet3.yaml](conf/train_rawnet3.yaml) | 0.739 | 0.0581 | | https://huggingface.co/espnet/voxcelebs12_rawnet3 |
 | [conf/train_ECAPA_mel.yaml](conf/train_ECAPA_mel.yaml) | 0.978 | 0.0686 | | https://huggingface.co/espnet/voxcelebs12_ecapa_mel|
 | [conf/train_mfa_conformer.yaml](conf/train_mfa_conformer.yaml) | 0.951 | 0.0583 | | https://huggingface.co/espnet/voxcelebs12_mfaconformer_mel |
