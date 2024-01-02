@@ -104,7 +104,7 @@ class DiscreteLoss(torch.nn.Module):
             after_outs = (
                 after_outs.masked_select(out_masks) if after_outs is not None else None
             ).reshape(-1, dim)
-            p_masks =  make_non_pad_mask(plens).unsqueeze(-1).to(ys.device)
+            p_masks = make_non_pad_mask(plens).unsqueeze(-1).to(ys.device)
             if self.predict_pitch:
                 p_outs = p_outs.masked_select(p_masks)
                 ps = ps.masked_select(p_masks)
@@ -138,7 +138,9 @@ class DiscreteLoss(torch.nn.Module):
                 duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
             )
             if self.predict_pitch:
-                pitch_loss = pitch_loss.mul(pitch_weights).masked_select(out_masks).sum()
+                pitch_loss = (
+                    pitch_loss.mul(pitch_weights).masked_select(out_masks).sum()
+                )
 
         if self.predict_pitch:
             return CE_loss, duration_loss, pitch_loss

@@ -649,7 +649,9 @@ class XiaoiceSing(AbsSVS):
         if self.use_discrete_token:
             gen_token = torch.argmax(after_outs, dim=2)
             tokon_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
-            acc = ((gen_token == discrete_token) * token_mask).sum().item() / discrete_token_lengths.sum().item()
+            acc = (
+                (gen_token == discrete_token) * token_mask
+            ).sum().item() / discrete_token_lengths.sum().item()
             stats["acc"] = acc
 
         # report extra information
@@ -785,7 +787,7 @@ class XiaoiceSing(AbsSVS):
                 f0 = pitch
                 token_len = len(token) / layer
                 if len(f0) > len(token):
-                    f0 = f0[: token_len]
+                    f0 = f0[:token_len]
                 else:
                     f0 = F.pad(f0, (0, 0, 0, token_len - len(f0)), value=0)
             return dict(

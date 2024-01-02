@@ -597,7 +597,7 @@ if ! "${skip_data_prep}"; then
                 --cpu_cmd "${train_cmd}" \
                 --cuda_cmd "${cuda_cmd}" \
                 ${kmeans_opts}
-        fi 
+        fi
         if [ ${kmeans_feature_type} != "multi" ]; then
             for dset in "${train_set}" "${valid_set}" ${test_sets}; do
                 _dump_dir="${data_extract}/${kmeans_feature_type}/layer${layer}/${dset}"
@@ -1037,7 +1037,7 @@ if ! "${skip_train}"; then
         else
             jobname="${svs_exp}/train.log"
         fi
-        
+
         _opts+="--discrete_token_layers ${discrete_token_layers} "
 
         # shellcheck disable=SC2086
@@ -1151,7 +1151,7 @@ if ! "${skip_eval}"; then
             if "${use_lid}"; then
                 _ex_opts+="--data_path_and_name_and_type ${_data}/utt2lid,lids,text_int "
             fi
-            
+
             _opts+="--discrete_token_layers ${discrete_token_layers} "
             _opts+="--mix_type ${mix_type} "
 

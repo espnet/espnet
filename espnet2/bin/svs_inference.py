@@ -219,9 +219,13 @@ class SingingGenerate:
                 input_feat = output_dict["feat_gen_denorm"]
             if self.discrete_token_layers > 1:
                 if self.mix_type == "frame":
-                    input_feat = input_feat.view(-1, self.discrete_token_layers) #[:,[1,0]]
+                    input_feat = input_feat.view(
+                        -1, self.discrete_token_layers
+                    )  # [:,[1,0]]
                 elif self.mix_type == "sequence":
-                    input_feat = input_feat.view(self.discrete_token_layers, -1).transpose(0, 1)
+                    input_feat = input_feat.view(
+                        self.discrete_token_layers, -1
+                    ).transpose(0, 1)
             if "pitch" in output_dict:
                 assert len(output_dict["pitch"].shape) == 1, "pitch shape must be (T,)."
                 wav = self.vocoder(input_feat, output_dict["pitch"])
@@ -681,7 +685,7 @@ def get_parser():
         "--mix_type",
         type=str,
         default="frame",
-        help="multi token mix type, 'sequence' or 'frame'."
+        help="multi token mix type, 'sequence' or 'frame'.",
     )
 
     return parser

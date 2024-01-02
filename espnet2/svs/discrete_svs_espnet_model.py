@@ -174,7 +174,9 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                             duration_phn[i][end] = new
             feats = feats[:, : feats_lengths.max()]
             """
-            origin_discrete_token_lengths = discrete_token_lengths // self.discrete_token_layers
+            origin_discrete_token_lengths = (
+                discrete_token_lengths // self.discrete_token_layers
+            )
             for i in range(label.size(0)):
                 dur_len = sum(duration_phn[i])
                 if origin_discrete_token_lengths[i] > dur_len:
@@ -193,7 +195,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                         else:  # stop
                             delta -= duration_phn[i][end] - new
                             duration_phn[i][end] = new
-#            discrete_token = discrete_token[:, : discrete_token_lengths.max()]
+            #            discrete_token = discrete_token[:, : discrete_token_lengths.max()]
 
             if isinstance(self.score_feats_extract, FrameScoreFeats):
                 (
@@ -361,7 +363,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             batch.update(
                 discrete_token=discrete_token,
                 discrete_token_lengths=discrete_token_lengths,
-                discrete_token_lengths_frame=origin_discrete_token_lengths
+                discrete_token_lengths_frame=origin_discrete_token_lengths,
             )
 
         return self.svs(**batch)
@@ -459,13 +461,15 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                         duration_phn[i][end] = new
         feats = feats[:, : feats_lengths.max()]
         """
-        origin_discrete_token_lengths = discrete_token_lengths // self.discrete_token_layers
+        origin_discrete_token_lengths = (
+            discrete_token_lengths // self.discrete_token_layers
+        )
         for i in range(label.size(0)):
             dur_len = sum(duration_phn[i])
             if origin_discrete_token_lengths[i] > dur_len:
-                    delta = origin_discrete_token_lengths[i] - dur_len
-                    end = duration_phn_lengths[i] - 1
-                    duration_phn[i][end] += delta
+                delta = origin_discrete_token_lengths[i] - dur_len
+                end = duration_phn_lengths[i] - 1
+                duration_phn[i][end] += delta
             else:  # decrease duration at the end of sequence
                 delta = dur_len - origin_discrete_token_lengths[i]
                 end = duration_phn_lengths[i] - 1
@@ -478,7 +482,7 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
                     else:  # stop
                         delta -= duration_phn[i][end] - new
                         duration_phn[i][end] = new
-#        discrete_token = discrete_token[:, : discrete_token_lengths.max()]
+        #        discrete_token = discrete_token[:, : discrete_token_lengths.max()]
 
         if self.pitch_extract is not None:
             pitch, pitch_lengths = self.pitch_extract(
@@ -644,7 +648,9 @@ class ESPnetDiscreteSVSModel(ESPnetSVSModel):
             # if self.svs.require_raw_singing:
             #     input_dict.update(singing=singing)
 
-        origin_discrete_token_lengths = len(discrete_token) // self.discrete_token_layers
+        origin_discrete_token_lengths = (
+            len(discrete_token) // self.discrete_token_layers
+        )
         if decode_config["use_teacher_forcing"]:
             if self.pitch_extract is not None:
                 pitch = self.pitch_extract(
