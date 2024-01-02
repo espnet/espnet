@@ -91,6 +91,7 @@ JSSS=downloads
 JSUT=downloads
 JTUBESPEECH=downloads
 JVS=downloads
+KISING=downloads
 KSC=downloads
 KSS=
 QASR_TTS=downloads

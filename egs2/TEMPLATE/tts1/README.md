@@ -523,6 +523,10 @@ You can find the example configs in:
 - [`egs2/vctk/tts1/conf/tuning/train_full_band_multi_spk_vits.yaml`: Multi speaker with SID 44.1 khz config](../../vctk/tts1/conf/tuning/train_full_band_multi_spk_vits.yaml).
 - [`egs2/libritts/tts1/conf/tuning/train_xvector_vits.yaml`: Multi speaker with X-vector 22.05 khz config](../../libritts/tts1/conf/tuning/train_xvector_vits.yaml).
 
+During VITS and JETS training, you can monitor pseudo MOS values predicted by a MOS prediction model.
+You can enable it by setting `tts_conf.plot_pred_mos: true` in training configs.
+Take a look at `egs2/ljspeech/tts1/conf/tuning/train_vits.yaml` to see how to set the flag.
+
 ### Joint text2wav training
 
 Joint training enables us to train both text2mel and vocoder model jointly with GAN-based training.
@@ -637,6 +641,11 @@ cd egs2/<recipe_name>/tts1
 ./pyscripts/utils/evaluate_f0.py \
     --f0min xxx \
     --f0max yyy \
+    exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
+    dump/raw/eval1/wav.scp
+
+# Evaluate with automatic MOS prediction models.
+./pyscripts/utils/evaluate_pseudomos.py \
     exp/<model_dir_name>/<decode_dir_name>/eval1/wav/wav.scp \
     dump/raw/eval1/wav.scp
 
