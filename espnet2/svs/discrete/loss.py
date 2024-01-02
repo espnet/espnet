@@ -72,6 +72,7 @@ class DiscreteLoss(torch.nn.Module):
         olens: torch.Tensor,
         p_outs: torch.Tensor = None,
         ps: torch.Tensor = None,
+        plens: torch.Tensor = None,
     ):
         """Calculate forward propagation.
 
@@ -103,9 +104,10 @@ class DiscreteLoss(torch.nn.Module):
             after_outs = (
                 after_outs.masked_select(out_masks) if after_outs is not None else None
             ).reshape(-1, dim)
+            p_masks =  make_non_pad_mask(plens).unsqueeze(-1).to(ys.device)
             if self.predict_pitch:
-                p_outs = p_outs.masked_select(out_masks)
-                ps = ps.masked_select(out_masks)
+                p_outs = p_outs.masked_select(p_masks)
+                ps = ps.masked_select(p_masks)
             out_masks = make_non_pad_mask(olens).to(ys.device)
             ys = ys.masked_select(out_masks)
 
@@ -127,6 +129,8 @@ class DiscreteLoss(torch.nn.Module):
                 duration_masks.float() / duration_masks.sum(dim=1, keepdim=True).float()
             )
             duration_weights /= ds.size(0)
+            pitch_weights = p_masks.float() / p_masks.sum(dim=1, keepdim=True).float()
+            pitch_weights /= ps.size(0) * ps.size(2)
 
             # apply weight
             l1_loss = l1_loss.mul(out_weights).masked_select(out_masks).sum()
@@ -134,7 +138,7 @@ class DiscreteLoss(torch.nn.Module):
                 duration_loss.mul(duration_weights).masked_select(duration_masks).sum()
             )
             if self.predict_pitch:
-                pitch_loss = pitch_loss.mul(out_weights).masked_select(out_masks).sum()
+                pitch_loss = pitch_loss.mul(pitch_weights).masked_select(out_masks).sum()
 
         if self.predict_pitch:
             return CE_loss, duration_loss, pitch_loss

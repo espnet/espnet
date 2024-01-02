@@ -184,7 +184,7 @@ class XiaoiceSing(AbsSVS):
             lambda_pitch (float): Loss scaling coefficient for pitch loss.
             lambda_vuv (float): Loss scaling coefficient for VUV loss.
             use_discrete_token (bool): Whether to use discrete tokens as targets.
-            predict_pitch (bool): Whether to predict pitch when use_discrete_tokens.
+            predict_pitch (bool): Whether to predict pitch when use_discrete_token.
 
         """
         assert check_argument_types()
@@ -446,6 +446,7 @@ class XiaoiceSing(AbsSVS):
         joint_training: bool = False,
         discrete_token: torch.Tensor = None,
         discrete_token_lengths: torch.Tensor = None,
+        discrete_token_lengths_frame: torch.Tensor = None,
         flag_IsValid=False,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
         """Calculate forward propagation.
@@ -495,10 +496,10 @@ class XiaoiceSing(AbsSVS):
         else:
             label = label["score"]
             midi = melody["score"]
-            duration_ = duration["score_phn"]
+            duration_ = duration["lab"]
             label_lengths = label_lengths["score"]
             midi_lengths = melody_lengths["score"]
-            duration_lengths = duration_lengths["score_phn"]
+            duration_lengths = duration_lengths["lab"]
             ds = duration["lab"]
 
         feats = feats[:, : feats_lengths.max()]  # for data-parallel
@@ -539,7 +540,7 @@ class XiaoiceSing(AbsSVS):
 
         # forward decoder
         if self.use_discrete_token:
-            olens = discrete_token_lengths
+            olens = discrete_token_lengths_frame
         else:
             olens = feats_lengths
         if self.reduction_factor > 1:
@@ -556,7 +557,7 @@ class XiaoiceSing(AbsSVS):
         zs, _ = self.decoder(hs, h_masks)  # (B, T_feats, adim)
         # (B. T_feats, odim), (B. T_feats, 1), (B. T_feats, 1)
         before_outs = self.linear_projection(zs).view(
-            zs.size(0), -1, self.odim
+            zs.size(0), -1, 1025
         )  # (B, T_feats, odim)
         if self.loss_function == "XiaoiceSing2" or self.use_discrete_token:
             log_f0_outs = self.pitch_predictor(zs).view(
@@ -608,6 +609,7 @@ class XiaoiceSing(AbsSVS):
                 olens,
                 log_f0_outs,
                 log_f0,
+                pitch_lengths,
             )
         else:
             if self.loss_function == "FastSpeech1":
@@ -641,8 +643,14 @@ class XiaoiceSing(AbsSVS):
         if self.loss_function == "XiaoiceSing2":
             vuv_loss = vuv_loss * self.lambda_vuv
             stats["vuv_loss"] = vuv_loss.item()
-            loss += +vuv_loss
+            loss += vuv_loss
         stats["loss"] = loss.item()
+
+        if self.use_discrete_token:
+            gen_token = torch.argmax(after_outs, dim=2)
+            tokon_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
+            acc = ((gen_token == discrete_token) * token_mask).sum().item() / discrete_token_lengths.sum().item()
+            stats["acc"] = acc
 
         # report extra information
         if self.encoder_type == "transformer" and self.use_scaled_pos_enc:
@@ -754,7 +762,7 @@ class XiaoiceSing(AbsSVS):
 
         # (B, T_feats, odim), (B, T_feats, 1), (B, T_feats, 1)
         before_outs = self.linear_projection(zs).view(
-            zs.size(0), -1, self.odim
+            zs.size(0), -1, 1025
         )  # (B, T_feats, odim)
         if self.predict_pitch:
             log_f0_outs = self.pitch_predictor(zs).view(zs.size(0), -1, 1)
@@ -772,12 +780,14 @@ class XiaoiceSing(AbsSVS):
             token = after_outs[0]
             f0 = log_f0_outs[0]
             if use_teacher_forcing:
+                layer = len(discrete_token) / len(pitch)
                 token = discrete_token.unsqueeze(-1)
                 f0 = pitch
+                token_len = len(token) / layer
                 if len(f0) > len(token):
-                    f0 = f0[: len(token)]
+                    f0 = f0[: token_len]
                 else:
-                    f0 = F.pad(f0, (0, 0, 0, len(token) - len(f0)), value=0)
+                    f0 = F.pad(f0, (0, 0, 0, token_len - len(f0)), value=0)
             return dict(
                 feat_gen=token,
                 prob=None,

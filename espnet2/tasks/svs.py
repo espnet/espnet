@@ -282,6 +282,12 @@ class SVSTask(AbsTask):
             default=24000,  # BUG: another fs in feats_extract_conf
             help="sample rate",
         )
+        parser.add_argument(
+            "--discrete_token_layers",
+            type=int,
+            default=1,
+            help="layers of discrete tokens",
+        )
 
         for class_choices in cls.class_choices_list:
             # Append --<name> and --<name>_conf.
@@ -397,6 +403,7 @@ class SVSTask(AbsTask):
 
         if args.model_type == "discrete_svs":
             odim = 1024 + 1
+            odim = odim * args.discrete_token_layers
 
         # 2. Normalization layer
         if args.normalize is not None:
@@ -416,6 +423,7 @@ class SVSTask(AbsTask):
         energy_extract = None
         pitch_normalize = None
         energy_normalize = None
+        discrete_token_layers = 1
         logging.info(f"args:{args}")
         if getattr(args, "score_feats_extract", None) is not None:
             score_feats_extract_class = score_feats_extractor_choices.get_class(
@@ -466,6 +474,8 @@ class SVSTask(AbsTask):
                 args.energy_normalize
             )
             energy_normalize = energy_normalize_class(**args.energy_normalize_conf)
+        if getattr(args, "discrete_token_layers", None) is not None:
+            discrete_token_layers = args.discrete_token_layers
 
         # 5. Build model
         if args.model_type == "svs":
@@ -497,6 +507,7 @@ class SVSTask(AbsTask):
                 normalize=normalize,
                 pitch_normalize=pitch_normalize,
                 energy_normalize=energy_normalize,
+                discrete_token_layers=discrete_token_layers,
                 svs=svs,
                 **args.model_conf,
             )
