@@ -173,17 +173,17 @@ class ScoreModel(AbsDiffusion):
         """Enhance function.
 
         Args:
-            noisy_specturm (torch.Tensor): noisy feature in [Batch, T, F] 
-            sampler_type (str): sampler, 'pc' for Predictor-Corrector and 'ode' for ODE 
-                                sampler 
-            predictor (str): the name of Predictor. 'reverse_diffusion', 
+            noisy_specturm (torch.Tensor): noisy feature in [Batch, T, F]
+            sampler_type (str): sampler, 'pc' for Predictor-Corrector and 'ode' for ODE
+                                sampler.
+            predictor (str): the name of Predictor. 'reverse_diffusion',
                             'euler_maruyama', or 'none'
             corrector (str): the name of Corrector. 'langevin', 'ald' or 'none'
-            N (int): The number of reverse sampling steps. 
+            N (int): The number of reverse sampling steps.
             corrector_steps (int) : number of steps in the Corrector.
             snr (float): The SNR to use for the corrector.
         Returns:
-            X_Hat (torch.Tensor): enhanced feature in [Batch, T, F] 
+            X_Hat (torch.Tensor): enhanced feature in [Batch, T, F]
         """
         Y = noisy_specturm.permute(0, 2, 1).unsqueeze(1)
         if sampler_type == "pc":

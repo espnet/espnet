@@ -6,7 +6,6 @@ from torch import Tensor
 from espnet2.enh.diffusion.score_based_diffusion import ScoreModel
 
 
-
 def test_score_based_diffusion_forward_backward_dcunet():
     parameters = {
         "score_model": "dcunet",
