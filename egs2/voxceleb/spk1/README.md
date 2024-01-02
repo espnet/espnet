@@ -9,7 +9,7 @@ Overall results
 | [conf/train_mfa_conformer.yaml](conf/train_mfa_conformer.yaml) | 0.951 | 0.0583 | | https://huggingface.co/espnet/voxcelebs12_mfaconformer_mel |
 | [conf/train_SKA_mel.yaml](conf/train_SKA_mel.yaml) | 0.755 | 0.0472 | | https://huggingface.co/espnet/voxcelebs12_ska_mel |
 | [conf/train_ECAPA_wavlm_frozen.yaml](conf/train_ECAPA_wavlm_frozen.yaml) | 0.606 | 0.0446 | ECAPA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_frozen|
-| [conf/train_ECAPA_wavlm_joint.yaml](conf/train_ECAPA_wavlm_joint.yaml) | 0.425 | 0.041 | ECAPA-TDNN w/ Jointly fine-tuned WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_wavlm_joint |
+| [conf/train_ECAPA_wavlm_joint.yaml](conf/train_ECAPA_wavlm_joint.yaml) | 0.394 | 0.0379 | ECAPA-TDNN w/ Jointly fine-tuned WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_wavlm_joint |
 | [conf/train_SKA_wavlm_frozen.yaml](conf/train_SKA_wavlm_frozen.yaml) | 0.564 | 0.0548 | SKA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ska_wavlm_frozen |
 | [conf/train_SKA_wavlm_joint.yaml](conf/train_SKA_wavlm_joint.yaml) |  |  | SKA-TDNN w/ Jointly fine-tuned WavLM | https://huggingface.co/espnet/voxcelebs12_ska_wavlm_joint |
 
