@@ -31,6 +31,8 @@ skip_stages=          # Spicify the stage to be skipped
 skip_data_prep=false  # Skip data preparation stages.
 skip_train=false      # Skip training stages.
 skip_eval=false       # Skip decoding and evaluation stages.
+skip_upload_hf=true   # Skip uploading to hugging face stages.
+
 eval_valid_set=false  # Run decoding for the validation set
 ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1           # The number of nodes.
@@ -71,9 +73,14 @@ score_norm=false      # Apply score normalization in inference.
 qmf_func=false        # Apply quality measurement based calibration in inference.
 
 # [Task dependent] Set the datadir name created by local/data.sh
-train_set=       # Name of training set.
-valid_set=       # Name of validation set used for monitoring/tuning network training.
-test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
+train_set=        # Name of training set.
+valid_set=        # Name of validation set used for monitoring/tuning network training.
+test_sets=        # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
+lang=multilingual # The language type of corpus.
+
+
+# Upload model related
+hf_repo=
 
 help_message=$(cat <<EOF
 Usage: $0 --train-set "<train_set_name>" --valid-set "<valid_set_name>" --test_sets "<test_set_names>"
@@ -86,6 +93,8 @@ Options:
     skip_data_prep=false  # Skip data preparation stages.
     skip_train=false      # Skip training stages.
     skip_eval=false       # Skip decoding and evaluation stages.
+    skip_upload_hf        # Skip packing and uploading stages (default="${skip_upload_hf}").
+
     eval_valid_set=false  # Run decoding for the validation set
     ngpu=1                # The number of gpus ("0" uses cpu, otherwise use gpu).
     num_nodes=1           # The number of nodes.
@@ -123,9 +132,13 @@ Options:
     qmf_func=false        # Apply quality measurement based calibration in inference.
 
     # [Task dependent] Set the datadir name created by local/data.sh
-    train_set=       # Name of training set.
-    valid_set=       # Name of validation set used for monitoring/tuning network training.
-    test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
+    train_set=        # Name of training set.
+    valid_set=        # Name of validation set used for monitoring/tuning network training.
+    test_sets=        # Names of test sets. Multiple items (e.g., both dev and eval sets) can be specified.
+    lang=multilingual # The language type of corpus.
+
+    # Upload model related
+    hf_repo=          # The huggingface repository directory
 
 EOF
 )
@@ -179,7 +192,11 @@ fi
 
 # Determine which stages to skip
 if "${skip_data_prep}"; then
-    skip_stages+="1 2"
+    skip_stages+="1 2 "
+fi
+
+if "${skip_upload_hf}"; then
+    skip_stages+="9 10 "
 fi
 
 skip_stages=$(echo "${skip_stages}" | tr ' ' '\n' | sort -nu | tr '\n' ' ')
@@ -597,7 +614,70 @@ if [ ${stage} -le 8 ] && [ ${stop_stage} -ge 8 ]; then
     log "calculate score with ${score_dir}"
     ${python} pyscripts/utils/calculate_eer_mindcf.py ${score_dir} ${infer_exp}/${test_sets}_metrics
 
-    cat $(cat ${infer_exp}/${test_sets}_metrics)
+    # Show results in Markdown syntax
+    ${python} scripts/utils/show_spk_result.py "${infer_exp}/${test_sets}_metrics" "${spk_exp}"/RESULTS.md $(echo ${spk_config} | cut -d'.' -f1)
+    cat "${spk_exp}"/RESULTS.md
 fi
 
-#TODO (Jee-weon): add model upload and result generation stages.
+packed_model="${spk_exp}/${spk_exp##*/}_${inference_model%.*}.zip"
+if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " =~ [[:space:]]9[[:space:]] ]]; then
+    log "Stage 9: Pack model: ${packed_model}"
+
+    # shellcheck disable=SC2086
+    ${python} -m espnet2.bin.pack spk \
+        --train_config "${spk_exp}"/config.yaml \
+        --model_file "${spk_exp}"/"${inference_model}" \
+        --option "${spk_exp}"/RESULTS.md \
+        --option "${spk_exp}"/images \
+        --outpath "${packed_model}"
+fi
+
+if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~ [[:space:]]10[[:space:]] ]]; then
+    log "Stage 10: Upload model to HuggingFace: ${hf_repo}"
+    [ -z "${hf_repo}" ] && \
+        log "ERROR: You need to setup the variable hf_repo with the name of the repository located at HuggingFace, follow the following steps described here https://github.com/espnet/espnet/blob/master/CONTRIBUTING.md#132-espnet2-recipes" && \
+    exit 1
+
+    gitlfs=$(git lfs --version 2> /dev/null || true)
+    [ -z "${gitlfs}" ] && \
+        log "ERROR: You need to install git-lfs first" && \
+        exit 1
+
+    dir_repo=${expdir}/hf_${hf_repo//"/"/"_"}
+    [ ! -d "${dir_repo}" ] && git clone https://huggingface.co/${hf_repo} ${dir_repo}
+
+    if command -v git &> /dev/null; then
+        _creator_name="$(git config user.name)"
+        _checkout="git checkout $(git show -s --format=%H)"
+    else
+        _creator_name="$(whoami)"
+        _checkout=""
+    fi
+    # /some/where/espnet/egs2/foo/spk1/ -> foo/spk1
+    _task="$(pwd | rev | cut -d/ -f2 | rev)"
+    # foo/asr1 -> foo
+    _corpus="${_task%/*}"
+    _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
+
+    # copy files in ${dir_repo}
+    unzip -o ${packed_model} -d ${dir_repo}
+    # Generate description file
+    # shellcheck disable=SC2034
+    hf_task=speaker-recognition
+    # shellcheck disable=SC2034
+    espnet_task=SPK
+    # shellcheck disable=SC2034
+    task_exp=${spk_exp}
+    eval "echo \"$(cat scripts/utils/TEMPLATE_HF_Readme.md)\"" > "${dir_repo}"/README.md
+
+    this_folder=${PWD}
+    cd ${dir_repo}
+    if [ -n "$(git status --porcelain)" ]; then
+        git add .
+        git commit -m "Update model"
+    fi
+    git push
+    cd ${this_folder}
+fi
+
+log "Successfully finished. [elapsed=${SECONDS}s]"
