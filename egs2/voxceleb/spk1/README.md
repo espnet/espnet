@@ -3,11 +3,15 @@
 Overall results
 | Model (conf name) | EER(%) | minDCF | Note | Huggingface |
 |---|---|---|---|---|
+| [conf/train_xvector.yaml](conf/train_xvector.yaml) | 1.81 | 0.1251 | | https://huggingface.co/espnet/voxcelebs12_xvector |
 | [conf/train_rawnet3.yaml](conf/train_rawnet3.yaml) | 0.739 | 0.0581 | | https://huggingface.co/espnet/voxcelebs12_rawnet3 |
-| [conf/train_ECAPA_mel.yaml](conf/train_ECAPA_mel.yaml) | 0.978 | 0.0686 | | |
-| [conf/train_mfa_conformer.yaml](conf/train_mfa_conformer.yaml) | 0.951 | 0.0583 | | |
-| [conf/train_ECAPA_wavlm_frozen.yaml](conf/train_ECAPA_wavlm_frozen.yaml) | 0.606 | 0.0446 | ECAPA-TDNN w/ Frozen WavLM | |
-| [conf/train_ECAPA_wavlm_joint.yaml](conf/train_ECAPA_wavlm_joint.yaml) | 0.425 | 0.041 | ECAPA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_wavlm_joint |
+| [conf/train_ECAPA_mel.yaml](conf/train_ECAPA_mel.yaml) | 0.978 | 0.0686 | | https://huggingface.co/espnet/voxcelebs12_ecapa_mel|
+| [conf/train_mfa_conformer.yaml](conf/train_mfa_conformer.yaml) | 0.951 | 0.0583 | | https://huggingface.co/espnet/voxcelebs12_mfaconformer_mel |
+| [conf/train_SKA_mel.yaml](conf/train_SKA_mel.yaml) | 0.755 | 0.0472 | | https://huggingface.co/espnet/voxcelebs12_ska_mel |
+| [conf/train_ECAPA_wavlm_frozen.yaml](conf/train_ECAPA_wavlm_frozen.yaml) | 0.606 | 0.0446 | ECAPA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_frozen|
+| [conf/train_ECAPA_wavlm_joint.yaml](conf/train_ECAPA_wavlm_joint.yaml) | 0.425 | 0.041 | ECAPA-TDNN w/ Jointly fine-tuned WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_wavlm_joint |
+| [conf/train_SKA_wavlm_frozen.yaml](conf/train_SKA_wavlm_frozen.yaml) | 0.564 | 0.0548 | SKA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ska_wavlm_frozen |
+| [conf/train_SKA_wavlm_joint.yaml](conf/train_SKA_wavlm_joint.yaml) |  |  | SKA-TDNN w/ Jointly fine-tuned WavLM | https://huggingface.co/espnet/voxcelebs12_ska_wavlm_joint |
 
 ## Environments - conf/train_rawnet3.yaml
 date: 2023-11-21 14:02:42.314875
