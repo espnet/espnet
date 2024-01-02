@@ -96,6 +96,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.separator = separator
         self.decoder = decoder
         self.mask_module = mask_module
+        # set num_spk to -1 if None for compatibility with `espnet2.enh.diffusion_enh`
         self.num_spk = separator.num_spk if separator is not None else -1
         # If True, self.num_spk is regarded as the MAXIMUM possible number of speakers
         self.flexible_numspk = flexible_numspk

@@ -44,7 +44,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         )
 
         self.encoder = encoder
-        self.difussion = diffusion
+        self.diffusion = diffusion
         self.decoder = decoder
 
         # TODO: Extending the model to separation tasks.
@@ -128,7 +128,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
             normfac = feature_mix.abs().max() * 1.1 + 1e-5
             feature_mix = feature_mix / normfac
 
-        return self.difussion.enhance(feature_mix)
+        return self.diffusion.enhance(feature_mix)
 
     def forward_loss(
         self,
@@ -140,7 +140,7 @@ class ESPnetDiffusionModel(ESPnetEnhancementModel):
         feature_ref, flens = self.encoder(speech_ref[0], speech_lengths)
 
         stats = {}
-        loss = self.difussion(feature_ref=feature_ref, feature_mix=feature_mix)
+        loss = self.diffusion(feature_ref=feature_ref, feature_mix=feature_mix)
         stats["loss"] = loss.detach()
         batch_size = speech_ref[0].shape[0]
         loss, stats, weight = force_gatherable((loss, stats, batch_size), loss.device)

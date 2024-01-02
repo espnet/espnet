@@ -46,8 +46,11 @@ class STFTDecoder(AbsDecoder):
         self.default_fs = default_fs
 
         # spec transform related
+        # spec_transform_type: "exponent", "log", or "none"
         self.spec_transform_type = spec_transform_type
+        # the output specturm will be scaled with: spec * self.spec_factor
         self.spec_factor = spec_factor
+        # the exponent factor used in the "exponent" transform
         self.spec_abs_exponent = spec_abs_exponent
 
     @torch.cuda.amp.autocast(enabled=False)
