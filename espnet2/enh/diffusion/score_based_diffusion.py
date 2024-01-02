@@ -153,6 +153,7 @@ class ScoreModel(AbsDiffusion):
         perturbed_data = mean + sigmas * z
 
         score = self.score_fn(perturbed_data, t, y)
+        assert score.shape == x.shape, "Check the output shape of the score_fn."
         err = score * sigmas + z
         loss = self._loss(err)
 
