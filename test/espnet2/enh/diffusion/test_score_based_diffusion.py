@@ -58,7 +58,7 @@ def test_score_based_diffusion_forward_backward_ncsnpp():
 
 
 @pytest.mark.execution_timeout(20)
-@pytest.mark.parametrize("sampler_type", ['pc', 'ode'])
+@pytest.mark.parametrize("sampler_type", ["pc", "ode"])
 @pytest.mark.skipif(not is_torch_1_12_1_plus, reason="torch.complex32 is used")
 def test_score_based_diffusion_sampling(sampler_type):
     parameters = {
