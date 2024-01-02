@@ -54,7 +54,7 @@ def test_score_based_diffusion_forward_backward_ncsnpp():
 
 
 @pytest.mark.execution_timeout(20)
-@pytest.mark.parametrize("sampler_type", ['pc', 'ode'])
+@pytest.mark.parametrize("sampler_type", ["pc", "ode"])
 def test_score_based_diffusion_sampling(sampler_type):
     parameters = {
         "score_model": "ncsnpp",

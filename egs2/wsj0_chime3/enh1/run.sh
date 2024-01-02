@@ -17,4 +17,3 @@ test_sets="test "
     --ref_num 1 \
     --enh_config conf/tuning/train_enh_sgmse_ncsnpp.yaml \
     "$@"
-
