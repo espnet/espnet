@@ -1,3 +1,7 @@
+import urllib.request
+from pathlib import Path
+
+import numpy as np
 import pytest
 import torch
 
@@ -27,3 +31,30 @@ def test_get_polyfit_val_consistency(is_personalized_MOS):
     torch.testing.assert_close(mos_sig1, torch.as_tensor(mos_sig2).float())
     torch.testing.assert_close(mos_bak1, torch.as_tensor(mos_bak2).float())
     torch.testing.assert_close(mos_ovr1, torch.as_tensor(mos_ovr2).float())
+
+
+@pytest.fixture()
+def test_model_consistency(tmp_path: Path):
+    url = "https://github.com/microsoft/DNS-Challenge/raw/master/DNSMOS/DNSMOS/sig_bak_ovr.onnx"
+    urllib.request.urlretrieve(url, str(tmp_path / "sig_bak_ovr.onnx"))
+    url = "https://github.com/microsoft/DNS-Challenge/raw/master/DNSMOS/DNSMOS/model_v8.onnx"
+    urllib.request.urlretrieve(url, str(tmp_path / "model_v8.onnx"))
+
+    dnsmos_th = DNSMOS_local(
+        tmp_path / "sig_bak_ovr.onnx",
+        tmp_path / "model_v8.onnx",
+        use_gpu=False,
+        convert_to_torch=True,
+    )
+    dnsmos_onnx = DNSMOS_local(
+        tmp_path / "sig_bak_ovr.onnx",
+        tmp_path / "model_v8.onnx",
+        use_gpu=False,
+        convert_to_torch=False,
+    )
+    fs = 32000
+    speech = torch.randn(fs // 2)
+    ret_th = dnsmos_th(speech.numpy(), fs)
+    ret_onnx = dnsmos_onnx(speech, fs)
+    for k in ret_th.keys():
+        np.testing.assert_allclose(ret_th[k], ret_onnx[k])
