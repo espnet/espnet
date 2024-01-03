@@ -6,7 +6,7 @@ Details to be updated.
 ## Results
 We list results from different models on svs2.
 
-| Token type                                             | MCD | f0   | wavs   |
+| Token type                                             | MCD | f0rmse   | wavs   |
 | ------------------------------------------------- | ---- | ----- | ----- |
 | [HuBert](https://arxiv.org/pdf/2106.07447.pdf)   | 8.51 | 0.18 | [Results](https://github.com/A-Quarter-Mile/SVS2-Results/tree/main/HuBERT/wav) |
 | [WavLM](https://arxiv.org/pdf/2110.13900.pdf)  | 8.47 | 0.18 | [Results](https://github.com/A-Quarter-Mile/SVS2-Results/tree/main/WavLM/wav) |
