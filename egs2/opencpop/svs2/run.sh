@@ -18,7 +18,7 @@ kmeans_feature=""
 # "wavlm_large/6" | "encodec/1" | "xls_r_300m/6", use model_type/layer_index
 multi_token=""
 # "wav_large_1024_6 xls_r_330m_1024_6", use prepared 'model_type_nclusters_layer_index' tokens
-mix_type="frame" 
+mix_type="frame"
 # frame | sequencee
 nclusters=1024
 
