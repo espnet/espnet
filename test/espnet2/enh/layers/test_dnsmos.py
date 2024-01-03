@@ -35,9 +35,9 @@ def test_get_polyfit_val_consistency(is_personalized_MOS):
 
 @pytest.fixture()
 def test_model_consistency(tmp_path: Path):
-    url = "https://github.com/microsoft/DNS-Challenge/raw/master/DNSMOS/DNSMOS/sig_bak_ovr.onnx"
+    url = "https://github.com/microsoft/DNS-Challenge/raw/master/DNSMOS/DNSMOS/sig_bak_ovr.onnx"  # noqa: E501
     urllib.request.urlretrieve(url, str(tmp_path / "sig_bak_ovr.onnx"))
-    url = "https://github.com/microsoft/DNS-Challenge/raw/master/DNSMOS/DNSMOS/model_v8.onnx"
+    url = "https://github.com/microsoft/DNS-Challenge/raw/master/DNSMOS/DNSMOS/model_v8.onnx"  # noqa: E501
     urllib.request.urlretrieve(url, str(tmp_path / "model_v8.onnx"))
 
     dnsmos_th = DNSMOS_local(
