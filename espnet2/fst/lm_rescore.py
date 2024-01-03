@@ -5,7 +5,7 @@ import torch
 
 try:
     import k2
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     k2 = None
 
 

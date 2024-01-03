@@ -1,0 +1,21 @@
+
+use_preprocessor: true
+
+token_type: bpe
+bpemodel: data/bpemodel/bpe.model
+rir_scp: null
+rir_apply_prob: 1.0
+noise_scp: null
+noise_apply_prob: 1.0
+noise_db_range: '13_15'
+speech_volume_normalize: null
+non_linguistic_symbols: null
+
+cleaner: null
+g2p: null
+preprocessor: default
+preprocessor_conf:
+  speech_name: speech
+  text_name: text
+
+token_list: data/bpemodel/tokens.txt

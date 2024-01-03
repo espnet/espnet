@@ -27,7 +27,7 @@ try:
     import k2  # for CI import
     from icefall.decode import get_lattice, one_best_decoding
     from icefall.utils import get_texts
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     k2 = None
 
 
