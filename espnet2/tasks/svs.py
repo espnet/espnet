@@ -257,25 +257,6 @@ class SVSTask(AbsTask):
             default=None,
             help="Specify g2p method if --token_type=phn",
         )
-        group.add_argument(
-            "--src_bpemodel",
-            type=str_or_none,
-            default=None,
-            help="The model file of sentencepiece (for source language)",
-        )
-        group.add_argument(
-            "--src_token_type",
-            type=str,
-            default=None,
-            choices=["bpe", "char", "word", "phn"],
-            help="The source text will be tokenized " "in the specified level token",
-        )
-        group.add_argument(
-            "--src_token_list",
-            type=str_or_none,
-            default=None,
-            help="A text mapping int-id to token (for source language)",
-        )
         parser.add_argument(
             "--fs",
             type=int,

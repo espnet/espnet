@@ -1,5 +1,6 @@
 # Copyright 2020 Nagoya University (Tomoki Hayashi)
 # Copyright 2021 Renmin University of China (Shuai Guo)
+# Copyright 2023 Renmin University of China (Yuning Wu)
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
 """XiaoiceSing related modules."""
@@ -648,7 +649,7 @@ class XiaoiceSing(AbsSVS):
 
         if self.use_discrete_token:
             gen_token = torch.argmax(after_outs, dim=2)
-            tokon_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
+            token_mask = make_non_pad_mask(discrete_token_lengths).to(ds.device)
             acc = (
                 (gen_token == discrete_token) * token_mask
             ).sum().item() / discrete_token_lengths.sum().item()
@@ -782,10 +783,10 @@ class XiaoiceSing(AbsSVS):
             token = after_outs[0]
             f0 = log_f0_outs[0]
             if use_teacher_forcing:
-                layer = len(discrete_token) / len(pitch)
+                layer = round(len(discrete_token) / len(pitch))
                 token = discrete_token.unsqueeze(-1)
                 f0 = pitch
-                token_len = len(token) / layer
+                token_len = len(token) // layer
                 if len(f0) > len(token):
                     f0 = f0[:token_len]
                 else:
