@@ -31,13 +31,13 @@ tgt_case="ts"
 
 embed_tokens_path=data/mistral7b-instruct02_embed_tokens.pth
 
-local/export_hf_embed_tokens.py \
+local/export_hf_embed_tokens.sh \
     mistralai/Mistral-7B-Instruct-v0.2 \
     ${embed_tokens_path}
 
 ./asr2.sh \
     --kmeans_feature "${kmeans_feature}" \
-    --kmeans_opts "--batch_bins 4800000 --nj 1" \
+    --kmeans_opts "--batch_bins 4800000 --nj 4" \
     --use_lm false \
     --use_ngram false \
     --nclusters "${nclusters}" \
@@ -65,7 +65,7 @@ local/export_hf_embed_tokens.py \
 
 ./asr2.sh \
     --kmeans_feature "${kmeans_feature}" \
-    --kmeans_opts "--batch_bins 4800000 --nj 1" \
+    --kmeans_opts "--batch_bins 4800000 --nj 4" \
     --use_lm false \
     --use_ngram false \
     --nclusters "${nclusters}" \
@@ -85,11 +85,12 @@ local/export_hf_embed_tokens.py \
     --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config_aed}" \
     --inference_config "${inference_config}" \
+    --score_opts "-s" \
     --train_set "${train_set}" \
     --valid_set "${train_dev}" \
     --test_sets "${test_sets}" \
     --pretrained_model "exp/asr_train_discrete_asr_e_branchformer_mistral02_ctc_raw_wavlm_large_21_km2000_bpe_rm6000_hugging_face_ts_mistralai-Mistral-7B-Instruct-v0.2_sp/valid.cer_ctc.ave_10best.pth:::ctc" \
+    --stage 13
     --src_bpe_train_text "data/${train_set}/text.${src_case}.${src_lang}" \
     --tgt_bpe_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" \
-    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$@" \
-    --stage 13
+    --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$@"
