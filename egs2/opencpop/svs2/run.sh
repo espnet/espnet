@@ -22,9 +22,6 @@ mix_type="frame"
 # frame | sequencee
 nclusters=1024
 
-src_lang=$(echo "${kmeans_feature}_km${nclusters}" | tr "/" "_")
-tgt_lang=en
-
 train_set=tr_no_dev
 valid_set=dev
 test_sets="dev test"
