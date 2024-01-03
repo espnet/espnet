@@ -31,7 +31,7 @@ else:
 
 try:
     import kenlm  # for CI import
-except ImportError or ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     kenlm = None
 
 

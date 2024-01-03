@@ -366,6 +366,7 @@ class BatchBeamSearch(BeamSearch):
         self,
         i: int,
         maxlen: int,
+        minlen: int,
         maxlenratio: float,
         running_hyps: BatchHypothesis,
         ended_hyps: List[Hypothesis],
@@ -422,6 +423,7 @@ class BatchBeamSearch(BeamSearch):
         )
         for b in torch.nonzero(is_eos, as_tuple=False).view(-1):
             hyp = self._select(running_hyps, b)
-            ended_hyps.append(hyp)
+            if i >= minlen:
+                ended_hyps.append(hyp)
         remained_ids = torch.nonzero(is_eos == 0, as_tuple=False).view(-1).cpu()
         return self._batch_select(running_hyps, remained_ids)

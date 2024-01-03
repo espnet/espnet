@@ -200,6 +200,7 @@ def make_jets_loss_args(**kwargs):
     [
         ({}, {}, {}),
         ({}, {}, {"cache_generator_outputs": True}),
+        ({}, {}, {"plot_pred_mos": True}),
         (
             {},
             {

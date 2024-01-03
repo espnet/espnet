@@ -1,3 +1,24 @@
+# Conformer + BRCTC: Hybrid CTC Attention
+## Environments
+- date: `Tue Oct 31 21:47:32 CDT 2023`
+- python version: `3.9.18 (main, Sep 11 2023, 13:41:44)  [GCC 11.2.0]`
+- espnet version: `espnet 202308`
+- pytorch version: `pytorch 1.13.1`
+- Git hash: `26b231f76cb7a610e76aa77cd2de14b370a11729`
+  - Commit date: `Sat Oct 28 22:10:01 2023 -0500`
+
+## Results
+- Model link: [https://huggingface.co/espnet/jinchuat_aishell_brctc](https://huggingface.co/espnet/jinchuat_aishell_brctc)
+- ASR config: [./conf/tuning/train_asr_conformer_e12_brctc_intermediate_stage1.yaml](./conf/tuning/train_asr_conformer_e12_brctc_intermediate_stage1.yaml)
+- ASR config: [./conf/tuning/train_asr_conformer_e12_brctc_intermediate_stage2.yaml](./conf/tuning/train_asr_conformer_e12_brctc_intermediate_stage2.yaml)
+
+### CER
+
+|dataset|Snt|Wrd|Corr|Sub|Del|Ins|Err|S.Err|
+|---|---|---|---|---|---|---|---|---|
+|decode_asr_branchformer_asr_model_valid.acc.ave/dev|14326|205341|95.7|4.2|0.1|0.1|4.4|33.6|
+|decode_asr_branchformer_asr_model_valid.acc.ave/test|7176|104765|95.4|4.4|0.2|0.1|4.7|34.7|
+
 # Streaming Conformer + specaug + speed perturbation: feats=raw, n_fft=512, hop_length=128
 ## Environments
 - date: `Mon Aug 23 16:31:48 CST 2021`
