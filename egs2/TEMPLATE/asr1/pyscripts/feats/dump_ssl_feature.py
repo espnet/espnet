@@ -4,8 +4,10 @@ import os
 
 import numpy as np
 from ssl_feature_utils import (
+    EnCodecFeatureReader,
     ESPnetHubertFeatureReader,
     HubertFeatureReader,
+    MERTFeatureReader,
     MfccFeatureReader,
     S3PRLFeatureReader,
     dump_feature,
@@ -26,6 +28,8 @@ feature_reader_choice = dict(
     fairseq_hubert=HubertFeatureReader,
     espnet_hubert=ESPnetHubertFeatureReader,
     s3prl=S3PRLFeatureReader,
+    mert=MERTFeatureReader,
+    encodec=EnCodecFeatureReader,
 )
 
 
