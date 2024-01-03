@@ -1,0 +1,6 @@
+maxlenratio: 1.5
+hugging_face_decoder: true
+hugging_face_decoder_conf:
+    pad_token_id: 2
+    penalty_alpha: 0.5
+    top_k: 16
