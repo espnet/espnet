@@ -14,4 +14,3 @@ average_spk: false
 # quality measure function
 qmf_dur_thresh: 6
 qmf_num_trial_per_condition: 5000
-
