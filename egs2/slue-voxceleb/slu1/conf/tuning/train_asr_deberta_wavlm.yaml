@@ -107,7 +107,6 @@ best_model_criterion:
     - acc
     - max
 keep_nbest_models: 10
-nbest_averaging_interval: 100
 
 optim: adam
 optim_conf:

@@ -9,7 +9,7 @@ train_set="train"
 valid_set="devel"
 test_sets="test devel"
 
-slu_config=conf/tuning/train_asr_no_pretrain.yaml
+slu_config=conf/train_asr.yaml
 inference_config=conf/decode_asr.yaml
 
 ./slu.sh \
