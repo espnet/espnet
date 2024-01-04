@@ -18,30 +18,33 @@ stage=1
 stop_stage=100
 fs=44100
 g2p=None
-dataset='lyrics'
+dataset='all'
 
 log "$0 $*"
 
 . utils/parse_options.sh || exit 1;
 
-if [ -z "${ACESINGER}" ]; then
-    log "Fill the value of 'ACESINGER' of db.sh"
+if [ -z "${KISING}" ]; then
+    log "Fill the value of 'KISING' of db.sh"
     exit 1
 fi
 
-mkdir -p ${ACESINGER}
+mkdir -p ${KISING}
 
 train_set="tr_no_dev"
 train_dev="dev"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
-    # The ACESINGER data should be downloaded
+    log "The KISING data should be downloaded"
 
     log "automatically download from google drive"
-    ./local/download_wget.sh "1qHLW3U7a0z8FpWuaEUmY-LViBIwRmeM0"  ${ACESINGER}/ACESinger.zip
+    ./download_wget.sh "1Wi8luF2QF6jsXYnO78uiWqZGJrtGuXb_"  ${KISING}/kising-v2.zip
+    ./download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz"  ${KISING}/kising-v2-original.zip
 
-    unzip ${ACESINGER}/ACESinger.zip -d ${ACESINGER}
+    unzip ${KISING}/kising-v2.zip -d ${KISING}/KISING
+    unzip ${KISING}/kising-v2-original.zip -d ${KISING}/KISING
+    mv ${KISING}/clean ${KISING}/original
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -49,10 +52,10 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p wav_dump
     # we convert the music score to xml format
-    python local/data_prep.py ${ACESINGER}/ACESinger --midi_note_scp local/midi-note.scp \
+    python local/data_prep.py ${KISING}/KISING --midi_note_scp local/midi-note.scp \
         --wav_dumpdir wav_dump \
         --sr ${fs} \
-        --g2p ${g2p} \
+        --g2p ${g2p}\
         --dataset ${dataset}
     for src_data in train test; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt

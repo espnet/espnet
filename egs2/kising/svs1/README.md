@@ -1,10 +1,24 @@
-# ACESinger-Opencpop RECIPE
+# ACESinger-KiSing-V2 RECIPE
 
-This is the recipe of ACESinger-augmented Opencpop recipe
+This is the recipe of ACESinger-augmented KiSing-V2 recipe
 
-[Download link](https://drive.google.com/file/d/1qHLW3U7a0z8FpWuaEUmY-LViBIwRmeM0/view?usp=drive_link)
+You should download the original and augmented KiSing dataset and make sure the file structure is like this:
 
-More details coming soon
+```
+KISING
+├── 421
+│   ├── ...
+├── 422
+│   ├── ...
+│   ...
+├── 443
+│   ├── ...
+├── original
+│   ├── 421_all.wav
+│   ├── ...
+```
+
+
 
 See the following pages for the usage:
 - [How to run the recipe](../../TEMPLATE/svs1/README.md#how-to-run)
@@ -15,13 +29,3 @@ See the following pages for the usage:
 See the following pages before asking the question:
 - [ESPnet2 Tutorial](https://espnet.github.io/espnet/espnet2_tutorial.html)
 - [ESPnet2 SVS FAQ](../../TEMPLATE/svs1/README.md#faq)
-
-# INITIAL RESULTS
-
-## Pretrained models
-
-### VISinger 1 + 2 (with Speaker ID)
-- VISinger
-- https://huggingface.co/espnet/acesinger_opencpop_visinger_44khz
-- VISinger2
-- https://huggingface.co/espnet/acesinger_opencpop_visinger2_44khz
