@@ -2954,6 +2954,8 @@ enh_scoring.py
                           [--flexible_numspk FLEXIBLE_NUMSPK] [--is_tse IS_TSE]
                           [--use_dnsmos USE_DNSMOS] [--dnsmos_mode {local,web}]
                           [--dnsmos_auth_key DNSMOS_AUTH_KEY]
+                          [--dnsmos_use_gpu DNSMOS_USE_GPU]
+                          [--dnsmos_convert_to_torch DNSMOS_CONVERT_TO_TORCH]
                           [--dnsmos_primary_model DNSMOS_PRIMARY_MODEL]
                           [--dnsmos_p808_model DNSMOS_P808_MODEL]
                           [--use_pesq USE_PESQ]
@@ -2983,6 +2985,10 @@ enh_scoring.py
                             calculation (default: local)
       --dnsmos_auth_key DNSMOS_AUTH_KEY
                             Required if dnsmsos_mode='web' (default: )
+      --dnsmos_use_gpu DNSMOS_USE_GPU
+                            used when dnsmsos_mode='local' (default: False)
+      --dnsmos_convert_to_torch DNSMOS_CONVERT_TO_TORCH
+                            used when dnsmsos_mode='local' (default: False)
       --dnsmos_primary_model DNSMOS_PRIMARY_MODEL
                             Path to the primary DNSMOS model. Required if
                             dnsmsos_mode='local' (default:
