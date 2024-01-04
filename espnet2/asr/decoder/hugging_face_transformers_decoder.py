@@ -98,6 +98,8 @@ class HuggingFaceTransformersDecoder(AbsDecoder, BatchScorerInterface):
             else:
                 self.decoder = model.decoder
 
+            self.decoder_dtype = self.decoder.dtype
+
         model.resize_token_embeddings(vocab_size)
 
         self.lm_head = get_hugging_face_model_lm_head(model)

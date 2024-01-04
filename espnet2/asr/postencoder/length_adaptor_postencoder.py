@@ -45,7 +45,8 @@ class LengthAdaptorPostEncoder(AbsPostEncoder):
             self.in_sz = input_size
             self.out_sz = output_size
         else:
-            self.embed = None
+            self.embed = torch.nn.Identity()
+            self.out_proj = torch.nn.Identity()
             self.in_sz = input_size
             self.out_sz = input_size
 
