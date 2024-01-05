@@ -2119,6 +2119,7 @@ class SpkPreprocessor(CommonPreprocessor):
         if "task_tokens" in data:
             data["task_tokens"] = np.asarray([int(data["task_tokens"])])
 
+
 class TextInjectedPreprocessor(CommonPreprocessor):
     def __init__(
         self,
@@ -2177,7 +2178,9 @@ class TextInjectedPreprocessor(CommonPreprocessor):
         self.injected_text_frequency = injected_text_frequency
 
     def _injected_text_process(
-        self, data: Dict[str, Union[str, np.ndarray]], injected_name: str,
+        self,
+        data: Dict[str, Union[str, np.ndarray]],
+        injected_name: str,
     ) -> Dict[str, np.ndarray]:
         if injected_name in data and self.tokenizer is not None:
             text = data[injected_name]
