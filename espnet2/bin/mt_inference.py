@@ -176,9 +176,7 @@ class Text2Text:
 
     @torch.no_grad()
     def __call__(
-        self,
-        src_text: Union[torch.Tensor, np.ndarray],
-        **kwargs,
+        self, src_text: Union[torch.Tensor, np.ndarray]
     ) -> List[Tuple[Optional[str], List[str], List[int], Hypothesis]]:
         """Inference
 
