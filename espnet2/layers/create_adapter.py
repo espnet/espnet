@@ -12,7 +12,7 @@ from typing import List
 import torch
 from typeguard import check_argument_types
 from espnet2.layers.houlsby_adapter_layer import HoulsbyTransformerSentenceEncoderLayer
-
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 
 def create_adapter(
     model: torch.nn.Module,
@@ -47,21 +47,31 @@ def create_houlsby_adapter(
     bottleneck: int = 32,
     target_layers: List[int] = [],
 ):
+    assert check_argument_types()
+    assert hasattr(model, 'frontend') and isinstance(model.frontend, S3prlFrontend), "Only support S3PRL frontend now !!"
+    
+    is_traget_layer_exists = False
+    key_list = [key for key, _ in model.named_modules()]
     num_layers = model.frontend.upstream.num_layers -1
     if len(target_layers) == 0:
         target_layers = list(range(num_layers))
         
-    assert max(target_layers) < num_layers, f"Layer {max(target_layers)} not exists !!"
-    assert min(target_layers) >=0, f"Layer {min(target_layers)} not exists !!"
-    
     for layer_idx in target_layers:
 
         key = f"frontend.upstream.upstream.model.encoder.layers.{layer_idx}"
+        if key not in key_list:
+            continue
+        
+        is_traget_layer_exists = True
         parent_module, target_name, target_module = get_submodules(model, key)
         new_module = create_new_houlsby_module(target_module, bottleneck)
         new_module.to(next(target_module.parameters()).device)
         setattr(parent_module, target_name, new_module)
-
+    
+    if not is_traget_layer_exists:
+        raise ValueError(
+            f"Target layers {target_layers} not found in the base model."
+        )
 
 def create_lora_adapter(
     model: torch.nn.Module,
