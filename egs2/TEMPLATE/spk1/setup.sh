@@ -41,7 +41,7 @@ done
 
 
 # Symlinks to TEMPLATE/spk1
-for f in sv.sh path.sh scripts pyscripts; do
+for f in spk.sh path.sh scripts pyscripts; do
     target=../../TEMPLATE/spk1/"${f}"
     ln -sf "${target}" "${dir}"
     targets+="${dir}/${target} "
