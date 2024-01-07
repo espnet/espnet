@@ -1,5 +1,6 @@
 """Piecewise linear warm up learning rate scheduler module."""
-from typing import Union, List
+from typing import List, Union
+
 import numpy as np
 import torch
 from torch.optim.lr_scheduler import _LRScheduler
@@ -20,7 +21,7 @@ class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
         self,
         optimizer: torch.optim.Optimizer,
         warmup_steps_list: List[Union[int, float]] = [0, 25000],
-        warmup_lr_list: List[float] = [0., 0.001],
+        warmup_lr_list: List[float] = [0.0, 0.001],
         last_epoch: int = -1,
     ):
         assert check_argument_types()
@@ -45,7 +46,7 @@ class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
                 step_num,
                 self.warmup_steps_list,
                 self.warmup_lr_list,
-                right=lr * self.warmup_steps_list[-1]**0.5 * step_num**-0.5
+                right=lr * self.warmup_steps_list[-1] ** 0.5 * step_num**-0.5,
             )
             for lr in self.base_lrs
         ]
