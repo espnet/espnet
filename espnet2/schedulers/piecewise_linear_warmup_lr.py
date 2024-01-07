@@ -11,7 +11,8 @@ from espnet2.schedulers.abs_scheduler import AbsBatchStepScheduler
 class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
     """The PiecewiseLinearWarmupLR scheduler
 
-    This scheduler is similar to WarmupLR Scheduler except that the warmup stage is piecewise linear.
+    This scheduler is similar to WarmupLR Scheduler except that
+    the warmup stage is piecewise linear.
 
     """
 
@@ -31,7 +32,11 @@ class PiecewiseLinearWarmupLR(_LRScheduler, AbsBatchStepScheduler):
         super().__init__(optimizer, last_epoch)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(warmup_steps_list={self.warmup_steps_list}, warmup_lr_list={self.warmup_lr_list})"
+        return (
+            f"{self.__class__.__name__}"
+            f"(warmup_steps_list={self.warmup_steps_list}, "
+            f"warmup_lr_list={self.warmup_lr_list})"
+        )
 
     def get_lr(self):
         step_num = self.last_epoch + 1
