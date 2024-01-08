@@ -112,12 +112,12 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 return cls.train_dataloader
             elif mode == "valid" and cls.valid_dataloader is not None:
                 return cls.valid_dataloader
-            
+
             if mode == "valid" and args.valid_iterator_type is not None:
                 iterator_type = args.valid_iterator_type
             else:
                 iterator_type = args.iterator_type
-            
+
             iter_options = cls.build_iter_options(args, distributed_option, mode)
             # Overwrite iter_options if any kwargs is given
             if kwargs is not None:
