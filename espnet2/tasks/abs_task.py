@@ -2058,7 +2058,7 @@ class AbsTask(ABC):
                 #   in PyTorch<=1.4
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
-                # Note(m_someki):  map_location="cpu" to avoid inefficient memory allocation. 
+                # Note(m_someki):  map_location="cpu" to avoid inefficient memory allocation.
                 # See https://github.com/espnet/espnet/issues/5614 for more details.
                 model.load_state_dict(
                     torch.load(model_file, map_location="cpu"),
