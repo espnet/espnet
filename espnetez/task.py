@@ -112,6 +112,43 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 return cls.train_dataloader
             elif mode == "valid" and cls.valid_dataloader is not None:
                 return cls.valid_dataloader
+            
+            if mode == "valid" and args.valid_iterator_type is not None:
+                iterator_type = args.valid_iterator_type
+            else:
+                iterator_type = args.iterator_type
+            
+            iter_options = cls.build_iter_options(args, distributed_option, mode)
+            # Overwrite iter_options if any kwargs is given
+            if kwargs is not None:
+                for k, v in kwargs.items():
+                    setattr(iter_options, k, v)
+
+            if cls.train_dataset is not None and cls.valid_dataset is not None:
+                if iterator_type == "sequence":
+                    return cls.build_sequence_iter_factory(
+                        args=args,
+                        iter_options=iter_options,
+                        mode=mode,
+                    )
+                elif iterator_type == "category":
+                    return cls.build_category_iter_factory(
+                        args=args,
+                        iter_options=iter_options,
+                        mode=mode,
+                    )
+                elif iterator_type == "chunk":
+                    return cls.build_chunk_iter_factory(
+                        args=args,
+                        iter_options=iter_options,
+                        mode=mode,
+                    )
+                elif iterator_type == "task":
+                    return cls.build_task_iter_factory(
+                        args=args,
+                        iter_options=iter_options,
+                        mode=mode,
+                    )
             else:
                 return task_class.build_iter_factory(
                     args=args,

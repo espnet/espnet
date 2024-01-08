@@ -17,26 +17,50 @@ def check_argument(
     # else if we have dataset, dumpfile/dataloader should be None,
     # else if we have dataloader, dumpfile/dataset should be None.
     if (train_dump_dir is not None) ^ (valid_dump_dir is not None):
-        raise ValueError('If you try to use dump file, both the train_dump_dir and valid_dump_dir should be provided.')
-    elif train_dump_dir is not None and valid_dump_dir is not None and(
-        train_dataset is not None or train_dataloader is not None or
-        valid_dataset is not None or valid_dataloader is not None
+        raise ValueError(
+            "If you try to use dump file, both the train_dump_dir and valid_dump_dir should be provided."
+        )
+    elif (
+        train_dump_dir is not None
+        and valid_dump_dir is not None
+        and (
+            train_dataset is not None
+            or train_dataloader is not None
+            or valid_dataset is not None
+            or valid_dataloader is not None
+        )
     ):
-        raise ValueError('If you try to use dump file, dataset or dataloader should be None.')
+        raise ValueError(
+            "If you try to use dump file, dataset or dataloader should be None."
+        )
 
     if (train_dataset is not None) ^ (valid_dataset is not None):
-        raise ValueError('If you try to use custom dataset, both the train_dataset and valid_dataset should be provided.')
-    elif train_dataset is not None and valid_dataset is not None and (
-        train_dataloader is not None or valid_dataloader is not None
+        raise ValueError(
+            "If you try to use custom dataset, both the train_dataset and valid_dataset should be provided."
+        )
+    elif (
+        train_dataset is not None
+        and valid_dataset is not None
+        and (train_dataloader is not None or valid_dataloader is not None)
     ):
-        raise ValueError('If you try to use dataset, dataloader should be None.')
+        raise ValueError("If you try to use dataset, dataloader should be None.")
 
     if (train_dataloader is not None) ^ (valid_dataloader is not None):
-        raise ValueError('If you try to use custom dataset, both the train_dataset and valid_dataset should be provided.')
+        raise ValueError(
+            "If you try to use custom dataset, both the train_dataset and valid_dataset should be provided."
+        )
 
-    if train_dump_dir is None and valid_dump_dir is None and
-        train_dataset is None and valid_dataset is None and train_dataloader is None and valid_dataloader is None:
-        raise ValueError('You need to specify at least one of dump_dir, dataset, or dataloader.')
+    if (
+        train_dump_dir is None
+        and valid_dump_dir is None
+        and train_dataset is None
+        and valid_dataset is None
+        and train_dataloader is None
+        and valid_dataloader is None
+    ):
+        raise ValueError(
+            "You need to specify at least one of dump_dir, dataset, or dataloader."
+        )
 
     return True
 
@@ -61,7 +85,14 @@ class Trainer:
         **kwargs
     ):
         self.train_config = train_config
-        check_argument(train_dump_dir, valid_dump_dir, train_dataset, valid_dataset, train_dataloader, valid_dataloader)
+        check_argument(
+            train_dump_dir,
+            valid_dump_dir,
+            train_dataset,
+            valid_dataset,
+            train_dataloader,
+            valid_dataloader,
+        )
 
         if type(self.train_config) is dict:
             self.train_config.update(kwargs)
