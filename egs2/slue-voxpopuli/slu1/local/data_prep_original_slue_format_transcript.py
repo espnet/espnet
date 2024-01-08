@@ -6,10 +6,11 @@ import sys
 
 import pandas as pd
 
-if len(sys.argv) != 2:
-    print("Usage: python data_prep.py [root]")
+if len(sys.argv) != 3:
+    print("Usage: python data_prep.py [root] [transcript_folder]")
     sys.exit(1)
 root = sys.argv[1]
+transcript_folder = sys.argv[2]
 
 dir_dict = {
     "train": "slue-voxpopuli_fine-tune.tsv",
@@ -39,12 +40,32 @@ missing_ent = set()
 
 for x in dir_dict:
     with open(os.path.join("data", x, "text"), "w") as text_f, open(
-        os.path.join("data", x, "wav.scp"), "w"
-    ) as wav_scp_f, open(os.path.join("data", x, "utt2spk"), "w") as utt2spk_f:
+        os.path.join("data", x, "transcript"), "w"
+    ) as transcript_f, open(os.path.join("data", x, "wav.scp"), "w") as wav_scp_f, open(
+        os.path.join("data", x, "utt2spk"), "w"
+    ) as utt2spk_f:
         text_f.truncate()
         wav_scp_f.truncate()
         utt2spk_f.truncate()
         transcript_df = pd.read_csv(os.path.join(root, dir_dict[x]), sep="\t")
+        asr_transcript_file = open(os.path.join(transcript_folder, x, "text"), "r")
+        asr_transcript_arr = [line for line in asr_transcript_file]
+        asr_transcript_dict = {}
+        for line in asr_transcript_arr:
+            for word in [
+                "PLACE",
+                "QUANT",
+                "ORG",
+                "WHEN",
+                "NORP",
+                "PERSON",
+                "LAW",
+                "FILL",
+                "SEP",
+            ]:
+                line = line.replace(word, "")
+            line = re.sub(r"\s+", " ", line)
+            asr_transcript_dict[line.split()[0]] = " ".join(line.strip().split()[1:])
         # lines = sorted(transcript_df.values, key=lambda s: s[0])
         for row in transcript_df.values:
             if str(row[3]) == "nan":
@@ -119,6 +140,14 @@ for x in dir_dict:
             words = re.sub(r"\s+", " ", words)
 
             text_f.write("{} {}\n".format(uttid, words))
+            words = "{}".format(transcript).replace("<unk>", "unknown")
+            words = re.sub(r"[\.;?!]", "", words)
+            words = re.sub(r"\s+", " ", words)
+            # import pdb;pdb.set_trace()
+            if uttid in asr_transcript_dict:
+                transcript_f.write("{} {}\n".format(uttid, asr_transcript_dict[uttid]))
+            else:
+                transcript_f.write("{} {}\n".format(uttid, "None"))
             utt2spk_f.write("{} {}\n".format(uttid, speaker))
             wav_scp_f.write(f"{uttid} sox {os.path.join(root,wav)} -t wav -r 16k - |\n")
 
