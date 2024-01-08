@@ -2059,7 +2059,7 @@ class AbsTask(ABC):
                 device = f"cuda:{torch.cuda.current_device()}"
             try:
                 model.load_state_dict(
-                    torch.load(model_file, map_location='cpu'),
+                    torch.load(model_file, map_location="cpu"),
                     strict=not use_lora,
                 )
             except RuntimeError:
