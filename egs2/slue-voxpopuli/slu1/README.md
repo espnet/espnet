@@ -15,7 +15,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|54.7|67.6|
 
 ## With TERA SSL Pretrain
@@ -23,7 +23,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|57.1|70.9|
 
 ## With VQ-APC SSL Pretrain
@@ -31,7 +31,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|63.6|76.6|
 
 ## With Wav2Vec2 SSL Pretrain
@@ -39,7 +39,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|69.5|83.3|
 
 ## With HuBERT SSL Pretrain
@@ -47,7 +47,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|69.7|84.8|
 
 ## With WavLM SSL Pretrain
@@ -55,7 +55,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|74.5|88.0|
 
 ## With Gigaspeech ASR Pretrain
@@ -63,7 +63,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|73.9|86.0|
 
 ## With SPGISpeech ASR Pretrain
@@ -71,7 +71,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|71.9|84.1|
 
 ## With SLURP SLU Pretrain
@@ -79,7 +79,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|59.7|71.5|
 
 ## With WavLM and SLURP SLU Pretrain
@@ -87,7 +87,7 @@
 - token_type: bpe
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|75.7|87.5|
 
 ## With BERT LM Pretrain
@@ -98,7 +98,7 @@
 - local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_bpe1000_sp/decode_asr_asr_model_valid.acc.ave"
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|54.5|69.2|
 
 ## With DeBERTA LM Pretrain
@@ -109,7 +109,7 @@
 - local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_no_pretrain_raw_en_bpe1000_sp/decode_asr_asr_model_valid.acc.ave"
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|55.5|69.4|
 
 ## With WavLM and BERT LM Pretrain
@@ -120,7 +120,7 @@
 - local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_bpe1000_sp/decode_asr_asr_model_valid.acc.ave"
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|73.5|87.3|
 
 ## With WavLM and DeBERTA LM Pretrain
@@ -131,5 +131,5 @@
 - local_data_opts: "--use_transcript true --transcript_folder exp/slu_train_asr_wavlm_raw_en_bpe1000_sp/decode_asr_asr_model_valid.acc.ave"
 
 |dataset|Snt|Micro F1 (%)|Micro Label F1 (%)|
-|---|---|---|---|---|---|---|
+|---|---|---|---|
 |decode_asr_asr_model_valid.acc.ave/devel|1742|74.0|87.7|

@@ -70,12 +70,12 @@ def process_line(line, label_F1=False):
     label_lst = []
     line = line.replace("  ", " ")
     wrd_lst = line.split(" ")
-    phrase_lst, is_entity, num_illegal_assigments = [], False, 0
+    phrase_lst, is_entity, num_illegal_assignments = [], False, 0
     for idx, wrd in enumerate(wrd_lst):
         if wrd in combined_labels:
             if is_entity:
                 phrase_lst = []
-                num_illegal_assigments += 1
+                num_illegal_assignments += 1
             is_entity = True
             entity_tag = wrd
         elif wrd == "SEP":
@@ -92,7 +92,7 @@ def process_line(line, label_F1=False):
                 phrase_lst = []
                 is_entity = False
             else:
-                num_illegal_assigments += 1
+                num_illegal_assignments += 1
 
         else:
             if is_entity:
