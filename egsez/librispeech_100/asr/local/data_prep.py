@@ -1,5 +1,5 @@
-import os
 import glob
+import os
 
 
 def create_dataset(data_dir):
