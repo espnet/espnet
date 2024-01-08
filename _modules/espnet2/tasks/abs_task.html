@@ -250,6 +250,7 @@
     <span class="n">CosineAnnealingWarmupRestarts</span><span class="p">,</span>
 <span class="p">)</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.noam_lr</span> <span class="kn">import</span> <span class="n">NoamLR</span>
+<span class="kn">from</span> <span class="nn">espnet2.schedulers.piecewise_linear_warmup_lr</span> <span class="kn">import</span> <span class="n">PiecewiseLinearWarmupLR</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_lr</span> <span class="kn">import</span> <span class="n">WarmupLR</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_reducelronplateau</span> <span class="kn">import</span> <span class="n">WarmupReduceLROnPlateau</span>
 <span class="kn">from</span> <span class="nn">espnet2.schedulers.warmup_step_lr</span> <span class="kn">import</span> <span class="n">WarmupStepLR</span>
@@ -365,6 +366,7 @@
     <span class="n">CosineAnnealingLR</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CosineAnnealingLR</span><span class="p">,</span>
     <span class="n">noamlr</span><span class="o">=</span><span class="n">NoamLR</span><span class="p">,</span>
     <span class="n">warmuplr</span><span class="o">=</span><span class="n">WarmupLR</span><span class="p">,</span>
+    <span class="n">piecewiselinearwarmuplr</span><span class="o">=</span><span class="n">PiecewiseLinearWarmupLR</span><span class="p">,</span>
     <span class="n">warmupsteplr</span><span class="o">=</span><span class="n">WarmupStepLR</span><span class="p">,</span>
     <span class="n">warmupReducelronplateau</span><span class="o">=</span><span class="n">WarmupReduceLROnPlateau</span><span class="p">,</span>
     <span class="n">cycliclr</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">optim</span><span class="o">.</span><span class="n">lr_scheduler</span><span class="o">.</span><span class="n">CyclicLR</span><span class="p">,</span>

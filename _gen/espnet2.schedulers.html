@@ -154,6 +154,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-abs-scheduler-1">espnet2.schedulers.abs_scheduler</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-lr-1">espnet2.schedulers.warmup_lr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-step-lr-1">espnet2.schedulers.warmup_step_lr</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-piecewise-linear-warmup-lr-1">espnet2.schedulers.piecewise_linear_warmup_lr</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-init-1">espnet2.schedulers.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-cosine-anneal-warmup-restart-1">espnet2.schedulers.cosine_anneal_warmup_restart</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-schedulers-warmup-reducelronplateau-1">espnet2.schedulers.warmup_reducelronplateau</a></li>
@@ -388,6 +389,24 @@ You need to change it if the model is changed.</p>
 <dl class="method">
 <dt id="espnet2.schedulers.warmup_step_lr.WarmupStepLR.get_lr">
 <code class="sig-name descname">get_lr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/warmup_step_lr.html#WarmupStepLR.get_lr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.warmup_step_lr.WarmupStepLR.get_lr" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-schedulers-piecewise-linear-warmup-lr-1">
+<span id="espnet2-schedulers-piecewise-linear-warmup-lr"></span><h2>espnet2.schedulers.piecewise_linear_warmup_lr<a class="headerlink" href="#espnet2-schedulers-piecewise-linear-warmup-lr-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.schedulers.piecewise_linear_warmup_lr"></span><p>Piecewise linear warm up learning rate scheduler module.</p>
+<dl class="class">
+<dt id="espnet2.schedulers.piecewise_linear_warmup_lr.PiecewiseLinearWarmupLR">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.schedulers.piecewise_linear_warmup_lr.</code><code class="sig-name descname">PiecewiseLinearWarmupLR</code><span class="sig-paren">(</span><em class="sig-param">optimizer: torch.optim.optimizer.Optimizer, warmup_steps_list: List[Union[float, int]] = [0, 25000], warmup_lr_list: List[float] = [0.0, 0.001], last_epoch: int = -1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/piecewise_linear_warmup_lr.html#PiecewiseLinearWarmupLR"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.piecewise_linear_warmup_lr.PiecewiseLinearWarmupLR" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.optim.lr_scheduler._LRScheduler</span></code>, <a class="reference internal" href="#espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler" title="espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.schedulers.abs_scheduler.AbsBatchStepScheduler</span></code></a></p>
+<p>The PiecewiseLinearWarmupLR scheduler</p>
+<p>This scheduler is similar to WarmupLR Scheduler except that
+the warmup stage is piecewise linear.</p>
+<dl class="method">
+<dt id="espnet2.schedulers.piecewise_linear_warmup_lr.PiecewiseLinearWarmupLR.get_lr">
+<code class="sig-name descname">get_lr</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/schedulers/piecewise_linear_warmup_lr.html#PiecewiseLinearWarmupLR.get_lr"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.schedulers.piecewise_linear_warmup_lr.PiecewiseLinearWarmupLR.get_lr" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
