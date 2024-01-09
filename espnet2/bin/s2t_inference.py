@@ -24,7 +24,6 @@ from espnet2.torch_utils.set_all_random_seed import set_all_random_seed
 from espnet2.utils import config_argparse
 from espnet2.utils.types import str2bool, str2triple_str, str_or_none
 from espnet.nets.batch_beam_search import BatchBeamSearch
-from espnet.nets.batch_beam_search_online_sim import BatchBeamSearchOnlineSim
 from espnet.nets.beam_search import BeamSearch, Hypothesis
 from espnet.nets.pytorch_backend.transformer.subsampling import TooShortUttError
 from espnet.nets.scorer_interface import BatchScorerInterface
@@ -45,6 +44,8 @@ ListOfHypothesis = List[
 
 
 class ScoreFilter(BatchScorerInterface, torch.nn.Module):
+    """Filter scores based on pre-defined rules."""
+
     def __init__(
         self,
         notimestamps: int,
@@ -93,18 +94,20 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
             # The first token must be a timestamp
             score[: self.first_time] = -np.inf
             score[self.last_time + 1 :] = -np.inf
-        elif (
-            torch.logical_and(y >= self.first_time, y <= self.last_time).sum().item()
-        ) % 2 == 1:
-            # there are an odd number of timestamps, so the sentence is incomplete
-            score[self.eos] = -np.inf
-        else:
-            # there are an even number of timestamps, so the next token is
-            # either a timestamp or eos
-            assert y[-1] >= self.first_time and y[-1] <= self.last_time, y
-            score[:y[-1]] = -np.inf
-            score[self.last_time + 1 :] = -np.inf
-            score[self.eos] = 0.
+        else: 
+            prev_times = y[torch.logical_and(y >= self.first_time, y <= self.last_time)]
+            if len(prev_times) % 2 == 1:
+                # there are an odd number of timestamps, so the sentence is incomplete
+                score[self.eos] = -np.inf
+                # timestamps are monotonic
+                score[self.first_time : prev_times[-1] + 1] = -np.inf
+            else:
+                # there are an even number of timestamps, so the next token is
+                # either a timestamp or eos
+                assert y[-1] >= self.first_time and y[-1] <= self.last_time, y
+                score[:y[-1]] = -np.inf
+                score[self.last_time + 1 :] = -np.inf
+                score[self.eos] = 0.
 
         return score, None
 
@@ -180,6 +183,9 @@ class Speech2Text:
         predict_time: bool = False,
     ):
         assert check_argument_types()
+
+        if ctc_weight > 0. and predict_time:
+            raise ValueError("CTC cannot predict timestamps")
 
         quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
         quantize_dtype = getattr(torch, quantize_dtype)
@@ -450,10 +456,10 @@ class Speech2Text:
                 for module in self.beam_search.nn_dict.decoder.modules():
                     if hasattr(module, "setup_step"):
                         module.setup_step()
+        
         nbest_hyps = self.beam_search(
             x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
         )
-
         nbest_hyps = nbest_hyps[: self.nbest]
 
         results = []
@@ -674,7 +680,6 @@ def inference(
     token_type: Optional[str],
     bpemodel: Optional[str],
     allow_variable_data_keys: bool,
-    streaming: bool,
     quantize_s2t_model: bool,
     quantize_lm: bool,
     quantize_modules: List[str],
@@ -729,7 +734,6 @@ def inference(
         penalty=penalty,
         nbest=nbest,
         normalize_length=normalize_length,
-        streaming=streaming,
         quantize_s2t_model=quantize_s2t_model,
         quantize_lm=quantize_lm,
         quantize_modules=quantize_modules,
