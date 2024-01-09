@@ -147,7 +147,7 @@ class Speech2Text:
         >>> speech2text = Speech2Text("s2t_config.yml", "s2t.pth")
         >>> audio, rate = soundfile.read("speech.wav")
         >>> speech2text(audio)
-        [(text, token, token_int, hypothesis object), ...]
+        [(text, token, token_int, text_nospecial, hypothesis object), ...]
 
     """
 
@@ -357,13 +357,17 @@ class Speech2Text:
             Optional[Dict[int, List[str]]],
         ],
     ]:
-        """Inference for an utterance.
+        """Inference for a single utterance.
+
+        The input speech will be padded or trimmed to the fixed length,
+        which is consistent with training.
 
         Args:
             speech: 1D input speech
-            text_prev: Previous text used as condition (optional)
+            text_prev: previous text used as condition (optional)
+
         Returns:
-            text, token, token_int, hyp
+            n-best list of (text, token, token_int, text_nospecial, hyp)
 
         """
         assert check_argument_types()
@@ -523,11 +527,15 @@ class Speech2Text:
         """Decode unsegmented long-form speech.
 
         Args:
-            speech: long-form speech of shape (nsamples,)
-            condition_on_prev_text: whether to condition on previous text
+            speech: 1D long-form input speech
+            condition_on_prev_text (bool): whether to condition on previous text
             init_text: text used as condition for the first segment
             end_time_threshold: the last utterance is considered as incomplete
                 if its end timestamp exceeds this threshold
+
+        Returns:
+            utterances: list of tuples of (start_time, end_time, text)
+
         """
 
         assert check_argument_types()
@@ -684,9 +692,9 @@ def inference(
     quantize_lm: bool,
     quantize_modules: List[str],
     quantize_dtype: str,
-    category_sym: str,
+    lang_sym: str,
     task_sym: str,
-    time_sym: str,
+    predict_time: bool,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -707,9 +715,8 @@ def inference(
         device = "cpu"
 
     # NOTE(yifan): < and > cannot be passed in command line
-    category_sym = f"<{category_sym.lstrip('<').rstrip('>')}>"
+    lang_sym = f"<{lang_sym.lstrip('<').rstrip('>')}>"
     task_sym = f"<{task_sym.lstrip('<').rstrip('>')}>"
-    time_sym = f"<{time_sym.lstrip('<').rstrip('>')}>"
 
     # 1. Set random-seed
     set_all_random_seed(seed)
@@ -738,9 +745,9 @@ def inference(
         quantize_lm=quantize_lm,
         quantize_modules=quantize_modules,
         quantize_dtype=quantize_dtype,
-        category_sym=category_sym,
+        lang_sym=lang_sym,
         task_sym=task_sym,
-        time_sym=time_sym,
+        predict_time=predict_time,
     )
     speech2text = Speech2Text.from_pretrained(
         model_tag=model_tag,
@@ -770,13 +777,13 @@ def inference(
             assert len(keys) == _bs, f"{len(keys)} != {_bs}"
             batch = {k: v[0] for k, v in batch.items() if not k.endswith("_lengths")}
 
-            # N-best list of (text, token, token_int, hyp_object)
+            # N-best list of (text, token, token_int, text_nospecial, hyp_object)
             try:
                 results = speech2text(**batch)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
                 hyp = Hypothesis(score=0.0, scores={}, states={}, yseq=[])
-                results = [[" ", ["<space>"], [2], hyp]] * nbest
+                results = [[" ", ["<space>"], [2], " ", hyp]] * nbest
 
             # Only supporting batch_size==1
             key = keys[0]
@@ -857,7 +864,7 @@ def get_parser():
     group.add_argument("--key_file", type=str_or_none)
     group.add_argument("--allow_variable_data_keys", type=str2bool, default=False)
 
-    group = parser.add_argument_group("The model configuration related")
+    group = parser.add_argument_group("Model configuration related")
     group.add_argument(
         "--s2t_train_config",
         type=str,
@@ -898,6 +905,19 @@ def get_parser():
         type=str,
         help="Pretrained model tag. If specify this option, *_train_config and "
         "*_file will be overwritten",
+    )
+
+    group.add_argument(
+        "--lang_sym", type=str, default="<eng>", help="Language symbol."
+    )
+    group.add_argument(
+        "--task_sym", type=str, default="<asr>", help="Task symbol."
+    )
+    group.add_argument(
+        "--predict_time",
+        type=str2bool,
+        default=False,
+        help="Predict timestamps.",
     )
 
     group = parser.add_argument_group("Quantization related")
@@ -966,19 +986,11 @@ def get_parser():
     )
     group.add_argument("--lm_weight", type=float, default=0.0, help="RNNLM weight")
     group.add_argument("--ngram_weight", type=float, default=0.0, help="ngram weight")
-    group.add_argument("--streaming", type=str2bool, default=False)
-
     group.add_argument(
-        "--category_sym", type=str, default="<en>", help="Category symbol."
-    )
-    group.add_argument(
-        "--task_sym", type=str, default="<transcribe>", help="Task symbol."
-    )
-    group.add_argument(
-        "--time_sym",
-        type=str,
-        default="<notimestamps>",
-        help="First start time symbol.",
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
 
     group = parser.add_argument_group("Text converter related")
@@ -997,12 +1009,7 @@ def get_parser():
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
     )
-    group.add_argument(
-        "--normalize_length",
-        type=str2bool,
-        default=False,
-        help="If true, best hypothesis is selected by length-normalized scores",
-    )
+
     return parser
 
 
