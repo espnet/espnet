@@ -82,8 +82,9 @@ class TrainerOptions:
     use_matplotlib: bool
     use_tensorboard: bool
     use_wandb: bool
-    use_lora: bool
-    save_lora_only: bool
+    adapter: str
+    use_adapter: bool
+    save_adapter_only: bool
     output_dir: Union[Path, str]
     max_epoch: int
     seed: int
@@ -209,10 +210,11 @@ class Trainer:
                 scaler = GradScaler()
         else:
             scaler = None
-
-        use_lora = getattr(trainer_options, "use_lora", False)
-        save_lora_only = getattr(trainer_options, "save_lora_only", False)
-        if use_lora and lora is None:
+        # TODO: Need to handle the save adapter only issues
+        adapter = getattr(trainer_options, "adapter", None)
+        use_adapter = getattr(trainer_options, "use_adapter", False)
+        save_adapter_only = getattr(trainer_options, "save_adapter_only", False)
+        if use_adapter and lora is None:
             raise RuntimeError("Requiring loralib. Do 'pip install loralib'")
 
         if trainer_options.resume and (output_dir / "checkpoint.pth").exists():
@@ -224,7 +226,7 @@ class Trainer:
                 reporter=reporter,
                 scaler=scaler,
                 ngpu=trainer_options.ngpu,
-                strict=not use_lora,
+                strict=not use_adapter,
             )
 
         start_epoch = reporter.get_epoch() + 1
@@ -359,9 +361,17 @@ class Trainer:
                     reporter.wandb_log()
 
                 # 4. Save/Update the checkpoint
-                if use_lora and save_lora_only:
-                    # Only the LoRA realted params are saved, not the whole model
-                    model_state_dict = lora.lora_state_dict(model)
+                # TODO: This kind of design may not facilitate the integration of other kind of the adapter
+                if use_adapter and save_adapter_only:
+                    # Only the adapter params are saved, not the whole model
+                    
+                    if adapter == 'lora':
+                        model_state_dict = lora.lora_state_dict(model)
+                    elif adapter == 'houlsby':
+                        model_state_dict = model.state_dict()
+                        model_state_dict = {k: model_state_dict[k] for k in model_state_dict if 'adapter' in k}
+                    else:
+                        raise NotImplementedError
                 else:
                     # Save all params of the model
                     model_state_dict = model.state_dict()
