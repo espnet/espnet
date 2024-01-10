@@ -65,9 +65,7 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
         self.vocab_size = vocab_size
 
         # dummy param used to obtain the current dtype and device
-        self.param = torch.nn.Parameter(
-            torch.tensor(0.0, dtype=torch.float32)
-        )
+        self.param = torch.nn.Parameter(torch.tensor(0.0, dtype=torch.float32))
 
     def score(
         self, y: torch.Tensor, state: Any, x: torch.Tensor
@@ -86,7 +84,9 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
 
         """
 
-        score = torch.zeros(self.vocab_size, dtype=self.param.dtype, device=self.param.device)
+        score = torch.zeros(
+            self.vocab_size, dtype=self.param.dtype, device=self.param.device
+        )
         if self.notimestamps in y:
             # Suppress timestamp tokens
             score[self.first_time : self.last_time + 1] = -np.inf
@@ -94,7 +94,7 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
             # The first token must be a timestamp
             score[: self.first_time] = -np.inf
             score[self.last_time + 1 :] = -np.inf
-        else: 
+        else:
             prev_times = y[torch.logical_and(y >= self.first_time, y <= self.last_time)]
             if len(prev_times) % 2 == 1:
                 # there are an odd number of timestamps, so the sentence is incomplete
@@ -105,9 +105,9 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
                 # there are an even number of timestamps, so the next token is
                 # either a timestamp or eos
                 assert y[-1] >= self.first_time and y[-1] <= self.last_time, y
-                score[:y[-1]] = -np.inf
+                score[: y[-1]] = -np.inf
                 score[self.last_time + 1 :] = -np.inf
-                score[self.eos] = 0.
+                score[self.eos] = 0.0
 
         return score, None
 
@@ -128,7 +128,7 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
                 and next state list for ys.
 
         """
-        
+
         scores = list()
         outstates = list()
         for i, (y, state, x) in enumerate(zip(ys, states, xs)):
@@ -184,7 +184,7 @@ class Speech2Text:
     ):
         assert check_argument_types()
 
-        if ctc_weight > 0. and predict_time:
+        if ctc_weight > 0.0 and predict_time:
             raise ValueError("CTC cannot predict timestamps")
 
         quantize_modules = set([getattr(torch.nn, q) for q in quantize_modules])
@@ -378,9 +378,7 @@ class Speech2Text:
 
         lang_id = self.converter.token2id[lang_sym]
         task_id = self.converter.token2id[task_sym]
-        notime_id = self.converter.token2id[
-            self.preprocessor_conf["notime_symbol"]
-        ]
+        notime_id = self.converter.token2id[self.preprocessor_conf["notime_symbol"]]
 
         # Prepare hyp_primer
         hyp_primer = [self.s2t_model.sos, lang_id, task_id]
@@ -400,11 +398,7 @@ class Speech2Text:
                 text_prev = None
 
         if text_prev is not None:
-            hyp_primer = (
-                [self.s2t_model.sop]
-                + text_prev
-                + hyp_primer
-            )
+            hyp_primer = [self.s2t_model.sop] + text_prev + hyp_primer
 
         self.beam_search.set_hyp_primer(hyp_primer)
 
@@ -460,7 +454,7 @@ class Speech2Text:
                 for module in self.beam_search.nn_dict.decoder.modules():
                     if hasattr(module, "setup_step"):
                         module.setup_step()
-        
+
         nbest_hyps = self.beam_search(
             x=enc, maxlenratio=self.maxlenratio, minlenratio=self.minlenratio
         )
@@ -546,8 +540,12 @@ class Speech2Text:
             self.preprocessor_conf["speech_length"] * self.preprocessor_conf["fs"]
         )
         end_time_id_threshold = self.converter.token2id[end_time_threshold]
-        first_time_id = self.converter.token2id[self.preprocessor_conf["first_time_symbol"]]
-        last_time_id = self.converter.token2id[self.preprocessor_conf["last_time_symbol"]]
+        first_time_id = self.converter.token2id[
+            self.preprocessor_conf["first_time_symbol"]
+        ]
+        last_time_id = self.converter.token2id[
+            self.preprocessor_conf["last_time_symbol"]
+        ]
         resolution = self.preprocessor_conf["speech_resolution"]
         fs = self.preprocessor_conf["fs"]
 
@@ -907,12 +905,8 @@ def get_parser():
         "*_file will be overwritten",
     )
 
-    group.add_argument(
-        "--lang_sym", type=str, default="<eng>", help="Language symbol."
-    )
-    group.add_argument(
-        "--task_sym", type=str, default="<asr>", help="Task symbol."
-    )
+    group.add_argument("--lang_sym", type=str, default="<eng>", help="Language symbol.")
+    group.add_argument("--task_sym", type=str, default="<asr>", help="Task symbol.")
     group.add_argument(
         "--predict_time",
         type=str2bool,

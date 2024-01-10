@@ -89,7 +89,7 @@ class Speech2Language:
         # Preapre speech
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
-        
+
         speech_length = int(
             self.preprocessor_conf["fs"] * self.preprocessor_conf["speech_length"]
         )
@@ -115,7 +115,9 @@ class Speech2Language:
         assert len(enc) == 1, len(enc)
 
         # c. Forward Decoder by one step
-        ys = torch.tensor([self.s2t_model.sos] * len(enc), dtype=torch.long, device=self.device).unsqueeze(-1)
+        ys = torch.tensor(
+            [self.s2t_model.sos] * len(enc), dtype=torch.long, device=self.device
+        ).unsqueeze(-1)
         logp, _ = self.s2t_model.decoder.batch_score(ys, [None], enc)
         assert len(logp) == 1, len(logp)
 
@@ -226,7 +228,9 @@ def inference(
         batch_size=batch_size,
         key_file=key_file,
         num_workers=num_workers,
-        preprocess_fn=S2TTask.build_preprocess_fn(speech2language.s2t_train_args, False),
+        preprocess_fn=S2TTask.build_preprocess_fn(
+            speech2language.s2t_train_args, False
+        ),
         collate_fn=S2TTask.build_collate_fn(speech2language.s2t_train_args, False),
         allow_variable_data_keys=allow_variable_data_keys,
         inference=True,
@@ -332,10 +336,7 @@ def get_parser():
         help="The first language symbol.",
     )
     group.add_argument(
-        "--last_lang_sym",
-        type=str,
-        default="<zul>",
-        help="The last language symbol."
+        "--last_lang_sym", type=str, default="<zul>", help="The last language symbol."
     )
 
     group = parser.add_argument_group("Quantization related")
