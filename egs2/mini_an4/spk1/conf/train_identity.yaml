@@ -9,7 +9,7 @@ frontend_conf:
   n_mels: 20
   normalize: mn
 
-encoder: identity 
+encoder: identity
 
 pooling: mean
 
