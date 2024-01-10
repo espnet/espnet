@@ -74,7 +74,9 @@ def main(args):
     print(f"Cohort embeds size: {cohort_embds.size()}")
     if cohort_embds.size(0) < cfg["adaptive_cohort_size"]:
         print(
-            f"Cohort size({cohort_embds.size(0)}) is smaller than configured({cfg['adaptive_cohort_size']}). Adjustint to cohort size"
+            f"Cohort size({cohort_embds.size(0)}) is smaller than"
+            f" configured({cfg['adaptive_cohort_size']})."
+            "Adjustint to cohort size"
         )
         cfg["adaptive_cohort_size"] = cohort_embds.size(0)
 
