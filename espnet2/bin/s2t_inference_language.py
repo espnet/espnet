@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import torch.quantization
 from typeguard import check_argument_types, check_return_type
 
@@ -56,6 +57,7 @@ class Speech2Language:
 
         self.s2t_model = s2t_model
         self.s2t_train_args = s2t_train_args
+        self.preprocessor_conf = s2t_train_args.preprocessor_conf
         self.device = device
         self.dtype = dtype
         self.nbest = nbest
@@ -71,6 +73,9 @@ class Speech2Language:
     ) -> List[Tuple[str, float]]:
         """Predict the language in input speech.
 
+        The input speech will be padded or trimmed to the fixed length,
+        which is consistent with training.
+
         Args:
             speech: 1D input speech
 
@@ -84,6 +89,15 @@ class Speech2Language:
         # Preapre speech
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
+        
+        speech_length = int(
+            self.preprocessor_conf["fs"] * self.preprocessor_conf["speech_length"]
+        )
+        # Pad or trim speech to the fixed length
+        if speech.size(-1) >= speech_length:
+            speech = speech[:speech_length]
+        else:
+            speech = F.pad(speech, (0, speech_length - speech.size(-1)))
 
         # Batchify input
         # speech: (nsamples,) -> (1, nsamples)

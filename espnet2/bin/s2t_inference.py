@@ -328,6 +328,7 @@ class Speech2Text:
 
         self.s2t_model = s2t_model
         self.s2t_train_args = s2t_train_args
+        self.preprocessor_conf = s2t_train_args.preprocessor_conf
         self.converter = converter
         self.tokenizer = tokenizer
         self.beam_search = beam_search
@@ -337,7 +338,6 @@ class Speech2Text:
         self.dtype = dtype
         self.nbest = nbest
 
-        self.preprocessor_conf = s2t_train_args.preprocessor_conf
         self.lang_sym = lang_sym
         self.task_sym = task_sym
         self.predict_time = predict_time
