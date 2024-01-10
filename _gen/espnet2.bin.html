@@ -2906,14 +2906,46 @@ Currently, the tags of espnet_model_zoo are supported.</p>
 </section>
 <section id="espnet2-bin-spk-inference-1">
 <span id="espnet2-bin-spk-inference"></span><h2>espnet2.bin.spk_inference<a class="headerlink" href="#espnet2-bin-spk-inference-1" title="Permalink to this headline">¶</a></h2>
-<span class="target" id="module-espnet2.bin.spk_inference"></span><dl class="function">
+<span class="target" id="module-espnet2.bin.spk_inference"></span><dl class="class">
+<dt id="espnet2.bin.spk_inference.Speech2Embedding">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.bin.spk_inference.</code><code class="sig-name descname">Speech2Embedding</code><span class="sig-paren">(</span><em class="sig-param">train_config: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">model_file: Union[pathlib.Path</em>, <em class="sig-param">str] = None</em>, <em class="sig-param">device: str = 'cpu'</em>, <em class="sig-param">dtype: str = 'float32'</em>, <em class="sig-param">batch_size: int = 1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/spk_inference.html#Speech2Embedding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.spk_inference.Speech2Embedding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Speech2Embedding class</p>
+<p class="rubric">Examples</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">soundfile</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2spkembed</span> <span class="o">=</span> <span class="n">Speech2Embedding</span><span class="p">(</span><span class="s2">&quot;spk_config.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;spk.pth&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">audio</span><span class="p">,</span> <span class="n">rate</span> <span class="o">=</span> <span class="n">soundfile</span><span class="o">.</span><span class="n">read</span><span class="p">(</span><span class="s2">&quot;speech.wav&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">speech2spkembed</span><span class="p">(</span><span class="n">audio</span><span class="p">)</span>
+</pre></div>
+</div>
+<dl class="method">
+<dt id="espnet2.bin.spk_inference.Speech2Embedding.from_pretrained">
+<em class="property">static </em><code class="sig-name descname">from_pretrained</code><span class="sig-paren">(</span><em class="sig-param">model_tag: Optional[str] = None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/spk_inference.html#Speech2Embedding.from_pretrained"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.spk_inference.Speech2Embedding.from_pretrained" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build Speech2Embedding instance from the pretrained model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>model_tag</strong> (<em>Optional</em><em>[</em><em>str</em><em>]</em>) – Model tag of the pretrained models.
+Currently, the tags of espnet_model_zoo are supported.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Speech2Embedding instance.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#espnet2.bin.s2t_inference.Speech2Text" title="espnet2.bin.s2t_inference.Speech2Text">Speech2Text</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
 <dt id="espnet2.bin.spk_inference.get_parser">
 <code class="sig-prename descclassname">espnet2.bin.spk_inference.</code><code class="sig-name descname">get_parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/spk_inference.html#get_parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.spk_inference.get_parser" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">
 <dt id="espnet2.bin.spk_inference.inference">
-<code class="sig-prename descclassname">espnet2.bin.spk_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/spk_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.spk_inference.inference" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">espnet2.bin.spk_inference.</code><code class="sig-name descname">inference</code><span class="sig-paren">(</span><em class="sig-param">output_dir: str, batch_size: int, dtype: str, ngpu: int, seed: int, num_workers: int, log_level: Union[int, str], data_path_and_name_and_type: Sequence[Tuple[str, str, str]], key_file: Optional[str], train_config: Optional[str], model_file: Optional[str], model_tag: Optional[str]</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/bin/spk_inference.html#inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.bin.spk_inference.inference" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="function">

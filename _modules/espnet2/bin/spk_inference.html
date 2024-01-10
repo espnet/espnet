@@ -215,106 +215,200 @@
 <span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">distutils.version</span> <span class="kn">import</span> <span class="n">LooseVersion</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
+<span class="kn">from</span> <span class="nn">pathlib</span> <span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
-<span class="kn">import</span> <span class="nn">humanfriendly</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
-<span class="kn">from</span> <span class="nn">espnet2.samplers.build_batch_sampler</span> <span class="kn">import</span> <span class="n">BATCH_TYPES</span>
+<span class="kn">from</span> <span class="nn">espnet2.fileio.npy_scp</span> <span class="kn">import</span> <span class="n">NpyScpWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.spk</span> <span class="kn">import</span> <span class="n">SpeakerTask</span>
+<span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.distributed_utils</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">DistributedOption</span><span class="p">,</span>
-    <span class="n">free_port</span><span class="p">,</span>
-    <span class="n">get_master_port</span><span class="p">,</span>
-    <span class="n">get_node_rank</span><span class="p">,</span>
-    <span class="n">get_num_nodes</span><span class="p">,</span>
-    <span class="n">resolve_distributed_mode</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="kn">from</span> <span class="nn">espnet2.train.reporter</span> <span class="kn">import</span> <span class="n">Reporter</span><span class="p">,</span> <span class="n">SubReporter</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.build_dataclass</span> <span class="kn">import</span> <span class="n">build_dataclass</span>
-<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="p">(</span>
-    <span class="n">humanfriendly_parse_size_or_none</span><span class="p">,</span>
-    <span class="n">int_or_none</span><span class="p">,</span>
-    <span class="n">str2bool</span><span class="p">,</span>
-    <span class="n">str2triple_str</span><span class="p">,</span>
-    <span class="n">str_or_none</span><span class="p">,</span>
-<span class="p">)</span>
+<span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str2triple_str</span><span class="p">,</span> <span class="n">str_or_none</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
 
 
-<div class="viewcode-block" id="inference"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.spk_inference.inference">[docs]</a><span class="k">def</span> <span class="nf">inference</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="Speech2Embedding"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.spk_inference.Speech2Embedding">[docs]</a><span class="k">class</span> <span class="nc">Speech2Embedding</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Speech2Embedding class</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; import soundfile</span>
+<span class="sd">        &gt;&gt;&gt; speech2spkembed = Speech2Embedding(&quot;spk_config.yml&quot;, &quot;spk.pth&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; audio, rate = soundfile.read(&quot;speech.wav&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; speech2spkembed(audio)</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="n">spk_model</span><span class="p">,</span> <span class="n">spk_train_args</span> <span class="o">=</span> <span class="n">SpeakerTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
+            <span class="n">train_config</span><span class="p">,</span> <span class="n">model_file</span><span class="p">,</span> <span class="n">device</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spk_model</span> <span class="o">=</span> <span class="n">spk_model</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spk_train_args</span> <span class="o">=</span> <span class="n">spk_train_args</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">batch_size</span> <span class="o">=</span> <span class="n">batch_size</span>
+
+    <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Inference</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            speech: Input speech data</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            spk_embedding</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+
+        <span class="c1"># Input as audio signal</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+            <span class="n">speech</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">speech</span><span class="p">)</span>
+
+        <span class="c1"># data: (Nsamples,) -&gt; (1, Nsamples)</span>
+        <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;speech length: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)))</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;speech&quot;</span><span class="p">:</span> <span class="n">speech</span><span class="p">,</span> <span class="s2">&quot;extract_embd&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+        <span class="c1"># a. To device</span>
+        <span class="n">batch</span> <span class="o">=</span> <span class="n">to_device</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+        <span class="c1"># b. Forward the model embedding extraction</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spk_model</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">output</span>
+
+<div class="viewcode-block" id="Speech2Embedding.from_pretrained"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.spk_inference.Speech2Embedding.from_pretrained">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">from_pretrained</span><span class="p">(</span>
+        <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build Speech2Embedding instance from the pretrained model.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            model_tag (Optional[str]): Model tag of the pretrained models.</span>
+<span class="sd">                Currently, the tags of espnet_model_zoo are supported.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Speech2Text: Speech2Embedding instance.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">model_tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="kn">from</span> <span class="nn">espnet_model_zoo.downloader</span> <span class="kn">import</span> <span class="n">ModelDownloader</span>
+
+            <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
+                    <span class="s2">&quot;`espnet_model_zoo` is not installed. &quot;</span>
+                    <span class="s2">&quot;Please install via `pip install -U espnet_model_zoo`.&quot;</span>
+                <span class="p">)</span>
+                <span class="k">raise</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">ModelDownloader</span><span class="p">()</span>
+            <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="o">.</span><span class="n">download_and_unpack</span><span class="p">(</span><span class="n">model_tag</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">Speech2Embedding</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="inference"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.spk_inference.inference">[docs]</a><span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
+    <span class="n">output_dir</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">ngpu</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">log_level</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
+    <span class="n">data_path_and_name_and_type</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+    <span class="n">key_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">train_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+    <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+<span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;batch decoding is not implemented&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;only single GPU decoding is supported&quot;</span><span class="p">)</span>
 
     <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span>
-        <span class="n">level</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">log_level</span><span class="p">,</span>
+        <span class="n">level</span><span class="o">=</span><span class="n">log_level</span><span class="p">,</span>
         <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">%(asctime)s</span><span class="s2"> (</span><span class="si">%(module)s</span><span class="s2">:</span><span class="si">%(lineno)d</span><span class="s2">) </span><span class="si">%(levelname)s</span><span class="s2">: </span><span class="si">%(message)s</span><span class="s2">&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">ngpu</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">ngpu</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span>
 
     <span class="c1"># 1. Set random-seed</span>
-    <span class="n">set_all_random_seed</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">set_all_random_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
 
-    <span class="c1"># 2. define train args</span>
-    <span class="n">spk_model</span><span class="p">,</span> <span class="n">spk_train_args</span> <span class="o">=</span> <span class="n">SpeakerTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
-        <span class="n">args</span><span class="o">.</span><span class="n">spk_train_config</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">spk_model_file</span><span class="p">,</span> <span class="n">device</span>
+    <span class="c1"># 2. Build speech2embedding</span>
+    <span class="n">speech2embedding_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">train_config</span><span class="o">=</span><span class="n">train_config</span><span class="p">,</span>
+        <span class="n">model_file</span><span class="o">=</span><span class="n">model_file</span><span class="p">,</span>
     <span class="p">)</span>
 
-    <span class="c1"># 3. Overwrite args with inference args</span>
-    <span class="n">args</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-    <span class="n">args</span><span class="p">[</span><span class="s2">&quot;valid_data_path_and_name_and_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;data_path_and_name_and_type&quot;</span><span class="p">]</span>
-    <span class="n">args</span><span class="p">[</span><span class="s2">&quot;valid_shape_file&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;shape_file&quot;</span><span class="p">]</span>
-    <span class="n">args</span><span class="p">[</span><span class="s2">&quot;preprocessor_conf&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s2">&quot;target_duration&quot;</span><span class="p">:</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;target_duration&quot;</span><span class="p">],</span>
-        <span class="s2">&quot;num_eval&quot;</span><span class="p">:</span> <span class="n">args</span><span class="p">[</span><span class="s2">&quot;num_eval&quot;</span><span class="p">],</span>
-        <span class="s2">&quot;noise_apply_prob&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-        <span class="s2">&quot;rir_apply_prob&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
-    <span class="p">}</span>
-
-    <span class="n">merged_args</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">spk_train_args</span><span class="p">)</span>
-    <span class="n">merged_args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-    <span class="n">args</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">(</span><span class="o">**</span><span class="n">merged_args</span><span class="p">)</span>
-
-    <span class="c1"># 4. Build data-iterator</span>
-    <span class="n">resolve_distributed_mode</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-    <span class="n">distributed_option</span> <span class="o">=</span> <span class="n">build_dataclass</span><span class="p">(</span><span class="n">DistributedOption</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-    <span class="n">distributed_option</span><span class="o">.</span><span class="n">init_options</span><span class="p">()</span>
-
-    <span class="n">iterator</span> <span class="o">=</span> <span class="n">SpeakerTask</span><span class="o">.</span><span class="n">build_iter_factory</span><span class="p">(</span>
-        <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">,</span>
-        <span class="n">distributed_option</span><span class="o">=</span><span class="n">distributed_option</span><span class="p">,</span>
-        <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span>
+    <span class="n">speech2embedding</span> <span class="o">=</span> <span class="n">Speech2Embedding</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+        <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">speech2embedding_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">loader</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">build_iter</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
 
-    <span class="n">trainer_options</span> <span class="o">=</span> <span class="n">SpeakerTask</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">build_options</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-    <span class="n">reporter</span> <span class="o">=</span> <span class="n">Reporter</span><span class="p">()</span>
+    <span class="c1"># 3. Build data-iterator</span>
+    <span class="n">loader</span> <span class="o">=</span> <span class="n">SpeakerTask</span><span class="o">.</span><span class="n">build_streaming_iterator</span><span class="p">(</span>
+        <span class="n">data_path_and_name_and_type</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
+        <span class="n">key_file</span><span class="o">=</span><span class="n">key_file</span><span class="p">,</span>
+        <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
+        <span class="n">preprocess_fn</span><span class="o">=</span><span class="n">SpeakerTask</span><span class="o">.</span><span class="n">build_preprocess_fn</span><span class="p">(</span>
+            <span class="n">speech2embedding</span><span class="o">.</span><span class="n">spk_train_args</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">),</span>
+        <span class="n">collate_fn</span><span class="o">=</span><span class="n">SpeakerTask</span><span class="o">.</span><span class="n">build_colate_fn</span><span class="p">(</span><span class="n">speech2embedding</span><span class="o">.</span><span class="n">spk_train_args</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="n">inference</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="p">)</span>
 
-    <span class="c1"># 5. Run inference for EER and minDCF calculation</span>
-    <span class="k">with</span> <span class="n">reporter</span><span class="o">.</span><span class="n">observe</span><span class="p">(</span><span class="s2">&quot;valid&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">sub_reporter</span><span class="p">:</span>
-        <span class="n">SpeakerTask</span><span class="o">.</span><span class="n">trainer</span><span class="o">.</span><span class="n">validate_one_epoch</span><span class="p">(</span>
-            <span class="n">model</span><span class="o">=</span><span class="n">spk_model</span><span class="p">,</span>
-            <span class="n">iterator</span><span class="o">=</span><span class="n">loader</span><span class="p">,</span>
-            <span class="n">reporter</span><span class="o">=</span><span class="n">sub_reporter</span><span class="p">,</span>
-            <span class="n">options</span><span class="o">=</span><span class="n">trainer_options</span><span class="p">,</span>
-            <span class="n">distributed_option</span><span class="o">=</span><span class="n">distributed_option</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">distributed</span> <span class="ow">or</span> <span class="n">distributed_option</span><span class="o">.</span><span class="n">dist_rank</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">reporter</span><span class="o">.</span><span class="n">log_message</span><span class="p">())</span></div>
+    <span class="c1"># 4. Start for-loop</span>
+    <span class="k">with</span> <span class="n">NpyScpWriter</span><span class="p">(</span><span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;embed&quot;</span><span class="p">,</span> <span class="n">output_dir</span> <span class="o">/</span> <span class="s2">&quot;embed.scp&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">keys</span><span class="p">,</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">loader</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">batch</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span>
+            <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">keys</span><span class="p">),</span> <span class="n">keys</span>
+            <span class="n">_bs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">values</span><span class="p">())))</span>
+            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span> <span class="o">==</span> <span class="n">_bs</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">keys</span><span class="p">)</span><span class="si">}</span><span class="s2"> != </span><span class="si">{</span><span class="n">_bs</span><span class="si">}</span><span class="s2">&quot;</span>
+            <span class="n">batch</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">batch</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_lengths&quot;</span><span class="p">)}</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="n">speech2embedding</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+
+            <span class="c1"># Only supporting batch_size==1</span>
+            <span class="n">key</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+            <span class="n">writer</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">cpu</span><span class="p">()</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.spk_inference.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">config_argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
-        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;SPK Decoding&quot;</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Speaker Embedding Extraction&quot;</span><span class="p">,</span>
         <span class="n">formatter_class</span><span class="o">=</span><span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentDefaultsHelpFormatter</span><span class="p">,</span>
     <span class="p">)</span>
 
+    <span class="c1"># Note(kamo): Use &#39;_&#39; instead of &#39;-&#39; as separator.</span>
+    <span class="c1"># &#39;-&#39; is confusing if written in yaml.</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--log_level&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
@@ -322,6 +416,7 @@
         <span class="n">choices</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;CRITICAL&quot;</span><span class="p">,</span> <span class="s2">&quot;ERROR&quot;</span><span class="p">,</span> <span class="s2">&quot;WARNING&quot;</span><span class="p">,</span> <span class="s2">&quot;INFO&quot;</span><span class="p">,</span> <span class="s2">&quot;DEBUG&quot;</span><span class="p">,</span> <span class="s2">&quot;NOTSET&quot;</span><span class="p">),</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The verbose level of logging&quot;</span><span class="p">,</span>
     <span class="p">)</span>
+
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--output_dir&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--ngpu&quot;</span><span class="p">,</span>
@@ -350,404 +445,30 @@
         <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">_batch_type_help</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">BATCH_TYPES</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">_batch_type_help</span> <span class="o">+=</span> <span class="sa">f</span><span class="s1">&#39;&quot;</span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">&quot;:</span><span class="se">\n</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="se">\n</span><span class="s1">&#39;</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--key_file&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--batch_type&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;folded&quot;</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">BATCH_TYPES</span><span class="p">),</span>
-        <span class="n">help</span><span class="o">=</span><span class="n">_batch_type_help</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--batch_bins&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">1000000</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of batch bins. Used if batch_type=&#39;length&#39; or &#39;numel&#39;&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--valid_batch_bins&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If not given, the value of --batch_bins is used&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--valid_batch_type&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">BATCH_TYPES</span><span class="p">)</span> <span class="o">+</span> <span class="p">[</span><span class="kc">None</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If not given, the value of --batch_type is used&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--max_cache_size&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">humanfriendly</span><span class="o">.</span><span class="n">parse_size</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The maximum cache size for data loader. e.g. 10MB, 20GB.&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--max_cache_fd&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The maximum number of file descriptors to be kept &quot;</span>
-        <span class="s2">&quot;as opened for ark files. &quot;</span>
-        <span class="s2">&quot;This feature is only valid when data type is &#39;kaldi_ark&#39;.&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--valid_max_cache_size&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">humanfriendly_parse_size_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The maximum cache size for validation data loader. e.g. 10MB, 20GB. &quot;</span>
-        <span class="s2">&quot;If None, the 5 percent size of --max_cache_size&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--shape_file&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[])</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--input_size&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of input dimension of the feature&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--allow_variable_data_keys&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--spk2utt&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Directory of spk2utt file to be used in label mapping&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--train_dtype&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;float32&quot;</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;float16&quot;</span><span class="p">,</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span> <span class="s2">&quot;float64&quot;</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Data type for training.&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--use_amp&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable Automatic Mixed Precision. This feature requires pytorch&gt;=1.6&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--grad_clip&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">5.0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Gradient norm threshold to clip&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--accum_grad&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--batch_size&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
         <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The number of gradient accumulation&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--no_forward_run&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Just only iterating data loading without &quot;</span>
-        <span class="s2">&quot;model forwarding and training&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--grad_clip_type&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The type of the used p-norm for gradient clip. Can be inf&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--grad_noise&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The flag to switch to use noise injection to &quot;</span>
-        <span class="s2">&quot;gradients during training&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--resume&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable resuming if checkpoint is existing&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--sort_in_batch&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;descending&quot;</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;descending&quot;</span><span class="p">,</span> <span class="s2">&quot;ascending&quot;</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sort the samples in each mini-batches by the sample &quot;</span>
-        <span class="s1">&#39;lengths. To enable this, &quot;shape_file&quot; must have the length information.&#39;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--sort_batch&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;descending&quot;</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;descending&quot;</span><span class="p">,</span> <span class="s2">&quot;ascending&quot;</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Sort mini-batches by the sample lengths&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--drop_last_iter&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Exclude the minibatch with leftovers.&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The batch size for inference&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;The model configuration related&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--spk_train_config&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--train_config&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;SPK training configuration&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Speaker model training configuration&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--spk_model_file&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;--model_file&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;SPK model parameter file&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Speaker model parameter file&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--model_tag&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Pretrained model tag. If specify this option, *_train_config and &quot;</span>
         <span class="s2">&quot;*_file will be overwritten&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;distributed training related&quot;</span><span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--dist_backend&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;nccl&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;distributed backend&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--dist_init_method&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;env://&quot;</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s1">&#39;if init_method=&quot;env://&quot;, env values of &quot;MASTER_PORT&quot;, &quot;MASTER_ADDR&quot;, &#39;</span>
-        <span class="s1">&#39;&quot;WORLD_SIZE&quot;, and &quot;RANK&quot; are referred.&#39;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--dist_world_size&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;number of nodes for distributed training&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--dist_rank&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;node rank for distributed training&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="c1"># Not starting with &quot;dist_&quot; for compatibility to launch.py</span>
-        <span class="s2">&quot;--local_rank&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;local rank for distributed training. This option is used if &quot;</span>
-        <span class="s2">&quot;--multiprocessing_distributed=false&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--dist_master_addr&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The master address for distributed training. &quot;</span>
-        <span class="s2">&quot;This value is used when dist_init_method == &#39;env://&#39;&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--dist_master_port&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The master port for distributed training&quot;</span>
-        <span class="s2">&quot;This value is used when dist_init_method == &#39;env://&#39;&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--dist_launcher&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;slurm&quot;</span><span class="p">,</span> <span class="s2">&quot;mpi&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The launcher type for distributed training&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--multiprocessing_distributed&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Use multi-processing distributed training to launch &quot;</span>
-        <span class="s2">&quot;N processes per node, which has N GPUs. This is the &quot;</span>
-        <span class="s2">&quot;fastest way to use PyTorch for either single node or &quot;</span>
-        <span class="s2">&quot;multi node data parallel training&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--unused_parameters&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to use the find_unused_parameters in &quot;</span>
-        <span class="s2">&quot;torch.nn.parallel.DistributedDataParallel &quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--sharded_ddp&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable sharded training provided by fairscale&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;trainer initialization related&quot;</span><span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--max_epoch&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The maximum number epoch to train&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--patience&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">int_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of epochs to wait without improvement &quot;</span>
-        <span class="s2">&quot;before stopping the training&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--val_scheduler_criterion&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">nargs</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;loss&quot;</span><span class="p">),</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The criterion used for the value given to the lr scheduler. &quot;</span>
-        <span class="s1">&#39;Give a pair referring the phase, &quot;train&quot; or &quot;valid&quot;,&#39;</span>
-        <span class="s1">&#39;and the criterion name. The mode specifying &quot;min&quot; or &quot;max&quot; can &#39;</span>
-        <span class="s2">&quot;be changed by --scheduler_conf&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--early_stopping_criterion&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">nargs</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;loss&quot;</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">),</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The criterion used for judging of early stopping. &quot;</span>
-        <span class="s1">&#39;Give a pair referring the phase, &quot;train&quot; or &quot;valid&quot;,&#39;</span>
-        <span class="s1">&#39;the criterion name and the mode, &quot;min&quot; or &quot;max&quot;, e.g. &quot;acc,max&quot;.&#39;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--best_model_criterion&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2triple_str</span><span class="p">,</span>
-        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="p">[</span>
-            <span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;loss&quot;</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;loss&quot;</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s2">&quot;train&quot;</span><span class="p">,</span> <span class="s2">&quot;acc&quot;</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">),</span>
-            <span class="p">(</span><span class="s2">&quot;valid&quot;</span><span class="p">,</span> <span class="s2">&quot;acc&quot;</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">),</span>
-        <span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The criterion used for judging of the best model. &quot;</span>
-        <span class="s1">&#39;Give a pair referring the phase, &quot;train&quot; or &quot;valid&quot;,&#39;</span>
-        <span class="s1">&#39;the criterion name, and the mode, &quot;min&quot; or &quot;max&quot;, e.g. &quot;acc,max&quot;.&#39;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--keep_nbest_models&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">nargs</span><span class="o">=</span><span class="s2">&quot;+&quot;</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Remove previous snapshots excluding the n-best scored epochs&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--nbest_averaging_interval&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The epoch interval to apply model averaging and save nbest models&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--use_matplotlib&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable matplotlib logging&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--use_tensorboard&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable tensorboard logging&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--create_graph_in_tensorboard&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Whether to create graph in tensorboard&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--use_wandb&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable wandb logging&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--wandb_project&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify wandb project&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--wandb_id&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify wandb id&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--wandb_entity&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify wandb entity&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--wandb_name&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Specify wandb run name&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--wandb_model_log_interval&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set the model log period&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--detect_anomaly&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Set torch.autograd.set_detect_anomaly&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;cudnn mode related&quot;</span><span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--cudnn_enabled&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">enabled</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable CUDNN&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--cudnn_benchmark&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">cudnn</span><span class="o">.</span><span class="n">benchmark</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable cudnn-benchmark mode&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--cudnn_deterministic&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Enable cudnn-deterministic mode&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-
-    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;The inference hyperparameter related&quot;</span><span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--valid_batch_size&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The batch size for inference&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--target_duration&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mf">3.0</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Duration (in seconds) of samples in a minibatch&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--num_eval&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Number of segments to make from one utterance in the inference phase&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--fold_length&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">&quot;append&quot;</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="p">[])</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--use_preprocessor&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Apply preprocessing to data or not&quot;</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">parser</span></div>
@@ -757,7 +478,9 @@
     <span class="nb">print</span><span class="p">(</span><span class="n">get_commandline_args</span><span class="p">(),</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">get_parser</span><span class="p">()</span>
     <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
-    <span class="n">inference</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="nb">vars</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;config&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">inference</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
