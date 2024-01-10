@@ -125,7 +125,7 @@ loss_choices = ClassChoices(
         aamsoftmax=AAMSoftmax,
         aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
     ),
-    default="aam",
+    default="aamsoftmax",
 )
 
 

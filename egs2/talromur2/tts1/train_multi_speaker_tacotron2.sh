@@ -28,7 +28,9 @@ test_sets="${valid_set} ${eval_set}"
     --stage 2 \
     --g2p none \
     --cleaner none \
-    --use_xvector true \
+    --use_spk_embed true \
+    --spk_embed_tool kaldi \
+    --spk_embed_tag xvector \
     --ngpu 1 \
     --expdir "$expdir" \
     --train_config ./conf/tuning/train_xvector_tacotron2.yaml \
