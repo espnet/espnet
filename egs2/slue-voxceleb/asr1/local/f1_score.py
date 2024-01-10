@@ -22,11 +22,16 @@ def get_classification_result(hyp_file, ref_file):
     hyp_intent_arr = []
     ref_intent_arr = []
     for line_count in range(len(hyp_lines)):
-        hyp_intent = hyp_lines[line_count].split(" ")[0]
-        ref_intent = ref_lines[line_count].split(" ")[0]
+        hyp_intent = hyp_lines[line_count].split("\t")[0].split(" ")[0]
+        ref_intent = ref_lines[line_count].split("\t")[0].split(" ")[0]
         hyp_intent_arr.append(hyp_intent)
         ref_intent_arr.append(ref_intent)
-    print(classification_report(ref_intent_arr, hyp_intent_arr))
+    print(classification_report(ref_intent_arr, hyp_intent_arr, digits=3))
+    print(
+        classification_report(
+            ref_intent_arr, hyp_intent_arr, digits=3, labels=["Neutral", "Positive"]
+        )
+    )
     return f1_score(ref_intent_arr, hyp_intent_arr, average="macro")
 
 

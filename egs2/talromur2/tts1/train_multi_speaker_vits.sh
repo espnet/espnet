@@ -29,7 +29,9 @@ test_sets="${valid_set} ${eval_set}"
     --stage 2 \
     --g2p none \
     --cleaner none \
-    --use_xvector true \
+    --use_spk_embed true \
+    --spk_embed_tool kaldi \
+    --spk_embed_tag xvector \
     --min_wav_duration 0.38 \
     --ngpu 4 \
     --fs 22050 \
