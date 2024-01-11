@@ -408,7 +408,9 @@ class Speech2Text:
 
         # Only support single-channel speech
         if speech.dim() > 1:
-            assert speech.dim() == 2 and speech.size(1) == 1, f"speech of size {speech.size()} is not supported"
+            assert (
+                speech.dim() == 2 and speech.size(1) == 1
+            ), f"speech of size {speech.size()} is not supported"
             speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
 
         speech_length = int(
@@ -557,7 +559,9 @@ class Speech2Text:
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
 
-        assert speech.dim() == 1, f"speech must have one dimension, got size {speech.size()} instead"
+        assert (
+            speech.dim() == 1
+        ), f"speech must have one dimension, got size {speech.size()} instead"
 
         utterances = []
         offset = 0

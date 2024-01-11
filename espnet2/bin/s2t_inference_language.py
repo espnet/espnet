@@ -92,7 +92,9 @@ class Speech2Language:
 
         # Only support single-channel speech
         if speech.dim() > 1:
-            assert speech.dim() == 2 and speech.size(1) == 1, f"speech of size {speech.size()} is not supported"
+            assert (
+                speech.dim() == 2 and speech.size(1) == 1
+            ), f"speech of size {speech.size()} is not supported"
             speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
 
         speech_length = int(
