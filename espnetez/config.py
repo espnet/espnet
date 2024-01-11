@@ -1,10 +1,12 @@
+import yaml
+
 from espnetez.task import get_easy_task
-from espnetez.utils import load_yaml
 
 
 def from_yaml(task, path):
     task_class = get_easy_task(task)
-    config = load_yaml(path)
+    with open(path, "r") as f:
+        config = yaml.load(f, Loader=yaml.Loader)
 
     # get default configuration from task class.
     default_config = task_class.get_default_config()
@@ -14,7 +16,8 @@ def from_yaml(task, path):
 
 
 def update_finetune_config(task, pretrain_config, path):
-    finetune_config = load_yaml(path)
+    with open(path, "r") as f:
+        finetune_config = yaml.load(f, Loader=yaml.Loader)
     default_config = get_easy_task(task).get_default_config()
 
     # update pretrain_config with finetune_config
