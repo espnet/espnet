@@ -77,7 +77,7 @@ class Speech2Language:
         which is consistent with training.
 
         Args:
-            speech: 1D input speech
+            speech: input speech of shape (nsamples,) or (nsamples, nchannels=1)
 
         Returns:
             List of (language, probability)
@@ -89,6 +89,11 @@ class Speech2Language:
         # Preapre speech
         if isinstance(speech, np.ndarray):
             speech = torch.tensor(speech)
+
+        # Only support single-channel speech
+        if speech.dim() > 1:
+            assert speech.dim() == 2 and speech.size(1) == 1, f"speech of size {speech.size()} is not supported"
+            speech = speech.squeeze(1)  # (nsamples, 1) --> (nsamples,)
 
         speech_length = int(
             self.preprocessor_conf["fs"] * self.preprocessor_conf["speech_length"]
