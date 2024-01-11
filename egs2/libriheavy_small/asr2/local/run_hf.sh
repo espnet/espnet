@@ -31,10 +31,17 @@ tgt_case="ts"
 
 embed_tokens_path=data/mistral7b-instruct02_embed_tokens.pth
 
+# The training is performed in two stages:
+# Stage 1: pretrain the encoder for prediction of LM token embeddings,
+# this is done with CTC loss and frozen LM token embedding matrix;
+# Stage 2: fine-tune the encoder from Stage 1 as a part of AED model where the decoder is a frozen causal LM.
+# Theoretically, training only with the Stage 2 is possible, but in practice it fails to converge.
+
 local/export_hf_embed_tokens.sh \
     mistralai/Mistral-7B-Instruct-v0.2 \
     ${embed_tokens_path}
 
+# Stage 1: perform all recipe steps up to the training and train with CTC loss.
 ./asr2.sh \
     --kmeans_feature "${kmeans_feature}" \
     --kmeans_opts "--batch_bins 4800000 --nj 4" \
@@ -63,6 +70,8 @@ local/export_hf_embed_tokens.sh \
     --lm_train_text "data/${train_set}/text.${tgt_case}.${tgt_lang}" "$@" \
     --stop_stage 13
 
+# Stage 2: skip all recipe steps up to the training and train with AED (CE) loss
+# using the pretrained parameters from the Stage 1.
 ./asr2.sh \
     --kmeans_feature "${kmeans_feature}" \
     --kmeans_opts "--batch_bins 4800000 --nj 4" \
