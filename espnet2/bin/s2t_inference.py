@@ -102,12 +102,15 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
                 # timestamps are monotonic
                 score[self.first_time : prev_times[-1] + 1] = -np.inf
             else:
-                # there are an even number of timestamps, so the next token is
-                # either a timestamp or eos
-                assert y[-1] >= self.first_time and y[-1] <= self.last_time, y
-                score[: y[-1]] = -np.inf
-                score[self.last_time + 1 :] = -np.inf
-                score[self.eos] = 0.0
+                # there are an even number of timestamps
+                if y[-1] >= self.first_time and y[-1] <= self.last_time:
+                    # the next tokon is a timestamp or eos
+                    score[: y[-1]] = -np.inf
+                    score[self.last_time + 1 :] = -np.inf
+                    score[self.eos] = 0.0
+                else:
+                    # illegal hyp
+                    score[:] = -np.inf
 
         return score, None
 
@@ -567,6 +570,8 @@ class Speech2Text:
         offset = 0
         text_prev = init_text
         while offset < len(speech):
+            logging.info(f"Current start time in seconds: {offset / fs:.2f}")
+
             segment = speech[offset : offset + segment_len]
             # segment will be padded in __call__
             result = self.__call__(
