@@ -658,10 +658,10 @@ class AbsTask(ABC):
             choices=["lora", "houlsby"],
         )
         group.add_argument(
-            "--save_lora_only",
+            "--save_adapter_only",
             type=str2bool,
             default=True,
-            help="Only save LoRA parameters or save all model parameters",
+            help="Only save adapter parameters or save all model parameters",
         )
         group.add_argument(
             "--adapter_conf",

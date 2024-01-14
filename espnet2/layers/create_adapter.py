@@ -182,15 +182,14 @@ def create_new_houlsby_module(
         layer_norm_first=layer_norm_first,
         bottleneck=bottleneck,
     )
-
+    
     # Get default requires_grad 
     for n, p in adapter_added_layer.named_parameters():
-        try:
-            p.requires_grad = eval(f"layer.{n}").requires_grad
-        except:
-            # Adapter parameter
+        if 'adapter' in n:
             continue
-    # copy weights
+        p.requires_grad = eval(f"target_module.{n}").requires_grad
+        
+    # copy weights from the target module
     orig_state_dict = target_module.state_dict()
     adapter_added_layer.load_state_dict(orig_state_dict, strict=False)
     

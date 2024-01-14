@@ -35,6 +35,7 @@ preencoder_conf:
 
 use_adapter: true
 adapter: lora
+save_adapter_only: true
 adapter_conf:
     rank: 4
     alpha: 4
