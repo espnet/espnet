@@ -1,10 +1,10 @@
-import os
+"""UpFirDn2d functions for upsampling, padding, FIR filter and downsampling.
+
+Functions are ported from https://github.com/NVlabs/stylegan2.
+"""
 
 import torch
-from torch.autograd import Function
 from torch.nn import functional as F
-from torch.utils.cpp_extension import load
-
 
 def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0)):
     out = upfirdn2d_native(

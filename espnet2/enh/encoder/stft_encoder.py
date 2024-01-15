@@ -46,7 +46,9 @@ class STFTEncoder(AbsEncoder):
         self.center = center
         self.default_fs = default_fs
 
-        # spec transform related
+        # spec transform related. See equation (1) in paper
+        # 'Speech Enhancement and Dereverberation With Diffusion-Based Generative 
+        # Models'. The default value of 0.15, 0.5 also come from the paper. 
         # spec_transform_type: "exponent", "log", or "none"
         self.spec_transform_type = spec_transform_type
         # the output specturm will be scaled with: spec * self.spec_factor
@@ -200,10 +202,3 @@ class STFTEncoder(AbsEncoder):
         return audio.as_strided(shape, strides, storage_offset=0).unbind(dim=-1)
 
 
-if __name__ == "__main__":
-    enc = STFTEncoder(spec_transform_type="exponent")
-
-    audio = torch.randn((1, 16000))
-    ilens = torch.tensor((16000,)).int()
-    out = enc(audio, ilens=ilens)
-    print(out)

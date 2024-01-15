@@ -139,15 +139,6 @@ def upsample_conv_2d(x, w, k=None, factor=2, gain=1):
     x = F.conv_transpose2d(
         x, w, stride=stride, output_padding=output_padding, padding=0
     )
-    # Original TF code.
-    # x = tf.nn.conv2d_transpose(
-    #     x,
-    #     w,
-    #     output_shape=output_shape,
-    #     strides=stride,
-    #     padding='VALID',
-    #     data_format=data_format)
-    # JAX equivalent
 
     return upfirdn2d(
         x, torch.tensor(k, device=x.device), pad=((p + 1) // 2 + factor - 1, p // 2 + 1)
