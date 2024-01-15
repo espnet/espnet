@@ -6,6 +6,7 @@ Functions are ported from https://github.com/NVlabs/stylegan2.
 import torch
 from torch.nn import functional as F
 
+
 def upfirdn2d(input, kernel, up=1, down=1, pad=(0, 0)):
     out = upfirdn2d_native(
         input, kernel, up, up, down, down, pad[0], pad[1], pad[0], pad[1]
