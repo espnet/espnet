@@ -336,12 +336,6 @@ class NCSNpp(nn.Module):
             temb = modules[m_idx](torch.log(used_sigmas))
             m_idx += 1
 
-        elif self.embedding_type == "positional":
-            # Sinusoidal positional embeddings.
-            timesteps = time_cond
-            used_sigmas = self.sigmas[time_cond.long()]
-            temb = layers.get_timestep_embedding(timesteps, self.nf)
-
         else:
             raise ValueError(f"embedding type {self.embedding_type} unknown.")
 
