@@ -210,13 +210,16 @@ class Trainer:
                 scaler = GradScaler()
         else:
             scaler = None
-        # TODO: Need to handle the save adapter only issues
+            
         adapter = getattr(trainer_options, "adapter", None)
         use_adapter = getattr(trainer_options, "use_adapter", False)
         save_adapter_only = getattr(trainer_options, "save_adapter_only", False)
-        if use_adapter and lora is None:
-            raise RuntimeError("Requiring loralib. Do 'pip install loralib'")
+        if use_adapter :
+            if adapter == 'lora' and lora is None:
+                raise RuntimeError("Requiring loralib. Do 'pip install loralib'")
 
+            # TODO: houlsby adapter may need S3PRL?
+            
         if trainer_options.resume and (output_dir / "checkpoint.pth").exists():
             cls.resume(
                 checkpoint=output_dir / "checkpoint.pth",
@@ -362,19 +365,15 @@ class Trainer:
 
                 # 4. Save/Update the checkpoint
                 # TODO: This kind of design may not facilitate the integration of other kind of the adapter
+                # Maybe we can only save those with requires_grad = True ?
+                # If we use lora.lora_state_dict, we will not save the downstream model in SSL settings
+                model_state_dict = model.state_dict()
                 if use_adapter and save_adapter_only:
-                    # Only the adapter params are saved, not the whole model
                     
-                    if adapter == 'lora':
-                        model_state_dict = lora.lora_state_dict(model)
-                    elif adapter == 'houlsby':
-                        model_state_dict = model.state_dict()
-                        model_state_dict = {k: model_state_dict[k] for k in model_state_dict if 'adapter' in k}
-                    else:
-                        raise NotImplementedError
-                else:
-                    # Save all params of the model
-                    model_state_dict = model.state_dict()
+                    # Only save those requires_grad
+                    for n, p in model.named_parameters():
+                        if not p.requires_grad:
+                            model_state_dict.pop(n)
 
                 torch.save(
                     {
