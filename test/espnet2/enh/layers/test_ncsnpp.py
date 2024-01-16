@@ -6,11 +6,13 @@ from espnet2.enh.layers.ncsnpp import NCSNpp
 
 
 @pytest.mark.parametrize("scale_by_sigma", [True, False])
-@pytest.mark.parametrize("nonlinearity", ['elu', 'relu', 'lrelu', 'swish'])
+@pytest.mark.parametrize("nonlinearity", ["elu", "relu", "lrelu", "swish"])
 @pytest.mark.parametrize("fir", [True])
 @pytest.mark.parametrize("skip_rescale", [True, False])
 @pytest.mark.parametrize("progressive_input", ["none", "input_skip", "residual"])
-@pytest.mark.parametrize("resblock_type, resamp_with_conv", [("biggan", True), ("ddpm", False)])
+@pytest.mark.parametrize(
+    "resblock_type, resamp_with_conv", [("biggan", True), ("ddpm", False)]
+)
 def test_ncsnpp_forward_backward_complex(
     scale_by_sigma,
     nonlinearity,
@@ -21,10 +23,13 @@ def test_ncsnpp_forward_backward_complex(
     progressive_input,
 ):
     model = NCSNpp(
-        scale_by_sigma = scale_by_sigma,
-        nonlinearity = nonlinearity,
+        scale_by_sigma=scale_by_sigma,
+        nonlinearity=nonlinearity,
         nf=16,
-        ch_mult=(1, 2,),
+        ch_mult=(
+            1,
+            2,
+        ),
         num_res_blocks=2,
         attn_resolutions=(1,),
         resamp_with_conv=resamp_with_conv,
@@ -47,4 +52,3 @@ def test_ncsnpp_forward_backward_complex(
     t = torch.rand(2)
     rtv = model(x, t)
     rtv.abs().mean().backward()
-

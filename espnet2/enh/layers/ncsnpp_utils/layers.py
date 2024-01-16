@@ -643,7 +643,6 @@ class ResidualBlock(nn.Module):
 #  https://github.com/hojonathanho/diffusion/blob/master/diffusion_tf/nn.py
 ###########################################################################
 
-
 def _einsum(a, b, c, x, y):
     einsum_str = "{},{}->{}".format("".join(a), "".join(b), "".join(c))
     return torch.einsum(einsum_str, x, y)
