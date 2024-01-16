@@ -27,8 +27,14 @@ def get_parser():
     parser.add_argument(
         "--toolkit",
         type=str,
-        help="Toolkit for Extracting X-vectors.",
+        help="Toolkit for Extracting speaker speaker embeddingss.",
         choices=["espnet", "speechbrain", "rawnet"],
+    )
+    parser.add_argument(
+        "--spk_embed_tag",
+        type=str,
+        help="the target data name (e.g., xvector for xvector.scp)",
+        default="spk_embed",
     )
     parser.add_argument("--verbose", type=int, default=1, help="Verbosity level.")
     parser.add_argument("--device", type=str, default="cuda:0", help="Inference device")
@@ -38,15 +44,16 @@ def get_parser():
     parser.add_argument(
         "out_folder",
         type=Path,
-        help="Output folder to save the xvectors.",
+        help="Output folder to save the speaker embeddings.",
     )
     return parser
 
 
-class XVExtractor:
+class SpkEmbedExtractor:
     def __init__(self, args, device):
         self.toolkit = args.toolkit
         self.device = device
+        self.tgt_sr = 16000  # NOTE(jiatong): following 16khz convetion
 
         if self.toolkit == "speechbrain":
             from speechbrain.dataio.preprocess import AudioNormalizer
@@ -81,8 +88,37 @@ class XVExtractor:
                 )["model"]
             )
             self.model.to(device).eval()
+        elif self.toolkit == "espnet":
+            from espnet2.bin.spk_inference import Speech2Embedding
 
-    def rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
+            # NOTE(jiatong): set default config file as None
+            # assume config is the same path as the model file
+            speech2embedding_kwargs = dict(
+                batch_size=1,
+                dtype="float32",
+                train_config=None,
+                model_file=args.pretrained_model,
+            )
+
+            if args.pretrained_model.endswith("pth"):
+                logging.info(
+                    "the provided model path is end with pth,"
+                    "assume it not a huggingface model"
+                )
+                model_tag = None
+            else:
+                logging.info(
+                    "the provided model path is not end with pth,"
+                    "assume use huggingface model"
+                )
+                model_tag = args.pretrained_model
+
+            self.speech2embedding = Speech2Embedding.from_pretrained(
+                model_tag=model_tag,
+                **speech2embedding_kwargs,
+            )
+
+    def _rawnet_extract_embd(self, audio, n_samples=48000, n_segments=10):
         if len(audio.shape) > 1:
             raise ValueError(
                 "RawNet3 supports mono input only."
@@ -102,13 +138,31 @@ class XVExtractor:
             output = self.model(audios)
         return output.mean(0).detach().cpu().numpy()
 
+    def _espnet_extract_embd(self, audio):
+        if len(audio.shape) == 2:
+            logging.info(
+                "Not support multi-channel input for ESPnet pre-trained model"
+                f"Input data has shape {audio.shape}, default set avg across  channel"
+            )
+            audio = np.mean(audio, axis=0)
+        elif len(audio.shape) > 1:
+            raise ValueError(f"Input data has shape {audio.shape} thatis not support")
+        audio = torch.from_numpy(audio.astype(np.float32)).to(self.device)
+        output = self.speech2embedding(audio)
+        return output.cpu().numpy()
+
     def __call__(self, wav, in_sr):
         if self.toolkit == "speechbrain":
             wav = self.audio_norm(torch.from_numpy(wav), in_sr).to(self.device)
             embeds = self.model.encode_batch(wav).detach().cpu().numpy()[0]
         elif self.toolkit == "rawnet":
-            wav = librosa.resample(wav, orig_sr=in_sr, target_sr=16000)
-            embeds = self.rawnet_extract_embd(wav)
+            if in_sr != self.tgt_sr:
+                wav = librosa.resample(wav, orig_sr=in_sr, target_sr=self.tgt_sr)
+            embeds = self._rawnet_extract_embd(wav)
+        elif self.toolkit == "espnet":
+            if in_sr != self.tgt_sr:
+                wav = librosa.resample(wav, orig_sr=in_sr, target_sr=self.tgt_sr)
+            embeds = self._espnet_extract_embd(wav)
         return embeds
 
 
@@ -134,7 +188,7 @@ def main(argv):
     else:
         device = "cpu"
 
-    if args.toolkit in ("speechbrain", "rawnet"):
+    if args.toolkit in ("speechbrain", "rawnet", "espnet"):
         # Prepare spk2utt for mean x-vector
         spk2utt = dict()
         with open(os.path.join(args.in_folder, "spk2utt"), "r") as reader:
@@ -145,33 +199,33 @@ def main(argv):
         wav_scp = SoundScpReader(os.path.join(args.in_folder, "wav.scp"), np.float32)
         os.makedirs(args.out_folder, exist_ok=True)
         writer_utt = kaldiio.WriteHelper(
-            "ark,scp:{0}/xvector.ark,{0}/xvector.scp".format(args.out_folder)
+            "ark,scp:{0}/{1}.ark,{0}/{1}.scp".format(
+                args.out_folder, args.spk_embed_tag
+            )
         )
         writer_spk = kaldiio.WriteHelper(
-            "ark,scp:{0}/spk_xvector.ark,{0}/spk_xvector.scp".format(args.out_folder)
+            "ark,scp:{0}/spk_{1}.ark,{0}/spk_{1}.scp".format(
+                args.out_folder, args.spk_embed_tag
+            )
         )
 
-        xv_extractor = XVExtractor(args, device)
+        spk_embed_extractor = SpkEmbedExtractor(args, device)
 
         for speaker in tqdm(spk2utt):
-            xvectors = list()
+            spk_embeddings = list()
             for utt in spk2utt[speaker]:
                 in_sr, wav = wav_scp[utt]
-                # X-vector Embedding
-                embeds = xv_extractor(wav, in_sr)
+                # Speaker Embedding
+                embeds = spk_embed_extractor(wav, in_sr)
                 writer_utt[utt] = np.squeeze(embeds)
-                xvectors.append(embeds)
+                spk_embeddings.append(embeds)
 
             # Speaker Normalization
-            embeds = np.mean(np.stack(xvectors, 0), 0)
+            embeds = np.mean(np.stack(spk_embeddings, 0), 0)
             writer_spk[speaker] = embeds
         writer_utt.close()
         writer_spk.close()
 
-    elif args.toolkit == "espnet":
-        raise NotImplementedError(
-            "Follow details at: https://github.com/espnet/espnet/issues/3040"
-        )
     else:
         raise ValueError(
             "Unkown type of toolkit. Only supported: speechbrain, rawnet, espnet, kaldi"

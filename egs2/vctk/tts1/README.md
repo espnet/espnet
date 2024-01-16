@@ -16,6 +16,27 @@ See the following pages before asking the question:
 - [ESPnet2 TTS FAQ](../../TEMPLATE/tts1/README.md#faq)
 
 
+# FIFTH RESULTS
+
+- A comparison between speechbiran X-vector and ESPnet rawnet
+
+## Environments
+- date: `Sun Dec 17 07:19:27 EST 2023`
+- python version: `3.9.18 (main, Sep 11 2023, 13:41:44)  [GCC 11.2.0]`
+- espnet version: `espnet 202310`
+- pytorch version: `pytorch 2.1.0+cu118`
+- Git hash: `beff64b456b692dc7f7e80b9bd793e67d58806f9`
+  - Commit date: `Wed Dec 6 06:55:45 2023 -0500`
+
+## Pretrained Models
+
+### espnet/vctk_tts_train_espnet_rawnet_vits
+https://huggingface.co/espnet/vctk_tts_train_espnet_rawnet_vits
+
+### espnet/vctk_tts_train_speechbrain_xvector_vits
+https://huggingface.co/espnet/vctk_tts_train_speechbrain_xvector_vits
+
+
 # FORTH RESULTS
 
 - Use espeak-ng based G2P
