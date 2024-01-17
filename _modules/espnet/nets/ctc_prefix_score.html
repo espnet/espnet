@@ -393,8 +393,9 @@
         <span class="k">for</span> <span class="n">si</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bh</span><span class="p">):</span>
             <span class="n">log_psi</span><span class="p">[</span><span class="n">si</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span><span class="p">]</span> <span class="o">=</span> <span class="n">r_sum</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">end_frames</span><span class="p">[</span><span class="n">si</span> <span class="o">//</span> <span class="n">n_hyps</span><span class="p">],</span> <span class="n">si</span><span class="p">]</span>
 
-        <span class="c1"># exclude blank probs</span>
-        <span class="n">log_psi</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logzero</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank</span><span class="p">:</span>
+            <span class="c1"># exclude blank probs</span>
+            <span class="n">log_psi</span><span class="p">[:,</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logzero</span>
 
         <span class="k">return</span> <span class="p">(</span><span class="n">log_psi</span> <span class="o">-</span> <span class="n">s_prev</span><span class="p">),</span> <span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">log_psi</span><span class="p">,</span> <span class="n">f_min</span><span class="p">,</span> <span class="n">f_max</span><span class="p">,</span> <span class="n">scoring_idmap</span><span class="p">)</span>
 
@@ -560,10 +561,11 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">eos_pos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">log_psi</span><span class="p">[</span><span class="n">eos_pos</span><span class="p">]</span> <span class="o">=</span> <span class="n">r_sum</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># log(r_T^n(g) + r_T^b(g))</span>
 
-        <span class="c1"># exclude blank probs</span>
-        <span class="n">blank_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cs</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">blank_pos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">log_psi</span><span class="p">[</span><span class="n">blank_pos</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logzero</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">eos</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank</span><span class="p">:</span>
+            <span class="c1"># exclude blank probs</span>
+            <span class="n">blank_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">xp</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cs</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">blank</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">blank_pos</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">log_psi</span><span class="p">[</span><span class="n">blank_pos</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">logzero</span>
 
         <span class="c1"># return the log prefix probability and CTC states, where the label axis</span>
         <span class="c1"># of the CTC states is moved to the first axis to slice it easily</span>
