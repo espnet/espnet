@@ -3114,6 +3114,8 @@ enh_train.py
                         [--mask_module_conf MASK_MODULE_CONF]
                         [--preprocessor {dynamic_mixing,enh,None}]
                         [--preprocessor_conf PREPROCESSOR_CONF]
+                        [--diffusion_model {sgmse,None}]
+                        [--diffusion_model_conf DIFFUSION_MODEL_CONF]
     
     base parser
     
@@ -3562,6 +3564,10 @@ enh_train.py
                             The preprocessor type (default: None)
       --preprocessor_conf PREPROCESSOR_CONF
                             The keyword arguments for preprocessor (default: {})
+      --diffusion_model {sgmse,None}
+                            The diffusion_model type (default: None)
+      --diffusion_model_conf DIFFUSION_MODEL_CONF
+                            The keyword arguments for diffusion_model (default: {})
     /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe 'nopython' keyword argument was not supplied to the 'numba.jit' decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
       def backtrace(trace: np.ndarray):
 .. _enh_tse_inference.py:

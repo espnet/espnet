@@ -227,6 +227,9 @@
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.conv_decoder</span> <span class="kn">import</span> <span class="n">ConvDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.null_decoder</span> <span class="kn">import</span> <span class="n">NullDecoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.decoder.stft_decoder</span> <span class="kn">import</span> <span class="n">STFTDecoder</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.diffusion.abs_diffusion</span> <span class="kn">import</span> <span class="n">AbsDiffusion</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.diffusion.score_based_diffusion</span> <span class="kn">import</span> <span class="n">ScoreModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.enh.diffusion_enh</span> <span class="kn">import</span> <span class="n">ESPnetDiffusionModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.abs_encoder</span> <span class="kn">import</span> <span class="n">AbsEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.conv_encoder</span> <span class="kn">import</span> <span class="n">ConvEncoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.enh.encoder.null_encoder</span> <span class="kn">import</span> <span class="n">NullEncoder</span>
@@ -385,6 +388,15 @@
     <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
 <span class="p">)</span>
 
+<span class="c1"># Deffusion-based model related choices</span>
+<span class="n">diffusion_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="n">name</span><span class="o">=</span><span class="s2">&quot;diffusion_model&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span><span class="n">sgmse</span><span class="o">=</span><span class="n">ScoreModel</span><span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsDiffusion</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+
+
 <span class="n">MAX_REFERENCE_NUM</span> <span class="o">=</span> <span class="mi">100</span>
 
 
@@ -403,6 +415,8 @@
         <span class="n">mask_module_choices</span><span class="p">,</span>
         <span class="c1"># --preprocessor and --preprocessor_conf</span>
         <span class="n">preprocessor_choices</span><span class="p">,</span>
+        <span class="c1"># --diffusion_model and --diffusion_model_conf</span>
+        <span class="n">diffusion_choices</span><span class="p">,</span>
     <span class="p">]</span>
 
     <span class="c1"># If you need to modify train() or eval() procedures, change Trainer class here</span>
@@ -705,6 +719,7 @@
             <span class="n">encoder</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">separator_conf</span>
         <span class="p">)</span>
         <span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">decoder</span><span class="p">)(</span><span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">decoder_conf</span><span class="p">)</span>
+
         <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">separator</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;nomask&quot;</span><span class="p">):</span>
             <span class="n">mask_module</span> <span class="o">=</span> <span class="n">mask_module_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">mask_module</span><span class="p">)(</span>
                 <span class="n">input_dim</span><span class="o">=</span><span class="n">encoder</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span>
@@ -727,14 +742,27 @@
                 <span class="n">loss_wrappers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_wrapper</span><span class="p">)</span>
 
         <span class="c1"># 1. Build model</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">ESPnetEnhancementModel</span><span class="p">(</span>
-            <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
-            <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span>
-            <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
-            <span class="n">loss_wrappers</span><span class="o">=</span><span class="n">loss_wrappers</span><span class="p">,</span>
-            <span class="n">mask_module</span><span class="o">=</span><span class="n">mask_module</span><span class="p">,</span>
-            <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
-        <span class="p">)</span>
+        <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="s2">&quot;diffusion_model&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">diffusion_model</span> <span class="o">=</span> <span class="n">diffusion_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">diffusion_model</span><span class="p">)(</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">diffusion_model_conf</span>
+            <span class="p">)</span>
+            <span class="c1"># build diffusion model</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">ESPnetDiffusionModel</span><span class="p">(</span>
+                <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
+                <span class="n">diffusion</span><span class="o">=</span><span class="n">diffusion_model</span><span class="p">,</span>
+                <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
+            <span class="p">)</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="n">ESPnetEnhancementModel</span><span class="p">(</span>
+                <span class="n">encoder</span><span class="o">=</span><span class="n">encoder</span><span class="p">,</span>
+                <span class="n">separator</span><span class="o">=</span><span class="n">separator</span><span class="p">,</span>
+                <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
+                <span class="n">loss_wrappers</span><span class="o">=</span><span class="n">loss_wrappers</span><span class="p">,</span>
+                <span class="n">mask_module</span><span class="o">=</span><span class="n">mask_module</span><span class="p">,</span>
+                <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span>
+            <span class="p">)</span>
 
         <span class="c1"># FIXME(kamo): Should be done in model?</span>
         <span class="c1"># 2. Initialize</span>

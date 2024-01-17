@@ -15,6 +15,17 @@ espnet2.enh.espnet_enh_s2t_model
     :show-inheritance:
 
 
+.. _espnet2.enh.diffusion_enh:
+
+espnet2.enh.diffusion_enh
+-------------------------
+
+.. automodule:: espnet2.enh.diffusion_enh
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.__init__:
 
 espnet2.enh.__init__
@@ -543,6 +554,83 @@ espnet2.enh.loss.wrappers.multilayer_pit_solver
     :show-inheritance:
 
 
+.. _espnet2.enh.diffusion.score_based_diffusion:
+
+espnet2.enh.diffusion.score_based_diffusion
+-------------------------------------------
+
+.. automodule:: espnet2.enh.diffusion.score_based_diffusion
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.diffusion.__init__:
+
+espnet2.enh.diffusion.__init__
+------------------------------
+
+.. automodule:: espnet2.enh.diffusion.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.diffusion.abs_diffusion:
+
+espnet2.enh.diffusion.abs_diffusion
+-----------------------------------
+
+.. automodule:: espnet2.enh.diffusion.abs_diffusion
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.diffusion.sdes:
+
+espnet2.enh.diffusion.sdes
+--------------------------
+
+.. automodule:: espnet2.enh.diffusion.sdes
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.diffusion.sampling.__init__:
+
+espnet2.enh.diffusion.sampling.__init__
+---------------------------------------
+
+.. automodule:: espnet2.enh.diffusion.sampling.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.diffusion.sampling.correctors:
+
+espnet2.enh.diffusion.sampling.correctors
+-----------------------------------------
+
+.. automodule:: espnet2.enh.diffusion.sampling.correctors
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.diffusion.sampling.predictors:
+
+espnet2.enh.diffusion.sampling.predictors
+-----------------------------------------
+
+.. automodule:: espnet2.enh.diffusion.sampling.predictors
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.layers.conv_utils:
 
 espnet2.enh.layers.conv_utils
@@ -642,6 +730,17 @@ espnet2.enh.layers.complex_utils
     :show-inheritance:
 
 
+.. _espnet2.enh.layers.dcunet:
+
+espnet2.enh.layers.dcunet
+-------------------------
+
+.. automodule:: espnet2.enh.layers.dcunet
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.enh.layers.skim:
 
 espnet2.enh.layers.skim
@@ -692,6 +791,17 @@ espnet2.enh.layers.mask_estimator
 ---------------------------------
 
 .. automodule:: espnet2.enh.layers.mask_estimator
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.ncsnpp:
+
+espnet2.enh.layers.ncsnpp
+-------------------------
+
+.. automodule:: espnet2.enh.layers.ncsnpp
     :members:
     :undoc-members:
     :show-inheritance:
@@ -780,6 +890,72 @@ espnet2.enh.layers.complexnn
 ----------------------------
 
 .. automodule:: espnet2.enh.layers.complexnn
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.ncsnpp_utils.layerspp:
+
+espnet2.enh.layers.ncsnpp_utils.layerspp
+----------------------------------------
+
+.. automodule:: espnet2.enh.layers.ncsnpp_utils.layerspp
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.ncsnpp_utils.normalization:
+
+espnet2.enh.layers.ncsnpp_utils.normalization
+---------------------------------------------
+
+.. automodule:: espnet2.enh.layers.ncsnpp_utils.normalization
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.ncsnpp_utils.layers:
+
+espnet2.enh.layers.ncsnpp_utils.layers
+--------------------------------------
+
+.. automodule:: espnet2.enh.layers.ncsnpp_utils.layers
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.ncsnpp_utils.up_or_down_sampling:
+
+espnet2.enh.layers.ncsnpp_utils.up_or_down_sampling
+---------------------------------------------------
+
+.. automodule:: espnet2.enh.layers.ncsnpp_utils.up_or_down_sampling
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.ncsnpp_utils.__init__:
+
+espnet2.enh.layers.ncsnpp_utils.__init__
+----------------------------------------
+
+.. automodule:: espnet2.enh.layers.ncsnpp_utils.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.enh.layers.ncsnpp_utils.upfirdn2d:
+
+espnet2.enh.layers.ncsnpp_utils.upfirdn2d
+-----------------------------------------
+
+.. automodule:: espnet2.enh.layers.ncsnpp_utils.upfirdn2d
     :members:
     :undoc-members:
     :show-inheritance:

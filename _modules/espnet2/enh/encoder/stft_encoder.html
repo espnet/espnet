@@ -235,6 +235,9 @@
         <span class="n">onesided</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">use_builtin_complex</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">default_fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span>
+        <span class="n">spec_transform_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spec_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span>
+        <span class="n">spec_abs_exponent</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stft</span> <span class="o">=</span> <span class="n">Stft</span><span class="p">(</span>
@@ -255,6 +258,32 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">=</span> <span class="n">n_fft</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="n">center</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">default_fs</span> <span class="o">=</span> <span class="n">default_fs</span>
+
+        <span class="c1"># spec transform related. See equation (1) in paper</span>
+        <span class="c1"># &#39;Speech Enhancement and Dereverberation With Diffusion-Based Generative</span>
+        <span class="c1"># Models&#39;. The default value of 0.15, 0.5 also come from the paper.</span>
+        <span class="c1"># spec_transform_type: &quot;exponent&quot;, &quot;log&quot;, or &quot;none&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_type</span> <span class="o">=</span> <span class="n">spec_transform_type</span>
+        <span class="c1"># the output specturm will be scaled with: spec * self.spec_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_factor</span> <span class="o">=</span> <span class="n">spec_factor</span>
+        <span class="c1"># the exponent factor used in the &quot;exponent&quot; transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_abs_exponent</span> <span class="o">=</span> <span class="n">spec_abs_exponent</span>
+
+<div class="viewcode-block" id="STFTEncoder.spec_transform_func"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.encoder.stft_encoder.STFTEncoder.spec_transform_func">[docs]</a>    <span class="k">def</span> <span class="nf">spec_transform_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_type</span> <span class="o">==</span> <span class="s2">&quot;exponent&quot;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_abs_exponent</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># only do this calculation if spec_exponent != 1,</span>
+                <span class="c1"># otherwise it&#39;s quite a bit of wasted computation</span>
+                <span class="c1"># and introduced numerical error</span>
+                <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_abs_exponent</span>
+                <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">**</span> <span class="n">e</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">spec</span><span class="o">.</span><span class="n">angle</span><span class="p">())</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_factor</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_type</span> <span class="o">==</span> <span class="s2">&quot;log&quot;</span><span class="p">:</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">spec</span><span class="o">.</span><span class="n">abs</span><span class="p">())</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">spec</span><span class="o">.</span><span class="n">angle</span><span class="p">())</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_factor</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_type</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span>
+        <span class="k">return</span> <span class="n">spec</span></div>
 
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">output_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -288,6 +317,9 @@
             <span class="n">spectrum</span> <span class="o">=</span> <span class="n">ComplexTensor</span><span class="p">(</span><span class="n">spectrum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">spectrum</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_reset_config</span><span class="p">()</span>
+
+        <span class="n">spectrum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_func</span><span class="p">(</span><span class="n">spectrum</span><span class="p">)</span>
+
         <span class="k">return</span> <span class="n">spectrum</span><span class="p">,</span> <span class="n">flens</span></div>
 
     <span class="k">def</span> <span class="nf">_reset_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -342,6 +374,8 @@
         <span class="n">feature</span> <span class="o">=</span> <span class="n">feature</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="n">is_torch_1_9_plus</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_builtin_complex</span><span class="p">):</span>
             <span class="n">feature</span> <span class="o">=</span> <span class="n">ComplexTensor</span><span class="p">(</span><span class="n">feature</span><span class="o">.</span><span class="n">real</span><span class="p">,</span> <span class="n">feature</span><span class="o">.</span><span class="n">imag</span><span class="p">)</span>
+
+        <span class="n">feature</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_func</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">feature</span></div>
 

@@ -236,6 +236,9 @@
         <span class="n">normalized</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">onesided</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
         <span class="n">default_fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16000</span><span class="p">,</span>
+        <span class="n">spec_transform_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">spec_factor</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.15</span><span class="p">,</span>
+        <span class="n">spec_abs_exponent</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stft</span> <span class="o">=</span> <span class="n">Stft</span><span class="p">(</span>
@@ -255,6 +258,16 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">=</span> <span class="n">center</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">default_fs</span> <span class="o">=</span> <span class="n">default_fs</span>
 
+        <span class="c1"># spec transform related. See equation (1) in paper</span>
+        <span class="c1"># &#39;Speech Enhancement and Dereverberation With Diffusion-Based Generative</span>
+        <span class="c1"># Models&#39;. The default value of 0.15, 0.5 also come from the paper.</span>
+        <span class="c1"># spec_transform_type: &quot;exponent&quot;, &quot;log&quot;, or &quot;none&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_type</span> <span class="o">=</span> <span class="n">spec_transform_type</span>
+        <span class="c1"># the output specturm will be scaled with: spec * self.spec_factor</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_factor</span> <span class="o">=</span> <span class="n">spec_factor</span>
+        <span class="c1"># the exponent factor used in the &quot;exponent&quot; transform</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">spec_abs_exponent</span> <span class="o">=</span> <span class="n">spec_abs_exponent</span>
+
 <div class="viewcode-block" id="STFTDecoder.forward"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.decoder.stft_decoder.STFTDecoder.forward">[docs]</a>    <span class="nd">@torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">amp</span><span class="o">.</span><span class="n">autocast</span><span class="p">(</span><span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">forward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">input</span><span class="p">:</span> <span class="n">ComplexTensor</span><span class="p">,</span> <span class="n">ilens</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">fs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
@@ -272,6 +285,8 @@
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Only support complex tensors for stft decoder&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">fs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_reconfig_for_fs</span><span class="p">(</span><span class="n">fs</span><span class="p">)</span>
+
+        <span class="nb">input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_back</span><span class="p">(</span><span class="nb">input</span><span class="p">)</span>
 
         <span class="n">bs</span> <span class="o">=</span> <span class="nb">input</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">input</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
@@ -325,6 +340,19 @@
         <span class="n">n_pad_right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_fft</span> <span class="o">-</span> <span class="n">window</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">n_pad_left</span>
         <span class="k">return</span> <span class="n">window</span>
 
+<div class="viewcode-block" id="STFTDecoder.spec_back"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.decoder.stft_decoder.STFTDecoder.spec_back">[docs]</a>    <span class="k">def</span> <span class="nf">spec_back</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spec</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_type</span> <span class="o">==</span> <span class="s2">&quot;exponent&quot;</span><span class="p">:</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_factor</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_abs_exponent</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_abs_exponent</span>
+                <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span><span class="o">.</span><span class="n">abs</span><span class="p">()</span> <span class="o">**</span> <span class="p">(</span><span class="mi">1</span> <span class="o">/</span> <span class="n">e</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">spec</span><span class="o">.</span><span class="n">angle</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_type</span> <span class="o">==</span> <span class="s2">&quot;log&quot;</span><span class="p">:</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_factor</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">spec</span><span class="o">.</span><span class="n">abs</span><span class="p">())</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">torch</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">spec</span><span class="o">.</span><span class="n">angle</span><span class="p">())</span>
+        <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_transform_type</span> <span class="o">==</span> <span class="s2">&quot;none&quot;</span><span class="p">:</span>
+            <span class="n">spec</span> <span class="o">=</span> <span class="n">spec</span>
+        <span class="k">return</span> <span class="n">spec</span></div>
+
 <div class="viewcode-block" id="STFTDecoder.forward_streaming"><a class="viewcode-back" href="../../../../_gen/espnet2.enh.html#espnet2.enh.decoder.stft_decoder.STFTDecoder.forward_streaming">[docs]</a>    <span class="k">def</span> <span class="nf">forward_streaming</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_frame</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Forward.</span>
 
@@ -332,7 +360,7 @@
 <span class="sd">            input (ComplexTensor): spectrum [Batch, 1, F]</span>
 <span class="sd">            output: wavs [Batch, 1, self.win_length]</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-
+        <span class="n">input_frame</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">spec_back</span><span class="p">(</span><span class="n">input_frame</span><span class="p">)</span>
         <span class="n">input_frame</span> <span class="o">=</span> <span class="n">input_frame</span><span class="o">.</span><span class="n">real</span> <span class="o">+</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="n">input_frame</span><span class="o">.</span><span class="n">imag</span>
         <span class="n">output_wav</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">torch</span><span class="o">.</span><span class="n">fft</span><span class="o">.</span><span class="n">irfft</span><span class="p">(</span><span class="n">input_frame</span><span class="p">)</span>
@@ -400,10 +428,18 @@
     <span class="n">hop</span> <span class="o">=</span> <span class="mi">10</span>
 
     <span class="n">encoder</span> <span class="o">=</span> <span class="n">STFTEncoder</span><span class="p">(</span>
-        <span class="n">n_fft</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span> <span class="n">win_length</span><span class="o">=</span><span class="n">win_length</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="n">hop</span><span class="p">,</span> <span class="n">onesided</span><span class="o">=</span><span class="kc">True</span>
+        <span class="n">n_fft</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span>
+        <span class="n">win_length</span><span class="o">=</span><span class="n">win_length</span><span class="p">,</span>
+        <span class="n">hop_length</span><span class="o">=</span><span class="n">hop</span><span class="p">,</span>
+        <span class="n">onesided</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">spec_transform_type</span><span class="o">=</span><span class="s2">&quot;exponent&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">decoder</span> <span class="o">=</span> <span class="n">STFTDecoder</span><span class="p">(</span>
-        <span class="n">n_fft</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span> <span class="n">win_length</span><span class="o">=</span><span class="n">win_length</span><span class="p">,</span> <span class="n">hop_length</span><span class="o">=</span><span class="n">hop</span><span class="p">,</span> <span class="n">onesided</span><span class="o">=</span><span class="kc">True</span>
+        <span class="n">n_fft</span><span class="o">=</span><span class="n">nfft</span><span class="p">,</span>
+        <span class="n">win_length</span><span class="o">=</span><span class="n">win_length</span><span class="p">,</span>
+        <span class="n">hop_length</span><span class="o">=</span><span class="n">hop</span><span class="p">,</span>
+        <span class="n">onesided</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">spec_transform_type</span><span class="o">=</span><span class="s2">&quot;exponent&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">frames</span><span class="p">,</span> <span class="n">flens</span> <span class="o">=</span> <span class="n">encoder</span><span class="p">(</span><span class="n">input_audio</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
     <span class="n">wav</span><span class="p">,</span> <span class="n">ilens</span> <span class="o">=</span> <span class="n">decoder</span><span class="p">(</span><span class="n">frames</span><span class="p">,</span> <span class="n">ilens</span><span class="p">)</span>
@@ -426,6 +462,7 @@
     <span class="n">torch</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_close</span><span class="p">(</span><span class="n">wav</span><span class="p">,</span> <span class="n">input_audio</span><span class="p">)</span>
 
     <span class="n">torch</span><span class="o">.</span><span class="n">testing</span><span class="o">.</span><span class="n">assert_close</span><span class="p">(</span><span class="n">wav</span><span class="p">,</span> <span class="n">merged</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;all_check passed&quot;</span><span class="p">)</span>
 </pre></div>
 
            </div>

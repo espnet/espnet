@@ -243,10 +243,10 @@
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">encoder</span><span class="p">:</span> <span class="n">AbsEncoder</span><span class="p">,</span>
-        <span class="n">separator</span><span class="p">:</span> <span class="n">AbsSeparator</span><span class="p">,</span>
+        <span class="n">separator</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsSeparator</span><span class="p">],</span>
         <span class="n">decoder</span><span class="p">:</span> <span class="n">AbsDecoder</span><span class="p">,</span>
         <span class="n">mask_module</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">AbsMask</span><span class="p">],</span>
-        <span class="n">loss_wrappers</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">AbsLossWrapper</span><span class="p">],</span>
+        <span class="n">loss_wrappers</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">AbsLossWrapper</span><span class="p">]],</span>
         <span class="n">stft_consistency</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">loss_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;mask_mse&quot;</span><span class="p">,</span>
         <span class="n">mask_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
@@ -309,15 +309,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">separator</span> <span class="o">=</span> <span class="n">separator</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">decoder</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask_module</span> <span class="o">=</span> <span class="n">mask_module</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">separator</span><span class="o">.</span><span class="n">num_spk</span>
+        <span class="c1"># set num_spk to -1 if None for compatibility with `espnet2.enh.diffusion_enh`</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_spk</span> <span class="o">=</span> <span class="n">separator</span><span class="o">.</span><span class="n">num_spk</span> <span class="k">if</span> <span class="n">separator</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span>
         <span class="c1"># If True, self.num_spk is regarded as the MAXIMUM possible number of speakers</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">flexible_numspk</span> <span class="o">=</span> <span class="n">flexible_numspk</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">num_noise_type</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">separator</span><span class="p">,</span> <span class="s2">&quot;num_noise_type&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">loss_wrappers</span> <span class="o">=</span> <span class="n">loss_wrappers</span>
-        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">criterion</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_wrappers</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">names</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Duplicated loss names are not allowed: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">names</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_wrappers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="n">w</span><span class="o">.</span><span class="n">criterion</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">w</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">loss_wrappers</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">names</span><span class="p">))</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="s2">&quot;Duplicated loss names are not allowed: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+                <span class="p">)</span>
 
         <span class="c1"># kept for compatibility</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">mask_type</span> <span class="o">=</span> <span class="n">mask_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span> <span class="k">if</span> <span class="n">mask_type</span> <span class="k">else</span> <span class="kc">None</span>
