@@ -427,17 +427,18 @@ def process_utterance(
 
 
 def process_subset(args, set_name, tempos):
-    makedir(os.path.join(args.tgt_dir, set_name))
+    folder_name = set_name + "_{}".format(args.dataset)
+    makedir(os.path.join(args.tgt_dir, folder_name))
     wavscp = open(
-        os.path.join(args.tgt_dir, set_name, "wav.scp"), "w", encoding="utf-8"
+        os.path.join(args.tgt_dir, folder_name, "wav.scp"), "w", encoding="utf-8"
     )
-    label = open(os.path.join(args.tgt_dir, set_name, "label"), "w", encoding="utf-8")
-    text = open(os.path.join(args.tgt_dir, set_name, "text"), "w", encoding="utf-8")
+    label = open(os.path.join(args.tgt_dir, folder_name, "label"), "w", encoding="utf-8")
+    text = open(os.path.join(args.tgt_dir, folder_name, "text"), "w", encoding="utf-8")
     utt2spk = open(
-        os.path.join(args.tgt_dir, set_name, "utt2spk"), "w", encoding="utf-8"
+        os.path.join(args.tgt_dir, folder_name, "utt2spk"), "w", encoding="utf-8"
     )
     writer = SingingScoreWriter(
-        args.score_dump, os.path.join(args.tgt_dir, set_name, "score.scp")
+        args.score_dump, os.path.join(args.tgt_dir, folder_name, "score.scp")
     )
 
     midi_mapping = load_midi_note_scp(args.midi_note_scp)
