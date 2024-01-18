@@ -11,7 +11,7 @@ Overall results
 | [conf/train_ECAPA_wavlm_frozen.yaml](conf/train_ECAPA_wavlm_frozen.yaml) | 0.638 | 0.0499 | ECAPA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_frozen|
 | [conf/train_ECAPA_wavlm_joint.yaml](conf/train_ECAPA_wavlm_joint.yaml) | 0.394 | 0.0379 | ECAPA-TDNN w/ Jointly fine-tuned WavLM | https://huggingface.co/espnet/voxcelebs12_ecapa_wavlm_joint |
 | [conf/train_SKA_wavlm_frozen.yaml](conf/train_SKA_wavlm_frozen.yaml) | 0.564 | 0.0548 | SKA-TDNN w/ Frozen WavLM | https://huggingface.co/espnet/voxcelebs12_ska_wavlm_frozen |
-| [conf/train_SKA_wavlm_joint.yaml](conf/train_SKA_wavlm_joint.yaml) |  |  | SKA-TDNN w/ Jointly fine-tuned WavLM | https://huggingface.co/espnet/voxcelebs12_ska_wavlm_joint |
+| [conf/train_SKA_wavlm_joint.yaml](conf/train_SKA_wavlm_joint.yaml) | 0.516 | 0.0429 | SKA-TDNN w/ Jointly fine-tuned WavLM | https://huggingface.co/espnet/voxcelebs12_ska_wavlm_joint |
 
 ## Environments - conf/train_rawnet3.yaml
 date: 2023-11-21 14:02:42.314875
