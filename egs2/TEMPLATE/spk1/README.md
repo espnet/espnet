@@ -72,7 +72,7 @@ If `score_norm=true` and/or `qmf_func=true`, cohort set(s) for score normalizati
 Calculates speaker similarity scores for an evaluation protocol (i.e., a set of trials).
 One scalar score is calcuated for each trial.
 
-This stage includes score normalization if set with `--score_normtrue`.
+This stage includes score normalization if set with `--score_norm=true`.
 This stage includes score normalization if set with `--qmf_func=true`.
 
 ### 8. Metric calculation
