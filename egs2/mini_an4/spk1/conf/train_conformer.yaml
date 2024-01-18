@@ -1,0 +1,70 @@
+# ECAPA-TDNN reproduce recipe configuration.
+frontend: melspec_torch
+frontend_conf:
+  preemp: true
+  n_fft: 512
+  log: true
+  win_length: 400
+  hop_length: 160
+  n_mels: 20
+  normalize: mn
+
+encoder: mfaconformer
+encoder_conf:
+  output_size: 12
+  attention_heads: 2
+  linear_units: 24
+  num_blocks: 1
+  dropout_rate: 0.1
+  positional_dropout_rate: 0.1
+  attention_dropout_rate: 0.1
+  input_layer: conv2d2
+  normalize_before: true
+  macaron_style: true
+  rel_pos_type: latest
+  pos_enc_layer_type: rel_pos
+  selfattention_layer_type: rel_selfattn
+  activation_type: swish
+  use_cnn_module: true
+  cnn_module_kernel: 5
+
+pooling: mean
+
+projector: xvector
+projector_conf:
+  output_size: 4
+
+preprocessor: spk
+preprocessor_conf:
+  target_duration: 3.0  # seconds
+  sample_rate: 16000
+  num_eval: 1
+  rir_scp: dump/raw/rirs.scp
+  rir_apply_prob: 1.0
+  noise_info:
+    - [0.4, "dump/raw/musan_music.scp", [1, 1], [0, 10]]
+    - [0.5, "dump/raw/musan_speech.scp", [1, 2], [10, 20]]
+  noise_apply_prob: 1.0
+  short_noise_thres: 0.5
+
+model_conf:
+  extract_feats_in_collect_stats: false
+
+loss: aamsoftmax_sc_topk
+loss_conf:
+  margin: 0.3
+  scale: 15
+  K: 1
+  mp: 0.06
+  k_top: 1
+
+optim: adam
+num_att_plot: 0
+
+max_epoch: 1
+num_iters_per_epoch: 1
+batch_size: 2
+best_model_criterion:
+- - valid
+  - eer
+  - min
