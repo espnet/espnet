@@ -9095,9 +9095,11 @@ The model configuration related:
                     [--specaug_conf SPECAUG_CONF]
                     [--normalize {global_mvn,utterance_mvn,None}]
                     [--normalize_conf NORMALIZE_CONF]
-                    [--encoder {rawnet3,ecapa_tdnn}]
-                    [--encoder_conf ENCODER_CONF] [--pooling {chn_attn_stat}]
-                    [--pooling_conf POOLING_CONF] [--projector {rawnet3}]
+                    [--encoder {ecapa_tdnn,identity,mfaconformer,rawnet3,ska_tdnn,xvector}]
+                    [--encoder_conf ENCODER_CONF]
+                    [--pooling {chn_attn_stat,mean,stats}]
+                    [--pooling_conf POOLING_CONF]
+                    [--projector {rawnet3,ska_tdnn,xvector}]
                     [--projector_conf PROJECTOR_CONF]
                     [--preprocessor {common,spk}]
                     [--preprocessor_conf PREPROCESSOR_CONF]
@@ -9512,15 +9514,15 @@ Optimizer related:
                         The normalize type (default: None)
   --normalize_conf NORMALIZE_CONF
                         The keyword arguments for normalize (default: {})
-  --encoder {rawnet3,ecapa_tdnn}
+  --encoder {ecapa_tdnn,identity,mfaconformer,rawnet3,ska_tdnn,xvector}
                         The encoder type (default: rawnet3)
   --encoder_conf ENCODER_CONF
                         The keyword arguments for encoder (default: {})
-  --pooling {chn_attn_stat}
+  --pooling {chn_attn_stat,mean,stats}
                         The pooling type (default: chn_attn_stat)
   --pooling_conf POOLING_CONF
                         The keyword arguments for pooling (default: {})
-  --projector {rawnet3}
+  --projector {rawnet3,ska_tdnn,xvector}
                         The projector type (default: rawnet3)
   --projector_conf PROJECTOR_CONF
                         The keyword arguments for projector (default: {})

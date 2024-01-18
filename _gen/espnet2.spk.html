@@ -138,14 +138,22 @@
 <li class="toctree-l1 current"><a class="current reference internal" href="#">espnet2.spk package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-init-1">espnet2.spk.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-espnet-model-1">espnet2.spk.espnet_model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-ska-tdnn-encoder-1">espnet2.spk.encoder.ska_tdnn_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-ecapa-tdnn-encoder-1">espnet2.spk.encoder.ecapa_tdnn_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-identity-encoder-1">espnet2.spk.encoder.identity_encoder</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-init-1">espnet2.spk.encoder.__init__</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-rawnet3-encoder-1">espnet2.spk.encoder.rawnet3_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-conformer-encoder-1">espnet2.spk.encoder.conformer_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-encoder-xvector-encoder-1">espnet2.spk.encoder.xvector_encoder</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-pooling-mean-pooling-1">espnet2.spk.pooling.mean_pooling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-pooling-abs-pooling-1">espnet2.spk.pooling.abs_pooling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-pooling-init-1">espnet2.spk.pooling.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-pooling-stat-pooling-1">espnet2.spk.pooling.stat_pooling</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-pooling-chn-attn-stat-pooling-1">espnet2.spk.pooling.chn_attn_stat_pooling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-projector-ska-tdnn-projector-1">espnet2.spk.projector.ska_tdnn_projector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-projector-abs-projector-1">espnet2.spk.projector.abs_projector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-projector-init-1">espnet2.spk.projector.__init__</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-projector-xvector-projector-1">espnet2.spk.projector.xvector_projector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-projector-rawnet3-projector-1">espnet2.spk.projector.rawnet3_projector</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-loss-aamsoftmax-1">espnet2.spk.loss.aamsoftmax</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#espnet2-spk-loss-init-1">espnet2.spk.loss.__init__</a></li>
@@ -294,6 +302,158 @@ head when set True</p></li>
 </dd></dl>
 
 </section>
+<section id="espnet2-spk-encoder-ska-tdnn-encoder-1">
+<span id="espnet2-spk-encoder-ska-tdnn-encoder"></span><h2>espnet2.spk.encoder.ska_tdnn_encoder<a class="headerlink" href="#espnet2-spk-encoder-ska-tdnn-encoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.encoder.ska_tdnn_encoder"></span><dl class="class">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.Bottle2neck">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ska_tdnn_encoder.</code><code class="sig-name descname">Bottle2neck</code><span class="sig-paren">(</span><em class="sig-param">inplanes, planes, kernel_size=None, kernel_sizes=[5, 7], dilation=None, scale=8, group=1</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#Bottle2neck"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.Bottle2neck" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.Bottle2neck.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#Bottle2neck.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.Bottle2neck.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.ResBlock">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ska_tdnn_encoder.</code><code class="sig-name descname">ResBlock</code><span class="sig-paren">(</span><em class="sig-param">inplanes: int</em>, <em class="sig-param">planes: int</em>, <em class="sig-param">stride: int = 1</em>, <em class="sig-param">reduction: int = 8</em>, <em class="sig-param">skfwse_freq: int = 40</em>, <em class="sig-param">skcwse_channel: int = 128</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#ResBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.ResBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.ResBlock.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#ResBlock.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.ResBlock.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.SEModule">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ska_tdnn_encoder.</code><code class="sig-name descname">SEModule</code><span class="sig-paren">(</span><em class="sig-param">channels</em>, <em class="sig-param">bottleneck=128</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#SEModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.SEModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.SEModule.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">input</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#SEModule.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.SEModule.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.SKAttentionModule">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ska_tdnn_encoder.</code><code class="sig-name descname">SKAttentionModule</code><span class="sig-paren">(</span><em class="sig-param">channel=128</em>, <em class="sig-param">reduction=4</em>, <em class="sig-param">L=16</em>, <em class="sig-param">num_kernels=2</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#SKAttentionModule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.SKAttentionModule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.SKAttentionModule.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">convs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#SKAttentionModule.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.SKAttentionModule.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Input: [B, C, T]
+Split: [K, B, C, T]
+Fues: [B, C, T]
+Attention weight: [B, C, 1]
+Output: [B, C, T]</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.SkaTdnnEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ska_tdnn_encoder.</code><code class="sig-name descname">SkaTdnnEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">block: str = 'Bottle2neck'</em>, <em class="sig-param">ndim: int = 1024</em>, <em class="sig-param">model_scale: int = 8</em>, <em class="sig-param">skablock: str = 'ResBlock'</em>, <em class="sig-param">ska_dim: int = 128</em>, <em class="sig-param">output_size: int = 1536</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#SkaTdnnEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.SkaTdnnEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>SKA-TDNN encoder. Extracts frame-level SKA-TDNN embeddings from features.
+Paper: S. Mun, J. Jung et al., “Frequency and Multi-Scale Selective Kernel</p>
+<blockquote>
+<div><p>Attention for Speaker Verification,’ in Proc. IEEE SLT 2022.</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> – input feature dimension.</p></li>
+<li><p><strong>block</strong> – type of encoder block class to use.</p></li>
+<li><p><strong>model_scale</strong> – scale value of the Res2Net architecture.</p></li>
+<li><p><strong>ndim</strong> – dimensionality of the hidden representation.</p></li>
+<li><p><strong>output_size</strong> – ouptut embedding dimension.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.SkaTdnnEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#SkaTdnnEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.SkaTdnnEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.SkaTdnnEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#SkaTdnnEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.SkaTdnnEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.cwSKAttention">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ska_tdnn_encoder.</code><code class="sig-name descname">cwSKAttention</code><span class="sig-paren">(</span><em class="sig-param">freq=40, channel=128, kernels=[3, 5], receptive=[3, 5], dilations=[1, 1], reduction=8, groups=1, L=16</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#cwSKAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.cwSKAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.cwSKAttention.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#cwSKAttention.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.cwSKAttention.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Input: [B, C, F, T]
+Split: [K, B, C, F, T]
+Fuse: [B, C, F, T]
+Attention weight: [K, B, C, 1, 1]
+Output: [B, C, F, T]</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.fwSKAttention">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.ska_tdnn_encoder.</code><code class="sig-name descname">fwSKAttention</code><span class="sig-paren">(</span><em class="sig-param">freq=40, channel=128, kernels=[3, 5], receptive=[3, 5], dilations=[1, 1], reduction=8, groups=1, L=16</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#fwSKAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.fwSKAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">torch.nn.modules.module.Module</span></code></p>
+<dl class="method">
+<dt id="espnet2.spk.encoder.ska_tdnn_encoder.fwSKAttention.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ska_tdnn_encoder.html#fwSKAttention.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ska_tdnn_encoder.fwSKAttention.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Input: [B, C, F, T]
+Split: [K, B, C, F, T]
+Fues: [B, C, F, T]
+Attention weight: [K, B, 1, F, 1]
+Output: [B, C, F, T]</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-spk-encoder-ecapa-tdnn-encoder-1">
 <span id="espnet2-spk-encoder-ecapa-tdnn-encoder"></span><h2>espnet2.spk.encoder.ecapa_tdnn_encoder<a class="headerlink" href="#espnet2-spk-encoder-ecapa-tdnn-encoder-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.encoder.ecapa_tdnn_encoder"></span><p>ECAPA-TDNN Encoder</p>
@@ -322,6 +482,46 @@ in Proc. INTERSPEECH, 2020.</p>
 <dl class="method">
 <dt id="espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.forward">
 <code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/ecapa_tdnn_encoder.html#EcapaTdnnEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, L, input_size).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor (#batch, L, output_size).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/spk/encoder/ecapa_tdnn_encoder.html#EcapaTdnnEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-spk-encoder-identity-encoder-1">
+<span id="espnet2-spk-encoder-identity-encoder"></span><h2>espnet2.spk.encoder.identity_encoder<a class="headerlink" href="#espnet2-spk-encoder-identity-encoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.encoder.identity_encoder"></span><p>RawNet3 Encoder</p>
+<dl class="class">
+<dt id="espnet2.spk.encoder.identity_encoder.IdentityEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.identity_encoder.</code><code class="sig-name descname">IdentityEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/identity_encoder.html#IdentityEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.identity_encoder.IdentityEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>Identity encoder. Does nothing, just passes frontend feature to the pooling.
+Expected to be used for cases when frontend already has a good
+representation (e.g., SSL features).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input_size</strong> – input feature dimension.</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.spk.encoder.identity_encoder.IdentityEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/identity_encoder.html#IdentityEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.identity_encoder.IdentityEncoder.forward" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines the computation performed at every call.</p>
 <p>Should be overridden by all subclasses.</p>
 <div class="admonition note">
@@ -334,8 +534,8 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.output_size">
-<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/spk/encoder/ecapa_tdnn_encoder.html#EcapaTdnnEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.ecapa_tdnn_encoder.EcapaTdnnEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dt id="espnet2.spk.encoder.identity_encoder.IdentityEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/spk/encoder/identity_encoder.html#IdentityEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.identity_encoder.IdentityEncoder.output_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -389,6 +589,146 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-spk-encoder-conformer-encoder-1">
+<span id="espnet2-spk-encoder-conformer-encoder"></span><h2>espnet2.spk.encoder.conformer_encoder<a class="headerlink" href="#espnet2-spk-encoder-conformer-encoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.encoder.conformer_encoder"></span><p>Conformer encoder definition.</p>
+<dl class="class">
+<dt id="espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.conformer_encoder.</code><code class="sig-name descname">MfaConformerEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int</em>, <em class="sig-param">output_size: int = 256</em>, <em class="sig-param">attention_heads: int = 4</em>, <em class="sig-param">linear_units: int = 2048</em>, <em class="sig-param">num_blocks: int = 6</em>, <em class="sig-param">dropout_rate: float = 0.1</em>, <em class="sig-param">positional_dropout_rate: float = 0.1</em>, <em class="sig-param">attention_dropout_rate: float = 0.0</em>, <em class="sig-param">input_layer: Optional[str] = 'conv2d2'</em>, <em class="sig-param">normalize_before: bool = True</em>, <em class="sig-param">positionwise_layer_type: str = 'linear'</em>, <em class="sig-param">positionwise_conv_kernel_size: int = 3</em>, <em class="sig-param">macaron_style: bool = False</em>, <em class="sig-param">rel_pos_type: str = 'legacy'</em>, <em class="sig-param">pos_enc_layer_type: str = 'rel_pos'</em>, <em class="sig-param">selfattention_layer_type: str = 'rel_selfattn'</em>, <em class="sig-param">activation_type: str = 'swish'</em>, <em class="sig-param">use_cnn_module: bool = True</em>, <em class="sig-param">zero_triu: bool = False</em>, <em class="sig-param">cnn_module_kernel: int = 31</em>, <em class="sig-param">stochastic_depth_rate: Union[float</em>, <em class="sig-param">List[float]] = 0.0</em>, <em class="sig-param">layer_drop_rate: float = 0.0</em>, <em class="sig-param">max_pos_emb_len: int = 5000</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/conformer_encoder.html#MfaConformerEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>Conformer encoder module for MFA-Conformer.
+Paper: Y. Zhang et al., <a href="#system-message-2"><span class="problematic" id="problematic-2">``</span></a>Mfa-conformer: Multi-scale feature aggregation
+conformer for automatic speaker verification,’’ in Proc. INTERSPEECH, 2022.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> (<em>int</em>) – Input dimension.</p></li>
+<li><p><strong>output_size</strong> (<em>int</em>) – Dimension of attention.</p></li>
+<li><p><strong>attention_heads</strong> (<em>int</em>) – The number of heads of multi head attention.</p></li>
+<li><p><strong>linear_units</strong> (<em>int</em>) – The number of units of position-wise feed forward.</p></li>
+<li><p><strong>num_blocks</strong> (<em>int</em>) – The number of encoder blocks.</p></li>
+<li><p><strong>dropout_rate</strong> (<em>float</em>) – Dropout rate.</p></li>
+<li><p><strong>attention_dropout_rate</strong> (<em>float</em>) – Dropout rate in attention.</p></li>
+<li><p><strong>positional_dropout_rate</strong> (<em>float</em>) – Dropout rate after adding positional encoding.</p></li>
+<li><p><strong>input_layer</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>torch.nn.Module</em><em>]</em>) – Input layer type.</p></li>
+<li><p><strong>normalize_before</strong> (<em>bool</em>) – Whether to use layer_norm before the first block.</p></li>
+<li><p><strong>positionwise_layer_type</strong> (<em>str</em>) – “linear”, “conv1d”, or “conv1d-linear”.</p></li>
+<li><p><strong>positionwise_conv_kernel_size</strong> (<em>int</em>) – Kernel size of positionwise conv1d layer.</p></li>
+<li><p><strong>rel_pos_type</strong> (<em>str</em>) – Whether to use the latest relative positional encoding or
+the legacy one. The legacy relative positional encoding will be deprecated
+in the future. More Details can be found in
+<a class="reference external" href="https://github.com/espnet/espnet/pull/2816">https://github.com/espnet/espnet/pull/2816</a>.</p></li>
+<li><p><strong>encoder_pos_enc_layer_type</strong> (<em>str</em>) – Encoder positional encoding layer type.</p></li>
+<li><p><strong>encoder_attn_layer_type</strong> (<em>str</em>) – Encoder attention layer type.</p></li>
+<li><p><strong>activation_type</strong> (<em>str</em>) – Encoder activation function type.</p></li>
+<li><p><strong>macaron_style</strong> (<em>bool</em>) – Whether to use macaron style for positionwise layer.</p></li>
+<li><p><strong>use_cnn_module</strong> (<em>bool</em>) – Whether to use convolution module.</p></li>
+<li><p><strong>zero_triu</strong> (<em>bool</em>) – Whether to zero the upper triangular part of attention matrix.</p></li>
+<li><p><strong>cnn_module_kernel</strong> (<em>int</em>) – Kernerl size of convolution module.</p></li>
+<li><p><strong>padding_idx</strong> (<em>int</em>) – Padding idx for input_layer=embed.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x: torch.Tensor</em><span class="sig-paren">)</span> &#x2192; Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]<a class="reference internal" href="../_modules/espnet2/spk/encoder/conformer_encoder.html#MfaConformerEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate forward propagation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>x</strong> (<em>torch.Tensor</em>) – Input tensor (#batch, L, input_size).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Output tensor (#batch, L, output_size).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.Tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/spk/encoder/conformer_encoder.html#MfaConformerEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.conformer_encoder.MfaConformerEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-spk-encoder-xvector-encoder-1">
+<span id="espnet2-spk-encoder-xvector-encoder"></span><h2>espnet2.spk.encoder.xvector_encoder<a class="headerlink" href="#espnet2-spk-encoder-xvector-encoder-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.encoder.xvector_encoder"></span><dl class="class">
+<dt id="espnet2.spk.encoder.xvector_encoder.XvectorEncoder">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.encoder.xvector_encoder.</code><code class="sig-name descname">XvectorEncoder</code><span class="sig-paren">(</span><em class="sig-param">input_size: int, ndim: int = 512, output_size: int = 1500, kernel_sizes: List = [5, 3, 3, 1, 1], paddings: List = [2, 1, 1, 0, 0], dilations: List = [1, 2, 3, 1, 1], **kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/xvector_encoder.html#XvectorEncoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.xvector_encoder.XvectorEncoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="espnet2.asr.html#espnet2.asr.encoder.abs_encoder.AbsEncoder" title="espnet2.asr.encoder.abs_encoder.AbsEncoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.asr.encoder.abs_encoder.AbsEncoder</span></code></a></p>
+<p>x-vector encoder. Extracts frame-level x-vector embeddings from features.
+Paper: D. Snyder et al., “X-vectors: Robust dnn embeddings for speaker recognition,”
+in Proc. IEEE ICASSP, 2018.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_size</strong> – input feature dimension.</p></li>
+<li><p><strong>ndim</strong> – dimensionality of the hidden representation.</p></li>
+<li><p><strong>output_size</strong> – ouptut embedding dimension.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.spk.encoder.xvector_encoder.XvectorEncoder.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/encoder/xvector_encoder.html#XvectorEncoder.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.xvector_encoder.XvectorEncoder.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.encoder.xvector_encoder.XvectorEncoder.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; int<a class="reference internal" href="../_modules/espnet2/spk/encoder/xvector_encoder.html#XvectorEncoder.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.encoder.xvector_encoder.XvectorEncoder.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="espnet2-spk-pooling-mean-pooling-1">
+<span id="espnet2-spk-pooling-mean-pooling"></span><h2>espnet2.spk.pooling.mean_pooling<a class="headerlink" href="#espnet2-spk-pooling-mean-pooling-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.pooling.mean_pooling"></span><dl class="class">
+<dt id="espnet2.spk.pooling.mean_pooling.MeanPooling">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.pooling.mean_pooling.</code><code class="sig-name descname">MeanPooling</code><span class="sig-paren">(</span><em class="sig-param">input_size: int = 1536</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/mean_pooling.html#MeanPooling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.mean_pooling.MeanPooling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.spk.pooling.abs_pooling.AbsPooling" title="espnet2.spk.pooling.abs_pooling.AbsPooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.spk.pooling.abs_pooling.AbsPooling</span></code></a></p>
+<p>Average frame-level features to a single utterance-level feature.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input_size</strong> – dimensionality of the input frame-level embeddings.
+Determined by encoder hyperparameter.</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.spk.pooling.mean_pooling.MeanPooling.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">task_tokens: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/mean_pooling.html#MeanPooling.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.mean_pooling.MeanPooling.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.pooling.mean_pooling.MeanPooling.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/mean_pooling.html#MeanPooling.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.mean_pooling.MeanPooling.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-spk-pooling-abs-pooling-1">
 <span id="espnet2-spk-pooling-abs-pooling"></span><h2>espnet2.spk.pooling.abs_pooling<a class="headerlink" href="#espnet2-spk-pooling-abs-pooling-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.pooling.abs_pooling"></span><dl class="class">
@@ -421,6 +761,45 @@ registered hooks while the latter silently ignores them.</p>
 <section id="espnet2-spk-pooling-init-1">
 <span id="espnet2-spk-pooling-init"></span><h2>espnet2.spk.pooling.__init__<a class="headerlink" href="#espnet2-spk-pooling-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.pooling.__init__"></span></section>
+<section id="espnet2-spk-pooling-stat-pooling-1">
+<span id="espnet2-spk-pooling-stat-pooling"></span><h2>espnet2.spk.pooling.stat_pooling<a class="headerlink" href="#espnet2-spk-pooling-stat-pooling-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.pooling.stat_pooling"></span><dl class="class">
+<dt id="espnet2.spk.pooling.stat_pooling.StatsPooling">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.pooling.stat_pooling.</code><code class="sig-name descname">StatsPooling</code><span class="sig-paren">(</span><em class="sig-param">input_size: int = 1536</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/stat_pooling.html#StatsPooling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.stat_pooling.StatsPooling" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.spk.pooling.abs_pooling.AbsPooling" title="espnet2.spk.pooling.abs_pooling.AbsPooling"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.spk.pooling.abs_pooling.AbsPooling</span></code></a></p>
+<p>Aggregates frame-level features to single utterance-level feature.
+Proposed in D. Snyder et al., “X-vectors: Robust dnn embeddings for speaker
+recognition”</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>input_size</strong> – dimensionality of the input frame-level embeddings.
+Determined by encoder hyperparameter.
+For this pooling layer, the output dimensionality will be double of
+the input_size</p>
+</dd>
+</dl>
+<dl class="method">
+<dt id="espnet2.spk.pooling.stat_pooling.StatsPooling.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em>, <em class="sig-param">task_tokens: torch.Tensor = None</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/stat_pooling.html#StatsPooling.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.stat_pooling.StatsPooling.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.pooling.stat_pooling.StatsPooling.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/pooling/stat_pooling.html#StatsPooling.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.pooling.stat_pooling.StatsPooling.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-spk-pooling-chn-attn-stat-pooling-1">
 <span id="espnet2-spk-pooling-chn-attn-stat-pooling"></span><h2>espnet2.spk.pooling.chn_attn_stat_pooling<a class="headerlink" href="#espnet2-spk-pooling-chn-attn-stat-pooling-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.pooling.chn_attn_stat_pooling"></span><dl class="class">
@@ -460,6 +839,34 @@ registered hooks while the latter silently ignores them.</p>
 </dd></dl>
 
 </section>
+<section id="espnet2-spk-projector-ska-tdnn-projector-1">
+<span id="espnet2-spk-projector-ska-tdnn-projector"></span><h2>espnet2.spk.projector.ska_tdnn_projector<a class="headerlink" href="#espnet2-spk-projector-ska-tdnn-projector-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.projector.ska_tdnn_projector"></span><dl class="class">
+<dt id="espnet2.spk.projector.ska_tdnn_projector.SkaTdnnProjector">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.projector.ska_tdnn_projector.</code><code class="sig-name descname">SkaTdnnProjector</code><span class="sig-paren">(</span><em class="sig-param">input_size</em>, <em class="sig-param">output_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/projector/ska_tdnn_projector.html#SkaTdnnProjector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.projector.ska_tdnn_projector.SkaTdnnProjector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.spk.projector.abs_projector.AbsProjector" title="espnet2.spk.projector.abs_projector.AbsProjector"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.spk.projector.abs_projector.AbsProjector</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.spk.projector.ska_tdnn_projector.SkaTdnnProjector.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/projector/ska_tdnn_projector.html#SkaTdnnProjector.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.projector.ska_tdnn_projector.SkaTdnnProjector.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.projector.ska_tdnn_projector.SkaTdnnProjector.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/projector/ska_tdnn_projector.html#SkaTdnnProjector.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.projector.ska_tdnn_projector.SkaTdnnProjector.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-spk-projector-abs-projector-1">
 <span id="espnet2-spk-projector-abs-projector"></span><h2>espnet2.spk.projector.abs_projector<a class="headerlink" href="#espnet2-spk-projector-abs-projector-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.projector.abs_projector"></span><dl class="class">
@@ -492,6 +899,34 @@ registered hooks while the latter silently ignores them.</p>
 <section id="espnet2-spk-projector-init-1">
 <span id="espnet2-spk-projector-init"></span><h2>espnet2.spk.projector.__init__<a class="headerlink" href="#espnet2-spk-projector-init-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.projector.__init__"></span></section>
+<section id="espnet2-spk-projector-xvector-projector-1">
+<span id="espnet2-spk-projector-xvector-projector"></span><h2>espnet2.spk.projector.xvector_projector<a class="headerlink" href="#espnet2-spk-projector-xvector-projector-1" title="Permalink to this headline">¶</a></h2>
+<span class="target" id="module-espnet2.spk.projector.xvector_projector"></span><dl class="class">
+<dt id="espnet2.spk.projector.xvector_projector.XvectorProjector">
+<em class="property">class </em><code class="sig-prename descclassname">espnet2.spk.projector.xvector_projector.</code><code class="sig-name descname">XvectorProjector</code><span class="sig-paren">(</span><em class="sig-param">input_size</em>, <em class="sig-param">output_size</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/projector/xvector_projector.html#XvectorProjector"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.projector.xvector_projector.XvectorProjector" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#espnet2.spk.projector.abs_projector.AbsProjector" title="espnet2.spk.projector.abs_projector.AbsProjector"><code class="xref py py-class docutils literal notranslate"><span class="pre">espnet2.spk.projector.abs_projector.AbsProjector</span></code></a></p>
+<dl class="method">
+<dt id="espnet2.spk.projector.xvector_projector.XvectorProjector.forward">
+<code class="sig-name descname">forward</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/projector/xvector_projector.html#XvectorProjector.forward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.projector.xvector_projector.XvectorProjector.forward" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines the computation performed at every call.</p>
+<p>Should be overridden by all subclasses.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Although the recipe for forward pass needs to be defined within
+this function, one should call the <code class="xref py py-class docutils literal notranslate"><span class="pre">Module</span></code> instance afterwards
+instead of this since the former takes care of running the
+registered hooks while the latter silently ignores them.</p>
+</aside>
+</dd></dl>
+
+<dl class="method">
+<dt id="espnet2.spk.projector.xvector_projector.XvectorProjector.output_size">
+<code class="sig-name descname">output_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/espnet2/spk/projector/xvector_projector.html#XvectorProjector.output_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#espnet2.spk.projector.xvector_projector.XvectorProjector.output_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
 <section id="espnet2-spk-projector-rawnet3-projector-1">
 <span id="espnet2-spk-projector-rawnet3-projector"></span><h2>espnet2.spk.projector.rawnet3_projector<a class="headerlink" href="#espnet2-spk-projector-rawnet3-projector-1" title="Permalink to this headline">¶</a></h2>
 <span class="target" id="module-espnet2.spk.projector.rawnet3_projector"></span><dl class="class">
