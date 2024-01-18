@@ -13,6 +13,7 @@ def get_test_data():
     test_data = [
         ({}, {}, {}),
         ({}, {}, {"cache_generator_outputs": True}),
+        ({}, {}, {"plot_pred_mos": True}),
         (
             {},
             {

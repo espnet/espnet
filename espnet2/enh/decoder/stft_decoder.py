@@ -1,5 +1,3 @@
-import math
-
 import torch
 import torch_complex
 from packaging.version import parse as V
@@ -24,6 +22,10 @@ class STFTDecoder(AbsDecoder):
         center: bool = True,
         normalized: bool = False,
         onesided: bool = True,
+        default_fs: int = 16000,
+        spec_transform_type: str = None,
+        spec_factor: float = 0.15,
+        spec_abs_exponent: float = 0.5,
     ):
         super().__init__()
         self.stft = Stft(
@@ -41,18 +43,37 @@ class STFTDecoder(AbsDecoder):
         self.hop_length = hop_length
         self.window = window
         self.center = center
+        self.default_fs = default_fs
 
-    def forward(self, input: ComplexTensor, ilens: torch.Tensor):
+        # spec transform related. See equation (1) in paper
+        # 'Speech Enhancement and Dereverberation With Diffusion-Based Generative
+        # Models'. The default value of 0.15, 0.5 also come from the paper.
+        # spec_transform_type: "exponent", "log", or "none"
+        self.spec_transform_type = spec_transform_type
+        # the output specturm will be scaled with: spec * self.spec_factor
+        self.spec_factor = spec_factor
+        # the exponent factor used in the "exponent" transform
+        self.spec_abs_exponent = spec_abs_exponent
+
+    @torch.cuda.amp.autocast(enabled=False)
+    def forward(self, input: ComplexTensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
 
         Args:
             input (ComplexTensor): spectrum [Batch, T, (C,) F]
             ilens (torch.Tensor): input lengths [Batch]
+            fs (int): sampling rate in Hz
+                If not None, reconfigure iSTFT window and hop lengths for a new
+                sampling rate while keeping their duration fixed.
         """
         if not isinstance(input, ComplexTensor) and (
             is_torch_1_9_plus and not torch.is_complex(input)
         ):
             raise TypeError("Only support complex tensors for stft decoder")
+        if fs is not None:
+            self._reconfig_for_fs(fs)
+
+        input = self.spec_back(input)
 
         bs = input.size(0)
         if input.dim() == 4:
@@ -80,7 +101,24 @@ class STFTDecoder(AbsDecoder):
             # wav: (Batch * C, Nsamples) -> (Batch, Nsamples, C)
             wav = wav.reshape(bs, -1, wav.size(1)).transpose(1, 2)
 
+        self._reset_config()
         return wav, wav_lens
+
+    def _reset_config(self):
+        """Reset the configuration of iSTFT window and hop lengths."""
+        self._reconfig_for_fs(self.default_fs)
+
+    def _reconfig_for_fs(self, fs):
+        """Reconfigure iSTFT window and hop lengths for a new sampling rate
+        while keeping their duration fixed.
+
+        Args:
+            fs (int): new sampling rate
+        """  # noqa: H405
+        assert fs % self.default_fs == 0 or self.default_fs % fs == 0
+        self.stft.n_fft = self.n_fft * fs // self.default_fs
+        self.stft.win_length = self.win_length * fs // self.default_fs
+        self.stft.hop_length = self.hop_length * fs // self.default_fs
 
     def _get_window_func(self):
         window_func = getattr(torch, f"{self.window}_window")
@@ -89,13 +127,27 @@ class STFTDecoder(AbsDecoder):
         n_pad_right = self.n_fft - window.shape[0] - n_pad_left
         return window
 
+    def spec_back(self, spec):
+        if self.spec_transform_type == "exponent":
+            spec = spec / self.spec_factor
+            if self.spec_abs_exponent != 1:
+                e = self.spec_abs_exponent
+                spec = spec.abs() ** (1 / e) * torch.exp(1j * spec.angle())
+        elif self.spec_transform_type == "log":
+            spec = spec / self.spec_factor
+            spec = (torch.exp(spec.abs()) - 1) * torch.exp(1j * spec.angle())
+        elif self.spec_transform_type == "none":
+            spec = spec
+        return spec
+
     def forward_streaming(self, input_frame: torch.Tensor):
         """Forward.
+
         Args:
             input (ComplexTensor): spectrum [Batch, 1, F]
             output: wavs [Batch, 1, self.win_length]
         """
-
+        input_frame = self.spec_back(input_frame)
         input_frame = input_frame.real + 1j * input_frame.imag
         output_wav = (
             torch.fft.irfft(input_frame)
@@ -121,7 +173,7 @@ class STFTDecoder(AbsDecoder):
             ilens: [B]
         Returns:
             merge_audio: [B, T]
-        """
+        """  # noqa: H405
 
         frame_size = self.win_length
         hop_size = self.hop_length
@@ -163,10 +215,18 @@ if __name__ == "__main__":
     hop = 10
 
     encoder = STFTEncoder(
-        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True
+        n_fft=nfft,
+        win_length=win_length,
+        hop_length=hop,
+        onesided=True,
+        spec_transform_type="exponent",
     )
     decoder = STFTDecoder(
-        n_fft=nfft, win_length=win_length, hop_length=hop, onesided=True
+        n_fft=nfft,
+        win_length=win_length,
+        hop_length=hop,
+        onesided=True,
+        spec_transform_type="exponent",
     )
     frames, flens = encoder(input_audio, ilens)
     wav, ilens = decoder(frames, ilens)
@@ -189,3 +249,4 @@ if __name__ == "__main__":
     torch.testing.assert_close(wav, input_audio)
 
     torch.testing.assert_close(wav, merged)
+    print("all_check passed")

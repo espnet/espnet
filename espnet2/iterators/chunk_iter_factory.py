@@ -49,6 +49,7 @@ class ChunkIterFactory(AbsIterFactory):
         collate_fn=None,
         pin_memory: bool = False,
         excluded_key_prefixes: Optional[List[str]] = None,
+        default_fs: Optional[int] = None,
     ):
         assert check_argument_types()
         assert all(len(x) == 1 for x in batches), "batch-size must be 1"
@@ -91,6 +92,10 @@ class ChunkIterFactory(AbsIterFactory):
         self.batch_size = batch_size
         self.seed = seed
         self.shuffle = shuffle
+        # Default sampling frequency used to decide the chunk length
+        # in case that different batches have different sampling frequencies
+        # (If None, the chunk length is always fixed)
+        self.default_fs = default_fs
 
         # keys that satisfy either condition below will be excluded from the length
         # consistency check:
@@ -153,9 +158,15 @@ class ChunkIterFactory(AbsIterFactory):
                         f"{len(batch[key])} != {len(batch[sequence_keys[0]])}"
                     )
 
+            # Get sampling frequency of the batch to recalculate the chunk length
+            fs = batch.get("utt2fs", torch.LongTensor([16000])).type(torch.int64).item()
+            default_fs = fs if self.default_fs is None else self.default_fs
+            assert fs % default_fs == 0 or default_fs % fs == 0
+
             L = len(batch[sequence_keys[0]])
             # Select chunk length
-            chunk_lengths = [lg for lg in self.chunk_lengths if lg < L]
+            chunk_lengths = [lg * fs // default_fs for lg in self.chunk_lengths]
+            chunk_lengths = [lg for lg in chunk_lengths if lg < L]
             if len(chunk_lengths) == 0:
                 logging.warning(
                     f"The length of '{id_}' is {L}, but it is shorter than "

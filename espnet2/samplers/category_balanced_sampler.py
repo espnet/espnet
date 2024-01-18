@@ -57,7 +57,7 @@ class CategoryBalancedSampler(AbsSampler):
         if len(categories) >= self.batch_size:
             n_utt_per_category_in_batch = 1
         else:
-            n_utt_per_category_in_batch = int(len(categories) / self.batch_size) + 1
+            n_utt_per_category_in_batch = int(self.batch_size / len(categories)) + 1
 
         flattened_cats = []
         for cat in categories:

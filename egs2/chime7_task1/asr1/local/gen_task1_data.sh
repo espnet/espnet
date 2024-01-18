@@ -30,7 +30,7 @@ if [ ${stage} -le 0 ] && ! contains $skip_stages 0 ; then
   if ! [ -d "${dipco_root}" ]; then
     mkdir -p ${dipco_root}
     if ! [ -f "${dipco_root}/dipco.tgz" ]; then
-      wget https://s3.amazonaws.com/dipco/DiPCo.tgz -O ${dipco_root}/dipco.tgz
+      wget https://zenodo.org/records/8122551/files/DipCo.tgz?download=1 -O ${dipco_root}/dipco.tgz
     fi
 
     if ! [ -d "${dipco_root}/audio" ]; then

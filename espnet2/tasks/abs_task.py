@@ -37,6 +37,7 @@ from espnet2.schedulers.cosine_anneal_warmup_restart import (
     CosineAnnealingWarmupRestarts,
 )
 from espnet2.schedulers.noam_lr import NoamLR
+from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
@@ -152,6 +153,7 @@ scheduler_classes = dict(
     CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
     noamlr=NoamLR,
     warmuplr=WarmupLR,
+    piecewiselinearwarmuplr=PiecewiseLinearWarmupLR,
     warmupsteplr=WarmupStepLR,
     warmupReducelronplateau=WarmupReduceLROnPlateau,
     cycliclr=torch.optim.lr_scheduler.CyclicLR,
@@ -820,6 +822,14 @@ class AbsTask(ABC):
             "  - exactly match one of the prefixes in `chunk_excluded_key_prefixes`\n"
             "  - have one of the prefixes in `chunk_excluded_key_prefixes` and "
             "end with numbers",
+        )
+        group.add_argument(
+            "--chunk_default_fs",
+            type=int_or_none,
+            default=None,
+            help="Default sampling rate used for the chunk length. Will be used to "
+            "adaptively adjust the chunk length for data of different sampling rates. "
+            "(If None, the chunk length will be fixed.)",
         )
 
         group = parser.add_argument_group("Dataset related")
@@ -1833,6 +1843,7 @@ class AbsTask(ABC):
             chunk_shift_ratio=args.chunk_shift_ratio,
             num_cache_chunks=num_cache_chunks,
             excluded_key_prefixes=args.chunk_excluded_key_prefixes,
+            default_fs=args.chunk_default_fs,
         )
 
     # NOTE(kamo): Not abstract class

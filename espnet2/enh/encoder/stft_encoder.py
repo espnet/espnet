@@ -21,6 +21,10 @@ class STFTEncoder(AbsEncoder):
         normalized: bool = False,
         onesided: bool = True,
         use_builtin_complex: bool = True,
+        default_fs: int = 16000,
+        spec_transform_type: str = None,
+        spec_factor: float = 0.15,
+        spec_abs_exponent: float = 0.5,
     ):
         super().__init__()
         self.stft = Stft(
@@ -40,18 +44,54 @@ class STFTEncoder(AbsEncoder):
         self.window = window
         self.n_fft = n_fft
         self.center = center
+        self.default_fs = default_fs
+
+        # spec transform related. See equation (1) in paper
+        # 'Speech Enhancement and Dereverberation With Diffusion-Based Generative
+        # Models'. The default value of 0.15, 0.5 also come from the paper.
+        # spec_transform_type: "exponent", "log", or "none"
+        self.spec_transform_type = spec_transform_type
+        # the output specturm will be scaled with: spec * self.spec_factor
+        self.spec_factor = spec_factor
+        # the exponent factor used in the "exponent" transform
+        self.spec_abs_exponent = spec_abs_exponent
+
+    def spec_transform_func(self, spec):
+        if self.spec_transform_type == "exponent":
+            if self.spec_abs_exponent != 1:
+                # only do this calculation if spec_exponent != 1,
+                # otherwise it's quite a bit of wasted computation
+                # and introduced numerical error
+                e = self.spec_abs_exponent
+                spec = spec.abs() ** e * torch.exp(1j * spec.angle())
+            spec = spec * self.spec_factor
+        elif self.spec_transform_type == "log":
+            spec = torch.log(1 + spec.abs()) * torch.exp(1j * spec.angle())
+            spec = spec * self.spec_factor
+        elif self.spec_transform_type == "none":
+            spec = spec
+        return spec
 
     @property
     def output_dim(self) -> int:
         return self._output_dim
 
-    def forward(self, input: torch.Tensor, ilens: torch.Tensor):
+    @torch.cuda.amp.autocast(enabled=False)
+    def forward(self, input: torch.Tensor, ilens: torch.Tensor, fs: int = None):
         """Forward.
 
         Args:
             input (torch.Tensor): mixed speech [Batch, sample]
             ilens (torch.Tensor): input lengths [Batch]
+            fs (int): sampling rate in Hz
+                If not None, reconfigure STFT window and hop lengths for a new
+                sampling rate while keeping their duration fixed.
+        Returns:
+            spectrum (ComplexTensor): [Batch, T, (C,) F]
+            flens (torch.Tensor): [Batch]
         """
+        if fs is not None:
+            self._reconfig_for_fs(fs)
         # for supporting half-precision training
         if input.dtype in (torch.float16, torch.bfloat16):
             spectrum, flens = self.stft(input.float(), ilens)
@@ -63,7 +103,27 @@ class STFTEncoder(AbsEncoder):
         else:
             spectrum = ComplexTensor(spectrum[..., 0], spectrum[..., 1])
 
+        self._reset_config()
+
+        spectrum = self.spec_transform_func(spectrum)
+
         return spectrum, flens
+
+    def _reset_config(self):
+        """Reset the configuration of STFT window and hop lengths."""
+        self._reconfig_for_fs(self.default_fs)
+
+    def _reconfig_for_fs(self, fs):
+        """Reconfigure STFT window and hop lengths for a new sampling rate
+        while keeping their duration fixed.
+
+        Args:
+            fs (int): new sampling rate
+        """  # noqa: H405
+        assert fs % self.default_fs == 0 or self.default_fs % fs == 0
+        self.stft.n_fft = self.n_fft * fs // self.default_fs
+        self.stft.win_length = self.win_length * fs // self.default_fs
+        self.stft.hop_length = self.hop_length * fs // self.default_fs
 
     def _apply_window_func(self, input):
         B = input.shape[0]
@@ -82,6 +142,7 @@ class STFTEncoder(AbsEncoder):
 
     def forward_streaming(self, input: torch.Tensor):
         """Forward.
+
         Args:
             input (torch.Tensor): mixed speech [Batch, frame_length]
         Return:
@@ -101,6 +162,8 @@ class STFTEncoder(AbsEncoder):
         if not (is_torch_1_9_plus and self.use_builtin_complex):
             feature = ComplexTensor(feature.real, feature.imag)
 
+        feature = self.spec_transform_func(feature)
+
         return feature
 
     def streaming_frame(self, audio):
@@ -114,7 +177,7 @@ class STFTEncoder(AbsEncoder):
             audio: (B, T)
         Returns:
             chunked: List [(B, frame_size),]
-        """
+        """  # noqa: H405
 
         if self.center:
             pad_len = int(self.win_length // 2)

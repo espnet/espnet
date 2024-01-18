@@ -15,7 +15,18 @@ def recursive_sum(obj, weight: torch.Tensor, distributed: bool = False):
         assert obj.size() == weight.size(), (obj.size(), weight.size())
         obj = (obj * weight.type(obj.dtype)).sum()
         if distributed:
-            torch.distributed.all_reduce(obj, op=ReduceOp.SUM)
+            lst = [
+                torch.empty_like(obj) for _ in range(torch.distributed.get_world_size())
+            ]
+            torch.distributed.all_gather(lst, obj)
+            if all([torch.isnan(o) for o in lst]):
+                obj = torch.sum(torch.stack(lst))
+            else:
+                # NOTE(wangyou): not using torch.nansum here to compensate for the
+                # reduced samples.
+                # This is important so that the condition-specific loss values reported
+                # in Reporter will be consistent with the general loss value.
+                obj = torch.nanmean(torch.stack(lst)) * len(lst)
         return obj
     elif obj is None:
         return None
