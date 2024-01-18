@@ -44,7 +44,11 @@ ListOfHypothesis = List[
 
 
 class ScoreFilter(BatchScorerInterface, torch.nn.Module):
-    """Filter scores based on pre-defined rules."""
+    """Filter scores based on pre-defined rules.
+
+    See comments in the score method.
+
+    """
 
     def __init__(
         self,
@@ -88,10 +92,10 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
             self.vocab_size, dtype=self.param.dtype, device=self.param.device
         )
         if self.notimestamps in y:
-            # Suppress timestamp tokens
+            # Suppress timestamp tokens if we don't predict time
             score[self.first_time : self.last_time + 1] = -np.inf
         elif y[-3] == self.sos:
-            # The first token must be a timestamp
+            # The first token must be a timestamp if we predict time
             score[: self.first_time] = -np.inf
             score[self.last_time + 1 :] = -np.inf
         else:
@@ -102,14 +106,14 @@ class ScoreFilter(BatchScorerInterface, torch.nn.Module):
                 # timestamps are monotonic
                 score[self.first_time : prev_times[-1] + 1] = -np.inf
             else:
-                # there are an even number of timestamps
+                # there are an even number of timestamps (all are paired)
                 if y[-1] >= self.first_time and y[-1] <= self.last_time:
-                    # the next tokon is a timestamp or eos
+                    # the next tokon should be a timestamp or eos
                     score[: y[-1]] = -np.inf
                     score[self.last_time + 1 :] = -np.inf
                     score[self.eos] = 0.0
                 else:
-                    # illegal hyp
+                    # this is an illegal hyp
                     score[:] = -np.inf
 
         return score, None
