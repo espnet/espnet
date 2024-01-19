@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import argparse
+import json
 import logging
 import sys
 from distutils.version import LooseVersion
@@ -27,6 +28,7 @@ from espnet2.tasks.asr import ASRTask
 from espnet2.tasks.enh_s2t import EnhS2TTask
 from espnet2.tasks.lm import LMTask
 from espnet2.text.build_tokenizer import build_tokenizer
+from espnet2.text.Butils import BiasProc
 from espnet2.text.hugging_face_token_id_converter import HuggingFaceTokenIDConverter
 from espnet2.text.token_id_converter import TokenIDConverter
 from espnet2.text.whisper_token_id_converter import OpenAIWhisperTokenIDConverter
@@ -110,6 +112,9 @@ class Speech2Text:
         hugging_face_decoder_conf: Dict[str, Any] = {},
         time_sync: bool = False,
         multi_asr: bool = False,
+        biasinglist: str = "",
+        bmaxlen: int = 100,
+        bdrop: float = 0.0,
         lid_prompt: bool = False,
         lang_prompt_token: Optional[str] = None,
         nlp_prompt_token: Optional[str] = None,
@@ -136,6 +141,16 @@ class Speech2Text:
         asr_model, asr_train_args = task.build_model_from_file(
             asr_train_config, asr_model_file, device
         )
+
+        if getattr(asr_model, "biasing", None) and biasinglist != "":
+            bprocessor = BiasProc(
+                biasinglist,
+                maxlen=bmaxlen,
+                bdrop=bdrop,
+                bpemodel=asr_train_args.bpemodel,
+                charlist=asr_model.token_list,
+            )
+            asr_model.bprocessor = bprocessor
 
         if enh_s2t_task:
             asr_model.inherite_attributes(
@@ -198,6 +213,19 @@ class Speech2Text:
         scorers["ngram"] = ngram
 
         # 4. Build BeamSearch object
+        # biasing
+        if getattr(asr_model, "biasing", False):
+            biasingbundle = {
+                "Qproj_acoustic": asr_model.Qproj_acoustic,
+                "Qproj_char": asr_model.Qproj_char,
+                "Kproj": asr_model.Kproj,
+                "ooKBemb": asr_model.ooKBemb,
+                "pointer_gate": asr_model.pointer_gate,
+                "gnn": getattr(asr_model, "gnn", None),
+            }
+        else:
+            biasingbundle = None
+
         if asr_model.use_transducer_decoder:
             # In multi-blank RNNT, we assume all big blanks are
             # just before the standard blank in token_list
@@ -221,6 +249,9 @@ class Speech2Text:
                 multi_blank_durations=multi_blank_durations,
                 multi_blank_indices=multi_blank_indices,
                 token_list=token_list,
+                biasing=getattr(asr_model, "biasing", False),
+                deepbiasing=getattr(asr_model, "deepbiasing", False),
+                BiasingBundle=biasingbundle,
                 **transducer_conf,
             )
             beam_search = None
@@ -464,7 +495,9 @@ class Speech2Text:
 
     @torch.no_grad()
     def __call__(
-        self, speech: Union[torch.Tensor, np.ndarray]
+        self,
+        speech: Union[torch.Tensor, np.ndarray],
+        blist: list = None,
     ) -> Union[
         ListOfHypothesis,
         Tuple[
@@ -529,7 +562,11 @@ class Speech2Text:
             assert len(enc) == 1, len(enc)
 
             # c. Passed the encoder result and the beam search
-            results = self._decode_single_sample(enc[0])
+            lextree = None
+            if blist is not None:
+                bwords = self.asr_model.bprocessor.encode_spec_blist(blist)
+                lextree = self.asr_model.bprocessor.construct_blist(bwords)
+            results = self._decode_single_sample(enc[0], lextree)
 
             # Encoder intermediate CTC predictions
             if intermediate_outs is not None:
@@ -557,10 +594,10 @@ class Speech2Text:
 
         return res
 
-    def _decode_single_sample(self, enc: torch.Tensor):
+    def _decode_single_sample(self, enc: torch.Tensor, lextree: list = None):
         if self.beam_search_transducer:
             logging.info("encoder output length: " + str(enc.shape[0]))
-            nbest_hyps = self.beam_search_transducer(enc)
+            nbest_hyps = self.beam_search_transducer(enc, lextree=lextree)
 
             best = nbest_hyps[0]
             logging.info(f"total log probability: {best.score:.2f}")
@@ -728,6 +765,10 @@ def inference(
     lang_prompt_token: Optional[str],
     nlp_prompt_token: Optional[str],
     prompt_token_file: Optional[str],
+    perutt_blist: str = "",
+    biasinglist: str = "",
+    bmaxlen: int = 0,
+    bdrop: float = 0.0,
 ):
     assert check_argument_types()
     if batch_size > 1:
@@ -781,6 +822,9 @@ def inference(
         hugging_face_decoder=hugging_face_decoder,
         hugging_face_decoder_conf=hugging_face_decoder_conf,
         time_sync=time_sync,
+        biasinglist=biasinglist,
+        bmaxlen=bmaxlen,
+        bdrop=bdrop,
         prompt_token_file=prompt_token_file,
         lang_prompt_token=lang_prompt_token,
         nlp_prompt_token=nlp_prompt_token,
@@ -803,6 +847,16 @@ def inference(
         inference=True,
     )
 
+    # load biasing list
+    blist_perutt = None
+    if getattr(speech2text.asr_model, "biasing", False) and perutt_blist != "":
+        with open(perutt_blist) as fin:
+            blist_perutt = json.load(fin)
+    elif perutt_blist == "":
+        setattr(speech2text.asr_model, "biasing", False)
+        if speech2text.asr_model.use_transducer_decoder:
+            speech2text.beam_search_transducer.biasing = False
+
     # 7 .Start for-loop
     # FIXME(kamo): The output format should be discussed about
     with DatadirWriter(output_dir) as writer:
@@ -815,6 +869,8 @@ def inference(
 
             # N-best list of (text, token, token_int, hyp_object)
             try:
+                if blist_perutt is not None and speech2text.asr_model.biasing:
+                    batch["blist"] = blist_perutt[keys[0]]
                 results = speech2text(**batch)
             except TooShortUttError as e:
                 logging.warning(f"Utterance {keys} {e}")
@@ -1079,6 +1135,29 @@ def get_parser():
         type=str2bool,
         default=False,
         help="Time synchronous beam search.",
+    )
+    group.add_argument(
+        "--perutt_blist",
+        default="",
+        help="Per utterance biasing list",
+    )
+    group.add_argument(
+        "--biasinglist",
+        type=str,
+        default="",
+        help="Biasing list path",
+    )
+    group.add_argument(
+        "--bmaxlen",
+        type=int,
+        default=100,
+        help="maximum biasing list size",
+    )
+    group.add_argument(
+        "--bdrop",
+        type=float,
+        default=0.0,
+        help="biasing list dropout probability",
     )
     group.add_argument(
         "--lang_prompt_token",

@@ -909,6 +909,7 @@ class AbsTask(ABC):
             "e.g., 'bias_weight_decay': False will set zero weight decay for bias "
             "params. See also espnet2.optimizers.optim_groups.configure_optimizer.",
         )
+
         for i in range(1, cls.num_optimizers + 1):
             suf = "" if i == 1 else str(i)
             group.add_argument(

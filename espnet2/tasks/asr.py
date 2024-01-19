@@ -67,6 +67,7 @@ from espnet2.asr.preencoder.linear import LinearProjection
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
+from espnet2.asr.tcpgen_biasing_espnet_model import ESPnetTCPGenBiasingASRModel
 from espnet2.asr_transducer.joint_network import JointNetwork
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
@@ -124,6 +125,7 @@ model_choices = ClassChoices(
         espnet=ESPnetASRModel,
         maskctc=MaskCTCModel,
         pit_espnet=PITESPnetModel,
+        tcpgen_espnet=ESPnetTCPGenBiasingASRModel,
     ),
     type_check=AbsESPnetModel,
     default="espnet",
@@ -488,6 +490,7 @@ class ASRTask(AbsTask):
         MAX_REFERENCE_NUM = 4
 
         retval = ["text_spk{}".format(n) for n in range(2, MAX_REFERENCE_NUM + 1)]
+        retval += ["blist"]
         retval = retval + ["prompt"]
         retval = tuple(retval)
 
@@ -589,6 +592,9 @@ class ASRTask(AbsTask):
                     vocab_size,
                     encoder.output_size(),
                     decoder.dunits,
+                    biasing=args.model_conf.get("biasing", False),
+                    deepbiasing=args.model_conf.get("deepbiasing", False),
+                    biasingsize=args.model_conf.get("battndim", 256),
                     **args.joint_net_conf,
                 )
             else:
@@ -606,6 +612,10 @@ class ASRTask(AbsTask):
         ctc = CTC(
             odim=vocab_size, encoder_output_size=encoder_output_size, **args.ctc_conf
         )
+
+        # 6.5 biasing list
+        if args.model_conf.get("biasing", False) and getattr(args, "bpemodel", None):
+            args.model_conf["bpemodel"] = args.bpemodel
 
         # 7. Build model
         try:
