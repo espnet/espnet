@@ -224,55 +224,36 @@
 <span class="kn">import</span> <span class="nn">torch.quantization</span>
 <span class="kn">from</span> <span class="nn">typeguard</span> <span class="kn">import</span> <span class="n">check_argument_types</span><span class="p">,</span> <span class="n">check_return_type</span>
 
-<span class="kn">from</span> <span class="nn">espnet2.asr.decoder.s4_decoder</span> <span class="kn">import</span> <span class="n">S4Decoder</span>
 <span class="kn">from</span> <span class="nn">espnet2.fileio.datadir_writer</span> <span class="kn">import</span> <span class="n">DatadirWriter</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.s2t</span> <span class="kn">import</span> <span class="n">S2TTask</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.build_tokenizer</span> <span class="kn">import</span> <span class="n">build_tokenizer</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.token_id_converter</span> <span class="kn">import</span> <span class="n">TokenIDConverter</span>
-<span class="kn">from</span> <span class="nn">espnet2.text.whisper_token_id_converter</span> <span class="kn">import</span> <span class="n">OpenAIWhisperTokenIDConverter</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.device_funcs</span> <span class="kn">import</span> <span class="n">to_device</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.set_all_random_seed</span> <span class="kn">import</span> <span class="n">set_all_random_seed</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils</span> <span class="kn">import</span> <span class="n">config_argparse</span>
 <span class="kn">from</span> <span class="nn">espnet2.utils.types</span> <span class="kn">import</span> <span class="n">str2bool</span><span class="p">,</span> <span class="n">str2triple_str</span><span class="p">,</span> <span class="n">str_or_none</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.batch_beam_search</span> <span class="kn">import</span> <span class="n">BatchBeamSearch</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.beam_search</span> <span class="kn">import</span> <span class="n">BeamSearch</span><span class="p">,</span> <span class="n">Hypothesis</span>
 <span class="kn">from</span> <span class="nn">espnet.nets.pytorch_backend.transformer.subsampling</span> <span class="kn">import</span> <span class="n">TooShortUttError</span>
-<span class="kn">from</span> <span class="nn">espnet.nets.scorer_interface</span> <span class="kn">import</span> <span class="n">BatchScorerInterface</span>
 <span class="kn">from</span> <span class="nn">espnet.utils.cli_utils</span> <span class="kn">import</span> <span class="n">get_commandline_args</span>
 
-<span class="c1"># Alias for typing</span>
-<span class="n">ListOfHypothesis</span> <span class="o">=</span> <span class="n">List</span><span class="p">[</span>
-    <span class="n">Tuple</span><span class="p">[</span>
-        <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-        <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span>
-        <span class="n">Hypothesis</span><span class="p">,</span>
-    <span class="p">]</span>
-<span class="p">]</span>
 
-
-<div class="viewcode-block" id="Speech2Text"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.s2t_inference_language.Speech2Text">[docs]</a><span class="k">class</span> <span class="nc">Speech2Text</span><span class="p">:</span>
+<div class="viewcode-block" id="Speech2Language"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.s2t_inference_language.Speech2Language">[docs]</a><span class="k">class</span> <span class="nc">Speech2Language</span><span class="p">:</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">s2t_train_config</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">s2t_model_file</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Path</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">token_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="n">bpemodel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="n">device</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;cpu&quot;</span><span class="p">,</span>
         <span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
         <span class="n">dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;float32&quot;</span><span class="p">,</span>
         <span class="n">nbest</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-        <span class="n">normalize_length</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">quantize_s2t_model</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">quantize_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;Linear&quot;</span><span class="p">],</span>
         <span class="n">quantize_dtype</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;qint8&quot;</span><span class="p">,</span>
+        <span class="n">first_lang_sym</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;abk&gt;&quot;</span><span class="p">,</span>
+        <span class="n">last_lang_sym</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;&lt;zul&gt;&quot;</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="n">quantize_modules</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">quantize_modules</span><span class="p">])</span>
         <span class="n">quantize_dtype</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">quantize_dtype</span><span class="p">)</span>
 
-        <span class="c1"># 1. Build S2T model</span>
         <span class="n">s2t_model</span><span class="p">,</span> <span class="n">s2t_train_args</span> <span class="o">=</span> <span class="n">S2TTask</span><span class="o">.</span><span class="n">build_model_from_file</span><span class="p">(</span>
             <span class="n">s2t_train_config</span><span class="p">,</span> <span class="n">s2t_model_file</span><span class="p">,</span> <span class="n">device</span>
         <span class="p">)</span>
@@ -285,109 +266,58 @@
                 <span class="n">s2t_model</span><span class="p">,</span> <span class="n">qconfig_spec</span><span class="o">=</span><span class="n">quantize_modules</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">quantize_dtype</span>
             <span class="p">)</span>
 
-        <span class="n">decoder</span> <span class="o">=</span> <span class="n">s2t_model</span><span class="o">.</span><span class="n">decoder</span>
-        <span class="n">token_list</span> <span class="o">=</span> <span class="n">s2t_model</span><span class="o">.</span><span class="n">token_list</span>
-        <span class="n">scorers</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">decoder</span><span class="o">=</span><span class="n">decoder</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># 4. Build BeamSearch object</span>
-        <span class="n">weights</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
-            <span class="n">decoder</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
-        <span class="p">)</span>
-        <span class="n">beam_search</span> <span class="o">=</span> <span class="n">BeamSearch</span><span class="p">(</span>
-            <span class="n">beam_size</span><span class="o">=</span><span class="n">nbest</span><span class="p">,</span>
-            <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
-            <span class="n">scorers</span><span class="o">=</span><span class="n">scorers</span><span class="p">,</span>
-            <span class="n">sos</span><span class="o">=</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
-            <span class="n">eos</span><span class="o">=</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
-            <span class="n">vocab_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">),</span>
-            <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
-            <span class="n">pre_beam_score_key</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">,</span>
-            <span class="n">normalize_length</span><span class="o">=</span><span class="n">normalize_length</span><span class="p">,</span>
-        <span class="p">)</span>
-
-        <span class="c1"># TODO(karita): make all scorers batchfied</span>
-        <span class="k">if</span> <span class="n">batch_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="n">non_batch</span> <span class="o">=</span> <span class="p">[</span>
-                <span class="n">k</span>
-                <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">beam_search</span><span class="o">.</span><span class="n">full_scorers</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">BatchScorerInterface</span><span class="p">)</span>
-            <span class="p">]</span>
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">non_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-                <span class="n">beam_search</span><span class="o">.</span><span class="vm">__class__</span> <span class="o">=</span> <span class="n">BatchBeamSearch</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;BatchBeamSearch implementation is selected.&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-                    <span class="sa">f</span><span class="s2">&quot;As non-batch scorers </span><span class="si">{</span><span class="n">non_batch</span><span class="si">}</span><span class="s2"> are found, &quot;</span>
-                    <span class="sa">f</span><span class="s2">&quot;fall back to non-batch implementation.&quot;</span>
-                <span class="p">)</span>
-
-            <span class="n">beam_search</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-            <span class="k">for</span> <span class="n">scorer</span> <span class="ow">in</span> <span class="n">scorers</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scorer</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
-                    <span class="n">scorer</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">getattr</span><span class="p">(</span><span class="n">torch</span><span class="p">,</span> <span class="n">dtype</span><span class="p">))</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Beam_search: </span><span class="si">{</span><span class="n">beam_search</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decoding device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">, dtype=</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-
-        <span class="c1"># 5. [Optional] Build Text converter: e.g. bpe-sym -&gt; Text</span>
-        <span class="k">if</span> <span class="n">token_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">token_type</span> <span class="o">=</span> <span class="n">s2t_train_args</span><span class="o">.</span><span class="n">token_type</span>
-        <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">bpemodel</span> <span class="o">=</span> <span class="n">s2t_train_args</span><span class="o">.</span><span class="n">bpemodel</span>
-
-        <span class="k">if</span> <span class="n">token_type</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">tokenizer</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">elif</span> <span class="p">(</span>
-            <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;bpe&quot;</span>
-            <span class="ow">or</span> <span class="n">token_type</span> <span class="o">==</span> <span class="s2">&quot;hugging_face&quot;</span>
-            <span class="ow">or</span> <span class="s2">&quot;whisper&quot;</span> <span class="ow">in</span> <span class="n">token_type</span>
-        <span class="p">):</span>
-            <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">build_tokenizer</span><span class="p">(</span><span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">,</span> <span class="n">bpemodel</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">tokenizer</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">tokenizer</span> <span class="o">=</span> <span class="n">build_tokenizer</span><span class="p">(</span><span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">bpemodel</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s2">&quot;whisper_en&quot;</span><span class="p">,</span> <span class="s2">&quot;whisper_multilingual&quot;</span><span class="p">]:</span>
-            <span class="n">converter</span> <span class="o">=</span> <span class="n">TokenIDConverter</span><span class="p">(</span><span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-            <span class="n">converter</span> <span class="o">=</span> <span class="n">OpenAIWhisperTokenIDConverter</span><span class="p">(</span><span class="n">model_type</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">)</span>
-            <span class="n">beam_search</span><span class="o">.</span><span class="n">set_hyp_primer</span><span class="p">(</span>
-                <span class="nb">list</span><span class="p">(</span><span class="n">converter</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">sot_sequence_including_notimestamps</span><span class="p">)</span>
-            <span class="p">)</span>
-        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Text tokenizer: </span><span class="si">{</span><span class="n">tokenizer</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decoding device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">, dtype=</span><span class="si">{</span><span class="n">dtype</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span> <span class="o">=</span> <span class="n">s2t_model</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">s2t_train_args</span> <span class="o">=</span> <span class="n">s2t_train_args</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">converter</span> <span class="o">=</span> <span class="n">converter</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizer</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span> <span class="o">=</span> <span class="n">beam_search</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">preprocessor_conf</span> <span class="o">=</span> <span class="n">s2t_train_args</span><span class="o">.</span><span class="n">preprocessor_conf</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">device</span> <span class="o">=</span> <span class="n">device</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">dtype</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span> <span class="o">=</span> <span class="n">nbest</span>
+
+        <span class="n">token_list</span> <span class="o">=</span> <span class="n">s2t_model</span><span class="o">.</span><span class="n">token_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">first_lang_id</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">first_lang_sym</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">last_lang_id</span> <span class="o">=</span> <span class="n">token_list</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">last_lang_sym</span><span class="p">)</span>
 
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">],</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ListOfHypothesis</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Inference for a short utterance.</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Predict the language in input speech.</span>
+
+<span class="sd">        The input speech will be padded or trimmed to the fixed length,</span>
+<span class="sd">        which is consistent with training.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            speech: Input speech</span>
+<span class="sd">            speech: input speech of shape (nsamples,) or (nsamples, nchannels=1)</span>
+
 <span class="sd">        Returns:</span>
-<span class="sd">            text, token, token_int, hyp</span>
+<span class="sd">            List of (language, probability)</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">set_hyp_primer</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">sos</span><span class="p">])</span>
+        <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
 
         <span class="c1"># Preapre speech</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
             <span class="n">speech</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">speech</span><span class="p">)</span>
+
+        <span class="c1"># Only support single-channel speech</span>
+        <span class="k">if</span> <span class="n">speech</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">assert</span> <span class="p">(</span>
+                <span class="n">speech</span><span class="o">.</span><span class="n">dim</span><span class="p">()</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+            <span class="p">),</span> <span class="sa">f</span><span class="s2">&quot;speech of size </span><span class="si">{</span><span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">()</span><span class="si">}</span><span class="s2"> is not supported&quot;</span>
+            <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># (nsamples, 1) --&gt; (nsamples,)</span>
+
+        <span class="n">speech_length</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="p">[</span><span class="s2">&quot;fs&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">preprocessor_conf</span><span class="p">[</span><span class="s2">&quot;speech_length&quot;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="c1"># Pad or trim speech to the fixed length</span>
+        <span class="k">if</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">speech_length</span><span class="p">:</span>
+            <span class="n">speech</span> <span class="o">=</span> <span class="n">speech</span><span class="p">[:</span><span class="n">speech_length</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">speech</span> <span class="o">=</span> <span class="n">F</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">speech</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">speech_length</span> <span class="o">-</span> <span class="n">speech</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
 
         <span class="c1"># Batchify input</span>
         <span class="c1"># speech: (nsamples,) -&gt; (1, nsamples)</span>
@@ -404,62 +334,37 @@
         <span class="n">enc</span><span class="p">,</span> <span class="n">enc_olens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
         <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">)</span>
 
-        <span class="c1"># c. Pass the encoder result to the beam search</span>
-        <span class="n">results</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_single_sample</span><span class="p">(</span><span class="n">enc</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="c1"># c. Forward Decoder by one step</span>
+        <span class="n">ys</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span>
+            <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">sos</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">enc</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">torch</span><span class="o">.</span><span class="n">long</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">logp</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">batch_score</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">],</span> <span class="n">enc</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">logp</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">logp</span><span class="p">)</span>
+
+        <span class="n">prob</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logp</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_lang_id</span> <span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">last_lang_id</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">best_results</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">topk</span><span class="p">(</span><span class="n">prob</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span><span class="p">)</span>
+        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">best_results</span><span class="o">.</span><span class="n">indices</span><span class="p">,</span> <span class="n">best_results</span><span class="o">.</span><span class="n">values</span><span class="p">):</span>
+            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">token_list</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">first_lang_id</span><span class="p">],</span> <span class="n">val</span><span class="o">.</span><span class="n">item</span><span class="p">())</span>
+            <span class="p">)</span>
 
         <span class="k">assert</span> <span class="n">check_return_type</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">results</span>
 
-    <span class="k">def</span> <span class="nf">_decode_single_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enc</span><span class="p">:</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">nn_dict</span><span class="p">,</span> <span class="s2">&quot;decoder&quot;</span><span class="p">):</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">nn_dict</span><span class="o">.</span><span class="n">decoder</span><span class="p">,</span> <span class="n">S4Decoder</span><span class="p">):</span>
-                <span class="c1"># Setup: required for S4 autoregressive generation</span>
-                <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">nn_dict</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">modules</span><span class="p">():</span>
-                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">module</span><span class="p">,</span> <span class="s2">&quot;setup_step&quot;</span><span class="p">):</span>
-                        <span class="n">module</span><span class="o">.</span><span class="n">setup_step</span><span class="p">()</span>
-
-        <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="p">(</span><span class="n">x</span><span class="o">=</span><span class="n">enc</span><span class="p">,</span> <span class="n">maxlenratio</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">minlenratio</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-        <span class="n">nbest_hyps</span> <span class="o">=</span> <span class="n">nbest_hyps</span><span class="p">[:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span><span class="p">]</span>
-
-        <span class="n">results</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">for</span> <span class="n">hyp</span> <span class="ow">in</span> <span class="n">nbest_hyps</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">Hypothesis</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
-
-            <span class="c1"># remove sos/eos and get results</span>
-            <span class="n">last_pos</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-                <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[:</span><span class="n">last_pos</span><span class="p">]</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[:</span><span class="n">last_pos</span><span class="p">]</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-            <span class="n">token_int</span> <span class="o">=</span> <span class="n">token_int</span><span class="p">[</span><span class="n">token_int</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">sos</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span> <span class="p">:]</span>
-
-            <span class="c1"># remove blank symbol id</span>
-            <span class="n">token_int</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">s2t_model</span><span class="o">.</span><span class="n">blank_id</span><span class="p">,</span> <span class="n">token_int</span><span class="p">))</span>
-
-            <span class="c1"># Change integer-ids to tokens</span>
-            <span class="n">token</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">ids2tokens</span><span class="p">(</span><span class="n">token_int</span><span class="p">)</span>
-
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="n">text</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">tokens2text</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="n">text</span><span class="p">,</span> <span class="n">text_nospecial</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span>
-            <span class="n">results</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">text</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">token_int</span><span class="p">,</span> <span class="n">hyp</span><span class="p">))</span>
-
-        <span class="k">return</span> <span class="n">results</span>
-
-<div class="viewcode-block" id="Speech2Text.from_pretrained"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.s2t_inference_language.Speech2Text.from_pretrained">[docs]</a>    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="Speech2Language.from_pretrained"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.s2t_inference_language.Speech2Language.from_pretrained">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">from_pretrained</span><span class="p">(</span>
         <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
         <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span>
     <span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build Speech2Text instance from the pretrained model.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Build Speech2Language instance from the pretrained model.</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            model_tag (Optional[str]): Model tag of the pretrained models.</span>
 <span class="sd">                Currently, the tags of espnet_model_zoo are supported.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Speech2Text: Speech2Text instance.</span>
+<span class="sd">            Speech2Language: Speech2Language instance.</span>
 
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">model_tag</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -475,7 +380,7 @@
             <span class="n">d</span> <span class="o">=</span> <span class="n">ModelDownloader</span><span class="p">()</span>
             <span class="n">kwargs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="o">**</span><span class="n">d</span><span class="o">.</span><span class="n">download_and_unpack</span><span class="p">(</span><span class="n">model_tag</span><span class="p">))</span>
 
-        <span class="k">return</span> <span class="n">Speech2Text</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
+        <span class="k">return</span> <span class="n">Speech2Language</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="inference"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.s2t_inference_language.inference">[docs]</a><span class="k">def</span> <span class="nf">inference</span><span class="p">(</span>
@@ -485,7 +390,6 @@
     <span class="n">ngpu</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">nbest</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
-    <span class="n">normalize_length</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">num_workers</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
     <span class="n">log_level</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span>
     <span class="n">data_path_and_name_and_type</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
@@ -493,12 +397,12 @@
     <span class="n">s2t_train_config</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">s2t_model_file</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">model_tag</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">token_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-    <span class="n">bpemodel</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">allow_variable_data_keys</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">quantize_s2t_model</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
     <span class="n">quantize_modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
     <span class="n">quantize_dtype</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">first_lang_sym</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">last_lang_sym</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
 <span class="p">):</span>
     <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
@@ -520,21 +424,21 @@
     <span class="n">set_all_random_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
 
     <span class="c1"># 2. Build speech2text</span>
-    <span class="n">speech2text_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
+    <span class="n">speech2language_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span>
         <span class="n">s2t_train_config</span><span class="o">=</span><span class="n">s2t_train_config</span><span class="p">,</span>
         <span class="n">s2t_model_file</span><span class="o">=</span><span class="n">s2t_model_file</span><span class="p">,</span>
-        <span class="n">token_type</span><span class="o">=</span><span class="n">token_type</span><span class="p">,</span>
-        <span class="n">bpemodel</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">,</span>
         <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">nbest</span><span class="o">=</span><span class="n">nbest</span><span class="p">,</span>
         <span class="n">quantize_s2t_model</span><span class="o">=</span><span class="n">quantize_s2t_model</span><span class="p">,</span>
         <span class="n">quantize_modules</span><span class="o">=</span><span class="n">quantize_modules</span><span class="p">,</span>
         <span class="n">quantize_dtype</span><span class="o">=</span><span class="n">quantize_dtype</span><span class="p">,</span>
+        <span class="n">first_lang_sym</span><span class="o">=</span><span class="n">first_lang_sym</span><span class="p">,</span>
+        <span class="n">last_lang_sym</span><span class="o">=</span><span class="n">last_lang_sym</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">speech2text</span> <span class="o">=</span> <span class="n">Speech2Text</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
+    <span class="n">speech2language</span> <span class="o">=</span> <span class="n">Speech2Language</span><span class="o">.</span><span class="n">from_pretrained</span><span class="p">(</span>
         <span class="n">model_tag</span><span class="o">=</span><span class="n">model_tag</span><span class="p">,</span>
-        <span class="o">**</span><span class="n">speech2text_kwargs</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">speech2language_kwargs</span><span class="p">,</span>
     <span class="p">)</span>
 
     <span class="c1"># 3. Build data-iterator</span>
@@ -544,8 +448,10 @@
         <span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">,</span>
         <span class="n">key_file</span><span class="o">=</span><span class="n">key_file</span><span class="p">,</span>
         <span class="n">num_workers</span><span class="o">=</span><span class="n">num_workers</span><span class="p">,</span>
-        <span class="n">preprocess_fn</span><span class="o">=</span><span class="n">S2TTask</span><span class="o">.</span><span class="n">build_preprocess_fn</span><span class="p">(</span><span class="n">speech2text</span><span class="o">.</span><span class="n">s2t_train_args</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
-        <span class="n">collate_fn</span><span class="o">=</span><span class="n">S2TTask</span><span class="o">.</span><span class="n">build_collate_fn</span><span class="p">(</span><span class="n">speech2text</span><span class="o">.</span><span class="n">s2t_train_args</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
+        <span class="n">preprocess_fn</span><span class="o">=</span><span class="n">S2TTask</span><span class="o">.</span><span class="n">build_preprocess_fn</span><span class="p">(</span>
+            <span class="n">speech2language</span><span class="o">.</span><span class="n">s2t_train_args</span><span class="p">,</span> <span class="kc">False</span>
+        <span class="p">),</span>
+        <span class="n">collate_fn</span><span class="o">=</span><span class="n">S2TTask</span><span class="o">.</span><span class="n">build_collate_fn</span><span class="p">(</span><span class="n">speech2language</span><span class="o">.</span><span class="n">s2t_train_args</span><span class="p">,</span> <span class="kc">False</span><span class="p">),</span>
         <span class="n">allow_variable_data_keys</span><span class="o">=</span><span class="n">allow_variable_data_keys</span><span class="p">,</span>
         <span class="n">inference</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="p">)</span>
@@ -561,27 +467,22 @@
             <span class="n">batch</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">batch</span><span class="o">.</span><span class="n">items</span><span class="p">()</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">k</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;_lengths&quot;</span><span class="p">)}</span>
 
             <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="c1"># N-best list of (text, token, token_int, hyp_object)</span>
+            <span class="c1"># N-best list of (lang, prob)</span>
             <span class="k">try</span><span class="p">:</span>
-                <span class="n">results</span> <span class="o">=</span> <span class="n">speech2text</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="n">speech2language</span><span class="p">(</span><span class="o">**</span><span class="n">batch</span><span class="p">)</span>
             <span class="k">except</span> <span class="n">TooShortUttError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                 <span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Utterance </span><span class="si">{</span><span class="n">keys</span><span class="si">}</span><span class="s2"> </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-                <span class="n">hyp</span> <span class="o">=</span> <span class="n">Hypothesis</span><span class="p">(</span><span class="n">score</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">scores</span><span class="o">=</span><span class="p">{},</span> <span class="n">states</span><span class="o">=</span><span class="p">{},</span> <span class="n">yseq</span><span class="o">=</span><span class="p">[])</span>
-                <span class="n">results</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;&lt;space&gt;&quot;</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">hyp</span><span class="p">]]</span> <span class="o">*</span> <span class="n">nbest</span>
+                <span class="n">results</span> <span class="o">=</span> <span class="p">[(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)]</span> <span class="o">*</span> <span class="n">nbest</span>
 
             <span class="c1"># Only supporting batch_size==1</span>
             <span class="n">key</span> <span class="o">=</span> <span class="n">keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">token</span><span class="p">,</span> <span class="n">token_int</span><span class="p">,</span> <span class="n">hyp</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbest</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">results</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">lang</span><span class="p">,</span> <span class="n">prob</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">nbest</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">results</span><span class="p">):</span>
                 <span class="c1"># Create a directory: outdir/{n}best_recog</span>
                 <span class="n">ibest_writer</span> <span class="o">=</span> <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">n</span><span class="si">}</span><span class="s2">best_recog&quot;</span><span class="p">]</span>
 
                 <span class="c1"># Write the result to each file</span>
-                <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;token&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
-                <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;token_int&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="n">token_int</span><span class="p">))</span>
-                <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">hyp</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>
-
-                <span class="k">if</span> <span class="n">text</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                    <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">text</span></div>
+                <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">prob</span><span class="p">)</span>
+                <span class="n">ibest_writer</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">lang</span></div>
 
 
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.s2t_inference_language.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>
@@ -631,7 +532,7 @@
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--key_file&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--allow_variable_data_keys&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;The model configuration related&quot;</span><span class="p">)</span>
+    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Model configuration related&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">&quot;--s2t_train_config&quot;</span><span class="p">,</span>
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
@@ -647,6 +548,15 @@
         <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Pretrained model tag. If specify this option, *_train_config and &quot;</span>
         <span class="s2">&quot;*_file will be overwritten&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--first_lang_sym&quot;</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&lt;abk&gt;&quot;</span><span class="p">,</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The first language symbol.&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">&quot;--last_lang_sym&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">&quot;&lt;zul&gt;&quot;</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The last language symbol.&quot;</span>
     <span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Quantization related&quot;</span><span class="p">)</span>
@@ -682,29 +592,6 @@
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The batch size for inference&quot;</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--nbest&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Output N-best hypotheses&quot;</span><span class="p">)</span>
-
-    <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Text converter related&quot;</span><span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--token_type&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">choices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;char&quot;</span><span class="p">,</span> <span class="s2">&quot;bpe&quot;</span><span class="p">,</span> <span class="s2">&quot;word&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The token type for S2T model. &quot;</span>
-        <span class="s2">&quot;If not given, refers from the training args&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--bpemodel&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str_or_none</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The model path of sentencepiece. &quot;</span>
-        <span class="s2">&quot;If not given, refers from the training args&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-        <span class="s2">&quot;--normalize_length&quot;</span><span class="p">,</span>
-        <span class="nb">type</span><span class="o">=</span><span class="n">str2bool</span><span class="p">,</span>
-        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;If true, best hypothesis is selected by length-normalized scores&quot;</span><span class="p">,</span>
-    <span class="p">)</span>
 
     <span class="k">return</span> <span class="n">parser</span></div>
 
