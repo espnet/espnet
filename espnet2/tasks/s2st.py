@@ -84,7 +84,7 @@ frontend_choices = ClassChoices(
         s3prl=S3prlFrontend,
     ),
     type_check=AbsFrontend,
-    default="default",
+    default=None,
 )
 tgt_feats_extract_choices = ClassChoices(
     name="tgt_feats_extract",
@@ -148,7 +148,7 @@ encoder_choices = ClassChoices(
         linear=LinearEncoder,
     ),
     type_check=AbsEncoder,
-    default="rnn",
+    default="transformer",
 )
 postencoder_choices = ClassChoices(
     name="postencoder",
@@ -215,7 +215,7 @@ synthesizer_choices = ClassChoices(
         discrete_unit=TransformerDiscreteSynthesizer,
     ),
     type_check=AbsSynthesizer,
-    default="translatotron",
+    default="discrete_unit",
 )
 loss_choices = ClassChoices(
     name="loss",
@@ -278,12 +278,13 @@ class S2STTask(STTask):
         group.add_argument(
             "--s2st_type",
             type=str,
-            default="translatotron",
+            default="discrete_unit",
             help="Types of S2ST",
             choices=[
                 "translatotron",
                 "translatotron2",
                 "discrete_unit",
+                "unity",
             ],
         )
         group.add_argument(
@@ -431,8 +432,9 @@ class S2STTask(STTask):
             action=NestedDictAction,
             default=[
                 {
-                    "name": "syn_loss",
+                    "name": "synthesis",
                     "conf": {},
+                    "type": "attention",
                 },
             ],
             help="The criterions binded with the loss wrappers.",

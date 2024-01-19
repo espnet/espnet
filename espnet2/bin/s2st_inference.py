@@ -50,6 +50,7 @@ class Speech2Speech:
         backward_window: int = 1,
         forward_window: int = 3,
         nbest: int = 1,
+        normalize_length: bool = False,
         beam_size: int = 5,
         penalty: float = 0.0,
         st_subtask_beam_size: int = 5,
@@ -86,15 +87,16 @@ class Speech2Speech:
         self.st_subtask_minlenratio = st_subtask_minlenratio
         self.seed = seed
         self.always_fix_seed = always_fix_seed
-        self.vocoder = None
         self.prefer_normalized_feats = prefer_normalized_feats
-        if self.model.require_vocoder:
+        if self.model.require_vocoder and vocoder_file is not None:
             vocoder = S2STTask.build_vocoder_from_file(
                 vocoder_config, vocoder_file, model, device
             )
             if isinstance(vocoder, torch.nn.Module):
                 vocoder.to(dtype=getattr(torch, dtype)).eval()
             self.vocoder = vocoder
+        else:
+            self.vocoder = None
         logging.info(f"S2ST:\n{self.model}")
         if self.vocoder is not None:
             logging.info(f"Vocoder:\n{self.vocoder}")
@@ -131,6 +133,7 @@ class Speech2Speech:
                 vocab_size=len(token_list),
                 token_list=None,  # No need to print out the lengthy discrete unit
                 pre_beam_score_key="full",
+                normalize_length=normalize_length,
             )
 
             # TODO(karita): make all scorers batchfied
@@ -176,6 +179,7 @@ class Speech2Speech:
                     eos=model.eos,
                     vocab_size=len(model.tgt_token_list),
                     pre_beam_score_key="full",
+                    normalize_length=normalize_length,
                     return_hs=True,
                 )
                 # TODO(karita): make all st_subtask_scorers batchfied
@@ -234,7 +238,7 @@ class Speech2Speech:
     def __call__(
         self,
         src_speech: Union[torch.Tensor, np.ndarray],
-        src_speech_lengths: Union[torch.Tensor, np.ndarray],
+        src_speech_lengths: Union[torch.Tensor, np.ndarray] = None,
         tgt_speech: Union[torch.Tensor, np.ndarray] = None,
         tgt_speech_lengths: Union[torch.Tensor, np.ndarray] = None,
         spembs: Union[torch.Tensor, np.ndarray] = None,
@@ -254,6 +258,15 @@ class Speech2Speech:
             raise RuntimeError("Missing required argument: 'lids'")
         if self.use_spembs and spembs is None:
             raise RuntimeError("Missing required argument: 'spembs'")
+
+        # Input as audio signal
+        if isinstance(src_speech, np.ndarray):
+            src_speech = torch.tensor(src_speech.astype(np.float32))
+
+        if src_speech_lengths is None:
+            src_speech_lengths = src_speech.new_full(
+                [1], dtype=torch.long, fill_value=src_speech.size(1)
+            )
 
         # prepare batch
         batch = dict(src_speech=src_speech, src_speech_lengths=src_speech_lengths)
@@ -520,6 +533,7 @@ def inference(
     forward_window: int,
     always_fix_seed: bool,
     nbest: int,
+    normalize_length: bool,
     beam_size: int,
     penalty: float,
     st_subtask_nbest: int,
@@ -565,6 +579,7 @@ def inference(
         backward_window=backward_window,
         forward_window=forward_window,
         nbest=nbest,
+        normalize_length=normalize_length,
         beam_size=beam_size,
         penalty=penalty,
         st_subtask_nbest=st_subtask_nbest,
@@ -954,6 +969,12 @@ def get_parser():
         default=None,
         help="The model path of sentencepiece. "
         "If not given, refers from the training args",
+    )
+    group.add_argument(
+        "--normalize_length",
+        type=str2bool,
+        default=False,
+        help="If true, best hypothesis is selected by length-normalized scores",
     )
     return parser
 

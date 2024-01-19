@@ -15,7 +15,7 @@ gss_dsets=
 manifests_root=
 gss_dump_root=
 augm_num_data_reps=4
-decode_only=0
+decode_train="dev"
 foreground_snrs="20:10:15:5:0"
 background_snrs="20:10:15:5:0"
 
@@ -26,7 +26,7 @@ background_snrs="20:10:15:5:0"
 gss_dsets=$(echo $gss_dsets | tr "," " ") # split by commas
 
 
-if [ -n "$decode_only" ]; then
+if [ $decode_train != "train" ]; then
   # stop after gss
   skip_stages=("1" "2")
 fi

@@ -19,8 +19,8 @@ def get_classification_result(hyp_file, ref_file, hyp_write, ref_write):
 
     error = 0
     for line_count in range(len(hyp_lines)):
-        hyp_intent = hyp_lines[line_count].split(" ")[0]
-        ref_intent = ref_lines[line_count].split(" ")[0]
+        hyp_intent = hyp_lines[line_count].split("\t")[0].split(" ")[0]
+        ref_intent = ref_lines[line_count].split("\t")[0].split(" ")[0]
         if hyp_intent != ref_intent:
             error += 1
         hyp_write.write(

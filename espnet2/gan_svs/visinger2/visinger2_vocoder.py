@@ -103,7 +103,7 @@ class VISinger2VocoderGenerator(torch.nn.Module):
                 n_harmonic + 2,
                 k,
                 u,
-                padding=k // 2 + k % 2,
+                padding=k // 2,
             )
             self.downs.append(down)
 

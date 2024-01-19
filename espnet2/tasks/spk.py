@@ -7,21 +7,37 @@ from typeguard import check_argument_types, check_return_type
 
 from espnet2.asr.encoder.abs_encoder import AbsEncoder
 from espnet2.asr.frontend.abs_frontend import AbsFrontend
+from espnet2.asr.frontend.asteroid_frontend import AsteroidFrontend
 from espnet2.asr.frontend.default import DefaultFrontend
+from espnet2.asr.frontend.fused import FusedFrontends
+from espnet2.asr.frontend.melspec_torch import MelSpectrogramTorch
+from espnet2.asr.frontend.s3prl import S3prlFrontend
 from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.layers.utterance_mvn import UtteranceMVN
+from espnet2.spk.encoder.conformer_encoder import MfaConformerEncoder
+from espnet2.spk.encoder.ecapa_tdnn_encoder import EcapaTdnnEncoder
+from espnet2.spk.encoder.identity_encoder import IdentityEncoder
 from espnet2.spk.encoder.rawnet3_encoder import RawNet3Encoder
+from espnet2.spk.encoder.ska_tdnn_encoder import SkaTdnnEncoder
+from espnet2.spk.encoder.xvector_encoder import XvectorEncoder
 from espnet2.spk.espnet_model import ESPnetSpeakerModel
 from espnet2.spk.loss.aamsoftmax import AAMSoftmax
+from espnet2.spk.loss.aamsoftmax_subcenter_intertopk import (
+    ArcMarginProduct_intertopk_subcenter,
+)
 from espnet2.spk.loss.abs_loss import AbsLoss
 from espnet2.spk.pooling.abs_pooling import AbsPooling
 from espnet2.spk.pooling.chn_attn_stat_pooling import ChnAttnStatPooling
+from espnet2.spk.pooling.mean_pooling import MeanPooling
+from espnet2.spk.pooling.stat_pooling import StatsPooling
 from espnet2.spk.projector.abs_projector import AbsProjector
 from espnet2.spk.projector.rawnet3_projector import RawNet3Projector
+from espnet2.spk.projector.ska_tdnn_projector import SkaTdnnProjector
+from espnet2.spk.projector.xvector_projector import XvectorProjector
 from espnet2.tasks.abs_task import AbsTask
 from espnet2.torch_utils.initialize import initialize
 from espnet2.train.class_choices import ClassChoices
@@ -40,12 +56,15 @@ from espnet2.utils.types import int_or_none, str2bool, str_or_none
 frontend_choices = ClassChoices(
     name="frontend",
     classes=dict(
+        asteroid_frontend=AsteroidFrontend,
         default=DefaultFrontend,
+        fused=FusedFrontends,
+        melspec_torch=MelSpectrogramTorch,
         sliding_window=SlidingWindow,
-        raw=AbsFrontend,
+        s3prl=S3prlFrontend,
     ),
     type_check=AbsFrontend,
-    default="default",
+    default=None,
     optional=True,
 )
 
@@ -68,12 +87,15 @@ normalize_choices = ClassChoices(
     optional=True,
 )
 
-# add more choices (e.g., ECAPA-TDNN)
 encoder_choices = ClassChoices(
     name="encoder",
     classes=dict(
-        # conformer=ConformerEncoder, #TODO (Jee-weon): add.
+        ecapa_tdnn=EcapaTdnnEncoder,
+        identity=IdentityEncoder,
+        mfaconformer=MfaConformerEncoder,
         rawnet3=RawNet3Encoder,
+        ska_tdnn=SkaTdnnEncoder,
+        xvector=XvectorEncoder,
     ),
     type_check=AbsEncoder,
     default="rawnet3",
@@ -82,11 +104,9 @@ encoder_choices = ClassChoices(
 pooling_choices = ClassChoices(
     name="pooling",
     classes=dict(
-        # TODO (Jee-weon): implement additional aggregators
-        # mean=MeanPoolAggregator,
-        # max=MaxPoolAggregator,
-        # attn_stat=AttnStatAggregator,
         chn_attn_stat=ChnAttnStatPooling,
+        mean=MeanPooling,
+        stats=StatsPooling,
     ),
     type_check=AbsPooling,
     default="chn_attn_stat",
@@ -95,9 +115,9 @@ pooling_choices = ClassChoices(
 projector_choices = ClassChoices(
     name="projector",
     classes=dict(
-        # TODO (Jee-weon): implement additional Projectors
-        # one_layer=OneLayerProjector,
         rawnet3=RawNet3Projector,
+        ska_tdnn=SkaTdnnProjector,
+        xvector=XvectorProjector,
     ),
     type_check=AbsProjector,
     default="rawnet3",
@@ -117,9 +137,9 @@ loss_choices = ClassChoices(
     name="loss",
     classes=dict(
         aamsoftmax=AAMSoftmax,
+        aamsoftmax_sc_topk=ArcMarginProduct_intertopk_subcenter,
     ),
-    type_check=AbsLoss,
-    default="aam",
+    default="aamsoftmax",
 )
 
 
@@ -187,6 +207,13 @@ class SpeakerTask(AbsTask):
         )
 
         group.add_argument(
+            "--spk_num",
+            type=int,
+            default=None,
+            help="specify the number of speakers during training",
+        )
+
+        group.add_argument(
             "--sample_rate",
             type=int,
             default=16000,
@@ -197,7 +224,8 @@ class SpeakerTask(AbsTask):
             "--num_eval",
             type=int,
             default=10,
-            help="Number of segments to make from one utterance in the inference phase",
+            help="Number of segments to make from one utterance in the "
+            "inference phase",
         )
 
         group.add_argument(
@@ -233,11 +261,17 @@ class SpeakerTask(AbsTask):
     ) -> Optional[Callable[[str, Dict[str, np.array]], Dict[str, np.ndarray]]]:
         assert check_argument_types()
         if args.use_preprocessor:
-            retval = preprocessor_choices.get_class(args.preprocessor)(
-                spk2utt=args.spk2utt,
-                train=train,
-                **args.preprocessor_conf,
-            )
+            if train:
+                retval = preprocessor_choices.get_class(args.preprocessor)(
+                    spk2utt=args.spk2utt,
+                    train=train,
+                    **args.preprocessor_conf,
+                )
+            else:
+                retval = preprocessor_choices.get_class(args.preprocessor)(
+                    train=train,
+                    **args.preprocessor_conf,
+                )
 
         else:
             retval = None
@@ -262,7 +296,7 @@ class SpeakerTask(AbsTask):
         # When calculating EER, we need trials where each trial has two
         # utterances. speech2 corresponds to the second utterance of each
         # trial pair in the validation/inference phase.
-        retval = ("speech2", "trial", "spk_labels")
+        retval = ("speech2", "trial", "spk_labels", "task_tokens")
 
         assert check_return_type(retval)
         return retval
@@ -271,14 +305,13 @@ class SpeakerTask(AbsTask):
     def build_model(cls, args: argparse.Namespace) -> ESPnetSpeakerModel:
         assert check_argument_types()
 
-        if args.frontend != "raw":
+        if args.frontend is not None:
             frontend_class = frontend_choices.get_class(args.frontend)
             frontend = frontend_class(**args.frontend_conf)
             input_size = frontend.output_size()
+
         else:
-            # Give features from data-loader
-            args.frontend = None
-            args.frontend_conf = {}
+            # Give features from data-loader (e.g., precompute features).
             frontend = None
             input_size = args.input_size
 
@@ -296,15 +329,22 @@ class SpeakerTask(AbsTask):
 
         encoder_class = encoder_choices.get_class(args.encoder)
         encoder = encoder_class(input_size=input_size, **args.encoder_conf)
+        encoder_output_size = encoder.output_size()
 
         pooling_class = pooling_choices.get_class(args.pooling)
-        pooling = pooling_class(**args.pooling_conf)
+        pooling = pooling_class(input_size=encoder_output_size, **args.pooling_conf)
+        pooling_output_size = pooling.output_size()
 
         projector_class = projector_choices.get_class(args.projector)
-        projector = projector_class(**args.projector_conf)
+        projector = projector_class(
+            input_size=pooling_output_size, **args.projector_conf
+        )
+        projector_output_size = projector.output_size()
 
         loss_class = loss_choices.get_class(args.loss)
-        loss = loss_class(**args.loss_conf)
+        loss = loss_class(
+            nout=projector_output_size, nclasses=args.spk_num, **args.loss_conf
+        )
 
         model = ESPnetSpeakerModel(
             frontend=frontend,
