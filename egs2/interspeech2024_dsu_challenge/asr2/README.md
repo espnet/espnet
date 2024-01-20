@@ -45,4 +45,3 @@ After download the dataset, please set the `MLSUPERB` to the data directory. The
 |decode_ctc0.3_asr_model_valid.acc.ave/test_1h|7439|159974|26.2|48.4|25.4|15.0|88.8|98.0|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_clean|2620|81195|95.6|3.2|1.2|0.5|4.9|47.6|
 |decode_ctc0.3_asr_model_valid.acc.ave/test_other|2939|78676|91.6|6.2|2.2|1.0|9.5|63.0|
-
