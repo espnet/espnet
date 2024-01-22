@@ -96,9 +96,3 @@ tools/ffmpeg-*-static
 tools/ffmpeg-release
 tools/ffmpeg-release-*.tar.xz
 tools/Miniconda3-latest-*.sh
-
-egs2/easycom/avsr1/local/LRS3_landmarks
-egs2/easycom/avsr1/local/pre-trained
-egs2/easycom/avsr1/local/babble_noise.wav
-egs2/easycom/avsr1/local/easycom.ipynb
-egs2/easycom/avsr1/local/lrs3-valid.id
