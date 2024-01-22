@@ -33,7 +33,9 @@ for x in ["train", "test"]:
     Path(os.path.join("data", x, "text")).mkdir(parents=True, exist_ok=True)
     with open(
         os.path.join(an4_root, "etc", "an4_" + x + ".transcription")
-    ) as transcript_f, open(os.path.join("data", x, "text", "text"), "w") as text_f, open(
+    ) as transcript_f, open(
+        os.path.join("data", x, "text", "text"), "w"
+    ) as text_f, open(
         os.path.join("data", x, "speech", "wav.scp"), "w"
     ) as wav_scp_f, open(
         os.path.join("data", x, "speech", "utt2spk"), "w"
@@ -54,7 +56,7 @@ for x in ["train", "test"]:
                 words = words[:-5]
             source = re.search(r"\((.*)\)", line).group(1)
             pre, mid, last = source.split("-")
-            utt_id = "asr_"+"-".join([mid, pre, last])
+            utt_id = "asr_" + "-".join([mid, pre, last])
 
             text_f.write(utt_id + " " + words + "\n")
             wav_scp_f.write(

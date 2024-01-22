@@ -3,6 +3,7 @@ import random
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Union
+
 from prepare_lm_data import cjk2unit, read_text, unit2cjk
 
 if __name__ == "__main__":

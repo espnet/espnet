@@ -371,7 +371,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
             # If nothing is need, then format_wav_scp.sh does nothing:
             # i.e. the input file format and rate is same as the output.
 
-            
+
             for _task in "data/speech/"*; do
                 for dset in ${_dsets}; do
                     _dir=${_task}/${dset}
@@ -397,13 +397,13 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
 fi
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [[:space:]]3[[:space:]] ]]; then
-    
+
     if "${skip_train}"; then
         _dsets="${test_sets}"
     else
         _dsets="${train_set} ${valid_set} ${test_sets}"
     fi
-        
+
     if "${use_speech}"; then
         log "Stage 3a: Perform Kmeans using ${kmeans_feature_type} features"
 
@@ -413,7 +413,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
         fi
 
         for _task in "data/speech/"*; do
-            
+
             if [ -d "${_task}" ]; then
                     scripts/feats/perform_kmeans.sh \
                         --stage 1 --stop-stage 4 \
@@ -436,7 +436,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
                         --cuda_cmd "${cuda_cmd}" \
                         ${kmeans_opts}
             fi
-            
+
         done
 
         _suf=
@@ -482,7 +482,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
     fi
 
     if "${use_speech}" && "${use_text}"; then
-        
+
         for dset in ${_dsets}; do
             echo $dset
             python3 local/prepare_lm_data.py --path ${data_feats}/${dset}
@@ -849,7 +849,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " =~ [
     # Show results in Markdown syntax
     scripts/utils/show_asr_result.sh "${lm_exp}" > "${lm_exp}"/RESULTS.md
     cat "${lm_exp}"/RESULTS.md
-    
+
 
 fi
 

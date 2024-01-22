@@ -16,12 +16,7 @@ def test_espnet_model_multitask(arch):
 
     lm = arch(vocab_size, layer=2)
 
-    model = ESPnetMultitaskLanguageModel(
-        lm,
-        vocab_size,
-        token_list,
-        sos_syms=sos_syms
-    )
+    model = ESPnetMultitaskLanguageModel(lm, vocab_size, token_list, sos_syms=sos_syms)
 
     inputs = dict(
         text=torch.randint(0, 3, [2, 10], dtype=torch.long),

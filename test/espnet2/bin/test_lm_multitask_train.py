@@ -21,7 +21,7 @@ def token_list(tmp_path: Path):
             "i",
             "<sos/eos>",
             "<generatetext>",
-            "<generatespeech>"
+            "<generatespeech>",
         ]
         for tok in tokens:
             f.write(f"{tok}\n")
@@ -40,7 +40,7 @@ def lm_multitask_config_file(tmp_path: Path, token_list):
             "--token_list",
             str(token_list),
             "--model",
-            "lm_multitask"
+            "lm_multitask",
         ]
     )
     return tmp_path / "lm" / "config.yaml"
