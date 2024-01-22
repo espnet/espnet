@@ -19,11 +19,6 @@ if [ ${with_LRS3} ]; then
     train_set=${train_set}_with_LRS3
     valid_set=${valid_set}_with_LRS3
     test_set=${test_set}_with_LRS3
-else
-    train_set=${train_set}
-    valid_set=${valid_set}
-    test_set=${test_set}
-fi
 
 ./asr.sh \
     --lang en \
