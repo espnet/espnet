@@ -34,6 +34,7 @@ We can choose the following things.
 - pytorch version: `pytorch 1.12.1`
 - Git hash: `a4c5547b1b484141e79cee6d972c41247c1cdaa3`
   - Commit date: `Fri Dec 8 20:59:29 2023 -0500`
+- Pretrained model: [https://huggingface.co/espnet/msk_easycom_avsr_avhubert_large_extracted_en_bpe1000](https://huggingface.co/espnet/msk_easycom_avsr_avhubert_large_extracted_en_bpe1000)
 
 ## Audio-Visual Speech Recognition Results (Multimodal) <br> exp/asr_train_avsr_avhubert_large_with_lrs3_noise_extracted_en_bpe1000
 ### WER
