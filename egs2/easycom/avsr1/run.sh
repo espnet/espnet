@@ -38,4 +38,3 @@ fi
     --use_lm false \
     --asr_config ${config} \
     --ngpu 1  "$@"
-    

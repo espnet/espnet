@@ -90,8 +90,7 @@ class VideoProcess:
         yx_min = []
         for frame_idx, frame in enumerate(video):
             window_margin = min(
-                self.window_margin // 2, frame_idx, len(
-                    landmarks) - 1 - frame_idx
+                self.window_margin // 2, frame_idx, len(landmarks) - 1 - frame_idx
             )
             smoothed_landmarks = np.mean(
                 [
@@ -118,19 +117,42 @@ class VideoProcess:
                 return None
             patch, y_min, x_min = output
             if patch.shape[0] != self.crop_height:
-                patch = np.concatenate([patch, np.zeros(
-                    [self.crop_height - patch.shape[0], patch.shape[1], patch.shape[2]], dtype=patch.dtype)], 0)
+                patch = np.concatenate(
+                    [
+                        patch,
+                        np.zeros(
+                            [
+                                self.crop_height - patch.shape[0],
+                                patch.shape[1],
+                                patch.shape[2],
+                            ],
+                            dtype=patch.dtype,
+                        ),
+                    ],
+                    0,
+                )
             if patch.shape[1] != self.crop_width:
-                patch = np.concatenate([patch, np.zeros(
-                    [patch.shape[0], self.crop_width - patch.shape[1], patch.shape[2]], dtype=patch.dtype)], 1)
+                patch = np.concatenate(
+                    [
+                        patch,
+                        np.zeros(
+                            [
+                                patch.shape[0],
+                                self.crop_width - patch.shape[1],
+                                patch.shape[2],
+                            ],
+                            dtype=patch.dtype,
+                        ),
+                    ],
+                    1,
+                )
             sequence.append(patch)
             yx_min.append([y_min, x_min])
             tf_landmarks.append(transformed_landmarks)
         return np.array(sequence), yx_min, tf_landmarks
 
     def interpolate_landmarks(self, landmarks):
-        valid_frames_idx = [idx for idx, lm in enumerate(
-            landmarks) if lm is not None]
+        valid_frames_idx = [idx for idx, lm in enumerate(landmarks) if lm is not None]
 
         if not valid_frames_idx:
             return None
@@ -141,8 +163,7 @@ class VideoProcess:
                     landmarks, valid_frames_idx[idx - 1], valid_frames_idx[idx]
                 )
 
-        valid_frames_idx = [idx for idx, lm in enumerate(
-            landmarks) if lm is not None]
+        valid_frames_idx = [idx for idx, lm in enumerate(landmarks) if lm is not None]
 
         # Handle corner case: keep frames at the beginning or at the end that
         # failed to be detected
@@ -154,8 +175,7 @@ class VideoProcess:
                 len(landmarks) - valid_frames_idx[-1]
             )
 
-        assert all(
-            lm is not None for lm in landmarks), "not every frame has landmark"
+        assert all(lm is not None for lm in landmarks), "not every frame has landmark"
 
         return landmarks
 

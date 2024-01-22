@@ -14,7 +14,6 @@ import torch
 import torch.nn.functional as F
 from python_speech_features import logfbank
 from scipy.io import wavfile
-
 from transforms import *
 
 from espnet2.asr.encoder.avhubert_encoder import FairseqAVHubertEncoder
@@ -38,8 +37,7 @@ def get_video_transform(split="test"):
     return Compose(
         [
             Normalize(0.0, 255.0),
-            CenterCrop(crop_size) if split == "test" else RandomCrop(
-                crop_size),
+            CenterCrop(crop_size) if split == "test" else RandomCrop(crop_size),
             Identity() if split == "test" else HorizontalFlip(0.5),
             Normalize(mean, std),
             Identity() if split == "test" else TimeMask(max_mask_length=15),
@@ -128,8 +126,9 @@ def per_file(file, video_transform, model, writer):
                 audio_feats = np.concatenate(
                     [
                         audio_feats,
-                        np.zeros([-diff, audio_feats.shape[-1]],
-                                 dtype=audio_feats.dtype),
+                        np.zeros(
+                            [-diff, audio_feats.shape[-1]], dtype=audio_feats.dtype
+                        ),
                     ]
                 )
             elif diff > 0:
@@ -150,12 +149,13 @@ def per_file(file, video_transform, model, writer):
             )  # B, T, H, W, C
             video_feats = video_feats.permute(0, 4, 1, 2, 3).contiguous()
 
-        xs = {"video": video_feats.cuda() if video_feats is not None else None,
-              "audio": audio_feats.cuda() if audio_feats is not None else None}
+        xs = {
+            "video": video_feats.cuda() if video_feats is not None else None,
+            "audio": audio_feats.cuda() if audio_feats is not None else None,
+        }
         feats = model.forward_fusion(xs)
 
-        writer[id] = feats.squeeze(0).transpose(
-            0, 1).contiguous().cpu().numpy()
+        writer[id] = feats.squeeze(0).transpose(0, 1).contiguous().cpu().numpy()
     return
 
 
@@ -177,12 +177,13 @@ def extract_noise_feature(file, model, save_name):
         # [B, T, F] -> [B, F, T]
         audio_feats = audio_feats.transpose(1, 2).contiguous()
 
-        xs = {"video": video_feats.cuda() if video_feats is not None else None,
-              "audio": audio_feats.cuda() if audio_feats is not None else None}
+        xs = {
+            "video": video_feats.cuda() if video_feats is not None else None,
+            "audio": audio_feats.cuda() if audio_feats is not None else None,
+        }
         feats = model.forward_fusion(xs)
 
-        torch.save(feats.squeeze(0).transpose(
-            0, 1).contiguous().cpu(), save_name)
+        torch.save(feats.squeeze(0).transpose(0, 1).contiguous().cpu(), save_name)
     return
 
 
@@ -237,10 +238,16 @@ def get_parser():
         description="Command-line script for preprocessing."
     )
     parser.add_argument(
-        "--file_list", type=str, default=None, help="file_list (scp)",
+        "--file_list",
+        type=str,
+        default=None,
+        help="file_list (scp)",
     )
     parser.add_argument(
-        "--model", type=str, required=True, help="AV-HuBERT model config",
+        "--model",
+        type=str,
+        required=True,
+        help="AV-HuBERT model config",
     )
     parser.add_argument(
         "--pretrained_model_dir",
@@ -249,13 +256,22 @@ def get_parser():
         help="AV-HuBERT pretrained model path",
     )
     parser.add_argument(
-        "--gpu", type=int, default=1, help="GPU number (job - 1)",
+        "--gpu",
+        type=int,
+        default=1,
+        help="GPU number (job - 1)",
     )
     parser.add_argument(
-        "--write_num_frames", type=str, default=None, help="specify wspecifer for num frames",
+        "--write_num_frames",
+        type=str,
+        default=None,
+        help="specify wspecifer for num frames",
     )
     parser.add_argument(
-        "--wspecifier", type=str, default=None, help="Write specifier",
+        "--wspecifier",
+        type=str,
+        default=None,
+        help="Write specifier",
     )
     parser.add_argument(
         "--noise_extraction",

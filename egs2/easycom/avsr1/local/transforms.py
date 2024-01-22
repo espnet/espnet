@@ -87,14 +87,12 @@ class CutoutHole(object):
         """
         frames, h, w = img.shape
 
-        hole_length = random.randint(
-            self.min_hole_length, self.max_hole_length)
+        hole_length = random.randint(self.min_hole_length, self.max_hole_length)
 
         start_h = random.randint(0, h - hole_length)
         start_w = random.randint(0, w - hole_length)
 
-        img[:, start_h : start_h + hole_length,
-            start_w : start_w + hole_length] = 0.0
+        img[:, start_h : start_h + hole_length, start_w : start_w + hole_length] = 0.0
         return img
 
 
@@ -220,8 +218,7 @@ class AddNoise(object):
             np.float64,
         ], "signal only supports float32 data type"
         snr_target = (
-            random.choice(
-                self.snr_levels) if not self.snr_target else self.snr_target
+            random.choice(self.snr_levels) if not self.snr_target else self.snr_target
         )
         if snr_target == 9999:
             return signal
@@ -231,10 +228,8 @@ class AddNoise(object):
             noise_clip = self.noise[start_idx : start_idx + len(signal)]
             sig_power = self.get_power(signal)
             noise_clip_power = self.get_power(noise_clip)
-            factor = (sig_power / noise_clip_power) / \
-                (10 ** (snr_target / 10.0))
-            desired_signal = (signal + noise_clip
-                              * np.sqrt(factor)).astype(np.float32)
+            factor = (sig_power / noise_clip_power) / (10 ** (snr_target / 10.0))
+            desired_signal = (signal + noise_clip * np.sqrt(factor)).astype(np.float32)
             if random.random() < 0.5:
                 max_len = len(desired_signal) // 8
                 start_idx = random.sample(range(len(desired_signal)), k=4)
