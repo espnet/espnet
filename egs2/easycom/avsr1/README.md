@@ -19,7 +19,7 @@ We can choose the following things.
     - include_wearer: Whether include the data of eyeglasses wearer during test. (Please note the eyeglasses wearer in Easycom dataset has no face and only speech is available.) (Default: false)
     - with_LRS3: Whether train the model with LRS3 dataset. As the Easycom dataset is small size, we can train with other avsr datasets to achieve proper performances. (Default: true)
     - noise_augmentation: Whether applying noise augmentation (babble noise of NOISEX) during training. As we train the model with dumped features, it's not available to apply the noise in raw waveform. Instead, we apply the noise perturbation at the feature extracted by the audio frontend. (Default: true)
-  
+
   - in model configuration (`conf/*.yaml`)
     - modality_dropout: If the value is greater than 0, then one of modalities (audio or video) is dropped out with the probability of the value.
     - noise_augmentation: If it is set in `run.sh`, it should be set in the configuration.
