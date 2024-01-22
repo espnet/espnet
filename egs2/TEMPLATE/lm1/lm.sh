@@ -30,6 +30,8 @@ skip_stages=         # Processes is stopped at the specified stage.
 skip_data_prep=false # Skip data preparation stages
 skip_train=false     # Skip training stages
 skip_eval=false      # Skip decoding and evaluation stages
+skip_upload=true     # Skip packing and uploading to zenodo
+skip_upload_hf=true  # Skip uploading to hugging face stages.
 ngpu=1               # The number of gpus ("0" uses cpu, otherwise use gpu).
 num_nodes=1          # The number of nodes
 nj=32                # The number of parallel jobs.
@@ -85,7 +87,7 @@ batch_size=1
 inference_tag=    # Suffix to the result dir for decoding.
 inference_args=   # Arguments for decoding, e.g., "--lm_weight 0.1".
                   # Note that it will overwrite args in inference config.
-inference_lm=valid.loss.ave.pth       # Language model path for decoding.
+inference_lm=valid.acc.ave.pth       # Language model path for decoding.
 download_model= # Download a model from Model Zoo and use it for decoding.
 
 # [Task dependent] Set the datadir name created by local/data.sh
@@ -95,8 +97,8 @@ test_sets=       # Names of test sets. Multiple items (e.g., both dev and eval s
 bpe_train_text=  # Text file path of bpe training set.
 lm_test_text_asr=    # Text file path of asr evaluation set.
 lm_test_text_tts=    # Text file path of tts evaluation set.
-lm_test_text_textlm=    # Text file path of textlm evaluation set.
-lm_test_text_speechlm=    # Text file path of unitlm evaluation set.
+lm_test_text_textlm="dummy"    # Text file path of textlm evaluation set.
+lm_test_text_speechlm="dummy"    # Text file path of unitlm evaluation set.
 lm_inference_asr_config=    # Config for decoding asr.
 lm_inference_tts_config=    # Config for decoding tts.
 lang=noinfo      # The language type of corpus.
@@ -118,6 +120,8 @@ Options:
     --skip_data_prep # Skip data preparation stages (default="${skip_data_prep}").
     --skip_train     # Skip training stages (default="${skip_train}").
     --skip_eval      # Skip decoding and evaluation stages (default="${skip_eval}").
+    --skip_upload    # Skip packing and uploading stages (default="${skip_upload}").
+    --skip_upload_hf    # Skip packing and uploading stages (default="${skip_upload_hf}").
     --ngpu           # The number of gpus ("0" uses cpu, otherwise use gpu, default="${ngpu}").
     --num_nodes      # The number of nodes (default="${num_nodes}").
     --nj             # The number of parallel jobs (default="${nj}").
@@ -338,6 +342,14 @@ if "${skip_eval}"; then
     skip_stages+="8 9 10 "
 fi
 
+if "${skip_upload}" && "${skip_upload_hf}"; then
+    skip_stages+="11 12 13 "
+elif "${skip_upload}"; then
+    skip_stages+="12 "
+elif "${skip_upload_hf}"; then
+    skip_stages+="13 "
+fi
+
 skip_stages=$(echo "${skip_stages}" | tr ' ' '\n' | sort -nu | tr '\n' ' ')
 log "Skipped stages: ${skip_stages}"
 
@@ -454,7 +466,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
     log "Stage 4a: Data filtering: ${data_feats}/org -> ${data_feats}"
     # NOTE(kamo): Not applying to test_sets to keep original data
     if "${use_speech}" && "${use_text}"; then
-        for dset in "${train_set} ${valid_set}" ${test_sets}; do
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
+            echo $dset
             python3 local/prepare_lm_data.py --path ${data_feats}/${dset}
         done
     fi
@@ -464,9 +477,10 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ] && ! [[ " ${skip_stages} " =~ [
         python3 local/prepare_lm_test.py --test_file "${data_feats}/${_dset}/lm_text" --path "${data_feats}/${_dset}"
     done
 
-    # Create bpe_train_text
-    python3 local/prepare_bpe_text.py -i "${data_feats}/${train_set}/lm_text" -o ${bpe_train_text}
-
+    if [ "${token_type}" = bpe ]; then
+        # Create bpe_train_text
+        python3 local/prepare_bpe_text.py -i "${data_feats}/${train_set}/lm_text" -o ${bpe_train_text}
+    fi
     # shellcheck disable=SC2002
     cat  "${data_feats}/${train_set}/lm_text" | awk ' { if( NF != 1 ) print $0; } ' > "${data_feats}/lm_train.txt"
 fi
@@ -775,7 +789,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " =~ [
                 --bpemodel "${bpemodel}" \
                 --lm_train_config "${lm_exp}"/config.yaml \
                 --lm_file "${lm_exp}"/${inference_lm}  \
-                ${_opts} ${lm_inference_args} || { cat $(grep -l -i error "${_logdir}"/lm_inference.*.log) ; exit 1; }
+                ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/lm_inference.*.log) ; exit 1; }
             # --log_level "DEBUG"
         # 3. Concatenate output files from each job
         # shellcheck disable=SC2068
@@ -798,7 +812,7 @@ if [ ${stage} -le 9 ] && [ ${stop_stage} -ge 9 ] && ! [[ " ${skip_stages} " =~ [
             --prefix "asr_"
 
         python3 local/postprocess.py \
-           --input ${data_feats}/test/text \
+           --input ${data_feats}/test/lm_text \
            --output ${_scoredir}/ref.trn \
            --sos "<generatetext>" \
            --prefix "asr_"
@@ -858,7 +872,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
                 --bpemodel "${bpemodel}" \
                 --lm_train_config "${lm_exp}"/config.yaml \
                 --lm_file "${lm_exp}"/${inference_lm} \
-                ${_opts} ${lm_inference_args} || { cat $(grep -l -i error "${_logdir}"/lm_inference.*.log) ; exit 1; }
+                ${_opts} ${inference_args} || { cat $(grep -l -i error "${_logdir}"/lm_inference.*.log) ; exit 1; }
 
         # 3. Concatenate output files from each job
         # shellcheck disable=SC2068
@@ -907,7 +921,6 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         --lm_train_config "${lm_exp}"/config.yaml \
         --lm_file "${lm_exp}"/"${inference_lm}" \
         ${_opts} \
-        --option "${lm_exp}"/perplexity_test/ppl \
         --option "${lm_exp}"/images \
         --outpath "${packed_model}"
 fi
@@ -938,7 +951,7 @@ git checkout $(git show -s --format=%H)"
     _model_name="${_creator_name}/${_corpus}_$(basename ${packed_model} .zip)"
 
     # Generate description file
-    cat << EOF > "${asr_exp}"/description
+    cat << EOF > "${lm_exp}"/description
 This model was trained by ${_creator_name} using ${_task} recipe in <a href="https://github.com/espnet/espnet/">espnet</a>.
 <p>&nbsp;</p>
 <ul>
