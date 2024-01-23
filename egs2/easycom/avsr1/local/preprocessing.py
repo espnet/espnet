@@ -216,16 +216,14 @@ def main():
         with open("local/lrs3-valid.id", "r") as txt:
             lines = txt.readlines()
         val_file_lists = [line.strip() for line in lines]
-        train_file_lists = [
-            f for f in train_file_lists if f not in val_file_lists]
+        train_file_lists = [f for f in train_file_lists if f not in val_file_lists]
         train_file_lists += pretrain_file_lists
 
         for mode, file_lists in tqdm(enumerate([train_file_lists, val_file_lists])):
             split = "train" if mode == 0 else "val"
             for file in tqdm(file_lists, leave=False):
                 f_name = f"{file}"
-                f_name_with_split = f"{os.sep}".join(
-                    [split] + f_name.split(os.sep)[1:])
+                f_name_with_split = f"{os.sep}".join([split] + f_name.split(os.sep)[1:])
                 file = os.path.join(args.data_dir, f_name + ".mp4")
                 save_vid_name = os.path.join(
                     "./data/preprocess/LRS3/Video", f_name_with_split + ".mp4"
