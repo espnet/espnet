@@ -695,9 +695,9 @@ if ! "${skip_train}"; then
         mkdir -p "${_logdir}"
 
         # Get the minimum number among ${nj} and the number lines of input files
-        _nj=$(min "${nj}" "$(<${_train_dir}/${_scp} wc -l)" "$(<${_valid_dir}/${_scp} wc -l)")
+        _nj=$(min "${nj}" "$(<${_train_dir}/text.km.${km_tag} wc -l)" "$(<${_valid_dir}/text.km.${km_tag} wc -l)")
 
-        key_file="${_train_dir}/${_scp}"
+        key_file="${_train_dir}/text.km.${km_tag}"
         split_scps=""
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/train.${n}.scp"
@@ -705,7 +705,7 @@ if ! "${skip_train}"; then
         # shellcheck disable=SC2086
         utils/split_scp.pl "${key_file}" ${split_scps}
 
-        key_file="${_valid_dir}/${_scp}"
+        key_file="${_valid_dir}/text.km.${km_tag}"
         split_scps=""
         for n in $(seq "${_nj}"); do
             split_scps+=" ${_logdir}/valid.${n}.scp"
@@ -808,7 +808,7 @@ if ! "${skip_train}"; then
                     ${python} -m espnet2.bin.split_scps \
                       --scps \
                           "${_train_dir}/text" \
-                          "${_train_dir}/${_scp}" \
+                          "${_train_dir}/text.km.${km_tag}" \
                           "${tts2_stats_dir}/train/speech_shape" \
                           "${tts2_stats_dir}/train/text_shape.${src_token_type}" \
                       --num_splits "${num_splits}" \
