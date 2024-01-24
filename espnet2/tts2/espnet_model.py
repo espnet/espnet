@@ -14,8 +14,8 @@ from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.inversible_interface import InversibleInterface
 from espnet2.train.abs_espnet_model import AbsESPnetModel
 from espnet2.tts2.abs_tts2 import AbsTTS2
-from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
+from espnet2.tts.feats_extract.abs_feats_extract import AbsFeatsExtract
 
 if V(torch.__version__) >= V("1.6.0"):
     from torch.cuda.amp import autocast
@@ -227,7 +227,7 @@ class ESPnetTTS2Model(AbsESPnetModel):
 
         # store in dict
         feats_dict = dict(
-            feats=feats, 
+            feats=feats,
             feats_lengths=feats_lengths,
         )
         if pitch is not None:

@@ -128,7 +128,7 @@ class FastSpeech2Discrete(AbsTTS2):
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
-        ignore_id: int = 0, # maybe adjust this in collate_fn. default -1 means padding int
+        ignore_id: int = 0,  # maybe adjust this in collate_fn. default -1 means padding int
     ):
         """Initialize FastSpeech2 module.
 
@@ -477,8 +477,9 @@ class FastSpeech2Discrete(AbsTTS2):
 
         # define criterions
         self.criterion = FastSpeech2LossDiscrete(
-            use_masking=use_masking, use_weighted_masking=use_weighted_masking,
-            ignore_id=ignore_id
+            use_masking=use_masking,
+            use_weighted_masking=use_weighted_masking,
+            ignore_id=ignore_id,
         )
 
     def forward(
@@ -569,7 +570,14 @@ class FastSpeech2Discrete(AbsTTS2):
         # calculate loss
         # (Jinchuan): sometimes the duration and discrete target can have
         # small mismatch. Cut it.
-        ce_loss, duration_loss, pitch_loss, energy_loss, before_acc, after_acc = self.criterion(
+        (
+            ce_loss,
+            duration_loss,
+            pitch_loss,
+            energy_loss,
+            before_acc,
+            after_acc,
+        ) = self.criterion(
             after_outs=after_outs,
             before_outs=before_outs,
             d_outs=d_outs,
@@ -676,7 +684,7 @@ class FastSpeech2Discrete(AbsTTS2):
             e_embs = self.energy_embed(es.transpose(1, 2)).transpose(1, 2)
             hs = hs + e_embs + p_embs
             hs = self.length_regulator(hs, ds)  # (B, T_feats, adim)
-        
+
         # Length mismatch between duration and discrete target
         if ys is not None:
             minlen = min(ys.size(1), hs.size(1))

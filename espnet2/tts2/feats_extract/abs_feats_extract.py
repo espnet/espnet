@@ -12,6 +12,7 @@ class AbsFeatsExtractDiscrete(torch.nn.Module, ABC):
     (2) resize as a matrix
     (3) multi-resolution ...
     """
+
     @abstractmethod
     def forward(
         self, input: torch.Tensor, input_lengths: torch.Tensor
