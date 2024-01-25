@@ -5,11 +5,11 @@ https://github.com/espnet/espnet/blob/master/egs2/nit_song070/svs1/local/data_pr
 
 import argparse
 import os
+import re
 
 import librosa
 import numpy as np
 import soundfile as sf
-import re
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 
@@ -39,6 +39,7 @@ def pack_zero(string, size=4):
     if len(string) < size:
         string = "0" * (size - len(string)) + string
     return string
+
 
 def create_score(phns, midis, syb_dur):
     # Transfer into 'score' format
@@ -83,7 +84,7 @@ def process_utterance(
     wav_dumpdir,
     label_id,
     label_file,
-    tgt_sr=24000
+    tgt_sr=24000,
 ):
     labels = open(label_file, "r", encoding="utf-8")
     label_info = labels.read().split("\n")
@@ -97,7 +98,9 @@ def process_utterance(
     sil = ["pau", "sil"]
     sil = set(sil)
 
-    pattern = re.compile(r'([a-z])@([a-zA-Z]+)\^([a-zA-Z]+)-([a-zA-Z]+)\+([a-zA-Z]+)=([a-zA-Z]+)_') # extract phones from the start of the string
+    pattern = re.compile(
+        r"([a-z])@([a-zA-Z]+)\^([a-zA-Z]+)-([a-zA-Z]+)\+([a-zA-Z]+)=([a-zA-Z]+)_"
+    )  # extract phones from the start of the string
 
     for i in range(len(label_info)):
         note_label = label_info[i].split(" ")
@@ -112,7 +115,9 @@ def process_utterance(
             continue
         aligned_note = detailed_info[1].split("]")[0]
         phones = re.findall(pattern, detailed_info[0])
-        assert len(phones) == 1, f"len(phones)={len(phones)} is not 1. Find more or no patterns from {detailed_info[0]}"
+        assert (
+            len(phones) == 1
+        ), f"len(phones)={len(phones)} is not 1. Find more or no patterns from {detailed_info[0]}"
         phn = phones[0][3]
         if phn in sil:
             if seg_len_phns > 0:
@@ -122,9 +127,11 @@ def process_utterance(
             seg_len_phns = 0
             continue
         if aligned_note == "xx":
-            notes.append(0) # rest
+            notes.append(0)  # rest
         else:
-            assert aligned_note.isdigit(), f"aligned_note={aligned_note} is not an integer"
+            assert (
+                aligned_note.isdigit()
+            ), f"aligned_note={aligned_note} is not an integer"
             aligned_note = int(aligned_note)
             notes.append(aligned_note)
         phns.append(phn)
@@ -225,7 +232,7 @@ def process_subset(args, set_name):
     )
 
     for label_file in os.listdir(args.lab_srcdir):
-        if not label_file.endswith('.lab'):
+        if not label_file.endswith(".lab"):
             continue
         if set_name == "train" and not train_check(label_file):
             continue
@@ -245,7 +252,7 @@ def process_subset(args, set_name):
             args.wav_dumpdir,
             label_id,
             os.path.join(args.lab_srcdir, label_file),
-            tgt_sr=args.sr
+            tgt_sr=args.sr,
         )
 
 

@@ -41,10 +41,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
     # The jsut-song data should be downloaded from https://sites.google.com/site/shinnosuketakamichi/publication/jsut-song
     # Terms from https://sites.google.com/site/shinnosuketakamichi/publication/jsut-song
-    
+
     # Please ensure that you've downloaded songs (jsut-song_ver1.zip) and labels (jsut-song_label.zip) to ${JSUT_SONG}, and unzip them before proceeding
-    # unzip -o ${JSUT_SONG}/*.zip
-    # rm ${JSUT_SONG}/*.zip
+    unzip -o ${JSUT_SONG}/*.zip
+    rm ${JSUT_SONG}/*.zip
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
