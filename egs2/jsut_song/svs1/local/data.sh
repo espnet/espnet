@@ -56,7 +56,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     mkdir -p score_dump
     mkdir -p wav_dump
     python local/data_prep.py \
-        --lab_srcdir ${JSUT_SONG}/jsut-song_label/todai_child \
+        --lab_srcdir ${JSUT_SONG}/todai_child \
         --wav_srcdir ${JSUT_SONG}/jsut-song_ver1/child_song/wav \
         --score_dump score_dump \
         --wav_dumpdir wav_dump \
