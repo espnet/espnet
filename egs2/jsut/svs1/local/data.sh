@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Reference from ESPnet's espnet/egs2/nit_song070/svs1/local/data.sh
+# Reference from ESPnet's egs2/nit_song070/svs1/local/data.sh
 # https://github.com/espnet/espnet/blob/master/egs2/nit_song070/svs1/local/data.sh
 
 
@@ -26,12 +26,12 @@ log "$0 $*"
 
 . utils/parse_options.sh || exit 1;
 
-if [ -z "${NIT_SONG070}" ]; then
-    log "Fill the value of 'NIT_SONG070' of db.sh"
+if [ -z "${JSUT_SONG}" ]; then
+    log "Fill the value of 'JSUT_SONG' of db.sh"
     exit 1
 fi
 
-mkdir -p ${NIT_SONG070}
+mkdir -p ${JSUT_SONG}
 
 train_set="train"
 train_dev="dev"
@@ -39,8 +39,12 @@ eval_set="eval"
 
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
-    # The nit data should be downloaded from http://hts.sp.nitech.ac.jp/archives/2.3/HTS-demo_NIT-SONG070-F001.tar.bz2
-    # Terms from http://hts.sp.nitech.ac.jp/
+    # The jsut-song data should be downloaded from https://sites.google.com/site/shinnosuketakamichi/publication/jsut-song
+    # Terms from https://sites.google.com/site/shinnosuketakamichi/publication/jsut-song
+    
+    # Please ensure that you've downloaded songs (jsut-song_ver1.zip) and labels (jsut-song_label.zip) to ${JSUT_SONG}, and unzip them before proceeding
+    # unzip -o ${JSUT_SONG}/*.zip
+    # rm ${JSUT_SONG}/*.zip
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -48,7 +52,9 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p score_dump
     mkdir -p wav_dump
-    python local/data_prep.py ${NIT_SONG070}/HTS-demo_NIT-SONG070-F001/data --midi_note_scp local/midi-note.scp \
+    python local/data_prep.py \
+        --lab_srcdir ${JSUT_SONG}/jsut-song_label/todai_child \
+        --wav_srcdir ${JSUT_SONG}/jsut-song_ver1/child_song/wav \
         --score_dump score_dump \
         --wav_dumpdir wav_dump \
         --sr ${fs}

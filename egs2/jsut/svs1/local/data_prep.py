@@ -2,17 +2,19 @@
 Reference from ESPnet's egs2/nit_song070/svs1/local/data_prep.py
 https://github.com/espnet/espnet/blob/master/egs2/nit_song070/svs1/local/data_prep.py
 """
+
 import argparse
 import os
 
 import librosa
 import numpy as np
 import soundfile as sf
+import re
 
 from espnet2.fileio.score_scp import SingingScoreWriter
 
-DEV_LIST = ["f001_003"]
-TEST_LIST = ["f001_004", "f001_007", "f001_010"]
+DEV_LIST = ["003"]
+TEST_LIST = ["004", "007", "010"]
 
 
 def train_check(song):
@@ -38,31 +40,10 @@ def pack_zero(string, size=4):
         string = "0" * (size - len(string)) + string
     return string
 
-
-def load_midi_note_scp(midi_note_scp):
-    # Note(jiatong): midi format is 0-based
-    midi_mapping = {}
-    with open(midi_note_scp, "r", encoding="utf-8") as f:
-        content = f.read().strip().split("\n")
-        for key in content:
-            key = key.split("\t")
-            if "/" in key[1]:
-                multi_note = key[1].split("/")
-                midi_mapping[multi_note[0]] = int(key[0])
-                midi_mapping[multi_note[1]] = int(key[0])
-            else:
-                midi_mapping[key[1]] = int(key[0])
-    return midi_mapping
-
-
-def create_score(label_id, phns, midis, syb_dur):
+def create_score(phns, midis, syb_dur):
     # Transfer into 'score' format
     assert len(phns) == len(midis)
     assert len(midis) == len(syb_dur)
-    lyrics_seq = []
-    midis_seq = []
-    segs_seq = []
-    phns_seq = []
     st = 0
     index_phn = 0
     note_list = []
@@ -102,14 +83,10 @@ def process_utterance(
     wav_dumpdir,
     label_id,
     label_file,
-    mono_file,
-    midi_mapping,
-    tgt_sr=24000,
+    tgt_sr=24000
 ):
     labels = open(label_file, "r", encoding="utf-8")
-    mono_label = open(mono_file, "r", encoding="utf-8")
     label_info = labels.read().split("\n")
-    mono_info = mono_label.read().split("\n")
     prev_end = 0
     phns, notes, phn_dur = [], [], []
     seg_start = 0
@@ -119,19 +96,13 @@ def process_utterance(
 
     sil = ["pau", "sil"]
     sil = set(sil)
+
+    pattern = re.compile(r'([a-z])@([a-zA-Z]+)\^([a-zA-Z]+)-([a-zA-Z]+)\+([a-zA-Z]+)=([a-zA-Z]+)_') # extract phones from the start of the string
+
     for i in range(len(label_info)):
         note_label = label_info[i].split(" ")
-        note_mono = mono_info[i].split()
-        if len(note_label) != 3 or len(note_mono) != 3:
-            print(
-                "mismatch note_label or note_mono at line {} in {}".format(
-                    i + 1, label_id
-                )
-            )
-            print(note_label, note_mono)
-            continue
-        start = int(note_mono[0])
-        end = int(note_mono[1])
+        start = int(note_label[0])
+        end = int(note_label[1])
         if start < prev_end:
             continue
         detailed_info = note_label[2].split("E:")
@@ -140,7 +111,10 @@ def process_utterance(
             print("skip {} for no note label".format(label_id))
             continue
         aligned_note = detailed_info[1].split("]")[0]
-        if note_mono[2] in sil:
+        phones = re.findall(pattern, detailed_info[0])
+        assert len(phones) == 1, f"len(phones)={len(phones)} is not 1. Find more or no patterns from {detailed_info[0]}"
+        phn = phones[0][3]
+        if phn in sil:
             if seg_len_phns > 0:
                 segs.append([pack_zero(str(seg_id)), seg_start, end, seg_len_phns])
                 seg_id += 1
@@ -148,10 +122,12 @@ def process_utterance(
             seg_len_phns = 0
             continue
         if aligned_note == "xx":
-            notes.append("rest")
+            notes.append(0) # rest
         else:
+            assert aligned_note.isdigit(), f"aligned_note={aligned_note} is not an integer"
+            aligned_note = int(aligned_note)
             notes.append(aligned_note)
-        phns.append(note_mono[2])
+        phns.append(phn)
         phn_dur.append(end - start)
         seg_len_phns += 1
 
@@ -160,11 +136,7 @@ def process_utterance(
     for seg in segs:
         print(seg)
         y, sr = sf.read(
-            os.path.join(audio_dir, label_id) + ".raw",
-            subtype="PCM_16",
-            channels=1,
-            samplerate=48000,
-            endian="LITTLE",
+            os.path.join(audio_dir, label_id) + ".wav",
             start=int(seg[1] * 48000 * 16 // 1e7),
             stop=int(seg[2] * 48000 * 16 // 1e7),
         )
@@ -174,10 +146,7 @@ def process_utterance(
         tempo = int(tempo)
 
         # note to midi index
-        seg_notes = [
-            midi_mapping[note] if note != "rest" else 0
-            for note in notes[start_phn_index : start_phn_index + seg[3]]
-        ]
+        seg_notes = notes[start_phn_index : start_phn_index + seg[3]]
 
         # duration type convert
         seg_phn_dur = [
@@ -186,35 +155,34 @@ def process_utterance(
         ]
 
         note_list = create_score(
-            label_id + "_" + seg[0],
             phns[start_phn_index : start_phn_index + seg[3]],
             seg_notes,
             seg_phn_dur,
         )
 
         text.write(
-            "nit_song070_{}_{} {}\n".format(
+            "jsut_song_{}_{} {}\n".format(
                 label_id,
                 seg[0],
                 " ".join(phns[start_phn_index : start_phn_index + seg[3]]),
             )
         )
-        utt2spk.write("nit_song070_{}_{} {}\n".format(label_id, seg[0], "onit_song070"))
+        utt2spk.write("jsut_song_{}_{} {}\n".format(label_id, seg[0], "jsut_song"))
 
         # apply bit convert, there is a known issue in direct convert in format wavscp
         cmd = (
-            f"sox -t raw -r 48000 -b 16 -c 1 -L -e signed-integer "
-            f"{os.path.join(audio_dir, label_id)}.raw -c 1 -t wavpcm -b 16 -r {tgt_sr} "
-            f"{os.path.join(wav_dumpdir, 'nit_song070_'+label_id+'_'+seg[0])}.wav "
+            f"sox -t wav -r 48000 -b 16 -c 1 -L -e signed-integer "
+            f"{os.path.join(audio_dir, label_id)}.wav -c 1 -t wavpcm -b 16 -r {tgt_sr} "
+            f"{os.path.join(wav_dumpdir, 'jsut_song_'+label_id+'_'+seg[0])}.wav "
             f"trim {float(seg[1] / 1e7)} {float((seg[2]-seg[1]) / 1e7)}"
         )
         os.system(cmd)
 
         wavscp.write(
-            "nit_song070_{}_{} {}.wav\n".format(
+            "jsut_song_{}_{} {}.wav\n".format(
                 label_id,
                 seg[0],
-                os.path.join(wav_dumpdir, "nit_song070_" + label_id + "_" + seg[0]),
+                os.path.join(wav_dumpdir, "jsut_song_" + label_id + "_" + seg[0]),
             )
         )
 
@@ -234,12 +202,12 @@ def process_utterance(
             running_dur += seg_phn_dur[i]
 
         label.write(
-            "nit_song070_{}_{} {}\n".format(label_id, seg[0], " ".join(label_entry))
+            "jsut_song_{}_{} {}\n".format(label_id, seg[0], " ".join(label_entry))
         )
         score = dict(
             tempo=tempo, item_list=["st", "et", "lyric", "midi", "phns"], note=note_list
         )
-        writer["nit_song070_{}_{}".format(label_id, seg[0])] = score
+        writer["jsut_song_{}_{}".format(label_id, seg[0])] = score
         start_phn_index += seg[3]
 
 
@@ -256,9 +224,9 @@ def process_subset(args, set_name):
         os.path.join(args.tgt_dir, set_name, "utt2spk"), "w", encoding="utf-8"
     )
 
-    midi_mapping = load_midi_note_scp(args.midi_note_scp)
-
-    for label_file in os.listdir(os.path.join(args.src_data, "labels", "full")):
+    for label_file in os.listdir(args.lab_srcdir):
+        if not label_file.endswith('.lab'):
+            continue
         if set_name == "train" and not train_check(label_file):
             continue
         elif set_name == "eval" and not test_check(label_file):
@@ -273,31 +241,24 @@ def process_subset(args, set_name):
             text,
             utt2spk,
             label,
-            os.path.join(args.src_data, "raw"),
+            args.wav_srcdir,
             args.wav_dumpdir,
             label_id,
-            os.path.join(args.src_data, "labels", "full", label_file),
-            os.path.join(args.src_data, "labels", "mono", label_file),
-            midi_mapping,
-            tgt_sr=args.sr,
+            os.path.join(args.lab_srcdir, label_file),
+            tgt_sr=args.sr
         )
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Prepare Data for Opencpop Database")
-    parser.add_argument("src_data", type=str, help="source data directory")
+    parser = argparse.ArgumentParser(description="Prepare Data for JSUT-Song Database")
+    parser.add_argument("--lab_srcdir", type=str, help="label source directory")
+    parser.add_argument("--wav_srcdir", type=str, help="wav source directory")
     parser.add_argument("--tgt_dir", type=str, default="data")
-    parser.add_argument(
-        "--midi_note_scp",
-        type=str,
-        help="midi note scp for information of note id",
-        default="local/midi-note.scp",
-    )
     parser.add_argument(
         "--score_dump", type=str, default="score_dump", help="score dump directory"
     )
     parser.add_argument(
-        "--wav_dumpdir", type=str, help="wav dump directoyr (rebit)", default="wav_dump"
+        "--wav_dumpdir", type=str, help="wav dump directoy (rebit)", default="wav_dump"
     )
     parser.add_argument("--sr", type=int, help="sampling rate (Hz)")
     args = parser.parse_args()
