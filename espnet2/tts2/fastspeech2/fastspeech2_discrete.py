@@ -128,7 +128,7 @@ class FastSpeech2Discrete(AbsTTS2):
         init_dec_alpha: float = 1.0,
         use_masking: bool = False,
         use_weighted_masking: bool = False,
-        ignore_id: int = 0,  # maybe adjust this in collate_fn. default -1 means padding int
+        ignore_id: int = 0,  # adjust this in collate_fn (default -1)
     ):
         """Initialize FastSpeech2 module.
 
