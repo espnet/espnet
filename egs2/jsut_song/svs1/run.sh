@@ -53,7 +53,5 @@ cleaner=none
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
-    --ngpu 1 \
-    --min_wav_duration 0.1 \
     --max_wav_duration 90 \
     ${opts} "$@"
