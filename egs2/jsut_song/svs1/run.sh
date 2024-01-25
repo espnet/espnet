@@ -35,7 +35,7 @@ cleaner=none
 
 ./svs.sh \
     --lang jp \
-    --local_data_opts "--stage 0 $(pwd)" \
+    --local_data_opts "--stage 0" \
     --feats_type raw \
     --fs "${fs}" \
     --fmin "${fmin}" \
@@ -53,5 +53,4 @@ cleaner=none
     --test_sets "${test_sets}" \
     --score_feats_extract "${score_feats_extract}" \
     --srctexts "data/${train_set}/text" \
-    --max_wav_duration 90 \
     ${opts} "$@"

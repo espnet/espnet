@@ -21,6 +21,7 @@ SECONDS=0
 stage=1
 stop_stage=100
 fs=24000
+g2p=None
 
 log "$0 $*"
 
@@ -43,8 +44,10 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # Terms from https://sites.google.com/site/shinnosuketakamichi/publication/jsut-song
 
     # Please ensure that you've downloaded songs (jsut-song_ver1.zip) and labels (jsut-song_label.zip) to ${JSUT_SONG}, and unzip them before proceeding
-    unzip -o ${JSUT_SONG}/*.zip
-    rm ${JSUT_SONG}/*.zip
+    unzip ${JSUT_SONG}/jsut-song_ver1.zip -d ${JSUT_SONG}
+    unzip ${JSUT_SONG}/jsut-song_label.zip -d ${JSUT_SONG}
+    rm ${JSUT_SONG}/jsut-song_ver1.zip
+    rm ${JSUT_SONG}/jsut-song_label.zip
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
