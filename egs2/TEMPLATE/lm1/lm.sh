@@ -53,6 +53,7 @@ max_wav_duration=20  # Maximum duration in second.
 
 # Kmeans related
 km_dir=                     # Path to pretrained kmeans model
+learn_kmeans=false          # boolean flag to note whether to learn kmeans
 kmeans_opts=                # The options given to scripts/feats/perform_kmeans.sh, needed when kmeans is trained
 kmeans_feature="hubert_base/6" # format: ssl_model_type/layer_idx (e.g. mfcc, hubert_large/21, wavlm_large/21), needed when kmeans is trained
 portion=0.1
@@ -154,6 +155,8 @@ Options:
     --bpe_char_cover          # Character coverage when modeling BPE (default="${bpe_char_cover}").
 
     # Kmeans related
+    --km_dir            # Path to pretrained kmeans model
+    --learn_kmeans      # boolean flag to note whether to learn kmeans (default=false).
     --kmeans_opts       # The options given to kmeans step (default="${kmeans_opts}").
     --kmeans_feature    # The string indicates the kmeans features (default="${kmeans_feature}").
     --portion           # The portion of data used to train kmeans (default="${portion}").
@@ -366,7 +369,6 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
         _dsets="${test_sets}"
     else
         _dsets="${train_set} ${valid_set} ${test_sets}"
-        _dsets="${valid_set} ${test_sets}" #SM:TODO: remove this one, only added for debug
     fi
     if "${use_speech}"; then
         if [ "${feats_type}" = raw ]; then
@@ -381,7 +383,9 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ] && ! [[ " ${skip_stages} " =~ [
             # i.e. the input file format and rate is same as the output.
 
             for dset in ${_dsets}; do
+                echo $dset
                 for _dir in "data/${dset}/speech/"*; do
+                    echo ${_dir}
                     if [ -d "${_dir}" ]; then
                         echo "${_dir}"   # your processing here
 
@@ -407,10 +411,15 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
     if "${use_speech}"; then
         log "Stage 3a: Perform Kmeans using ${kmeans_feature_type} features"
 
+        if ! "${learn_kmeans}"; then
+            kmeans_opts+="--skip_stages 2"
+        fi
         for _dir in "data/${dset}/speech/"*; do
             if [ -d "${_dir}" ]; then
+
+
                 scripts/feats/perform_kmeans.sh \
-                    --stage 1 --stop-stage 4 --skip_stages 2 \
+                    --stage 1 --stop-stage 4 \
                     --train_set "${train_set}" \
                     --dev_set "${valid_set}" \
                     --other_sets "${test_sets}" \
@@ -437,7 +446,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ] && ! [[ " ${skip_stages} " =~ [
             _suf="layer${layer}/"
         fi
 
-        for dset in "${train_set} ${valid_set}" ${test_sets}; do
+        for dset in "${train_set}" "${valid_set}" ${test_sets}; do
             for _dir in "data/${dset}/speech/"*; do
                 if [ -d "${_dir}" ]; then
                     utils/copy_data_dir.sh "${data_audio}/$(basename ${_dir})/${dset}" "${data_feats}/${dset}/speech/$(basename ${_dir})"

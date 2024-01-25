@@ -14,6 +14,7 @@ test_sets="train_dev test test_seg"
 
 ./lm.sh \
     --kmeans_feature "mfcc" \
+    --learn_kmeans true \
     --nclusters "10" \
     --num_splits_lm 1 \
     --lang "mfcc_km10" \

@@ -53,6 +53,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
 
     python3 local/data_prep.py ${an4_root} sph2pipe
 
+    # process data per task
     for task_dir in ${task_dirs}; do
         for x in test train; do
             mkdir -p ${data_dir}/${task_dir}/${x}
@@ -81,6 +82,17 @@ EOF
     rm -rf data/{train,test}
 
 fi
+
+for x in "${train_set}" "${train_dev}" "test" "test_seg"; do
+    mkdir -p data/${x}/speech
+    for task_dir in ${task_dirs}; do
+        mv ${data_dir}/${task_dir}/${x} data/${x}/speech/${task_dir}
+    done
+done
+
+for task_dir in ${task_dirs}; do
+    rm -rf ${data_dir}/${task_dir}
+done
 
 
 log "Successfully finished. [elapsed=${SECONDS}s]"
