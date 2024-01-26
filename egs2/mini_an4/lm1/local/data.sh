@@ -90,9 +90,4 @@ for x in "${train_set}" "${train_dev}" "test" "test_seg"; do
     done
 done
 
-for task_dir in ${task_dirs}; do
-    rm -rf ${data_dir}/${task_dir}
-done
-
-
 log "Successfully finished. [elapsed=${SECONDS}s]"

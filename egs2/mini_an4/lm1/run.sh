@@ -8,10 +8,6 @@ set -o pipefail
 lm_inference_asr_config=conf/decode_lm_asr.yaml
 lm_inference_tts_config=conf/decode_lm_tts.yaml
 
-train_set="train_nodev"
-valid_set="train_dev"
-test_sets="train_dev test test_seg"
-
 ./lm.sh \
     --kmeans_feature "mfcc" \
     --learn_kmeans true \
