@@ -88,7 +88,7 @@ def main():
                 data = json.loads(data)
             data = sorted(data, key=lambda x: x["Start_Frame"])
 
-            # delete face if the speaker doesn't say 
+            # delete face if the speaker doesn't say
             # a word during the session (eg, speaker 1)
             unique_sIDs = []
             for utt in data:
@@ -472,9 +472,10 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="Command-line script for preprocessing."
     )
-    parser.add_argument("--data_dir", 
-        type=str, 
-        required=True, 
+    parser.add_argument(
+        "--data_dir",
+        type=str,
+        required=True,
         help="data_dir",
     )
 
@@ -486,26 +487,27 @@ def get_parser():
         help="extra frame for trimming the video/audio",
     )
     parser.add_argument(
-        "--beamforming", 
-        default=False, 
+        "--beamforming",
+        default=False,
         help="Current version only supports False",
     )
-    parser.add_argument("--include_wearer", 
-        type=str, 
+    parser.add_argument(
+        "--include_wearer",
+        type=str,
         default="False",
     )
 
     # for LRS3 Dataset (additional Training data)
     parser.add_argument(
-        "--LRS3", 
-        default=False, 
-        action="store_true", 
+        "--LRS3",
+        default=False,
+        action="store_true",
         help="whether training with LRS3",
     )
     parser.add_argument(
-        "--landmark", 
-        default=None, 
-        type=str, 
+        "--landmark",
+        default=None,
+        type=str,
         help="pre-extracted landmarks of LRS3",
     )
     return parser
