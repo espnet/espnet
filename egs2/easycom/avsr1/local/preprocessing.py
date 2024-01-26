@@ -127,7 +127,8 @@ def main():
             landmarks = landmark_detection(video, landmark_detector, face_BB)
             for face in landmarks:  # for each participant
                 save_name = os.path.join(
-                    f"./data/preprocess/{split}/Full_Video_Face/{session}_{f_name}_{face}.mp4"
+                    f"./data/preprocess/{split}/Full_Video_Face/" \
+                    f"{session}_{f_name}_{face}.mp4"
                 )
                 if os.path.exists(save_name):
                     continue
@@ -161,7 +162,8 @@ def main():
 
                 # audio
                 save_name = os.path.join(
-                    f"./data/preprocess/{split}/Audio/{session}_{f_name}_{sID}_{start_frame}_{end_frame}.wav"
+                    f"./data/preprocess/{split}/Audio/" \
+                    f"{session}_{f_name}_{sID}_{start_frame}_{end_frame}.wav"
                 )
                 if not os.path.exists(save_name):
                     os.makedirs(os.path.dirname(save_name), exist_ok=True)
@@ -174,7 +176,8 @@ def main():
 
                 # text
                 save_name = os.path.join(
-                    f"./data/preprocess/{split}/Text/{session}_{f_name}_{sID}_{start_frame}_{end_frame}.txt"
+                    f"./data/preprocess/{split}/Text/" \
+                    f"{session}_{f_name}_{sID}_{start_frame}_{end_frame}.txt"
                 )
                 if not os.path.exists(save_name):
                     os.makedirs(os.path.dirname(save_name), exist_ok=True)
@@ -184,13 +187,18 @@ def main():
                 # video (Trimming) / sID is glasses wearer, so no face
                 if sID != 2:
                     save_name = os.path.join(
-                        f"./data/preprocess/{split}/Video/{session}_{f_name}_{sID}_{start_frame}_{end_frame}.mp4"
+                        f"./data/preprocess/{split}/Video/" \
+                        f"{session}_{f_name}_{sID}_{start_frame}_{end_frame}.mp4"
                     )
                     if not os.path.exists(save_name):
                         os.makedirs(os.path.dirname(save_name), exist_ok=True)
-                        full_vid = f"./data/preprocess/{split}/Full_Video_Face/{session}_{f_name}_{sID}.mp4"
+                        full_vid = f"./data/preprocess/{split}/Full_Video_Face/" \
+                            f"{session}_{f_name}_{sID}.mp4"
+                        command = f"ffmpeg -loglevel panic -nostdin -y -i {full_vid}" \
+                                f" -ss {start_time} -to {end_time} -vcodec libx264" \
+                                f" -filter:v fps=fps=25 {save_name}"
                         subprocess.call(
-                            f"ffmpeg -loglevel panic -nostdin -y -i {full_vid} -ss {start_time} -to {end_time} -vcodec libx264 -filter:v fps=fps=25 {save_name}",
+                            command,
                             shell=True,
                         )
     else:
@@ -326,7 +334,8 @@ def text_normalize(text):
 
 
 def face_BB_extraction(face_data):
-    # face bounding boxes for all participants; if there is no face, the coordinates are set to zeros.
+    # face bounding boxes for all participants;
+    # if there is no face, the coordinates are set to zeros.
     unique_faces = []
     for data in face_data:
         faces = data["Participants"]

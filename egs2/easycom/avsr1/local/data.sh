@@ -12,9 +12,9 @@ log() {
 
 . ./db.sh
 . ./path.sh
+. ./cmd.sh
 
-cmd=run.pl
-nj=4 # number of GPUs to extract features
+nj=1 # number of GPUs to extract features
 
 stage=1
 stop_stage=4
@@ -49,8 +49,14 @@ if [ ${with_LRS3} ]; then
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
-    # Data preprocessing (audio segmentation & face crop & text preprocess)
-    # Session 4,12 : Validation / Session 10,11 : Test
+    # Data preprocessing part. It consists the following things.
+    # 1. Segmenting audio/video using ground truth diarization information.
+    # 2. Landmark detection & Face crop.
+    # 3. Text normalization.
+    # We use the data split of the original paper
+    # Data in "Session 4,12" are used for validation
+    # Data in "Session 10,11" are used for test
+
     if python -c "import torchlm, skimage, cv2, python_speech_features, torchvision, av, gdown" &> /dev/null; then
         echo "requirements installed"
     else
@@ -59,11 +65,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     fi
 
     if [ ! -e data/preprocess.done ]; then
-        if [ ${include_wearer} ]; then
-            python ./local/preprocessing.py --data_dir ${EASYCOM} --include_wearer
-        else
-            python ./local/preprocessing.py --data_dir ${EASYCOM}
-        fi
+        python ./local/preprocessing.py --data_dir ${EASYCOM} --include_wearer ${include_wearer}
         touch data/preprocess.done
     fi
 
@@ -160,7 +162,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
         done
         ./utils/split_scp.pl data/${dataset_name}/video.scp $split_scps || exit 1
 
-        ${cmd} JOB=1:$nj ${log_dir}/extract_av_feature.JOB.log python ./local/extract_av_feature.py \
+        ${train_cmd} JOB=1:$nj ${log_dir}/extract_av_feature.JOB.log python ./local/extract_av_feature.py \
             --file_list ${log_dir}/video.JOB.scp \
             --model ${model_conf} \
             --gpu JOB \
