@@ -152,9 +152,11 @@ class BaseTransformerDecoder(AbsDecoder, BatchScorerInterface):
             hs_asr = x
         if self.output_layer is not None:
             x = self.output_layer(x)
-        #truCLeS scores
-        self.train_softmax = torch.log_softmax(x[:-1], dim=-1)
-        self.train_decoder = self.decoders[0].decoder_attn_output[:-1]
+        #TruCLeS scores
+        self.train_softmax = torch.softmax(x, dim=-1)
+        self.train_decoder = self.decoders[0].decoder_attn_output
+        
+
         
         olens = tgt_mask.sum(1)
 
