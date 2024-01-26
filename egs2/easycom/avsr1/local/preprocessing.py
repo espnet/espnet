@@ -127,7 +127,7 @@ def main():
             landmarks = landmark_detection(video, landmark_detector, face_BB)
             for face in landmarks:  # for each participant
                 save_name = os.path.join(
-                    f"./data/preprocess/{split}/Full_Video_Face/" \
+                    f"./data/preprocess/{split}/Full_Video_Face/"
                     f"{session}_{f_name}_{face}.mp4"
                 )
                 if os.path.exists(save_name):
@@ -162,7 +162,7 @@ def main():
 
                 # audio
                 save_name = os.path.join(
-                    f"./data/preprocess/{split}/Audio/" \
+                    f"./data/preprocess/{split}/Audio/"
                     f"{session}_{f_name}_{sID}_{start_frame}_{end_frame}.wav"
                 )
                 if not os.path.exists(save_name):
@@ -176,7 +176,7 @@ def main():
 
                 # text
                 save_name = os.path.join(
-                    f"./data/preprocess/{split}/Text/" \
+                    f"./data/preprocess/{split}/Text/"
                     f"{session}_{f_name}_{sID}_{start_frame}_{end_frame}.txt"
                 )
                 if not os.path.exists(save_name):
@@ -187,16 +187,20 @@ def main():
                 # video (Trimming) / sID is glasses wearer, so no face
                 if sID != 2:
                     save_name = os.path.join(
-                        f"./data/preprocess/{split}/Video/" \
+                        f"./data/preprocess/{split}/Video/"
                         f"{session}_{f_name}_{sID}_{start_frame}_{end_frame}.mp4"
                     )
                     if not os.path.exists(save_name):
                         os.makedirs(os.path.dirname(save_name), exist_ok=True)
-                        full_vid = f"./data/preprocess/{split}/Full_Video_Face/" \
+                        full_vid = (
+                            f"./data/preprocess/{split}/Full_Video_Face/"
                             f"{session}_{f_name}_{sID}.mp4"
-                        command = f"ffmpeg -loglevel panic -nostdin -y -i {full_vid}" \
-                                f" -ss {start_time} -to {end_time} -vcodec libx264" \
-                                f" -filter:v fps=fps=25 {save_name}"
+                        )
+                        command = (
+                            f"ffmpeg -loglevel panic -nostdin -y -i {full_vid}"
+                            f" -ss {start_time} -to {end_time} -vcodec libx264"
+                            f" -filter:v fps=fps=25 {save_name}"
+                        )
                         subprocess.call(
                             command,
                             shell=True,
