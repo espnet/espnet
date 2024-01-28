@@ -8,7 +8,6 @@ if ! command conda  &>/dev/null; then
   this recipe README.md on how to install ESPNet with conda as the venv."
 fi
 
-# install chime-utils
 python3 -m pip install git+https://github.com/chimechallenge/chime-utils
 # install lhotse from master, we need the most up-to-date one
 python3 -m pip install git+https://github.com/lhotse-speech/lhotse

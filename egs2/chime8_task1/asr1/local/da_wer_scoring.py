@@ -11,7 +11,6 @@ from typing import Dict, Optional
 
 import jiwer
 import pandas as pd
-from chime_utils.text_norm import get_txt_norm
 from pyannote.core.utils.types import Label
 from pyannote.metrics.diarization import DiarizationErrorRate
 from pyannote.metrics.errors.identification import IdentificationErrorAnalysis
@@ -21,8 +20,6 @@ from pyannote.metrics.segmentation import Annotation, Segment, Timeline
 from pyannote.metrics.types import MetricComponents
 from tabulate import tabulate
 from tqdm import tqdm
-
-TXT_NORM = get_txt_norm("chime8")
 
 DEBUG = False
 if DEBUG:
@@ -398,21 +395,6 @@ def score(
 
     with open(hyp_json, "r") as f:
         hyps = json.load(f)
-
-    def normalize_json(input_json):
-        out = []
-        for utt in input_json:
-            new_utt = deepcopy(utt)
-            new_utt["words"] = TXT_NORM(new_utt["words"])
-            if len(new_utt["words"]) == 0:
-                continue
-            else:
-                out.append(new_utt)
-
-        return out
-
-    hyps = normalize_json(hyps)
-    refs = normalize_json(refs)
 
     def get_sess2segs(segments):
         out = {}

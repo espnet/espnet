@@ -9,53 +9,55 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 ######################################################################################
-# CHiME-8 Task 1 GSS + ASR baseline system script.
+# CHiME-7 Task 1 SUB-TASK baseline system script: GSS + ASR using oracle diarization
 ######################################################################################
 
 stage=0
 stop_stage=100
 
 # NOTE, use absolute paths !
-chime8_root=/raid/users/popcornell/CHiME6/tmp_chimeutils/chime8_dasr
-download_dir=${PWD}/datasets # where do you want your datasets downloaded
-# mixer6 has to be obtained through LDC see official data page
-mixer6_root=/raid/users/popcornell/mixer6
-
+chime7_root=${PWD}/chime8_task1
+chime6_root=/raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 # will be created automatically from chime5
+# but if you have it already it will be skipped, please put your own path
+dipco_root=${PWD}/datasets/dipco # this will be automatically downloaded
+mixer6_root=/raid/users/popcornell/mixer6 # put yours here
+notsofar1_root=${PWD}/datasets/notsofar1
 
 # DATAPREP CONFIG
 manifests_root=${PWD}/data/lhotse # dir where to save lhotse manifests
+cmd_dprep=run.pl
+dprep_stage=0
+gen_eval=0 # please not generate eval before release of mixer 6 eval
+
 
 gss_dump_root=./exp/gss
-ngpu=3  # set equal to the number of GPUs you have, used for GSS and ASR training
+ngpu=4  # set equal to the number of GPUs you have, used for GSS and ASR training
 train_min_segment_length=1 # discard sub one second examples, they are a lot in chime6
-train_max_segment_length=20  # also reduce if you get OOM, here we used A100 40GB
-infer_max_segment_length=200
+train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
 
 # GSS CONFIG
+use_chime6_falign=0
 use_selection=1 # always use selection
-gss_max_batch_dur=200 # set accordingly to your GPU VRAM, A100 40GB you can use 360
+gss_max_batch_dur=90 # set accordingly to your GPU VRAM, A100 40GB you can use 360
 # if you still get OOM errors for GSS see README.md
-cmd=run.pl # change to suit your needs e.g. slurm !
-# NOTE !!! with run.pl your GPUs need to be in exclusive mode otherwise it fails
+cmd_gss=run.pl # change to suit your needs e.g. slurm !
+# note with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
-gss_dsets="chime6_train,mixer6_train,dipco_train,notsofar1_train,chime6_dev,dipco_dev,mixer6_dev"
-gss_iterations=5
+gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev"
+gss_iterations=20
 top_k=80
 # we do not train with mixer 6 training + GSS here, but you can try.
 
 # ASR CONFIG
 # NOTE: if you get OOM reduce the batch size in asr_config YAML file
-asr_tag=chime8_ebranchformer # name of the ASR model you want to train
 asr_stage=0 # starts at 13 for inference only
 asr_dprep_stage=0
 bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by the dataprep
-asr_config="conf/tuning/train_asr_ebranchformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup40k.yaml"
+asr_config=conf/tuning/train_asr_transformer_fbank_lr1e-3_specaugm_accum1_warmup40k.yaml
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
 asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
-asr_cv_set=kaldi/chime6/dev/gss # we used only chime6 but maybe you can use a combination of all
-
-# note we use notsofar training here because dev gt is not available
+asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation. you can also try using all datasets after gss: kaldi/dev_all_gss
 asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
 lm_config="conf/train_lm.yaml"
 use_lm=false
@@ -65,45 +67,20 @@ nbpe=500
 asr_max_epochs=8
 # put popcornell/chime7_task1_asr1_baseline if you want to test with pretrained model
 use_pretrained=
-run_on="dev" # chose from dev, train, test
-run_on_ovrr=0 # set to one if you want to bypass run_on overriding gss_dsets and asr_tt_set
+decode_train="dev" # chose from dev, train, test
+diar_score=0
 
 . ./path.sh
 . ./cmd.sh
 . ./utils/parse_options.sh
 
+if [ "$decode_train" == "train" ] && [ -n "$use_pretrained" ]; then
 
-if [[ $run_on != "dev" ]] && [[ $run_on != "eval" ]] && [[ "$run_on" != "train" ]]; then
-  log "run_on argument should be either dev, eval, train or val"
-  exit
+log "You cannot pass a pretrained model and also ask this script to do training from scratch with --decode-train train."
+log "You are asking to use $use_pretrained pretrained model."
+exit
+
 fi
-
-if [ "$run_on" == "train" ] && [ -n "$use_pretrained" ]; then
-  log "You cannot pass a pretrained model and also ask this script to do training from scratch with --run-on train."
-  log "You are asking to use $use_pretrained pretrained model."
-  exit
-fi
-
-
-if [ $run_on == "dev" ] && [ $run_on_ovrr == 0 ]; then
-  # apply gss only on dev
-  gss_dsets="chime6_dev,dipco_dev,mixer6_dev"
-  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss"
-elif
-  [ $run_on == "eval" ] && [ $run_on_ovrr == 0 ]; then
-  # apply gss only on eval
-  gss_dsets="chime6_eval,dipco_eval,mixer6_eval,notsofar1_eval"
-  asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/ kaldi/notsofar1/eval/gss"
-fi
-
-
-# shellcheck disable=SC2207
-devices=($(echo $CUDA_VISIBLE_DEVICES | tr "," " "))
-if [ "${#devices[@]}" -lt $ngpu ]; then
-  echo "Number of available GPUs is less than requested ! exiting. Please check your CUDA_VISIBLE_DEVICES"
-  exit
-fi
-
 
 # ESPNet does not scale parameters with num of GPUs by default, doing it
 # here for you
@@ -111,55 +88,65 @@ asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
 asr_max_lr=$(calc_float $ngpu/10000.0)
 asr_warmup=$(calc_int 40000.0/$ngpu)
 
+if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]] && [[ "$decode_train" != "train" ]];
+then
+  log "decode_train argument should be either dev, eval or train"
+  exit
+fi
 
+
+if [ $decode_train == "dev" ]; then
+  # apply gss only on dev
+  gss_dsets="chime6_dev,dipco_dev,mixer6_dev,notsofar1_dev"
+  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/notsofar1/dev/gss"
+elif
+  [ $decode_train == "eval" ]; then
+  # apply gss only on eval
+  gss_dsets="chime6_eval,dipco_eval,mixer6_eval"
+  asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/"
+fi
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
   # this script creates the task1 dataset
-  gen_splits=train,dev
-  if [ $run_on == "eval" ]; then
-    gen_splits="eval"
-  fi
-
-  if [ -d "$chime8_root" ]; then
-    echo "$chime8_root exists already, skipping data download and generation."
-  else
-    chime-utils dgen dasr $download_dir $mixer6_root $chime8_root --part $gen_splits --download
-    # there are also other commands to download the datasets independently see https://github.com/chimechallenge/chime-utils
-  fi
+  chime-utils dgen chime6 $chime6_root $chime7_root/chime6 -p train,dev,eval
+  chime-utils dgen dipco $dipco_root $chime7_root/dipco -p dev,eval --download
+  chime-utils dgen mixer6 $mixer6_root $chime7_root/mixer6 -p train_call,train_intv,dev,eval
+  chime-utils dgen notsofar1 $notsofar1_root $chime7_root/notsofar1 -p dev --download
 
 fi
 
 
 if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
   # parse all datasets to lhotse
-  for dset in chime6 dipco notsofar1 mixer6; do
-    if [ "$run_on" == "eval" ]; then
-      dset_part="eval"
-    elif [ "$run_on" != "eval" ]; then
-      if [ "$dset" == "mixer6" ]; then
-        dset_part="train_call train_intv train dev"
-      else
-        dset_part="train dev"
+  for dset in chime6 dipco mixer6 notsofar1; do
+    for dset_part in "train" "dev" "eval"; do
+
+      if [ $dset == dipco ] && [ $dset_part == train ]; then
+          continue # dipco has no train set
       fi
-    fi
 
-     for c_part in $dset_part; do
-        if [[ $c_part = @(train|train_call|train_intv) ]]; then
-          txt_norm="chime8" # in training use the chime8, whisper-style normalization
-          mics="ihm,mdm"
-        else
-          txt_norm="none" # normalization none as it hurts GSS in inference
-          mics="mdm" # ihm not available for dev
-        fi
+      if [ "$decode_train" != "train" ] && [ $dset_part != "$decode_train" ]; then
+        continue
+      fi
 
-        log "Creating lhotse manifests for ${dset}, $c_part set $mics microphones, in $manifests_root/${dset}"
-        # no text norm here because it hurts GSS
-        chime-utils lhotse-prep $dset $chime8_root/$dset $manifests_root/${dset}/${c_part}_orig --dset-part $c_part --txt-norm "$txt_norm" -m "$mics"
-        echo "Discard lhotse supervisions shorter than 0.2" # otherwise probelms with WavLM
-        chime-utils lhotse-prep discard-length $manifests_root/${dset}/${c_part}_orig $manifests_root/${dset}/$c_part --min-len 0.2
-     done
+      if [ "$decode_train" == "train" ] && [ $dset_part == "eval" ]; then
+        continue
+      fi
+
+      if [ $use_chime6_falign == 1 ] && [ $dset == chime6 ] && [ $dset_part != train ]; then
+           if ! [ -d ./CHiME6_DASR_falign ]; then
+               log "Getting forced alignment annotation for CHiME-6 Scenario"
+               git clone https://github.com/chimechallenge/CHiME6_DASR_falign
+           fi
+           falign_dir=./CHiME7_DASR_falign
+      else
+           falign_dir=
+      fi
+
+      log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
+      chime-utils lhotse-prep $dset $chime7_root/$dset $manifests_root/${dset}/$dset_part --dset-part $dset_part
+    done
   done
-
 fi
 
 
@@ -174,12 +161,15 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # for each dataset get the name and part (dev or train)
     dset_name="$(cut -d'_' -f1 <<<${dset})"
     dset_part="$(cut -d'_' -f2 <<<${dset})"
-    max_segment_length=${infer_max_segment_length}
-    channels=all
+    max_segment_length=2000 # enhance all in inference, training we can drop longer ones
+    channels=all # do not set for the other datasets, use all
+    if [ ${dset_name} == dipco ] && [ ${dset_part} == train ]; then
+      log "DiPCo has no training set! Exiting !"
+      exit
+    fi
 
-    subpart="$(cut -d'_' -f3 <<<${dset})"
-    if [ $dset_name == "mixer6" ] && [ $dset_part == "train" ] && [ -n "$subpart" ]; then
-      dset_part="${dset_part}_${subpart}" # allow for train_call, train_intv for mixer6
+    if [ ${dset_part} == train ]; then
+      max_segment_length=${train_max_segment_length} # we can discard utterances too long based on asr training
     fi
 
     log "Running Guided Source Separation for ${dset_name}/${dset_part}, results will be in ${gss_dump_root}/${dset_name}/${dset_part}"
@@ -187,7 +177,7 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     local/run_gss.sh --manifests-dir $manifests_root --dset-name $dset_name \
           --dset-part $dset_part \
           --exp-dir $gss_dump_root \
-          --cmd "$cmd" \
+          --cmd "$cmd_gss" \
           --nj $ngpu \
           --max-segment-length $max_segment_length \
           --max-batch-duration $gss_max_batch_dur \
@@ -207,19 +197,17 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   if [ -n "$use_pretrained" ]; then
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
-  else
-    pretrained_affix+="--asr-tag ${asr_tag}"
   fi
 
 
-  if [ -z $run_on_ovrr ] || [ $run_on != "train" ]; then
+  if [ -z $diar_score ] || [ $decode_train != "train" ]; then
     asr_dprep_stage=3
   fi
 
   # these are args to ASR data prep, done in local/data.sh
-  data_opts="--stage $asr_dprep_stage --dasr-root ${chime8_root} --train-set ${asr_train_set}"
-  data_opts+=" --manifests-root $manifests_root"
-  data_opts+=" --gss-dump $gss_dump_root --decode-train $run_on --gss-dsets "$gss_dsets""
+  data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
+  data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
+  data_opts+=" --decode-train ${decode_train}"
   # override ASR conf/tuning to scale automatically with num of GPUs
   asr_args="--batch_size ${asr_batch_size} --scheduler_conf warmup_steps=${asr_warmup}"
   asr_args+=" --max_epoch=${asr_max_epochs} --optim_conf lr=${asr_max_lr}"
@@ -239,7 +227,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --audio_format "flac" \
     --min_wav_duration $train_min_segment_length \
     --max_wav_duration $train_max_segment_length \
-    --speed_perturb_factors "0.95 1.0 1.1" \
+    --speed_perturb_factors "0.9 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --use_lm ${use_lm} \
@@ -254,18 +242,19 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --lm_train_text "data/${asr_train_set}/text" ${pretrained_affix}
 fi
 
-if [ "${run_on}" == "eval" ]; then
+if [ "${decode_train}" == "eval" ]; then
   log "Scoring not available for eval set till the end of the challenge."
   exit
 fi
 
 if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   # final scoring
-  log "Scoring ASR predictions for CHiME-8 DASR challenge."
+  log "Scoring ASR predictions for CHiME-7 DASR challenge."
   # note, we re-create the asr exp folder here based on asr.sh
   if [ -n "$use_pretrained" ]; then
     asr_exp="exp/${use_pretrained}"
   else
+    asr_tag="train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k_raw_en_bpe500_batch_size256_scheduler_confwarmup_steps20000_max_epoch8_optim_conflr0.000200000000_sp" #"$(basename "${asr_config}" .yaml)_raw"
     asr_exp="exp/asr_${asr_tag}"
   fi
   inference_tag="$(basename "${inference_config}" .yaml)"
@@ -290,28 +279,12 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     else
       regex="(S[0-9]+)"
     fi
-    python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime8dasr_hyp/$split/$dset_name -r $regex
+    python local/asr2json.py -i ${asr_exp}/${inference_tag}/${tt_dset}/text -o ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split/$dset_name -r $regex
     # the content of this output folder is what you should send for evaluation to the
     # organizers.
   done
-
-  if [[ $run_on == "train" ]]; then
-    split=dev # reset split to dev here
-  else
-    split=$run_on
-  fi
-
-  mkdir -p ${asr_exp}/${inference_tag}/scoring/tcpwer/
-  LOG_OUT=${asr_exp}/${inference_tag}/scoring/tcpwer/scoring.log
-  chime-utils score tcpwer -s ${asr_exp}/${inference_tag}/chime8dasr_hyp -r $chime8_root \
-        --dset-part $split \
-        --output-folder ${asr_exp}/${inference_tag}/scoring/tcpwer \
-        --ignore-missing 2>&1 | tee $LOG_OUT
-
-  mkdir -p ${asr_exp}/${inference_tag}/scoring/cpwer/
-  LOG_OUT=${asr_exp}/${inference_tag}/scoring/cpwer/scoring.log
-  chime-utils score cpwer -s  ${asr_exp}/${inference_tag}/chime8dasr_hyp -r $chime8_root \
-        --dset-part $split \
-        --output-folder ${asr_exp}/${inference_tag}/scoring/cpwer \
-        --ignore-missing 2>&1 | tee $LOG_OUT
+  split=dev # participants cannot evaluate eval
+  LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
+  python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
+     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d $diar_score 2>&1 | tee $LOG_OUT
 fi
