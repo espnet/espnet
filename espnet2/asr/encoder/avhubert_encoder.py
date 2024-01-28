@@ -131,6 +131,7 @@ class FairseqAVHubertEncoder(AbsEncoder):
             "encoder_layers": encoder_layers,
             "encoder_ffn_embed_dim": encoder_ffn_embed_dim,
             "encoder_attention_heads": encoder_attention_heads,
+            "audio_only": audio_only,
         }
         default_cfg = AVHubertConfig()
         for arg_name, arg_val in arg_overrides.items():
@@ -562,6 +563,10 @@ class AVHubertConfig:
         default=False,
         metadata={"help": "share decoder input and output embeddings"},
     )
+    audio_only: bool = field(
+        default=False,
+        metadata={"help": "whether to use audio stream only"},
+    )
     no_scale_embedding: bool = field(default=True, metadata={"help": "scale embedding"})
 
 
@@ -663,6 +668,7 @@ class AVHubertModel(nn.Module):
 
         self.encoder = TransformerEncoder(cfg)
         self.layer_norm = LayerNorm(self.embed)
+        self.audio_only = cfg.audio_only
 
     @classmethod
     def build_model(cls, cfg: AVHubertConfig):
