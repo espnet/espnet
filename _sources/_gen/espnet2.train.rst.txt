@@ -4,45 +4,12 @@ espnet2.train package
 
 
 
-.. _espnet2.train.distributed_utils:
+.. _espnet2.train.trainer:
 
-espnet2.train.distributed_utils
--------------------------------
-
-.. automodule:: espnet2.train.distributed_utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.train.dataset:
-
-espnet2.train.dataset
+espnet2.train.trainer
 ---------------------
 
-.. automodule:: espnet2.train.dataset
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.train.class_choices:
-
-espnet2.train.class_choices
----------------------------
-
-.. automodule:: espnet2.train.class_choices
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.train.reporter:
-
-espnet2.train.reporter
-----------------------
-
-.. automodule:: espnet2.train.reporter
+.. automodule:: espnet2.train.trainer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -54,6 +21,17 @@ espnet2.train.uasr_trainer
 --------------------------
 
 .. automodule:: espnet2.train.uasr_trainer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.train.gan_trainer:
+
+espnet2.train.gan_trainer
+-------------------------
+
+.. automodule:: espnet2.train.gan_trainer
     :members:
     :undoc-members:
     :show-inheritance:
@@ -81,50 +59,6 @@ espnet2.train.__init__
     :show-inheritance:
 
 
-.. _espnet2.train.abs_espnet_model:
-
-espnet2.train.abs_espnet_model
-------------------------------
-
-.. automodule:: espnet2.train.abs_espnet_model
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.train.spk_trainer:
-
-espnet2.train.spk_trainer
--------------------------
-
-.. automodule:: espnet2.train.spk_trainer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.train.trainer:
-
-espnet2.train.trainer
----------------------
-
-.. automodule:: espnet2.train.trainer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet2.train.gan_trainer:
-
-espnet2.train.gan_trainer
--------------------------
-
-.. automodule:: espnet2.train.gan_trainer
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.train.abs_gan_espnet_model:
 
 espnet2.train.abs_gan_espnet_model
@@ -147,12 +81,78 @@ espnet2.train.preprocessor
     :show-inheritance:
 
 
+.. _espnet2.train.reporter:
+
+espnet2.train.reporter
+----------------------
+
+.. automodule:: espnet2.train.reporter
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.train.iterable_dataset:
 
 espnet2.train.iterable_dataset
 ------------------------------
 
 .. automodule:: espnet2.train.iterable_dataset
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.train.dataset:
+
+espnet2.train.dataset
+---------------------
+
+.. automodule:: espnet2.train.dataset
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.train.spk_trainer:
+
+espnet2.train.spk_trainer
+-------------------------
+
+.. automodule:: espnet2.train.spk_trainer
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.train.abs_espnet_model:
+
+espnet2.train.abs_espnet_model
+------------------------------
+
+.. automodule:: espnet2.train.abs_espnet_model
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.train.class_choices:
+
+espnet2.train.class_choices
+---------------------------
+
+.. automodule:: espnet2.train.class_choices
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.train.distributed_utils:
+
+espnet2.train.distributed_utils
+-------------------------------
+
+.. automodule:: espnet2.train.distributed_utils
     :members:
     :undoc-members:
     :show-inheritance:
