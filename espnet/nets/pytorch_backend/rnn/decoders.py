@@ -1,4 +1,5 @@
 """RNN decoder module."""
+
 import logging
 import math
 import random
@@ -75,16 +76,20 @@ class Decoder(torch.nn.Module, ScorerInterface):
         self.decoder = torch.nn.ModuleList()
         self.dropout_dec = torch.nn.ModuleList()
         self.decoder += [
-            torch.nn.LSTMCell(dunits + eprojs, dunits)
-            if self.dtype == "lstm"
-            else torch.nn.GRUCell(dunits + eprojs, dunits)
+            (
+                torch.nn.LSTMCell(dunits + eprojs, dunits)
+                if self.dtype == "lstm"
+                else torch.nn.GRUCell(dunits + eprojs, dunits)
+            )
         ]
         self.dropout_dec += [torch.nn.Dropout(p=dropout)]
         for _ in range(1, self.dlayers):
             self.decoder += [
-                torch.nn.LSTMCell(dunits, dunits)
-                if self.dtype == "lstm"
-                else torch.nn.GRUCell(dunits, dunits)
+                (
+                    torch.nn.LSTMCell(dunits, dunits)
+                    if self.dtype == "lstm"
+                    else torch.nn.GRUCell(dunits, dunits)
+                )
             ]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
             # NOTE: dropout is applied only for the vertical connections
@@ -745,9 +750,11 @@ class Decoder(torch.nn.Module, ScorerInterface):
 
         if lpz[0] is not None:
             scoring_num = min(
-                int(beam * CTC_SCORING_RATIO)
-                if att_weight > 0.0 and not lpz[0].is_cuda
-                else 0,
+                (
+                    int(beam * CTC_SCORING_RATIO)
+                    if att_weight > 0.0 and not lpz[0].is_cuda
+                    else 0
+                ),
                 lpz[0].size(-1),
             )
             ctc_scorer = [

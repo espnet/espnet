@@ -362,9 +362,7 @@ class S2TTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -397,22 +395,24 @@ class S2TTask(AbsTask):
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 # NOTE(kamo): Check attribute existence for backward compatibility
                 rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
+                rir_apply_prob=(
+                    args.rir_apply_prob if hasattr(args, "rir_apply_prob") else 1.0
+                ),
                 noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                short_noise_thres=args.short_noise_thres
-                if hasattr(args, "short_noise_thres")
-                else 0.5,
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
-                else None,
+                noise_apply_prob=(
+                    args.noise_apply_prob if hasattr(args, "noise_apply_prob") else 1.0
+                ),
+                noise_db_range=(
+                    args.noise_db_range if hasattr(args, "noise_db_range") else "13_15"
+                ),
+                short_noise_thres=(
+                    args.short_noise_thres
+                    if hasattr(args, "short_noise_thres")
+                    else 0.5
+                ),
+                speech_volume_normalize=(
+                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
+                ),
                 **args.preprocessor_conf,
             )
         else:

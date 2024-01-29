@@ -174,9 +174,11 @@ class Dio(AbsFeatsExtract):
         assert 0 <= len(x) - d.sum() < self.reduction_factor
         d_cumsum = F.pad(d.cumsum(dim=0), (1, 0))
         x_avg = [
-            x[start:end].masked_select(x[start:end].gt(0.0)).mean(dim=0)
-            if len(x[start:end].masked_select(x[start:end].gt(0.0))) != 0
-            else x.new_tensor(0.0)
+            (
+                x[start:end].masked_select(x[start:end].gt(0.0)).mean(dim=0)
+                if len(x[start:end].masked_select(x[start:end].gt(0.0))) != 0
+                else x.new_tensor(0.0)
+            )
             for start, end in zip(d_cumsum[:-1], d_cumsum[1:])
         ]
         return torch.stack(x_avg)
