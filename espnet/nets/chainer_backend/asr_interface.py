@@ -1,4 +1,5 @@
 """ASR Interface module."""
+
 import chainer
 
 from espnet.nets.asr_interface import ASRInterface

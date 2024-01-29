@@ -245,9 +245,11 @@ def ctc_align(args, device):
         mode="asr",
         load_output=True,
         sort_in_input_length=False,
-        preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None
-        else args.preprocess_conf,
+        preprocess_conf=(
+            train_args.preprocess_conf
+            if args.preprocess_conf is None
+            else args.preprocess_conf
+        ),
         preprocess_args={"train": False},
     )
     logging.info(f"Decoding device={device}")
