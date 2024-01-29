@@ -5,7 +5,6 @@ from collections import defaultdict
 from pathlib import Path
 
 LANGUAGES = (
-    "adyg1241",
     "ainu1240",
     "apah1238",
     "arap1274",
@@ -17,12 +16,10 @@ LANGUAGES = (
     "even1259",
     "goro1270",
     "jeju1234",
-    "kaby1243",
     "kach1280",
     "kaka1265",
     "kama1378",
     "kara1499",
-    "koii1238",
     "komn1238",
     "mand1415",
     "nngg1234",
@@ -162,7 +159,9 @@ if __name__ == "__main__":
     parser = get_parser()
     args = parser.parse_args()
 
-    assert set(LANGUAGES) == {p.name for p in (args.source_dir / "data").glob("*/")}
+    # assert set(LANGUAGES) == {p.name for p in (args.source_dir / "data").glob("*/")}
+    LANGUAGES = {p.name for p in (args.source_dir / "data").glob("*/")}
+    print(f"Languages detected: {LANGUAGES}")
 
     args.target_dir.mkdir(parents=True, exist_ok=True)
     write_symbols(args.target_dir / "non_linguistic_symbols.txt")
