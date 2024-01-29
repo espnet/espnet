@@ -838,11 +838,13 @@
                 <span class="n">dropout_rate</span><span class="p">,</span>
                 <span class="n">normalize_before</span><span class="p">,</span>
                 <span class="n">concat_after</span><span class="p">,</span>
-                <span class="n">MultiHeadedAttention</span><span class="p">(</span>
-                    <span class="n">attention_heads</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="n">src_attention_dropout_rate</span>
-                <span class="p">)</span>
-                <span class="k">if</span> <span class="n">use_speech_attn</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">MultiHeadedAttention</span><span class="p">(</span>
+                        <span class="n">attention_heads</span><span class="p">,</span> <span class="n">attention_dim</span><span class="p">,</span> <span class="n">src_attention_dropout_rate</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">use_speech_attn</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
             <span class="p">),</span>
         <span class="p">)</span>
 

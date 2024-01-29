@@ -485,9 +485,7 @@
             <span class="n">class_choices</span><span class="o">.</span><span class="n">add_arguments</span><span class="p">(</span><span class="n">group</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MTTask.build_collate_fn"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.mt.MTTask.build_collate_fn">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">build_collate_fn</span><span class="p">(</span>
-        <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span>
+    <span class="k">def</span> <span class="nf">build_collate_fn</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">,</span> <span class="n">train</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span>
         <span class="p">[</span><span class="n">Collection</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]]],</span>
         <span class="n">Tuple</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]],</span>
     <span class="p">]:</span>
@@ -510,12 +508,14 @@
                 <span class="n">text_cleaner</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cleaner</span><span class="p">,</span>
                 <span class="n">g2p_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">g2p</span><span class="p">,</span>
                 <span class="n">text_name</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">,</span> <span class="s2">&quot;src_text&quot;</span><span class="p">],</span>
-                <span class="n">tokenizer_encode_conf</span><span class="o">=</span><span class="p">[</span>
-                    <span class="n">args</span><span class="o">.</span><span class="n">tokenizer_encode_conf</span><span class="p">,</span>
-                    <span class="n">args</span><span class="o">.</span><span class="n">src_tokenizer_encode_conf</span><span class="p">,</span>
-                <span class="p">]</span>
-                <span class="k">if</span> <span class="n">train</span>
-                <span class="k">else</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(),</span> <span class="nb">dict</span><span class="p">()],</span>
+                <span class="n">tokenizer_encode_conf</span><span class="o">=</span><span class="p">(</span>
+                    <span class="p">[</span>
+                        <span class="n">args</span><span class="o">.</span><span class="n">tokenizer_encode_conf</span><span class="p">,</span>
+                        <span class="n">args</span><span class="o">.</span><span class="n">src_tokenizer_encode_conf</span><span class="p">,</span>
+                    <span class="p">]</span>
+                    <span class="k">if</span> <span class="n">train</span>
+                    <span class="k">else</span> <span class="p">[</span><span class="nb">dict</span><span class="p">(),</span> <span class="nb">dict</span><span class="p">()]</span>
+                <span class="p">),</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">retval</span> <span class="o">=</span> <span class="kc">None</span>

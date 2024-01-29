@@ -249,9 +249,11 @@
 
     <span class="c1"># Escape the extra characters for shell</span>
     <span class="n">argv</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">arg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&#39;</span><span class="se">\\</span><span class="s2">&#39;&#39;&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">char</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">arg</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">extra_chars</span><span class="p">)</span>
-        <span class="k">else</span> <span class="s2">&quot;&#39;&quot;</span> <span class="o">+</span> <span class="n">arg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&#39;</span><span class="se">\\</span><span class="s2">&#39;&#39;&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span>
+        <span class="p">(</span>
+            <span class="n">arg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&#39;</span><span class="se">\\</span><span class="s2">&#39;&#39;&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="n">char</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">arg</span> <span class="k">for</span> <span class="n">char</span> <span class="ow">in</span> <span class="n">extra_chars</span><span class="p">)</span>
+            <span class="k">else</span> <span class="s2">&quot;&#39;&quot;</span> <span class="o">+</span> <span class="n">arg</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot;&#39;&quot;</span><span class="p">,</span> <span class="s2">&quot;&#39;</span><span class="se">\\</span><span class="s2">&#39;&#39;&quot;</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;&#39;&quot;</span>
+        <span class="p">)</span>
         <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span>
     <span class="p">]</span>
 

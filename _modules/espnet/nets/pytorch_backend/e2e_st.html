@@ -540,9 +540,9 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">trans_args</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">char_list</span><span class="p">,</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">rnnlm</span><span class="p">,</span>
-                <span class="n">lang_ids</span><span class="o">=</span><span class="n">tgt_lang_ids</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multilingual</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">lang_ids</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">tgt_lang_ids</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">multilingual</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
             <span class="p">)</span>
             <span class="c1"># remove &lt;sos&gt; and &lt;eos&gt;</span>
             <span class="n">list_of_refs</span> <span class="o">=</span> <span class="p">[]</span>

@@ -212,6 +212,7 @@
              
   <h1>Source code for espnet.nets.pytorch_backend.rnn.decoders</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;RNN decoder module.&quot;&quot;&quot;</span>
+
 <span class="kn">import</span> <span class="nn">logging</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">random</span>
@@ -288,16 +289,20 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout_dec</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">ModuleList</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">+=</span> <span class="p">[</span>
-            <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTMCell</span><span class="p">(</span><span class="n">dunits</span> <span class="o">+</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dunits</span><span class="p">)</span>
-            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span>
-            <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">GRUCell</span><span class="p">(</span><span class="n">dunits</span> <span class="o">+</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dunits</span><span class="p">)</span>
+            <span class="p">(</span>
+                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTMCell</span><span class="p">(</span><span class="n">dunits</span> <span class="o">+</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dunits</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span>
+                <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">GRUCell</span><span class="p">(</span><span class="n">dunits</span> <span class="o">+</span> <span class="n">eprojs</span><span class="p">,</span> <span class="n">dunits</span><span class="p">)</span>
+            <span class="p">)</span>
         <span class="p">]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">dropout_dec</span> <span class="o">+=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout</span><span class="p">)]</span>
         <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dlayers</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span> <span class="o">+=</span> <span class="p">[</span>
-                <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTMCell</span><span class="p">(</span><span class="n">dunits</span><span class="p">,</span> <span class="n">dunits</span><span class="p">)</span>
-                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span>
-                <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">GRUCell</span><span class="p">(</span><span class="n">dunits</span><span class="p">,</span> <span class="n">dunits</span><span class="p">)</span>
+                <span class="p">(</span>
+                    <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">LSTMCell</span><span class="p">(</span><span class="n">dunits</span><span class="p">,</span> <span class="n">dunits</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="s2">&quot;lstm&quot;</span>
+                    <span class="k">else</span> <span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">GRUCell</span><span class="p">(</span><span class="n">dunits</span><span class="p">,</span> <span class="n">dunits</span><span class="p">)</span>
+                <span class="p">)</span>
             <span class="p">]</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">dropout_dec</span> <span class="o">+=</span> <span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">Dropout</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="n">dropout</span><span class="p">)]</span>
             <span class="c1"># NOTE: dropout is applied only for the vertical connections</span>
@@ -958,9 +963,11 @@
 
         <span class="k">if</span> <span class="n">lpz</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">scoring_num</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
-                <span class="nb">int</span><span class="p">(</span><span class="n">beam</span> <span class="o">*</span> <span class="n">CTC_SCORING_RATIO</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">att_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">lpz</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">is_cuda</span>
-                <span class="k">else</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="nb">int</span><span class="p">(</span><span class="n">beam</span> <span class="o">*</span> <span class="n">CTC_SCORING_RATIO</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">att_weight</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">lpz</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">is_cuda</span>
+                    <span class="k">else</span> <span class="mi">0</span>
+                <span class="p">),</span>
                 <span class="n">lpz</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">),</span>
             <span class="p">)</span>
             <span class="n">ctc_scorer</span> <span class="o">=</span> <span class="p">[</span>

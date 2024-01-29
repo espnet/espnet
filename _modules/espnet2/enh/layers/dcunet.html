@@ -436,9 +436,11 @@
             <span class="n">out_chan</span><span class="p">,</span>
             <span class="nb">tuple</span><span class="p">(</span><span class="n">kernel_size</span><span class="p">),</span>
             <span class="nb">tuple</span><span class="p">(</span><span class="n">stride</span><span class="p">),</span>
-            <span class="nb">tuple</span><span class="p">([</span><span class="n">n</span> <span class="o">//</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">kernel_size</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span>
-            <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">padding</span><span class="p">),</span>
+            <span class="p">(</span>
+                <span class="nb">tuple</span><span class="p">([</span><span class="n">n</span> <span class="o">//</span> <span class="mi">2</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">kernel_size</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">padding</span> <span class="o">==</span> <span class="s2">&quot;auto&quot;</span>
+                <span class="k">else</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">padding</span><span class="p">)</span>
+            <span class="p">),</span>
             <span class="nb">tuple</span><span class="p">(</span><span class="n">dilation</span><span class="p">),</span>
         <span class="p">)</span>
         <span class="k">for</span> <span class="n">in_chan</span><span class="p">,</span> <span class="n">out_chan</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">dilation</span> <span class="ow">in</span> <span class="n">encoder_args</span>

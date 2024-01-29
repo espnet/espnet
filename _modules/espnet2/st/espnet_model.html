@@ -658,15 +658,17 @@
             <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
             <span class="n">loss_asr</span><span class="o">=</span><span class="n">loss_asr</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_asr</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span> <span class="k">else</span> <span class="n">loss_asr</span><span class="p">,</span>
             <span class="n">loss_mt</span><span class="o">=</span><span class="n">loss_mt</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_mt</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span> <span class="k">else</span> <span class="n">loss_mt</span><span class="p">,</span>
-            <span class="n">loss_st_ctc</span><span class="o">=</span><span class="n">loss_st_ctc</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_st_ctc</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span>
-            <span class="k">else</span> <span class="n">loss_st_ctc</span><span class="p">,</span>
-            <span class="n">loss_st_trans</span><span class="o">=</span><span class="n">loss_st_trans</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_st_trans</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span>
-            <span class="k">else</span> <span class="n">loss_st_trans</span><span class="p">,</span>
-            <span class="n">loss_st_att</span><span class="o">=</span><span class="n">loss_st_att</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_st_att</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span>
-            <span class="k">else</span> <span class="n">loss_st_att</span><span class="p">,</span>
+            <span class="n">loss_st_ctc</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">loss_st_ctc</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_st_ctc</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span> <span class="k">else</span> <span class="n">loss_st_ctc</span>
+            <span class="p">),</span>
+            <span class="n">loss_st_trans</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">loss_st_trans</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_st_trans</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span>
+                <span class="k">else</span> <span class="n">loss_st_trans</span>
+            <span class="p">),</span>
+            <span class="n">loss_st_att</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">loss_st_att</span><span class="o">.</span><span class="n">detach</span><span class="p">()</span> <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">loss_st_att</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">float</span> <span class="k">else</span> <span class="n">loss_st_att</span>
+            <span class="p">),</span>
             <span class="n">loss_st</span><span class="o">=</span><span class="n">loss_st</span><span class="o">.</span><span class="n">detach</span><span class="p">(),</span>
             <span class="n">acc_asr</span><span class="o">=</span><span class="n">acc_asr_att</span><span class="p">,</span>
             <span class="n">acc_mt</span><span class="o">=</span><span class="n">acc_mt_att</span><span class="p">,</span>

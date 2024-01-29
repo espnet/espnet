@@ -488,17 +488,17 @@
             <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span><span class="o">.</span><span class="n">eval</span><span class="p">()</span>
 
             <span class="k">if</span> <span class="s2">&quot;num_beams&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">hugging_face_decoder_conf</span><span class="p">:</span>
-                <span class="n">hugging_face_decoder_conf</span><span class="p">[</span>
-                    <span class="s2">&quot;num_beams&quot;</span>
-                <span class="p">]</span> <span class="o">=</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_beams</span>
+                <span class="n">hugging_face_decoder_conf</span><span class="p">[</span><span class="s2">&quot;num_beams&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">num_beams</span>
+                <span class="p">)</span>
 
             <span class="k">if</span> <span class="p">(</span>
                 <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">pad_token_id</span> <span class="ow">is</span> <span class="kc">None</span>
                 <span class="ow">and</span> <span class="s2">&quot;pad_token_id&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">hugging_face_decoder_conf</span>
             <span class="p">):</span>
-                <span class="n">hugging_face_decoder_conf</span><span class="p">[</span>
-                    <span class="s2">&quot;pad_token_id&quot;</span>
-                <span class="p">]</span> <span class="o">=</span> <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">eos_token_id</span>
+                <span class="n">hugging_face_decoder_conf</span><span class="p">[</span><span class="s2">&quot;pad_token_id&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">hugging_face_model</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">eos_token_id</span>
+                <span class="p">)</span>
 
             <span class="n">beam_search</span> <span class="o">=</span> <span class="kc">None</span>
             <span class="n">beam_search_transducer</span> <span class="o">=</span> <span class="kc">None</span>
@@ -676,9 +676,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">multi_asr</span> <span class="o">=</span> <span class="n">multi_asr</span>
 
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">speech</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span>
         <span class="n">ListOfHypothesis</span><span class="p">,</span>
         <span class="n">Tuple</span><span class="p">[</span>
             <span class="n">ListOfHypothesis</span><span class="p">,</span>
@@ -1083,9 +1081,9 @@
                 <span class="n">ibest_writer</span> <span class="o">=</span> <span class="n">writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;1best_recog&quot;</span><span class="p">]</span>
                 <span class="k">if</span> <span class="n">encoder_interctc_res</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">text</span> <span class="ow">in</span> <span class="n">encoder_interctc_res</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-                        <span class="n">ibest_writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;encoder_interctc_layer</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">][</span>
-                            <span class="n">key</span>
-                        <span class="p">]</span> <span class="o">=</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text</span><span class="p">)</span></div>
+                        <span class="n">ibest_writer</span><span class="p">[</span><span class="sa">f</span><span class="s2">&quot;encoder_interctc_layer</span><span class="si">{</span><span class="n">idx</span><span class="si">}</span><span class="s2">.txt&quot;</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                            <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+                        <span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="get_parser"><a class="viewcode-back" href="../../../_gen/espnet2.bin.html#espnet2.bin.asr_inference.get_parser">[docs]</a><span class="k">def</span> <span class="nf">get_parser</span><span class="p">():</span>

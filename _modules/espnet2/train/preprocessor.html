@@ -964,9 +964,11 @@
             <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
             <span class="n">bpemodel</span><span class="o">=</span><span class="n">bpemodel</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
             <span class="n">text_cleaner</span><span class="o">=</span><span class="n">text_cleaner</span><span class="p">,</span>
-            <span class="n">g2p_type</span><span class="o">=</span><span class="n">g2p_type</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">g2p_type</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">g2p_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-            <span class="k">else</span> <span class="n">g2p_type</span><span class="p">,</span>
+            <span class="n">g2p_type</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">g2p_type</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">g2p_type</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="nb">str</span> <span class="ow">and</span> <span class="n">g2p_type</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                <span class="k">else</span> <span class="n">g2p_type</span>
+            <span class="p">),</span>
             <span class="n">unk_symbol</span><span class="o">=</span><span class="n">unk_symbol</span><span class="p">,</span>
             <span class="n">space_symbol</span><span class="o">=</span><span class="n">space_symbol</span><span class="p">,</span>
             <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
@@ -1015,9 +1017,9 @@
                             <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokenizer_encode_conf</span><span class="p">)</span>
                             <span class="k">else</span> <span class="kc">None</span>
                         <span class="p">),</span>
-                        <span class="n">whisper_language</span><span class="o">=</span><span class="n">whisper_language</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                        <span class="k">if</span> <span class="s2">&quot;whisper&quot;</span> <span class="ow">in</span> <span class="n">token_type</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-                        <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">whisper_language</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">whisper_language</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="s2">&quot;whisper&quot;</span> <span class="ow">in</span> <span class="n">token_type</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">else</span> <span class="kc">None</span>
+                        <span class="p">),</span>
                         <span class="n">whisper_task</span><span class="o">=</span><span class="n">whisper_task</span><span class="p">,</span>
                     <span class="p">)</span>
                 <span class="p">)</span>

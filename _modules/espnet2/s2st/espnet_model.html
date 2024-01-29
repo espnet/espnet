@@ -541,21 +541,23 @@
                 <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
                 <span class="n">asr_ctc_loss</span><span class="o">=</span><span class="n">asr_ctc_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">asr_ctc_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="n">cer_asr_ctc</span><span class="o">=</span><span class="n">cer_asr_ctc</span><span class="p">,</span>
-                <span class="n">src_attn_loss</span><span class="o">=</span><span class="n">src_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">src_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">src_attn_loss</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">src_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">src_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">acc_src_attn</span><span class="o">=</span><span class="n">acc_src_attn</span><span class="p">,</span>
                 <span class="n">cer_src_attn</span><span class="o">=</span><span class="n">cer_src_attn</span><span class="p">,</span>
                 <span class="n">wer_src_attn</span><span class="o">=</span><span class="n">wer_src_attn</span><span class="p">,</span>
-                <span class="n">tgt_attn_loss</span><span class="o">=</span><span class="n">tgt_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">tgt_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">tgt_attn_loss</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">tgt_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">tgt_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">acc_tgt_attn</span><span class="o">=</span><span class="n">acc_tgt_attn</span><span class="p">,</span>
                 <span class="n">bleu_tgt_attn</span><span class="o">=</span><span class="n">bleu_tgt_attn</span><span class="p">,</span>
                 <span class="n">syn_loss</span><span class="o">=</span><span class="n">syn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">syn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="n">syn_guided_attn_loss</span><span class="o">=</span><span class="n">syn_guided_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">syn_guided_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">syn_guided_attn_loss</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">syn_guided_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">syn_guided_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">syn_l1_loss</span><span class="o">=</span><span class="n">l1_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
                 <span class="n">syn_mse_loss</span><span class="o">=</span><span class="n">mse_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
                 <span class="n">syn_bce_loss</span><span class="o">=</span><span class="n">bce_loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
@@ -654,9 +656,9 @@
                 <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
                 <span class="n">asr_ctc_loss</span><span class="o">=</span><span class="n">asr_ctc_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">asr_ctc_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="n">cer_asr_ctc</span><span class="o">=</span><span class="n">cer_asr_ctc</span><span class="p">,</span>
-                <span class="n">tgt_attn_loss</span><span class="o">=</span><span class="n">tgt_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">tgt_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">tgt_attn_loss</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">tgt_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">tgt_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">acc_tgt_attn</span><span class="o">=</span><span class="n">acc_tgt_attn</span><span class="p">,</span>
                 <span class="n">bleu_tgt_attn</span><span class="o">=</span><span class="n">bleu_tgt_attn</span><span class="p">,</span>
                 <span class="n">syn_loss</span><span class="o">=</span><span class="n">syn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">syn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
@@ -765,22 +767,22 @@
                 <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
                 <span class="n">asr_ctc_loss</span><span class="o">=</span><span class="n">asr_ctc_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">asr_ctc_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="n">cer_asr_ctc</span><span class="o">=</span><span class="n">cer_asr_ctc</span><span class="p">,</span>
-                <span class="n">src_attn_loss</span><span class="o">=</span><span class="n">src_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">src_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">src_attn_loss</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">src_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">src_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">acc_src_attn</span><span class="o">=</span><span class="n">acc_src_attn</span><span class="p">,</span>
                 <span class="n">cer_src_attn</span><span class="o">=</span><span class="n">cer_src_attn</span><span class="p">,</span>
                 <span class="n">wer_src_attn</span><span class="o">=</span><span class="n">wer_src_attn</span><span class="p">,</span>
-                <span class="n">tgt_attn_loss</span><span class="o">=</span><span class="n">tgt_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">tgt_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">tgt_attn_loss</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">tgt_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">tgt_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">acc_tgt_attn</span><span class="o">=</span><span class="n">acc_tgt_attn</span><span class="p">,</span>
                 <span class="n">bleu_tgt_attn</span><span class="o">=</span><span class="n">bleu_tgt_attn</span><span class="p">,</span>
                 <span class="n">st_ctc_loss</span><span class="o">=</span><span class="n">st_ctc_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">st_ctc_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="n">cer_st_ctc</span><span class="o">=</span><span class="n">cer_st_ctc</span><span class="p">,</span>
-                <span class="n">unit_attn_loss</span><span class="o">=</span><span class="n">unit_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">unit_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">unit_attn_loss</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">unit_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">unit_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">acc_unit_attn</span><span class="o">=</span><span class="n">acc_unit_attn</span> <span class="k">if</span> <span class="n">acc_unit_attn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
 
@@ -846,14 +848,14 @@
                 <span class="n">loss</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">item</span><span class="p">(),</span>
                 <span class="n">asr_ctc_loss</span><span class="o">=</span><span class="n">asr_ctc_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">asr_ctc_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
                 <span class="n">cer_asr_ctc</span><span class="o">=</span><span class="n">cer_asr_ctc</span><span class="p">,</span>
-                <span class="n">tgt_attn_loss</span><span class="o">=</span><span class="n">tgt_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">tgt_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">tgt_attn_loss</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">tgt_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">tgt_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">acc_tgt_attn</span><span class="o">=</span><span class="n">acc_tgt_attn</span><span class="p">,</span>
                 <span class="n">bleu_tgt_attn</span><span class="o">=</span><span class="n">bleu_tgt_attn</span><span class="p">,</span>
-                <span class="n">unit_attn_loss</span><span class="o">=</span><span class="n">unit_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span>
-                <span class="k">if</span> <span class="n">unit_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">unit_attn_loss</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">unit_attn_loss</span><span class="o">.</span><span class="n">item</span><span class="p">()</span> <span class="k">if</span> <span class="n">unit_attn_loss</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">acc_unit_attn</span><span class="o">=</span><span class="n">acc_unit_attn</span> <span class="k">if</span> <span class="n">acc_unit_attn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
             <span class="p">)</span>
 

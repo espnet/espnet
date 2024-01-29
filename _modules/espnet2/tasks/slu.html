@@ -593,9 +593,11 @@
                 <span class="n">train</span><span class="o">=</span><span class="n">train</span><span class="p">,</span>
                 <span class="n">token_type</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">token_type</span><span class="p">,</span>
                 <span class="n">token_list</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span>
-                <span class="n">transcript_token_list</span><span class="o">=</span><span class="kc">None</span>
-                <span class="k">if</span> <span class="s2">&quot;transcript_token_list&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">args</span>
-                <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">transcript_token_list</span><span class="p">,</span>
+                <span class="n">transcript_token_list</span><span class="o">=</span><span class="p">(</span>
+                    <span class="kc">None</span>
+                    <span class="k">if</span> <span class="s2">&quot;transcript_token_list&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">args</span>
+                    <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">transcript_token_list</span>
+                <span class="p">),</span>
                 <span class="n">bpemodel</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">bpemodel</span><span class="p">,</span>
                 <span class="n">non_linguistic_symbols</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">non_linguistic_symbols</span><span class="p">,</span>
                 <span class="n">text_cleaner</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">cleaner</span><span class="p">,</span>

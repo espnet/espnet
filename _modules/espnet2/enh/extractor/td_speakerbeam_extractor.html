@@ -311,9 +311,9 @@
                 <span class="n">R</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">C</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                 <span class="n">Sc</span><span class="o">=</span><span class="n">skip_dim</span><span class="p">,</span>
-                <span class="n">out_channel</span><span class="o">=</span><span class="n">adapt_enroll_dim</span>
-                <span class="k">if</span> <span class="n">skip_dim</span> <span class="ow">is</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="n">adapt_enroll_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+                <span class="n">out_channel</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">adapt_enroll_dim</span> <span class="k">if</span> <span class="n">skip_dim</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">adapt_enroll_dim</span> <span class="o">*</span> <span class="mi">2</span>
+                <span class="p">),</span>
                 <span class="n">norm_type</span><span class="o">=</span><span class="n">norm_type</span><span class="p">,</span>
                 <span class="n">causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">pre_mask_nonlinear</span><span class="o">=</span><span class="n">pre_nonlinear</span><span class="p">,</span>

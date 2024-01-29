@@ -610,9 +610,11 @@
                 <span class="n">encoder_selfattn_layer</span><span class="p">(</span><span class="o">*</span><span class="n">encoder_selfattn_layer_args</span><span class="p">),</span>
                 <span class="n">cgmlp_layer</span><span class="p">(</span><span class="o">*</span><span class="n">cgmlp_layer_args</span><span class="p">),</span>
                 <span class="n">positionwise_layer</span><span class="p">(</span><span class="o">*</span><span class="n">positionwise_layer_args</span><span class="p">)</span> <span class="k">if</span> <span class="n">use_ffn</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-                <span class="n">positionwise_layer</span><span class="p">(</span><span class="o">*</span><span class="n">positionwise_layer_args</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">use_ffn</span> <span class="ow">and</span> <span class="n">macaron_ffn</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="p">(</span>
+                    <span class="n">positionwise_layer</span><span class="p">(</span><span class="o">*</span><span class="n">positionwise_layer_args</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">use_ffn</span> <span class="ow">and</span> <span class="n">macaron_ffn</span>
+                    <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
                 <span class="n">dropout_rate</span><span class="p">,</span>
                 <span class="n">merge_conv_kernel</span><span class="p">,</span>
             <span class="p">),</span>

@@ -331,9 +331,11 @@
     <span class="k">for</span> <span class="n">ibatch</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">bs</span><span class="p">):</span>
         <span class="c1"># *: (B, L, ...) -&gt; (1, L2, ...)</span>
         <span class="n">_sample</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="n">k</span><span class="p">:</span> <span class="n">batch</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">ibatch</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:</span> <span class="n">batch</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="s2">&quot;_lengths&quot;</span><span class="p">][</span><span class="n">ibatch</span><span class="p">]]</span>
-            <span class="k">if</span> <span class="n">k</span> <span class="o">+</span> <span class="s2">&quot;_lengths&quot;</span> <span class="ow">in</span> <span class="n">batch</span>
-            <span class="k">else</span> <span class="n">batch</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">ibatch</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="n">k</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">batch</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">ibatch</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="p">:</span> <span class="n">batch</span><span class="p">[</span><span class="n">k</span> <span class="o">+</span> <span class="s2">&quot;_lengths&quot;</span><span class="p">][</span><span class="n">ibatch</span><span class="p">]]</span>
+                <span class="k">if</span> <span class="n">k</span> <span class="o">+</span> <span class="s2">&quot;_lengths&quot;</span> <span class="ow">in</span> <span class="n">batch</span>
+                <span class="k">else</span> <span class="n">batch</span><span class="p">[</span><span class="n">k</span><span class="p">][</span><span class="n">ibatch</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+            <span class="p">)</span>
             <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">keys</span>
         <span class="p">}</span>
 

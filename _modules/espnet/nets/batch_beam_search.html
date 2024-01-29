@@ -496,17 +496,17 @@
             <span class="n">hs</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_full</span><span class="p">(</span>
                 <span class="n">running_hyps</span><span class="p">,</span>
                 <span class="n">x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
-                <span class="n">pre_x</span><span class="o">=</span><span class="n">pre_x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">pre_x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">pre_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">pre_x</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">pre_x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">pre_x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="k">if</span> <span class="n">pre_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
             <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">scores</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">score_full</span><span class="p">(</span>
                 <span class="n">running_hyps</span><span class="p">,</span>
                 <span class="n">x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span>
-                <span class="n">pre_x</span><span class="o">=</span><span class="n">pre_x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">pre_x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
-                <span class="k">if</span> <span class="n">pre_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-                <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">pre_x</span><span class="o">=</span><span class="p">(</span>
+                    <span class="n">pre_x</span><span class="o">.</span><span class="n">expand</span><span class="p">(</span><span class="n">n_batch</span><span class="p">,</span> <span class="o">*</span><span class="n">pre_x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="k">if</span> <span class="n">pre_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span>
+                <span class="p">),</span>
             <span class="p">)</span>
 
         <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">full_scorers</span><span class="p">:</span>

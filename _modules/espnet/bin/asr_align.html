@@ -458,9 +458,11 @@
         <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;asr&quot;</span><span class="p">,</span>
         <span class="n">load_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">sort_in_input_length</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">preprocess_conf</span><span class="o">=</span><span class="n">train_args</span><span class="o">.</span><span class="n">preprocess_conf</span>
-        <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">preprocess_conf</span> <span class="ow">is</span> <span class="kc">None</span>
-        <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">preprocess_conf</span><span class="p">,</span>
+        <span class="n">preprocess_conf</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">train_args</span><span class="o">.</span><span class="n">preprocess_conf</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">preprocess_conf</span> <span class="ow">is</span> <span class="kc">None</span>
+            <span class="k">else</span> <span class="n">args</span><span class="o">.</span><span class="n">preprocess_conf</span>
+        <span class="p">),</span>
         <span class="n">preprocess_args</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">},</span>
     <span class="p">)</span>
     <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Decoding device=</span><span class="si">{</span><span class="n">device</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>

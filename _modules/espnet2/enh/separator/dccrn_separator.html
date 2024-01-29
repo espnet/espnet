@@ -295,9 +295,11 @@
                         <span class="n">stride</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
                         <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
                     <span class="p">),</span>
-                    <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
-                    <span class="k">if</span> <span class="ow">not</span> <span class="n">use_cbn</span>
-                    <span class="k">else</span> <span class="n">ComplexBatchNorm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]),</span>
+                    <span class="p">(</span>
+                        <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">use_cbn</span>
+                        <span class="k">else</span> <span class="n">ComplexBatchNorm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+                    <span class="p">),</span>
                     <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">(),</span>
                 <span class="p">)</span>
             <span class="p">)</span>
@@ -311,15 +313,19 @@
             <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rnn_layer</span><span class="p">):</span>
                 <span class="n">rnns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
                     <span class="n">NavieComplexLSTM</span><span class="p">(</span>
-                        <span class="n">input_size</span><span class="o">=</span><span class="n">hidden_dim</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span>
-                        <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_units</span> <span class="o">*</span> <span class="n">fac</span><span class="p">,</span>
+                        <span class="n">input_size</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">hidden_dim</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="mi">0</span>
+                            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn_units</span> <span class="o">*</span> <span class="n">fac</span>
+                        <span class="p">),</span>
                         <span class="n">hidden_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">rnn_units</span><span class="p">,</span>
                         <span class="n">bidirectional</span><span class="o">=</span><span class="n">bidirectional</span><span class="p">,</span>
                         <span class="n">batch_first</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                        <span class="n">projection_dim</span><span class="o">=</span><span class="n">hidden_dim</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-                        <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="n">rnn_layer</span> <span class="o">-</span> <span class="mi">1</span>
-                        <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">projection_dim</span><span class="o">=</span><span class="p">(</span>
+                            <span class="n">hidden_dim</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                            <span class="k">if</span> <span class="n">idx</span> <span class="o">==</span> <span class="n">rnn_layer</span> <span class="o">-</span> <span class="mi">1</span>
+                            <span class="k">else</span> <span class="kc">None</span>
+                        <span class="p">),</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">enhance</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span><span class="o">*</span><span class="n">rnns</span><span class="p">)</span>
@@ -348,9 +354,11 @@
                             <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
                             <span class="n">output_padding</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
                         <span class="p">),</span>
-                        <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
-                        <span class="k">if</span> <span class="ow">not</span> <span class="n">use_cbn</span>
-                        <span class="k">else</span> <span class="n">ComplexBatchNorm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]),</span>
+                        <span class="p">(</span>
+                            <span class="n">nn</span><span class="o">.</span><span class="n">BatchNorm2d</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">use_cbn</span>
+                            <span class="k">else</span> <span class="n">ComplexBatchNorm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span>
+                        <span class="p">),</span>
                         <span class="n">nn</span><span class="o">.</span><span class="n">PReLU</span><span class="p">(),</span>
                     <span class="p">)</span>
                 <span class="p">)</span>
@@ -359,9 +367,11 @@
                     <span class="n">nn</span><span class="o">.</span><span class="n">Sequential</span><span class="p">(</span>
                         <span class="n">ComplexConvTranspose2d</span><span class="p">(</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-                            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_noise_mask</span>
-                            <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_spk</span><span class="p">,</span>
+                            <span class="p">(</span>
+                                <span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_spk</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_noise_mask</span>
+                                <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">kernel_num</span><span class="p">[</span><span class="n">idx</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_spk</span>
+                            <span class="p">),</span>
                             <span class="n">kernel_size</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
                             <span class="n">stride</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
                             <span class="n">padding</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
