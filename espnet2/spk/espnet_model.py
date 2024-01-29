@@ -1,7 +1,7 @@
 # Copyright 2023 Jee-weon Jung
 #  Apache 2.0  (http://www.apache.org/licenses/LICENSE-2.0)
 
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 
 import torch
 from typeguard import check_argument_types
@@ -64,8 +64,8 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     def forward(
         self,
         speech: torch.Tensor,
-        # speech_lengths: torch.Tensor = None,
-        spk_labels: torch.Tensor,
+        spk_labels: torch.Tensor = None,
+        task_tokens: torch.Tensor = None,
         extract_embd: bool = False,
         **kwargs,
     ) -> Tuple[torch.Tensor, Dict[str, torch.Tensor], torch.Tensor]:
@@ -79,11 +79,19 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             extract_embd: a flag which doesn't go through the classification
                 head when set True
             spk_labels: (Batch, )
+            one-hot speaker labels used in the train phase
+            task_tokens: (Batch, )
+            task tokens used in case of token-based trainings
         """
         if spk_labels is not None:
             assert speech.shape[0] == spk_labels.shape[0], (
                 speech.shape,
                 spk_labels.shape,
+            )
+        if task_tokens is not None:
+            assert speech.shape[0] == task_tokens.shape[0], (
+                speech.shape,
+                task_tokens.shape,
             )
         batch_size = speech.shape[0]
 
@@ -94,7 +102,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
         frame_level_feats = self.encode_frame(feats)
 
         # 2. aggregation into utterance-level
-        utt_level_feat = self.pooling(frame_level_feats)
+        utt_level_feat = self.pooling(frame_level_feats, task_tokens)
 
         # 3. (optionally) go through further projection(s)
         spk_embd = self.project_spk_embd(utt_level_feat)
@@ -103,7 +111,8 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             return spk_embd
 
         # 4. calculate loss
-        loss = self.loss(spk_embd, spk_labels)
+        assert spk_labels is not None, "spk_labels is None, cannot compute loss"
+        loss = self.loss(spk_embd, spk_labels.squeeze())
 
         stats = dict(loss=loss.detach())
 

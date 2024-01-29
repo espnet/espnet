@@ -30,6 +30,7 @@ for dirname in ["espnet", "espnet2"]:
                     module_name == "espnet2.bin.asr_inference_k2"
                     or module_name == "espnet2.bin.uasr_inference_k2"
                     or module_name == "espnet2.fst.lm_rescore"
+                    or module_name == "espnet2.asr.bayes_risk_ctc"
                 )
             )
             or (not has_mir_eval and module_name == "espnet2.bin.enh_scoring")
