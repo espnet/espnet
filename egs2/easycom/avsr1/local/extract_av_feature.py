@@ -41,9 +41,11 @@ def get_video_transform(split="test"):
             Identity() if split == "test" else HorizontalFlip(0.5),
             Normalize(mean, std),
             Identity() if split == "test" else TimeMask(max_mask_length=15),
-            Identity()
-            if split == "test"
-            else CutoutHole(min_hole_length=22, max_hole_length=44),
+            (
+                Identity()
+                if split == "test"
+                else CutoutHole(min_hole_length=22, max_hole_length=44)
+            ),
         ]
     )
 

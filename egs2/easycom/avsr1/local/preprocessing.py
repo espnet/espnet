@@ -65,9 +65,7 @@ def main():
             split = (
                 "val"
                 if session in val_session
-                else "test"
-                if session in test_session
-                else "train"
+                else "test" if session in test_session else "train"
             )
 
             face_json_file = open(
