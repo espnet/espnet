@@ -227,9 +227,11 @@ class Speech2TextStreaming:
                 ctc=st_model.st_ctc if hasattr(st_model, "st_ctc") else None,
                 hold_n=hold_n,
                 transducer_conf=transducer_conf,
-                joint_network=st_model.st_joint_network
-                if hasattr(st_model, "st_joint_network")
-                else None,
+                joint_network=(
+                    st_model.st_joint_network
+                    if hasattr(st_model, "st_joint_network")
+                    else None
+                ),
             )
             self.hugging_face_model = None
             self.hugging_face_linear_in = None

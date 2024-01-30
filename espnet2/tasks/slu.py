@@ -380,9 +380,11 @@ class SLUTask(ASRTask):
                 train=train,
                 token_type=args.token_type,
                 token_list=args.token_list,
-                transcript_token_list=None
-                if "transcript_token_list" not in args
-                else args.transcript_token_list,
+                transcript_token_list=(
+                    None
+                    if "transcript_token_list" not in args
+                    else args.transcript_token_list
+                ),
                 bpemodel=args.bpemodel,
                 non_linguistic_symbols=args.non_linguistic_symbols,
                 text_cleaner=args.cleaner,
