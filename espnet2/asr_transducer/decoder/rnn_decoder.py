@@ -254,7 +254,9 @@ class RNNDecoder(AbsDecoder):
         """
         return (
             torch.cat([s[0] for s in new_states], dim=1),
-            torch.cat([s[1] for s in new_states], dim=1)
-            if self.dtype == "lstm"
-            else None,
+            (
+                torch.cat([s[1] for s in new_states], dim=1)
+                if self.dtype == "lstm"
+                else None
+            ),
         )

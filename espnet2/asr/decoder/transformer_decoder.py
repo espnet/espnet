@@ -625,11 +625,13 @@ class TransformerMDDecoder(BaseTransformerDecoder):
                 dropout_rate,
                 normalize_before,
                 concat_after,
-                MultiHeadedAttention(
-                    attention_heads, attention_dim, src_attention_dropout_rate
-                )
-                if use_speech_attn
-                else None,
+                (
+                    MultiHeadedAttention(
+                        attention_heads, attention_dim, src_attention_dropout_rate
+                    )
+                    if use_speech_attn
+                    else None
+                ),
             ),
         )
 

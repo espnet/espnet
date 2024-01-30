@@ -2,6 +2,7 @@
 Slighly modified versions of lhotse recipes scripts in
 https://github.com/lhotse-speech/lhotse/blob/master/lhotse/recipes/
 """
+
 import argparse
 import glob
 import json
@@ -172,9 +173,9 @@ def prepare_chime6(
                 supervisions.append(
                     SupervisionSegment(
                         id=ex_id,
-                        recording_id=session
-                        if mic == "mdm"
-                        else session + f"_{spk_id}",
+                        recording_id=(
+                            session if mic == "mdm" else session + f"_{spk_id}"
+                        ),
                         start=start,
                         duration=add_durations(end, -start, sampling_rate=16000),
                         channel=channel,
@@ -321,9 +322,9 @@ def prepare_dipco(
                 supervisions.append(
                     SupervisionSegment(
                         id=ex_id,
-                        recording_id=session
-                        if mic == "mdm"
-                        else session + "_{}".format(spk_id),
+                        recording_id=(
+                            session if mic == "mdm" else session + "_{}".format(spk_id)
+                        ),
                         start=start,
                         duration=add_durations(end, -start, sampling_rate=16000),
                         channel=channel,

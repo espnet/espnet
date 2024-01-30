@@ -1,4 +1,5 @@
 """Tests for asr_align.py."""
+
 import string
 from argparse import ArgumentParser
 from pathlib import Path
