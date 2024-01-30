@@ -1,4 +1,5 @@
 """Enhancement model module."""
+
 import contextlib
 from typing import Dict, List, Optional, OrderedDict, Tuple
 

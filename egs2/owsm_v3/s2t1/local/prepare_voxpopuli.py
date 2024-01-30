@@ -1,4 +1,5 @@
 """Prepare VoxPopuil data for multilingual ASR & ST. """
+
 import csv
 import gzip
 import json
@@ -172,9 +173,11 @@ def collect_data_st(
         src_metadata = [x for x in csv.DictReader(f, delimiter="|")]
         src_metadata = {
             "{}-{}".format(r["session_id"], r["id_"]): (
-                r["original_text"]
-                if len(r["original_text"].strip()) > 0
-                else r["normed_text"],
+                (
+                    r["original_text"]
+                    if len(r["original_text"].strip()) > 0
+                    else r["normed_text"]
+                ),
                 r["split"],
             )
             for r in src_metadata
