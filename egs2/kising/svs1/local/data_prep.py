@@ -34,6 +34,9 @@ from espnet2.fileio.score_scp import SingingScoreWriter
 """Transfer music score into 'score' format."""
 
 
+TEST_SET = [425, 434, 435]
+
+
 def makedir(data_url):
     if os.path.exists(data_url):
         shutil.rmtree(data_url)
@@ -535,7 +538,7 @@ def segment_dataset(args):
         test_transcript = []
         for line in transcript:
             song_id = line.split("|")[0].split("_")[0].split("-")[0]
-            if int(song_id) > 440:
+            if int(song_id) in TEST_SET:
                 test_transcript.append(line)
             else:
                 train_transcript.append(line)
