@@ -199,7 +199,7 @@ class VideoReader(object):
     def __getitem__(self, index):
         if type(index) not in [int, str]:
             raise IndexError("Unsupported index type: {}".format(type(index)))
-        if type(index) == int:
+        if type(index) is int:
             # from int index to key
             num_utts = len(self.index_keys)
             if index >= num_utts or index < 0:

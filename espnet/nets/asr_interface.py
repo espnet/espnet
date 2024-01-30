@@ -1,4 +1,5 @@
 """ASR Interface module."""
+
 import argparse
 
 from espnet.bin.asr_train import get_parser

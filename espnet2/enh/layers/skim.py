@@ -145,7 +145,6 @@ class MemLSTM(nn.Module):
 
 
 class SegLSTM(nn.Module):
-
     """the Seg-LSTM of SkiM
 
     args:

@@ -37,6 +37,11 @@ train_dev="dev"
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
     # The ACESINGER data should be downloaded
+
+    log "automatically download from google drive"
+    ./local/download_wget.sh "1qHLW3U7a0z8FpWuaEUmY-LViBIwRmeM0"  ${ACESINGER}/ACESinger.zip
+
+    unzip ${ACESINGER}/ACESinger.zip -d ${ACESINGER}
 fi
 
 if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
@@ -44,7 +49,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
 
     mkdir -p wav_dump
     # we convert the music score to xml format
-    python local/data_prep.py ${ACESINGER} --midi_note_scp local/midi-note.scp \
+    python local/data_prep.py ${ACESINGER}/ACESinger --midi_note_scp local/midi-note.scp \
         --wav_dumpdir wav_dump \
         --sr ${fs} \
         --g2p ${g2p} \
