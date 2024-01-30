@@ -445,15 +445,17 @@ class ESPnetSTModel(AbsESPnetModel):
             loss=loss.detach(),
             loss_asr=loss_asr.detach() if type(loss_asr) is not float else loss_asr,
             loss_mt=loss_mt.detach() if type(loss_mt) is not float else loss_mt,
-            loss_st_ctc=loss_st_ctc.detach()
-            if type(loss_st_ctc) is not float
-            else loss_st_ctc,
-            loss_st_trans=loss_st_trans.detach()
-            if type(loss_st_trans) is not float
-            else loss_st_trans,
-            loss_st_att=loss_st_att.detach()
-            if type(loss_st_att) is not float
-            else loss_st_att,
+            loss_st_ctc=(
+                loss_st_ctc.detach() if type(loss_st_ctc) is not float else loss_st_ctc
+            ),
+            loss_st_trans=(
+                loss_st_trans.detach()
+                if type(loss_st_trans) is not float
+                else loss_st_trans
+            ),
+            loss_st_att=(
+                loss_st_att.detach() if type(loss_st_att) is not float else loss_st_att
+            ),
             loss_st=loss_st.detach(),
             acc_asr=acc_asr_att,
             acc_mt=acc_mt_att,

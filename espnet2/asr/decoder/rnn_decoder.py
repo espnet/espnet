@@ -121,16 +121,20 @@ class RNNDecoder(AbsDecoder):
         self.decoder = torch.nn.ModuleList()
         self.dropout_dec = torch.nn.ModuleList()
         self.decoder += [
-            torch.nn.LSTMCell(hidden_size + eprojs, hidden_size)
-            if self.dtype == "lstm"
-            else torch.nn.GRUCell(hidden_size + eprojs, hidden_size)
+            (
+                torch.nn.LSTMCell(hidden_size + eprojs, hidden_size)
+                if self.dtype == "lstm"
+                else torch.nn.GRUCell(hidden_size + eprojs, hidden_size)
+            )
         ]
         self.dropout_dec += [torch.nn.Dropout(p=dropout)]
         for _ in range(1, self.dlayers):
             self.decoder += [
-                torch.nn.LSTMCell(hidden_size, hidden_size)
-                if self.dtype == "lstm"
-                else torch.nn.GRUCell(hidden_size, hidden_size)
+                (
+                    torch.nn.LSTMCell(hidden_size, hidden_size)
+                    if self.dtype == "lstm"
+                    else torch.nn.GRUCell(hidden_size, hidden_size)
+                )
             ]
             self.dropout_dec += [torch.nn.Dropout(p=dropout)]
             # NOTE: dropout is applied only for the vertical connections

@@ -1,4 +1,5 @@
 """Sequential implementation of Recurrent Neural Network Language Model."""
+
 from typing import Tuple, Union
 
 import torch

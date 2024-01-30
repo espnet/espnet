@@ -751,9 +751,11 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
             token_list=token_list[0],
             bpemodel=bpemodel[0],
             text_cleaner=text_cleaner,
-            g2p_type=g2p_type[0]
-            if type(g2p_type) is not str and g2p_type is not None
-            else g2p_type,
+            g2p_type=(
+                g2p_type[0]
+                if type(g2p_type) is not str and g2p_type is not None
+                else g2p_type
+            ),
             unk_symbol=unk_symbol,
             space_symbol=space_symbol,
             non_linguistic_symbols=non_linguistic_symbols,
@@ -802,9 +804,9 @@ class MutliTokenizerCommonPreprocessor(CommonPreprocessor):
                             if i < len(tokenizer_encode_conf)
                             else None
                         ),
-                        whisper_language=whisper_language[i]
-                        if "whisper" in token_type[i]
-                        else None,
+                        whisper_language=(
+                            whisper_language[i] if "whisper" in token_type[i] else None
+                        ),
                         whisper_task=whisper_task,
                     )
                 )

@@ -17,6 +17,7 @@ Expects data to be in:
 Required packages:
     Pillow
 """
+
 import argparse
 import os
 
