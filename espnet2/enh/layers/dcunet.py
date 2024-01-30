@@ -223,9 +223,11 @@ def make_unet_encoder_decoder_args(encoder_args, decoder_args):
             out_chan,
             tuple(kernel_size),
             tuple(stride),
-            tuple([n // 2 for n in kernel_size])
-            if padding == "auto"
-            else tuple(padding),
+            (
+                tuple([n // 2 for n in kernel_size])
+                if padding == "auto"
+                else tuple(padding)
+            ),
             tuple(dilation),
         )
         for in_chan, out_chan, kernel_size, stride, padding, dilation in encoder_args

@@ -1,6 +1,7 @@
 """
 Split AphasiaBank into train, test and val sets, according to config.py
 """
+
 import os
 from argparse import ArgumentParser
 

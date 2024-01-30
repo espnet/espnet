@@ -283,17 +283,17 @@ class BatchBeamSearch(BeamSearch):
             hs, scores, states = self.score_full(
                 running_hyps,
                 x.expand(n_batch, *x.shape),
-                pre_x=pre_x.expand(n_batch, *pre_x.shape)
-                if pre_x is not None
-                else None,
+                pre_x=(
+                    pre_x.expand(n_batch, *pre_x.shape) if pre_x is not None else None
+                ),
             )
         else:
             scores, states = self.score_full(
                 running_hyps,
                 x.expand(n_batch, *x.shape),
-                pre_x=pre_x.expand(n_batch, *pre_x.shape)
-                if pre_x is not None
-                else None,
+                pre_x=(
+                    pre_x.expand(n_batch, *pre_x.shape) if pre_x is not None else None
+                ),
             )
 
         for k in self.full_scorers:
