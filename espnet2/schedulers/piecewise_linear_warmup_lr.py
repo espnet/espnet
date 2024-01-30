@@ -1,4 +1,5 @@
 """Piecewise linear warm up learning rate scheduler module."""
+
 from typing import List, Union
 
 import numpy as np

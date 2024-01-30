@@ -172,9 +172,9 @@ def diarize_session(
             segmentation.sum((0, 1))
         )  # not the best selection criteria
         # however this keeps it simple and fast.
-        selected_audio[
-            :, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)
-        ] = c_seg[selection]
+        selected_audio[:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)] = (
+            c_seg[selection]
+        )
         selected_seg.append(segmentation[..., selection])
     # stack em
     selected_seg = SlidingWindowFeature(

@@ -1330,9 +1330,11 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
     device = torch.device("cuda")
     model.to(device)
     inputs = {
-        k: {k2: v2.to(device) for k2, v2 in v.items()}
-        if isinstance(v, dict)
-        else v.to(device)
+        k: (
+            {k2: v2.to(device) for k2, v2 in v.items()}
+            if isinstance(v, dict)
+            else v.to(device)
+        )
         for k, v in inputs.items()
     }
     gen_loss = model(forward_generator=True, **inputs)["loss"]
@@ -1398,9 +1400,11 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
             pitch=torch.randn(16, 1),
         )
         inputs = {
-            k: {k2: v2.to(device) for k2, v2 in v.items()}
-            if isinstance(v, dict)
-            else v.to(device)
+            k: (
+                {k2: v2.to(device) for k2, v2 in v.items()}
+                if isinstance(v, dict)
+                else v.to(device)
+            )
             for k, v in inputs.items()
         }
         model.inference(**inputs)
@@ -1461,9 +1465,11 @@ def test_vits_is_trainable_and_decodable_on_gpu(gen_dict, dis_dict, loss_dict):
             feats=torch.randn(16, odim),
         )
         inputs = {
-            k: {k2: v2.to(device) for k2, v2 in v.items()}
-            if isinstance(v, dict)
-            else v.to(device)
+            k: (
+                {k2: v2.to(device) for k2, v2 in v.items()}
+                if isinstance(v, dict)
+                else v.to(device)
+            )
             for k, v in inputs.items()
         }
         output_dict = model.inference(**inputs, use_teacher_forcing=True)
@@ -1550,9 +1556,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
     device = torch.device("cuda")
     model.to(device)
     inputs = {
-        k: {k2: v2.to(device) for k2, v2 in v.items()}
-        if isinstance(v, dict)
-        else v.to(device)
+        k: (
+            {k2: v2.to(device) for k2, v2 in v.items()}
+            if isinstance(v, dict)
+            else v.to(device)
+        )
         for k, v in inputs.items()
     }
     gen_loss = model(forward_generator=True, **inputs)["loss"]
@@ -1624,9 +1632,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         inputs = {
-            k: {k2: v2.to(device) for k2, v2 in v.items()}
-            if isinstance(v, dict)
-            else v.to(device)
+            k: (
+                {k2: v2.to(device) for k2, v2 in v.items()}
+                if isinstance(v, dict)
+                else v.to(device)
+            )
             for k, v in inputs.items()
         }
         model.inference(**inputs)
@@ -1693,9 +1703,11 @@ def test_multi_speaker_vits_is_trainable_and_decodable_on_gpu(
         if spk_embed_dim > 0:
             inputs["spembs"] = torch.randn(spk_embed_dim)
         inputs = {
-            k: {k2: v2.to(device) for k2, v2 in v.items()}
-            if isinstance(v, dict)
-            else v.to(device)
+            k: (
+                {k2: v2.to(device) for k2, v2 in v.items()}
+                if isinstance(v, dict)
+                else v.to(device)
+            )
             for k, v in inputs.items()
         }
         output_dict = model.inference(**inputs, use_teacher_forcing=True)

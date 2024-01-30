@@ -62,11 +62,10 @@ if [ ! -f ${tar_path} ]; then
     echo ${instructions}
 fi
 
-if ! tar -zxvf ${tar_path} -d -C ${data}; then
+if ! tar -zxvf ${tar_path} -C ${data}; then
     echo "$0: error un-tarring archive ${tar_path}"
     exit 1;
 fi
-
 touch ${data}/.complete_en_${lang}
 echo "$0: Successfully downloaded and un-tarred ${tar_path}"
 
