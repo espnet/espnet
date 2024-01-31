@@ -280,6 +280,8 @@
 <span class="c1"># &#39;https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/noise-pretrain/large_vox_iter5.pt&#39;</span>
 <span class="c1"># avhubert_url(noise_base):</span>
 <span class="c1"># &#39;https://dl.fbaipublicfiles.com/avhubert/model/lrs3_vox/noise-pretrain/base_vox_iter5.pt&#39;</span>
+
+
 <div class="viewcode-block" id="FairseqAVHubertEncoder"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder">[docs]</a><span class="k">class</span> <span class="nc">FairseqAVHubertEncoder</span><span class="p">(</span><span class="n">AbsEncoder</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;FairSeq AVHubert pretrained encoder module</span>
 
@@ -311,12 +313,21 @@
         <span class="n">encoder_attention_heads</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">16</span><span class="p">,</span>
         <span class="n">extracted</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
         <span class="n">pretrain</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="n">modality_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">audio_dropout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">noise_augmentation</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="n">noise_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;./data/babble_noise.pt&quot;</span><span class="p">,</span>
+        <span class="n">max_noise_weight</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+        <span class="n">audio_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
     <span class="p">):</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_output_size</span> <span class="o">=</span> <span class="n">encoder_embed_dim</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">extracted</span> <span class="o">=</span> <span class="n">extracted</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modality_dropout</span> <span class="o">=</span> <span class="n">modality_dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audio_dropout</span> <span class="o">=</span> <span class="n">audio_dropout</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audio_only</span> <span class="o">=</span> <span class="n">audio_only</span>
 
         <span class="n">arg_overrides</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s2">&quot;encoder_embed_dim&quot;</span><span class="p">:</span> <span class="n">encoder_embed_dim</span><span class="p">,</span>
@@ -333,12 +344,14 @@
             <span class="s2">&quot;encoder_layers&quot;</span><span class="p">:</span> <span class="n">encoder_layers</span><span class="p">,</span>
             <span class="s2">&quot;encoder_ffn_embed_dim&quot;</span><span class="p">:</span> <span class="n">encoder_ffn_embed_dim</span><span class="p">,</span>
             <span class="s2">&quot;encoder_attention_heads&quot;</span><span class="p">:</span> <span class="n">encoder_attention_heads</span><span class="p">,</span>
+            <span class="s2">&quot;audio_only&quot;</span><span class="p">:</span> <span class="n">audio_only</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="n">default_cfg</span> <span class="o">=</span> <span class="n">AVHubertConfig</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_val</span> <span class="ow">in</span> <span class="n">arg_overrides</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="n">default_cfg</span><span class="p">,</span> <span class="n">arg_name</span><span class="p">,</span> <span class="n">arg_val</span><span class="p">)</span>
 
         <span class="n">model</span> <span class="o">=</span> <span class="n">AVHubertModel</span><span class="o">.</span><span class="n">build_model</span><span class="p">(</span><span class="n">cfg</span><span class="o">=</span><span class="n">default_cfg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">modality_fuse</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">modality_fuse</span>
 
         <span class="k">if</span> <span class="n">pretrain</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">avhubert_model_path</span> <span class="o">=</span> <span class="n">download_avhubert</span><span class="p">(</span>
@@ -366,6 +379,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">pretrained_params</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span> <span class="o">=</span> <span class="n">model</span>
+
+        <span class="k">if</span> <span class="n">noise_augmentation</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">noise_path</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_noise_weight</span> <span class="o">=</span> <span class="n">max_noise_weight</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">max_noise_weight</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">freeze_finetune_updates</span> <span class="o">=</span> <span class="n">freeze_finetune_updates</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">register_buffer</span><span class="p">(</span><span class="s2">&quot;num_updates&quot;</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">LongTensor</span><span class="p">([</span><span class="mi">0</span><span class="p">]))</span>
@@ -417,6 +437,45 @@
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">training</span><span class="p">:</span>
                 <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">time_masking</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
 
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">modality_dropout</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">modality_fuse</span> <span class="o">==</span> <span class="s2">&quot;concat&quot;</span><span class="p">:</span>
+                    <span class="n">modality_drop_prob</span><span class="p">,</span> <span class="n">audio_drop_prob</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(),</span>
+                        <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">(),</span>
+                    <span class="p">)</span>
+                    <span class="k">if</span> <span class="n">modality_drop_prob</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">modality_dropout</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">audio_drop_prob</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">audio_dropout</span><span class="p">:</span>
+                            <span class="c1"># first half dimension is audio features</span>
+                            <span class="n">modal_masks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
+                            <span class="n">modal_masks</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="n">modal_masks</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+                            <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span> <span class="o">*</span> <span class="n">modal_masks</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># last half dimension is video features</span>
+                            <span class="n">modal_masks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
+                            <span class="n">modal_masks</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">modal_masks</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span> <span class="p">:]</span> <span class="o">=</span> <span class="mf">0.0</span>
+                            <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span> <span class="o">*</span> <span class="n">modal_masks</span>
+
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">start_ind</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span>
+                        <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="o">-</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">size</span><span class="o">=</span><span class="p">[</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">)]</span>
+                    <span class="p">)</span>  <span class="c1"># B</span>
+                    <span class="n">noise_ind</span> <span class="o">=</span> <span class="n">start_ind</span><span class="o">.</span><span class="n">view</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">torch</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span>
+                        <span class="mi">0</span><span class="p">,</span> <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="p">)</span><span class="o">.</span><span class="n">unsqueeze</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+                        <span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="mi">1</span>
+                    <span class="p">)</span>  <span class="c1"># B,T</span>
+                    <span class="n">noise_weight</span> <span class="o">=</span> <span class="p">(</span>
+                        <span class="n">torch</span><span class="o">.</span><span class="n">rand</span><span class="p">([</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                        <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_noise_weight</span>
+                    <span class="p">)</span>
+                    <span class="n">xs_pad</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">noise_weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">xs_pad</span> <span class="o">+</span> <span class="n">noise_weight</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">noise</span><span class="p">[</span>
+                        <span class="n">noise_ind</span>
+                    <span class="p">]</span><span class="o">.</span><span class="n">to</span><span class="p">(</span><span class="n">xs_pad</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">audio_only</span><span class="p">:</span>
+                <span class="n">modal_masks</span> <span class="o">=</span> <span class="n">torch</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">)</span>
+                <span class="n">modal_masks</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span> <span class="n">modal_masks</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">xs_pad</span> <span class="o">=</span> <span class="n">xs_pad</span> <span class="o">*</span> <span class="n">modal_masks</span>
+
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_updates</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">freeze_finetune_updates</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">num_updates</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="k">elif</span> <span class="n">ft</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_updates</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">freeze_finetune_updates</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
@@ -444,8 +503,14 @@
         <span class="bp">self</span><span class="p">,</span>
         <span class="n">xs_pad</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">],</span>
     <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">:</span>
-        <span class="n">audio_feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="o">.</span><span class="n">forward_audio</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">[</span><span class="s2">&quot;audio&quot;</span><span class="p">])</span>
-        <span class="n">video_feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="o">.</span><span class="n">forward_video</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">[</span><span class="s2">&quot;video&quot;</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">xs_pad</span><span class="p">[</span><span class="s2">&quot;audio&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">audio_feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="o">.</span><span class="n">forward_audio</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">[</span><span class="s2">&quot;audio&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">audio_feats</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">if</span> <span class="n">xs_pad</span><span class="p">[</span><span class="s2">&quot;video&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">video_feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="o">.</span><span class="n">forward_video</span><span class="p">(</span><span class="n">xs_pad</span><span class="p">[</span><span class="s2">&quot;video&quot;</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">video_feats</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoders</span><span class="o">.</span><span class="n">modality_fusion</span><span class="p">(</span><span class="n">audio_feats</span><span class="p">,</span> <span class="n">video_feats</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="FairseqAVHubertEncoder.reload_pretrained_parameters"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.avhubert_encoder.FairseqAVHubertEncoder.reload_pretrained_parameters">[docs]</a>    <span class="k">def</span> <span class="nf">reload_pretrained_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -711,6 +776,10 @@
         <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
         <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;share decoder input and output embeddings&quot;</span><span class="p">},</span>
     <span class="p">)</span>
+    <span class="n">audio_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;whether to use audio stream only&quot;</span><span class="p">},</span>
+    <span class="p">)</span>
     <span class="n">no_scale_embedding</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;help&quot;</span><span class="p">:</span> <span class="s2">&quot;scale embedding&quot;</span><span class="p">})</span></div>
 
 
@@ -812,6 +881,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span> <span class="o">=</span> <span class="n">TransformerEncoder</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span> <span class="o">=</span> <span class="n">LayerNorm</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">embed</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">audio_only</span> <span class="o">=</span> <span class="n">cfg</span><span class="o">.</span><span class="n">audio_only</span>
 
 <div class="viewcode-block" id="AVHubertModel.build_model"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.build_model">[docs]</a>    <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="n">AVHubertConfig</span><span class="p">):</span>
@@ -857,7 +927,7 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">src_audio</span><span class="p">,</span> <span class="n">src_video</span> <span class="o">=</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;audio&quot;</span><span class="p">],</span> <span class="n">source</span><span class="p">[</span><span class="s2">&quot;video&quot;</span><span class="p">]</span>
 
-        <span class="k">if</span> <span class="n">src_audio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">src_video</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">src_audio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">src_video</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">audio_only</span><span class="p">:</span>
             <span class="n">features_audio</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">forward_features</span><span class="p">(</span>
                 <span class="n">src_audio</span><span class="p">,</span> <span class="n">modality</span><span class="o">=</span><span class="s2">&quot;audio&quot;</span>
             <span class="p">)</span>  <span class="c1"># features: [B, F, T]</span>
@@ -924,11 +994,11 @@
         <span class="k">return</span> <span class="n">features_video</span></div>
 
 <div class="viewcode-block" id="AVHubertModel.modality_fusion"><a class="viewcode-back" href="../../../../_gen/espnet2.asr.html#espnet2.asr.encoder.avhubert_encoder.AVHubertModel.modality_fusion">[docs]</a>    <span class="k">def</span> <span class="nf">modality_fusion</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features_audio</span><span class="p">,</span> <span class="n">features_video</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">features_audio</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">features_video</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">features_video</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">features_audio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">features_video</span> <span class="o">=</span> <span class="n">features_audio</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span>
                 <span class="n">features_audio</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_embed_dim</span><span class="p">,</span> <span class="n">features_audio</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="p">)</span>
-        <span class="k">elif</span> <span class="n">features_video</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">features_audio</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">elif</span> <span class="n">features_audio</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">features_video</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">features_audio</span> <span class="o">=</span> <span class="n">features_video</span><span class="o">.</span><span class="n">new_zeros</span><span class="p">(</span>
                 <span class="n">features_video</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder_embed_dim</span><span class="p">,</span> <span class="n">features_video</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="p">)</span>
