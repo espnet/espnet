@@ -20,6 +20,9 @@ fs=44100
 g2p=None
 dataset='all'
 
+train_set="tr_no_dev"
+train_dev="dev"
+
 log "$0 $*"
 
 . utils/parse_options.sh || exit 1;
@@ -31,16 +34,13 @@ fi
 
 mkdir -p ${KISING}
 
-train_set="tr_no_dev"
-train_dev="dev"
-
 if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     log "stage 0: Data Download"
     log "The KISING data should be downloaded"
 
     log "automatically download from google drive"
-    ./download_wget.sh "1Wi8luF2QF6jsXYnO78uiWqZGJrtGuXb_"  ${KISING}/kising-v2.zip
-    ./download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz"  ${KISING}/kising-v2-original.zip
+    ./local/download_wget.sh "1Wi8luF2QF6jsXYnO78uiWqZGJrtGuXb_"  ${KISING}/kising-v2.zip
+    ./local/download_wget.sh "1VX8Fbu-Etv94LZHx928VJ12jfP8MEBNz"  ${KISING}/kising-v2-original.zip
 
     unzip ${KISING}/kising-v2.zip -d ${KISING}/KISING
     unzip ${KISING}/kising-v2-original.zip -d ${KISING}/KISING
@@ -57,7 +57,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
         --sr ${fs} \
         --g2p ${g2p}\
         --dataset ${dataset}
-    for src_data in train test; do
+    for src_data in train_${dataset} test_${dataset}; do
         utils/utt2spk_to_spk2utt.pl < data/${src_data}/utt2spk > data/${src_data}/spk2utt
         utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${src_data}
     done
@@ -73,10 +73,10 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
             cp data/train/${extra_file} data/${dset}
         done
     done
-    tail -n 50 data/train/wav.scp > data/dev/wav.scp
-    utils/filter_scp.pl --exclude data/dev/wav.scp data/train/wav.scp > data/tr_no_dev/wav.scp
+    tail -n 50 data/train_${dataset}/wav.scp > data/${train_dev}/wav.scp
+    utils/filter_scp.pl --exclude data/dev/wav.scp data/train_${dataset}/wav.scp > data/${train_set}/wav.scp
 
-    utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/tr_no_dev
-    utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/dev
+    utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${train_set}
+    utils/fix_data_dir.sh --utt_extra_files "label score.scp" data/${train_dev}
 
 fi
