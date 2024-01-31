@@ -115,9 +115,10 @@ def process_utterance(
             continue
         aligned_note = detailed_info[1].split("]")[0]
         phones = re.findall(pattern, detailed_info[0])
-        assert (
-            len(phones) == 1
-        ), f"len(phones)={len(phones)} is not 1. Find more or no patterns from {detailed_info[0]}"
+        assert len(phones) == 1, (
+            f"len(phones)={len(phones)} is not 1. "
+            f"Find more or no patterns from {detailed_info[0]}"
+        )
         phn = phones[0][3]
         if phn in sil:
             if seg_len_phns > 0:
