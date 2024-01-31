@@ -18,8 +18,16 @@ is_torch_1_9_plus = V(torch.__version__) >= V("1.9.0")
 @pytest.mark.parametrize("center", [True])
 @pytest.mark.parametrize("normalized", [True, False])
 @pytest.mark.parametrize("onesided", [True, False])
+@pytest.mark.parametrize("spec_transform_type", ["none", "exponent", "log"])
 def test_STFTDecoder_backward(
-    n_fft, win_length, hop_length, window, center, normalized, onesided
+    n_fft,
+    win_length,
+    hop_length,
+    window,
+    center,
+    normalized,
+    onesided,
+    spec_transform_type,
 ):
     decoder = STFTDecoder(
         n_fft=n_fft,
@@ -29,6 +37,7 @@ def test_STFTDecoder_backward(
         center=center,
         normalized=normalized,
         onesided=onesided,
+        spec_transform_type=spec_transform_type,
     )
 
     real = torch.rand(2, 300, n_fft // 2 + 1 if onesided else n_fft, requires_grad=True)

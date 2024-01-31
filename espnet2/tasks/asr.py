@@ -403,9 +403,7 @@ class ASRTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -438,32 +436,34 @@ class ASRTask(AbsTask):
                 g2p_type=args.g2p,
                 # NOTE(kamo): Check attribute existence for backward compatibility
                 rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
+                rir_apply_prob=(
+                    args.rir_apply_prob if hasattr(args, "rir_apply_prob") else 1.0
+                ),
                 noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                short_noise_thres=args.short_noise_thres
-                if hasattr(args, "short_noise_thres")
-                else 0.5,
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
-                else None,
-                aux_task_names=args.aux_ctc_tasks
-                if hasattr(args, "aux_ctc_tasks")
-                else None,
-                use_lang_prompt=args.use_lang_prompt
-                if hasattr(args, "use_lang_prompt")
-                else None,
+                noise_apply_prob=(
+                    args.noise_apply_prob if hasattr(args, "noise_apply_prob") else 1.0
+                ),
+                noise_db_range=(
+                    args.noise_db_range if hasattr(args, "noise_db_range") else "13_15"
+                ),
+                short_noise_thres=(
+                    args.short_noise_thres
+                    if hasattr(args, "short_noise_thres")
+                    else 0.5
+                ),
+                speech_volume_normalize=(
+                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
+                ),
+                aux_task_names=(
+                    args.aux_ctc_tasks if hasattr(args, "aux_ctc_tasks") else None
+                ),
+                use_lang_prompt=(
+                    args.use_lang_prompt if hasattr(args, "use_lang_prompt") else None
+                ),
                 **args.preprocessor_conf,
-                use_nlp_prompt=args.use_nlp_prompt
-                if hasattr(args, "use_nlp_prompt")
-                else None,
+                use_nlp_prompt=(
+                    args.use_nlp_prompt if hasattr(args, "use_nlp_prompt") else None
+                ),
             )
         else:
             retval = None

@@ -128,7 +128,11 @@ def make_segment(file_id, tempo, notes, threshold, sil=["P", "B"]):
                 and note.lyric == "か"
                 and notes[i + 2].lyric == "か"
             )
-            or ("aria" in file_id and note.lyric == "でぃ" and notes[i - 1].lyric == "い")
+            or (
+                "aria" in file_id
+                and note.lyric == "でぃ"
+                and notes[i - 1].lyric == "い"
+            )
             or ("aria" in file_id and note.lyric == "ぷ" and notes[i - 1].lyric == "じ")
             or (
                 "antagata_dokosa" in file_id
