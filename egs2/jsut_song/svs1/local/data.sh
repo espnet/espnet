@@ -43,7 +43,7 @@ if [ ${stage} -le 0 ] && [ ${stop_stage} -ge 0 ]; then
     # The jsut-song data should be downloaded from https://sites.google.com/site/shinnosuketakamichi/publication/jsut-song
     # Terms from https://sites.google.com/site/shinnosuketakamichi/publication/jsut-song
 
-    # Please ensure that you've downloaded songs (jsut-song_ver1.zip) and labels (jsut-song_label.zip) to ${JSUT_SONG}, and unzip them before proceeding
+    # Please ensure that you've downloaded songs (jsut-song_ver1.zip) and labels (jsut-song_label.zip) to ${JSUT_SONG} before proceeding
     unzip ${JSUT_SONG}/jsut-song_ver1.zip -d ${JSUT_SONG}
     unzip ${JSUT_SONG}/jsut-song_label.zip -d ${JSUT_SONG}
     rm ${JSUT_SONG}/jsut-song_ver1.zip
