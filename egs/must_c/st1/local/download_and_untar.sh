@@ -27,7 +27,7 @@ if [ ! -d "${data}" ]; then
     exit 1;
 fi
 
-langs="de_es_fr_it_nl_pt_ro_ru_zh"
+langs="de_es_fr_it_nl_pt_ro_ru_zh_ja"
 if [ ! "$(echo ${langs} | grep ${lang})" ]; then
     echo "$0: no such lang ${lang}"
     exit 1;
