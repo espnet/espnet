@@ -6,7 +6,7 @@
 # set -o pipefail
 
 src_lang=en
-tgt_lang=de
+tgt_lang=ja # zh # de
 
 train_set=train.en-${tgt_lang}
 train_dev=dev.en-${tgt_lang}
