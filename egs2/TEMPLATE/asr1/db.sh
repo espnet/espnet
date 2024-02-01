@@ -89,6 +89,7 @@ NIT_SONG070=
 JMD=downloads
 JSSS=downloads
 JSUT=downloads
+JSUT_SONG=
 JTUBESPEECH=downloads
 JVS=downloads
 KISING=downloads
