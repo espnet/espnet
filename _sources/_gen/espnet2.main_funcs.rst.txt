@@ -37,23 +37,23 @@ espnet2.main_funcs.collect_stats
     :show-inheritance:
 
 
-.. _espnet2.main_funcs.pack_funcs:
-
-espnet2.main_funcs.pack_funcs
------------------------------
-
-.. automodule:: espnet2.main_funcs.pack_funcs
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet2.main_funcs.__init__:
 
 espnet2.main_funcs.__init__
 ---------------------------
 
 .. automodule:: espnet2.main_funcs.__init__
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet2.main_funcs.pack_funcs:
+
+espnet2.main_funcs.pack_funcs
+-----------------------------
+
+.. automodule:: espnet2.main_funcs.pack_funcs
     :members:
     :undoc-members:
     :show-inheritance:
