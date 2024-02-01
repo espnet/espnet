@@ -1300,6 +1300,9 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
         _opts+="--use_lang_prompt ${use_lang_prompt} "
         _opts+="--use_nlp_prompt ${use_nlp_prompt} "
     fi
+    if ${use_text_prev}; then
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text_prev,text_prev,text "
+    fi
 
     # shellcheck disable=SC2046,SC2086
     ${train_cmd} JOB=1:"${_nj}" "${_logdir}"/stats.JOB.log \
@@ -1455,6 +1458,11 @@ if [ ${stage} -le 11 ] && [ ${stop_stage} -ge 11 ] && ! [[ " ${skip_stages} " =~
         _opts+="--use_lang_prompt ${use_lang_prompt} "
         _opts+="--use_nlp_prompt ${use_nlp_prompt} "
     fi
+    if ${use_text_prev}; then
+        _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text_prev,text_prev,text "
+        _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/text_prev,text_prev,text "
+    fi
+
     log "Generate '${asr_exp}/run.sh'. You can resume the process from stage 11 using this script"
     mkdir -p "${asr_exp}"; echo "${run_args} --stage 11 \"\$@\"; exit \$?" > "${asr_exp}/run.sh"; chmod +x "${asr_exp}/run.sh"
 
