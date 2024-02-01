@@ -21,6 +21,7 @@ SECONDS=0
 stage=1
 stop_stage=100
 fs=24000
+# shellcheck disable=SC2034
 g2p=None
 
 log "$0 $*"
