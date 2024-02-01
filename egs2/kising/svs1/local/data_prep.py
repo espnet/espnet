@@ -34,6 +34,9 @@ from espnet2.fileio.score_scp import SingingScoreWriter
 """Transfer music score into 'score' format."""
 
 
+TEST_SET = [425, 434, 435]
+
+
 def makedir(data_url):
     if os.path.exists(data_url):
         shutil.rmtree(data_url)
@@ -427,17 +430,20 @@ def process_utterance(
 
 
 def process_subset(args, set_name, tempos):
-    makedir(os.path.join(args.tgt_dir, set_name))
+    folder_name = set_name + "_{}".format(args.dataset)
+    makedir(os.path.join(args.tgt_dir, folder_name))
     wavscp = open(
-        os.path.join(args.tgt_dir, set_name, "wav.scp"), "w", encoding="utf-8"
+        os.path.join(args.tgt_dir, folder_name, "wav.scp"), "w", encoding="utf-8"
     )
-    label = open(os.path.join(args.tgt_dir, set_name, "label"), "w", encoding="utf-8")
-    text = open(os.path.join(args.tgt_dir, set_name, "text"), "w", encoding="utf-8")
+    label = open(
+        os.path.join(args.tgt_dir, folder_name, "label"), "w", encoding="utf-8"
+    )
+    text = open(os.path.join(args.tgt_dir, folder_name, "text"), "w", encoding="utf-8")
     utt2spk = open(
-        os.path.join(args.tgt_dir, set_name, "utt2spk"), "w", encoding="utf-8"
+        os.path.join(args.tgt_dir, folder_name, "utt2spk"), "w", encoding="utf-8"
     )
     writer = SingingScoreWriter(
-        args.score_dump, os.path.join(args.tgt_dir, set_name, "score.scp")
+        args.score_dump, os.path.join(args.tgt_dir, folder_name, "score.scp")
     )
 
     midi_mapping = load_midi_note_scp(args.midi_note_scp)
@@ -532,7 +538,7 @@ def segment_dataset(args):
         test_transcript = []
         for line in transcript:
             song_id = line.split("|")[0].split("_")[0].split("-")[0]
-            if int(song_id) > 440:
+            if int(song_id) in TEST_SET:
                 test_transcript.append(line)
             else:
                 train_transcript.append(line)
