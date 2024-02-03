@@ -80,7 +80,7 @@ elif [ "${cmd_backend}" = slurm ]; then
     # You can use "--gpu * " by default for slurm and it is interpreted as "--gres gpu:*"
     # The devices are allocated exclusively using "${CUDA_VISIBLE_DEVICES}".
 
-    export train_cmd="slurm.pl --mem 8GB --time 12:00:00"
+    export train_cmd="slurm.pl --mem 16GB --time 2-00:00:00 --num_threads 2"
     export cuda_cmd="slurm.pl --mem 16GB --time 3-00:00:00 --num_threads 12"
     export decode_cmd="slurm.pl"
 

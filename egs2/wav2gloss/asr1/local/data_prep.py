@@ -84,7 +84,7 @@ def _cleaner(s):
     return "".join([chr(ord(c)) for c in s if ord(c) != 160])
 
 
-def write_dir(target_dir, metadata, min_wav_length):
+def write_dir(task, target_dir, metadata, min_wav_length):
     wavscp = open(target_dir / "wav.scp", "w", encoding="utf-8")
     text = open(target_dir / "text", "w", encoding="utf-8")
     utt2spk = open(target_dir / "utt2spk", "w", encoding="utf-8")
@@ -100,6 +100,8 @@ def write_dir(target_dir, metadata, min_wav_length):
         if " " in fname:
             continue
         if meta["length"] < min_wav_length * 1000:
+            continue
+        if task == "translation" and meta["translation_language"] != "en":
             continue
 
         header = f"<task|{task}><lang|{lang}>"
@@ -173,7 +175,7 @@ if __name__ == "__main__":
                 metadata = json.load(open(metafile, encoding="utf-8"))
                 for task in TASKS:
                     target_dir = build_dir(task, lang, split)
-                    write_dir(target_dir, metadata, args.min_wav_length)
+                    write_dir(task, target_dir, metadata, args.min_wav_length)
 
     for split in ("train", "dev"):
         for lang in LANGUAGES:
