@@ -272,6 +272,11 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
         ) -> DataLoader:
             """Build DataLoader using iterable dataset"""
             assert check_argument_types()
+            if mode == "train" and cls.train_dataloader is not None:
+                return cls.train_dataloader
+            elif mode == "valid" and cls.valid_dataloader is not None:
+                return cls.valid_dataloader
+            
             # For backward compatibility for pytorch DataLoader
             if collate_fn is not None:
                 kwargs = dict(collate_fn=collate_fn)
