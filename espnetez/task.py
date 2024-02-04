@@ -186,9 +186,11 @@ def get_easy_task_with_dataset(task_name: str) -> AbsTask:
                 sort_in_batch=args.sort_in_batch,
                 sort_batch=args.sort_batch,
                 drop_last=args.drop_last_iter,
-                min_batch_size=torch.distributed.get_world_size()
-                if iter_options.distributed
-                else 1,
+                min_batch_size=(
+                    torch.distributed.get_world_size()
+                    if iter_options.distributed
+                    else 1
+                ),
                 utt2category_file=utt2category_file,
             )
 
