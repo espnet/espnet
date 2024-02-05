@@ -1302,6 +1302,7 @@ if [ ${stage} -le 10 ] && [ ${stop_stage} -ge 10 ] && ! [[ " ${skip_stages} " =~
     fi
     if ${use_text_prev}; then
         _opts+="--train_data_path_and_name_and_type ${_asr_train_dir}/text_prev,text_prev,text "
+        _opts+="--valid_data_path_and_name_and_type ${_asr_valid_dir}/text_prev,text_prev,text "
     fi
 
     # shellcheck disable=SC2046,SC2086
