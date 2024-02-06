@@ -335,8 +335,8 @@
             <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
             <span class="n">beam_size</span><span class="o">=</span><span class="n">beam_size</span><span class="p">,</span>
             <span class="n">vocab_size</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">token_list</span><span class="p">),</span>
-            <span class="n">sos</span><span class="o">=</span><span class="n">lm</span><span class="o">.</span><span class="n">sos</span><span class="p">,</span>
-            <span class="n">eos</span><span class="o">=</span><span class="n">lm</span><span class="o">.</span><span class="n">eos</span><span class="p">,</span>
+            <span class="n">sos</span><span class="o">=</span><span class="n">lm</span><span class="o">.</span><span class="n">sos_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>  <span class="c1"># not really used</span>
+            <span class="n">eos</span><span class="o">=</span><span class="n">lm</span><span class="o">.</span><span class="n">eos_id</span><span class="p">,</span>
             <span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">,</span>
             <span class="n">pre_beam_score_key</span><span class="o">=</span><span class="s2">&quot;full&quot;</span><span class="p">,</span>
         <span class="p">)</span>
@@ -405,9 +405,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">nbest</span> <span class="o">=</span> <span class="n">nbest</span>
 
     <span class="nd">@torch</span><span class="o">.</span><span class="n">no_grad</span><span class="p">()</span>
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span>
-        <span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ListOfHypothesis</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">torch</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">ListOfHypothesis</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Inference</span>
 
 <span class="sd">        Args:</span>
@@ -424,11 +422,10 @@
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">tokens</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">text2tokens</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
             <span class="n">token_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">converter</span><span class="o">.</span><span class="n">tokens2ids</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
-        <span class="k">elif</span> <span class="n">text</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">token_ids</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">token_ids</span> <span class="o">=</span> <span class="n">text</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
-        <span class="n">hyp_primer</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">sos</span><span class="p">]</span> <span class="o">+</span> <span class="n">token_ids</span>
+
+        <span class="n">hyp_primer</span> <span class="o">=</span> <span class="n">token_ids</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>  <span class="c1"># remove initial space in BPE</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">set_hyp_primer</span><span class="p">(</span><span class="n">hyp_primer</span><span class="p">)</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;hyp primer: </span><span class="si">{</span><span class="n">hyp_primer</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 
@@ -445,7 +442,8 @@
             <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">hyp</span><span class="p">,</span> <span class="n">Hypothesis</span><span class="p">),</span> <span class="nb">type</span><span class="p">(</span><span class="n">hyp</span><span class="p">)</span>
 
             <span class="c1"># remove sos/eos and convert to list</span>
-            <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">token_int</span> <span class="o">=</span> <span class="n">hyp</span><span class="o">.</span><span class="n">yseq</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">token_int</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
                 <span class="n">token_int</span> <span class="o">=</span> <span class="n">token_int</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
 
@@ -736,7 +734,7 @@
         <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
         <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Minimum output length&quot;</span><span class="p">,</span>
     <span class="p">)</span>
-    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--ngram_weight&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.9</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;ngram weight&quot;</span><span class="p">)</span>
+    <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;--ngram_weight&quot;</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">&quot;ngram weight&quot;</span><span class="p">)</span>
 
     <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="s2">&quot;Text converter related&quot;</span><span class="p">)</span>
     <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>

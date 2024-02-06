@@ -213,7 +213,7 @@
   <h1>Source code for espnet2.tasks.lm</h1><div class="highlight"><pre>
 <span></span><span class="kn">import</span> <span class="nn">argparse</span>
 <span class="kn">import</span> <span class="nn">logging</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Collection</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">torch</span>
@@ -221,11 +221,13 @@
 
 <span class="kn">from</span> <span class="nn">espnet2.lm.abs_model</span> <span class="kn">import</span> <span class="n">AbsLM</span>
 <span class="kn">from</span> <span class="nn">espnet2.lm.espnet_model</span> <span class="kn">import</span> <span class="n">ESPnetLanguageModel</span>
+<span class="kn">from</span> <span class="nn">espnet2.lm.espnet_model_multitask</span> <span class="kn">import</span> <span class="n">ESPnetMultitaskLanguageModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.lm.seq_rnn_lm</span> <span class="kn">import</span> <span class="n">SequentialRNNLM</span>
 <span class="kn">from</span> <span class="nn">espnet2.lm.transformer_lm</span> <span class="kn">import</span> <span class="n">TransformerLM</span>
 <span class="kn">from</span> <span class="nn">espnet2.tasks.abs_task</span> <span class="kn">import</span> <span class="n">AbsTask</span>
 <span class="kn">from</span> <span class="nn">espnet2.text.phoneme_tokenizer</span> <span class="kn">import</span> <span class="n">g2p_choices</span>
 <span class="kn">from</span> <span class="nn">espnet2.torch_utils.initialize</span> <span class="kn">import</span> <span class="n">initialize</span>
+<span class="kn">from</span> <span class="nn">espnet2.train.abs_espnet_model</span> <span class="kn">import</span> <span class="n">AbsESPnetModel</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.class_choices</span> <span class="kn">import</span> <span class="n">ClassChoices</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.collate_fn</span> <span class="kn">import</span> <span class="n">CommonCollateFn</span>
 <span class="kn">from</span> <span class="nn">espnet2.train.preprocessor</span> <span class="kn">import</span> <span class="n">CommonPreprocessor</span>
@@ -244,13 +246,27 @@
     <span class="n">default</span><span class="o">=</span><span class="s2">&quot;seq_rnn&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 
+<span class="n">model_choices</span> <span class="o">=</span> <span class="n">ClassChoices</span><span class="p">(</span>
+    <span class="s2">&quot;model&quot;</span><span class="p">,</span>
+    <span class="n">classes</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+        <span class="n">lm</span><span class="o">=</span><span class="n">ESPnetLanguageModel</span><span class="p">,</span>
+        <span class="n">lm_multitask</span><span class="o">=</span><span class="n">ESPnetMultitaskLanguageModel</span><span class="p">,</span>
+    <span class="p">),</span>
+    <span class="n">type_check</span><span class="o">=</span><span class="n">AbsESPnetModel</span><span class="p">,</span>
+    <span class="n">default</span><span class="o">=</span><span class="s2">&quot;lm&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+
 
 <div class="viewcode-block" id="LMTask"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.lm.LMTask">[docs]</a><span class="k">class</span> <span class="nc">LMTask</span><span class="p">(</span><span class="n">AbsTask</span><span class="p">):</span>
     <span class="c1"># If you need more than one optimizers, change this value</span>
     <span class="n">num_optimizers</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="c1"># Add variable objects configurations</span>
-    <span class="n">class_choices_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">lm_choices</span><span class="p">]</span>
+    <span class="n">class_choices_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">lm_choices</span><span class="p">,</span>
+        <span class="c1"># --model and --model_conf</span>
+        <span class="n">model_choices</span><span class="p">,</span>
+    <span class="p">]</span>
 
     <span class="c1"># If you need to modify train() or eval() procedures, change Trainer class here</span>
     <span class="n">trainer</span> <span class="o">=</span> <span class="n">Trainer</span>
@@ -285,12 +301,6 @@
                 <span class="s2">&quot;kaiming_normal&quot;</span><span class="p">,</span>
                 <span class="kc">None</span><span class="p">,</span>
             <span class="p">],</span>
-        <span class="p">)</span>
-        <span class="n">group</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
-            <span class="s2">&quot;--model_conf&quot;</span><span class="p">,</span>
-            <span class="n">action</span><span class="o">=</span><span class="n">NestedDictAction</span><span class="p">,</span>
-            <span class="n">default</span><span class="o">=</span><span class="n">get_default_kwargs</span><span class="p">(</span><span class="n">ESPnetLanguageModel</span><span class="p">),</span>
-            <span class="n">help</span><span class="o">=</span><span class="s2">&quot;The keyword arguments for model class.&quot;</span><span class="p">,</span>
         <span class="p">)</span>
 
         <span class="n">group</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">add_argument_group</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Preprocess related&quot;</span><span class="p">)</span>
@@ -384,7 +394,9 @@
         <span class="k">return</span> <span class="n">retval</span></div>
 
 <div class="viewcode-block" id="LMTask.build_model"><a class="viewcode-back" href="../../../_gen/espnet2.tasks.html#espnet2.tasks.lm.LMTask.build_model">[docs]</a>    <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ESPnetLanguageModel</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span>
+        <span class="bp">cls</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">argparse</span><span class="o">.</span><span class="n">Namespace</span>
+    <span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="n">ESPnetLanguageModel</span><span class="p">,</span> <span class="n">ESPnetMultitaskLanguageModel</span><span class="p">]:</span>
         <span class="k">assert</span> <span class="n">check_argument_types</span><span class="p">()</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">token_list</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
@@ -407,7 +419,19 @@
 
         <span class="c1"># 2. Build ESPnetModel</span>
         <span class="c1"># Assume the last-id is sos_and_eos</span>
-        <span class="n">model</span> <span class="o">=</span> <span class="n">ESPnetLanguageModel</span><span class="p">(</span><span class="n">lm</span><span class="o">=</span><span class="n">lm</span><span class="p">,</span> <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">model_class</span> <span class="o">=</span> <span class="n">model_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">model</span> <span class="o">==</span> <span class="s2">&quot;lm_multitask&quot;</span><span class="p">:</span>
+                <span class="n">extra_model_conf</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">token_list</span><span class="o">=</span><span class="n">token_list</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">extra_model_conf</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="n">model_class</span> <span class="o">=</span> <span class="n">model_choices</span><span class="o">.</span><span class="n">get_class</span><span class="p">(</span><span class="s2">&quot;lm&quot;</span><span class="p">)</span>
+            <span class="n">extra_model_conf</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+
+        <span class="n">model</span> <span class="o">=</span> <span class="n">model_class</span><span class="p">(</span>
+            <span class="n">lm</span><span class="o">=</span><span class="n">lm</span><span class="p">,</span> <span class="n">vocab_size</span><span class="o">=</span><span class="n">vocab_size</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="o">.</span><span class="n">model_conf</span><span class="p">,</span> <span class="o">**</span><span class="n">extra_model_conf</span>
+        <span class="p">)</span>
 
         <span class="c1"># FIXME(kamo): Should be done in model?</span>
         <span class="c1"># 3. Initialize</span>

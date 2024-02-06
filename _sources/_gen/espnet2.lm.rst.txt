@@ -48,6 +48,17 @@ espnet2.lm.transformer_lm
     :show-inheritance:
 
 
+.. _espnet2.lm.espnet_model_multitask:
+
+espnet2.lm.espnet_model_multitask
+---------------------------------
+
+.. automodule:: espnet2.lm.espnet_model_multitask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet2.lm.__init__:
 
 espnet2.lm.__init__

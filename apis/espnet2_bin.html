@@ -6312,13 +6312,13 @@ The model configuration related:
                    [--scheduler {reducelronplateau,lambdalr,steplr,multisteplr,exponentiallr,cosineannealinglr,noamlr,warmuplr,piecewiselinearwarmuplr,warmupsteplr,warmupreducelronplateau,cycliclr,onecyclelr,cosineannealingwarmrestarts,cosineannealingwarmuprestarts,None}]
                    [--scheduler_conf SCHEDULER_CONF] [--token_list TOKEN_LIST]
                    [--init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}]
-                   [--model_conf MODEL_CONF]
                    [--use_preprocessor USE_PREPROCESSOR]
                    [--token_type {bpe,char,word}] [--bpemodel BPEMODEL]
                    [--non_linguistic_symbols NON_LINGUISTIC_SYMBOLS]
                    [--cleaner {None,tacotron,jaconv,vietnamese}]
                    [--g2p {None,g2p_en,g2p_en_no_space,pyopenjtalk,pyopenjtalk_kana,pyopenjtalk_accent,pyopenjtalk_accent_with_pause,pyopenjtalk_prosody,pypinyin_g2p,pypinyin_g2p_phone,pypinyin_g2p_phone_without_prosody,espeak_ng_arabic,espeak_ng_german,espeak_ng_french,espeak_ng_spanish,espeak_ng_russian,espeak_ng_greek,espeak_ng_finnish,espeak_ng_hungarian,espeak_ng_dutch,espeak_ng_english_us_vits,espeak_ng_hindi,espeak_ng_italian,espeak_ng_ukrainian,espeak_ng_polish,g2pk,g2pk_no_space,g2pk_explicit_space,korean_jaso,korean_jaso_no_space,g2p_is}]
                    [--lm {seq_rnn,transformer}] [--lm_conf LM_CONF]
+                   [--model {lm,lm_multitask}] [--model_conf MODEL_CONF]
 
 base parser
 
@@ -6710,8 +6710,6 @@ Optimizer related:
                         A text mapping int-id to token (default: None)
   --init {chainer,xavier_uniform,xavier_normal,kaiming_uniform,kaiming_normal,None}
                         The initialization method (default: None)
-  --model_conf MODEL_CONF
-                        The keyword arguments for model class. (default: {&#39;ignore_id&#39;: 0})
 
   Preprocess related
 
@@ -6722,6 +6720,10 @@ Optimizer related:
   --lm {seq_rnn,transformer}
                         The lm type (default: seq_rnn)
   --lm_conf LM_CONF     The keyword arguments for lm (default: {})
+  --model {lm,lm_multitask}
+                        The model type (default: lm)
+  --model_conf MODEL_CONF
+                        The keyword arguments for model (default: {})
 /home/runner/work/espnet/espnet/tools/venv/lib/python3.8/site-packages/whisper/timing.py:57: NumbaDeprecationWarning: [1mThe &#39;nopython&#39; keyword argument was not supplied to the &#39;numba.jit&#39; decorator. The implicit default value for this argument is currently False, but it will be changed to True in Numba 0.59.0. See https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit for details.[0m
   def backtrace(trace: np.ndarray):
 </pre></div>
