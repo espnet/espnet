@@ -4,6 +4,17 @@ espnet.optimizer package
 Initialize sub package.
 
 
+.. _espnet.optimizer.parser:
+
+espnet.optimizer.parser
+-----------------------
+
+.. automodule:: espnet.optimizer.parser
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 .. _espnet.optimizer.chainer:
 
 espnet.optimizer.chainer
@@ -21,17 +32,6 @@ espnet.optimizer.pytorch
 ------------------------
 
 .. automodule:: espnet.optimizer.pytorch
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-.. _espnet.optimizer.parser:
-
-espnet.optimizer.parser
------------------------
-
-.. automodule:: espnet.optimizer.parser
     :members:
     :undoc-members:
     :show-inheritance:

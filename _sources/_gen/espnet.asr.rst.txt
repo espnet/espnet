@@ -59,17 +59,6 @@ espnet.asr.chainer_backend.asr
     :show-inheritance:
 
 
-.. _espnet.asr.pytorch_backend.asr_init:
-
-espnet.asr.pytorch_backend.asr_init
------------------------------------
-
-.. automodule:: espnet.asr.pytorch_backend.asr_init
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
 .. _espnet.asr.pytorch_backend.asr_mix:
 
 espnet.asr.pytorch_backend.asr_mix
@@ -87,6 +76,17 @@ espnet.asr.pytorch_backend.recog
 --------------------------------
 
 .. automodule:: espnet.asr.pytorch_backend.recog
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+.. _espnet.asr.pytorch_backend.asr_init:
+
+espnet.asr.pytorch_backend.asr_init
+-----------------------------------
+
+.. automodule:: espnet.asr.pytorch_backend.asr_init
     :members:
     :undoc-members:
     :show-inheritance:
