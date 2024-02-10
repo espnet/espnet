@@ -67,7 +67,7 @@ except Exception:
     lora = None
 
 try :
-    import s3prl as s3prl
+    import s3prl 
 except Exception:
     s3prl = None
     

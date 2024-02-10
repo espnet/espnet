@@ -110,7 +110,7 @@ General steps to run tasks in LID trask are as follows:
 # LoRA
 use_adapter: true
 adapter: lora
-save_adapter_only: true
+save_strategy: adapter
 adapter_conf:
     rank: 4
     alpha: 4
@@ -122,7 +122,7 @@ adapter_conf:
 # Houlsby
 use_adapter: true
 adapter: houlsby
-save_adapter_only: true
+save_strategy: required_grad_only
 adapter_conf:
     bottleneck: 32
     # target layers to insert adapters, Insert adapter to all layers if not specified 

@@ -13,7 +13,16 @@ import torch
 from typeguard import check_argument_types
 from espnet2.layers.houlsby_adapter_layer import HoulsbyTransformerSentenceEncoderLayer
 from espnet2.asr.frontend.s3prl import S3prlFrontend
-
+try:
+    import loralib as lora
+except Exception:
+    lora = None
+    
+try:
+    import s3prl 
+except Exception:
+    s3prl = None
+    
 def create_adapter(
     model: torch.nn.Module,
     adapter: str,
@@ -38,7 +47,7 @@ def create_adapter(
         create_adapter_fn = create_houlsby_adapter
     
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"Adapter {adapter} is not supported.")
     create_adapter_fn(model=model, **adapter_conf)
 
     
@@ -49,6 +58,10 @@ def create_houlsby_adapter(
 ):
     assert check_argument_types()
     assert hasattr(model, 'frontend') and isinstance(model.frontend, S3prlFrontend), "Only support S3PRL frontend now !!"
+    if s3prl is None:
+        print("Error: S3PRL is not properly installed.")
+        print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
+        raise RuntimeError("Requiring S3PRL. ")
     
     is_traget_layer_exists = False
     key_list = [key for key, _ in model.named_modules()]
@@ -101,10 +114,6 @@ def create_lora_adapter(
 
    
     """
-    try:
-        import loralib as lora
-    except Exception:
-        lora = None
         
     assert check_argument_types()
 

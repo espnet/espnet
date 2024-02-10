@@ -14,7 +14,7 @@ decoder: none
 
 model_conf:
     ctc_weight: 1.0
-
+    extract_feats_in_collect_stats: False
 unused_parameters: true
 freeze_param: [
 "frontend.upstream"
@@ -34,13 +34,13 @@ preencoder_conf:
 
 use_adapter: true
 adapter: houlsby
-save_adapter_only: true
+save_strategy: required_grad_only
 adapter_conf:
     bottleneck: 32
     # target layers to insert adapters, Insert adapter to all layers if not specified 
-    target_layers: 
-    - 0
-    - 1
+    # target_layers: 
+    # - 0
+    # - 1
     
 num_workers: 4
 batch_type: sorted
@@ -76,5 +76,5 @@ specaug_conf:
     num_time_mask: 10
 
 
-num_iters_per_epoch: 10 # number of iterations per epoch
-max_epoch: 3
+num_iters_per_epoch: 0 # number of iterations per epoch
+max_epoch: 1
