@@ -224,9 +224,7 @@ class ASRTransducerTask(AbsTask):
             class_choices.add_arguments(group)
 
     @classmethod
-    def build_collate_fn(
-        cls, args: argparse.Namespace, train: bool
-    ) -> Callable[
+    def build_collate_fn(cls, args: argparse.Namespace, train: bool) -> Callable[
         [Collection[Tuple[str, Dict[str, np.ndarray]]]],
         Tuple[List[str], Dict[str, torch.Tensor]],
     ]:
@@ -272,19 +270,19 @@ class ASRTransducerTask(AbsTask):
                 text_cleaner=args.cleaner,
                 g2p_type=args.g2p,
                 rir_scp=args.rir_scp if hasattr(args, "rir_scp") else None,
-                rir_apply_prob=args.rir_apply_prob
-                if hasattr(args, "rir_apply_prob")
-                else 1.0,
+                rir_apply_prob=(
+                    args.rir_apply_prob if hasattr(args, "rir_apply_prob") else 1.0
+                ),
                 noise_scp=args.noise_scp if hasattr(args, "noise_scp") else None,
-                noise_apply_prob=args.noise_apply_prob
-                if hasattr(args, "noise_apply_prob")
-                else 1.0,
-                noise_db_range=args.noise_db_range
-                if hasattr(args, "noise_db_range")
-                else "13_15",
-                speech_volume_normalize=args.speech_volume_normalize
-                if hasattr(args, "rir_scp")
-                else None,
+                noise_apply_prob=(
+                    args.noise_apply_prob if hasattr(args, "noise_apply_prob") else 1.0
+                ),
+                noise_db_range=(
+                    args.noise_db_range if hasattr(args, "noise_db_range") else "13_15"
+                ),
+                speech_volume_normalize=(
+                    args.speech_volume_normalize if hasattr(args, "rir_scp") else None
+                ),
             )
         else:
             retval = None

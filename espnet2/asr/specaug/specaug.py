@@ -1,4 +1,5 @@
 """SpecAugment module."""
+
 from typing import Optional, Sequence, Union
 
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug

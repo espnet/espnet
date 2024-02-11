@@ -1,4 +1,5 @@
 """Prepare WenetSpeech data for Zh ASR."""
+
 import json
 from argparse import ArgumentParser
 from collections import defaultdict

@@ -1,4 +1,5 @@
 """Beamformer module."""
+
 from typing import List, Union
 
 import torch
