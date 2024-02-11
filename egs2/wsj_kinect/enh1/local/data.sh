@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# Author: Atharva Anand Joshi (atharvaa@andrew.cmu.edu)
+
 set -e
 set -u
 set -o pipefail
@@ -13,22 +15,26 @@ help_message=$(cat << EOF
 Usage: $0 [--min_or_max <min/max>] [--sample_rate <8k/16k>]
   optional argument:
     [--min_or_max]: min (Default), max
-    [--sample_rate]: 8k (Default), 16k
+    [--sample_rate]: 16k (Default), 8k
 EOF
 )
 
 . ./db.sh
+. ./path.sh
 
-wsj_full_wav=$PWD/data/wsj0/wsj0_wav
-wsj_2mix_wav=$PWD/data/wsj0_mix/2speakers
-wsj_2mix_scripts=$PWD/data/wsj0_mix/scripts
+### This is a parameter to allow parallel execution of the script.
+### It reduces the execution time from ~12 hours to ~1.5 hours
+### Number of threads - tr: 50, cv: 13, tt: 8
+parallel=true
 
-
-other_text=data/local/other_text/text
-nlsyms=data/nlsyms.txt
 min_or_max=min
-sample_rate=8k
+sample_rate=16k
 
+output_path=$PWD/data/2speakers_reverb_kinect
+tr="tr"
+cv="cv"
+tt="tt"
+pdir=$PWD
 
 . utils/parse_options.sh
 
@@ -37,67 +43,59 @@ if [ $# -ne 0 ]; then
     exit 1;
 fi
 
-if [ ! -e "${WSJ0}" ]; then
-    log "Fill the value of 'WSJ0' of db.sh"
+if [ ! -e "${WSJ0_2MIX}" ]; then
+    log "Fill the value of 'WSJ0_2MIX' of db.sh"
     exit 1
 fi
-if [ ! -e "${WSJ1}" ]; then
-    log "Fill the value of 'WSJ1' of db.sh"
+if [ ! -e "${CHIME5}" ]; then
+    log "Fill the value of 'CHIME5' of db.sh"
+    exit 1
+fi
+if [ ! -e "${DIHARD2}" ]; then
+    log "Fill the value of 'DIHARD2' of db.sh"
     exit 1
 fi
 
-train_set="tr_"${min_or_max}_${sample_rate}
-train_dev="cv_"${min_or_max}_${sample_rate}
-recog_set="tt_"${min_or_max}_${sample_rate}
 
+### Download the scripts for noise extraction and mixture creation
+echo "Downloading scripts for wsj_kinect"
+url=https://github.com/sunits/Reverberated_WSJ_2MIX/archive/refs/heads/master.zip
+wdir=data/scripts
 
+wget --continue -O $wdir/mixture_scripts.zip ${url}
+unzip $wdir/mixture_scripts.zip
+cp create_corrupted_speech_parallel.sh $wdir/Reverberated_WSJ_2MIX-master/ # Move the modified parallel script to the folder
+rm $wdir/mixture_scripts.zip
 
-### This part is for WSJ0 mix
-### Download mixture scripts and create mixtures for 2 speakers
-local/wsj0_create_mixture.sh ${wsj_2mix_scripts} ${WSJ0} ${wsj_full_wav} \
-    ${wsj_2mix_wav} || exit 1;
-local/wsj0_2mix_data_prep.sh --min-or-max ${min_or_max} --sample-rate ${sample_rate} \
-    ${wsj_2mix_wav}/wav${sample_rate}/${min_or_max} ${wsj_2mix_scripts} ${wsj_full_wav} || exit 1;
+### Execute the scripts
+echo "Running the script with parallel=${parallel}"
+cd $wdir/Reverberated_WSJ_2MIX-master
+if [ "${parallel}" == true]
+then
+  ./create_corrupted_speech_parallel.sh \
+  --stage 0 --wsj_data_path ${WSJ0_2MIX} \
+  --chime5_wav_base ${CHIME5} --dihard_sad_label_path ${DIHARD2} \
+  --dest ${output_path} || exit 1;
+else
+  ./create_corrupted_speech.sh \
+  --stage 0 --wsj_data_path ${WSJ0_2MIX} \
+  --chime5_wav_base ${CHIME5} --dihard_sad_label_path ${DIHARD2} \
+  --dest ${output_path} || exit 1;
+fi
 
-### This part is for CHIME-5
+### START FROM HERE ###
+### create .scp files for reference audio, noise, direct components and early reflections
+cd pdir
+echo "Generating .scp files"
+local/wsj_kinect_data_prep.sh ${output_path} $wdir/Reverberated_WSJ_2MIX-master/list
 
-
-### This part is for Dihard 2 labels
-
-
-
-### create .scp file for reference audio
-for folder in ${train_set} ${train_dev} ${recog_set};
+for target_folder in ${tr} ${cv} ${tt};
 do
-    sed -e 's/\/mix\//\/s1\//g' ./data/$folder/wav.scp > ./data/$folder/spk1.scp
-    sed -e 's/\/mix\//\/s2\//g' ./data/$folder/wav.scp > ./data/$folder/spk2.scp
+  sed -e 's/\/mix\//\/s1\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/spk1.scp
+  sed -e 's/\/mix\//\/s2\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/spk2.scp
+  sed -e 's/\/mix\//\/noise\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/noise1.scp
+  sed -e 's/\/mix\//\/s1_direct\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/dereverb1.scp
+  sed -e 's/\/mix\//\/s2_direct\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/dereverb2.scp
+  sed -e 's/\/mix\//\/s1_early\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/spk1_early.scp
+  sed -e 's/\/mix\//\/s2_early\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/spk2_early.scp
 done
-
-
-### Also need wsj corpus to prepare language information
-### This is from Kaldi WSJ recipe
-log "local/wsj_data_prep.sh ${WSJ0}/??-{?,??}.? ${WSJ1}/??-{?,??}.?"
-local/wsj_data_prep.sh ${WSJ0}/??-{?,??}.? ${WSJ1}/??-{?,??}.?
-log "local/wsj_format_data.sh"
-local/wsj_format_data.sh
-log "mkdir -p data/wsj"
-mkdir -p data/wsj
-log "mv data/{dev_dt_*,local,test_dev*,test_eval*,train_si284} data/wsj"
-mv data/{dev_dt_*,local,test_dev*,test_eval*,train_si284} data/wsj
-
-
-
-
-log "Prepare text from lng_modl dir: ${WSJ1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z -> ${other_text}"
-mkdir -p "$(dirname ${other_text})"
-
-# NOTE(kamo): Give utterance id to each texts.
-zcat ${WSJ1}/13-32.1/wsj1/doc/lng_modl/lm_train/np_data/{87,88,89}/*.z | \
-    grep -v "<" | tr "[:lower:]" "[:upper:]" | \
-    awk '{ printf("wsj1_lng_%07d %s\n",NR,$0) } ' > ${other_text}
-
-
-
-log "Create non linguistic symbols: ${nlsyms}"
-cut -f 2- data/wsj/train_si284/text | tr " " "\n" | sort | uniq | grep "<" > ${nlsyms}
-cat ${nlsyms}

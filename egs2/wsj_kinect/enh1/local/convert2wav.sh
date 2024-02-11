@@ -1,1 +1,0 @@
-/Users/atharva/Library/CloudStorage/GoogleDrive-atharvaa@andrew.cmu.edu/My Drive/CMU Files/Sem3/RAship/espnet/egs2/wsj0_2mix/enh1/local/convert2wav.sh
