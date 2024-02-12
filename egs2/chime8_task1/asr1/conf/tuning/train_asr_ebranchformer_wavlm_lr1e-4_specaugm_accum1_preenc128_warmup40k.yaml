@@ -61,7 +61,7 @@ encoder_conf:
 
 decoder: transformer
 decoder_conf:
-    attention_heads: 6
+    attention_heads: 4
     linear_units: 2048
     num_blocks: 6
     dropout_rate: 0.1
@@ -79,10 +79,10 @@ model_conf:
 
 optim: adam
 optim_conf:
-    lr: 0.001
+    lr: 0.0001
 scheduler: warmuplr
 scheduler_conf:
-    warmup_steps: 20000
+    warmup_steps: 40000
 
 specaug: specaug
 specaug_conf:
