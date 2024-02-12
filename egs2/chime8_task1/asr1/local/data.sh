@@ -9,7 +9,7 @@ SECONDS=0
 stage=0
 skip_stages=("-1")
 nlsyms_file=data/nlsyms.txt
-chime6_root=
+dasr_root=
 train_set=
 gss_dsets=
 manifests_root=
@@ -31,33 +31,29 @@ if [ $decode_train != "train" ]; then
   skip_stages=("1" "2")
 fi
 
-if [ ${stage} -le 0 ] && ! [[ " ${skip_stages[*]} " =~ " 0 " ]]; then
-  log "Dumping all lhotse manifests to kaldi manifests and merging everything for dev set close mics,
-  you may want these for validation."
-  cv_kaldi_manifests_ihm=()
-  dset_part=dev
-  mic=ihm
-  for dset in chime6 dipco mixer6; do
-    lhotse kaldi export ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
-      ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
-      ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
-    cv_kaldi_manifests_ihm+=( "data/kaldi/$dset/$dset_part/${mic}")
-  done
-    # shellcheck disable=2043
-  ./utils/combine_data.sh data/kaldi/dev_ihm_all "${cv_kaldi_manifests_ihm[@]}"
-  ./utils/fix_data_dir.sh data/kaldi/dev_ihm_all
-fi
 
 if [ ${stage} -le 1 ] && ! [[ " ${skip_stages[*]} " =~ " 1 " ]]; then
   all_tr_manifests=()
   all_tr_manifests_ihm=()
   log "Dumping all lhotse manifests to kaldi manifests and merging everything for training set."
   dset_part=train
-  for dset in chime6 mixer6; do
+  for dset in chime6 dipco notsofar1 mixer6; do # (popcornell): mixer6 should be last here otherwise it fails as i reset dset_part below
     for mic in ihm mdm; do
       lhotse kaldi export ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
       ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
       ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
+      if [ $dset == "mixer6" ]; then
+        dset_part=train_call
+        lhotse kaldi export ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
+        ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
+        ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
+        dset_part=train_intv
+        lhotse kaldi export ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_recordings_${dset_part}.jsonl.gz  ${manifests_root}/${dset}/${dset_part}/${dset}-${mic}_supervisions_${dset_part}.jsonl.gz data/kaldi/${dset}/${dset_part}/${mic}
+        ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset}/${dset_part}/${mic}/utt2spk > data/kaldi/${dset}/${dset_part}/${mic}/spk2utt
+        ./utils/fix_data_dir.sh data/kaldi/${dset}/${dset_part}/${mic}
+      fi
+
+
       if [ $mic == ihm ] && [ $dset == chime6 ]; then
         # remove bad sessions from ihm, mdm are fine
         log "Removing possibly bad close-talk microphones from CHiME-6 data."
@@ -85,9 +81,19 @@ fi
 
 if [ $stage -le 2 ] && ! [[ " ${skip_stages[*]} " =~ " 2 " ]]; then
   log "Augmenting close-talk data with MUSAN and CHiME-6 extracted noises."
-  local/extract_noises.py ${chime6_root}/audio/train ${chime6_root}/transcriptions/train \
-    local/distant_audio_list distant_noises
-  local/make_noise_list.py distant_noises > distant_noise_list
+  local/extract_noises.py ${dasr_root}/chime6/audio/train ${dasr_root}/chime6/transcriptions/train \
+    local/distant_audio_list distant_noises_chime6
+  local/make_noise_list.py distant_noises_chime6 > distant_noise_list
+
+  # append also notsofar1 and dipco TODO
+  ls ${dasr_root}/notsofar1/audio/train/*U*C* -1 | xargs -n1 basename | sed -e 's/\.wav$//' > local/distant_audio_list_notsofar1
+  local/extract_noises.py ${dasr_root}/notsofar1/audio/train ${dasr_root}/notsofar1/transcriptions/train \
+    local/distant_audio_list_notsofar1 distant_noises_notsofar1
+  local/make_noise_list.py distant_noises_notsofar1 >> distant_noise_list
+  ls -1 ${dasr_root}/dipco/audio/train/*U*C* | xargs -n1 basename | sed -e 's/\.wav$//' > local/distant_audio_list_dipco
+  local/extract_noises.py ${dasr_root}/dipco/audio/train ${dasr_root}/dipco/transcriptions/train \
+    local/distant_audio_list_dipco distant_noises_dipco
+  local/make_noise_list.py distant_noises_dipco >> distant_noise_list
 
   noise_list=distant_noise_list
 
@@ -140,7 +146,7 @@ if [ ${stage} -le 3 ] && ! [[ " ${skip_stages[*]} " =~ " 3 " ]]; then
       ./utils/utt2spk_to_spk2utt.pl data/kaldi/${dset_name}/${dset_part}/gss/utt2spk > data/kaldi/${dset_name}/${dset_part}/gss/spk2utt
       ./utils/fix_data_dir.sh data/kaldi/${dset_name}/${dset_part}/gss
 
-      if [ $dset_part == train ]; then
+      if [ $dset_part == train ]; then # skip notsofar
          tr_kaldi_manifests_gss+=( "data/kaldi/${dset_name}/${dset_part}/gss")
       fi
 
