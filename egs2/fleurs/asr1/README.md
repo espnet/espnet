@@ -54,7 +54,7 @@ Finally, the model needs to be configured to use the data.
 - pytorch version: `pytorch 1.13.1+cu116`
 - Git hash: `7f37bf7270017eede7d77701b389d1412f30078c`
   - Commit date: `Sun Jan 1 13:06:01 2023 -0500`
-- Pre-trained model: https://huggingface.co/espnet/wanchichen_fleurs_asr_ebf_scctc 
+- Pre-trained model: https://huggingface.co/espnet/wanchichen_fleurs_asr_ebf_scctc
 
 ## asr_train_asr_branchformer_scctc_raw_all_bpe6500_sp
 ### WER
