@@ -7,18 +7,20 @@ References:
     3. https://github.com/huggingface/peft/blob/main/src/peft/tuners/lora.py
 
 """
+
 from typing import List
 
 import torch
-from typeguard import check_argument_types
-from espnet2.layers.houlsby_adapter_layer import (
-    HoulsbyTransformerSentenceEncoderLayer,
-    Houlsby_Adapter,
-)
-from espnet2.asr.frontend.s3prl import S3prlFrontend
 from transformers.models.wav2vec2.modeling_wav2vec2 import (
-    Wav2Vec2EncoderLayerStableLayerNorm,
     Wav2Vec2AttnAdapterLayer,
+    Wav2Vec2EncoderLayerStableLayerNorm,
+)
+from typeguard import check_argument_types
+
+from espnet2.asr.frontend.s3prl import S3prlFrontend
+from espnet2.layers.houlsby_adapter_layer import (
+    Houlsby_Adapter,
+    HoulsbyTransformerSentenceEncoderLayer,
 )
 
 try:
