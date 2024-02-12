@@ -11,6 +11,7 @@ from typing import Dict, Optional
 
 import jiwer
 import pandas as pd
+from chime_utils.text_norm import get_txt_norm
 from pyannote.core.utils.types import Label
 from pyannote.metrics.diarization import DiarizationErrorRate
 from pyannote.metrics.errors.identification import IdentificationErrorAnalysis
@@ -20,8 +21,6 @@ from pyannote.metrics.segmentation import Annotation, Segment, Timeline
 from pyannote.metrics.types import MetricComponents
 from tabulate import tabulate
 from tqdm import tqdm
-from chime_utils.text_norm import get_txt_norm
-
 
 TXT_NORM = get_txt_norm("chime8")
 
@@ -412,7 +411,6 @@ def score(
 
         return out
 
-
     hyps = normalize_json(hyps)
     refs = normalize_json(refs)
 
@@ -633,7 +631,7 @@ if __name__ == "__main__":
     spk_wise_df = []
     sess_wise_df = []
     scenario_wise_df = []
-    scenarios = ["notsofar1"]#"chime6", "dipco", "mixer6"]
+    scenarios = ["notsofar1"]  # "chime6", "dipco", "mixer6"]
     Path(args.output_folder).mkdir(exist_ok=True)
     for indx, scenario in enumerate(scenarios):
         hyp_json = os.path.join(args.hyp_folder, scenario + ".json")
