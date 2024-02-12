@@ -132,9 +132,15 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
 
       fi
 
+      if [ $dset_part == "train" ] && [ $dset != "notsofar1" ]; then
+        txt_norm="none" # in training use the chime8, whisper-style normalization
+      else
+        txt_norm="chime8" # normalization in inference hurts GSS
+      fi
+
       log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
       # no text norm here because it hurts GSS
-      chime-utils lhotse-prep $dset $chime8_root/$dset $manifests_root/${dset}/${dset_part}_orig --dset-part $dset_part --txt-norm none
+      chime-utils lhotse-prep $dset $chime8_root/$dset $manifests_root/${dset}/${dset_part}_orig --dset-part $dset_part --txt-norm $txt_norm
       echo "Discard lhotse supervisions shorter than 0.2" # otherwise probelms with WavLM
       chime-utils lhotse-prep discard-length $manifests_root/${dset}/${dset_part}_orig $manifests_root/${dset}/$dset_part --min-len 0.2
     done
