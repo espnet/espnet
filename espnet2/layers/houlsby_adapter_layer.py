@@ -5,7 +5,9 @@ try:
     import s3prl
     from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
 except Exception:
-    s3prl = None
+    print("Error: S3PRL is not properly installed.")
+    print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
+    raise RuntimeError("Requiring S3PRL. ")
 
 
 class Houlsby_Adapter(nn.Module):
@@ -37,10 +39,7 @@ class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
         bottleneck: int = 32,
         **kwargs,
     ) -> None:
-        if s3prl is None:
-            print("Error: S3PRL is not properly installed.")
-            print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
-            raise RuntimeError("Requiring S3PRL. ")
+        
         super(HoulsbyTransformerSentenceEncoderLayer, self).__init__(**kwargs)
 
         self.adapter = Houlsby_Adapter(
