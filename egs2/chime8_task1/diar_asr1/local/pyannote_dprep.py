@@ -34,19 +34,16 @@ def json2annotation(chimelike_jsonf, uri=None, spk_prefix=None):
     return to_annotation(json_ann, uri, spk_prefix)
 
 
+# FIXME add notsofar1 synth and AMI in the fine-tuning
 def prepare4pyannote(
     chime7dasr_root, target_dir="./data/pyannote_diarization", falign_annotation=None
 ):
-    uri_dict = {"train": [], "dev": []}
-    uem_dict = {"train": [], "dev": []}
-    rttm_dict = {"train": [], "dev": []}
-    # we combine every dataset except mixer6 in training and use whole mixer6 in eval
-    for dset in ["chime6", "dipco", "mixer6", "notsofar1"]:
+    for dset in ["chime6", "dipco", "mixer6"]:
         print("Running Pyannote data preparation for {} scenario".format(dset))
         c_scenario = os.path.join(chime7dasr_root, dset)
-        c_splits = ["train", "dev"] if dset != "notsofar1" else ["train", "train_sc"]
+        c_splits = ["train", "dev"] if dset == "chime6" else ["dev"]
         # exclude close-talk CH01, CH02, CH03 and P[0-9]+
-        if dset in ["chime6", "dipco", "notsofar1"]:
+        if dset in ["chime6", "dipco"]:
             mic_regex = "(U[0-9]+)"
             sess_regex = "(S[0-9]+)"
         else:
@@ -54,7 +51,6 @@ def prepare4pyannote(
             sess_regex = "([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)"
 
         for split in c_splits:
-
             audio_files = glob.glob(os.path.join(c_scenario, "audio", split, "*.wav"))
             audio_files += glob.glob(os.path.join(c_scenario, "audio", split, "*.flac"))
             audio_files = [x for x in audio_files if re.search(mic_regex, Path(x).stem)]
@@ -83,13 +79,27 @@ def prepare4pyannote(
 
             # now for each recording uri we need an rttm and an uem and dump it
             # into the target dir
+            c_rttm_dir = os.path.join(target_dir, dset, split, "rttm")
+            Path(c_rttm_dir).mkdir(exist_ok=True, parents=True)
+            c_uem_dir = os.path.join(target_dir, dset, split, "uem")
+            Path(c_uem_dir).mkdir(exist_ok=True, parents=True)
+            c_uri_dir = os.path.join(target_dir, dset, split, "uris")
+            Path(c_uri_dir).mkdir(exist_ok=True, parents=True)
+
+            to_uri_list = []
             for audio_f in tqdm.tqdm(audio_files):
                 filename = Path(audio_f).stem
-
+                to_uri_list.append(filename)  # append uri here
                 session = re.search(sess_regex, filename).group()  # sess regex here
                 c_ann = sess2json[session]
                 c_uem = sess2uem[session]
-
+                # put the filename here
+                with open(os.path.join(c_rttm_dir, filename + ".rttm"), "w") as f:
+                    f.writelines(c_ann.to_rttm().replace("PLACEHOLDER", filename))
+                # writing uem
+                # NOTE: we recreate here uem for each file, to assure that they
+                # will be not out of bounds as pyannote otherwise will throw errors
+                # during training.
                 c_uem = [
                     c_uem[0],
                     round_down(
@@ -97,44 +107,20 @@ def prepare4pyannote(
                         2,
                     ),
                 ]
+                # in evaluation we use the correct CHiME-7 DASR .uem
+                with open(os.path.join(c_uem_dir, filename + ".uem"), "w") as f:
+                    f.write("{} 1 {} {}\n".format(filename, c_uem[0], c_uem[1]))
 
-                if dset == "dipco":
-                    # use whole dipco train and valid for validation
-                    uem_dict["dev"].append((c_uem, filename))
-                    rttm_dict["dev"].append((c_ann, filename))
-                    uri_dict["dev"].append(filename)
-                elif dset in ["chime6", "notsofar1"] and split in ["train", "train_sc"]:
-                    # use these for train
-                    uem_dict["train"].append((c_uem, filename))
-                    rttm_dict["train"].append((c_ann, filename))
-                    uri_dict["train"].append(filename)
-
-    for k in uri_dict.keys():
-        c_rttm_dir = os.path.join(target_dir, k, "rttm")
-        Path(c_rttm_dir).mkdir(exist_ok=True, parents=True)
-        c_uem_dir = os.path.join(target_dir, k, "uem")
-        Path(c_uem_dir).mkdir(exist_ok=True, parents=True)
-
-        for c_uem, filename in uem_dict[k]:
-            with open(os.path.join(c_uem_dir, filename + ".uem"), "w") as f:
-                f.write("{} 1 {} {}\n".format(filename, c_uem[0], c_uem[1]))
-
-        for c_ann, filename in rttm_dict[k]:
-            with open(os.path.join(c_rttm_dir, filename + ".rttm"), "w") as f:
-                f.writelines(c_ann.to_rttm().replace("PLACEHOLDER", filename))
-
-        # write the files uris
-        to_uri_list = sorted(uri_dict[k])
-        to_uri_list = [x + "\n" for x in to_uri_list]
-        c_uri_dir = os.path.join(target_dir, k, "uris")
-        Path(c_uri_dir).mkdir(exist_ok=True, parents=True)
-        with open(os.path.join(c_uri_dir, "uri.txt"), "w") as f:
-            f.writelines(to_uri_list)
+            # write the files uris
+            to_uri_list = sorted(to_uri_list)
+            to_uri_list = [x + "\n" for x in to_uri_list]
+            with open(os.path.join(c_uri_dir, "uri.txt"), "w") as f:
+                f.writelines(to_uri_list)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        "Preparing CHiME-8 DASR data for fine-tuning"
+        "Preparing CHiME-7 DASR data for fine-tuning"
         "the Pyannote segmentation model.",
         add_help=True,
         usage="%(prog)s [options]",
