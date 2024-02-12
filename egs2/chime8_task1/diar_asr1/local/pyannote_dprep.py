@@ -33,7 +33,8 @@ def json2annotation(chimelike_jsonf, uri=None, spk_prefix=None):
 
     return to_annotation(json_ann, uri, spk_prefix)
 
-#FIXME add notsofar1 synth and AMI in the fine-tuning
+
+# FIXME add notsofar1 synth and AMI in the fine-tuning
 def prepare4pyannote(
     chime7dasr_root, target_dir="./data/pyannote_diarization", falign_annotation=None
 ):
