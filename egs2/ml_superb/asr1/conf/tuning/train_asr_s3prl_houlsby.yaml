@@ -37,11 +37,11 @@ adapter: houlsby
 save_strategy: required_grad_only
 adapter_conf:
     bottleneck: 32
-    # target layers to insert adapters, Insert adapter to all layers if not specified 
-    # target_layers: 
+    # target layers to insert adapters, Insert adapter to all layers if not specified
+    # target_layers:
     # - 0
     # - 1
-    
+
 num_workers: 4
 batch_type: sorted
 batch_size: 8

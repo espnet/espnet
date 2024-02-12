@@ -1,5 +1,5 @@
-from torch import nn
 import torch
+import torch.nn as nn
 try:
     import s3prl
     from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
@@ -8,25 +8,28 @@ except Exception:
 
 class Houlsby_Adapter(nn.Module):
     def __init__(
-            self,
-            input_size: int,
-            bottleneck: int,
-        ):
+        self,
+        input_size: int,
+        bottleneck: int,
+    ):
         super(Houlsby_Adapter, self).__init__()
 
         self.houlsby_adapter = nn.Sequential(
-          nn.Linear(input_size, bottleneck),
-          nn.GELU(),
-          nn.Linear(bottleneck, input_size),
+            nn.Linear(input_size, bottleneck),
+            nn.GELU(),
+            nn.Linear(bottleneck, input_size),
         )
+
     def forward(self, x):
         return self.houlsby_adapter(x)
-    
+
+
 class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
     """
     Implements a Transformer Encoder Layer used in BERT/XLM style pre-trained
     models.
     """
+
     def __init__(
         self,
         bottleneck: int = 32,
@@ -37,9 +40,9 @@ class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
             print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
             raise RuntimeError("Requiring S3PRL. ")
         super(HoulsbyTransformerSentenceEncoderLayer, self).__init__(**kwargs)
-            
+
         self.adapter = Houlsby_Adapter(
-            input_size=self.fc2.out_features, 
+            input_size=self.fc2.out_features,
             bottleneck=bottleneck,
         )
 
@@ -74,7 +77,6 @@ class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
             x = self.final_layer_norm(x)
             x = self.activation_fn(self.fc1(x))
 
-
             x = self.dropout2(x)
             x = self.fc2(x)
 
@@ -85,7 +87,7 @@ class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
 
             x = self.dropout3(x)
 
-            x = x + residual +  self.adapter(houlsby_input)
+            x = x + residual + self.adapter(houlsby_input)
         else:
             x, attn = self.self_attn(
                 query=x,
@@ -104,13 +106,13 @@ class HoulsbyTransformerSentenceEncoderLayer(TransformerSentenceEncoderLayer):
             x = self.activation_fn(self.fc1(x))
             x = self.dropout2(x)
             x = self.fc2(x)
-            
+
             houlsby_input = x
-            
+
             layer_result = x
 
             x = self.dropout3(x)
-            x = x + residual +  self.adapter(houlsby_input)
+            x = x + residual + self.adapter(houlsby_input)
             x = self.final_layer_norm(x)
 
         return x, (attn, layer_result)

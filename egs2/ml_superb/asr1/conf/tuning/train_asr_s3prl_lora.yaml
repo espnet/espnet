@@ -40,10 +40,10 @@ adapter_conf:
     rank: 4
     alpha: 4
     dropout_rate: 0.1
-    target_modules: 
+    target_modules:
     - q_proj
     - k_proj
-    
+
 num_workers: 4
 batch_type: sorted
 batch_size: 8
