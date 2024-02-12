@@ -651,7 +651,7 @@ class AbsTask(ABC):
             type=str2bool,
             default=False,
             help="Enable efficient finetuning, see (https://arxiv.org/abs/2106.09685) "
-            "for large pre-trained foundation models, like Whisper",
+            "for large pre-trained foundation models, like Whisper and SSL models",
         )
         group.add_argument(
             "--adapter",
@@ -664,11 +664,12 @@ class AbsTask(ABC):
             "--save_strategy",
             type=str,
             default="all",
-            help="The strategy to save parameters. Default: 'all' "
-            "'all': save all parameters"
-            "'adapter_only': save only adapter parameters (without other parameters like downstream model)"
-            "'required_grad_only': save only parameters with requires_grad=True",
-            choices=["all", "adapter_only", 'required_grad_only'],
+            help="The strategy to save parameters. Default: 'all' \n"
+            "'all': save all parameters\n"
+            "'adapter_only': save only adapter parameters,"
+            " without other parameters like downstream model\n"
+            "'required_grad_only': save only parameters with requires_grad=True\n",
+            choices=["all", "adapter_only", "required_grad_only"],
         )
         group.add_argument(
             "--adapter_conf",
@@ -1254,7 +1255,7 @@ class AbsTask(ABC):
                         logging.info(f"Setting {k}.requires_grad = False")
                         p.requires_grad = False
 
-            # Use adapter to finetune the large pre-trained foundation models, like Whisper
+            # Use adapter to finetune the large pre-trained foundation models
             if getattr(args, "use_adapter", False):
                 create_adapter(model, args.adapter, args.adapter_conf)
 

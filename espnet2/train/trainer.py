@@ -67,11 +67,12 @@ try:
 except Exception:
     lora = None
 
-try :
-    import s3prl 
+try:
+    import s3prl
 except Exception:
     s3prl = None
-    
+
+
 @dataclasses.dataclass
 class TrainerOptions:
     ngpu: int
@@ -215,19 +216,18 @@ class Trainer:
                 scaler = GradScaler()
         else:
             scaler = None
-            
+
         adapter = getattr(trainer_options, "adapter", None)
         use_adapter = getattr(trainer_options, "use_adapter", False)
         save_strategy = getattr(trainer_options, "save_strategy", "all")
-        if use_adapter :
-            if adapter == 'lora' and lora is None:
+        if use_adapter:
+            if adapter == "lora" and lora is None:
                 raise RuntimeError("Requiring loralib. Do 'pip install loralib'")
-            elif adapter =='houlsby' and s3prl is None:
+            elif adapter == "houlsby" and s3prl is None:
                 print("Error: S3PRL is not properly installed.")
                 print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
                 raise RuntimeError("Requiring S3PRL. ")
 
-            
         if trainer_options.resume and (output_dir / "checkpoint.pth").exists():
             cls.resume(
                 checkpoint=output_dir / "checkpoint.pth",
@@ -372,25 +372,25 @@ class Trainer:
                     reporter.wandb_log()
 
                 # 4. Save/Update the checkpoint
-                # TODO: This kind of design may not facilitate the integration of other kind of the adapter
-                # Maybe we can only save those with requires_grad = True ?
-                # If we use lora.lora_state_dict, we will not save the downstream model in SSL settings
                 model_state_dict = model.state_dict()
                 if use_adapter:
                     if save_strategy == "all":
                         model_state_dict = model_state_dict
-                    elif save_strategy == "adapter":
-                        if adapter == 'lora':
+                    elif save_strategy == "adapter_only":
+                        if adapter == "lora":
                             model_state_dict = lora.lora_state_dict(model)
-                        elif adapter == 'houlsby':
-                            model_state_dict = {k:v for k,v in model_state_dict.items() if 'adapter' in k}
+                        elif adapter == "houlsby":
+                            model_state_dict = {
+                                k: v
+                                for k, v in model_state_dict.items()
+                                if "adapter" in k
+                            }
                         else:
                             raise ValueError(f"Adapter type {adapter} not supported")
-                    else: # save_strategy == "required_grad_only"
+                    else:  # save_strategy == "required_grad_only"
                         for n, p in model.named_parameters():
                             if not p.requires_grad:
                                 model_state_dict.pop(n)
-                        
 
                 torch.save(
                     {
