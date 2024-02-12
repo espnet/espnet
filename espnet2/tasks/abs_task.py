@@ -668,7 +668,7 @@ class AbsTask(ABC):
             "'all': save all parameters"
             "'adapter_only': save only adapter parameters (without other parameters like downstream model)"
             "'required_grad_only': save only parameters with requires_grad=True",
-            choices=["all", "adapter_only", 'required_grad_only'],
+            choices=["all", "adapter_only", "required_grad_only"],
         )
         group.add_argument(
             "--adapter_conf",

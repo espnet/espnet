@@ -12,18 +12,21 @@ from typing import List
 
 import torch
 from typeguard import check_argument_types
-from espnet2.layers.houlsby_adapter_layer import HoulsbyTransformerSentenceEncoderLayer
+
 from espnet2.asr.frontend.s3prl import S3prlFrontend
+from espnet2.layers.houlsby_adapter_layer import HoulsbyTransformerSentenceEncoderLayer
+
 try:
     import loralib as lora
 except Exception:
     lora = None
-    
+
 try:
-    import s3prl 
+    import s3prl
 except Exception:
     s3prl = None
-    
+
+
 def create_adapter(
     model: torch.nn.Module,
     adapter: str,
@@ -40,52 +43,53 @@ def create_adapter(
 
     """
     assert check_argument_types()
-    
-    if adapter == 'lora':
+
+    if adapter == "lora":
         create_adapter_fn = create_lora_adapter
-    
-    elif adapter == 'houlsby':
+
+    elif adapter == "houlsby":
         create_adapter_fn = create_houlsby_adapter
-    
+
     else:
         raise NotImplementedError(f"Adapter {adapter} is not supported.")
     create_adapter_fn(model=model, **adapter_conf)
 
-    
+
 def create_houlsby_adapter(
     model: torch.nn.Module,
     bottleneck: int = 32,
     target_layers: List[int] = [],
 ):
     assert check_argument_types()
-    assert hasattr(model, 'frontend') and isinstance(model.frontend, S3prlFrontend), "Only support S3PRL frontend now !!"
+    assert hasattr(model, "frontend") and isinstance(
+        model.frontend, S3prlFrontend
+    ), "Only support S3PRL frontend now !!"
     if s3prl is None:
         print("Error: S3PRL is not properly installed.")
         print("Please install S3PRL: cd ${MAIN_ROOT}/tools && make s3prl.done")
         raise RuntimeError("Requiring S3PRL. ")
-    
+
     is_traget_layer_exists = False
     key_list = [key for key, _ in model.named_modules()]
-    num_layers = model.frontend.upstream.num_layers -1
+    num_layers = model.frontend.upstream.num_layers - 1
     if len(target_layers) == 0:
         target_layers = list(range(num_layers))
-        
+
     for layer_idx in target_layers:
 
         key = f"frontend.upstream.upstream.model.encoder.layers.{layer_idx}"
         if key not in key_list:
             continue
-        
+
         is_traget_layer_exists = True
         parent_module, target_name, target_module = get_submodules(model, key)
         new_module = create_new_houlsby_module(target_module, bottleneck)
         new_module.to(next(target_module.parameters()).device)
         setattr(parent_module, target_name, new_module)
-    
+
     if not is_traget_layer_exists:
-        raise ValueError(
-            f"Target layers {target_layers} not found in the base model."
-        )
+        raise ValueError(f"Target layers {target_layers} not found in the base model.")
+
 
 def create_lora_adapter(
     model: torch.nn.Module,
@@ -113,9 +117,9 @@ def create_lora_adapter(
             "all" means training all bias vectors, include LayerNorm biases;
             "lora_only" means only training bias vectors in LoRA adapted modules.
 
-   
+
     """
-        
+
     assert check_argument_types()
 
     if lora is None:
@@ -130,7 +134,7 @@ def create_lora_adapter(
     for key in key_list:
         # TODO endswith may not be a good choice
         # exists maybe better in our case cuz our class won't end in the key
-        # 
+        #
         if not check_target_module_exists(key, target_modules):
             continue
 
@@ -140,7 +144,9 @@ def create_lora_adapter(
         # TODO Replace lora.LoRALayer with assigned instance
         # Eg. AdapterEncoderLayer for adapter case
         if not isinstance(target_module, lora.LoRALayer):
-            new_module = create_new_lora_module(target_module, rank, alpha, dropout_rate)
+            new_module = create_new_lora_module(
+                target_module, rank, alpha, dropout_rate
+            )
             replace_module(parent_module, target_name, target_module, new_module)
         else:
             continue
@@ -167,9 +173,8 @@ def get_submodules(model: torch.nn.Module, key: str):
     target_module = model.get_submodule(key)
     return parent_module, target_name, target_module
 
-def create_new_houlsby_module(
-    target_module: torch.nn.Module, bottleneck: int
-):
+
+def create_new_houlsby_module(target_module: torch.nn.Module, bottleneck: int):
     """Create a new houlsby adapter module for the given target TransformerSentenceEncoderLayer module."""
     embedding_dim = target_module.embedding_dim
     ffn_embedding_dim = target_module.fc1.out_features
@@ -192,24 +197,26 @@ def create_new_houlsby_module(
         layer_norm_first=layer_norm_first,
         bottleneck=bottleneck,
     )
-    
-    # Get default requires_grad 
+
+    # Get default requires_grad
     for n, p in adapter_added_layer.named_parameters():
-        if 'adapter' in n:
+        if "adapter" in n:
             continue
         p.requires_grad = eval(f"target_module.{n}").requires_grad
-        
+
     # copy weights from the target module
     orig_state_dict = target_module.state_dict()
     adapter_added_layer.load_state_dict(orig_state_dict, strict=False)
-    
+
     # Copy all hooks to the new layer
     for k, v in target_module.__dict__.items():
-        if 'hook' not in k:
+        if "hook" not in k:
             continue
         adapter_added_layer.__dict__[k] = v
-        
+
     return adapter_added_layer
+
+
 def create_new_lora_module(
     target_module: torch.nn.Module, rank: int, alpha: int, dropout_rate: float
 ):
