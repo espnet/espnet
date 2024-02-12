@@ -1,10 +1,12 @@
 import torch
 import torch.nn as nn
+
 try:
     import s3prl
     from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
 except Exception:
     s3prl = None
+
 
 class Houlsby_Adapter(nn.Module):
     def __init__(
