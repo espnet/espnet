@@ -7,13 +7,14 @@ References:
     3. https://github.com/huggingface/peft/blob/main/src/peft/tuners/lora.py
 
 """
-
 from typing import List
 
 import torch
 from typeguard import check_argument_types
-from espnet2.layers.houlsby_adapter_layer import HoulsbyTransformerSentenceEncoderLayer
+from espnet2.layers.houlsby_adapter_layer import HoulsbyTransformerSentenceEncoderLayer, Houlsby_Adapter
 from espnet2.asr.frontend.s3prl import S3prlFrontend
+from s3prl.upstream.wav2vec2.wav2vec2_model import TransformerSentenceEncoderLayer
+from transformers.models.wav2vec2.modeling_wav2vec2 import Wav2Vec2EncoderLayerStableLayerNorm, Wav2Vec2AttnAdapterLayer
 try:
     import loralib as lora
 except Exception:
@@ -171,44 +172,52 @@ def create_new_houlsby_module(
     target_module: torch.nn.Module, bottleneck: int
 ):
     """Create a new houlsby adapter module for the given target TransformerSentenceEncoderLayer module."""
-    embedding_dim = target_module.embedding_dim
-    ffn_embedding_dim = target_module.fc1.out_features
-    num_attention_heads = target_module.self_attn.num_heads
-    dropout = target_module.dropout1.p
-    attention_dropout = target_module.self_attn.dropout_module.p
-    activation_dropout = target_module.dropout2.p
-    activation_fn = target_module.activation_fn.__name__
-    layer_norm_first = target_module.layer_norm_first
+    if isinstance(target_module, Wav2Vec2EncoderLayerStableLayerNorm):
+                
+        input_size = target_module.layer_norm.normalized_shape[0]
+        target_module.adapter_layer = Houlsby_Adapter(input_size=input_size, bottleneck=bottleneck)
+        adapter_added_layer = target_module
+        
+    elif isinstance(target_module, TransformerSentenceEncoderLayer):
+        embedding_dim = target_module.embedding_dim
+        ffn_embedding_dim = target_module.fc1.out_features
+        num_attention_heads = target_module.self_attn.num_heads
+        dropout = target_module.dropout1.p
+        attention_dropout = target_module.self_attn.dropout_module.p
+        activation_dropout = target_module.dropout2.p
+        activation_fn = target_module.activation_fn.__name__
+        layer_norm_first = target_module.layer_norm_first
 
-    # initialize adapter-added transformer layer
-    adapter_added_layer = HoulsbyTransformerSentenceEncoderLayer(
-        embedding_dim=embedding_dim,
-        ffn_embedding_dim=ffn_embedding_dim,
-        num_attention_heads=num_attention_heads,
-        dropout=dropout,
-        attention_dropout=attention_dropout,
-        activation_dropout=activation_dropout,
-        activation_fn=activation_fn,
-        layer_norm_first=layer_norm_first,
-        bottleneck=bottleneck,
-    )
-    
-    # Get default requires_grad 
-    for n, p in adapter_added_layer.named_parameters():
-        if 'adapter' in n:
-            continue
-        p.requires_grad = eval(f"target_module.{n}").requires_grad
+        # initialize adapter-added transformer layer
+        adapter_added_layer = HoulsbyTransformerSentenceEncoderLayer(
+            embedding_dim=embedding_dim,
+            ffn_embedding_dim=ffn_embedding_dim,
+            num_attention_heads=num_attention_heads,
+            dropout=dropout,
+            attention_dropout=attention_dropout,
+            activation_dropout=activation_dropout,
+            activation_fn=activation_fn,
+            layer_norm_first=layer_norm_first,
+            bottleneck=bottleneck,
+        )
         
-    # copy weights from the target module
-    orig_state_dict = target_module.state_dict()
-    adapter_added_layer.load_state_dict(orig_state_dict, strict=False)
-    
-    # Copy all hooks to the new layer
-    for k, v in target_module.__dict__.items():
-        if 'hook' not in k:
-            continue
-        adapter_added_layer.__dict__[k] = v
+        # Get default requires_grad 
+        for n, p in adapter_added_layer.named_parameters():
+            if 'adapter' in n:
+                continue
+            p.requires_grad = eval(f"target_module.{n}").requires_grad
         
+        # copy weights from the target module
+        orig_state_dict = target_module.state_dict()
+        adapter_added_layer.load_state_dict(orig_state_dict, strict=False)
+        
+        # Copy all hooks to the new layer
+        for k, v in target_module.__dict__.items():
+            if 'hook' not in k:
+                continue
+            adapter_added_layer.__dict__[k] = v
+    else:
+        raise NotImplementedError(f"Target module {type(target_module)} is not supported.")
     return adapter_added_layer
 def create_new_lora_module(
     target_module: torch.nn.Module, rank: int, alpha: int, dropout_rate: float
