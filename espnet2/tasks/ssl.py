@@ -22,12 +22,14 @@ from espnet2.asr.frontend.windowing import SlidingWindow
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.preencoder.sinc import LightweightSincConvs
 from espnet2.asr.preencoder.linear import LinearProjection
+from espnet2.asr.preencoder.subsampling import Subsampling
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
 from espnet2.asr.specaug.specaug import SpecAug
 from espnet2.ssl.espnet_model import (
     ESPnetSSLModel
 )
 from espnet2.ssl.loss.hubert_loss import HuBERTLoss
+from espnet2.ssl.loss.hubert_loss_ce import HuBERTLossCrossEntropy
 from espnet2.ssl.loss.abs_loss import AbsLoss
 from espnet2.ssl.mask.abs_mask import AbsMasker
 from espnet2.ssl.mask.hubert_mask import HubertMasker
@@ -74,7 +76,8 @@ preencoder_choices = ClassChoices(
     name="preencoder",
     classes=dict(
         sinc=LightweightSincConvs,
-        linear=LinearProjection
+        linear=LinearProjection,
+        subsampling=Subsampling
     ),
     type_check=AbsPreEncoder,
     default="linear",
@@ -101,9 +104,10 @@ loss_choices = ClassChoices(
     "loss",
     classes=dict(
         hubert=HuBERTLoss,
+        hubert_ce=HuBERTLossCrossEntropy
     ),
     type_check=AbsLoss,
-    default="hubert",
+    default="hubert"
 )
 model_choices = ClassChoices(
     "model",
@@ -323,10 +327,20 @@ class SSLTask(AbsTask):
             label_downsampling=args.collate_fn_conf.get("label_downsampling", 1),
             pad=args.collate_fn_conf.get("pad", False),
             rand_crop=args.collate_fn_conf.get("rand_crop", True),
-            crop_audio=not args.collect_stats,
+            crop_audio=not args.collect_stats and args.collate_fn_conf.get("crop_audio", True),
             window_size=window_size,
             window_shift=window_shift,
             sample_rate=sample_rate,
+            train=train,
+            mix_speech=args.collate_fn_conf.get("mix_speech", False),
+            reverb_speech=args.collate_fn_conf.get("reverb_speech", False),
+            noise_scp=args.collate_fn_conf.get("noise_scp", "data/noise/wav.scp"),
+            rir_scp=args.collate_fn_conf.get("rir_scp", "data/rirs/wav.scp"),
+            noise_apply_prob=args.collate_fn_conf.get("noise_apply_prob", 1.0),
+            rir_apply_prob=args.collate_fn_conf.get("rir_apply_prob", 1.0),
+            noise_db_range=args.collate_fn_conf.get("noise_db_range", "-5_20"),
+            dynamic_mixing_gain_db=args.collate_fn_conf.get("dynamic_mixing_gain_db", 5.0),
+            dynamic_mixing_prob=args.collate_fn_conf.get("dynamic_mixing_prob", 0.1),
         )
 
     @classmethod
@@ -425,7 +439,10 @@ class SSLTask(AbsTask):
         # NOTE(kan-bayashi): Use getattr to keep the compatibility
         if getattr(args, "preencoder", None) is not None:
             preencoder_class = preencoder_choices.get_class(args.preencoder)
-            preencoder = preencoder_class(input_size=input_size,**args.preencoder_conf)
+            if "input_size" not in args.preencoder_conf:
+                preencoder = preencoder_class(input_size=input_size, **args.preencoder_conf)
+            else:
+                preencoder = preencoder_class(**args.preencoder_conf)
             input_size = preencoder.output_size()
         else:
             preencoder = None
@@ -440,7 +457,7 @@ class SSLTask(AbsTask):
         # 5. Masker
         masker_class = masker_choices.get_class(args.masker)
         masker = masker_class(
-            encoder_embed_dim=encoder.output_size(),
+            encoder_embed_dim=preencoder.output_size() if getattr(args, "preencoder", None) is not None else frontend.output_size(),
             **args.masker_conf,
         )
 

@@ -2,6 +2,7 @@ import math
 from typing import Collection, Dict, List, Tuple, Union
 
 import numpy as np
+import scipy.signal
 import torch
 from typeguard import check_argument_types, check_return_type
 
@@ -40,7 +41,6 @@ class CommonCollateFn:
             not_sequence=self.not_sequence,
         )
 
-
 class HuBERTCollateFn(CommonCollateFn):
     """Functor class of common_collate_fn()"""
 
@@ -62,6 +62,9 @@ class HuBERTCollateFn(CommonCollateFn):
         dynamic_mixing_gain_db: float = 5.0,
         dynamic_mixing_prob = 0.1,
         mix_speech: bool = False,
+        reverb_speech: bool = False,
+        rir_scp: str = "data/rirs/wav.scp",
+        rir_apply_prob: float = 0.3,
         train: bool = True,
     ):
         assert check_argument_types()
@@ -82,9 +85,11 @@ class HuBERTCollateFn(CommonCollateFn):
         self.sample_rate = sample_rate
         self.train = train
         self.mix_speech = mix_speech
+        self.reverb_speech = reverb_speech
         self.dynamic_mixing_prob = dynamic_mixing_prob
         self.noise_apply_prob = noise_apply_prob
         self.dynamic_mixing_gain_db = dynamic_mixing_gain_db
+        self.rir_apply_prob = rir_apply_prob
 
         if train and mix_speech and noise_scp is not None:
             print("reloading noises", flush=True)
@@ -110,6 +115,35 @@ class HuBERTCollateFn(CommonCollateFn):
         else:
             self.noises = None
 
+        if train and reverb_speech and rir_scp is not None:
+            print("reloading rirs", flush=True)
+            self.rirs = {}
+            self.rir_paths = []
+            with open(rir_scp, "r", encoding="utf-8") as f:
+                for line in f:
+                    sps = line.strip().split(None, 1)
+                    if len(sps) == 1:
+                        rir_path = sps[0]
+                    else:
+                        rir_path = sps[1]
+                    self.rir_paths.append(rir_path)
+        else:
+            self.rirs = None
+
+    def _read_rir_audio_(self):
+        rir_path = np.random.choice(self.rir_paths)
+        rir = None
+        if rir_path is not None:
+            if rir_path in self.rirs:
+                rir = self.rirs[rir_path]
+            else:
+                with soundfile.SoundFile(rir_path) as f:
+                    rir = f.read(dtype=np.float32, always_2d=False)
+                    if rir.ndim == 2:
+                        rir = np.mean(rir, axis=1)
+                self.rirs[rir_path] = rir
+        return rir
+
     def _read_noise_audio_(self):
         noise_path = np.random.choice(self.noise_paths)
         noise = None
@@ -121,6 +155,24 @@ class HuBERTCollateFn(CommonCollateFn):
                     noise = f.read(dtype=np.float32, always_2d=False)
                 self.noises[noise_path] = noise
         return noise
+
+    def _get_aligned_reverb_signal(self, speech):
+        rir = self._read_rir_audio_()
+        # speech.shape: [mics=1, samples]
+        # rir.shape: [mics=1, samples2]
+
+        speech = speech.reshape(1, -1)
+        rir = rir.reshape(1, -1)
+
+        power = (speech[detect_non_silence(speech)] ** 2).mean()
+        dt = np.argmax(rir, axis=1).min()
+        speech2 = scipy.signal.convolve(speech, rir, mode="full")[:, dt:dt+speech.shape[1]]
+
+        # Reverse mean power to the original power
+        power2 = (speech2[detect_non_silence(speech2)] ** 2).mean()
+        speech2 = np.sqrt(power / max(power2, 1e-10)) * speech2
+
+        return speech2.flatten()
 
     def _add_noise_wavlm(self, data, speech, speech_id):
         power = (speech[detect_non_silence(speech)] ** 2).mean()
@@ -162,14 +214,15 @@ class HuBERTCollateFn(CommonCollateFn):
         self, data: Collection[Tuple[str, Dict[str, np.ndarray]]]
     ) -> Tuple[List[str], Dict[str, torch.Tensor]]:
         assert "speech" in data[0][1]
-        assert "text" in data[0][1]
+        #assert "text" in data[0][1] # need to remove this assert for collect stats
         if self.pad:
             num_frames = max([sample["speech"].shape[0] for uid, sample in data])
         else:
             num_frames = min([sample["speech"].shape[0] for uid, sample in data])
 
         new_data = []
-        if self.train or self.label_downsampling > 1:
+        #if self.train or self.label_downsampling > 1:
+        if self.train and self.label_downsampling > 1:
             for uid, sample in data:
                 waveform, label = sample["speech"], sample["text"]
                 assert waveform.ndim == 1
@@ -179,6 +232,8 @@ class HuBERTCollateFn(CommonCollateFn):
                 # features.
                 if self.train and self.mix_speech and self.noise_apply_prob >= np.random.random():
                     waveform = self._add_noise_wavlm(data, waveform, uid)
+                if self.train and self.reverb_speech and self.rir_apply_prob >= np.random.random():
+                    waveform = self._get_aligned_reverb_signal(waveform)
                 if self.label_downsampling > 1:
                     label = label[:: self.label_downsampling]
                 if self.train and self.crop_audio:
