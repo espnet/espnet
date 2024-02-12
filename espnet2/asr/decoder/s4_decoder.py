@@ -1,4 +1,5 @@
 """Decoder definition."""
+
 from typing import Any, List, Tuple
 
 import torch

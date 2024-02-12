@@ -1,4 +1,5 @@
 """Trainer module."""
+
 import argparse
 import dataclasses
 import logging

@@ -1,4 +1,5 @@
 """Warm up learning rate scheduler module."""
+
 from typing import Union
 
 import torch

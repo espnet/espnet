@@ -40,7 +40,9 @@ token_type=phn
 g2p=none
 
 ./tts.sh \
-    --use_xvector true \
+    --use_spk_embed true \
+    --spk_embed_tool kaldi \
+    --spk_embed_tag xvector \
     --local_data_opts "${local_data_opts}" \
     --audio_format wav \
     --lang noinfo \

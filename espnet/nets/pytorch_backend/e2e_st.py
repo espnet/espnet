@@ -327,9 +327,9 @@ class E2E(STInterface, torch.nn.Module):
                 self.trans_args,
                 self.char_list,
                 self.rnnlm,
-                lang_ids=tgt_lang_ids.squeeze(1).tolist()
-                if self.multilingual
-                else None,
+                lang_ids=(
+                    tgt_lang_ids.squeeze(1).tolist() if self.multilingual else None
+                ),
             )
             # remove <sos> and <eos>
             list_of_refs = []

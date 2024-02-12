@@ -75,5 +75,7 @@ g2p=none
     --valid_set "${valid_set}" \
     --test_sets "${test_sets}" \
     --srctexts "data/${train_set}/text" \
-    --use_xvector true \
+    --use_spk_embed true \
+    --spk_embed_tool kaldi \
+    --spk_embed_tag xvector \
     ${opts} "$@"

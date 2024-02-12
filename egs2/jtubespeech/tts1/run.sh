@@ -51,7 +51,9 @@ g2p=pyopenjtalk
     --n_fft "${n_fft}" \
     --n_shift "${n_shift}" \
     --win_length "${win_length}" \
-    --use_xvector true \
+    --use_spk_embed true \
+    --spk_embed_tool kaldi \
+    --spk_embed_tag xvector \
     --token_type phn \
     --cleaner jaconv \
     --g2p "${g2p}" \

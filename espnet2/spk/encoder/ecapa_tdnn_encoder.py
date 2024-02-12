@@ -61,6 +61,15 @@ class EcapaTdnnEncoder(AbsEncoder):
         return self._output_size
 
     def forward(self, x: torch.Tensor):
+        """Calculate forward propagation.
+
+        Args:
+            x (torch.Tensor): Input tensor (#batch, L, input_size).
+
+        Returns:
+            torch.Tensor: Output tensor (#batch, L, output_size).
+
+        """
         x = self.conv(x.permute(0, 2, 1))
         x = self.relu(x)
         x = self.bn(x)

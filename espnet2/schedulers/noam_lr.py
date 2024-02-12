@@ -1,4 +1,5 @@
 """Noam learning rate scheduler module."""
+
 import warnings
 from typing import Union
 

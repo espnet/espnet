@@ -599,9 +599,11 @@ def decode(args):
         load_input=False,
         sort_in_input_length=False,
         use_speaker_embedding=train_args.use_speaker_embedding,
-        preprocess_conf=train_args.preprocess_conf
-        if args.preprocess_conf is None
-        else args.preprocess_conf,
+        preprocess_conf=(
+            train_args.preprocess_conf
+            if args.preprocess_conf is None
+            else args.preprocess_conf
+        ),
         preprocess_args={"train": False},  # Switch the mode of preprocessing
     )
 

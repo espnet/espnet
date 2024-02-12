@@ -288,6 +288,10 @@ echo "==== [ESPnet2] SPK ==="
 ./run.sh --ngpu 0 --stage 5 --stop-stage 5 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_dataaug_debug.yaml --spk-args "--num_workers 0"
 ./run.sh --ngpu 0 --stage 5 --stop-stage 5 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_sampler.yaml --spk-args "--num_workers 0"
 ./run.sh --ngpu 0 --stage 5 --stop-stage 5 --feats-type "raw" --python "${python}" --spk_config conf/train_ecapa.yaml --spk-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 5 --stop-stage 5 --feats-type "raw" --python "${python}" --spk_config conf/train_xvector.yaml --spk-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 5 --stop-stage 5 --feats-type "raw" --python "${python}" --spk_config conf/train_ska.yaml --spk-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 5 --stop-stage 5 --feats-type "raw" --python "${python}" --spk_config conf/train_identity.yaml --spk-args "--num_workers 0"
+./run.sh --ngpu 0 --stage 5 --stop-stage 5 --feats-type "raw" --python "${python}" --spk_config conf/train_conformer.yaml --spk-args "--num_workers 0"
 ./run.sh --ngpu 0 --stage 6 --stop-stage 7 --feats-type "raw" --python "${python}" --spk_config conf/train_rawnet3_sampler.yaml --spk-args "--num_workers 0" --inference_model "valid.eer.ave.pth"
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data
@@ -310,6 +314,15 @@ echo "==== [ESPnet2] S2ST ==="
 ./run.sh --ngpu 0 --stage 1 --stop_stage 8 --python "${python}" --use_discrete_unit true --s2st_config conf/train_s2st_discrete_unit_debug.yaml --clustering_num_threads 2 --feature_num_clusters 5
 # Remove generated files in order to reduce the disk usage
 rm -rf exp dump data ckpt .cache
+cd "${cwd}"
+
+# [ESPnet2] test lm1 recipe
+cd ./egs2/mini_an4/lm1
+gen_dummy_coverage
+echo "==== [ESPnet2] LM ==="
+./run.sh --ngpu 0 --stage 1 --stop-stage 12 --python "${python}"
+# Remove generated files in order to reduce the disk usage
+rm -rf exp dump data
 cd "${cwd}"
 
 echo "=== report ==="
