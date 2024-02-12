@@ -376,11 +376,7 @@ class Trainer:
                 if use_adapter:
                     if save_strategy == "all":
                         model_state_dict = model_state_dict
-<<<<<<< HEAD
                     elif save_strategy == "adapter_only":
-=======
-                    elif save_strategy == "adapter":
->>>>>>> d03a6795077c75384bc840544ad75093c6ee518d
                         if adapter == "lora":
                             model_state_dict = lora.lora_state_dict(model)
                         elif adapter == "houlsby":
