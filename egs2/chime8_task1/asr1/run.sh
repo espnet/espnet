@@ -9,41 +9,38 @@ log() {
     echo -e "$(date '+%Y-%m-%dT%H:%M:%S') (${fname}:${BASH_LINENO[0]}:${FUNCNAME[1]}) $*"
 }
 ######################################################################################
-# CHiME-7 Task 1 SUB-TASK baseline system script: GSS + ASR using oracle diarization
+# CHiME-8 Task 1 GSS + ASR baseline system script.
 ######################################################################################
 
 stage=0
 stop_stage=100
 
 # NOTE, use absolute paths !
-chime7_root=${PWD}/chime8_task1
-chime6_root=/raid/users/popcornell/CHiME6/espnet/egs2/chime6/asr1/CHiME6 # will be created automatically from chime5
-# but if you have it already it will be skipped, please put your own path
-dipco_root=${PWD}/datasets/dipco # this will be automatically downloaded
-mixer6_root=/raid/users/popcornell/mixer6 # put yours here
-notsofar1_root=${PWD}/datasets/notsofar1
+chime8_root=/raid/users/popcornell/CHiME6/tmp_chimeutils/chime8_dasr
+download_dir=${PWD}/datasets # where do you want your datasets downloaded
+# mixer6 has to be obtained through LDC see official data page
+mixer6_root=/raid/users/popcornell/mixer6
+
 
 # DATAPREP CONFIG
 manifests_root=${PWD}/data/lhotse # dir where to save lhotse manifests
 cmd_dprep=run.pl
 dprep_stage=0
-gen_eval=0 # please not generate eval before release of mixer 6 eval
-
+gen_eval=0 # please not generate eval before release of NOTSOFAR1 eval
 
 gss_dump_root=./exp/gss
-ngpu=4  # set equal to the number of GPUs you have, used for GSS and ASR training
+ngpu=3  # set equal to the number of GPUs you have, used for GSS and ASR training
 train_min_segment_length=1 # discard sub one second examples, they are a lot in chime6
-train_max_segment_length=20  # also reduce if you get OOM, here A100 40GB
+train_max_segment_length=20  # also reduce if you get OOM, here we used A100 40GB
 
 # GSS CONFIG
-use_chime6_falign=0
 use_selection=1 # always use selection
-gss_max_batch_dur=90 # set accordingly to your GPU VRAM, A100 40GB you can use 360
+gss_max_batch_dur=30 # set accordingly to your GPU VRAM, A100 40GB you can use 360
 # if you still get OOM errors for GSS see README.md
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
-# note with run.pl your GPUs need to be in exclusive mode otherwise it fails
+# NOTE !!! with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
-gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev"
+gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev,notsofar1_train"
 gss_iterations=20
 top_k=80
 # we do not train with mixer 6 training + GSS here, but you can try.
@@ -57,8 +54,10 @@ asr_config=conf/tuning/train_asr_transformer_fbank_lr1e-3_specaugm_accum1_warmup
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
 asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
-asr_cv_set=kaldi/chime6/dev/gss # use chime only for validation. you can also try using all datasets after gss: kaldi/dev_all_gss
-asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/"
+asr_cv_set=kaldi/chime6/validation/gss # we used only chime6 but maybe you can use a combination of all
+
+# note we use notsofar training here because dev gt is not available
+asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/notsofar1/train/gss"
 lm_config="conf/train_lm.yaml"
 use_lm=false
 use_word_lm=false
@@ -90,28 +89,35 @@ asr_warmup=$(calc_int 40000.0/$ngpu)
 
 if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]] && [[ "$decode_train" != "train" ]];
 then
-  log "decode_train argument should be either dev, eval or train"
+  log "decode_train argument should be either dev, eval, train or val"
   exit
 fi
 
 
 if [ $decode_train == "dev" ]; then
   # apply gss only on dev
-  gss_dsets="chime6_dev,dipco_dev,mixer6_dev,notsofar1_dev"
-  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/notsofar1/dev/gss"
+  gss_dsets="chime6_dev,dipco_dev,mixer6_dev,notsofar1_train"
+  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss kaldi/notsofar1/train/gss"
 elif
   [ $decode_train == "eval" ]; then
   # apply gss only on eval
-  gss_dsets="chime6_eval,dipco_eval,mixer6_eval"
-  asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/"
+  gss_dsets="chime6_eval,dipco_eval,mixer6_eval,notsofar1_eval"
+  asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/ kaldi/notsofar1/eval/gss"
 fi
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
   # this script creates the task1 dataset
-  chime-utils dgen chime6 $chime6_root $chime7_root/chime6 -p train,dev,eval
-  chime-utils dgen dipco $dipco_root $chime7_root/dipco -p dev,eval --download
-  chime-utils dgen mixer6 $mixer6_root $chime7_root/mixer6 -p train_call,train_intv,dev,eval
-  chime-utils dgen notsofar1 $notsofar1_root $chime7_root/notsofar1 -p dev --download
+  gen_splits=train,dev
+  if [ $decode_train == "eval" ]; then
+    gen_splits="eval"
+  fi
+
+  if [ -d "$chime8_root" ]; then
+    echo "$chime8_root exists already, skipping data download and generation."
+  else
+    chime-utils dgen dasr $download_dir $mixer6_root $chime8_root --part $gen_splits --download
+    # there are also other commands to download the datasets independently see https://github.com/chimechallenge/chime-utils
+  fi
 
 fi
 
@@ -119,32 +125,18 @@ fi
 if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
   # parse all datasets to lhotse
   for dset in chime6 dipco mixer6 notsofar1; do
-    for dset_part in "train" "dev" "eval"; do
-
-      if [ $dset == dipco ] && [ $dset_part == train ]; then
-          continue # dipco has no train set
-      fi
+    for dset_part in "train" "dev"; do
 
       if [ "$decode_train" != "train" ] && [ $dset_part != "$decode_train" ]; then
         continue
-      fi
 
-      if [ "$decode_train" == "train" ] && [ $dset_part == "eval" ]; then
-        continue
-      fi
-
-      if [ $use_chime6_falign == 1 ] && [ $dset == chime6 ] && [ $dset_part != train ]; then
-           if ! [ -d ./CHiME6_DASR_falign ]; then
-               log "Getting forced alignment annotation for CHiME-6 Scenario"
-               git clone https://github.com/chimechallenge/CHiME6_DASR_falign
-           fi
-           falign_dir=./CHiME7_DASR_falign
-      else
-           falign_dir=
       fi
 
       log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
-      chime-utils lhotse-prep $dset $chime7_root/$dset $manifests_root/${dset}/$dset_part --dset-part $dset_part
+      # no text norm here because it hurts GSS
+      chime-utils lhotse-prep $dset $chime8_root/$dset $manifests_root/${dset}/${dset_part}_orig --dset-part $dset_part --txt-norm none
+      echo "Discard lhotse supervisions shorter than 0.2" # otherwise probelms with WavLM
+      chime-utils lhotse-prep discard-length $manifests_root/${dset}/${dset_part}_orig $manifests_root/${dset}/$dset_part --min-len 0.2
     done
   done
 fi
@@ -254,7 +246,8 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   if [ -n "$use_pretrained" ]; then
     asr_exp="exp/${use_pretrained}"
   else
-    asr_tag="train_asr_transformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup20k_raw_en_bpe500_batch_size256_scheduler_confwarmup_steps20000_max_epoch8_optim_conflr0.000200000000_sp" #"$(basename "${asr_config}" .yaml)_raw"
+    #FIXME ask kamo ? if this fails put your own !
+    asr_tag="$(basename "${asr_config}" .yaml)_raw"
     asr_exp="exp/asr_${asr_tag}"
   fi
   inference_tag="$(basename "${inference_config}" .yaml)"
@@ -283,8 +276,9 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     # the content of this output folder is what you should send for evaluation to the
     # organizers.
   done
+  #FIXME add chime-utils scoring here !
   split=dev # participants cannot evaluate eval
   LOG_OUT=${asr_exp}/${inference_tag}/scoring/scoring.log
   python local/da_wer_scoring.py -s ${asr_exp}/${inference_tag}/chime7dasr_hyp/$split \
-     -r $chime7_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d $diar_score 2>&1 | tee $LOG_OUT
+     -r $chime8_root -p $split -o ${asr_exp}/${inference_tag}/scoring -d $diar_score 2>&1 | tee $LOG_OUT
 fi

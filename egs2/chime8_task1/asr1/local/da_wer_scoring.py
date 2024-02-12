@@ -20,6 +20,10 @@ from pyannote.metrics.segmentation import Annotation, Segment, Timeline
 from pyannote.metrics.types import MetricComponents
 from tabulate import tabulate
 from tqdm import tqdm
+from chime_utils.text_norm import get_txt_norm
+
+
+TXT_NORM = get_txt_norm("chime8")
 
 DEBUG = False
 if DEBUG:
@@ -396,6 +400,22 @@ def score(
     with open(hyp_json, "r") as f:
         hyps = json.load(f)
 
+    def normalize_json(input_json):
+        out = []
+        for utt in input_json:
+            new_utt = deepcopy(utt)
+            new_utt["words"] = TXT_NORM(new_utt["words"])
+            if len(new_utt["words"]) == 0:
+                continue
+            else:
+                out.append(new_utt)
+
+        return out
+
+
+    hyps = normalize_json(hyps)
+    refs = normalize_json(refs)
+
     def get_sess2segs(segments):
         out = {}
         for x in segments:
@@ -613,7 +633,7 @@ if __name__ == "__main__":
     spk_wise_df = []
     sess_wise_df = []
     scenario_wise_df = []
-    scenarios = ["chime6", "dipco", "mixer6"]
+    scenarios = ["notsofar1"]#"chime6", "dipco", "mixer6"]
     Path(args.output_folder).mkdir(exist_ok=True)
     for indx, scenario in enumerate(scenarios):
         hyp_json = os.path.join(args.hyp_folder, scenario + ".json")
