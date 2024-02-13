@@ -33,8 +33,6 @@ def json2annotation(chimelike_jsonf, uri=None, spk_prefix=None):
 
     return to_annotation(json_ann, uri, spk_prefix)
 
-
-# FIXME add notsofar1 synth and AMI in the fine-tuning
 def prepare4pyannote(
     chime7dasr_root, target_dir="./data/pyannote_diarization", falign_annotation=None
 ):
@@ -64,7 +62,7 @@ def prepare4pyannote(
                 json_folder = os.path.join(falign_annotation, split, "*.json")
             else:
                 json_folder = os.path.join(
-                    c_scenario, "transcriptions", split, "*.json")
+                    c_scenario, "transcriptions_scoring", split, "*.json")
 
             json_annotations = glob.glob(json_folder)
             sess2json = {}
@@ -86,19 +84,10 @@ def prepare4pyannote(
             for audio_f in tqdm.tqdm(audio_files):
                 filename = Path(audio_f).stem
 
-
-                 # append uri here
                 session = re.search(sess_regex, filename).group()  # sess regex here
                 c_ann = sess2json[session]
                 c_uem = sess2uem[session]
-                # put the filename here
 
-
-
-                # writing uem
-                # NOTE: we recreate here uem for each file, to assure that they
-                # will be not out of bounds as pyannote otherwise will throw errors
-                # during training.
                 c_uem = [
                     c_uem[0],
                     round_down(
@@ -107,12 +96,12 @@ def prepare4pyannote(
                     ),
                 ]
 
-                if dset == "mixer6":
-                    # use whole mixer6 even train for validation
+                if dset == "dipco":
+                    # use whole dipco train and valid for validation
                     uem_dict["dev"].append((c_uem, filename))
                     rttm_dict["dev"].append((c_ann, filename))
                     uri_dict["dev"].append(filename)
-                elif dset in ["chime6", "dipco", "notsofar1"] and split == "train":
+                elif dset in ["chime6", "notsofar1"] and split == "train":
                     # use these for train
                     uem_dict["train"].append((c_uem, filename))
                     rttm_dict["train"].append((c_ann, filename))
