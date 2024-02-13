@@ -27,6 +27,9 @@ EOF
 ### Number of threads - tr: 50, cv: 13, tt: 8
 parallel=true
 
+### This parameter is used to decide whether to use dereverb or reverb references during training.
+use_dereverb=false
+
 min_or_max=min
 sample_rate=16k
 
@@ -35,6 +38,8 @@ tr="tr"
 cv="cv"
 tt="tt"
 pdir=$PWD
+spk1_dir="s1"
+spk2_dir="s2"
 
 . utils/parse_options.sh
 
@@ -56,16 +61,32 @@ if [ ! -e "${DIHARD2}" ]; then
     exit 1
 fi
 
+if [ "${use_dereverb}" == true ]
+then
+    echo "Using dereverb references"
+    spk1_dir = "s1_direct"
+    spk2_dir = "s2_direct"
+fi    
+
 
 ### Download the scripts for noise extraction and mixture creation
 echo "Downloading scripts for wsj_kinect"
 url=https://github.com/sunits/Reverberated_WSJ_2MIX/archive/refs/heads/master.zip
+datadir=data
 wdir=data/scripts
 
 if [ -d $wdir ]; then
   echo "Replacing $wdir" 
   rm -r $wdir
 fi
+
+for x in ${tr} ${cv} ${tt};
+do
+  if [ -d $datadir/$x ]; then
+  echo "Clearing $x" 
+  rm -r $datadir/$x
+  fi
+done
 
 mkdir -p $wdir
 
@@ -98,8 +119,8 @@ local/wsj_kinect_data_prep.sh ${output_path} $wdir/Reverberated_WSJ_2MIX-master/
 
 for target_folder in ${tr} ${cv} ${tt};
 do
-  sed -e 's/\/mix\//\/s1\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/spk1.scp
-  sed -e 's/\/mix\//\/s2\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/spk2.scp
+  sed -e "s/\/mix\//\/${spk1_dir}\//g" ./data/$target_folder/wav.scp > ./data/$target_folder/spk1.scp
+  sed -e "s/\/mix\//\/${spk2_dir}\//g" ./data/$target_folder/wav.scp > ./data/$target_folder/spk2.scp
   sed -e 's/\/mix\//\/noise\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/noise1.scp
   sed -e 's/\/mix\//\/s1_direct\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/dereverb1.scp
   sed -e 's/\/mix\//\/s2_direct\//g' ./data/$target_folder/wav.scp > ./data/$target_folder/dereverb2.scp
