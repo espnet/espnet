@@ -38,12 +38,12 @@ def json2annotation(chimelike_jsonf, uri=None, spk_prefix=None):
 def prepare4pyannote(
     chime7dasr_root, target_dir="./data/pyannote_diarization", falign_annotation=None
 ):
-    for dset in ["chime6", "dipco", "mixer6"]:
+    for dset in ["chime6", "dipco", "mixer6", "notsofar1"]:
         print("Running Pyannote data preparation for {} scenario".format(dset))
         c_scenario = os.path.join(chime7dasr_root, dset)
-        c_splits = ["train", "dev"] if dset == "chime6" else ["dev"]
+        c_splits = ["train", "dev"] if dset != "notsofar1" else ["train"]
         # exclude close-talk CH01, CH02, CH03 and P[0-9]+
-        if dset in ["chime6", "dipco"]:
+        if dset in ["chime6", "dipco", "notsofar1"]:
             mic_regex = "(U[0-9]+)"
             sess_regex = "(S[0-9]+)"
         else:
@@ -120,7 +120,7 @@ def prepare4pyannote(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        "Preparing CHiME-7 DASR data for fine-tuning"
+        "Preparing CHiME-8 DASR data for fine-tuning"
         "the Pyannote segmentation model.",
         add_help=True,
         usage="%(prog)s [options]",

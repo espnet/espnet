@@ -25,13 +25,12 @@ mixer6_root=/raid/users/popcornell/mixer6
 # DATAPREP CONFIG
 manifests_root=${PWD}/data/lhotse # dir where to save lhotse manifests
 cmd_dprep=run.pl
-dprep_stage=0
-gen_eval=0 # please not generate eval before release of NOTSOFAR1 eval
 
 gss_dump_root=./exp/gss
 ngpu=3  # set equal to the number of GPUs you have, used for GSS and ASR training
 train_min_segment_length=1 # discard sub one second examples, they are a lot in chime6
 train_max_segment_length=20  # also reduce if you get OOM, here we used A100 40GB
+infer_max_segment_length=20
 
 # GSS CONFIG
 use_selection=1 # always use selection
@@ -40,21 +39,22 @@ gss_max_batch_dur=30 # set accordingly to your GPU VRAM, A100 40GB you can use 3
 cmd_gss=run.pl # change to suit your needs e.g. slurm !
 # NOTE !!! with run.pl your GPUs need to be in exclusive mode otherwise it fails
 # to go multi-gpu see https://groups.google.com/g/kaldi-help/c/4lih8UKHBoc
-gss_dsets="chime6_train,chime6_dev,dipco_dev,mixer6_dev,notsofar1_train"
-gss_iterations=20
+gss_dsets="chime6_train,mixer6_train,dipco_train,notsofar1_train,chime6_dev,dipco_dev,mixer6_dev"
+gss_iterations=5
 top_k=80
 # we do not train with mixer 6 training + GSS here, but you can try.
 
 # ASR CONFIG
 # NOTE: if you get OOM reduce the batch size in asr_config YAML file
+asr_tag=chime8_ebranchformer # name of the ASR model you want to train
 asr_stage=0 # starts at 13 for inference only
 asr_dprep_stage=0
 bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by the dataprep
-asr_config=conf/tuning/train_asr_transformer_fbank_lr1e-3_specaugm_accum1_warmup40k.yaml
+asr_config="conf/tuning/train_asr_ebranchformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup40k.yaml"
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
-asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
-asr_cv_set=kaldi/chime6/validation/gss # we used only chime6 but maybe you can use a combination of all
+asr_train_set=kaldi/train_all_mdm_ihm
+asr_cv_set=kaldi/chime6/dev/gss # we used only chime6 but maybe you can use a combination of all
 
 # note we use notsofar training here because dev gt is not available
 asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/notsofar1/train/gss"
@@ -69,9 +69,13 @@ use_pretrained=
 decode_train="dev" # chose from dev, train, test
 diar_score=0
 
-. ./path.sh
-. ./cmd.sh
-. ./utils/parse_options.sh
+
+
+if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]] && [[ "$decode_train" != "train" ]];
+then
+  log "decode_train argument should be either dev, eval, train or val"
+  exit
+fi
 
 if [ "$decode_train" == "train" ] && [ -n "$use_pretrained" ]; then
 
@@ -80,19 +84,6 @@ log "You are asking to use $use_pretrained pretrained model."
 exit
 
 fi
-
-# ESPNet does not scale parameters with num of GPUs by default, doing it
-# here for you
-asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
-asr_max_lr=$(calc_float $ngpu/10000.0)
-asr_warmup=$(calc_int 40000.0/$ngpu)
-
-if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]] && [[ "$decode_train" != "train" ]];
-then
-  log "decode_train argument should be either dev, eval, train or val"
-  exit
-fi
-
 
 if [ $decode_train == "dev" ]; then
   # apply gss only on dev
@@ -104,6 +95,20 @@ elif
   gss_dsets="chime6_eval,dipco_eval,mixer6_eval,notsofar1_eval"
   asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/ kaldi/notsofar1/eval/gss"
 fi
+
+. ./path.sh
+. ./cmd.sh
+. ./utils/parse_options.sh
+
+
+
+# ESPNet does not scale parameters with num of GPUs by default, doing it
+# here for you
+asr_batch_size=$(calc_int 128*$ngpu) # reduce 128 bsz if you get OOMs errors
+asr_max_lr=$(calc_float $ngpu/10000.0)
+asr_warmup=$(calc_int 40000.0/$ngpu)
+
+
 
 if [ ${stage} -le 0 ] && [ $stop_stage -ge 0 ]; then
   # this script creates the task1 dataset
@@ -124,27 +129,36 @@ fi
 
 if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
   # parse all datasets to lhotse
-  for dset in chime6 dipco mixer6 notsofar1; do
-    for dset_part in "train" "dev"; do
-
-      if [ "$decode_train" != "train" ] && [ $dset_part != "$decode_train" ]; then
-        continue
-
-      fi
-
-      if [ $dset_part == "train" ] && [ $dset != "notsofar1" ]; then
-        txt_norm="none" # in training use the chime8, whisper-style normalization
+  for dset in mixer6; do
+    if [ "$decode_train" == "eval" ]; then
+      dset_part="eval"
+    elif [ "$decode_train" != "eval" ]; then
+      if [ "$dset" == "mixer6" ]; then
+        dset_part="train_call train_intv train dev"
       else
-        txt_norm="chime8" # normalization in inference hurts GSS
+        dset_part="train dev"
       fi
+    fi
 
-      log "Creating lhotse manifests for ${dset} in $manifests_root/${dset}"
-      # no text norm here because it hurts GSS
-      chime-utils lhotse-prep $dset $chime8_root/$dset $manifests_root/${dset}/${dset_part}_orig --dset-part $dset_part --txt-norm $txt_norm
-      echo "Discard lhotse supervisions shorter than 0.2" # otherwise probelms with WavLM
-      chime-utils lhotse-prep discard-length $manifests_root/${dset}/${dset_part}_orig $manifests_root/${dset}/$dset_part --min-len 0.2
-    done
+
+     for c_part in $dset_part; do
+
+        if [[ $c_part = @(train|train_call|train_intv) ]]; then
+          txt_norm="chime8" # in training use the chime8, whisper-style normalization
+          mics="ihm,mdm"
+        else
+          txt_norm="none" # normalization none as it hurts GSS in inference
+          mics="mdm" # ihm not available for dev
+        fi
+
+        log "Creating lhotse manifests for ${dset}, $c_part set $mics microphones, in $manifests_root/${dset}"
+        # no text norm here because it hurts GSS
+        chime-utils lhotse-prep $dset $chime8_root/$dset $manifests_root/${dset}/${c_part}_orig --dset-part $c_part --txt-norm "$txt_norm" -m "$mics"
+        echo "Discard lhotse supervisions shorter than 0.2" # otherwise probelms with WavLM
+        chime-utils lhotse-prep discard-length $manifests_root/${dset}/${c_part}_orig $manifests_root/${dset}/$c_part --min-len 0.2
+     done
   done
+
 fi
 
 
@@ -159,15 +173,16 @@ if [ ${stage} -le 2 ] && [ ${stop_stage} -ge 2 ]; then
     # for each dataset get the name and part (dev or train)
     dset_name="$(cut -d'_' -f1 <<<${dset})"
     dset_part="$(cut -d'_' -f2 <<<${dset})"
-    max_segment_length=2000 # enhance all in inference, training we can drop longer ones
-    channels=all # do not set for the other datasets, use all
-    if [ ${dset_name} == dipco ] && [ ${dset_part} == train ]; then
-      log "DiPCo has no training set! Exiting !"
-      exit
-    fi
+    max_segment_length=${infer_max_segment_length}
+    channels=all
 
     if [ ${dset_part} == train ]; then
       max_segment_length=${train_max_segment_length} # we can discard utterances too long based on asr training
+    fi
+
+    subpart="$(cut -d'_' -f3 <<<${dset})"
+    if [ $dset_name == "mixer6" ] && [ $dset_part == "train" ] && [ -n $subpart ]; then
+      dset_part="${dset_part}_${subpart}" # allow for train_call, train_intv for mixer6
     fi
 
     log "Running Guided Source Separation for ${dset_name}/${dset_part}, results will be in ${gss_dump_root}/${dset_name}/${dset_part}"
@@ -195,6 +210,8 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   if [ -n "$use_pretrained" ]; then
     pretrained_affix+="--skip_data_prep false --skip_train true "
     pretrained_affix+="--download_model ${use_pretrained}"
+  else
+    pretrained_affix+="--asr-tag ${asr_tag}"
   fi
 
 
@@ -203,7 +220,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   fi
 
   # these are args to ASR data prep, done in local/data.sh
-  data_opts="--stage $asr_dprep_stage --chime6-root ${chime6_root} --train-set ${asr_train_set}"
+  data_opts="--stage $asr_dprep_stage --dasr-root ${chime8_root} --train-set ${asr_train_set}"
   data_opts+=" --manifests-root $manifests_root --gss_dsets $gss_dsets --gss-dump-root $gss_dump_root"
   data_opts+=" --decode-train ${decode_train}"
   # override ASR conf/tuning to scale automatically with num of GPUs
@@ -225,7 +242,7 @@ if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
     --audio_format "flac" \
     --min_wav_duration $train_min_segment_length \
     --max_wav_duration $train_max_segment_length \
-    --speed_perturb_factors "0.9 1.0 1.1" \
+    --speed_perturb_factors "0.95 1.0 1.1" \
     --asr_config "${asr_config}" \
     --inference_config "${inference_config}" \
     --use_lm ${use_lm} \
@@ -253,7 +270,7 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
     asr_exp="exp/${use_pretrained}"
   else
     #FIXME ask kamo ? if this fails put your own !
-    asr_tag="$(basename "${asr_config}" .yaml)_raw"
+    asr_tag=${asr_tag} #"$(basename "${asr_config}" .yaml)_raw"
     asr_exp="exp/asr_${asr_tag}"
   fi
   inference_tag="$(basename "${inference_config}" .yaml)"

@@ -49,8 +49,7 @@ def get_args():
 
 
 def Trans_time(time, fs):
-    units = time.split(":")
-    time_second = float(units[0]) * 3600 + float(units[1]) * 60 + float(units[2])
+    time_second = float(time)
     return int(time_second * fs)
 
 

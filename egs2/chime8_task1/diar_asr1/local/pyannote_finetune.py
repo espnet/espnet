@@ -29,7 +29,7 @@ def finetune_segmentation(
     num_workers=8,
     auth_token=None,
     exp_folder="./exp/pyannote_diarization_finetuned",
-    ft_protocol="chime7_finetune.SpeakerDiarization.only_words",
+    ft_protocol="chime8_finetune.SpeakerDiarization.only_words",
 ):
     model = Model.from_pretrained("pyannote/segmentation", use_auth_token=auth_token)
 
@@ -171,7 +171,7 @@ if __name__ == "__main__":
         "--protocol",
         type=str,
         required=False,
-        default="chime7_finetune.SpeakerDiarization.only_words",
+        default="chime8_finetune.SpeakerDiarization.only_words",
         help="Dataset to use in fine-tuning, it must match an "
         "entry in the database.yml in this folder.",
         metavar="STR",

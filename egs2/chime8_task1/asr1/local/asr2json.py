@@ -14,12 +14,12 @@ def parse2json(asr_hyp, output_name, sess_regex="[^-]*"):
     for h in hyps:
         utt_id = h.split(" ")[0]
         predictions = " ".join(h.split(" ")[1:])
-        spk_id = utt_id.split("_")[0]
+        spk_id = utt_id.split("-")[0]
 
-        rest = "_".join(utt_id.split("_")[1:])
+        rest = "_".join(utt_id.split("-")[1:])
         # mixer6 regex: ([0-9]+_[0-9]+_LDC_[0-9]+)
         session_id = re.search(sess_regex, rest).group()
-        start, stop = re.search("-([0-9]*_[0-9]*)", rest).group().lstrip("-").split("_")
+        start, stop =re.search("_([0-9]*_[0-9]*_[0-9]*)", rest).group().split("_")[-2:]
         start = float(start) / 100
         stop = float(stop) / 100
 

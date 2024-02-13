@@ -7,29 +7,20 @@
 # for training but only mixer6 for validation, to avoid overfitting.
 
 Databases:
-  chime7_finetune: # to avoid overfitting chime6:
-    - ./chime7_task1/chime6/audio/train/{uri}.wav # train on chime6
-    - ./chime7_task1/mixer6/audio/dev/{uri}.flac # check performance on mixer6
   chime6:
     - ./chime7_task1/chime6/audio/train/{uri}.wav
     - ./chime7_task1/chime6/audio/dev/{uri}.wav
   dipco:
+    - ./chime7_task1/dipco/audio/train/{uri}.wav
     - ./chime7_task1/dipco/audio/dev/{uri}.wav
-  mixer6: # no train because we don't have diarization annotation.
+  mixer6:
+    - ./chime7_task1/mixer6/audio/train/{uri}.flac
     - ./chime7_task1/mixer6/audio/dev/{uri}.flac
+  notsofar1:
+    - ./chime7_task1/notsofar1/audio/train/{uri}.flac
+
 
 Protocols:
-  chime7_finetune:
-    SpeakerDiarization:
-      only_words:
-        train:
-          uri: ./data/pyannote_diarization/chime6/train/uris/uri.txt
-          annotation: ./data/pyannote_diarization/chime6/train/rttm/{uri}.rttm
-          annotated: ./data/pyannote_diarization/chime6/train/uem/{uri}.uem
-        development:
-          uri: ./data/pyannote_diarization/mixer6/dev/uris/uri.txt
-          annotation: ./data/pyannote_diarization/mixer6/dev/rttm/{uri}.rttm
-          annotated: ./data/pyannote_diarization/mixer6/dev/uem/{uri}.uem
   chime6:
     SpeakerDiarization:
       only_words:
@@ -44,6 +35,10 @@ Protocols:
   dipco:
     SpeakerDiarization:
       only_words:
+        train:
+          uri: ./data/pyannote_diarization/dipco/train/uris/uri.txt
+          annotation: ./data/pyannote_diarization/dipco/train/rttm/{uri}.rttm
+          annotated: ./data/pyannote_diarization/dipco/train/uem/{uri}.uem
         development:
           uri: ./data/pyannote_diarization/dipco/dev/uris/uri.txt
           annotation: ./data/pyannote_diarization/dipco/dev/rttm/{uri}.rttm
@@ -51,7 +46,32 @@ Protocols:
   mixer6:
     SpeakerDiarization:
       only_words:
+        train:
+          uri: ./data/pyannote_diarization/mixer6/train/uris/uri.txt
+          annotation: ./data/pyannote_diarization/mixer6/train/rttm/{uri}.rttm
+          annotated: ./data/pyannote_diarization/mixer6/train/uem/{uri}.uem
         development:
           uri: ./data/pyannote_diarization/mixer6/dev/uris/uri.txt
           annotation: ./data/pyannote_diarization/mixer6/dev/rttm/{uri}.rttm
           annotated: ./data/pyannote_diarization/mixer6/dev/uem/{uri}.uem
+  notsofar1:
+    SpeakerDiarization:
+      only_words:
+        train:
+          uri: ./data/pyannote_diarization/notsofar1/train/uris/uri.txt
+          annotation: ./data/pyannote_diarization/notsofar1/train/rttm/{uri}.rttm
+          annotated: ./data/pyannote_diarization/notsofar1/train/uem/{uri}.uem
+        development:
+          uri: ./data/pyannote_diarization/notsofar1/dev/uris/uri.txt
+          annotation: ./data/pyannote_diarization/notsofar1/dev/rttm/{uri}.rttm
+          annotated: ./data/pyannote_diarization/notsofar1/dev/uem/{uri}.uem
+  chime8_finetune:
+    SpeakerDiarization:
+      only_words:
+        train:
+          chime6: [ train, ]
+          dipco: [ train, ]
+          notsofar1: [ train, ]
+        development:
+          mixer6: [ train, development ]
+          # use entire mixer6 as dev
