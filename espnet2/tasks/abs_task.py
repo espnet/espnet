@@ -1,4 +1,5 @@
 """Abstract task module."""
+
 import argparse
 import functools
 import logging
@@ -37,6 +38,7 @@ from espnet2.schedulers.cosine_anneal_warmup_restart import (
     CosineAnnealingWarmupRestarts,
 )
 from espnet2.schedulers.noam_lr import NoamLR
+from espnet2.schedulers.piecewise_linear_warmup_lr import PiecewiseLinearWarmupLR
 from espnet2.schedulers.warmup_lr import WarmupLR
 from espnet2.schedulers.warmup_reducelronplateau import WarmupReduceLROnPlateau
 from espnet2.schedulers.warmup_step_lr import WarmupStepLR
@@ -152,6 +154,7 @@ scheduler_classes = dict(
     CosineAnnealingLR=torch.optim.lr_scheduler.CosineAnnealingLR,
     noamlr=NoamLR,
     warmuplr=WarmupLR,
+    piecewiselinearwarmuplr=PiecewiseLinearWarmupLR,
     warmupsteplr=WarmupStepLR,
     warmupReducelronplateau=WarmupReduceLROnPlateau,
     cycliclr=torch.optim.lr_scheduler.CyclicLR,
@@ -1347,9 +1350,11 @@ class AbsTask(ABC):
                     ignore_init_mismatch=args.ignore_init_mismatch,
                     # NOTE(kamo): "cuda" for torch.load always indicates cuda:0
                     #   in PyTorch<=1.4
-                    map_location=f"cuda:{torch.cuda.current_device()}"
-                    if args.ngpu > 0
-                    else "cpu",
+                    map_location=(
+                        f"cuda:{torch.cuda.current_device()}"
+                        if args.ngpu > 0
+                        else "cpu"
+                    ),
                 )
 
             # 7. Build iterator factories
@@ -1643,9 +1648,9 @@ class AbsTask(ABC):
             sort_in_batch=args.sort_in_batch,
             sort_batch=args.sort_batch,
             drop_last=args.drop_last_iter,
-            min_batch_size=torch.distributed.get_world_size()
-            if iter_options.distributed
-            else 1,
+            min_batch_size=(
+                torch.distributed.get_world_size() if iter_options.distributed else 1
+            ),
             utt2category_file=utt2category_file,
         )
 
@@ -1721,9 +1726,9 @@ class AbsTask(ABC):
 
         sampler_args = dict(
             batch_size=iter_options.batch_size,
-            min_batch_size=torch.distributed.get_world_size()
-            if iter_options.distributed
-            else 1,
+            min_batch_size=(
+                torch.distributed.get_world_size() if iter_options.distributed else 1
+            ),
             drop_last=args.drop_last_iter,
             category2utt_file=category2utt_file,
             epoch=1,
@@ -1927,9 +1932,11 @@ class AbsTask(ABC):
             for i in range(num_splits)
         ]
         num_iters_per_epoch_list = [
-            (iter_options.num_iters_per_epoch + i) // num_splits
-            if iter_options.num_iters_per_epoch is not None
-            else None
+            (
+                (iter_options.num_iters_per_epoch + i) // num_splits
+                if iter_options.num_iters_per_epoch is not None
+                else None
+            )
             for i in range(num_splits)
         ]
         max_cache_size = iter_options.max_cache_size / num_splits

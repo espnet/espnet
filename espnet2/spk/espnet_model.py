@@ -64,7 +64,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
     def forward(
         self,
         speech: torch.Tensor,
-        spk_labels: torch.Tensor,
+        spk_labels: torch.Tensor = None,
         task_tokens: torch.Tensor = None,
         extract_embd: bool = False,
         **kwargs,
@@ -111,6 +111,7 @@ class ESPnetSpeakerModel(AbsESPnetModel):
             return spk_embd
 
         # 4. calculate loss
+        assert spk_labels is not None, "spk_labels is None, cannot compute loss"
         loss = self.loss(spk_embd, spk_labels.squeeze())
 
         stats = dict(loss=loss.detach())

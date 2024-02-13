@@ -1,4 +1,5 @@
 """Enhancement model module."""
+
 import contextlib
 from typing import Dict, List, Optional, OrderedDict, Tuple
 
@@ -30,10 +31,10 @@ class ESPnetEnhancementModel(AbsESPnetModel):
     def __init__(
         self,
         encoder: AbsEncoder,
-        separator: AbsSeparator,
+        separator: Optional[AbsSeparator],
         decoder: AbsDecoder,
         mask_module: Optional[AbsMask],
-        loss_wrappers: List[AbsLossWrapper],
+        loss_wrappers: Optional[List[AbsLossWrapper]],
         stft_consistency: bool = False,
         loss_type: str = "mask_mse",
         mask_type: Optional[str] = None,
@@ -96,15 +97,19 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         self.separator = separator
         self.decoder = decoder
         self.mask_module = mask_module
-        self.num_spk = separator.num_spk
+        # set num_spk to -1 if None for compatibility with `espnet2.enh.diffusion_enh`
+        self.num_spk = separator.num_spk if separator is not None else -1
         # If True, self.num_spk is regarded as the MAXIMUM possible number of speakers
         self.flexible_numspk = flexible_numspk
         self.num_noise_type = getattr(self.separator, "num_noise_type", 1)
 
         self.loss_wrappers = loss_wrappers
-        names = [w.criterion.name for w in self.loss_wrappers]
-        if len(set(names)) != len(names):
-            raise ValueError("Duplicated loss names are not allowed: {}".format(names))
+        if self.loss_wrappers is not None:
+            names = [w.criterion.name for w in self.loss_wrappers]
+            if len(set(names)) != len(names):
+                raise ValueError(
+                    "Duplicated loss names are not allowed: {}".format(names)
+                )
 
         # kept for compatibility
         self.mask_type = mask_type.upper() if mask_type else None
@@ -218,7 +223,7 @@ class ESPnetEnhancementModel(AbsESPnetModel):
         )
 
         # for data-parallel
-        speech_ref = speech_ref[..., : speech_lengths.max()].unbind(dim=1)
+        speech_ref = speech_ref[:, :, : speech_lengths.max()].unbind(dim=1)
         if noise_ref is not None:
             noise_ref = noise_ref[..., : speech_lengths.max()].unbind(dim=1)
         if dereverb_speech_ref is not None:
