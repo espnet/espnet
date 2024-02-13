@@ -17,6 +17,10 @@ from pyannote.core import SlidingWindowFeature
 from pyannote.metrics.segmentation import Annotation, Segment
 from scipy.signal import medfilt2d
 from copy import deepcopy
+import scipy
+from sklearn.cluster import SpectralClustering
+from scipy.spatial.distance import cdist
+from numpy.linalg import norm
 
 IS_CUDA = torch.cuda.is_available()
 
@@ -66,6 +70,24 @@ def merge_closer(annotation, delta=1.0, max_len=60, min_len=10):
     return new_annotation
 
 
+def get_coherence_mat(segmentation, num_spk):
+
+    mask_spk = np.kron(np.eye(segmentation.shape[-1]//num_spk,dtype=bool),np.ones((num_spk, num_spk), dtype=np.bool))
+    segmentation = np.transpose(segmentation, (1, 0))
+    cos_sim = cdist(segmentation+1e-8, segmentation+1e-8, metric='cosine')
+    cos_sim[mask_spk] = 0.0 # cannot links
+
+    return cos_sim
+
+def onehot(arr):
+    ''' Returns a 1-hot encoding array of arr
+    With no zero groups, returns sorted labels
+    '''
+    arr_local=np.copy(arr)
+    unique_arr=np.unique(arr_local)
+    one_hot=(arr_local.reshape(-1,1)==unique_arr.reshape(1,-1)).astype(np.int)
+    return one_hot,unique_arr
+
 def rttm2json(rttm_file):
     with open(rttm_file, "r") as f:
         rttm = f.readlines()
@@ -87,6 +109,7 @@ def rttm2json(rttm_file):
                 "speaker": speaker,
                 "start_time": start,
                 "end_time": stop,
+                "words": "dummy words"
             }
         )
 
@@ -156,32 +179,63 @@ def diarize_session(
     selected_audio = torch.zeros((top_k, c_audio.shape[-1]))
     selected_seg = []
     print("Running Channel Selection by using the segmentation output")
+    sel_strategy = "topk"
+
+    num_clusters = local_spk
     for indx, (seg_b, segmentation) in enumerate(all_segmentation):
         c_seg = all_audio[:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)]
         # median filter here seems to improve performance on chime6 in high overlap
         # conditions
-        segmentation = medfilt2d(
-            segmentation.reshape((frames, local_spk * num_channels)), (7, 1)
-        ).reshape((frames, local_spk, num_channels))
-        # why not the fine-tuned model is used ?
-        # because that one is trained on chime6 to be robust against noise and
-        # reverberation and position of the mic.
-        # we want instead a model that is not so robust against that to use
-        # to select the best channel from which the embeddings will be extracted.
 
-        selection = np.argpartition(segmentation.sum((0, 1)), -top_k)[-top_k:]
+        if sel_strategy == "topk":
+            segmentation = medfilt2d(
+            segmentation.reshape((frames, local_spk * num_channels)), (7, 1)
+            ).reshape((frames, local_spk, num_channels))
+
+            selection = np.argpartition(segmentation.sum((0, 1)), -top_k)[-top_k:]
+
+            c_segs = []
+            for top_k_indx, ch_indx in enumerate(selection):
+                # we may use spectral clustering here
+                selected_audio[top_k_indx,
+                math.floor(seg_b.start * fs): math.floor(seg_b.end * fs)] = \
+                c_seg[ch_indx].cpu().clone()
+                c_segs.append(segmentation[..., ch_indx])
+                # selected_audio[
+                #:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)
+                # ] = c_seg[ch_indx]
+            selected_seg.append(c_segs)
+        elif sel_strategy == "sc":
+            #raise NotImplementedError
+            # exclude silence channels
+            raise NotImplementedError("This needs more experiments.")
+            smoothed = medfilt2d(
+                segmentation.reshape((frames, local_spk * num_channels)), (7, 1)
+            ).reshape((frames, local_spk, num_channels))
+
+            mask_silent = (smoothed.sum(0) < (smoothed.shape[0] / 5))
+            mask_silent = np.repeat(mask_silent[None, :], segmentation.shape[0], 0)
+
+            segmentation[mask_silent] = 0.0 # channels with less than one second activity are excluded
+
+            mat = get_coherence_mat(segmentation.reshape((frames, local_spk * num_channels)), local_spk)
+            model = SpectralClustering(
+                n_clusters=num_clusters, affinity="precomputed", random_state=0
+            )
+
+            labels = model.fit_predict(mat)
+            one_hot, _ = onehot(labels)
+            if not mask_silent.all():
+                import pdb; pdb.set_trace()
+            selection = one_hot.T @ segmentation.reshape(-1, local_spk * num_channels).T / one_hot.sum(axis=0).reshape(-1, 1)
+            selection = selection[None, ...]
+            top_k = num_clusters
+
+            # we get coherence matrix
         #np.argmax(segmentation.sum((0, 1)))  # not the best selection criteria
         # however this keeps it simple and fast.
 
-        c_segs = []
-        for top_k_indx, ch_indx in enumerate(selection):
-            # we may use spectral clustering here
-            selected_audio[top_k_indx, math.floor(seg_b.start * fs): math.floor(seg_b.end * fs)] = c_seg[ch_indx].cpu().clone()
-            c_segs.append(segmentation[..., ch_indx])
-            #selected_audio[
-            #:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)
-            #] = c_seg[ch_indx]
-        selected_seg.append(c_segs)
+
     # stack em
     selected_seg = np.array(selected_seg)
     selected_seg = SlidingWindowFeature(selected_seg.reshape(num_chunks*top_k, frames, local_spk), sliding_window)
@@ -365,6 +419,15 @@ if __name__ == "__main__":
         default="60",
         help="Max length of segments that will be merged together. "
         "Reduce to reduce GSS GPU memory occupation later in the recipe.",
+        metavar="STR",
+        dest="max_length_merged",
+    )
+    parser.add_argument(
+        "--sel_strategy", #FIXME add sc selection
+        type=str,
+        default="topk_2",
+        help="strategy used for channel selectio: choose from topk and sc. "
+             "For topk you can specify the number of channels e.g. topk_1",
         metavar="STR",
         dest="max_length_merged",
     )
