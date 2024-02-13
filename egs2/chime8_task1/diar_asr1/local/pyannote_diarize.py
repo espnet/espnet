@@ -16,13 +16,9 @@ from pyannote.audio.utils.signal import Binarize, binarize
 from pyannote.core import SlidingWindowFeature
 from pyannote.metrics.segmentation import Annotation, Segment
 from scipy.signal import medfilt2d
-from copy import deepcopy
-import scipy
-from sklearn.cluster import SpectralClustering
-from scipy.spatial.distance import cdist
-from numpy.linalg import norm
 
 IS_CUDA = torch.cuda.is_available()
+
 
 def split_maxlen(utt_group, min_len=10):
     # merge if
@@ -70,24 +66,6 @@ def merge_closer(annotation, delta=1.0, max_len=60, min_len=10):
     return new_annotation
 
 
-def get_coherence_mat(segmentation, num_spk):
-
-    mask_spk = np.kron(np.eye(segmentation.shape[-1]//num_spk,dtype=bool),np.ones((num_spk, num_spk), dtype=np.bool))
-    segmentation = np.transpose(segmentation, (1, 0))
-    cos_sim = cdist(segmentation+1e-8, segmentation+1e-8, metric='cosine')
-    cos_sim[mask_spk] = 0.0 # cannot links
-
-    return cos_sim
-
-def onehot(arr):
-    ''' Returns a 1-hot encoding array of arr
-    With no zero groups, returns sorted labels
-    '''
-    arr_local=np.copy(arr)
-    unique_arr=np.unique(arr_local)
-    one_hot=(arr_local.reshape(-1,1)==unique_arr.reshape(1,-1)).astype(np.int)
-    return one_hot,unique_arr
-
 def rttm2json(rttm_file):
     with open(rttm_file, "r") as f:
         rttm = f.readlines()
@@ -109,7 +87,7 @@ def rttm2json(rttm_file):
                 "speaker": speaker,
                 "start_time": start,
                 "end_time": stop,
-                "words": "dummy words"
+                "words" : "dummy words"
             }
         )
 
@@ -127,7 +105,7 @@ def diarize_session(
     uem_boundaries=None,
     merge_closer_delta=1.5,
     max_length_merged=60,
-    max_n_speakers=8,
+    max_n_speakers=4,
 ):
     # take the min len across all wavs
     minlen = min([sf.SoundFile(w).frames for w in wav_files])
@@ -175,73 +153,34 @@ def diarize_session(
         np.stack([x.data for x in all_segmentation], -1),
         sliding_window,
     )
-    top_k = 2
-    selected_audio = torch.zeros((top_k, c_audio.shape[-1]))
+
+    selected_audio = torch.zeros_like(c_audio)
     selected_seg = []
     print("Running Channel Selection by using the segmentation output")
-    sel_strategy = "topk"
-
-    num_clusters = local_spk
     for indx, (seg_b, segmentation) in enumerate(all_segmentation):
         c_seg = all_audio[:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)]
         # median filter here seems to improve performance on chime6 in high overlap
         # conditions
-
-        if sel_strategy == "topk":
-            segmentation = medfilt2d(
+        segmentation = medfilt2d(
             segmentation.reshape((frames, local_spk * num_channels)), (7, 1)
-            ).reshape((frames, local_spk, num_channels))
-
-            selection = np.argpartition(segmentation.sum((0, 1)), -top_k)[-top_k:]
-
-            c_segs = []
-            for top_k_indx, ch_indx in enumerate(selection):
-                # we may use spectral clustering here
-                selected_audio[top_k_indx,
-                math.floor(seg_b.start * fs): math.floor(seg_b.end * fs)] = \
-                c_seg[ch_indx].cpu().clone()
-                c_segs.append(segmentation[..., ch_indx])
-                # selected_audio[
-                #:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)
-                # ] = c_seg[ch_indx]
-            selected_seg.append(c_segs)
-        elif sel_strategy == "sc":
-            #raise NotImplementedError
-            # exclude silence channels
-            raise NotImplementedError("This needs more experiments.")
-            smoothed = medfilt2d(
-                segmentation.reshape((frames, local_spk * num_channels)), (7, 1)
-            ).reshape((frames, local_spk, num_channels))
-
-            mask_silent = (smoothed.sum(0) < (smoothed.shape[0] / 5))
-            mask_silent = np.repeat(mask_silent[None, :], segmentation.shape[0], 0)
-
-            segmentation[mask_silent] = 0.0 # channels with less than one second activity are excluded
-
-            mat = get_coherence_mat(segmentation.reshape((frames, local_spk * num_channels)), local_spk)
-            model = SpectralClustering(
-                n_clusters=num_clusters, affinity="precomputed", random_state=0
-            )
-
-            labels = model.fit_predict(mat)
-            one_hot, _ = onehot(labels)
-            if not mask_silent.all():
-                import pdb; pdb.set_trace()
-            selection = one_hot.T @ segmentation.reshape(-1, local_spk * num_channels).T / one_hot.sum(axis=0).reshape(-1, 1)
-            selection = selection[None, ...]
-            top_k = num_clusters
-
-            # we get coherence matrix
-        #np.argmax(segmentation.sum((0, 1)))  # not the best selection criteria
+        ).reshape((frames, local_spk, num_channels))
+        # why not the fine-tuned model is used ?
+        # because that one is trained on chime6 to be robust against noise and
+        # reverberation and position of the mic.
+        # we want instead a model that is not so robust against that to use
+        # to select the best channel from which the embeddings will be extracted.
+        selection = np.argmax(
+            segmentation.sum((0, 1))
+        )  # not the best selection criteria
         # however this keeps it simple and fast.
-
-
+        selected_audio[
+            :, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)
+        ] = c_seg[selection]
+        selected_seg.append(segmentation[..., selection])
     # stack em
-    selected_seg = np.array(selected_seg)
-    selected_seg = SlidingWindowFeature(selected_seg.reshape(num_chunks*top_k, frames, local_spk), sliding_window)
-    #SlidingWindowFeature(
-        #np.stack([x.data for x in selected_seg]), sliding_window
-    #)
+    selected_seg = SlidingWindowFeature(
+        np.stack([x.data for x in selected_seg]), sliding_window
+    )
     count = Inference.trim(
         selected_seg, warm_up=(0.1, 0.1)
     )  # default value in Pyannote
@@ -254,9 +193,8 @@ def diarize_session(
     )
     count.data = np.rint(count.data).astype(np.uint8)
     print("Extracting Embeddings.")
-
     embeddings = pipeline.get_embeddings(
-        {"waveform": selected_audio.reshape(1, -1), "sample_rate": fs},
+        {"waveform": selected_audio, "sample_rate": fs},
         selected_seg,
         exclude_overlap=pipeline.embedding_exclude_overlap,
     )
@@ -274,28 +212,17 @@ def diarize_session(
         },  # <== for oracle clustering
         frames=pipeline._frames,  # <== for oracle clustering
     )
-
     # reconstruct discrete diarization from raw hard clusters
     # keep track of inactive speakers
     inactive_speakers = np.sum(selected_seg.data, axis=1) == 0
     #  shape: (num_chunks, num_speakers)
     hard_clusters[inactive_speakers] = -2
-    # aggregate results over top-k here now
-
+    # reshape now to multi-channel
     discrete_diarization = pipeline.reconstruct(
         selected_seg,
         hard_clusters,
         count,
     )
-
-    aggregate_diarization = None
-    orig_len = len(discrete_diarization) // 2
-    for top_k_indx in range(top_k):
-        if aggregate_diarization is None:
-            aggregate_diarization = discrete_diarization[top_k_indx*orig_len:(top_k_indx+1)*orig_len]
-        else:
-            aggregate_diarization = aggregate_diarization + discrete_diarization[top_k_indx*orig_len:(top_k_indx+1)*orig_len]
-
     # convert to annotation
     to_annotation = Binarize(
         onset=0.5,
@@ -400,7 +327,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_speakers",
         type=int,
-        default=8, # buffed from CHiME-7
+        default=8,
         help="Max number of speakers in each session.",
         metavar="INT",
         dest="max_speakers",
@@ -419,15 +346,6 @@ if __name__ == "__main__":
         default="60",
         help="Max length of segments that will be merged together. "
         "Reduce to reduce GSS GPU memory occupation later in the recipe.",
-        metavar="STR",
-        dest="max_length_merged",
-    )
-    parser.add_argument(
-        "--sel_strategy", #FIXME add sc selection
-        type=str,
-        default="topk_2",
-        help="strategy used for channel selectio: choose from topk and sc. "
-             "For topk you can specify the number of channels e.g. topk_1",
         metavar="STR",
         dest="max_length_merged",
     )
@@ -474,9 +392,7 @@ if __name__ == "__main__":
     diarization_pipeline.segmentation.min_duration_on = 0.0  # 0.5
     diarization_pipeline.segmentation.pad_onset = 0.0  # 0.2
     diarization_pipeline.segmentation.pad_offset = 0.0  # 0.2
-    diarization_pipeline.clustering.threshold = pretrained_hyperparameters[
-        "clustering"
-    ]["threshold"]
+    diarization_pipeline.clustering.threshold = 0.75
     diarization_pipeline.clustering.min_cluster_size = (
         15  # higher than pre-trained, which was 15
     )
