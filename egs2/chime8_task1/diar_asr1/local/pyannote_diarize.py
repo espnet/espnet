@@ -16,9 +16,9 @@ from pyannote.audio.utils.signal import Binarize, binarize
 from pyannote.core import SlidingWindowFeature
 from pyannote.metrics.segmentation import Annotation, Segment
 from scipy.signal import medfilt2d
+from copy import deepcopy
 
 IS_CUDA = torch.cuda.is_available()
-
 
 def split_maxlen(utt_group, min_len=10):
     # merge if
@@ -104,7 +104,7 @@ def diarize_session(
     uem_boundaries=None,
     merge_closer_delta=1.5,
     max_length_merged=60,
-    max_n_speakers=4,
+    max_n_speakers=8,
 ):
     # take the min len across all wavs
     minlen = min([sf.SoundFile(w).frames for w in wav_files])
@@ -152,8 +152,8 @@ def diarize_session(
         np.stack([x.data for x in all_segmentation], -1),
         sliding_window,
     )
-
-    selected_audio = torch.zeros_like(c_audio)
+    top_k = 2
+    selected_audio = torch.zeros((top_k, c_audio.shape[-1]))
     selected_seg = []
     print("Running Channel Selection by using the segmentation output")
     for indx, (seg_b, segmentation) in enumerate(all_segmentation):
@@ -168,18 +168,26 @@ def diarize_session(
         # reverberation and position of the mic.
         # we want instead a model that is not so robust against that to use
         # to select the best channel from which the embeddings will be extracted.
-        selection = np.argmax(
-            segmentation.sum((0, 1))
-        )  # not the best selection criteria
+
+        selection = np.argpartition(segmentation.sum((0, 1)), -top_k)[-top_k:]
+        #np.argmax(segmentation.sum((0, 1)))  # not the best selection criteria
         # however this keeps it simple and fast.
-        selected_audio[:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)] = (
-            c_seg[selection]
-        )
-        selected_seg.append(segmentation[..., selection])
+
+        c_segs = []
+        for top_k_indx, ch_indx in enumerate(selection):
+            # we may use spectral clustering here
+            selected_audio[top_k_indx, math.floor(seg_b.start * fs): math.floor(seg_b.end * fs)] = c_seg[ch_indx].cpu().clone()
+            c_segs.append(segmentation[..., ch_indx])
+            #selected_audio[
+            #:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)
+            #] = c_seg[ch_indx]
+        selected_seg.append(c_segs)
     # stack em
-    selected_seg = SlidingWindowFeature(
-        np.stack([x.data for x in selected_seg]), sliding_window
-    )
+    selected_seg = np.array(selected_seg)
+    selected_seg = SlidingWindowFeature(selected_seg.reshape(num_chunks*top_k, frames, local_spk), sliding_window)
+    #SlidingWindowFeature(
+        #np.stack([x.data for x in selected_seg]), sliding_window
+    #)
     count = Inference.trim(
         selected_seg, warm_up=(0.1, 0.1)
     )  # default value in Pyannote
@@ -192,8 +200,9 @@ def diarize_session(
     )
     count.data = np.rint(count.data).astype(np.uint8)
     print("Extracting Embeddings.")
+
     embeddings = pipeline.get_embeddings(
-        {"waveform": selected_audio, "sample_rate": fs},
+        {"waveform": selected_audio.reshape(1, -1), "sample_rate": fs},
         selected_seg,
         exclude_overlap=pipeline.embedding_exclude_overlap,
     )
@@ -203,7 +212,7 @@ def diarize_session(
         embeddings=embeddings,
         segmentations=selected_seg,
         num_clusters=None,
-        min_clusters=0,
+        min_clusters=2,
         max_clusters=max_n_speakers,  # max-speakers are ok
         file={
             "waveform": selected_audio,
@@ -211,17 +220,28 @@ def diarize_session(
         },  # <== for oracle clustering
         frames=pipeline._frames,  # <== for oracle clustering
     )
+
     # reconstruct discrete diarization from raw hard clusters
     # keep track of inactive speakers
     inactive_speakers = np.sum(selected_seg.data, axis=1) == 0
     #  shape: (num_chunks, num_speakers)
     hard_clusters[inactive_speakers] = -2
-    # reshape now to multi-channel
+    # aggregate results over top-k here now
+
     discrete_diarization = pipeline.reconstruct(
         selected_seg,
         hard_clusters,
         count,
     )
+
+    aggregate_diarization = None
+    orig_len = len(discrete_diarization) // 2
+    for top_k_indx in range(top_k):
+        if aggregate_diarization is None:
+            aggregate_diarization = discrete_diarization[top_k_indx*orig_len:(top_k_indx+1)*orig_len]
+        else:
+            aggregate_diarization = aggregate_diarization + discrete_diarization[top_k_indx*orig_len:(top_k_indx+1)*orig_len]
+
     # convert to annotation
     to_annotation = Binarize(
         onset=0.5,
@@ -326,7 +346,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_speakers",
         type=int,
-        default=8,
+        default=8, # buffed from CHiME-7
         help="Max number of speakers in each session.",
         metavar="INT",
         dest="max_speakers",
