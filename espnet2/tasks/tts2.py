@@ -10,9 +10,6 @@ import torch
 import yaml
 from typeguard import check_argument_types, check_return_type
 
-# from espnet2.gan_tts.jets import JETS
-# from espnet2.gan_tts.joint import JointText2Wav
-# from espnet2.gan_tts.vits import VITS
 from espnet2.layers.abs_normalize import AbsNormalize
 from espnet2.layers.global_mvn import GlobalMVN
 from espnet2.tasks.abs_task import AbsTask
@@ -23,9 +20,8 @@ from espnet2.train.preprocessor import CommonPreprocessor
 from espnet2.train.trainer import Trainer
 from espnet2.tts2.abs_tts2 import AbsTTS2
 from espnet2.tts2.espnet_model import ESPnetTTS2Model
-
-# from espnet2.tts.fastspeech import FastSpeech
-from espnet2.tts2.fastspeech2 import FastSpeech2Discrete
+from espnet2.tts2.fastspeech2.fastspeech2_discrete import FastSpeech2Discrete
+from espnet2.tts2.fastspeech2_ma.fastspeech2_discrete_ma import FastSpeech2DiscreteMA
 from espnet2.tts2.feats_extract.abs_feats_extract import AbsFeatsExtractDiscrete
 from espnet2.tts2.feats_extract.identity import IdentityFeatureExtract
 
@@ -37,9 +33,6 @@ from espnet2.tts.feats_extract.linear_spectrogram import LinearSpectrogram
 from espnet2.tts.feats_extract.log_mel_fbank import LogMelFbank
 from espnet2.tts.feats_extract.log_spectrogram import LogSpectrogram
 
-# from espnet2.tts.prodiff import ProDiff
-# from espnet2.tts.tacotron2 import Tacotron2
-# from espnet2.tts.transformer import Transformer
 from espnet2.tts.utils import ParallelWaveGANPretrainedVocoder
 from espnet2.utils.get_default_kwargs import get_default_kwargs
 from espnet2.utils.griffin_lim import Spectrogram2Waveform
@@ -103,6 +96,7 @@ tts_choices = ClassChoices(
     "tts",
     classes=dict(
         fastspeech2=FastSpeech2Discrete,
+        fastspeech2_ma=FastSpeech2DiscreteMA,
     ),
     type_check=AbsTTS2,
     default="fastspeech2",

@@ -102,10 +102,10 @@ class FastSpeech2LossDiscrete(torch.nn.Module):
 
         # calculate loss
         ce_loss = self.ce_criterion(before_outs, ys)
-        before_acc = (before_outs.argmax(-1) == ys).sum() / len(ys)
+        before_acc = (before_outs.argmax(-1) == ys).sum() / (ys == ys).sum()
         if after_outs is not None:
             ce_loss += self.ce_criterion(after_outs, ys)
-            after_acc = (after_outs.argmax(-1) == ys).sum() / len(ys)
+            after_acc = (after_outs.argmax(-1) == ys).sum() / (ys == ys).sum()
         else:
             after_acc = None
         duration_loss = self.duration_criterion(d_outs, ds)
