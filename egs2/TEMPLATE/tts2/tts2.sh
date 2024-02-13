@@ -71,7 +71,7 @@ discrete_stop_stage=3           # discretization stop stage
 clustering_nj=20                # Number of threads used for kmeans clustering
 feature_dir="dump/feats"        # Feature directory for dumped feature
 km_tag=                         # KMeans tagging
-use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
+use_gpu_feat_extract=false      # Whether to use gpu for feature extraction
 feature_layer=6                 # Layers for feature extraction
 s3prl_upstream_name=hubert      # S3PRL upstream name for feature extraction
 feature_clustering_tool="sklearn" # Tool for feature clustering (sklearn or faiss or cuml)
@@ -588,6 +588,7 @@ if ! "${skip_data_prep}"; then
             --datadir "${dumpdir}/raw" \
             --featdir "${feature_dir}" \
             --audio_format "${audio_format}" \
+            --audio_sample_rate "${fs}" \
             --feature_type ${kmeans_feature_type} \
             --layer "${feature_layer}" \
             --feature_conf "${kmeans_feature_conf}" \
