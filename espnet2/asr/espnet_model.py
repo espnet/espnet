@@ -13,6 +13,8 @@ from espnet2.asr.frontend.abs_frontend import AbsFrontend
 from espnet2.asr.postencoder.abs_postencoder import AbsPostEncoder
 from espnet2.asr.preencoder.abs_preencoder import AbsPreEncoder
 from espnet2.asr.specaug.abs_specaug import AbsSpecAug
+from espnet2.ssl.mask.abs_mask import AbsMasker
+from espnet.nets.pytorch_backend.nets_utils import make_pad_mask
 from espnet2.asr.transducer.error_calculator import ErrorCalculatorTransducer
 from espnet2.asr_transducer.utils import get_transducer_task_io
 from espnet2.layers.abs_normalize import AbsNormalize
@@ -45,6 +47,7 @@ class ESPnetASRModel(AbsESPnetModel):
         specaug: Optional[AbsSpecAug],
         normalize: Optional[AbsNormalize],
         preencoder: Optional[AbsPreEncoder],
+        masker: Optional[AbsMasker],
         encoder: AbsEncoder,
         postencoder: Optional[AbsPostEncoder],
         decoder: Optional[AbsDecoder],
@@ -68,6 +71,7 @@ class ESPnetASRModel(AbsESPnetModel):
         sym_eos: str = "<sos/eos>",
         extract_feats_in_collect_stats: bool = True,
         lang_token_id: int = -1,
+        freeze_encoder_updates: int = 0,
     ):
         assert check_argument_types()
         assert 0.0 <= ctc_weight <= 1.0, ctc_weight
@@ -99,6 +103,7 @@ class ESPnetASRModel(AbsESPnetModel):
         self.specaug = specaug
         self.normalize = normalize
         self.preencoder = preencoder
+        self.masker = masker
         self.postencoder = postencoder
         self.encoder = encoder
 
@@ -200,6 +205,9 @@ class ESPnetASRModel(AbsESPnetModel):
             self.lang_token_id = torch.tensor([[lang_token_id]])
         else:
             self.lang_token_id = None
+
+        self.register_buffer("global_step", torch.LongTensor([0]))
+        self.freeze_encoder_updates = freeze_encoder_updates
 
     def forward(
         self,
@@ -373,31 +381,58 @@ class ESPnetASRModel(AbsESPnetModel):
             speech: (Batch, Length, ...)
             speech_lengths: (Batch, )
         """
-        with autocast(False):
-            # 1. Extract feats
+        self.global_step += 1
+        # 1. Extract feats
+        with torch.no_grad():
             feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
-            # 2. Data augmentation
-            if self.specaug is not None and self.training:
-                feats, feats_lengths = self.specaug(feats, feats_lengths)
+        # 2. Data augmentation
+        if self.specaug is not None and self.training:
+            feats, feats_lengths = self.specaug(feats, feats_lengths)
 
-            # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
-            if self.normalize is not None:
-                feats, feats_lengths = self.normalize(feats, feats_lengths)
+        # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+        if self.normalize is not None:
+            feats, feats_lengths = self.normalize(feats, feats_lengths)
 
         # Pre-encoder, e.g. used for raw input data
         if self.preencoder is not None:
-            feats, feats_lengths = self.preencoder(feats, feats_lengths)
+            if self.global_step <= self.freeze_encoder_updates:
+                with torch.no_grad():
+                    feats, feats_lengths = self.preencoder(feats, feats_lengths)
+            else:
+                feats, feats_lengths = self.preencoder(feats, feats_lengths)
+
+        # Augmentation for models that use CNN frontend
+        pad_masks = None
+        mask_encoder_feats = True
+        if self.masker is not None and self.training:
+            with torch.no_grad():
+                pad_masks = (make_pad_mask(feats_lengths)).to(feats.device)
+                if self.global_step <= self.freeze_encoder_updates:
+                    feats, mask_info = self.masker(feats, pad_masks)
+                    mask_encoder_feats = False
+            if mask_encoder_feats == True:
+                feats, mask_info = self.masker(feats, pad_masks)
 
         # 4. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        if self.encoder.interctc_use_conditioning:
-            encoder_out, encoder_out_lens, _ = self.encoder(
-                feats, feats_lengths, ctc=self.ctc, max_layer = max_layer
-            )
+        if self.global_step <= self.freeze_encoder_updates:
+            with torch.no_grad():
+                if self.encoder.interctc_use_conditioning:
+                    encoder_out, encoder_out_lens, _ = self.encoder(
+                        feats, feats_lengths, ctc=self.ctc, masks=pad_masks
+                    )
+                else:
+                    encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks)
         else:
-            encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths, max_layer = max_layer)
+            if self.encoder.interctc_use_conditioning:
+                encoder_out, encoder_out_lens, _ = self.encoder(
+                    feats, feats_lengths, ctc=self.ctc, masks=pad_masks
+                )
+            else:
+                encoder_out, encoder_out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks)   
+
         intermediate_outs = None
         if isinstance(encoder_out, tuple):
             intermediate_outs = encoder_out[1]

@@ -73,6 +73,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         feed_forward_macaron: Optional[torch.nn.Module],
         dropout_rate: float,
         merge_conv_kernel: int = 3,
+        downsample_attn: bool = False
     ):
         super().__init__()
 
@@ -105,6 +106,10 @@ class EBranchformerEncoderLayer(torch.nn.Module):
             bias=True,
         )
         self.merge_proj = torch.nn.Linear(size + size, size)
+        self.downsample_attn = downsample_attn
+        if self.downsample_attn:
+            self.avg_pool = nn.AvgPool1d(31, stride=31)
+
 
     def forward(self, x_input, mask, cache=None):
         """Compute encoded features.
@@ -143,10 +148,16 @@ class EBranchformerEncoderLayer(torch.nn.Module):
         if isinstance(self.attn, FastSelfAttention):
             x_att = self.attn(x1, mask)
         else:
+            if self.downsample_attn:
+                bs, seq_len, hdim = x1.shape
+                res = x1
+                x1 = self.avg_pool(x1)
             if pos_emb is not None:
                 x_att = self.attn(x1, x1, x1, pos_emb, mask)
             else:
                 x_att = self.attn(x1, x1, x1, mask)
+            if self.downsample_attn:
+                x1 = x1.expand(bs, seq_len, hdim) + res
 
         x1 = self.dropout(x_att)
 
@@ -155,6 +166,7 @@ class EBranchformerEncoderLayer(torch.nn.Module):
 
         if pos_emb is not None:
             x2 = (x2, pos_emb)
+        #x2 = torch.utils.checkpoint.checkpoint(self.cgmlp, x2, mask, use_reentrant=False)
         x2 = self.cgmlp(x2, mask)
         if isinstance(x2, tuple):
             x2 = x2[0]
@@ -214,6 +226,8 @@ class EBranchformerEncoder(AbsEncoder):
         merge_conv_kernel: int = 3,
         interctc_layer_idx=None,
         interctc_use_conditioning: bool = False,
+        downsample_attn=False,
+        use_flash_attn=False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -254,6 +268,11 @@ class EBranchformerEncoder(AbsEncoder):
                 torch.nn.LayerNorm(output_size),
                 torch.nn.Dropout(dropout_rate),
                 pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
+            )
+        elif input_layer == "linear_w2v":
+            self.embed = torch.nn.Sequential(
+                pos_enc_class(output_size, positional_dropout_rate, max_pos_emb_len),
+                torch.nn.Dropout(dropout_rate),
             )
         elif input_layer == "conv1d1":
             self.embed = Conv1dSubsampling1(
@@ -351,6 +370,10 @@ class EBranchformerEncoder(AbsEncoder):
                 attention_heads,
                 output_size,
                 attention_dropout_rate,
+                False,
+                use_flash_attn,
+                False,
+                False,
             )
         elif attention_layer_type == "legacy_rel_selfattn":
             assert pos_enc_layer_type == "legacy_rel_pos"
@@ -405,6 +428,7 @@ class EBranchformerEncoder(AbsEncoder):
                 else None,
                 dropout_rate,
                 merge_conv_kernel,
+                downsample_attn
             ),
             layer_drop_rate,
         )
@@ -426,9 +450,9 @@ class EBranchformerEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
-        ctc: CTC = None,
-        max_layer: int = None,
         masks: torch.Tensor = None,
+        ctc: CTC = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Calculate forward propagation.
 
@@ -473,11 +497,13 @@ class EBranchformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            if max_layer is not None and 0 <= max_layer < len(self.encoders):
-                for layer_idx, encoder_layer in enumerate(self.encoders):
-                    xs_pad, masks = encoder_layer(xs_pad, masks)
-                    if layer_idx >= max_layer:
-                        break
+            for layer_idx, encoder_layer in enumerate(self.encoders):
+                xs_pad, masks = encoder_layer(xs_pad, masks)
+                if return_all_hs:
+                    if isinstance(xs_pad, tuple):
+                        intermediate_outs.append(xs_pad[0])
+                    else:
+                        intermediate_outs.append(xs_pad)
             else:
                 xs_pad, masks = self.encoders(xs_pad, masks)
         else:

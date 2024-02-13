@@ -347,12 +347,14 @@ EOF
 
     logging.info(f"log file: {args.log}")
 
+    
     failed = False
     while any(p.returncode is None for p in processes):
         for process in processes:
             # If any process is failed, try to kill the other processes too
             if failed and process.returncode is not None:
                 process.kill()
+                #pass
             else:
                 try:
                     process.wait(0.5)
@@ -361,7 +363,7 @@ EOF
 
                 if process.returncode is not None and process.returncode != 0:
                     failed = True
-
+    
     for process in processes:
         if process.returncode != 0:
             print(

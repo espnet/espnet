@@ -83,6 +83,7 @@ class TransformerEncoder(AbsEncoder):
         interctc_layer_idx: List[int] = [],
         interctc_use_conditioning: bool = False,
         layer_drop_rate: float = 0.0,
+        use_flash_attn=False,
     ):
         assert check_argument_types()
         super().__init__()
@@ -168,7 +169,7 @@ class TransformerEncoder(AbsEncoder):
             lambda lnum: EncoderLayer(
                 output_size,
                 MultiHeadedAttention(
-                    attention_heads, output_size, attention_dropout_rate
+                    attention_heads, output_size, attention_dropout_rate, False, use_flash_attn, False, False
                 ),
                 positionwise_layer(*positionwise_layer_args),
                 dropout_rate,
@@ -194,9 +195,9 @@ class TransformerEncoder(AbsEncoder):
         xs_pad: torch.Tensor,
         ilens: torch.Tensor,
         prev_states: torch.Tensor = None,
-        ctc: CTC = None,
         masks: torch.Tensor = None,
-        max_layer: int = None,
+        ctc: CTC = None,
+        return_all_hs: bool = False,
     ) -> Tuple[torch.Tensor, torch.Tensor, Optional[torch.Tensor]]:
         """Embed positions in tensor.
 
@@ -204,6 +205,9 @@ class TransformerEncoder(AbsEncoder):
             xs_pad: input tensor (B, L, D)
             ilens: input length (B)
             prev_states: Not to be used now.
+            ctc (CTC): ctc module for intermediate CTC loss
+            return_all_hs (bool): whether to return all hidden states
+
         Returns:
             position embedded tensor and mask
         """
@@ -236,14 +240,13 @@ class TransformerEncoder(AbsEncoder):
 
         intermediate_outs = []
         if len(self.interctc_layer_idx) == 0:
-            if max_layer is not None:
-                assert 0 <= max_layer < len(self.encoders)
-                for layer_idx, encoder_layer in enumerate(self.encoders):
-                    xs_pad, masks = encoder_layer(xs_pad, masks)
-                    if layer_idx >= max_layer:
-                        break
-            else:
-                xs_pad, masks = self.encoders(xs_pad, masks)
+            for layer_idx, encoder_layer in enumerate(self.encoders):
+                xs_pad, masks = encoder_layer(xs_pad, masks)
+                if return_all_hs:
+                    if isinstance(xs_pad, tuple):
+                        intermediate_outs.append(xs_pad[0])
+                    else:
+                        intermediate_outs.append(xs_pad)
         else:
             for layer_idx, encoder_layer in enumerate(self.encoders):
                 xs_pad, masks = encoder_layer(xs_pad, masks)
@@ -260,9 +263,6 @@ class TransformerEncoder(AbsEncoder):
                     if self.interctc_use_conditioning:
                         ctc_out = ctc.softmax(encoder_out)
                         xs_pad = xs_pad + self.conditioning_layer(ctc_out)
-
-                if max_layer and layer_idx >= max_layer:
-                        break
 
         if self.normalize_before:
             xs_pad = self.after_norm(xs_pad)

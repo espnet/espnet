@@ -1590,12 +1590,17 @@ class AbsTask(ABC):
         else:
             utt2category_file = None
 
+        if mode == 'valid' and iter_options.batch_bins > 10000000:
+            batch_bins = iter_options.batch_bins // 1000
+        else:
+            batch_bins = iter_options.batch_bins
+
         batch_sampler = build_batch_sampler(
             type=iter_options.batch_type,
             shape_files=iter_options.shape_files,
             fold_lengths=args.fold_length,
             batch_size=iter_options.batch_size,
-            batch_bins=iter_options.batch_bins,
+            batch_bins=batch_bins,
             sort_in_batch=args.sort_in_batch,
             sort_batch=args.sort_batch,
             drop_last=args.drop_last_iter,
@@ -1638,7 +1643,7 @@ class AbsTask(ABC):
             shuffle_within_batch=args.shuffle_within_batch,
             num_workers=args.num_workers,
             collate_fn=iter_options.collate_fn,
-            pin_memory=args.ngpu > 0,
+            pin_memory=False,
         )
 
     @classmethod
@@ -1880,7 +1885,7 @@ class AbsTask(ABC):
             for i in range(num_splits)
         ]
         num_iters_per_epoch_list = [
-            (iter_options.num_iters_per_epoch + i) // num_splits
+            (iter_options.num_iters_per_epoch + i) # // num_splits
             if iter_options.num_iters_per_epoch is not None
             else None
             for i in range(num_splits)

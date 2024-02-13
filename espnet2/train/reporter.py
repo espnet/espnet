@@ -354,6 +354,9 @@ class Reporter:
                 stats["gpu_max_cached_mem_GB"] = (
                     torch.cuda.max_memory_reserved() / 2**30
                 )
+                stats["gpu_max_alloc_mem_GB"] = (
+                    torch.cuda.max_memory_allocated() / 2**30
+                )
         else:
             if torch.cuda.is_available() and torch.cuda.max_memory_cached() > 0:
                 stats["gpu_cached_mem_GB"] = torch.cuda.max_memory_cached() / 2**30

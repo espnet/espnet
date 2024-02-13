@@ -60,6 +60,7 @@ class ESPnetGANTTSModel(AbsGANESPnetModel):
                 upsample_factor = tts.generator["vocoder"].upsample_factor
             else:
                 upsample_factor = tts.generator.upsample_factor
+            print(upsample_factor)
             assert (
                 feats_extract.get_parameters()["n_shift"] == upsample_factor
             ), "n_shift must be equal to upsample_factor"

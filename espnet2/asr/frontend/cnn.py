@@ -7,6 +7,7 @@ from typing import Optional, Tuple, Union, List
 import torch
 from torch import nn, Tensor
 from torch.nn import Module
+from torch.nn import functional as F
 
 from typeguard import check_argument_types
 
@@ -107,6 +108,7 @@ class CNNFrontend(AbsFrontend):
         bias: bool,
         shapes: List[Tuple[int, int, int]] = [(512, 10, 5), (512, 3, 2), (512, 3, 2), (512, 3, 2), (512, 3, 2), (512, 2, 2), (512, 2, 2)],
         fs: Union[int, str] = 16000,
+        normalize_audio: bool = False
     ):
 
         super().__init__()
@@ -118,6 +120,7 @@ class CNNFrontend(AbsFrontend):
             raise ValueError("Invalid cnn mode")
 
         self.output_channels = shapes[-1][0]
+        self.normalize_audio = normalize_audio
 
         blocks = []
         in_channels = 1
@@ -174,6 +177,9 @@ class CNNFrontend(AbsFrontend):
         """
         if x.ndim != 2:
             raise ValueError(f"Expected the input Tensor to be 2D (batch, time). Found: {list(x.shape)}")
+
+        if self.normalize_audio:
+            x = F.layer_norm(x, x.shape)
 
         x = x.unsqueeze(1)  # (batch, channel==1, frame)
         for layer in self.layers:

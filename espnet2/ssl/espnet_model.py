@@ -43,8 +43,8 @@ class ESPnetSSLModel(AbsESPnetModel):
         ignore_id: int = -1,
         vocab_size: int = None,
         token_list: Union[Tuple[str, ...], List[str]] = None,
-        normalize_feats: bool = False,
         feature_grad_mult: Optional[float] = 0.1,
+        extract_feats_in_collect_stats: bool = True
     ):
 
         assert check_argument_types()
@@ -61,7 +61,6 @@ class ESPnetSSLModel(AbsESPnetModel):
         self.encoder = encoder
         self.losses = torch.nn.ModuleList(losses)
         self.error_calculator = None
-        self.normalize_feats = normalize_feats
         self.masker = masker
 
         self.nan_loss_count = 0.0
@@ -89,18 +88,27 @@ class ESPnetSSLModel(AbsESPnetModel):
             speech, speech_lengths
         )
 
+        '''
         total_loss = 0
         total_stats = {}
+        
         for loss_fn in self.losses:
             
             loss, stats = loss_fn(encoded, text, mask_info, feature_penalty)
             total_loss += loss
             total_stats.update(stats)
 
-        total_stats['loss'] = total_loss 
+        total_stats['loss'] = total_loss#.detach()
+        '''
+        total_loss, total_stats = self.losses[0](encoded, text, mask_info, feature_penalty)
+        total_stats['loss'] = total_loss.item()
+
+        del encoded
 
         # force_gatherable: to-device and to-tensor if scalar for DataParallel
-        total_loss, total_stats, weight = force_gatherable((total_loss, total_stats, batch_size), loss.device)
+        total_loss, total_stats, weight = force_gatherable((total_loss, total_stats, batch_size), total_loss.device)
+
+        #del encoded, mask_info#, loss
         return total_loss, total_stats, weight
 
     def collect_feats(
@@ -120,27 +128,24 @@ class ESPnetSSLModel(AbsESPnetModel):
         speech_lengths: torch.Tensor,
         y_pad: torch.Tensor=None,
         y_pad_length: torch.Tensor=None,
+        use_mask=True
     ):
         """Frontend + Encoder"""
 
         """Returns (encoded, feat_penalty)"""
-
-        # 1 Normalize Waveform
-        if self.normalize_feats:
-            speech = F.layer_norm(speech, speech.shape)
         
-        # 2. Extract feats
+        # 1. Extract feats
         feats, feats_lengths = self._extract_feats(speech, speech_lengths)
 
-        if self.feature_grad_mult is not None and self.feature_grad_mult < 1.0:
+        if self.train and self.feature_grad_mult is not None and self.feature_grad_mult < 1.0:
             feats = GradMultiply.apply(feats, self.feature_grad_mult)
         features_pen = feats.float().pow(2).mean()
 
-        # 3. Data augmentation
+        # 2. Data augmentation
         if self.specaug is not None and self.training:
             feats, feats_lengths = self.specaug(feats, feats_lengths)
 
-        # 4. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
+        # 3. Normalization for feature: e.g. Global-CMVN, Utterance-CMVN
         if self.normalize is not None:
             feats, feats_lengths = self.normalize(feats, feats_lengths)
 
@@ -148,20 +153,28 @@ class ESPnetSSLModel(AbsESPnetModel):
         if self.preencoder is not None:
             feats, feats_lengths = self.preencoder(feats, feats_lengths)
 
-        # 5. Masking
-        masks = None
-        if self.masker is not None:
+        # 4. Masking
+        mask_info = None
+        pad_masks = None
+        if use_mask and self.masker is not None:
             pad_masks = (make_pad_mask(feats_lengths)).to(feats.device)
             encoder_in, mask_info = self.masker(feats, pad_masks)
 
-        # 6. Forward encoder
+        # 5. Forward encoder
         # feats: (Batch, Length, Dim)
         # -> encoder_out: (Batch, Length2, Dim2)
-        encoder_out, out_lens, _ = self.encoder(feats, feats_lengths, y_pad, y_pad_length, masks=pad_masks)
+        encoder_out, out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks, return_all_hs=True)
+        encoder_out = encoder_out[1]
+        '''
+        if not use_mask:
+            encoder_out, out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks, return_all_hs=True)
+            encoder_out = encoder_out[1]
+        else:
+            encoder_out, out_lens, _ = self.encoder(feats, feats_lengths, masks=pad_masks)
+            encoder_out = [encoder_out]
+        '''
 
-        # for now returning as array
-        # need to modify so self.encoder returns list of layer representations
-        return [encoder_out], mask_info, features_pen
+        return encoder_out, mask_info, features_pen
 
     def _extract_feats(
         self, speech: torch.Tensor, speech_lengths: torch.Tensor
@@ -177,9 +190,7 @@ class ESPnetSSLModel(AbsESPnetModel):
             #  e.g. STFT and Feature extract
             #       data_loader may send time-domain signal in this case
             # speech (Batch, NSamples) -> feats: (Batch, NFrames, Dim)
-            print(speech_lengths[0])
             feats, feats_lengths = self.frontend(speech, speech_lengths)
-            print(feats_lengths[0], flush=True)
         else:
             # No frontend and no feature extract
             feats, feats_lengths = speech, speech_lengths

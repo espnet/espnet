@@ -52,6 +52,7 @@ def split_scps(
         prev_key = None
         for line in lines:
             key = line.rstrip().split(maxsplit=1)[0]
+            #print(prev_key, key)
             if prev_key is not None and prev_key != key:
                 raise RuntimeError("Not sorted or not having same keys")
             prev_key = key

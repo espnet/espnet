@@ -22,12 +22,14 @@ class HuBERTDecoder(nn.Module):
     def __init__(
         self,
         encoder_embed_dim: int,
+        num_classes: int,
         final_dim: int,
         skip_masked: bool,
         skip_nomask: bool,
     ):
         super().__init__()
-        self.final_proj = torch.nn.Linear(encoder_embed_dim, final_dim, bias=False)
+        self.final_proj = torch.nn.Linear(encoder_embed_dim, final_dim)
+        self.label_embeddings = torch.nn.Linear(final_dim, num_classes)
         self.skip_masked = skip_masked
         self.skip_nomask = skip_nomask
 
@@ -43,48 +45,67 @@ class HuBERTDecoder(nn.Module):
             Tensor: The logits of masked frames. Tensor of dimension `[masked_frame, final_dim]`.
             Tensor: The logits of unmasked frames. Tensor of dimension `[unmasked_frame, final_dim]`.
         """
+        logit_temp = 0.1
         proj_x = self.final_proj(x)
-        B, T, C = proj_x.shape
-        #print("proj_x")
-        #print(proj_x.shape)
-        proj_x_m = None
-        proj_x_u = None
+
+        logit_m = None
+        logit_u = None
         if not self.skip_masked:
-            proj_x_m = proj_x[mask_m].reshape(B, -1, C)
+            proj_x_m = proj_x[mask_m]
+            logit_m = self.label_embeddings(proj_x_m) / logit_temp
 
         if not self.skip_nomask:
             proj_x_u = proj_x[mask_u]
+            logit_u = self.label_embeddings(proj_x_u) / logit_temp
 
-        return proj_x_m, proj_x_u 
+        return logit_m, logit_u 
 
-class HuBERTLoss(AbsLoss):
+class HuBERTLossCrossEntropy(AbsLoss):
     def __init__(
         self,
         encoder_embed_dim: int,
         num_classes: int,
         final_dim: int,
-        masked_loss: float = 1.0,
-        unmasked_loss: float = 0.0,
+        masked_weight: float = 1.0,
+        unmasked_weight: float = 0.0,
         layers = [-1],
+        layer_weights = [1.0],
     ):
         super().__init__()
-        self.masked_loss_weight = masked_loss
-        self.unmasked_loss_weight = unmasked_loss
+        self.masked_loss_weight = masked_weight
+        self.unmasked_loss_weight = unmasked_weight
 
         self.layers = layers
+        self.layer_weights = layer_weights
 
         self.decoder = HuBERTDecoder(
             encoder_embed_dim,
             num_classes,
-            True if masked_loss == 0.0 else False,
-            True if unmasked_loss == 0.0 else False,
+            final_dim,
+            False,
+            False,
         )
+
+    def _compute_correct(
+        self,
+        logits,
+        targets,
+    ):
+        if logits.numel() == 0:
+            correct, count = 0, 0
+        else:
+            assert logits.dim() > 1, logits.shape
+            max_idx = logits.argmax(-1)
+            correct = (max_idx == targets).sum().item()
+            count = max_idx.numel()
+        return correct, count
 
     def forward(self, 
         xs_pad: torch.Tensor,
         ys_pad: torch.Tensor,
         mask_info,
-        weight = 10
+        feature_penalty,
+        feature_weight = 10,
     ):
 
         mask_m = mask_info["mask_m"]
@@ -93,52 +114,48 @@ class HuBERTLoss(AbsLoss):
         losses_m = []
         losses_u = []
 
-        accs_m = []
-        accs_u = []
-        total_loss = 0
-        for layer in self.layers:
-            x = xs_pad[layer]
+        total_loss = 0.0
+        targets_m = ys_pad[mask_m]
+        targets_u = ys_pad[mask_u]
+        for i, layer in enumerate(self.layers):
+            x = xs_pad[i]
             hs_m, hs_u = self.decoder(x, mask_m, mask_u)
-            B, T, C = hs_m.shape
 
             if self.masked_loss_weight != 0.0:
 
-                #print("xs_pad")
-                #print(xs_pad[0].shape)
-                #print("hs_m")
-                #print(hs_m.shape, flush=True)
-                #print("mask_m")
-                #print(mask_m.shape, flush=True)
-                #print("ys_pad")
-                #print(ys_pad.shape, flush=True)
-                #print("ys_pad_m")
-                #print(ys_pad[mask_m].shape, flush=True)
-
-                targets = ys_pad[mask_m].reshape(B, -1)
-                loss_m = F.cross_entropy(hs_m.transpose(1,2), targets, reduction='sum', ignore_index=-1) * self.masked_loss_weight
-                losses_m.append(loss_m.item())
+                loss_m = F.cross_entropy(hs_m, targets_m.long(), reduction='sum') * self.masked_loss_weight * self.layer_weights[i]
                 total_loss += loss_m
-
-                acc_m = th_accuracy(
-                    hs_m.view(B * T, C), # batch x seq x dim -> batch * seq x dim
-                    targets, # batch x seq 
-                    -1
-                )
-
-                accs_m.append(acc_m)
+                divisor = hs_m.shape[0] if hs_m.shape[0] > 0 else 1
+                losses_m.append(loss_m.detach().item() / divisor)
 
             if self.unmasked_loss_weight != 0.0:
-                loss_u = F.cross_entropy(hs_u, ys_pad[mask_m], reduction='sum', ignore_index=-1) * self.unmasked_loss_weight
-                losses_u.append(loss_u.item())
+                
+                loss_u = F.cross_entropy(hs_u, targets_u.long(), reduction='sum') * self.unmasked_loss_weight * self.layer_weights[i]
+                losses_u.append(loss_u.detach().item())
                 total_loss += loss_u
+                
+        total_loss = feature_penalty * feature_weight * hs_m.shape[0] + total_loss
 
-            # maybe need to downweight loss here?
-            # for now just return firs tloss item
+        correct_m, count_m = self._compute_correct(hs_m, targets_m)
+        correct_u, count_u = self._compute_correct(hs_u, targets_u)
 
-        stats = {'hubert_losses_m': losses_m[0] if len(losses_m) > 0 else None, 'hubert_losses_u': losses_u[0] if len(losses_u) > 0 else None}
-        stats['hubert_acc_m'] = accs_m[0] if len(losses_m) > 0 else None
+        #    hubert_losses_m=losses_m[0] if len(losses_m) > 0 else None, 
+        #    hubert_losses_u=losses_u[0] if len(losses_u) > 0 else None,
 
-        return total_loss, hs_m.shape[0] * weight, stats
+        stats = dict(
+            hubert_correct_m=correct_m,
+            hubert_count_m=count_m,
+            hubert_acc_m=0 if count_m == 0 else correct_m / count_m,
+            hubert_correct_u=correct_u,
+            hubert_count_u=count_u,
+            hubert_acc_u=0 if count_u == 0 else correct_u / count_u,
+        )
+
+        for i, layer in enumerate(self.layers):
+            stats[f'hubert_losses_m_{layer}'] = losses_m[i] if len(losses_m) > 0 else None
+            stats[f'hubert_losses_u_{layer}'] = losses_u[i] if len(losses_u) > 0 else None
+
+        return total_loss, stats
 
             
 
