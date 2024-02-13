@@ -1,3 +1,5 @@
+# convert_trial.py
+
 import argparse
 import os
 import sys
@@ -45,7 +47,7 @@ if __name__ == "__main__":
         "--out",
         type=str,
         required=True,
-        help="destinatino directory of processed trial and label files",
+        help="destination directory of processed trial and label files",
     )
     args = parser.parse_args()
 

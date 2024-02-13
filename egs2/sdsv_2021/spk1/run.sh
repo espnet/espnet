@@ -7,7 +7,7 @@ set -o pipefail
 spk_config=conf/train_rawnet3.yaml
 
 train_set="combined_train_set"
-valid_set="SampleDeepMine"
+valid_set="voxceleb1_test"
 test_sets="SampleDeepMine"
 feats_type="raw"
 

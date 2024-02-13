@@ -1,3 +1,7 @@
+# sampledeepmine_prep.py
+
+# This script makes wav.scp utt2spk and spk2utt files from the DeepMine sample subset 
+
 import argparse
 import os
 

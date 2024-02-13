@@ -1,3 +1,7 @@
+# librispeech_flac2wav.py
+
+#  uses ffmpeg to convert LibriSpeech .flac audio files to .wav
+
 import argparse
 import os
 import subprocess
@@ -29,7 +33,6 @@ def main(args):
                 dst_path = os.path.join(dst_dir, wav_file_name)
                 files_to_process.append((src_path, dst_path, dst_dir))
 
-    # Use ProcessPoolExecutor with the specified number of processes
     with ProcessPoolExecutor(max_workers=n_proc) as executor:
         list(tqdm(executor.map(process_file, files_to_process), total=len(files_to_process)))
 

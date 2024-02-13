@@ -1,3 +1,7 @@
+# generate_trial_file.py
+
+# This script generates trials from the DeepMine sample subset for it's use as a tes/dev set
+
 import argparse
 import os
 import sys

@@ -4,11 +4,11 @@ set -e
 set -u
 set -o pipefail
 
-# For Voxceleb1 downloads, request the download links from https://mm.kaist.ac.kr/datasets/voxceleb/ and update the script
+# For Voxceleb1 and 2 downloads, request the download links from https://mm.kaist.ac.kr/datasets/voxceleb/ and update the script
 
-# Specifics for Mozilla Commonvoice
-lang=fa # en de fr cy tt kab ca zh-TW it fa eu es ru tr nl eo zh-CN rw pt zh-HK cs pl uk
-cv_dir=commonvoice/cv-corpus-16.0-2023-12-06
+# Mozilla Commonvoice specfics
+lang=fa # Farsi
+cv_dir=commonvoice/cv-corpus-16.0-2023-12-06 # CV 16.0
 data_url=''
 
 stage=1

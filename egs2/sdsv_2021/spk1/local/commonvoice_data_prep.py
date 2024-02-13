@@ -1,3 +1,7 @@
+# commonvoice_data_prep.py
+
+# This script is for converting CommonVoice mp3 audio files to wav and creating the Kaldi-style utt2spk and wav.scp
+
 import sys
 import os
 import subprocess
@@ -14,7 +18,7 @@ def process_line(line, db_base, out_dir):
     """Process each line of the dataset."""
     parts = line.strip().split("\t")
     
-    # Ensure there are enough parts to unpack the critical fields
+    # verify that there are enough parts to unpack the critical fields
     if len(parts) < 4:
         print(f"Skipping line with insufficient values: {line}")
         return None
@@ -40,7 +44,7 @@ def process_line(line, db_base, out_dir):
     uttId = path.replace('.mp3', '').replace('/', '-')
     uttId = f"{client_id}-{uttId}"
 
-    # Additional checks and processing...
+    # Additional checks and processing
     if os.path.getsize(os.path.join(db_base, "clips", path)) == 0:
         print(f"null file {path}")
         return None
