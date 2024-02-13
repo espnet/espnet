@@ -53,11 +53,11 @@ bpe_nlsyms="[inaudible],[laughs],[noise]" # in the baseline these are handled by
 asr_config="conf/tuning/train_asr_ebranchformer_wavlm_lr1e-4_specaugm_accum1_preenc128_warmup40k.yaml"
 inference_config="conf/decode_asr_transformer.yaml"
 inference_asr_model=valid.acc.ave.pth
-asr_train_set=kaldi/train_all_mdm_ihm
+asr_train_set=kaldi/train_all_mdm_ihm_rvb_gss
 asr_cv_set=kaldi/chime6/dev/gss # we used only chime6 but maybe you can use a combination of all
 
 # note we use notsofar training here because dev gt is not available
-asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/notsofar1/train/gss"
+asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss/ kaldi/mixer6/dev/gss/ kaldi/notsofar1/dev/gss"
 lm_config="conf/train_lm.yaml"
 use_lm=false
 use_word_lm=false
@@ -87,8 +87,8 @@ fi
 
 if [ $decode_train == "dev" ]; then
   # apply gss only on dev
-  gss_dsets="chime6_dev,dipco_dev,mixer6_dev,notsofar1_train"
-  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss kaldi/notsofar1/train/gss"
+  gss_dsets="chime6_dev,dipco_dev,mixer6_dev,notsofar1_dev"
+  asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss kaldi/notsofar1/dev/gss"
 elif
   [ $decode_train == "eval" ]; then
   # apply gss only on eval
@@ -129,7 +129,7 @@ fi
 
 if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
   # parse all datasets to lhotse
-  for dset in mixer6; do
+  for dset in chime6 dipco notsofar1 mixer6; do
     if [ "$decode_train" == "eval" ]; then
       dset_part="eval"
     elif [ "$decode_train" != "eval" ]; then
