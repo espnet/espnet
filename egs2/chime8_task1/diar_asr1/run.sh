@@ -40,7 +40,7 @@ pyan_use_pretrained= #popcornell/pyannote-segmentation-chime6-mixer6
 download_baseline_diarization=0
 # fine-tune
 pyan_finetune_dir=exp/pyannote_finetuned
-pyan_batch_size=64
+pyan_batch_size=128
 pyan_learning_rate="1e-5"
 
 
@@ -129,6 +129,11 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ] && [ $diarization_backend == pyan
   if [ ! -f database.yml ]; then
      ln -s local/database.yml database.yml # make link to database.yml also in main dir
   fi
+
+  if [ ! -d ./chime8_dasr ]; then
+     ln -s $chime8_root ./chime8_dasr # make link to database.yml also in main dir
+  fi
+
   python local/pyannote_finetune.py --exp_folder $pyan_finetune_dir \
       --batch_size $pyan_batch_size \
       --learning_rate $pyan_learning_rate \
