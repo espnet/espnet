@@ -237,7 +237,7 @@ def prepare_vc(
 
 def prepare_enroll_speech_dict(root: Path):
     enroll_dict = {}
-    uttid2token = read_text(root / f"token")
+    uttid2token = read_text(root)
     for uttid, token in uttid2text.items():
         spkid = utt_id.split("_")[0]
         token=token.split()
@@ -305,9 +305,9 @@ if __name__ == "__main__":
 
     # prepare enrollment speech dict
     if use_enroll_speech:
-        tts_enrollment_dict = prepare_enroll_speech_dict(out_dir / "speech/tts")
-        vc_enrollment_dict = prepare_enroll_speech_dict(out_dir / "speech/vc")
-        se_enrollment_dict = prepare_enroll_speech_dict(out_dir / "speech/se")
+        tts_enrollment_dict = prepare_enroll_speech_dict(out_dir / "speech/tts/token")
+        vc_enrollment_dict = prepare_enroll_speech_dict(out_dir / "speech/vc/token_source")
+        se_enrollment_dict = prepare_enroll_speech_dict(out_dir / "speech/se/token_source")
         
     
     
