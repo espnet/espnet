@@ -34,11 +34,10 @@ def get_new_manifests(input_dir, output_filename):
             enhanced_audio = id2wav[gss_id]
         except KeyError:
             warnings.warn(
-                "Skipped example {}, of length {:.2f}, it was not found in GSS input. "
+                "Skipped example {}, of length {:.2f}, it was not found in GSS output. "
                 "This may lead to significant errors for ASR if this is inference."
                 " It could be that it was discarded by GSS "
-                "because the segment was too long,"
-                " check GSS max-segment-length argument.".format(
+                "because the segment was too long. Check the GSS logs in exp/gss !".format(
                     gss_id, c_cut.end - c_cut.start
                 )
             )
