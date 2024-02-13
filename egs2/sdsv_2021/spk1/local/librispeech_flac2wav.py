@@ -6,16 +6,20 @@ import argparse
 import os
 import subprocess
 from concurrent.futures import ProcessPoolExecutor
+
 from tqdm import tqdm
 
+
 def convert_to_wav(src_path, dst_path):
-    command = ['ffmpeg', '-i', src_path, '-ar', '16000', '-ac', '1', dst_path]
+    command = ["ffmpeg", "-i", src_path, "-ar", "16000", "-ac", "1", dst_path]
     subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+
 
 def process_file(file_info):
     src_path, dst_path, dst_dir = file_info
     os.makedirs(dst_dir, exist_ok=True)
     convert_to_wav(src_path, dst_path)
+
 
 def main(args):
     src = args.src
@@ -34,15 +38,27 @@ def main(args):
                 files_to_process.append((src_path, dst_path, dst_dir))
 
     with ProcessPoolExecutor(max_workers=n_proc) as executor:
-        list(tqdm(executor.map(process_file, files_to_process), total=len(files_to_process)))
+        list(
+            tqdm(
+                executor.map(process_file, files_to_process),
+                total=len(files_to_process),
+            )
+        )
 
     print("Conversion completed.")
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FLAC to WAV Converter")
-    parser.add_argument("--src", type=str, required=True, help="Source directory of FLAC files")
-    parser.add_argument("--dst", type=str, required=True, help="Destination directory for WAV files")
-    parser.add_argument("--n_proc", type=int, default=os.cpu_count(), help="Number of processes to use")
+    parser.add_argument(
+        "--src", type=str, required=True, help="Source directory of FLAC files"
+    )
+    parser.add_argument(
+        "--dst", type=str, required=True, help="Destination directory for WAV files"
+    )
+    parser.add_argument(
+        "--n_proc", type=int, default=os.cpu_count(), help="Number of processes to use"
+    )
     args = parser.parse_args()
 
     main(args)

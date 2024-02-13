@@ -57,7 +57,7 @@ if [ ${stage} -le 1 ] && [ ${stop_stage} -ge 1 ]; then
     # download VoxCeleb1 devset txt data
     if [ ! -f ${data_dir_prefix}/vox1_dev_txt.zip ]; then
         wget -P  ${data_dir_prefix} https://mm.kaist.ac.kr/datasets/voxceleb/data/vox1_dev_txt.zip
-    else 
+    else
         log "Voxceleb1 devset txt data exists. Skip download."
     fi
 
