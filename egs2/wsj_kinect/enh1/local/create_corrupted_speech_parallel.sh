@@ -79,3 +79,4 @@ if [ $stage -le 2 ]; then
         #wait
     done
 fi
+wait

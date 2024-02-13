@@ -62,15 +62,23 @@ echo "Downloading scripts for wsj_kinect"
 url=https://github.com/sunits/Reverberated_WSJ_2MIX/archive/refs/heads/master.zip
 wdir=data/scripts
 
+if [ -d $wdir ]; then
+  echo "Replacing $wdir" 
+  rm -r $wdir
+fi
+
+mkdir -p $wdir
+
 wget --continue -O $wdir/mixture_scripts.zip ${url}
-unzip $wdir/mixture_scripts.zip
-cp create_corrupted_speech_parallel.sh $wdir/Reverberated_WSJ_2MIX-master/ # Move the modified parallel script to the folder
+unzip $wdir/mixture_scripts.zip -d $wdir
+#chmod 700 local/create_corrupted_speech_parallel.sh $wdir/Reverberated_WSJ_2MIX-master/create_corrupted_speech.sh
+cp local/create_corrupted_speech_parallel.sh $wdir/Reverberated_WSJ_2MIX-master/ # Move the modified parallel script to the folder
 rm $wdir/mixture_scripts.zip
 
 ### Execute the scripts
 echo "Running the script with parallel=${parallel}"
 cd $wdir/Reverberated_WSJ_2MIX-master
-if [ "${parallel}" == true]
+if [ "${parallel}" == true ]
 then
   ./create_corrupted_speech_parallel.sh \
   --stage 0 --wsj_data_path ${WSJ0_2MIX} \
@@ -83,9 +91,8 @@ else
   --dest ${output_path} || exit 1;
 fi
 
-### START FROM HERE ###
 ### create .scp files for reference audio, noise, direct components and early reflections
-cd pdir
+cd $pdir
 echo "Generating .scp files"
 local/wsj_kinect_data_prep.sh ${output_path} $wdir/Reverberated_WSJ_2MIX-master/list
 
