@@ -11,6 +11,7 @@ from typing import Dict, Optional
 
 import jiwer
 import pandas as pd
+from chime_utils.text_norm import get_txt_norm
 from pyannote.core.utils.types import Label
 from pyannote.metrics.diarization import DiarizationErrorRate
 from pyannote.metrics.errors.identification import IdentificationErrorAnalysis
@@ -20,8 +21,6 @@ from pyannote.metrics.segmentation import Annotation, Segment, Timeline
 from pyannote.metrics.types import MetricComponents
 from tabulate import tabulate
 from tqdm import tqdm
-from chime_utils.text_norm import get_txt_norm
-
 
 TXT_NORM = get_txt_norm("chime8")
 
@@ -411,7 +410,6 @@ def score(
                 out.append(new_utt)
 
         return out
-
 
     hyps = normalize_json(hyps)
     refs = normalize_json(refs)

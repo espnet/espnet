@@ -33,6 +33,7 @@ def json2annotation(chimelike_jsonf, uri=None, spk_prefix=None):
 
     return to_annotation(json_ann, uri, spk_prefix)
 
+
 def prepare4pyannote(
     chime7dasr_root, target_dir="./data/pyannote_diarization", falign_annotation=None
 ):
@@ -62,7 +63,8 @@ def prepare4pyannote(
                 json_folder = os.path.join(falign_annotation, split, "*.json")
             else:
                 json_folder = os.path.join(
-                    c_scenario, "transcriptions_scoring", split, "*.json")
+                    c_scenario, "transcriptions_scoring", split, "*.json"
+                )
 
             json_annotations = glob.glob(json_folder)
             sess2json = {}
@@ -107,18 +109,17 @@ def prepare4pyannote(
                     rttm_dict["train"].append((c_ann, filename))
                     uri_dict["train"].append(filename)
 
-
     for k in uri_dict.keys():
         c_rttm_dir = os.path.join(target_dir, k, "rttm")
         Path(c_rttm_dir).mkdir(exist_ok=True, parents=True)
         c_uem_dir = os.path.join(target_dir, k, "uem")
         Path(c_uem_dir).mkdir(exist_ok=True, parents=True)
 
-        for (c_uem, filename) in uem_dict[k]:
+        for c_uem, filename in uem_dict[k]:
             with open(os.path.join(c_uem_dir, filename + ".uem"), "w") as f:
                 f.write("{} 1 {} {}\n".format(filename, c_uem[0], c_uem[1]))
 
-        for (c_ann, filename) in rttm_dict[k]:
+        for c_ann, filename in rttm_dict[k]:
             with open(os.path.join(c_rttm_dir, filename + ".rttm"), "w") as f:
                 f.writelines(c_ann.to_rttm().replace("PLACEHOLDER", filename))
 
@@ -129,7 +130,6 @@ def prepare4pyannote(
         Path(c_uri_dir).mkdir(exist_ok=True, parents=True)
         with open(os.path.join(c_uri_dir, "uri.txt"), "w") as f:
             f.writelines(to_uri_list)
-
 
 
 if __name__ == "__main__":

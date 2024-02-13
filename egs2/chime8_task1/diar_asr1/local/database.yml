@@ -27,4 +27,3 @@ Protocols:
           uri: ./data/pyannote_diarization/dev/uris/uri.txt
           annotation: ./data/pyannote_diarization/dev/rttm/{uri}.rttm
           annotated: ./data/pyannote_diarization/dev/uem/{uri}.uem
-
