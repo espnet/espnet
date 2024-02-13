@@ -27,7 +27,7 @@ SECONDS=0
 
 # General configuration
 stage=1
-stop_stage=2
+stop_stage=3
 nj=8
 inference_nj=8
 gpu_inference=false

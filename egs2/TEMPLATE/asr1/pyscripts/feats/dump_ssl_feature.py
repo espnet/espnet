@@ -56,6 +56,12 @@ def get_parser():
         help="Specify the utt2num_samples file.",
     )
     parser.add_argument(
+        "--audio_sample_rate",
+        type=int,
+        default=16000,
+        help="input audio sampling rate (could be different from fs used in SSL)"
+    )
+    parser.add_argument(
         "--write_num_frames", type=str, help="Specify wspecifer for utt2num_frames"
     )
     parser.add_argument(
@@ -83,6 +89,7 @@ def main(args):
         reader_conf["multilayer_feature"] = str2bool(reader_conf["multilayer_feature"])
     if reader_conf.get("layer", None):
         reader_conf["layer"] = int(reader_conf["layer"])
+    reader_conf["audio_sample_rate"] = args.audio_sample_rate
     reader = reader_class(use_gpu=args.use_gpu, **reader_conf)
 
     dump_feature(

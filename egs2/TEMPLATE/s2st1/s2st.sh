@@ -80,7 +80,7 @@ tgt_bpe_char_cover=1.0  # character coverage when modeling BPE for target langua
 use_discrete_unit=false         # Whether to use discrete unit
 clustering_stage=1              # clustering stage
 clustering_stop_stage=100       # clustering stop stage
-clustering_num_threads=20       # Number of threads used for kmeans clustering
+clustering_nj=20       # Number of threads used for kmeans clustering
 feature_dir="dump/feats"        # Feature directory for dumped feature
 km_tag=                         # KMeans tagging
 use_gpu_feat_extract=true       # Whether to use gpu for feature extraction
@@ -213,14 +213,18 @@ Options:
 
     # Discrete unit related
     --use_discrete_unit        # Whether to use discrete unit (default="${use_discrete_unit}").
+    --clustering_stage         # The start stage of clustering stage (default="${clustering_stage}").
+    --clustering_stop_stage    # The stop stage of clustering stage (default="${clustering_stop_stage}").
+    --clustering_nj            # Number of threads of clustering process (default="${clustering_nj}").
     --feature_dir              # Feature directory for dumped feature (default="${feature_dir}")
-    --km_tag=                  # KMeans tagging (default="${km_tag}")
+    --km_tag                   # KMeans tagging (default="${km_tag}")
     --use_gpu_feat_extract     # Whether to use gpu for feature extraction (default="${use_gpu_feat_extract}")
     --feature_layer            # Layers for feature extraction (default="${feature_layer}")
     --s3prl_upstream_name      # S3PRL upstream name for feature extraction (default="${s3prl_upstream_name}")
     --feature_clustering_tool  # Tool to do feature clustering (default="${feature_clustering_tool}")
+    --clustering_portion       # The portion of data that is used for clustering (default="${clustering_portion}").
     --feature_num_clusters     # Number of clusters for feature clustering pooling (default="${feature_num_clusters}").
-    --storage_save_mode=true   # Save storage on SSL feature extraction
+    --storage_save_mode=true   # Save storage on SSL feature extraction (default="${storage_save_mode}").
                                # If true, feature extraction and kmeans clustering on the fly
 
 
@@ -906,7 +910,7 @@ if ! "${skip_data_prep}"; then
                 --storage_save_mode ${storage_save_mode} \
                 --use_gpu "${use_gpu_feat_extract}" \
                 --nj 1 \
-                --num_threads ${clustering_num_threads} \
+                --num_threads ${clustering_nj} \
                 --cpu_cmd "${train_cmd}" \
                 --cuda_cmd "${cuda_cmd}" \
                 --dictdir "${unit_tokendir}"
