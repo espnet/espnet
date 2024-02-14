@@ -41,7 +41,7 @@ The system consists of:
 #### <a id="whatisnew">What is new compared to CHiME-7 DASR Baseline ? </a>
 
 - GSS now is much more memory efficient see https://github.com/desh2608/gss/pull/39 (many thanks to Christoph Boeddeker).
-- Pyannote EEND segmentation model has been retrained on CHiME-6 + NOTSOFAR1 data. It is a marginally better.
+- We raised the clustering threshold for the pre-trained Pyannote EEND segmentation model and raised maximum number of speakers to 8 to handle NOTSOFAR1.
 - Some bugs have been fixed.
 
 ## 📊 Results
@@ -62,6 +62,14 @@ Please if you use `run.pl` set your GPUs in EXCLUSIVE_PROCESS with `nvidia-smi -
 If you want to perform inference with the pre-trained models:
 - ASR ([HF repo](https://huggingface.co/popcornell/chime7_task1_asr1_baseline))
 - Pyannote Segmentation ([HF repo](https://huggingface.co/popcornell/chime7_task1_asr1_baseline))
+
+
+By default, the scripts hereafter will perform inference on dev set of all 4 scenarios: CHiME-6, DiPCo, Mixer 6 and NOTSOFAR1. <br>
+To limit e.g. only to CHiME-6 and DiPCo you can pass these options: 
+
+```bash
+--gss_dsets "chime6_dev dipco_dev" --asr_tt_set "kaldi/chime6/dev/gss kaldi/dipco/dev/gss"
+```
 
 #### Full-System (Diarization+GSS+ASR)
 
