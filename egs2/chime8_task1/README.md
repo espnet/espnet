@@ -16,11 +16,6 @@ We have also a [CHiME Slack Workspace][slack-invite], join the `chime-8-dasr` ch
 
 - We also have a [Troubleshooting page](./HELP.md).
 
-### <a id="whatisnew">What is new compared to CHiME-7 DASR Baseline ? </a>
-
-- GSS now is much more memory efficient see https://github.com/desh2608/gss/pull/39 (many thanks to Christoph Boeddeker).
-- Pyannote EEND segmentation model has been retrained on CHiME-6 + NOTSOFAR1 data. It is a bit better.
-- Some bugs have been fixed.
 
 ## DASR Data Download and Generation
 
@@ -34,13 +29,20 @@ CHiME-6, DiPCo and NOTSOFAR1 will be downloaded automatically.
 
 <img src="https://www.chimechallenge.org/challenges/chime7/task1/images/baseline.png" width="450" height="120" />
 
-The system here is effectively the same as used for the CHiME-7 DASR Challenge (except for the changes mentioned previously). <br>
+The system here is effectively the same as used for the CHiME-7 DASR Challenge (except for some minor changes). <br>
 It is described in detail in the [CHiME-7 DASR paper](https://arxiv.org/abs/2306.13734) and the [website of the previous challenge](https://www.chimechallenge.org/challenges/chime7/task1/baseline). <br>
 The system consists of:
 1. diarization component based on [Pyannote diarization pipeline](https://huggingface.co/pyannote/speaker-diarization)
    - this is in `diar_asr1` folder
 2. Envelope-variance selection [4] + Guided source separation [2] + WavLM-based ASR model [1].
    - this is in `asr1` folder.
+
+
+#### <a id="whatisnew">What is new compared to CHiME-7 DASR Baseline ? </a>
+
+- GSS now is much more memory efficient see https://github.com/desh2608/gss/pull/39 (many thanks to Christoph Boeddeker).
+- Pyannote EEND segmentation model has been retrained on CHiME-6 + NOTSOFAR1 data. It is a marginally better.
+- Some bugs have been fixed.
 
 ## Results
 
@@ -61,7 +63,7 @@ If you want to perform inference with the pre-trained models:
 - ASR ([HF repo](https://huggingface.co/popcornell/chime7_task1_asr1_baseline))
 - Pyannote Segmentation ([HF repo](https://huggingface.co/popcornell/chime7_task1_asr1_baseline))
 
-#### Full-System
+#### Full-System (Diarization+GSS+ASR)
 
 
 Got to `diar_asr1`:
@@ -91,7 +93,7 @@ Data will be generated in `/your/path/to/chime8_dasr` again choose the most conv
 
 You can use `--stage` and `--gss-asr-stage` args to resume the inference in whatever step.
 
-#### Oracle-Diarization (or diarization from your own diarizer)
+#### GSS+ASR only with Oracle-Diarization (or diarization from your own diarizer)
 
 We provide also a GSS + ASR only script to be used with oracle diarization
 or you diarizer output if you wish only to work on diarization. <br>
