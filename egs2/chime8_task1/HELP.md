@@ -1,5 +1,7 @@
 ## <a id="common_issues"> Common Issues </a>
 
+⚠️ If you use `run.pl` please check GSS logs when it is running and ensure you don't have any other processes on the GPUs.
+
 1. `AssertionError: Torch not compiled with CUDA enabled` <br> for some reason you installed Pytorch without CUDA support. <br>
  Please install Pytorch with CUDA support as explained in [pytorch website](https://pytorch.org/).
 2. `ERROR: Could not install packages due to an OSError: [Errno 2] No such file or directory: 'YOUR_PATH/espnet/tools/venv/lib/pyth

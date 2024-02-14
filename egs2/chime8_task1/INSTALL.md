@@ -31,5 +31,5 @@ cd ../egs2/chime8_task1/asr1
 ```
 You should be good to go !
 
-**NOTE:** if you encounter any problem have a look at [HELP.md](HELP.md) here. <br>
+⚠️ if you encounter any problem have a look at [HELP.md](HELP.md) here. <br>
 Or reach us, see [README.md](./README.md).</a>
