@@ -51,13 +51,13 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="FLAC to WAV Converter")
     parser.add_argument(
-        "--src", type=str, required=True, help="Source directory of FLAC files"
+        "--src", type=str, required=True, help="Src dir of FLAC files"
     )
     parser.add_argument(
-        "--dst", type=str, required=True, help="Destination directory for WAV files"
+        "--dst", type=str, required=True, help="Dst dir for WAV files"
     )
     parser.add_argument(
-        "--n_proc", type=int, default=os.cpu_count(), help="Number of processes to use"
+        "--n_proc", type=int, default=os.cpu_count(), help="N proc to use"
     )
     args = parser.parse_args()
 

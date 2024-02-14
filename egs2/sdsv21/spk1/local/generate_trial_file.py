@@ -1,6 +1,7 @@
 # generate_trial_file.py
 
-# This script generates trials from the DeepMine sample subset for it's use as a tes/dev set
+# This script generates trials from the DeepMine sample subset for it's
+#  use as a test/dev set
 
 import argparse
 import os
@@ -25,13 +26,13 @@ def generate_trials(input_file, output_file):
     with open(output_file, "w") as f:
         f.writelines(trials)
 
-    print(f"Speaker verification trials generated and written to {output_file}")
+    print(f"SPK trials generated and written to {output_file}")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Generate Speaker Verification Trials")
+    parser = argparse.ArgumentParser(description="Generate SPK Trials")
     parser.add_argument(
-        "--src", type=str, required=True, help="Input file containing file paths"
+        "--src", type=str, required=True, help="Input file with file paths"
     )
     parser.add_argument(
         "--dst",
