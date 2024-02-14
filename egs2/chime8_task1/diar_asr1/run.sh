@@ -157,7 +157,7 @@ if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ] && [ $diarization_backend == pyan
   # check if pyannote is installed
   if ! python3 -c "import pyannote.audio" &> /dev/null; then
     log "Installing Pyannote Audio."
-    (
+    (   # not supported 3.0, performance probably will be better with new pipeline
         python3 -m pip install pyannote-audio=="2.1.1"
     )
   fi
