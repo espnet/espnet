@@ -30,7 +30,7 @@ gss_dump_root=./exp/gss
 ngpu=3  # set equal to the number of GPUs you have, used for GSS and ASR training
 train_min_segment_length=1 # discard sub one second examples, they are a lot in chime6
 train_max_segment_length=20  # also reduce if you get OOM, here we used A100 40GB
-infer_max_segment_length=20
+infer_max_segment_length=90
 
 # GSS CONFIG
 use_selection=1 # always use selection
@@ -69,6 +69,9 @@ use_pretrained=
 decode_train="dev" # chose from dev, train, test
 diar_score=0
 
+. ./path.sh
+. ./cmd.sh
+. ./utils/parse_options.sh
 
 
 if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]] && [[ "$decode_train" != "train" ]];
@@ -85,21 +88,24 @@ exit
 
 fi
 
-if [ $decode_train == "dev" ]; then
+if [ $decode_train == "dev" ] && [ $diar_score == 0 ]; then
   # apply gss only on dev
   gss_dsets="chime6_dev,dipco_dev,mixer6_dev,notsofar1_dev"
   asr_tt_set="kaldi/chime6/dev/gss kaldi/dipco/dev/gss kaldi/mixer6/dev/gss kaldi/notsofar1/dev/gss"
 elif
-  [ $decode_train == "eval" ]; then
+  [ $decode_train == "eval" ] && [ $diar_score == 0 ]; then
   # apply gss only on eval
   gss_dsets="chime6_eval,dipco_eval,mixer6_eval,notsofar1_eval"
   asr_tt_set="kaldi/chime6/eval/gss kaldi/dipco/eval/gss/ kaldi/mixer6/eval/gss/ kaldi/notsofar1/eval/gss"
 fi
 
-. ./path.sh
-. ./cmd.sh
-. ./utils/parse_options.sh
 
+
+devices=($(echo $CUDA_VISIBLE_DEVICES | tr "," " "))
+if [ "${#devices[@]}" -lt $ngpu ]; then
+  echo "Number of available GPUs is less than requested ! exiting. Please check your CUDA_VISIBLE_DEVICES"
+  exit
+fi
 
 
 # ESPNet does not scale parameters with num of GPUs by default, doing it
@@ -140,9 +146,7 @@ if [ ${stage} -le 1 ] && [ $stop_stage -ge 1 ]; then
       fi
     fi
 
-
      for c_part in $dset_part; do
-
         if [[ $c_part = @(train|train_call|train_intv) ]]; then
           txt_norm="chime8" # in training use the chime8, whisper-style normalization
           mics="ihm,mdm"

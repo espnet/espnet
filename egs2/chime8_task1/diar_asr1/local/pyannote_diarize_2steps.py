@@ -87,7 +87,7 @@ def rttm2json(rttm_file):
                 "speaker": speaker,
                 "start_time": start,
                 "end_time": stop,
-                "words": "dummy words",
+                "words" : "dummy words"
             }
         )
 
@@ -173,9 +173,9 @@ def diarize_session(
             segmentation.sum((0, 1))
         )  # not the best selection criteria
         # however this keeps it simple and fast.
-        selected_audio[:, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)] = (
-            c_seg[selection]
-        )
+        selected_audio[
+            :, math.floor(seg_b.start * fs) : math.floor(seg_b.end * fs)
+        ] = c_seg[selection]
         selected_seg.append(segmentation[..., selection])
     # stack em
     selected_seg = SlidingWindowFeature(
@@ -217,7 +217,10 @@ def diarize_session(
     inactive_speakers = np.sum(selected_seg.data, axis=1) == 0
     #  shape: (num_chunks, num_speakers)
     hard_clusters[inactive_speakers] = -2
-    # reshape now to multi-channel
+
+    # get max number of speakers from here.
+    max_n_speakers = hard_clusters.max() + 1
+
     discrete_diarization = pipeline.reconstruct(
         selected_seg,
         hard_clusters,
@@ -392,7 +395,7 @@ if __name__ == "__main__":
     diarization_pipeline.segmentation.min_duration_on = 0.0  # 0.5
     diarization_pipeline.segmentation.pad_onset = 0.0  # 0.2
     diarization_pipeline.segmentation.pad_offset = 0.0  # 0.2
-    diarization_pipeline.clustering.threshold = 0.75 # higher than last year
+    diarization_pipeline.clustering.threshold = 0.75
     diarization_pipeline.clustering.min_cluster_size = (
         15  # higher than pre-trained, which was 15
     )

@@ -32,11 +32,11 @@ diarization_backend=pyannote
 pyannote_access_token=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 # will remove after the challenge.
 # inference
 diarization_dir=exp/diarization
-diar_inf_dset="dev"
 pyan_merge_closer=0.5
+min_dur_on=0.5
 pyan_max_length_merged=20
-pyan_inf_max_batch=32
-pyan_use_pretrained= #popcornell/pyannote-segmentation-chime6-mixer6
+pyan_inf_max_batch=64 #FIXME reduce
+pyan_use_pretrained=popcornell/pyannote-segmentation-chime6-mixer6
 download_baseline_diarization=0
 # fine-tune
 pyan_finetune_dir=exp/pyannote_finetuned
@@ -45,10 +45,10 @@ pyan_learning_rate="1e-5"
 
 
 # GSS config
-ngpu=2
+ngpu=1
 gss_max_batch_dur=90
 gss_iterations=5
-infer_max_segment_length=20
+infer_max_segment_length=90
 gss_dsets="dipco_dev"
 asr_tt_set="kaldi/dipco/dev/gss"
 
@@ -56,6 +56,10 @@ asr_tt_set="kaldi/dipco/dev/gss"
 use_pretrained=
 decode_train="dev"
 
+if [ -z $use_pretrained ]; then
+  echo "Pretrained ASR model not set. Using default !"
+  use_pretrained=popcornell/chime7_task1_asr1_baseline
+fi
 
 gss_asr_stage=
 gss_asr_stop_stage=10
@@ -68,10 +72,12 @@ if [ -z "$gss_asr_stage" ]; then
   gss_asr_stage=2
 fi
 
-
-if [ "${decode_train}" == "eval" ]; then
-  diar_inf_dset="eval"
+devices=($(echo $CUDA_VISIBLE_DEVICES | tr "," " "))
+if [ "${#devices[@]}" -lt $ngpu ]; then
+  echo "Number of available GPUs is less than requested ! exiting. Please check your CUDA_VISIBLE_DEVICES"
+  exit
 fi
+
 
 
 if [[ $decode_train != "dev" ]] && [[ $decode_train != "eval" ]];
@@ -84,14 +90,15 @@ fi
 
 
 if [ $download_baseline_diarization == 1 ]; then
-  log "Using organizer-provided JSON manifests from the baseline diarization system."
-  if [ ! -d CHiME7DASRDiarizationBaselineJSONs ]; then
-      exit #FIXME later provide
-      git clone https://github.com/popcornell/CHiME7DASRDiarizationBaselineJSONs
-  fi
-  mkdir -p exp/diarization
-  cp -r CHiME7DASRDiarizationBaselineJSONs/diarization exp/
-  stage=3
+  exit
+  #log "Using organizer-provided JSON manifests from the baseline diarization system."
+  #if [ ! -d CHiME7DASRDiarizationBaselineJSONs ]; then
+  #    exit #FIXME later provide
+  #    git clone https://github.com/popcornell/CHiME7DASRDiarizationBaselineJSONs
+  #fi
+  #mkdir -p exp/diarization
+  #cp -r CHiME7DASRDiarizationBaselineJSONs/diarization exp/
+  #stage=3
 fi
 
 
@@ -154,17 +161,21 @@ if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ] && [ $diarization_backend == pyan
     )
   fi
 
-  for dset in dipco; do #FIXME
-    for split in $diar_inf_dset; do
-        if [ $dset == mixer6 ]; then
-          mic_regex="(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
-          sess_regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)"
-        else
-          mic_regex="(U[0-9]+)" # exclude close-talk
-          sess_regex="(S[0-9]+)"
-        fi
+
+  split_gss_dsets_commas=$(echo $gss_dsets | tr "," " ")
+  for dset_split in $split_gss_dsets_commas; do
+    # for each dataset get the name and part (dev or train)
+    dset="$(cut -d'_' -f1 <<<${dset_split})"
+    split="$(cut -d'_' -f2 <<<${dset_split})"
+    if [ $dset == mixer6 ]; then
+        mic_regex="(?!CH01|CH02|CH03)(CH[0-9]+)" # exclude close-talk CH01, CH02, CH03
+        sess_regex="([0-9]+_[0-9]+_(LDC|HRM)_[0-9]+)"
+    else
+        mic_regex="(U[0-9]+)" # exclude close-talk
+        sess_regex="(S[0-9]+)"
+    fi
         # diarizing with pyannote + ensembling across mics with dover-lap
-        python local/pyannote_diarize.py -i ${chime8_root}/${dset}/audio/${split} \
+    python local/pyannote_diarize.py -i ${chime8_root}/${dset}/audio/${split} \
               -o ${diarization_dir}/${dset}/${split} \
               -u ${chime8_root}/${dset}/uem/${split}/all.uem \
               --mic_regex $mic_regex \
@@ -174,20 +185,22 @@ if [ ${stage} -le 2 ] && [ $stop_stage -ge 2 ] && [ $diarization_backend == pyan
               --merge_closer $pyan_merge_closer \
               --max_length_merged $pyan_max_length_merged \
               --max_batch_size $pyan_inf_max_batch
-    done
+
   done
 fi
 
 
 if [ ${stage} -le 3 ] && [ ${stop_stage} -ge 3 ]; then
   # parse all datasets to lhotse
-  for dset in dipco; do
-    for dset_part in $diar_inf_dset; do
+  split_gss_dsets_commas=$(echo $gss_dsets | tr "," " ")
+  for dset_split in $split_gss_dsets_commas; do
+    # for each dataset get the name and part (dev or train)
+    dset="$(cut -d'_' -f1 <<<${dset_split})"
+    dset_part="$(cut -d'_' -f2 <<<${dset_split})"
       log "Creating lhotse manifests for ${dset} in ${manifests_root}/${dset}"
       chime-utils lhotse-prep $dset $chime8_root/$dset $manifests_root/${dset}/${dset_part}_orig --txt-norm none --dset-part $dset_part --json-dir ${diarization_dir}/${dset}/${dset_part}
       echo "Discard lhotse supervisions shorter than 0.2"
-      chime-utils lhotse-prep discard-length $manifests_root/${dset}/${dset_part}_orig $manifests_root/${dset}/$dset_part --min-len 0.2
-    done
+      chime-utils lhotse-prep discard-length $manifests_root/${dset}/${dset_part}_orig $manifests_root/${dset}/$dset_part --min-len $min_dur_on
   done
 fi
 
@@ -201,10 +214,11 @@ if [ ${stage} -le 4 ] && [ ${stop_stage} -ge 4 ]; then
   ./run_gss_asr.sh --chime8-root $chime8_root --stage $gss_asr_stage \
         --stop-stage $gss_asr_stop_stage --ngpu $ngpu \
         --use-pretrained $use_pretrained \
+        --gss-dsets $gss_dsets \
+        --asr-tt-set $asr_tt_set \
         --decode-train $decode_train --gss-max-batch-dur $gss_max_batch_dur \
         --infer-max-segment-length $infer_max_segment_length \
         --gss-iterations $gss_iterations \
-        --diar-score 1 \
-        --gss-dsets $gss_dsets \
-        --asr-tt-set $asr_tt_set
+        --diar-score 1
+
 fi
