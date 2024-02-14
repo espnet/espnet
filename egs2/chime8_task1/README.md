@@ -1,6 +1,10 @@
 # CHiME-8 DASR (CHiME-8 Task 1)
 
 ### Distant Automatic Speech Transcription with Multiple Devices in Diverse Scenarios
+[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/chimechallenge.svg?style=social&label=Follow%20%40chimechallenge)](https://twitter.com/chimechallenge)
+[![Slack][slack-badge]][slack-invite]
+---
+
 
 #### If you want to participate see [official challenge website](https://www.chimechallenge.org/current/task1/index) for registration.
 
